@@ -573,6 +573,8 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 NucleotideArray::NucleotideArray(std::size_t p_length, const int64_t *p_int_buffer) : length_(p_length)
 {
 	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	if (!buffer_)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	
 	// Eat 32 nucleotides at a time if we can
 	std::size_t index = 0, buf_index = 0;
@@ -611,6 +613,8 @@ uint8_t *NucleotideArray::NucleotideCharToIntLookup(void)
 	if (!nuc_lookup)
 	{
 		nuc_lookup = (uint8_t *)malloc(256 * sizeof(uint8_t));
+		if (!nuc_lookup)
+			EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideCharToIntLookup): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 		
 		for (int i = 0; i < 256; ++i)
 			nuc_lookup[i] = 4;	// placeholder illegal value
@@ -629,6 +633,8 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 	uint8_t *nuc_lookup = NucleotideArray::NucleotideCharToIntLookup();
 	
 	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	if (!buffer_)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	
 	// Eat 32 nucleotides at a time if we can
 	std::size_t index = 0, buf_index = 0;
@@ -663,6 +669,8 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 NucleotideArray::NucleotideArray(std::size_t p_length, const std::vector<std::string> &p_string_vector) : length_(p_length)
 {
 	buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+	if (!buffer_)
+		EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	
 	// Eat 32 nucleotides at a time if we can
 	std::size_t index = 0, buf_index = 0;

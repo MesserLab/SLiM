@@ -33,6 +33,7 @@ development head:
 	add recipe 16.23, tracking separate sexes in script nonWF style
 	fix InteractionType to allow > 2 billion interactions in a model (switch from uint32_t to uint64_t)
 	add an "action button" at the bottom of the haplotype plot window, like that in graph windows
+	add checks for malloc/calloc/realloc failures, for clusters that make allocations fail when the process is at its memory limit
 
 
 version 3.6 (build 2784; Eidos version 2.6):

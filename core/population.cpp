@@ -624,6 +624,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (!weights_modified)
 				{
 					current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
+					if (!current_weights)
+						EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 					weights_modified = true;
 				}
 				
@@ -725,6 +727,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 							if (!weights_modified)
 							{
 								current_weights = (double *)malloc(sizeof(double) * weights_length);	// allocate a new weights vector
+								if (!current_weights)
+									EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 								weights_modified = true;
 							}
 							
@@ -1195,6 +1199,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				if (planned_offspring_alloc_size < total_children)
 				{
 					planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+					if (!planned_offspring)
+						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 					planned_offspring_alloc_size = total_children;
 				}
 				
@@ -1588,6 +1594,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			if (planned_offspring_alloc_size < total_children)
 			{
 				planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+				if (!planned_offspring)
+					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				planned_offspring_alloc_size = total_children;
 			}
 			
@@ -4973,8 +4981,11 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 #endif
 	
 	std::vector<MutationRun_SP> mutrun_retain;
-	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
 	int mutruns_buf_index;
+	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	
+	if (!mutruns_buf)
+		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	// for every subpop
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5156,8 +5167,11 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
     typedef std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
 #endif
 	std::vector<MutationRun_SP> mutrun_retain;
-	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
 	int mutruns_buf_index;
+	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	
+	if (!mutruns_buf)
+		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	// for every subpop
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)

@@ -326,6 +326,8 @@ public:
 				// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
 				mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
 				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
+				if (!mutations_)
+					EIDOS_TERMINATION << "ERROR (MutationRun::emplace_back): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
 				
@@ -363,6 +365,8 @@ public:
 					mutation_capacity_ += 16;
 				
 				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+				if (!mutations_)
+					EIDOS_TERMINATION << "ERROR (MutationRun::emplace_back): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 #if DEBUG_MUTATION_RUNS
 				gSLiM_MutationsBufferReallocCount++;
@@ -403,6 +407,8 @@ public:
 				}
 				
 				mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
+				if (!mutations_)
+					EIDOS_TERMINATION << "ERROR (MutationRun::emplace_back_bulk): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 				memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
 				
@@ -428,6 +434,8 @@ public:
 				while (mutation_count_ + p_copy_count > mutation_capacity_);
 				
 				mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+				if (!mutations_)
+					EIDOS_TERMINATION << "ERROR (MutationRun::emplace_back_bulk): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 #if DEBUG_MUTATION_RUNS
 				gSLiM_MutationsBufferReallocCount++;
@@ -586,6 +594,8 @@ public:
 				mutations_ = nullptr;
 			
 			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+			if (!mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::copy_from_run): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
 		// then copy all pointers from the source to ourselves
@@ -683,6 +693,8 @@ public:
 			// but without the built-in internal buffer at the beginning
 			nonneutral_mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
 			nonneutral_mutations_ = (MutationIndex *)malloc(nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+			if (!nonneutral_mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::zero_out_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
 		// empty out the current buffer contents
@@ -704,6 +716,8 @@ public:
 				nonneutral_mutation_capacity_ += 16;
 			
 			nonneutral_mutations_ = (MutationIndex *)realloc(nonneutral_mutations_, nonneutral_mutation_capacity_ * sizeof(MutationIndex));
+			if (!nonneutral_mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::add_to_nonneutral_buffer): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
 		*(nonneutral_mutations_ + nonneutral_mutations_count_) = p_mutation_index;

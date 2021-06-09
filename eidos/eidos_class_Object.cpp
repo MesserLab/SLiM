@@ -453,6 +453,8 @@ void EidosClass::CacheDispatchTables(void)
 			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) property dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		property_signatures_dispatch_ = (EidosPropertySignature_CSP *)calloc(property_signatures_dispatch_capacity_, sizeof(EidosPropertySignature_CSP));
+		if (!property_signatures_dispatch_)
+			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		for (const EidosPropertySignature_CSP &sig : *properties)
 			property_signatures_dispatch_[sig->property_id_] = sig;
@@ -472,6 +474,8 @@ void EidosClass::CacheDispatchTables(void)
 			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): (internal error) method dispatch table unreasonably large for class " << ClassName() << "." << EidosTerminate(nullptr);
 		
 		method_signatures_dispatch_ = (EidosMethodSignature_CSP *)calloc(method_signatures_dispatch_capacity_, sizeof(EidosMethodSignature_CSP));
+		if (!method_signatures_dispatch_)
+			EIDOS_TERMINATION << "ERROR (EidosClass::CacheDispatchTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		for (const EidosMethodSignature_CSP &sig : *methods)
 			method_signatures_dispatch_[sig->call_id_] = sig;

@@ -616,6 +616,8 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 			}
 			
 			mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
+			if (!mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::clear_set_and_merge): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
 			memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
 			
@@ -641,6 +643,8 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 			while (mut_to_set_count + mut_to_add_count > mutation_capacity_);
 			
 			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+			if (!mutations_)
+				EIDOS_TERMINATION << "ERROR (MutationRun::clear_set_and_merge): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
 #if DEBUG_MUTATION_RUNS
 			gSLiM_MutationsBufferReallocCount++;

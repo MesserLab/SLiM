@@ -132,6 +132,8 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	if (spatiality_ > 0)
 	{
 		double *positions = (double *)malloc(subpop_size * SLIM_MAX_DIMENSIONALITY * sizeof(double));
+		if (!positions)
+			EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		subpop_data->positions_ = positions;
 		
@@ -1395,6 +1397,8 @@ void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
 		
 		// Now allocate the chosen number of nodes
 		SLiM_kdNode *nodes = (SLiM_kdNode *)calloc(count, sizeof(SLiM_kdNode));
+		if (!nodes)
+			EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		// Fill the nodes with their initial data
 		if (periodic_dimensions)
@@ -2537,6 +2541,9 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 			best_dist = (double *)malloc(p_count * sizeof(double));
 			gKDTree_found_count = 0;
 			gKDTree_worstbest = -1;
+			
+			if (!best || !best_dist)
+				EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
 			switch (spatiality_)
 			{

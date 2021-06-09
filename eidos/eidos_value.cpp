@@ -439,6 +439,9 @@ void EidosValue::_CopyDimensionsFromValue(const EidosValue *p_value)
 		int64_t dim_count = *source_dims;
 		
 		dim_ = (int64_t *)malloc((dim_count + 1) * sizeof(int64_t));
+		if (!dim_)
+			EIDOS_TERMINATION << "ERROR (EidosValue::_CopyDimensionsFromValue): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		memcpy(dim_, source_dims, (dim_count + 1) * sizeof(int64_t));
 	}
 	else
@@ -486,6 +489,9 @@ void EidosValue::SetDimensions(int64_t p_dim_count, const int64_t *p_dim_buffer)
 		dim_ = nullptr;
 		
 		dim_ = (int64_t *)malloc((p_dim_count + 1) * sizeof(int64_t));
+		if (!dim_)
+			EIDOS_TERMINATION << "ERROR (EidosValue::SetDimensions): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 		dim_[0] = p_dim_count;
 		memcpy(dim_ + 1, p_dim_buffer, p_dim_count * sizeof(int64_t));
 	}
@@ -576,6 +582,9 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		if (dimcount > static_dim_buffer_size)
 		{
 			static_dim_buffer = (int64_t *)realloc(static_dim_buffer, (dimcount + 1) * sizeof(int64_t));	// +1 so the zero case doesn't result in a zero-size allocation
+			if (!static_dim_buffer)
+				EIDOS_TERMINATION << "ERROR (EidosValue::Subset): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
 			static_dim_buffer_size = dimcount;
 		}
 		
@@ -718,6 +727,9 @@ void EidosValue::Print(std::ostream &p_ostream, const std::string &p_indent) con
 		int64_t array_dim_count = dim_count - 2;	// this many additional dimensions of nxm matrix slices
 		int64_t *array_dim_indices = (int64_t *)calloc(array_dim_count, sizeof(int64_t));
 		int64_t *array_dim_skip = (int64_t *)calloc(array_dim_count, sizeof(int64_t));
+		
+		if (!array_dim_indices || !array_dim_skip)
+			EIDOS_TERMINATION << "ERROR (EidosValue::Print): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		array_dim_skip[0] = matrix_skip;
 		for (int array_dim_index = 1; array_dim_index < array_dim_count; ++array_dim_index)
@@ -1134,6 +1146,9 @@ EidosValue_Logical *EidosValue_Logical::reserve(size_t p_reserved_size)
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (eidos_logical_t *)realloc(values_, p_reserved_size * sizeof(eidos_logical_t));
+		if (!values_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Logical::reserve): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		capacity_ = p_reserved_size;
 	}
 	
@@ -1654,6 +1669,9 @@ EidosValue_Int_vector *EidosValue_Int_vector::reserve(size_t p_reserved_size)
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (int64_t *)realloc(values_, p_reserved_size * sizeof(int64_t));
+		if (!values_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::reserve): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		capacity_ = p_reserved_size;
 	}
 	
@@ -1945,6 +1963,9 @@ EidosValue_Float_vector *EidosValue_Float_vector::reserve(size_t p_reserved_size
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (double *)realloc(values_, p_reserved_size * sizeof(double));
+		if (!values_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Float_vector::reserve): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		capacity_ = p_reserved_size;
 	}
 	
@@ -3127,6 +3148,9 @@ EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_si
 	if (p_reserved_size > capacity_)
 	{
 		values_ = (EidosObject **)realloc(values_, p_reserved_size * sizeof(EidosObject *));
+		if (!values_)
+			EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::reserve): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		capacity_ = p_reserved_size;
 	}
 	

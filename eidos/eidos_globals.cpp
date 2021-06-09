@@ -1920,6 +1920,8 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 	{
 		m = 32;			// this is NUM_PARTIALS in the Python code
 		p = (double *)malloc(m * sizeof(double));
+		if (!p)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	
 	int i, j, n = 0;
@@ -1971,6 +1973,8 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 				{
 					m = m * 2;
 					p = (double *)realloc(p, m * sizeof(double));
+					if (!p)
+						EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				}
 				
 				p[n++] = x;

@@ -67,7 +67,11 @@ static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTabl
 		return ret;
 	}
 	
-	return (EidosSymbolTableSlot *)calloc(gEidosSymbolTable_TablePool_table_capacity, sizeof(EidosSymbolTableSlot));
+	EidosSymbolTableSlot *ret = (EidosSymbolTableSlot *)calloc(gEidosSymbolTable_TablePool_table_capacity, sizeof(EidosSymbolTableSlot));
+	if (!ret)
+		EIDOS_TERMINATION << "ERROR (GetZeroedTableFromPool): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	return ret;
 }
 
 static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSymbolTableSlot *p_table, uint32_t p_capacity)
@@ -393,6 +397,9 @@ void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 		// EidosSymbolTableSlot is non-trivially copyable according to C++.  But they are safe, so
 		// I have added casts to void* in the hopes of suppressing the compiler warning.
 		slots_ = (EidosSymbolTableSlot *)realloc((void *)slots_, new_capacity * sizeof(EidosSymbolTableSlot));
+		if (!slots_)
+			EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_ResizeToFitSymbol): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		EIDOS_BZERO((void *)(slots_ + capacity_), (new_capacity - capacity_) * sizeof(EidosSymbolTableSlot));
 		capacity_ = new_capacity;
 	}

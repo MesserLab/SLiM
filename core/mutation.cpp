@@ -48,6 +48,9 @@ void SLiM_CreateMutationBlock(void)
 	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
 	gSLiM_Mutation_Refcounts = (slim_refcount_t *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
 	
+	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
+		EIDOS_TERMINATION << "ERROR (SLiM_CreateMutationBlock): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	//std::cout << "Allocating initial mutation block, " << SLIM_MUTATION_BLOCK_INITIAL_SIZE * sizeof(Mutation) << " bytes (sizeof(Mutation) == " << sizeof(Mutation) << ")" << std::endl;
 	
 	// now we need to set up our free list inside the block; initially all blocks are free
@@ -87,6 +90,9 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 	gSLiM_Mutation_Block_Capacity *= 2;
 	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
 	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
+	
+	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
+		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
 	

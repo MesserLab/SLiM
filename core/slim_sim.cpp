@@ -2547,6 +2547,9 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 	x_previous_runtimes_ = (double *)malloc(SLIM_MUTRUN_EXPERIMENT_LENGTH * sizeof(double));
 	x_previous_buflen_ = 0;
 	
+	if (!x_current_runtimes_ || !x_previous_runtimes_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::InitiateMutationRunExperiments): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	x_continuing_trend_ = false;
 	
 	x_stasis_limit_ = 5;				// once we reach stasis, we will conduct 5 stasis experiments before exploring again
@@ -4554,6 +4557,8 @@ void SLiMSim::CacheNucleotideMatrices(void)
 			if (mm->Count() == 16)
 			{
 				ge_type->mm_thresholds = (double *)malloc(16 * sizeof(double));
+				if (!ge_type->mm_thresholds)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::CacheNucleotideMatrices): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 				
 				for (int nuc = 0; nuc < 4; ++nuc)
 				{
@@ -4574,6 +4579,8 @@ void SLiMSim::CacheNucleotideMatrices(void)
 			else if (mm->Count() == 256)
 			{
 				ge_type->mm_thresholds = (double *)malloc(256 * sizeof(double));
+				if (!ge_type->mm_thresholds)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::CacheNucleotideMatrices): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 				
 				for (int trinuc = 0; trinuc < 64; ++trinuc)
 				{
@@ -6006,6 +6013,8 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			size_t metadata_length = sizeof(SubpopulationMetadataRec) + metarec.migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec);
 			
 			binary_metadata = (char *)realloc(binary_metadata, binary_metadata_offset[j] + metadata_length);
+			if (!binary_metadata)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 			
 			SubpopulationMetadataRec *binary_metadata_subpop_rec = (SubpopulationMetadataRec *)(binary_metadata + binary_metadata_offset[j]);
 			SubpopulationMigrationMetadataRec *binary_metadata_migrations = (SubpopulationMigrationMetadataRec *)(binary_metadata_subpop_rec + 1);
@@ -6061,7 +6070,11 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	static char *double_buf = NULL;
 	
 	if (!double_buf)
-		double_buf = (char *)malloc(40 *sizeof(char));
+	{
+		double_buf = (char *)malloc(40 * sizeof(char));
+		if (!double_buf)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataToAscii): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	}
 	
 	/***  Ascii-ify Mutation Table ***/
 	{
@@ -6597,6 +6610,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 	tsk_id_t tsk_population_id;
 	tsk_population_table_t *population_table_copy;
 	population_table_copy = (tsk_population_table_t *)malloc(sizeof(tsk_population_table_t));
+	if (!population_table_copy)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::WritePopulationTable): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	ret = tsk_population_table_copy(&p_tables->populations, population_table_copy, 0);
 	if (ret != 0) handle_error("WritePopulationTable tsk_population_table_copy()", ret);
 	ret = tsk_population_table_clear(&p_tables->populations);
@@ -6644,6 +6659,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 #endif	// SLIM_WF_ONLY
 		size_t metadata_length = sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec);
 		SubpopulationMetadataRec *metadata_rec = (SubpopulationMetadataRec *)malloc(metadata_length);
+		if (!metadata_rec)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::WritePopulationTable): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
 		metadata_rec->subpopulation_id_ = subpop->subpopulation_id_;
 #ifdef SLIM_WF_ONLY
@@ -7024,6 +7041,9 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 		model_type = (char *)malloc(101 * sizeof(char));
 		generation = (char *)malloc(101 * sizeof(char));
 		rem_count = (char *)malloc(101 * sizeof(char));
+		
+		if (!program || !version || !file_version || !model_type || !generation || !rem_count)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
 	int end_pos;
@@ -7349,6 +7369,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			kastore_t store;
 			
 			buffer = (char *)malloc(buflen);
+			if (!buffer)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+			
 			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
 			ret = kastore_open(&store, path.c_str(), "a", 0);
@@ -7662,6 +7685,9 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tsk_table_collection_t *tables_copy;
 		
 		tables_copy = (tsk_table_collection_t *)malloc(sizeof(tsk_table_collection_t));
+		if (!tables_copy)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		ret = tsk_table_collection_copy(&tables_, tables_copy, 0);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_copy()", ret);
 		
@@ -7710,6 +7736,9 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tsk_treeseq_t *ts;
 		
 		ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
+		if (!ts)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		ret = tsk_treeseq_init(ts, tables_copy, TSK_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
 		
@@ -7717,8 +7746,11 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		tsk_vargen_t *vg;
 		
 		vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
+		if (!vg)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		ret = tsk_vargen_init(vg, ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_alloc()", ret);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_init()", ret);
 		
 		// crosscheck by looping through variants
 		do
@@ -8392,6 +8424,9 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
+	if (!vg)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__TallyMutationReferencesWithTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_init()", ret);
 	
@@ -8564,6 +8599,9 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	tsk_vargen_t *vg;
 	
 	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
+	if (!vg)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::__AddMutationsFromTreeSequenceToGenomes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_init()", ret);
 	
@@ -8693,6 +8731,9 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	int ret = 0;
 	
 	ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
+	if (!ts)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	ret = tsk_treeseq_init(ts, &tables_, TSK_BUILD_INDEXES);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_init()", ret);
 	

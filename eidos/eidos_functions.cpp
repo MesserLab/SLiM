@@ -5320,6 +5320,9 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_
 	gsl_vector *gsl_x = gsl_vector_calloc(d);
 	gsl_vector *gsl_work = gsl_vector_calloc(d);
 	
+	if (!gsl_mu || !gsl_Sigma || !gsl_L || !gsl_x || !gsl_work)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	for (int dim_index = 0; dim_index < d; ++dim_index)
 		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
 	
@@ -6433,6 +6436,9 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_
 	gsl_matrix *gsl_Sigma = gsl_matrix_calloc(d, d);
 	gsl_matrix *gsl_L = gsl_matrix_calloc(d, d);
 	gsl_vector *gsl_result = gsl_vector_calloc(d);
+	
+	if (!gsl_mu || !gsl_Sigma || !gsl_L || !gsl_result)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rmvnorm): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	for (int dim_index = 0; dim_index < d; ++dim_index)
 		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
@@ -9880,6 +9886,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 			{
 				// dimensions of c(n, dim(x)[margin]); in other words, n rows, and the marginal dim sizes after that
 				int64_t *dims = (int64_t *)malloc((margin_count + 1) * sizeof(int64_t));
+				if (!dims)
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 				dims[0] = return_length;
 				
@@ -10121,6 +10129,9 @@ EidosValue_SP Eidos_ExecuteFunction_drop(const std::vector<EidosValue_SP> &p_arg
 			result_SP = x_value->CopyValues();
 			
 			int64_t *dim_buf = (int64_t *)malloc(needed_dim_count * sizeof(int64_t));
+			if (!dim_buf)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_drop): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
 			int dim_buf_index = 0;
 			
 			for (int dim_index = 0; dim_index < source_dimcount; dim_index++)

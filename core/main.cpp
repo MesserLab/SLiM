@@ -368,6 +368,8 @@ int main(int argc, char *argv[])
 	{
 		mem_record_capacity = 16384;
 		mem_record = (size_t *)malloc(mem_record_capacity * sizeof(size_t));
+		if (!mem_record)
+			EIDOS_TERMINATION << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	
 	if (keep_mem)
@@ -454,6 +456,8 @@ int main(int argc, char *argv[])
 				{
 					mem_record_capacity <<= 1;
 					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));
+					if (!mem_record)
+						EIDOS_TERMINATION << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 				}
 				
 				mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);

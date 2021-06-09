@@ -484,6 +484,8 @@ public:
 	NucleotideArray(void) = delete;									// no null construction
 	NucleotideArray(std::size_t p_length) : length_(p_length) {
 		buffer_ = (uint64_t *)malloc(((length_ + 31) / 32) * sizeof(uint64_t));
+		if (!buffer_)
+			EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideArray): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 	}
 	~NucleotideArray(void) {
 		if (buffer_) { free(buffer_); buffer_ = nullptr; }

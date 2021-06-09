@@ -54,6 +54,9 @@ void Eidos_InitializeRNG(void)
 		gEidos_RNG.mt_ = (uint64_t *)malloc(Eidos_MT64_NN * sizeof(uint64_t));
 		gEidos_RNG.mti_ = Eidos_MT64_NN + 1;				// mti==NN+1 means mt[NN] is not initialized
 	}
+	
+	if (!gEidos_RNG.gsl_rng_ || !gEidos_RNG.mt_)
+		EIDOS_TERMINATION << "ERROR (Eidos_InitializeRNG): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 }
 
 void Eidos_FreeRNG(Eidos_RNG_State &p_rng)

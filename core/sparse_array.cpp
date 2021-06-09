@@ -44,6 +44,9 @@ SparseArray::SparseArray(unsigned int p_nrows, unsigned int p_ncols)
 	distances_ = (sa_distance_t *)malloc(nnz_capacity_ * sizeof(sa_distance_t));
 	strengths_ = (sa_strength_t *)malloc(nnz_capacity_ * sizeof(sa_strength_t));
 	
+	if (!row_offsets_ || !columns_ || !distances_ || !strengths_)
+		EIDOS_TERMINATION << "ERROR (SparseArray::SparseArray): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
 	row_offsets_[nrows_set_] = 0;
 	finished_ = false;
 }
@@ -90,6 +93,8 @@ void SparseArray::Reset(unsigned int p_nrows, unsigned int p_ncols)
 	nnz_ = 0;
 	
 	row_offsets_ = (uint64_t *)realloc(row_offsets_, (nrows_ + 1) * sizeof(uint64_t));
+	if (!row_offsets_)
+		EIDOS_TERMINATION << "ERROR (SparseArray::Reset): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	row_offsets_[nrows_set_] = 0;
 	finished_ = false;
@@ -106,6 +111,9 @@ void SparseArray::_ResizeToFitNNZ(void)
 		columns_ = (uint32_t *)realloc(columns_, nnz_capacity_ * sizeof(uint32_t));
 		distances_ = (sa_distance_t *)realloc(distances_, nnz_capacity_ * sizeof(sa_distance_t));
 		strengths_ = (sa_strength_t *)realloc(strengths_, nnz_capacity_ * sizeof(sa_strength_t));
+		
+		if (!columns_ || !distances_ || !strengths_)
+			EIDOS_TERMINATION << "ERROR (SparseArray::_ResizeToFitNNZ): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 }
 

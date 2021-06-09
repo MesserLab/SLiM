@@ -71,12 +71,17 @@ _SpatialMap::_SpatialMap(std::string p_spatiality_string, int p_spatiality, int6
 	}
 	
 	values_ = (double *)malloc(values_size * sizeof(double));
+	if (!values_)
+		EIDOS_TERMINATION << "ERROR (_SpatialMap::_SpatialMap): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	if (n_colors_ > 0)
 	{
 		red_components_ = (float *)malloc(n_colors_ * sizeof(float));
 		green_components_ = (float *)malloc(n_colors_ * sizeof(float));
 		blue_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		
+		if (!red_components_ || !green_components_ || !blue_components_)
+			EIDOS_TERMINATION << "ERROR (_SpatialMap::_SpatialMap): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	else
 	{
@@ -997,6 +1002,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	{
 		// Set up to draw random individuals, based initially on equal fitnesses
 		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		if (!cached_parental_fitness_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		cached_fitness_capacity_ = parent_subpop_size_;
 		cached_fitness_size_ = parent_subpop_size_;
 		
@@ -1047,6 +1055,9 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		// Set up to draw random females, based initially on equal fitnesses
 		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
 		cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+		if (!cached_parental_fitness_ || !cached_male_fitness_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::Subpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		cached_fitness_capacity_ = parent_subpop_size_;
 		cached_fitness_size_ = parent_subpop_size_;
 		
@@ -1629,8 +1640,16 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	if (cached_fitness_capacity_ < parent_subpop_size_)
 	{
 		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
+		if (!cached_parental_fitness_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
 		if (sex_enabled_)
+		{
 			cached_male_fitness_ = (double *)realloc(cached_male_fitness_, sizeof(double) * parent_subpop_size_);
+			if (!cached_male_fitness_)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateWFFitnessBuffers): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
 		cached_fitness_capacity_ = parent_subpop_size_;
 	}
 	
