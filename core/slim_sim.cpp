@@ -7627,8 +7627,8 @@ void SLiMSim::CheckTreeSeqIntegrity(void)
 	// made more flexible, in terms of being able to turn off checks that we do not want, we will
 	// enable this code with the appropriate flags.  See https://github.com/tskit-dev/tskit/issues/593
 	
-	/*int ret = tsk_table_collection_check_integrity(&tables_, 0);
-	if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);*/
+	int ret = tsk_table_collection_check_integrity(&tables_, TSK_NO_CHECK_POPULATION_REFS);
+	if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
 }
 
 void SLiMSim::CrosscheckTreeSeqIntegrity(void)
