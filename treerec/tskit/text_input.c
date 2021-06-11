@@ -567,6 +567,7 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
             goto out;
         }
         ret = tsk_individual_table_add_row(individual_table, flags, location, (tsk_size_t)j,
+                NULL, 0, // for individual parents
                 metadata, (tsk_size_t)strlen(metadata));
         if (ret < 0) {
             goto out;

@@ -321,10 +321,7 @@ tsk_vargen_update_genotypes_i8_sample_list(
     if (index != TSK_NULL) {
         stop = list_right[node];
         while (true) {
-            if (genotypes[index] == (int8_t) derived) {
-                ret = TSK_ERR_INCONSISTENT_MUTATIONS;
-                goto out;
-            }
+
             ret += genotypes[index] == TSK_MISSING_DATA;
             genotypes[index] = (int8_t) derived;
             if (index == stop) {
@@ -333,7 +330,7 @@ tsk_vargen_update_genotypes_i8_sample_list(
             index = list_next[index];
         }
     }
-out:
+
     return ret;
 }
 
@@ -354,10 +351,7 @@ tsk_vargen_update_genotypes_i16_sample_list(
     if (index != TSK_NULL) {
         stop = list_right[node];
         while (true) {
-            if (genotypes[index] == (int16_t) derived) {
-                ret = TSK_ERR_INCONSISTENT_MUTATIONS;
-                goto out;
-            }
+
             ret += genotypes[index] == TSK_MISSING_DATA;
             genotypes[index] = (int16_t) derived;
             if (index == stop) {
@@ -366,7 +360,7 @@ tsk_vargen_update_genotypes_i16_sample_list(
             index = list_next[index];
         }
     }
-out:
+
     return ret;
 }
 
@@ -422,13 +416,10 @@ tsk_vargen_visit_i8(tsk_vargen_t *self, tsk_id_t sample_index, tsk_id_t derived)
 
     tsk_bug_assert(derived < INT8_MAX);
     tsk_bug_assert(sample_index != -1);
-    if (genotypes[sample_index] == (int8_t) derived) {
-        ret = TSK_ERR_INCONSISTENT_MUTATIONS;
-        goto out;
-    }
+
     ret = genotypes[sample_index] == TSK_MISSING_DATA;
     genotypes[sample_index] = (int8_t) derived;
-out:
+
     return ret;
 }
 
@@ -440,13 +431,10 @@ tsk_vargen_visit_i16(tsk_vargen_t *self, tsk_id_t sample_index, tsk_id_t derived
 
     tsk_bug_assert(derived < INT16_MAX);
     tsk_bug_assert(sample_index != -1);
-    if (genotypes[sample_index] == (int16_t) derived) {
-        ret = TSK_ERR_INCONSISTENT_MUTATIONS;
-        goto out;
-    }
+
     ret = genotypes[sample_index] == TSK_MISSING_DATA;
     genotypes[sample_index] = (int16_t) derived;
-out:
+
     return ret;
 }
 

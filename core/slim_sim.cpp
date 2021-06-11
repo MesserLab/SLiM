@@ -5143,7 +5143,9 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 		const char *metadata = individuals_copy.metadata + individuals_copy.metadata_offset[k];
 		size_t metadata_length = individuals_copy.metadata_offset[k+1] - individuals_copy.metadata_offset[k];
 		
-		ret = tsk_individual_table_add_row(&p_tables->individuals, flags, location, (tsk_size_t)location_length, metadata, (tsk_size_t)metadata_length);
+		ret = tsk_individual_table_add_row(&p_tables->individuals, flags, location, (tsk_size_t)location_length,
+                NULL, 0, // individual parents
+                metadata, (tsk_size_t)metadata_length);
 		if (ret < 0) handle_error("tsk_individual_table_add_row", ret);
 	}
 	
@@ -5959,6 +5961,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 										   tables_copy.individuals.flags,
 										   tables_copy.individuals.location,
 										   tables_copy.individuals.location_offset,
+                                           NULL, 0, // individual parents
 										   (char *)binary_metadata.data(),
 										   binary_metadata_offset.data());
 		if (ret < 0) handle_error("convert_from_ascii", ret);
@@ -6214,6 +6217,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 										   tables_copy.individuals.flags,
 										   tables_copy.individuals.location,
 										   tables_copy.individuals.location_offset,
+                                           NULL, 0, // individual parents
 										   text_metadata.c_str(),
 										   text_metadata_offset.data());
 		if (ret < 0) handle_error("convert_to_ascii", ret);
@@ -6530,6 +6534,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// This individual is not already in the tables.
 			tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
 					p_flags, location.data(), (uint32_t)location.size(), 
+                    NULL, 0, // individual parents
 					(char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			

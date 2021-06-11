@@ -226,8 +226,9 @@ int tsk_treeseq_init(
 int tsk_treeseq_load(tsk_treeseq_t *self, const char *filename, tsk_flags_t options);
 int tsk_treeseq_loadf(tsk_treeseq_t *self, FILE *file, tsk_flags_t options);
 
-int tsk_treeseq_dump(tsk_treeseq_t *self, const char *filename, tsk_flags_t options);
-int tsk_treeseq_dumpf(tsk_treeseq_t *self, FILE *file, tsk_flags_t options);
+int tsk_treeseq_dump(
+    const tsk_treeseq_t *self, const char *filename, tsk_flags_t options);
+int tsk_treeseq_dumpf(const tsk_treeseq_t *self, FILE *file, tsk_flags_t options);
 int tsk_treeseq_copy_tables(
     const tsk_treeseq_t *self, tsk_table_collection_t *tables, tsk_flags_t options);
 int tsk_treeseq_free(tsk_treeseq_t *self);
