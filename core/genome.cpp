@@ -2335,7 +2335,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	}
 	
 	// TREE SEQUENCE RECORDING
-	// Now that all the bulk operations are done, record all the new derived states
+	// Now that all the bulk operations are done, record all the new derived states.  BCH 6/12/2021: Note that if a mutation to be added
+	// was rejected by stacking policy 'f' above, it will still get recorded here with a new derived state, which will be identical to the
+	// previous derived state.  This is maybe a bug, but nobody has complained and it looks hard to fix.  People don't use policy 'f' much.
 	if (recording_tree_sequence_mutations)
 	{
 		for (std::pair<Genome *, std::vector<slim_position_t>> &genome_pair : new_derived_state_positions)
@@ -2756,17 +2758,24 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			
 			// TREE SEQUENCE RECORDING
 			// whether WillModifyRunForBulkOperation() short-circuited the addition or not, we need to notify the tree seq code
+			// BCH 6/12/2021: We only need to record a derived state once per position, even if there were multiple adds at that position.
+			// This prevents redundant derived states from being recorded; see discussion in https://github.com/MesserLab/SLiM/issues/195
 			if (recording_tree_sequence_mutations)
 			{
 				MutationIndex *muts = mutations_to_add.begin_pointer();
 				MutationIndex *muts_end = mutations_to_add.end_pointer();
+				slim_position_t previous_position = -1;
 				
 				while (muts != muts_end)
 				{
 					Mutation *mut = gSLiM_Mutation_Block + *(muts++);
 					slim_position_t pos = mut->position_;
 					
-					sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
+					if (pos != previous_position)
+					{
+						sim.RecordNewDerivedState(target_genome, pos, *target_genome->derived_mutation_ids_at_position(pos));
+						previous_position = pos;
+					}
 				}
 			}
 		}
