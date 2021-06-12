@@ -1,4 +1,4 @@
-import msprime
+import tskit, msprime
 import numpy as np
 import pytest
 
@@ -77,7 +77,7 @@ class TestNoMutations:
                     fams = {}
                     for x in t.nodes():
                         u = x
-                        while t.parent(u) != msprime.NULL_NODE:
+                        while t.parent(u) != tskit.NULL:
                             u = t.parent(u)
                         fams[x] = u
                     while pos < t.interval[1]:
