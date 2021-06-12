@@ -129,7 +129,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   10
+#define TSK_VERSION_PATCH   12
 /** @} */
 
 /* Node flags */
@@ -144,7 +144,7 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define TSK_FILE_FORMAT_NAME          "tskit.trees"
 #define TSK_FILE_FORMAT_NAME_LENGTH   11
 #define TSK_FILE_FORMAT_VERSION_MAJOR 12
-#define TSK_FILE_FORMAT_VERSION_MINOR 3
+#define TSK_FILE_FORMAT_VERSION_MINOR 4
 
 /**
 @defgroup GENERAL_ERROR_GROUP General errors.
@@ -246,13 +246,13 @@ not found in the file.
 #define TSK_ERR_MUTATION_PARENT_DIFFERENT_SITE                      -500
 #define TSK_ERR_MUTATION_PARENT_EQUAL                               -501
 #define TSK_ERR_MUTATION_PARENT_AFTER_CHILD                         -502
-#define TSK_ERR_INCONSISTENT_MUTATIONS                              -503
-#define TSK_ERR_UNSORTED_MUTATIONS                                  -505
-#define TSK_ERR_NON_SINGLE_CHAR_MUTATION                            -506
-#define TSK_ERR_MUTATION_TIME_YOUNGER_THAN_NODE                     -507
-#define TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_MUTATION            -508
-#define TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE                -509
-#define TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN            -510
+#define TSK_ERR_MUTATION_PARENT_INCONSISTENT                        -503
+#define TSK_ERR_UNSORTED_MUTATIONS                                  -504
+#define TSK_ERR_NON_SINGLE_CHAR_MUTATION                            -505
+#define TSK_ERR_MUTATION_TIME_YOUNGER_THAN_NODE                     -506
+#define TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_MUTATION            -507
+#define TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE                -508
+#define TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN            -509
 
 /* Sample errors */
 #define TSK_ERR_DUPLICATE_SAMPLE                                    -600
@@ -274,7 +274,7 @@ not found in the file.
 #define TSK_ERR_SORT_OFFSET_NOT_SUPPORTED                           -803
 #define TSK_ERR_NONBINARY_MUTATIONS_UNSUPPORTED                     -804
 #define TSK_ERR_MIGRATIONS_NOT_SUPPORTED                            -805
-#define TSK_ERR_UNION_NOT_SUPPORTED                                 -806
+#define TSK_ERR_CANNOT_EXTEND_FROM_SELF                             -806
 
 /* Stats errors */
 #define TSK_ERR_BAD_NUM_WINDOWS                                     -900
@@ -322,6 +322,11 @@ not found in the file.
 
 /* Simplify errors */
 #define TSK_ERR_KEEP_UNARY_MUTUALLY_EXCLUSIVE                      -1600
+
+/* Individual errors */
+#define TSK_ERR_UNSORTED_INDIVIDUALS                               -1700
+#define TSK_ERR_INDIVIDUAL_SELF_PARENT                             -1701
+#define TSK_ERR_INDIVIDUAL_PARENT_CYCLE                            -1702
 
 // clang-format on
 

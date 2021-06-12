@@ -471,13 +471,13 @@ out:
 }
 
 int TSK_WARN_UNUSED
-tsk_treeseq_dump(tsk_treeseq_t *self, const char *filename, tsk_flags_t options)
+tsk_treeseq_dump(const tsk_treeseq_t *self, const char *filename, tsk_flags_t options)
 {
     return tsk_table_collection_dump(self->tables, filename, options);
 }
 
 int TSK_WARN_UNUSED
-tsk_treeseq_dumpf(tsk_treeseq_t *self, FILE *file, tsk_flags_t options)
+tsk_treeseq_dumpf(const tsk_treeseq_t *self, FILE *file, tsk_flags_t options)
 {
     return tsk_table_collection_dumpf(self->tables, file, options);
 }
@@ -3490,20 +3490,9 @@ int TSK_WARN_UNUSED
 tsk_tree_get_mrca(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca)
 {
     int ret = 0;
-    tsk_id_t w = 0;
-    tsk_id_t *s1 = NULL;
-    tsk_id_t *s2 = NULL;
-    tsk_id_t j;
-    int l1, l2;
-
-    /* We have a NULL value in these stacks, so need to be sure that
-     * we have an extra space allocated */
-    s1 = malloc((1 + self->num_nodes) * sizeof(*s1));
-    s2 = malloc((1 + self->num_nodes) * sizeof(*s2));
-    if (s1 == NULL || s2 == NULL) {
-        ret = TSK_ERR_NO_MEMORY;
-        goto out;
-    }
+    double tu, tv;
+    const tsk_id_t *restrict parent = self->parent;
+    const double *restrict time = self->tree_sequence->tables->nodes.time;
 
     ret = tsk_tree_check_node(self, u);
     if (ret != 0) {
@@ -3513,34 +3502,26 @@ tsk_tree_get_mrca(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca
     if (ret != 0) {
         goto out;
     }
-    j = u;
-    l1 = 0;
-    while (j != TSK_NULL) {
-        tsk_bug_assert(l1 < (int) self->num_nodes);
-        s1[l1] = j;
-        l1++;
-        j = self->parent[j];
+
+    tu = time[u];
+    tv = time[v];
+    while (u != v) {
+        if (tu < tv) {
+            u = parent[u];
+            if (u == TSK_NULL) {
+                break;
+            }
+            tu = time[u];
+        } else {
+            v = parent[v];
+            if (v == TSK_NULL) {
+                break;
+            }
+            tv = time[v];
+        }
     }
-    s1[l1] = TSK_NULL;
-    j = v;
-    l2 = 0;
-    while (j != TSK_NULL) {
-        tsk_bug_assert(l2 < (int) self->num_nodes);
-        s2[l2] = j;
-        l2++;
-        j = self->parent[j];
-    }
-    s2[l2] = TSK_NULL;
-    do {
-        w = s1[l1];
-        l1--;
-        l2--;
-    } while (l1 >= 0 && l2 >= 0 && s1[l1] == s2[l2]);
-    *mrca = w;
-    ret = 0;
+    *mrca = u == v ? u : TSK_NULL;
 out:
-    tsk_safe_free(s1);
-    tsk_safe_free(s2);
     return ret;
 }
 
