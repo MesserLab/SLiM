@@ -1234,6 +1234,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 								unsigned int counts[3] = {0, 0, 0};
 								
+								if (fractions[2] < 0.0)
+									EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
+								
 								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
@@ -1642,6 +1645,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 								unsigned int counts[3] = {0, 0, 0};
 								
+								if (fractions[2] < 0.0)
+									EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
+								
 								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
@@ -1977,6 +1983,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							double fractions[3] = {selfing_fraction, cloning_fraction, 1.0 - (selfing_fraction + cloning_fraction)};
 							unsigned int counts[3] = {0, 0, 0};
+							
+							if (fractions[2] < 0.0)
+								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
 							
 							gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
 							
