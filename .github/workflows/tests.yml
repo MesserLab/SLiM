@@ -30,7 +30,7 @@ jobs:
             gcc: 4.8
           # Ubuntu with the most recent GCC.
           - os: ubuntu-20.04
-            gcc: 10
+            gcc: 11
 
     steps:
       - name: Checkout
@@ -150,7 +150,7 @@ jobs:
           # Ubuntu with the most recent Qt and GCC.
           - os: ubuntu-20.04
             qt: 5.15.2
-            gcc: 10
+            gcc: 11
           # MacOS with oldest supported Qt.
           - os: macos-10.15
             qt: 5.9.5
