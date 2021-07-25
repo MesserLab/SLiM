@@ -50,13 +50,13 @@ class Genome;
 // This struct is used to hold fitness values observed during a run, for display by GraphView_FitnessOverTime
 // The Population keeps the fitness histories for all the subpopulations, because subpops can come and go, but
 // we want to remember their histories and display them even after they're gone.
-typedef struct {
+typedef struct FitnessHistory {
 	double *history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
 	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
 } FitnessHistory;
 
 // This struct similarly holds observed subpopulation sizes observed during a run, for QtSLiMGraphView_PopSizeOverTime
-typedef struct {
+typedef struct SubpopSizeHistory {
     slim_popsize_t *history_ = nullptr;             // subpop size, recorded per generation; generation 1 goes at index 0
 	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
 } SubpopSizeHistory;

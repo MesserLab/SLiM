@@ -48,7 +48,7 @@ uint64_t Eidos_MT64_genrand64_int64(void);
 // generators synchronized, in the sense that we always seed them simultaneously with the same seed value.  As long as
 // the user makes the same draws with the same calls, the fact that there are two generators under the hood shouldn't
 // matter.  This struct defines all of the variables associated with both RNGs; this is the complete Eidos RNG state.
-typedef struct
+typedef struct Eidos_RNG_State
 {
 	unsigned long int rng_last_seed_ = 0;		// unsigned long int is the type used for seeds in the GSL
 	
