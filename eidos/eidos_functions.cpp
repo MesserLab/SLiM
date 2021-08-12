@@ -8399,8 +8399,12 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				typedef std::pair<int64_t, int64_t> MAP_PAIR;
 #endif
 				
-				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(MAP_PAIR(int_data1[table_index], table_index));	// does nothing if the key is already in the map
+				try {
+					for (table_index = 0; table_index < table_count; ++table_index)
+						fromValueToIndex.insert(MAP_PAIR(int_data1[table_index], table_index));	// does nothing if the key is already in the map
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueInt); please report this." << EidosTerminate(nullptr);
+				}
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -8441,8 +8445,12 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				typedef std::pair<double, int64_t> MAP_PAIR;
 #endif
 				
-				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(MAP_PAIR(float_data1[table_index], table_index));	// does nothing if the key is already in the map
+				try {
+					for (table_index = 0; table_index < table_count; ++table_index)
+						fromValueToIndex.insert(MAP_PAIR(float_data1[table_index], table_index));	// does nothing if the key is already in the map
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueFloat); please report this." << EidosTerminate(nullptr);
+				}
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -8485,8 +8493,12 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				typedef std::pair<std::string, int64_t> MAP_PAIR;
 #endif
 				
-				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(MAP_PAIR(string_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				try {
+					for (table_index = 0; table_index < table_count; ++table_index)
+						fromValueToIndex.insert(MAP_PAIR(string_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueString); please report this." << EidosTerminate(nullptr);
+				}
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
@@ -8525,8 +8537,12 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				typedef std::pair<EidosObject *, int64_t> MAP_PAIR;
 #endif
 				
-				for (table_index = 0; table_index < table_count; ++table_index)
-					fromValueToIndex.insert(MAP_PAIR(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				try {
+					for (table_index = 0; table_index < table_count; ++table_index)
+						fromValueToIndex.insert(MAP_PAIR(objelement_vec1[table_index], table_index));	// does nothing if the key is already in the map
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueObject); please report this." << EidosTerminate(nullptr);
+				}
 				
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{

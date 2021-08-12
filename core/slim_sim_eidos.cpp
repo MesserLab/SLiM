@@ -2276,12 +2276,16 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 			typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
 #endif
 			
-			for (Subpopulation *subpop : subpops_to_search)
-			{
-				std::vector<Individual *> &inds = subpop->CurrentIndividuals();
-				
-				for (Individual *ind : inds)
-					fromIDToIndividual.insert(MAP_PAIR(ind->PedigreeID(), ind));
+			try {
+				for (Subpopulation *subpop : subpops_to_search)
+				{
+					std::vector<Individual *> &inds = subpop->CurrentIndividuals();
+					
+					for (Individual *ind : inds)
+						fromIDToIndividual.insert(MAP_PAIR(ind->PedigreeID(), ind));
+				}
+			} catch (...) {
+				EIDOS_TERMINATION << "ERROR (ExecuteMethod_individualsWithPedigreeIDs): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 			}
 			
 			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)

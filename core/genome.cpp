@@ -157,7 +157,11 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 		product_run->copy_from_run(*original_run);
 		mutruns_[p_mutrun_index] = MutationRun_SP(product_run);
 		
-		s_bulk_operation_runs_.insert(SLiMBulkOperationPair(original_run, product_run));
+		try {
+			s_bulk_operation_runs_.insert(SLiMBulkOperationPair(original_run, product_run));
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
+		}
 		
 		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
 		
@@ -1432,8 +1436,12 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 #endif
 	int genotype_string_position = 0;
 	
-	for (const Polymorphism &polymorphism : sorted_polymorphisms) 
-		genotype_string_positions.insert(MAP_PAIR(polymorphism.mutation_ptr_, genotype_string_position++));
+	try {
+		for (const Polymorphism &polymorphism : sorted_polymorphisms) 
+			genotype_string_positions.insert(MAP_PAIR(polymorphism.mutation_ptr_, genotype_string_position++));
+	} catch (...) {
+		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_MS): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
+	}
 	
 	// print header
 	p_out << "//" << std::endl << "segsites: " << sorted_polymorphisms.size() << std::endl;
@@ -3797,7 +3805,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		}
 		
 		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
-		MutationRun *shared_empty_run = MutationRun::NewMutationRun();
+		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
+		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
+		MutationRun *shared_empty_run = nullptr;
 		int mutrun_count = genome_0->mutrun_count_;
 		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -3805,7 +3815,18 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				MutationRun *mutrun = target_genome->mutruns_[run_index].get();
+				
+				if (mutrun->size())
+				{
+					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from genomes that are empty already)
+					if (!shared_empty_run)
+						shared_empty_run = MutationRun::NewMutationRun();
+					
 					target_genome->mutruns_[run_index].reset(shared_empty_run);
+				}
+			}
 		}
 		
 		// invalidate cached mutation refcounts; refcounts have changed

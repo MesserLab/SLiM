@@ -1119,7 +1119,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 				if (found_iter != function_map_.end())
 					function_map_.erase(found_iter);
 				
-				function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_CSP(sig)));
+				function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_CSP(sig)));	// could raise, but I've never seen it happen here
 			}
 			else
 			{

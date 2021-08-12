@@ -4996,95 +4996,100 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	if (!mutruns_buf)
 		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	// for every subpop
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-		
-		// for every genome
-		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+	try {
+		// for every subpop
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			Genome &genome = *subpop_genomes[genome_index];
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
-			if (!genome.IsNull())
+			// for every genome
+			for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 			{
-				int32_t old_mutrun_count = genome.mutrun_count_;
-				slim_position_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count << 1;
-				slim_position_t new_mutrun_length = old_mutrun_length >> 1;
+				Genome &genome = *subpop_genomes[genome_index];
 				
-				// for every mutation run, fill up mutrun_buf with entries
-				mutruns_buf_index = 0;
-				
-				for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
+				if (!genome.IsNull())
 				{
-					MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
-					MutationRun *mutrun = mutrun_sp_ref.get();
+					int32_t old_mutrun_count = genome.mutrun_count_;
+					slim_position_t old_mutrun_length = genome.mutrun_length_;
+					int32_t new_mutrun_count = old_mutrun_count << 1;
+					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
-					if (mutrun->UseCount() == 1)
+					// for every mutation run, fill up mutrun_buf with entries
+					mutruns_buf_index = 0;
+					
+					for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
 					{
-						// this mutrun is only referenced once, so we can just replace it without using the map
-						MutationRun *first_half, *second_half;
+						MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
+						MutationRun *mutrun = mutrun_sp_ref.get();
 						
-						mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
-						
-						mutruns_buf[mutruns_buf_index++] = first_half;
-						mutruns_buf[mutruns_buf_index++] = second_half;
-					}
-					else
-					{
-						// this mutrun is referenced more than once, so we want to use our map
-						auto found_entry = split_map.find(mutrun);
-						
-						if (found_entry != split_map.end())
+						if (mutrun->UseCount() == 1)
 						{
-							// it was in the map already, so just use the values from the map
-							std::pair<MutationRun *, MutationRun *> &map_value = found_entry->second;
-							MutationRun *first_half = map_value.first;
-							MutationRun *second_half = map_value.second;
-							
-							mutruns_buf[mutruns_buf_index++] = first_half;
-							mutruns_buf[mutruns_buf_index++] = second_half;
-						}
-						else
-						{
-							// it was not in the map, so make the new runs, and insert them into the map
+							// this mutrun is only referenced once, so we can just replace it without using the map
 							MutationRun *first_half, *second_half;
 							
 							mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
 							
 							mutruns_buf[mutruns_buf_index++] = first_half;
 							mutruns_buf[mutruns_buf_index++] = second_half;
+						}
+						else
+						{
+							// this mutrun is referenced more than once, so we want to use our map
+							auto found_entry = split_map.find(mutrun);
 							
-							split_map.insert(SLiM_SPLIT_PAIR(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
-							
-							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
-							// reused out from under us, which would happen otherwise when their last occurrence was replaced
-							mutrun_retain.push_back(mutrun_sp_ref);
+							if (found_entry != split_map.end())
+							{
+								// it was in the map already, so just use the values from the map
+								std::pair<MutationRun *, MutationRun *> &map_value = found_entry->second;
+								MutationRun *first_half = map_value.first;
+								MutationRun *second_half = map_value.second;
+								
+								mutruns_buf[mutruns_buf_index++] = first_half;
+								mutruns_buf[mutruns_buf_index++] = second_half;
+							}
+							else
+							{
+								// it was not in the map, so make the new runs, and insert them into the map
+								MutationRun *first_half, *second_half;
+								
+								mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
+								
+								mutruns_buf[mutruns_buf_index++] = first_half;
+								mutruns_buf[mutruns_buf_index++] = second_half;
+								
+								split_map.insert(SLiM_SPLIT_PAIR(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
+								
+								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
+								// reused out from under us, which would happen otherwise when their last occurrence was replaced
+								mutrun_retain.push_back(mutrun_sp_ref);
+							}
 						}
 					}
+					
+					// now replace the runs in the genome with those in mutrun_buf
+					genome.clear_to_nullptr();
+					if (genome.mutruns_ != genome.run_buffer_)
+						delete[] genome.mutruns_;
+					genome.mutruns_ = nullptr;
+					
+					genome.mutrun_count_ = new_mutrun_count;
+					genome.mutrun_length_ = new_mutrun_length;
+					
+					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+						genome.mutruns_ = genome.run_buffer_;
+					else
+						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+					
+					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+						genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
 				}
-				
-				// now replace the runs in the genome with those in mutrun_buf
-				genome.clear_to_nullptr();
-				if (genome.mutruns_ != genome.run_buffer_)
-					delete[] genome.mutruns_;
-				genome.mutruns_ = nullptr;
-				
-				genome.mutrun_count_ = new_mutrun_count;
-				genome.mutrun_length_ = new_mutrun_length;
-				
-				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					genome.mutruns_ = genome.run_buffer_;
-				else
-					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
-				
-				for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
 			}
 		}
+	} catch (...) {
+		// I think the insert() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
+		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
 	
 	if (mutruns_buf)
@@ -5115,7 +5120,14 @@ struct slim_pair_hash {
 		// expect to get the reversed pair <B, A>, so this should not produce too many collisions.
 		// If we do get collisions we could switch to MutationRun::Hash() instead, but it is
 		// much slower, so this is probably better.
-		return h1 ^ h2;  
+		//return h1 ^ h2;
+		
+		// BCH 8/12/2021: Actually, we do see identical pairs <A, A> in some cases, so the
+		// above hash function is really not great – it produces 0 for all such cases.  Let's
+		// try being just a little bit smarter, so that <A, A> produces a variety of values.
+		// We lost the top bits of h1, but often they will be 0 anyway, or always the same,
+		// since these are pointers and the high bits are the overall region of memory we're in.
+		return (h1 << 8) ^ h2;
 	}
 };
 
@@ -5182,97 +5194,102 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	if (!mutruns_buf)
 		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	// for every subpop
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-		
-		// for every genome
-		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+	try {
+		// for every subpop
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			Genome &genome = *subpop_genomes[genome_index];
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
-			if (!genome.IsNull())
+			// for every genome
+			for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 			{
-				int32_t old_mutrun_count = genome.mutrun_count_;
-				slim_position_t old_mutrun_length = genome.mutrun_length_;
-				int32_t new_mutrun_count = old_mutrun_count >> 1;
-				slim_position_t new_mutrun_length = old_mutrun_length << 1;
+				Genome &genome = *subpop_genomes[genome_index];
 				
-				// for every mutation run, fill up mutrun_buf with entries
-				mutruns_buf_index = 0;
-				
-				for (int run_index = 0; run_index < old_mutrun_count; run_index += 2)
+				if (!genome.IsNull())
 				{
-					MutationRun_SP &mutrun1_sp_ref = genome.mutruns_[run_index];
-					MutationRun_SP &mutrun2_sp_ref = genome.mutruns_[run_index + 1];
-					MutationRun *mutrun1 = mutrun1_sp_ref.get();
-					MutationRun *mutrun2 = mutrun2_sp_ref.get();
+					int32_t old_mutrun_count = genome.mutrun_count_;
+					slim_position_t old_mutrun_length = genome.mutrun_length_;
+					int32_t new_mutrun_count = old_mutrun_count >> 1;
+					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
-					if ((mutrun1->UseCount() == 1) || (mutrun2->UseCount() == 1))
+					// for every mutation run, fill up mutrun_buf with entries
+					mutruns_buf_index = 0;
+					
+					for (int run_index = 0; run_index < old_mutrun_count; run_index += 2)
 					{
-						// one of these mutruns is only referenced once, so we can just replace them without using the map
-						MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+						MutationRun_SP &mutrun1_sp_ref = genome.mutruns_[run_index];
+						MutationRun_SP &mutrun2_sp_ref = genome.mutruns_[run_index + 1];
+						MutationRun *mutrun1 = mutrun1_sp_ref.get();
+						MutationRun *mutrun2 = mutrun2_sp_ref.get();
 						
-						joined_run->copy_from_run(*mutrun1);
-						joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
-						
-						mutruns_buf[mutruns_buf_index++] = joined_run;
-					}
-					else
-					{
-						// this mutrun is referenced more than once, so we want to use our map
-						auto found_entry = join_map.find(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2));
-						
-						if (found_entry != join_map.end())
+						if ((mutrun1->UseCount() == 1) || (mutrun2->UseCount() == 1))
 						{
-							// it was in the map already, so just use the values from the map
-							MutationRun *map_value = found_entry->second;
-							
-							mutruns_buf[mutruns_buf_index++] = map_value;
-						}
-						else
-						{
-							// it was not in the map, so make the new runs, and insert them into the map
+							// one of these mutruns is only referenced once, so we can just replace them without using the map
 							MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
 							
 							joined_run->copy_from_run(*mutrun1);
 							joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
 							
 							mutruns_buf[mutruns_buf_index++] = joined_run;
+						}
+						else
+						{
+							// this mutrun is referenced more than once, so we want to use our map
+							auto found_entry = join_map.find(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2));
 							
-							join_map.insert(SLiM_JOIN_PAIR(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
-							
-							// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
-							// reused out from under us, which would happen otherwise when their last occurrence was replaced
-							mutrun_retain.push_back(mutrun1_sp_ref);
-							mutrun_retain.push_back(mutrun2_sp_ref);
+							if (found_entry != join_map.end())
+							{
+								// it was in the map already, so just use the values from the map
+								MutationRun *map_value = found_entry->second;
+								
+								mutruns_buf[mutruns_buf_index++] = map_value;
+							}
+							else
+							{
+								// it was not in the map, so make the new runs, and insert them into the map
+								MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+								
+								joined_run->copy_from_run(*mutrun1);
+								joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
+								
+								mutruns_buf[mutruns_buf_index++] = joined_run;
+								
+								join_map.insert(SLiM_JOIN_PAIR(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
+								
+								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
+								// reused out from under us, which would happen otherwise when their last occurrence was replaced
+								mutrun_retain.push_back(mutrun1_sp_ref);
+								mutrun_retain.push_back(mutrun2_sp_ref);
+							}
 						}
 					}
+					
+					// now replace the runs in the genome with those in mutrun_buf
+					genome.clear_to_nullptr();
+					if (genome.mutruns_ != genome.run_buffer_)
+						delete[] genome.mutruns_;
+					genome.mutruns_ = nullptr;
+					
+					genome.mutrun_count_ = new_mutrun_count;
+					genome.mutrun_length_ = new_mutrun_length;
+					
+					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+						genome.mutruns_ = genome.run_buffer_;
+					else
+						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+					
+					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
+						genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
 				}
-				
-				// now replace the runs in the genome with those in mutrun_buf
-				genome.clear_to_nullptr();
-				if (genome.mutruns_ != genome.run_buffer_)
-					delete[] genome.mutruns_;
-				genome.mutruns_ = nullptr;
-				
-				genome.mutrun_count_ = new_mutrun_count;
-				genome.mutrun_length_ = new_mutrun_length;
-				
-				if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					genome.mutruns_ = genome.run_buffer_;
-				else
-					genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
-				
-				for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
 			}
 		}
+	} catch (...) {
+		// I think the insert() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
+		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
-	
+
 	if (mutruns_buf)
 		free(mutruns_buf);
 }
