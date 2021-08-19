@@ -1767,7 +1767,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 										if (contained_mut_index == -1)
 											contained_mut_index = muts_index;
 										else
-											EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position in the same genome; the nucleotide cannot be called." << EidosTerminate();
+											EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same genome; the nucleotide cannot be called." << EidosTerminate();
 									}
 								}
 								
@@ -1909,7 +1909,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 									if (contained_mut_index == -1)
 										contained_mut_index = muts_index;
 									else
-										EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position in the same genome; the nucleotide cannot be called." << EidosTerminate();
+										EIDOS_TERMINATION << "ERROR (Population::PrintGenomes_VCF): more than one nucleotide-based mutation encountered at the same position (" << mut_position << ") in the same genome; the nucleotide cannot be called." << EidosTerminate();
 								}
 							}
 							
