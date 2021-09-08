@@ -33,8 +33,8 @@
 static void
 tsk_ld_calc_check_state(const tsk_ld_calc_t *self)
 {
-    uint32_t u;
-    uint32_t num_nodes = (uint32_t) tsk_treeseq_get_num_nodes(self->tree_sequence);
+    tsk_size_t u;
+    tsk_size_t num_nodes = tsk_treeseq_get_num_nodes(self->tree_sequence);
     tsk_tree_t *tA = self->outer_tree;
     tsk_tree_t *tB = self->inner_tree;
 
@@ -51,10 +51,10 @@ void
 tsk_ld_calc_print_state(const tsk_ld_calc_t *self, FILE *out)
 {
     fprintf(out, "tree_sequence = %p\n", (const void *) self->tree_sequence);
-    fprintf(out, "outer tree index = %d\n", (int) self->outer_tree->index);
+    fprintf(out, "outer tree index = %lld\n", (long long) self->outer_tree->index);
     fprintf(out, "outer tree interval = (%f, %f)\n", self->outer_tree->left,
         self->outer_tree->right);
-    fprintf(out, "inner tree index = %d\n", (int) self->inner_tree->index);
+    fprintf(out, "inner tree index = %lld\n", (long long) self->inner_tree->index);
     fprintf(out, "inner tree interval = (%f, %f)\n", self->inner_tree->left,
         self->inner_tree->right);
     tsk_ld_calc_check_state(self);
@@ -65,11 +65,11 @@ tsk_ld_calc_init(tsk_ld_calc_t *self, const tsk_treeseq_t *tree_sequence)
 {
     int ret = TSK_ERR_GENERIC;
 
-    memset(self, 0, sizeof(tsk_ld_calc_t));
+    tsk_memset(self, 0, sizeof(tsk_ld_calc_t));
     self->tree_sequence = tree_sequence;
     self->num_sites = tsk_treeseq_get_num_sites(tree_sequence);
-    self->outer_tree = malloc(sizeof(tsk_tree_t));
-    self->inner_tree = malloc(sizeof(tsk_tree_t));
+    self->outer_tree = tsk_malloc(sizeof(tsk_tree_t));
+    self->inner_tree = tsk_malloc(sizeof(tsk_tree_t));
     if (self->outer_tree == NULL || self->inner_tree == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;

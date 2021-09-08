@@ -42,7 +42,7 @@ typedef struct {
 } tsk_value_transition_t;
 
 typedef struct {
-    size_t index;
+    tsk_size_t index;
     double value;
 } tsk_argsort_t;
 
@@ -81,8 +81,8 @@ typedef struct {
 typedef struct {
     tsk_compressed_matrix_t matrix;
     tsk_recomb_required_record *recombination_required;
-    size_t num_recomb_records;
-    size_t max_recomb_records;
+    tsk_size_t num_recomb_records;
+    tsk_size_t max_recomb_records;
 } tsk_viterbi_matrix_t;
 
 typedef struct _tsk_ls_hmm_t {
@@ -109,14 +109,14 @@ typedef struct _tsk_ls_hmm_t {
     tsk_id_t *transition_index;
     /* Buffer used to argsort the transitions by node time */
     tsk_argsort_t *transition_time_order;
-    size_t num_transitions;
-    size_t max_transitions;
+    tsk_size_t num_transitions;
+    tsk_size_t max_transitions;
     /* The distinct values in the transitions */
     double *values;
-    size_t num_values;
-    size_t max_values;
+    tsk_size_t num_values;
+    tsk_size_t max_values;
     /* Number of machine words per node optimal value set. */
-    size_t num_optimal_value_set_words;
+    tsk_size_t num_optimal_value_set_words;
     uint64_t *optimal_value_sets;
     /* The parent transition; used during compression */
     tsk_id_t *transition_parent;
@@ -144,7 +144,7 @@ int tsk_ls_hmm_run(tsk_ls_hmm_t *self, int8_t *haplotype,
     double (*compute_normalisation_factor)(struct _tsk_ls_hmm_t *), void *output);
 
 int tsk_compressed_matrix_init(tsk_compressed_matrix_t *self,
-    tsk_treeseq_t *tree_sequence, size_t block_size, tsk_flags_t options);
+    tsk_treeseq_t *tree_sequence, tsk_size_t block_size, tsk_flags_t options);
 int tsk_compressed_matrix_free(tsk_compressed_matrix_t *self);
 int tsk_compressed_matrix_clear(tsk_compressed_matrix_t *self);
 void tsk_compressed_matrix_print_state(tsk_compressed_matrix_t *self, FILE *out);
@@ -154,7 +154,7 @@ int tsk_compressed_matrix_store_site(tsk_compressed_matrix_t *self, tsk_id_t sit
 int tsk_compressed_matrix_decode(tsk_compressed_matrix_t *self, double *values);
 
 int tsk_viterbi_matrix_init(tsk_viterbi_matrix_t *self, tsk_treeseq_t *tree_sequence,
-    size_t block_size, tsk_flags_t options);
+    tsk_size_t block_size, tsk_flags_t options);
 int tsk_viterbi_matrix_free(tsk_viterbi_matrix_t *self);
 int tsk_viterbi_matrix_clear(tsk_viterbi_matrix_t *self);
 void tsk_viterbi_matrix_print_state(tsk_viterbi_matrix_t *self, FILE *out);

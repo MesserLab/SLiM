@@ -85,32 +85,32 @@ tsk_ls_hmm_print_state(tsk_ls_hmm_t *self, FILE *out)
     tsk_size_t j, l;
 
     fprintf(out, "tree_sequence   = %p\n", (void *) self->tree_sequence);
-    fprintf(out, "num_sites       = %d\n", self->num_sites);
-    fprintf(out, "num_samples     = %d\n", self->num_samples);
-    fprintf(out, "num_values      = %d\n", (int) self->num_values);
-    fprintf(out, "max_values      = %d\n", (int) self->max_values);
-    fprintf(out, "num_optimal_value_set_words = %d\n",
-        (int) self->num_optimal_value_set_words);
+    fprintf(out, "num_sites       = %lld\n", (long long) self->num_sites);
+    fprintf(out, "num_samples     = %lld\n", (long long) self->num_samples);
+    fprintf(out, "num_values      = %lld\n", (long long) self->num_values);
+    fprintf(out, "max_values      = %lld\n", (long long) self->max_values);
+    fprintf(out, "num_optimal_value_set_words = %lld\n",
+        (long long) self->num_optimal_value_set_words);
 
     fprintf(out, "sites::\n");
     for (l = 0; l < self->num_sites; l++) {
-        fprintf(out, "%d\t%d\t[", l, self->num_alleles[l]);
+        fprintf(out, "%lld\t%lld\t[", (long long) l, (long long) self->num_alleles[l]);
         for (j = 0; j < self->num_alleles[l]; j++) {
             fprintf(out, "%s,", self->alleles[l][j]);
         }
         fprintf(out, "]\n");
     }
-    fprintf(out, "transitions::%d\n", (int) self->num_transitions);
+    fprintf(out, "transitions::%lld\n", (long long) self->num_transitions);
     for (j = 0; j < self->num_transitions; j++) {
-        fprintf(out, "tree_node=%d\tvalue=%.14f\tvalue_index=%d\n",
-            self->transitions[j].tree_node, self->transitions[j].value,
-            self->transitions[j].value_index);
+        fprintf(out, "tree_node=%lld\tvalue=%.14f\tvalue_index=%lld\n",
+            (long long) self->transitions[j].tree_node, self->transitions[j].value,
+            (long long) self->transitions[j].value_index);
     }
     if (self->num_transitions > 0) {
-        fprintf(out, "tree::%d\n", (int) self->num_nodes);
+        fprintf(out, "tree::%lld\n", (long long) self->num_nodes);
         for (j = 0; j < self->num_nodes; j++) {
-            fprintf(out, "%d\tparent=%d\ttransition=%d\n", j, self->parent[j],
-                self->transition_index[j]);
+            fprintf(out, "%lld\tparent=%lld\ttransition=%lld\n", (long long) j,
+                (long long) self->parent[j], (long long) self->transition_index[j]);
         }
     }
     tsk_ls_hmm_check_state(self);
@@ -123,17 +123,19 @@ tsk_ls_hmm_init(tsk_ls_hmm_t *self, tsk_treeseq_t *tree_sequence,
     int ret = TSK_ERR_GENERIC;
     tsk_size_t l;
 
-    memset(self, 0, sizeof(tsk_ls_hmm_t));
+    tsk_memset(self, 0, sizeof(tsk_ls_hmm_t));
     self->tree_sequence = tree_sequence;
     self->precision = 6; /* Seems like a safe value, but probably not ideal for perf */
     self->num_sites = tsk_treeseq_get_num_sites(tree_sequence);
     self->num_samples = tsk_treeseq_get_num_samples(tree_sequence);
-    self->num_alleles = malloc(self->num_sites * sizeof(*self->num_alleles));
+    self->num_alleles = tsk_malloc(self->num_sites * sizeof(*self->num_alleles));
     self->num_nodes = tsk_treeseq_get_num_nodes(tree_sequence);
-    self->parent = malloc(self->num_nodes * sizeof(*self->parent));
-    self->allelic_state = malloc(self->num_nodes * sizeof(*self->allelic_state));
-    self->transition_index = malloc(self->num_nodes * sizeof(*self->transition_index));
-    self->transition_stack = malloc(self->num_nodes * sizeof(*self->transition_stack));
+    self->parent = tsk_malloc(self->num_nodes * sizeof(*self->parent));
+    self->allelic_state = tsk_malloc(self->num_nodes * sizeof(*self->allelic_state));
+    self->transition_index
+        = tsk_malloc(self->num_nodes * sizeof(*self->transition_index));
+    self->transition_stack
+        = tsk_malloc(self->num_nodes * sizeof(*self->transition_stack));
     /* We can't have more than 2 * num_samples transitions, so we use this as the
      * upper bound. Because of the implementation, we'll also have to worry about
      * the extra mutations at the first site, which in worst case involves all
@@ -142,19 +144,20 @@ tsk_ls_hmm_init(tsk_ls_hmm_t *self, tsk_treeseq_t *tree_sequence,
         = 2 * self->num_samples + tsk_treeseq_get_num_mutations(tree_sequence);
     /* FIXME Arbitrarily doubling this after hitting problems */
     self->max_transitions *= 2;
-    self->transitions = malloc(self->max_transitions * sizeof(*self->transitions));
-    self->transitions_copy = malloc(self->max_transitions * sizeof(*self->transitions));
+    self->transitions = tsk_malloc(self->max_transitions * sizeof(*self->transitions));
+    self->transitions_copy
+        = tsk_malloc(self->max_transitions * sizeof(*self->transitions));
     self->num_transition_samples
-        = malloc(self->max_transitions * sizeof(*self->num_transition_samples));
+        = tsk_malloc(self->max_transitions * sizeof(*self->num_transition_samples));
     self->transition_parent
-        = malloc(self->max_transitions * sizeof(*self->transition_parent));
+        = tsk_malloc(self->max_transitions * sizeof(*self->transition_parent));
     self->transition_time_order
-        = malloc(self->max_transitions * sizeof(*self->transition_time_order));
-    self->values = malloc(self->max_transitions * sizeof(*self->values));
+        = tsk_malloc(self->max_transitions * sizeof(*self->transition_time_order));
+    self->values = tsk_malloc(self->max_transitions * sizeof(*self->values));
     self->recombination_rate
-        = malloc(self->num_sites * sizeof(*self->recombination_rate));
-    self->mutation_rate = malloc(self->num_sites * sizeof(*self->mutation_rate));
-    self->alleles = calloc(self->num_sites, sizeof(*self->alleles));
+        = tsk_malloc(self->num_sites * sizeof(*self->recombination_rate));
+    self->mutation_rate = tsk_malloc(self->num_sites * sizeof(*self->mutation_rate));
+    self->alleles = tsk_calloc(self->num_sites, sizeof(*self->alleles));
     if (self->num_alleles == NULL || self->parent == NULL || self->allelic_state == NULL
         || self->transition_index == NULL || self->transition_stack == NULL
         || self->transitions == NULL || self->transitions_copy == NULL
@@ -224,19 +227,19 @@ static int
 tsk_ls_hmm_reset(tsk_ls_hmm_t *self)
 {
     int ret = 0;
-    double n = self->num_samples;
+    double n = (double) self->num_samples;
     tsk_size_t j;
     tsk_id_t u;
     const tsk_id_t *samples;
     tsk_size_t N = self->num_nodes;
 
-    memset(self->parent, 0xff, N * sizeof(*self->parent));
-    memset(self->transition_index, 0xff, N * sizeof(*self->transition_index));
-    memset(self->allelic_state, 0xff, N * sizeof(*self->allelic_state));
-    memset(self->transitions, 0, self->max_transitions * sizeof(*self->transitions));
-    memset(self->num_transition_samples, 0,
+    tsk_memset(self->parent, 0xff, N * sizeof(*self->parent));
+    tsk_memset(self->transition_index, 0xff, N * sizeof(*self->transition_index));
+    tsk_memset(self->allelic_state, 0xff, N * sizeof(*self->allelic_state));
+    tsk_memset(self->transitions, 0, self->max_transitions * sizeof(*self->transitions));
+    tsk_memset(self->num_transition_samples, 0,
         self->max_transitions * sizeof(*self->num_transition_samples));
-    memset(self->transition_parent, 0xff,
+    tsk_memset(self->transition_parent, 0xff,
         self->max_transitions * sizeof(*self->transition_parent));
 
     /* This is safe because we've already zero'd out the memory. */
@@ -268,7 +271,7 @@ tsk_ls_hmm_remove_dead_roots(tsk_ls_hmm_t *self)
     const tsk_id_t left_root = self->tree.left_root;
     const tsk_id_t *restrict parent = self->parent;
     tsk_id_t root, u;
-    size_t j;
+    tsk_size_t j;
     const tsk_id_t root_marker = -2;
 
     for (root = left_root; root != TSK_NULL; root = right_sib[root]) {
@@ -364,7 +367,7 @@ out:
 
 static int
 tsk_ls_hmm_get_allele_index(tsk_ls_hmm_t *self, tsk_id_t site, const char *allele_state,
-    const size_t allele_length)
+    const tsk_size_t allele_length)
 {
     int ret = TSK_ERR_ALLELE_NOT_FOUND;
     const char **alleles = self->alleles[site];
@@ -376,8 +379,8 @@ tsk_ls_hmm_get_allele_index(tsk_ls_hmm_t *self, tsk_id_t site, const char *allel
         if (strlen(alleles[j]) != allele_length) {
             break;
         }
-        if (strncmp(alleles[j], allele_state, allele_length) == 0) {
-            ret = j;
+        if (strncmp(alleles[j], allele_state, (size_t) allele_length) == 0) {
+            ret = (int) j;
             break;
         }
     }
@@ -469,7 +472,7 @@ tsk_ls_hmm_discretise_values(tsk_ls_hmm_t *self)
     int ret = 0;
     tsk_value_transition_t *T = self->transitions;
     double *values = self->values;
-    size_t j, k, num_values;
+    tsk_size_t j, k, num_values;
 
     num_values = 0;
     for (j = 0; j < self->num_transitions; j++) {
@@ -480,7 +483,7 @@ tsk_ls_hmm_discretise_values(tsk_ls_hmm_t *self)
     }
     tsk_bug_assert(num_values > 0);
 
-    qsort(values, num_values, sizeof(double), cmp_double);
+    qsort(values, (size_t) num_values, sizeof(double), cmp_double);
 
     k = 0;
     for (j = 1; j < num_values; j++) {
@@ -539,9 +542,9 @@ bit_is_set(uint64_t value, uint8_t bit)
 }
 
 static inline tsk_id_t
-get_smallest_element(const uint64_t *restrict A, size_t u, size_t num_words)
+get_smallest_element(const uint64_t *restrict A, tsk_size_t u, tsk_size_t num_words)
 {
-    size_t base = (size_t) u * num_words;
+    tsk_size_t base = u * num_words;
     const uint64_t *restrict a = A + base;
     tsk_id_t j = 0;
 
@@ -557,28 +560,31 @@ get_smallest_element(const uint64_t *restrict A, size_t u, size_t num_words)
 static const uint64_t zero_block[MAX_PARSIMONY_WORDS];
 
 static inline bool
-all_zero(const uint64_t *restrict A, size_t u, size_t num_words)
+all_zero(const uint64_t *restrict A, tsk_id_t u, tsk_size_t num_words)
 {
     if (num_words == 1) {
         return A[u] == 0;
     } else {
-        return memcmp(zero_block, A + u * num_words, num_words * sizeof(*A)) == 0;
+        return tsk_memcmp(
+                   zero_block, A + (tsk_size_t) u * num_words, num_words * sizeof(*A))
+               == 0;
     }
 }
 
 static inline bool
-element_in(const uint64_t *restrict A, size_t u, const tsk_id_t state, size_t num_words)
+element_in(
+    const uint64_t *restrict A, tsk_id_t u, const tsk_id_t state, tsk_size_t num_words)
 {
-    size_t index = ((size_t) u) * num_words + (size_t)(state / 64);
+    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t)(state / 64);
     return (A[index] & (1ULL << (state % 64))) != 0;
 }
 
 static inline void
 set_optimal_value(
-    uint64_t *restrict A, const tsk_id_t u, const size_t num_words, tsk_id_t state)
+    uint64_t *restrict A, tsk_id_t u, const tsk_size_t num_words, tsk_id_t state)
 {
-    size_t index = ((size_t) u) * num_words + (size_t)(state / 64);
-    tsk_bug_assert(((size_t) state) / 64 < num_words);
+    tsk_size_t index = ((tsk_size_t) u) * num_words + (tsk_size_t)(state / 64);
+    tsk_bug_assert(((tsk_size_t) state) / 64 < num_words);
     A[index] |= 1ULL << (state % 64);
 }
 
@@ -592,7 +598,7 @@ set_optimal_value(
 static void
 compute_optimal_value_1(uint64_t *restrict A, const tsk_id_t *restrict left_child,
     const tsk_id_t *restrict right_sib, const tsk_id_t u, const tsk_id_t parent_state,
-    const size_t num_values)
+    const tsk_size_t num_values)
 {
     tsk_id_t v;
     uint64_t child;
@@ -601,7 +607,7 @@ compute_optimal_value_1(uint64_t *restrict A, const tsk_id_t *restrict left_chil
 
     assert(num_values < 64);
 
-    memset(value_count, 0, num_values * sizeof(*value_count));
+    tsk_memset(value_count, 0, num_values * sizeof(*value_count));
     for (v = left_child[u]; v != TSK_NULL; v = right_sib[v]) {
         child = A[v];
         /* If the set for a given child is empty, then we know it inherits
@@ -628,17 +634,17 @@ compute_optimal_value_1(uint64_t *restrict A, const tsk_id_t *restrict left_chil
 static void
 compute_optimal_value_general(uint64_t *restrict A, const tsk_id_t *restrict left_child,
     const tsk_id_t *restrict right_sib, const tsk_id_t u, const tsk_id_t parent_state,
-    const size_t num_values, const size_t num_words)
+    const tsk_size_t num_values, const tsk_size_t num_words)
 {
     tsk_id_t v;
     uint64_t child[MAX_PARSIMONY_WORDS];
     uint64_t *Au;
-    size_t base, word, bit;
+    tsk_size_t base, word, bit;
     bool child_all_zero;
     const tsk_id_t state_index = parent_state / 64;
     const uint64_t state_word = 1ULL << (parent_state % 64);
     tsk_size_t value_count[64 * MAX_PARSIMONY_WORDS], max_value_count;
-    size_t j;
+    tsk_size_t j;
 
     tsk_bug_assert(num_values < 64 * MAX_PARSIMONY_WORDS);
     tsk_bug_assert(num_words <= MAX_PARSIMONY_WORDS);
@@ -648,7 +654,7 @@ compute_optimal_value_general(uint64_t *restrict A, const tsk_id_t *restrict lef
 
     for (v = left_child[u]; v != TSK_NULL; v = right_sib[v]) {
         child_all_zero = true;
-        base = ((size_t) v) * num_words;
+        base = ((tsk_size_t) v) * num_words;
         for (word = 0; word < num_words; word++) {
             child[word] = A[base + word];
             child_all_zero = child_all_zero && (child[word] == 0);
@@ -686,7 +692,7 @@ compute_optimal_value_general(uint64_t *restrict A, const tsk_id_t *restrict lef
 static void
 compute_optimal_value(uint64_t *restrict A, const tsk_id_t *restrict left_child,
     const tsk_id_t *restrict right_sib, const tsk_id_t u, const tsk_id_t parent_state,
-    const size_t num_values, const size_t num_words)
+    const tsk_size_t num_values, const tsk_size_t num_words)
 {
     if (num_words == 1) {
         compute_optimal_value_1(A, left_child, right_sib, u, parent_state, num_values);
@@ -716,7 +722,7 @@ tsk_ls_hmm_setup_optimal_value_sets(tsk_ls_hmm_t *self)
         self->max_values = self->num_optimal_value_set_words * 64;
         tsk_safe_free(self->optimal_value_sets);
         self->optimal_value_sets
-            = calloc(self->num_nodes * self->num_optimal_value_set_words,
+            = tsk_calloc(self->num_nodes * self->num_optimal_value_set_words,
                 sizeof(*self->optimal_value_sets));
         if (self->optimal_value_sets == NULL) {
             ret = TSK_ERR_NO_MEMORY;
@@ -738,9 +744,9 @@ tsk_ls_hmm_build_optimal_value_sets(tsk_ls_hmm_t *self)
     const tsk_value_transition_t *restrict T = self->transitions;
     const tsk_id_t *restrict T_index = self->transition_index;
     tsk_argsort_t *restrict order = self->transition_time_order;
-    const size_t num_optimal_value_set_words = self->num_optimal_value_set_words;
+    const tsk_size_t num_optimal_value_set_words = self->num_optimal_value_set_words;
     uint64_t *restrict A = self->optimal_value_sets;
-    size_t j;
+    tsk_size_t j;
     tsk_id_t u, v, state, parent_state;
 
     /* argsort the transitions by node time so we can visit them in the
@@ -752,7 +758,7 @@ tsk_ls_hmm_build_optimal_value_sets(tsk_ls_hmm_t *self)
             order[j].value = node_time[T[j].tree_node];
         }
     }
-    qsort(order, self->num_transitions, sizeof(*order), cmp_argsort);
+    qsort(order, (size_t) self->num_transitions, sizeof(*order), cmp_argsort);
 
     for (j = 0; j < self->num_transitions; j++) {
         u = T[order[j].index].tree_node;
@@ -798,13 +804,13 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
     tsk_value_transition_t *restrict T_old = self->transitions_copy;
     tsk_transition_stack_t *stack = self->transition_stack;
     uint64_t *restrict A = self->optimal_value_sets;
-    const size_t num_optimal_value_set_words = self->num_optimal_value_set_words;
+    const tsk_size_t num_optimal_value_set_words = self->num_optimal_value_set_words;
     tsk_transition_stack_t s, child_s;
     tsk_id_t root, u, v;
     int stack_top = 0;
-    size_t j, old_num_transitions;
+    tsk_size_t j, old_num_transitions;
 
-    memcpy(T_old, T, self->num_transitions * sizeof(*T));
+    tsk_memcpy(T_old, T, self->num_transitions * sizeof(*T));
     old_num_transitions = self->num_transitions;
     self->num_transitions = 0;
 
@@ -812,7 +818,7 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
         stack[0].tree_node = root;
         stack[0].old_state = T_old[T_index[root]].value_index;
         stack[0].new_state
-            = get_smallest_element(A, (size_t) root, num_optimal_value_set_words);
+            = get_smallest_element(A, (tsk_size_t) root, num_optimal_value_set_words);
         stack[0].transition_parent = 0;
         stack_top = 0;
 
@@ -831,11 +837,10 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
                 if (T_index[v] != TSK_NULL) {
                     child_s.old_state = T_old[T_index[v]].value_index;
                 }
-                if (!all_zero(A, (size_t) v, num_optimal_value_set_words)) {
-                    if (!element_in(
-                            A, (size_t) v, s.new_state, num_optimal_value_set_words)) {
+                if (!all_zero(A, v, num_optimal_value_set_words)) {
+                    if (!element_in(A, v, s.new_state, num_optimal_value_set_words)) {
                         child_s.new_state = get_smallest_element(
-                            A, (size_t) v, num_optimal_value_set_words);
+                            A, (tsk_size_t) v, num_optimal_value_set_words);
                         child_s.transition_parent = (tsk_id_t) self->num_transitions;
                         /* Add a new transition */
                         tsk_bug_assert(self->num_transitions < self->max_transitions);
@@ -865,9 +870,8 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
         u = T_old[j].tree_node;
         if (u != TSK_NULL) {
             T_index[u] = TSK_NULL;
-            while (
-                u != TSK_NULL && !all_zero(A, (size_t) u, num_optimal_value_set_words)) {
-                memset(A + ((size_t) u) * num_optimal_value_set_words, 0,
+            while (u != TSK_NULL && !all_zero(A, u, num_optimal_value_set_words)) {
+                tsk_memset(A + ((tsk_size_t) u) * num_optimal_value_set_words, 0,
                     num_optimal_value_set_words * sizeof(uint64_t));
                 u = parent[u];
             }
@@ -1022,7 +1026,7 @@ tsk_ls_hmm_compute_normalisation_factor_forward(tsk_ls_hmm_t *self)
     /* Compute the normalising constant used to avoid underflow */
     normalisation_factor = 0;
     for (j = 0; j < num_transitions; j++) {
-        normalisation_factor += N[j] * T[j].value;
+        normalisation_factor += (double) N[j] * T[j].value;
     }
     return normalisation_factor;
 }
@@ -1033,7 +1037,7 @@ tsk_ls_hmm_next_probability_forward(tsk_ls_hmm_t *self, tsk_id_t site_id, double
 {
     const double rho = self->recombination_rate[site_id];
     const double mu = self->mutation_rate[site_id];
-    const double n = self->num_samples;
+    const double n = (double) self->num_samples;
     const double num_alleles = self->num_alleles[site_id];
     double p_t, p_e;
 
@@ -1107,7 +1111,7 @@ tsk_ls_hmm_next_probability_viterbi(tsk_ls_hmm_t *self, tsk_id_t site, double p_
     const double rho = self->recombination_rate[site];
     const double mu = self->mutation_rate[site];
     const double num_alleles = self->num_alleles[site];
-    const double n = self->num_samples;
+    const double n = (double) self->num_samples;
     double p_recomb, p_no_recomb, p_t, p_e;
     bool recombination_required = false;
 
@@ -1164,22 +1168,20 @@ out:
 
 int
 tsk_compressed_matrix_init(tsk_compressed_matrix_t *self, tsk_treeseq_t *tree_sequence,
-    size_t block_size, tsk_flags_t options)
+    tsk_size_t block_size, tsk_flags_t options)
 {
     int ret = 0;
-    size_t num_sites;
 
-    memset(self, 0, sizeof(*self));
+    tsk_memset(self, 0, sizeof(*self));
     self->tree_sequence = tree_sequence;
     self->options = options;
     self->num_sites = tsk_treeseq_get_num_sites(tree_sequence);
     self->num_samples = tsk_treeseq_get_num_samples(tree_sequence);
-    /* Avoid malloc(0) */
-    num_sites = TSK_MAX(self->num_sites, 1);
-    self->num_transitions = malloc(num_sites * sizeof(*self->num_transitions));
-    self->normalisation_factor = malloc(num_sites * sizeof(*self->normalisation_factor));
-    self->values = malloc(num_sites * sizeof(*self->values));
-    self->nodes = malloc(num_sites * sizeof(*self->nodes));
+    self->num_transitions = tsk_malloc(self->num_sites * sizeof(*self->num_transitions));
+    self->normalisation_factor
+        = tsk_malloc(self->num_sites * sizeof(*self->normalisation_factor));
+    self->values = tsk_malloc(self->num_sites * sizeof(*self->values));
+    self->nodes = tsk_malloc(self->num_sites * sizeof(*self->nodes));
     if (self->num_transitions == NULL || self->values == NULL || self->nodes == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -1187,7 +1189,7 @@ tsk_compressed_matrix_init(tsk_compressed_matrix_t *self, tsk_treeseq_t *tree_se
     if (block_size == 0) {
         block_size = 1 << 20;
     }
-    ret = tsk_blkalloc_init(&self->memory, block_size);
+    ret = tsk_blkalloc_init(&self->memory, (size_t) block_size);
     if (ret != 0) {
         goto out;
     }
@@ -1211,8 +1213,9 @@ int
 tsk_compressed_matrix_clear(tsk_compressed_matrix_t *self)
 {
     tsk_blkalloc_reset(&self->memory);
-    memset(self->num_transitions, 0, self->num_sites * sizeof(*self->num_transitions));
-    memset(self->normalisation_factor, 0,
+    tsk_memset(
+        self->num_transitions, 0, self->num_sites * sizeof(*self->num_transitions));
+    tsk_memset(self->normalisation_factor, 0,
         self->num_sites * sizeof(*self->normalisation_factor));
     return 0;
 }
@@ -1223,13 +1226,14 @@ tsk_compressed_matrix_print_state(tsk_compressed_matrix_t *self, FILE *out)
     tsk_size_t l, j;
 
     fprintf(out, "Compressed matrix for %p\n", (void *) self->tree_sequence);
-    fprintf(out, "num_sites = %d\n", self->num_sites);
-    fprintf(out, "num_samples = %d\n", self->num_samples);
+    fprintf(out, "num_sites = %lld\n", (long long) self->num_sites);
+    fprintf(out, "num_samples = %lld\n", (long long) self->num_samples);
     for (l = 0; l < self->num_sites; l++) {
-        fprintf(out, "%d\ts=%f\tv=%d [", l, self->normalisation_factor[l],
-            self->num_transitions[l]);
+        fprintf(out, "%lld\ts=%f\tv=%lld [", (long long) l,
+            self->normalisation_factor[l], (long long) self->num_transitions[l]);
         for (j = 0; j < self->num_transitions[l]; j++) {
-            fprintf(out, "(%d, %f)", self->nodes[l][j], self->values[l][j]);
+            fprintf(
+                out, "(%lld, %f)", (long long) self->nodes[l][j], self->values[l][j]);
             if (j < self->num_transitions[l] - 1) {
                 fprintf(out, ",");
             } else {
@@ -1257,9 +1261,9 @@ tsk_compressed_matrix_store_site(tsk_compressed_matrix_t *self, tsk_id_t site,
     self->num_transitions[site] = num_transitions;
     self->normalisation_factor[site] = normalisation_factor;
     self->nodes[site]
-        = tsk_blkalloc_get(&self->memory, num_transitions * sizeof(tsk_id_t));
+        = tsk_blkalloc_get(&self->memory, (size_t) num_transitions * sizeof(tsk_id_t));
     self->values[site]
-        = tsk_blkalloc_get(&self->memory, num_transitions * sizeof(double));
+        = tsk_blkalloc_get(&self->memory, (size_t) num_transitions * sizeof(double));
     if (self->nodes[site] == NULL || self->values[site] == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -1335,9 +1339,9 @@ tsk_compressed_matrix_decode(tsk_compressed_matrix_t *self, double *values)
         }
         for (j = 0; j < num_tree_sites; j++) {
             site_id = sites[j].id;
-            site_array = values + ((size_t) site_id) * self->num_samples;
+            site_array = values + ((tsk_size_t) site_id) * self->num_samples;
             if (self->num_transitions[site_id] == 0) {
-                memset(site_array, 0, self->num_samples * sizeof(site_array));
+                tsk_memset(site_array, 0, self->num_samples * sizeof(*site_array));
             } else {
                 ret = tsk_compressed_matrix_decode_site(
                     self, &tree, site_id, site_array);
@@ -1364,8 +1368,8 @@ static int
 tsk_viterbi_matrix_expand_recomb_records(tsk_viterbi_matrix_t *self)
 {
     int ret = 0;
-    tsk_recomb_required_record *tmp
-        = realloc(self->recombination_required, self->max_recomb_records * sizeof(*tmp));
+    tsk_recomb_required_record *tmp = tsk_realloc(
+        self->recombination_required, self->max_recomb_records * sizeof(*tmp));
 
     if (tmp == NULL) {
         ret = TSK_ERR_NO_MEMORY;
@@ -1378,11 +1382,11 @@ out:
 
 int
 tsk_viterbi_matrix_init(tsk_viterbi_matrix_t *self, tsk_treeseq_t *tree_sequence,
-    size_t block_size, tsk_flags_t options)
+    tsk_size_t block_size, tsk_flags_t options)
 {
     int ret = 0;
 
-    memset(self, 0, sizeof(*self));
+    tsk_memset(self, 0, sizeof(*self));
     if (block_size == 0) {
         block_size = 1 << 20; /* 1MiB */
     }
@@ -1427,15 +1431,15 @@ tsk_viterbi_matrix_print_state(tsk_viterbi_matrix_t *self, FILE *out)
     tsk_id_t l, j;
 
     fprintf(out, "viterbi_matrix\n");
-    fprintf(out, "num_recomb_records = %d\n", (int) self->num_recomb_records);
-    fprintf(out, "max_recomb_records = %d\n", (int) self->max_recomb_records);
+    fprintf(out, "num_recomb_records = %lld\n", (long long) self->num_recomb_records);
+    fprintf(out, "max_recomb_records = %lld\n", (long long) self->max_recomb_records);
 
     j = 1;
     for (l = 0; l < (tsk_id_t) self->matrix.num_sites; l++) {
-        fprintf(out, "%d\t[", l);
+        fprintf(out, "%lld\t[", (long long) l);
         while (j < (tsk_id_t) self->num_recomb_records
                && self->recombination_required[j].site == l) {
-            fprintf(out, "(%d, %d) ", self->recombination_required[j].node,
+            fprintf(out, "(%lld, %d) ", (long long) self->recombination_required[j].node,
                 self->recombination_required[j].required);
             j++;
         }
@@ -1530,7 +1534,7 @@ tsk_viterbi_matrix_traceback(
         = (tsk_id_t) tsk_treeseq_get_num_nodes(self->matrix.tree_sequence);
     tsk_tree_t tree;
     tsk_id_t *recombination_tree
-        = malloc((size_t) num_nodes * sizeof(*recombination_tree));
+        = tsk_malloc((size_t) num_nodes * sizeof(*recombination_tree));
 
     ret = tsk_tree_init(&tree, self->matrix.tree_sequence, 0);
     if (ret != 0) {
@@ -1541,8 +1545,8 @@ tsk_viterbi_matrix_traceback(
         goto out;
     }
     /* Initialise the path an recombination_tree to contain TSK_NULL */
-    memset(path, 0xff, ((size_t) num_sites) * sizeof(*path));
-    memset(recombination_tree, 0xff, ((size_t) num_nodes) * sizeof(*path));
+    tsk_memset(path, 0xff, ((size_t) num_sites) * sizeof(*path));
+    tsk_memset(recombination_tree, 0xff, ((size_t) num_nodes) * sizeof(*path));
 
     current_node = TSK_NULL;
     rr_record = &self->recombination_required[self->num_recomb_records - 1];
@@ -1574,7 +1578,7 @@ tsk_viterbi_matrix_traceback(
         if (current_node == TSK_NULL) {
             current_node = tsk_viterbi_matrix_choose_sample(self, site.id, &tree);
             if (current_node < 0) {
-                ret = current_node;
+                ret = (int) current_node;
                 goto out;
             }
         }
