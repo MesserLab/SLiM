@@ -35,7 +35,8 @@ development head:
 	add an "action button" at the bottom of the haplotype plot window, like that in graph windows
 	add checks for malloc/calloc/realloc failures, for clusters that make allocations fail when the process is at its memory limit
 	fix a small bug involved duplicate derived states getting recorded by addNewDrawnMutation() when multiple mutations are added at the same position
-
+	updated to tskit C_0.99.14 (big metadata bug fix)
+	
 
 version 3.6 (build 2784; Eidos version 2.6):
 	update to JSON for Modern C++ version 3.9.1
