@@ -42,7 +42,7 @@
  * pointless. */
 
 typedef struct {
-    size_t precision;
+    unsigned int precision;
     tsk_flags_t options;
     char *newick;
     tsk_id_t *traversal_stack;
@@ -98,7 +98,7 @@ tsk_newick_converter_run(
                 }
                 /* We do this for ms-compatability. This should be a configurable option
                  * via the flags attribute */
-                label = v + 1;
+                label = (int) v + 1;
                 r = snprintf(buffer + s, buffer_size - s, "%d", label);
                 if (r < 0) {
                     ret = TSK_ERR_IO;
@@ -145,16 +145,17 @@ out:
 
 static int
 tsk_newick_converter_init(tsk_newick_converter_t *self, const tsk_tree_t *tree,
-    size_t precision, tsk_flags_t options)
+    unsigned int precision, tsk_flags_t options)
 {
     int ret = 0;
 
-    memset(self, 0, sizeof(tsk_newick_converter_t));
+    tsk_memset(self, 0, sizeof(tsk_newick_converter_t));
     self->precision = precision;
     self->options = options;
     self->tree = tree;
-    self->traversal_stack = malloc(tsk_treeseq_get_num_nodes(self->tree->tree_sequence)
-                                   * sizeof(*self->traversal_stack));
+    self->traversal_stack
+        = tsk_malloc(tsk_treeseq_get_num_nodes(self->tree->tree_sequence)
+                     * sizeof(*self->traversal_stack));
     if (self->traversal_stack == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;
@@ -171,7 +172,7 @@ tsk_newick_converter_free(tsk_newick_converter_t *self)
 }
 
 int
-tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, size_t precision,
+tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, unsigned int precision,
     tsk_flags_t options, size_t buffer_size, char *buffer)
 {
     int ret = 0;

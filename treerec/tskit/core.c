@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019 Tskit Developers
+ * Copyright (c) 2019-2021 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -174,6 +174,9 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_BOTH_COLUMNS_REQUIRED:
             ret = "Both columns in a related pair must be provided";
+            break;
+        case TSK_ERR_BAD_COLUMN_TYPE:
+            ret = "An incompatible type for a column was found in the file";
             break;
 
         /* Out of bounds errors */
@@ -400,6 +403,9 @@ tsk_strerror_internal(int err)
         case TSK_ERR_BAD_GENOTYPE:
             ret = "Bad genotype value provided";
             break;
+        case TSK_ERR_BAD_ANCESTRAL_STATE:
+            ret = "Bad ancestral state specified";
+            break;
 
         /* Genotype decoding errors */
         case TSK_ERR_TOO_MANY_ALLELES:
@@ -541,11 +547,11 @@ void
 tsk_blkalloc_print_state(tsk_blkalloc_t *self, FILE *out)
 {
     fprintf(out, "Block allocator%p::\n", (void *) self);
-    fprintf(out, "\ttop = %d\n", (int) self->top);
-    fprintf(out, "\tchunk_size = %d\n", (int) self->chunk_size);
-    fprintf(out, "\tnum_chunks = %d\n", (int) self->num_chunks);
-    fprintf(out, "\ttotal_allocated = %d\n", (int) self->total_allocated);
-    fprintf(out, "\ttotal_size = %d\n", (int) self->total_size);
+    fprintf(out, "\ttop = %lld\n", (long long) self->top);
+    fprintf(out, "\tchunk_size = %lld\n", (long long) self->chunk_size);
+    fprintf(out, "\tnum_chunks = %lld\n", (long long) self->num_chunks);
+    fprintf(out, "\ttotal_allocated = %lld\n", (long long) self->total_allocated);
+    fprintf(out, "\ttotal_size = %lld\n", (long long) self->total_size);
 }
 
 int TSK_WARN_UNUSED
@@ -564,7 +570,7 @@ tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size)
 {
     int ret = 0;
 
-    memset(self, 0, sizeof(tsk_blkalloc_t));
+    tsk_memset(self, 0, sizeof(tsk_blkalloc_t));
     if (chunk_size < 1) {
         ret = TSK_ERR_BAD_PARAM_VALUE;
         goto out;
@@ -642,8 +648,8 @@ tsk_blkalloc_free(tsk_blkalloc_t *self)
 
 /* Mirrors the semantics of numpy's searchsorted function. Uses binary
  * search to find the index of the closest value in the array. */
-size_t
-tsk_search_sorted(const double *restrict array, size_t size, double value)
+tsk_size_t
+tsk_search_sorted(const double *restrict array, tsk_size_t size, double value)
 {
     int64_t upper = (int64_t) size;
     int64_t lower = 0;
@@ -663,7 +669,7 @@ tsk_search_sorted(const double *restrict array, size_t size, double value)
         }
     }
     offset = (int64_t)(array[lower] < value);
-    return (size_t)(lower + offset);
+    return (tsk_size_t)(lower + offset);
 }
 
 /* Rounds the specified double to the closest multiple of 10**-num_digits. If
@@ -702,4 +708,71 @@ tsk_is_unknown_time(double val)
     } nan_union;
     nan_union.f = val;
     return nan_union.i == TSK_UNKNOWN_TIME_HEX;
+}
+
+void *
+tsk_malloc(tsk_size_t size)
+{
+    /* Avoid malloc(0) as it's not portable */
+    if (size == 0) {
+        size = 1;
+    }
+#if TSK_MAX_SIZE > SIZE_MAX
+    if (size > SIZE_MAX) {
+        return NULL;
+    }
+#endif
+    return malloc((size_t) size);
+}
+
+void *
+tsk_realloc(void *ptr, tsk_size_t size)
+{
+    /* We shouldn't ever realloc to a zero size in tskit */
+    tsk_bug_assert(size > 0);
+    return realloc(ptr, (size_t) size);
+}
+
+/* We keep the size argument here as a size_t because we'd have to
+ * cast the outputs of sizeof() otherwise, which would lead to
+ * less readable code. We need to be careful to use calloc within
+ * the library accordingly, so that size can't overflow on 32 bit.
+ */
+void *
+tsk_calloc(tsk_size_t n, size_t size)
+{
+    /* Avoid calloc(0) as it's not portable */
+    if (n == 0) {
+        n = 1;
+    }
+#if TSK_MAX_SIZE > SIZE_MAX
+    if (n > SIZE_MAX) {
+        return NULL;
+    }
+#endif
+    return calloc((size_t) n, size);
+}
+
+void *
+tsk_memset(void *ptr, int fill, tsk_size_t size)
+{
+    return memset(ptr, fill, (size_t) size);
+}
+
+void *
+tsk_memcpy(void *dest, const void *src, tsk_size_t size)
+{
+    return memcpy(dest, src, (size_t) size);
+}
+
+void *
+tsk_memmove(void *dest, const void *src, tsk_size_t size)
+{
+    return memmove(dest, src, (size_t) size);
+}
+
+int
+tsk_memcmp(const void *s1, const void *s2, tsk_size_t size)
+{
+    return memcmp(s1, s2, (size_t) size);
 }

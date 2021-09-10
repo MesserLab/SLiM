@@ -54,6 +54,9 @@ extern "C" {
 #define TSK_STAT_POLARISED          (1 << 10)
 #define TSK_STAT_SPAN_NORMALISE     (1 << 11)
 
+/* Options for map_mutations */
+#define TSK_MM_FIXED_ANCESTRAL_STATE (1 << 0)
+
 #define TSK_DIR_FORWARD 1
 #define TSK_DIR_REVERSE -1
 
@@ -165,6 +168,7 @@ typedef struct {
      * from a specific subset. By default sample counts are tracked and roots
      * maintained. If TSK_NO_SAMPLE_COUNTS is specified, then neither sample
      * counts or roots are available. */
+    /* TODO should these be tsk_size_t values? */
     tsk_id_t *num_samples;
     tsk_id_t *num_tracked_samples;
     /* TODO the only place this feature seems to be used is in the ld_calculator.
@@ -279,20 +283,18 @@ int tsk_treeseq_kc_distance(const tsk_treeseq_t *self, const tsk_treeseq_t *othe
     double lambda_, double *result);
 
 int tsk_treeseq_genealogical_nearest_neighbours(const tsk_treeseq_t *self,
-    const tsk_id_t *focal, size_t num_focal, const tsk_id_t *const *reference_sets,
-    const size_t *reference_set_size, size_t num_reference_sets, tsk_flags_t options,
-    double *ret_array);
+    const tsk_id_t *focal, tsk_size_t num_focal, const tsk_id_t *const *reference_sets,
+    const tsk_size_t *reference_set_size, tsk_size_t num_reference_sets,
+    tsk_flags_t options, double *ret_array);
 int tsk_treeseq_mean_descendants(const tsk_treeseq_t *self,
-    const tsk_id_t *const *reference_sets, const size_t *reference_set_size,
-    size_t num_reference_sets, tsk_flags_t options, double *ret_array);
+    const tsk_id_t *const *reference_sets, const tsk_size_t *reference_set_size,
+    tsk_size_t num_reference_sets, tsk_flags_t options, double *ret_array);
 
-/* TODO change all these size_t's to tsk_size_t */
+typedef int general_stat_func_t(tsk_size_t state_dim, const double *state,
+    tsk_size_t result_dim, double *result, void *params);
 
-typedef int general_stat_func_t(size_t state_dim, const double *state, size_t result_dim,
-    double *result, void *params);
-
-int tsk_treeseq_general_stat(const tsk_treeseq_t *self, size_t K, const double *W,
-    size_t M, general_stat_func_t *f, void *f_params, size_t num_windows,
+int tsk_treeseq_general_stat(const tsk_treeseq_t *self, tsk_size_t K, const double *W,
+    tsk_size_t M, general_stat_func_t *f, void *f_params, tsk_size_t num_windows,
     const double *windows, double *sigma, tsk_flags_t options);
 
 /* One way weighted stats */
@@ -415,16 +417,17 @@ bool tsk_tree_is_sample(const tsk_tree_t *self, tsk_id_t u);
 
 int tsk_tree_copy(const tsk_tree_t *self, tsk_tree_t *dest, tsk_flags_t options);
 int tsk_tree_set_tracked_samples(
-    tsk_tree_t *self, size_t num_tracked_samples, const tsk_id_t *tracked_samples);
+    tsk_tree_t *self, tsk_size_t num_tracked_samples, const tsk_id_t *tracked_samples);
 int tsk_tree_set_tracked_samples_from_sample_list(
     tsk_tree_t *self, tsk_tree_t *other, tsk_id_t node);
 
 int tsk_tree_get_parent(const tsk_tree_t *self, tsk_id_t u, tsk_id_t *parent);
 int tsk_tree_get_time(const tsk_tree_t *self, tsk_id_t u, double *t);
 int tsk_tree_get_mrca(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca);
-int tsk_tree_get_num_samples(const tsk_tree_t *self, tsk_id_t u, size_t *num_samples);
+int tsk_tree_get_num_samples(
+    const tsk_tree_t *self, tsk_id_t u, tsk_size_t *num_samples);
 int tsk_tree_get_num_tracked_samples(
-    const tsk_tree_t *self, tsk_id_t u, size_t *num_tracked_samples);
+    const tsk_tree_t *self, tsk_id_t u, tsk_size_t *num_tracked_samples);
 int tsk_tree_get_sites(
     const tsk_tree_t *self, const tsk_site_t **sites, tsk_size_t *sites_length);
 int tsk_tree_depth(const tsk_tree_t *self, tsk_id_t u, tsk_size_t *depth);

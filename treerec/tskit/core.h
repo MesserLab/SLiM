@@ -109,6 +109,59 @@ __tsk_nan_f(void)
 }
 #define TSK_UNKNOWN_TIME __tsk_nan_f()
 
+/**
+@brief Tskit Object IDs.
+
+@rst
+All objects in tskit are referred to by integer IDs corresponding to the
+row they occupy in the relevant table. The ``tsk_id_t`` type should be used
+when manipulating these ID values. The reserved value ``TSK_NULL`` (-1) defines
+missing data.
+@endrst
+*/
+#ifdef _TSK_BIG_TABLES
+/* Allow tables to have more than 2^31 rows. This is an EXPERIMENTAL feature
+ * and is not supported in any way. This typedef is only included for
+ * future-proofing purposes, so that we can be sure that we don't make any
+ * design decisions that are incompatible with big tables by building the
+ * library in 64 bit mode in CI. See the discussion here for more background:
+
+ * https://github.com/tskit-dev/tskit/issues/343
+ *
+ * If you need big tables, please open an issue on GitHub to discuss, or comment
+ * on the thread above.
+ */
+typedef int64_t tsk_id_t;
+#define TSK_MAX_ID INT64_MAX
+#define TSK_ID_STORAGE_TYPE KAS_INT64
+#else
+typedef int32_t tsk_id_t;
+#define TSK_MAX_ID INT32_MAX
+#define TSK_ID_STORAGE_TYPE KAS_INT32
+#endif
+
+/**
+@brief Tskit sizes.
+
+@rst
+The ``tsk_size_t`` type is an unsigned integer used for any size or count value.
+@endrst
+*/
+typedef uint64_t tsk_size_t;
+#define TSK_MAX_SIZE UINT64_MAX
+#define TSK_SIZE_STORAGE_TYPE KAS_UINT64
+
+/**
+@brief Container for bitwise flags.
+
+@rst
+Bitwise flags are used in tskit as a column type and also as a way to
+specify options to API functions.
+@endrst
+*/
+typedef uint32_t tsk_flags_t;
+#define TSK_FLAGS_STORAGE_TYPE KAS_UINT32
+
 // clang-format off
 /**
 @defgroup API_VERSION_GROUP API version macros.
@@ -129,7 +182,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   12
+#define TSK_VERSION_PATCH   14
 /** @} */
 
 /* Node flags */
@@ -144,7 +197,7 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define TSK_FILE_FORMAT_NAME          "tskit.trees"
 #define TSK_FILE_FORMAT_NAME_LENGTH   11
 #define TSK_FILE_FORMAT_VERSION_MAJOR 12
-#define TSK_FILE_FORMAT_VERSION_MINOR 4
+#define TSK_FILE_FORMAT_VERSION_MINOR 5
 
 /**
 @defgroup GENERAL_ERROR_GROUP General errors.
@@ -207,6 +260,12 @@ One of a pair of columns that must be specified together was
 not found in the file.
 */
 #define TSK_ERR_BOTH_COLUMNS_REQUIRED                               -104
+
+/**
+An unsupported type was provided for a column in the file.
+*/
+#define TSK_ERR_BAD_COLUMN_TYPE                                     -105
+
 
 /* Out of bounds errors */
 #define TSK_ERR_BAD_OFFSET                                          -200
@@ -291,6 +350,7 @@ not found in the file.
 /* Mutation mapping errors */
 #define TSK_ERR_GENOTYPES_ALL_MISSING                              -1000
 #define TSK_ERR_BAD_GENOTYPE                                       -1001
+#define TSK_ERR_BAD_ANCESTRAL_STATE                                -1002
 
 /* Genotype decoding errors */
 #define TSK_ERR_MUST_IMPUTE_NON_SAMPLES                            -1100
@@ -402,13 +462,23 @@ extern int tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size);
 extern void *tsk_blkalloc_get(tsk_blkalloc_t *self, size_t size);
 extern void tsk_blkalloc_free(tsk_blkalloc_t *self);
 
-size_t tsk_search_sorted(const double *array, size_t size, double value);
+tsk_size_t tsk_search_sorted(const double *array, tsk_size_t size, double value);
 double tsk_round(double x, unsigned int ndigits);
 
 bool tsk_is_unknown_time(double val);
 
 #define TSK_UUID_SIZE 36
 int tsk_generate_uuid(char *dest, int flags);
+
+/* TODO most of these can probably be macros so they compile out as no-ops.
+ * Lets do the 64 bit tsk_size_t switch first though. */
+void *tsk_malloc(tsk_size_t size);
+void *tsk_realloc(void *ptr, tsk_size_t size);
+void *tsk_calloc(tsk_size_t n, size_t size);
+void *tsk_memset(void *ptr, int fill, tsk_size_t size);
+void *tsk_memcpy(void *dest, const void *src, tsk_size_t size);
+void *tsk_memmove(void *dest, const void *src, tsk_size_t size);
+int tsk_memcmp(const void *s1, const void *s2, tsk_size_t size);
 
 #ifdef __cplusplus
 }

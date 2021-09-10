@@ -49,14 +49,14 @@ typedef struct {
 } tsk_variant_t;
 
 typedef struct {
-    size_t num_samples;
-    size_t num_sites;
+    tsk_size_t num_samples;
+    tsk_size_t num_sites;
     const tsk_treeseq_t *tree_sequence;
     const tsk_id_t *samples;          /* samples being used */
     const tsk_id_t *sample_index_map; /* reverse index map being used */
     bool user_alleles;
     char *user_alleles_mem;
-    size_t tree_site_index;
+    tsk_size_t tree_site_index;
     int finished;
     tsk_id_t *traversal_stack;
     tsk_tree_t tree;
@@ -68,7 +68,7 @@ typedef struct {
 } tsk_vargen_t;
 
 int tsk_vargen_init(tsk_vargen_t *self, const tsk_treeseq_t *tree_sequence,
-    const tsk_id_t *samples, size_t num_samples, const char **alleles,
+    const tsk_id_t *samples, tsk_size_t num_samples, const char **alleles,
     tsk_flags_t options);
 int tsk_vargen_next(tsk_vargen_t *self, tsk_variant_t **variant);
 int tsk_vargen_free(tsk_vargen_t *self);
