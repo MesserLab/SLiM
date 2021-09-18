@@ -7964,6 +7964,25 @@ void SLiMSim::TSXC_Enable(void)
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
 
+void SLiMSim::TSF_Enable(void)
+{
+    // This is called by command-line slim if a -TSF command-line option is supplied; the point of this is to allow
+    // tree-sequence recording to be turned on, with mutation recording but without runtime crosschecks, with a simple
+    // command-line flag, so that my existing test suite can be tested with tree-seq easily.  -TSF is not public.
+    recording_tree_ = true;
+    recording_mutations_ = true;
+    simplification_ratio_ = 10.0;
+    simplification_interval_ = -1;            // this means "use the ratio, not a fixed interval"
+    simplify_interval_ = 20;                // this is the initial simplification interval
+    running_coalescence_checks_ = false;
+    running_treeseq_crosschecks_ = false;
+    
+    pedigrees_enabled_ = true;
+    pedigrees_enabled_by_SLiM_ = true;
+    
+    SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
+}
+
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
 	std::vector<IndividualSex> sex_;
