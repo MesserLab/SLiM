@@ -341,7 +341,7 @@ out:
  */
 int TSK_WARN_UNUSED
 tsk_treeseq_init(
-    tsk_treeseq_t *self, const tsk_table_collection_t *tables, tsk_flags_t options)
+    tsk_treeseq_t *self, tsk_table_collection_t *tables, tsk_flags_t options)
 {
     int ret = 0;
     tsk_id_t num_trees;

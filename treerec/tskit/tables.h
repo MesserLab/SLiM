@@ -626,26 +626,18 @@ typedef struct _tsk_segment_t {
 } tsk_segment_t;
 
 typedef struct {
-    tsk_id_t *pairs;
-    tsk_size_t num_pairs;
+    tsk_size_t num_segments;
+    double total_span;
+    tsk_segment_t *head;
+    tsk_segment_t *tail;
+} tsk_segment_list_t;
+
+typedef struct {
     tsk_size_t num_nodes;
-    tsk_size_t num_unique_nodes_in_pair;
-    int64_t *pair_map;
-    double sequence_length;
-    tsk_table_collection_t *tables;
-    tsk_segment_t **ibd_segments_head;
-    tsk_segment_t **ibd_segments_tail;
-    tsk_blkalloc_t segment_heap;
-    bool *is_sample;
-    tsk_id_t *paired_nodes_index;
-    double min_length;
-    double max_time;
-    tsk_segment_t **ancestor_map_head;
-    tsk_segment_t **ancestor_map_tail;
-    tsk_segment_t *segment_queue;
-    tsk_size_t segment_queue_size;
-    tsk_size_t max_segment_queue_size;
-} tsk_ibd_finder_t;
+    tsk_avl_tree_int_t pair_map;
+    tsk_size_t total_segments;
+    tsk_blkalloc_t heap;
+} tsk_ibd_result_t;
 
 /****************************************************************************/
 /* Common function options */
@@ -689,12 +681,13 @@ typedef struct {
 #define TSK_CHECK_SITE_ORDERING (1 << 1)
 #define TSK_CHECK_SITE_DUPLICATES (1 << 2)
 #define TSK_CHECK_MUTATION_ORDERING (1 << 3)
-#define TSK_CHECK_INDEXES (1 << 4)
-#define TSK_CHECK_TREES (1 << 5)
-#define TSK_CHECK_INDIVIDUAL_ORDERING (1 << 6)
+#define TSK_CHECK_INDIVIDUAL_ORDERING (1 << 4)
+#define TSK_CHECK_MIGRATION_ORDERING (1 << 5)
+#define TSK_CHECK_INDEXES (1 << 6)
+#define TSK_CHECK_TREES (1 << 7)
 
 /* Leave room for more positive check flags */
-#define TSK_NO_CHECK_POPULATION_REFS (1 << 10)
+#define TSK_NO_CHECK_POPULATION_REFS (1 << 12)
 
 /* Flags for load tables */
 #define TSK_BUILD_INDEXES (1 << 0)
@@ -3404,6 +3397,12 @@ tsk_id_t tsk_table_collection_check_integrity(
 
 /* Undocumented methods */
 
+/* TODO be systematic about where "result" should be in the params
+ * list, different here and in link_ancestors. */
+int tsk_table_collection_find_ibd(const tsk_table_collection_t *self,
+    tsk_ibd_result_t *result, const tsk_id_t *samples, tsk_size_t num_samples,
+    double min_length, double max_time, tsk_flags_t options);
+
 int tsk_table_collection_link_ancestors(tsk_table_collection_t *self, tsk_id_t *samples,
     tsk_size_t num_samples, tsk_id_t *ancestors, tsk_size_t num_ancestors,
     tsk_flags_t options, tsk_edge_table_t *result);
@@ -3494,15 +3493,16 @@ int tsk_squash_edges(
     tsk_edge_t *edges, tsk_size_t num_edges, tsk_size_t *num_output_edges);
 
 /* IBD finder API. This is experimental and the interface may change. */
-int tsk_ibd_finder_init(tsk_ibd_finder_t *ibd_finder, tsk_table_collection_t *tables,
-    tsk_id_t *pairs, tsk_size_t num_pairs);
-int tsk_ibd_finder_set_min_length(tsk_ibd_finder_t *self, double min_length);
-int tsk_ibd_finder_set_max_time(tsk_ibd_finder_t *self, double max_time);
-int tsk_ibd_finder_free(tsk_ibd_finder_t *self);
-int tsk_ibd_finder_run(tsk_ibd_finder_t *ibd_finder);
-int tsk_ibd_finder_get_ibd_segments(tsk_ibd_finder_t *ibd_finder, tsk_id_t pair_index,
-    tsk_segment_t **ret_ibd_segments_head);
-void tsk_ibd_finder_print_state(tsk_ibd_finder_t *self, FILE *out);
+
+tsk_size_t tsk_ibd_result_get_total_segments(const tsk_ibd_result_t *self);
+tsk_size_t tsk_ibd_result_get_num_pairs(const tsk_ibd_result_t *self);
+int tsk_ibd_result_get_keys(const tsk_ibd_result_t *result, tsk_id_t *pairs);
+int tsk_ibd_result_get_items(
+    const tsk_ibd_result_t *self, tsk_id_t *pairs, tsk_segment_list_t **lists);
+void tsk_ibd_result_print_state(tsk_ibd_result_t *self, FILE *out);
+int tsk_ibd_result_free(tsk_ibd_result_t *self);
+int tsk_ibd_result_get(
+    const tsk_ibd_result_t *self, tsk_id_t a, tsk_id_t b, tsk_segment_list_t **ret_list);
 
 #ifdef __cplusplus
 }
