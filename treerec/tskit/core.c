@@ -308,6 +308,11 @@ tsk_strerror_internal(int err)
                   "values for any single site.";
             break;
 
+        /* Migration errors */
+        case TSK_ERR_UNSORTED_MIGRATIONS:
+            ret = "Migrations must be sorted by time.";
+            break;
+
         /* Sample errors */
         case TSK_ERR_DUPLICATE_SAMPLE:
             ret = "Duplicate sample value";
@@ -468,8 +473,8 @@ tsk_strerror_internal(int err)
             break;
 
         /* IBD errors */
-        case TSK_ERR_NO_SAMPLE_PAIRS:
-            ret = "There are no possible sample pairs.";
+        case TSK_ERR_SAME_NODES_IN_PAIR:
+            ret = "Both nodes in the sample pair are the same";
             break;
 
         case TSK_ERR_DUPLICATE_SAMPLE_PAIRS:
@@ -775,4 +780,225 @@ int
 tsk_memcmp(const void *s1, const void *s2, tsk_size_t size)
 {
     return memcmp(s1, s2, (size_t) size);
+}
+
+/* AVL Tree implementation. This is based directly on Knuth's implementation
+ * in TAOCP. See the python/tests/test_avl_tree.py for more information,
+ * and equivalent code annotated with the original algorithm listing.
+ */
+
+static void
+tsk_avl_tree_int_print_node(tsk_avl_node_int_t *node, int depth, FILE *out)
+{
+    int d;
+
+    if (node == NULL) {
+        return;
+    }
+    for (d = 0; d < depth; d++) {
+        fprintf(out, "  ");
+    }
+    fprintf(out, "key=%d balance=%d\n", (int) node->key, node->balance);
+    tsk_avl_tree_int_print_node(node->llink, depth + 1, out);
+    tsk_avl_tree_int_print_node(node->rlink, depth + 1, out);
+}
+void
+tsk_avl_tree_int_print_state(tsk_avl_tree_int_t *self, FILE *out)
+{
+    fprintf(out, "AVL tree: size=%d height=%d\n", (int) self->size, (int) self->height);
+    tsk_avl_tree_int_print_node(self->head.rlink, 0, out);
+}
+
+int
+tsk_avl_tree_int_init(tsk_avl_tree_int_t *self)
+{
+    memset(self, 0, sizeof(*self));
+    return 0;
+}
+
+int
+tsk_avl_tree_int_free(tsk_avl_tree_int_t *TSK_UNUSED(self))
+{
+    return 0;
+}
+
+tsk_avl_node_int_t *
+tsk_avl_tree_int_get_root(const tsk_avl_tree_int_t *self)
+{
+    return self->head.rlink;
+}
+
+tsk_avl_node_int_t *
+tsk_avl_tree_int_search(const tsk_avl_tree_int_t *self, int64_t key)
+{
+    tsk_avl_node_int_t *P = self->head.rlink;
+
+    while (P != NULL) {
+        if (key == P->key) {
+            break;
+        } else if (key < P->key) {
+            P = P->llink;
+        } else {
+            P = P->rlink;
+        }
+    }
+    return P;
+}
+
+static int
+tsk_avl_tree_int_insert_empty(tsk_avl_tree_int_t *self, tsk_avl_node_int_t *node)
+{
+    self->head.rlink = node;
+    self->size = 1;
+    self->height = 1;
+    node->llink = NULL;
+    node->rlink = NULL;
+    node->balance = 0;
+    return 0;
+}
+
+#define get_link(a, P) ((a) == -1 ? (P)->llink : (P)->rlink)
+#define set_link(a, P, val)                                                             \
+    do {                                                                                \
+        if ((a) == -1) {                                                                \
+            (P)->llink = val;                                                           \
+        } else {                                                                        \
+            (P)->rlink = val;                                                           \
+        }                                                                               \
+    } while (0);
+
+static int
+tsk_avl_tree_int_insert_non_empty(tsk_avl_tree_int_t *self, tsk_avl_node_int_t *node)
+{
+    const int64_t K = node->key;
+    tsk_avl_node_int_t *T = &self->head;
+    tsk_avl_node_int_t *S = T->rlink;
+    tsk_avl_node_int_t *P = T->rlink;
+    tsk_avl_node_int_t *Q, *R;
+    int a;
+
+    while (true) {
+        if (K == P->key) {
+            /* TODO figure out what the most useful semantics are here. Just
+             * returning 1 as a non-zero value for now. */
+            return 1;
+        } else if (K < P->key) {
+            Q = P->llink;
+            if (Q == NULL) {
+                Q = node;
+                P->llink = Q;
+                break;
+            }
+        } else {
+            Q = P->rlink;
+            if (Q == NULL) {
+                Q = node;
+                P->rlink = Q;
+                break;
+            }
+        }
+        if (Q->balance != 0) {
+            T = P;
+            S = Q;
+        }
+        P = Q;
+    }
+
+    self->size++;
+    Q->llink = NULL;
+    Q->rlink = NULL;
+    Q->balance = 0;
+
+    if (K < S->key) {
+        a = -1;
+    } else {
+        a = 1;
+    }
+    P = get_link(a, S);
+    R = P;
+    while (P != Q) {
+        if (K < P->key) {
+            P->balance = -1;
+            P = P->llink;
+        } else if (K > P->key) {
+            P->balance = 1;
+            P = P->rlink;
+        }
+    }
+
+    if (S->balance == 0) {
+        S->balance = a;
+        self->height++;
+    } else if (S->balance == -a) {
+        S->balance = 0;
+    } else {
+        if (R->balance == a) {
+            P = R;
+            set_link(a, S, get_link(-a, R));
+            set_link(-a, R, S);
+            S->balance = 0;
+            R->balance = 0;
+        } else if (R->balance == -a) {
+            P = get_link(-a, R);
+            set_link(-a, R, get_link(a, P));
+            set_link(a, P, R);
+            set_link(a, S, get_link(-a, P));
+            set_link(-a, P, S);
+            if (P->balance == a) {
+                S->balance = -a;
+                R->balance = 0;
+            } else if (P->balance == 0) {
+                S->balance = 0;
+                R->balance = 0;
+            } else {
+                S->balance = 0;
+                R->balance = a;
+            }
+            P->balance = 0;
+        }
+        if (S == T->rlink) {
+            T->rlink = P;
+        } else {
+            T->llink = P;
+        }
+    }
+    return 0;
+}
+
+int
+tsk_avl_tree_int_insert(tsk_avl_tree_int_t *self, tsk_avl_node_int_t *node)
+{
+    int ret = 0;
+
+    if (self->size == 0) {
+        ret = tsk_avl_tree_int_insert_empty(self, node);
+    } else {
+        ret = tsk_avl_tree_int_insert_non_empty(self, node);
+    }
+    return ret;
+}
+
+/* An inorder traversal of the nodes in an AVL tree (or any binary search tree)
+ * yields the keys in sorted order. The recursive implementation is safe here
+ * because this is an AVL tree and it is strictly balanced, the depth is very
+ * limited. Using GCC's __builtin_frame_address it looks like the size of a stack
+ * frame for this function is 48 bytes. Assuming a stack size of 1MiB, this
+ * would give us a maximum tree depth of 21845 - so, we're pretty safe.
+ */
+static int
+ordered_nodes_traverse(tsk_avl_node_int_t *node, int index, tsk_avl_node_int_t **out)
+{
+    if (node == NULL) {
+        return index;
+    }
+    index = ordered_nodes_traverse(node->llink, index, out);
+    out[index] = node;
+    return ordered_nodes_traverse(node->rlink, index + 1, out);
+}
+
+int
+tsk_avl_tree_int_ordered_nodes(const tsk_avl_tree_int_t *self, tsk_avl_node_int_t **out)
+{
+    ordered_nodes_traverse(self->head.rlink, 0, out);
+    return 0;
 }

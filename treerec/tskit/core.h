@@ -132,11 +132,11 @@ missing data.
  * on the thread above.
  */
 typedef int64_t tsk_id_t;
-#define TSK_MAX_ID INT64_MAX
+#define TSK_MAX_ID INT64_MAX - 1
 #define TSK_ID_STORAGE_TYPE KAS_INT64
 #else
 typedef int32_t tsk_id_t;
-#define TSK_MAX_ID INT32_MAX
+#define TSK_MAX_ID INT32_MAX - 1
 #define TSK_ID_STORAGE_TYPE KAS_INT32
 #endif
 
@@ -182,7 +182,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define TSK_VERSION_PATCH   14
+#define TSK_VERSION_PATCH   15
 /** @} */
 
 /* Node flags */
@@ -313,6 +313,9 @@ An unsupported type was provided for a column in the file.
 #define TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE                -508
 #define TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN            -509
 
+/* Migration errors */
+#define TSK_ERR_UNSORTED_MIGRATIONS                                 -550
+
 /* Sample errors */
 #define TSK_ERR_DUPLICATE_SAMPLE                                    -600
 #define TSK_ERR_BAD_SAMPLES                                         -601
@@ -377,7 +380,7 @@ An unsupported type was provided for a column in the file.
 #define TSK_ERR_UNION_DIFF_HISTORIES                               -1401
 
 /* IBD errors */
-#define TSK_ERR_NO_SAMPLE_PAIRS                                    -1500
+#define TSK_ERR_SAME_NODES_IN_PAIR                                 -1500
 #define TSK_ERR_DUPLICATE_SAMPLE_PAIRS                             -1501
 
 /* Simplify errors */
@@ -462,9 +465,50 @@ extern int tsk_blkalloc_init(tsk_blkalloc_t *self, size_t chunk_size);
 extern void *tsk_blkalloc_get(tsk_blkalloc_t *self, size_t size);
 extern void tsk_blkalloc_free(tsk_blkalloc_t *self);
 
+typedef struct _tsk_avl_node_int_t {
+    int64_t key;
+    void *value;
+    struct _tsk_avl_node_int_t *llink;
+    struct _tsk_avl_node_int_t *rlink;
+    /* This can only contain -1, 0, 1. We could set it to a smaller type,
+     * but there's no point because of struct padding and alignment so
+     * it's simplest to keep it as a plain int. */
+    int balance;
+} tsk_avl_node_int_t;
+
+typedef struct {
+    tsk_avl_node_int_t head;
+    tsk_size_t size;
+    tsk_size_t height;
+} tsk_avl_tree_int_t;
+
+int tsk_avl_tree_int_init(tsk_avl_tree_int_t *self);
+int tsk_avl_tree_int_free(tsk_avl_tree_int_t *self);
+void tsk_avl_tree_int_print_state(tsk_avl_tree_int_t *self, FILE *out);
+int tsk_avl_tree_int_insert(tsk_avl_tree_int_t *self, tsk_avl_node_int_t *node);
+tsk_avl_node_int_t *tsk_avl_tree_int_search(const tsk_avl_tree_int_t *self, int64_t key);
+int tsk_avl_tree_int_ordered_nodes(
+    const tsk_avl_tree_int_t *self, tsk_avl_node_int_t **out);
+tsk_avl_node_int_t *tsk_avl_tree_int_get_root(const tsk_avl_tree_int_t *self);
+
 tsk_size_t tsk_search_sorted(const double *array, tsk_size_t size, double value);
+
 double tsk_round(double x, unsigned int ndigits);
 
+/**
+@brief Check if a number is TSK_UNKNOWN_TIME
+
+@rst
+Unknown time values in tskit are represented by a particular NaN value. Since NaN values
+are not equal to each other by definition, a simple comparison like
+``mutation.time == TSK_UNKNOWN_TIME`` will fail even if the mutation's time is
+TSK_UNKNOWN_TIME. This function compares the underlying bit representation of a double
+value and returns true iff it is equal to the specific NaN value TSK_UNKNOWN_TIME.
+@endrst
+
+@param val The number to check
+@return true if the number is TSK_UNKNOWN_TIME else false
+*/
 bool tsk_is_unknown_time(double val);
 
 #define TSK_UUID_SIZE 36

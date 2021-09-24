@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
 	unsigned long int *override_seed_ptr = nullptr;			// by default, a seed is generated or supplied in the input file
 	const char *input_file = nullptr;
-	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false;
+	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false, tree_seq_force = false;
 	std::vector<std::string> defined_constants;
 	
 	// command-line SLiM generally terminates rather than throwing
@@ -317,13 +317,20 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		// -TSXC is an undocumented command-line flag that turns on tree-sequence recording and runtime crosschecks
-		if (strcmp(arg, "-TSXC") == 0)
-		{
-			tree_seq_checks = true;
-			continue;
-		}
-		
+        // -TSXC is an undocumented command-line flag that turns on tree-sequence recording and runtime crosschecks
+        if (strcmp(arg, "-TSXC") == 0)
+        {
+            tree_seq_checks = true;
+            continue;
+        }
+        
+        // -TSF is an undocumented command-line flag that turns on tree-sequence recording without runtime crosschecks
+        if (strcmp(arg, "-TSF") == 0)
+        {
+            tree_seq_force = true;
+            continue;
+        }
+        
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if ((arg_index + 1 != argc) || strncmp(arg, "-", 1) == 0)
 		{
@@ -440,6 +447,8 @@ int main(int argc, char *argv[])
 		
 		if (tree_seq_checks)
 			sim->TSXC_Enable();
+        if (tree_seq_force && !tree_seq_checks)
+            sim->TSF_Enable();
 		
 #if DO_MEMORY_CHECKS
 		// We check memory usage at the end of every 10 generations, to be able to provide the user with a decent error message

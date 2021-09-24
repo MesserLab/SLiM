@@ -692,7 +692,8 @@ public:
 	void DumpMutationTable(void);
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
-	void TSXC_Enable(void);
+	void TSXC_Enable(void);                 // forces tree-seq with crosschecks on; called by the undocumented -TSXC option
+    void TSF_Enable(void);                  // forces tree-seq without crosschecks on; called by the undocumented -TSF option
 	
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);

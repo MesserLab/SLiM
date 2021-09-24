@@ -7287,30 +7287,33 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	
 	// First we simplify, on the original table collection; we considered doing this on the copy,
 	// but then the copy takes longer and the simplify's work is lost, and there doesn't seem to
-	// be a compelling case for leaving the original tables unsimplified.
+	// be a compelling case for leaving the original tables unsimplified.  Note that Peter has done
+	// a check that calling treeSeqOutput() in the middle of a run does not change the result, although
+	// it *does* change the order of the rows; see https://github.com/MesserLab/SLiM/issues/209
 	if (p_simplify)
 	{
 		SimplifyTreeSequence();
-	}
-	else
-	{
-		// this is done by SimplifyTreeSequence() but we need to do in any case
-		int flags = TSK_NO_CHECK_INTEGRITY;
-#if DEBUG
-		flags = 0;
-#endif
-		ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
-		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
-		
-		// Remove redundant sites we added
-		ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
-		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	}
 	
 	// Copy the table collection so that modifications we do for writing don't affect the original tables
 	tsk_table_collection_t output_tables;
 	ret = tsk_table_collection_copy(&tables_, &output_tables, 0);
 	if (ret < 0) handle_error("tsk_table_collection_copy", ret);
+	
+	// Sort and deduplicate; we don't need to do this if we simplified above, since simplification does these steps
+	if (!p_simplify)
+	{
+		int flags = TSK_NO_CHECK_INTEGRITY;
+#if DEBUG
+		flags = 0;
+#endif
+		ret = tsk_table_collection_sort(&output_tables, /* edge_start */ NULL, /* flags */ flags);
+		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+		
+		// Remove redundant sites we added
+		ret = tsk_table_collection_deduplicate_sites(&output_tables, 0);
+		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+	}
 	
 	// Add in the mutation.parent information; valid tree sequences need parents, but we don't keep them while running
 	ret = tsk_table_collection_build_index(&output_tables, 0);
@@ -7962,6 +7965,25 @@ void SLiMSim::TSXC_Enable(void)
 	pedigrees_enabled_by_SLiM_ = true;
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
+}
+
+void SLiMSim::TSF_Enable(void)
+{
+    // This is called by command-line slim if a -TSF command-line option is supplied; the point of this is to allow
+    // tree-sequence recording to be turned on, with mutation recording but without runtime crosschecks, with a simple
+    // command-line flag, so that my existing test suite can be tested with tree-seq easily.  -TSF is not public.
+    recording_tree_ = true;
+    recording_mutations_ = true;
+    simplification_ratio_ = 10.0;
+    simplification_interval_ = -1;            // this means "use the ratio, not a fixed interval"
+    simplify_interval_ = 20;                // this is the initial simplification interval
+    running_coalescence_checks_ = false;
+    running_treeseq_crosschecks_ = false;
+    
+    pedigrees_enabled_ = true;
+    pedigrees_enabled_by_SLiM_ = true;
+    
+    SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
 }
 
 typedef struct ts_subpop_info {
