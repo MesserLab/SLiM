@@ -17,6 +17,10 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
 
 #include "QtSLiMWindow.h"

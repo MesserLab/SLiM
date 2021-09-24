@@ -23,6 +23,9 @@
  
  */
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include <iostream>
 #include <fstream>

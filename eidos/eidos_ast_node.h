@@ -21,6 +21,10 @@
 #ifndef __Eidos__eidos_ast_node__
 #define __Eidos__eidos_ast_node__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <stdio.h>
 #include <vector>
 

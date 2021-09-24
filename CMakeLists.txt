@@ -55,7 +55,7 @@
 cmake_minimum_required (VERSION 2.8 FATAL_ERROR)
 
 project(SLiM)
-
+include(ExternalProject)
 
 # Make a Release build by default
 if(NOT CMAKE_BUILD_TYPE) 
@@ -70,6 +70,14 @@ option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wmissing-prototypes -Wswitch -Wpointer-sign -Wsign-compare -Wstrict-prototypes -Wno-sign-conversion -Wuninitialized")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wswitch -Wsign-compare -Wno-sign-conversion -Wuninitialized")
 
+# Windows specific flags
+if(WIN32)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -D_POSIX_THREAD_SAFE_FUNCTIONS -DDO_MEMORY_CHECKS=0")
+set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+endif()
+
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
 
@@ -83,6 +91,28 @@ if(BUILD_SLIMGUI)
 	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
 else()
 	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
+endif()
+
+# Windows compat
+if(WIN32)
+    set(GNU_DIR ${CMAKE_CURRENT_BINARY_DIR}/libgnu-prefix/src/libgnu-build)
+    set(GNU_STATIC_LIB ${GNU_DIR}/gllib/libgnu.a)
+    set(GNU_INCLUDES ${GNU_DIR}/gllib)
+
+    file(MAKE_DIRECTORY ${GNU_INCLUDES})
+
+    ExternalProject_Add(libgnu
+        SOURCE_DIR ${PROJECT_SOURCE_DIR}/windows_compat/gnulib
+        CONFIGURE_COMMAND ${PROJECT_SOURCE_DIR}/windows_compat/gnulib/configure
+        BUILD_COMMAND ${MAKE}
+        BUILD_BYPRODUCTS ${GNU_STATIC_LIB})
+
+    add_library(gnu STATIC IMPORTED GLOBAL)
+    add_dependencies(gnu libgnu)
+    set_target_properties(gnu PROPERTIES IMPORTED_LOCATION ${GNU_STATIC_LIB})
+    set_target_properties(gnu PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${GNU_INCLUDES})
+    set_target_properties(gnu PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${GNU_INCLUDES})
+
 endif()
 
 # Test for -flto support
@@ -127,18 +157,29 @@ set(TSKIT_INCLUDES ${PROJECT_SOURCE_DIR}/treerec)
 add_library(${TARGET_NAME} STATIC ${TABLE_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} ${KASTORE_INCLUDES})
 target_include_directories(${TARGET_NAME} PUBLIC ${KASTORE_INCLUDES} ${TSKIT_INCLUDES})
+if(WIN32)
+    target_link_libraries(${TARGET_NAME} PUBLIC gnu)
+endif()
 
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
+if(WIN32)
+    target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
+    target_link_libraries(${TARGET_NAME} PUBLIC gnu)
+endif()
 
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
+if(WIN32)
+    target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
+    target_link_libraries(${TARGET_NAME} PUBLIC gnu)
+endif()
 
 install(TARGETS slim eidos DESTINATION bin)
 
@@ -152,6 +193,9 @@ find_package(Qt5 REQUIRED
     Gui
     Widgets
 )
+if(WIN32)
+set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+endif()
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -164,7 +208,12 @@ target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES} "${PROJECT_SOUR
 if(APPLE)
 	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib /usr/lib/libobjc.A.dylib )
 else()
-	target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+    if(WIN32)
+        target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
+        target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
+    else()
+	    target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
+    endif()
 endif()
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_SLIMGUI)

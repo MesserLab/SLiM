@@ -20,7 +20,6 @@
 #ifndef QTSLIM_SLIMGUI_H
 #define QTSLIM_SLIMGUI_H
 
-
 #include <vector>
 #include <string>
 #include <map>

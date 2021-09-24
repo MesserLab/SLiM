@@ -35,6 +35,10 @@
 #ifndef __Eidos__eidos_object_pool_h
 #define __Eidos__eidos_object_pool_h
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <stdexcept>
 
 

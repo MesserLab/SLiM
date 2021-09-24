@@ -26,6 +26,10 @@
 #ifndef __SLiM__slim_globals__
 #define __SLiM__slim_globals__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <stdio.h>
 
 #include "eidos_globals.h"
@@ -378,7 +382,12 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 // If 1, checks of current memory usage versus maximum allowed memory usage will be done in certain spots
 // where we are particularly likely to run out of memory, to provide the user with a better error message.
 // Note that even when this is 1, the user can disable some of these checks with -x.
+// Disable for Windows until Eidos_GetMaxRSS() issue fixed:
+#ifdef _WIN32
+#define DO_MEMORY_CHECKS	0
+#else
 #define DO_MEMORY_CHECKS	1
+#endif
 
 // If 1, and SLiM_verbose_output == true, additional output will be generated regarding the mutation run count
 // experiments performed by SLiMSim.

@@ -33,6 +33,9 @@
 #ifndef __SLiM__mutation_type__
 #define __SLiM__mutation_type__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include <vector>
 #include <string>

@@ -20,6 +20,9 @@
 #ifndef sparse_array_h
 #define sparse_array_h
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include "slim_globals.h"
 

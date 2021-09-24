@@ -62,6 +62,10 @@
 #ifndef __Eidos__eidos_intrusive_ptr_h
 #define __Eidos__eidos_intrusive_ptr_h
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <ostream>
 
 

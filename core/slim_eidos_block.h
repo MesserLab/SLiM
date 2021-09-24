@@ -28,6 +28,10 @@
 #ifndef __SLiM__slim_script_block__
 #define __SLiM__slim_script_block__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include "slim_globals.h"
 #include "eidos_script.h"
 #include "eidos_value.h"

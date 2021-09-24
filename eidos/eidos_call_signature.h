@@ -21,6 +21,10 @@
 #ifndef __Eidos__eidos_function_signature__
 #define __Eidos__eidos_function_signature__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <iostream>
 #include <memory>
 

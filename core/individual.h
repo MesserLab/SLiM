@@ -36,6 +36,9 @@
 #ifndef __SLiM__individual__
 #define __SLiM__individual__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include "genome.h"
 

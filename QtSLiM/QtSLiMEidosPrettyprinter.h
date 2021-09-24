@@ -20,7 +20,6 @@
 #ifndef QTSLIMEIDOSPRETTYPRINTER_H
 #define QTSLIMEIDOSPRETTYPRINTER_H
 
-
 #include <string>
 #include <eidos_token.h>
 

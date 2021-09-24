@@ -58,6 +58,9 @@
 #ifndef __SLiM__subpopulation__
 #define __SLiM__subpopulation__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include "slim_globals.h"
 #include "eidos_rng.h"

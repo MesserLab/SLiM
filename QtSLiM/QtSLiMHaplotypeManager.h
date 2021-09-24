@@ -20,6 +20,10 @@
 #ifndef QTSLIMHAPLOTYPEMANAGER_H
 #define QTSLIMHAPLOTYPEMANAGER_H
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 // Silence deprecated OpenGL warnings on macOS
 #define GL_SILENCE_DEPRECATION
 

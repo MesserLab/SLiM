@@ -83,6 +83,9 @@
 #ifndef eidos_tinycolormap_h
 #define eidos_tinycolormap_h
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include <cmath>
 #include <array>

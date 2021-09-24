@@ -27,6 +27,9 @@
 #ifndef __SLiM__genome__
 #define __SLiM__genome__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include "mutation.h"
 #include "slim_globals.h"

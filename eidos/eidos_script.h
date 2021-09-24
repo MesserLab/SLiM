@@ -26,6 +26,10 @@
 #ifndef __Eidos__eidos_script__
 #define __Eidos__eidos_script__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <vector>
 #include <string>
 

@@ -7,6 +7,10 @@
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <string.h>

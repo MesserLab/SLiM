@@ -1,3 +1,7 @@
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMPreferences.h"

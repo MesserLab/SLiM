@@ -21,6 +21,9 @@
 #ifndef slim_functions_h
 #define slim_functions_h
 
+#ifdef _WIN32
+#include "config.h"
+#endif
 
 #include <stdio.h>
 

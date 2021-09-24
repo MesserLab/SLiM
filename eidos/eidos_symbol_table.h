@@ -45,6 +45,10 @@
 #ifndef __Eidos__eidos_symbol_table__
 #define __Eidos__eidos_symbol_table__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include <iostream>
 #include <vector>
 #include <string>

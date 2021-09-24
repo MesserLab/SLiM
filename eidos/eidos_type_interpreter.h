@@ -29,6 +29,10 @@
 #ifndef __Eidos__eidos_type_interpreter__
 #define __Eidos__eidos_type_interpreter__
 
+#ifdef _WIN32
+#include "config.h"
+#endif
+
 #include "eidos_script.h"
 #include "eidos_type_table.h"
 #include "eidos_ast_node.h"
