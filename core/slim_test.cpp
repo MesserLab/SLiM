@@ -298,7 +298,13 @@ int RunSLiMTests(void)
 		std::cout << "WARNING: This system does not appear to have a writeable /tmp directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of /tmp will raise an exception if called (and are therefore also not tested).  If this is surprising, contact the system administrator for details." << std::endl;
 	
 	// We want to run the self-test inside a new temporary directory, to prevent collisions with other self-test runs
+	#ifndef _WIN32
 	std::string prefix = "/tmp/slimTest_";
+	#else
+	// Will need to replace this hard-coding later based on an API call
+	// in case user has windows installed on another drive
+	std::string prefix = "C:/Windows/Temp/slimTest_";
+	#endif
 	std::string temp_path_template = prefix + "XXXXXX";
 	char *temp_path_cstr = strdup(temp_path_template.c_str());
 	

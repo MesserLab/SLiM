@@ -1302,7 +1302,13 @@ bool Eidos_SlashTmpExists(void)
 	
 	if (!been_here)
 	{
+		#ifndef _WIN32
 		std::string path = "/tmp";
+		#else
+		// Will need to replace this hard-coding later based on an API call
+		// in case user has windows installed on another drive
+		std::string path = "C:/Windows/Temp";
+		#endif
 		struct stat file_info;
 		bool path_exists = (stat(path.c_str(), &file_info) == 0);
 		
@@ -1314,7 +1320,13 @@ bool Eidos_SlashTmpExists(void)
 			if (is_directory)
 			{
 				// test that it is writeable, in practice, by creating a temp file
+				#ifndef _WIN32
 				std::string prefix = "/tmp/eidos_tmp_test";
+				#else
+				// Will need to replace this hard-coding later based on an API call
+				s// in case user has windows installed on another drive
+				std::string prefix = "C:/Windows/Temp/eidos_tmp_test";
+				#endif
 				std::string suffix = ".txt";
 				std::string file_path_template = prefix + "XXXXXX" + suffix;
 				char *file_path_cstr = strdup(file_path_template.c_str());
