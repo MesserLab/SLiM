@@ -28,7 +28,6 @@
 #ifndef __Eidos__eidos_type_table__
 #define __Eidos__eidos_type_table__
 
-
 #include <iostream>
 #include <vector>
 #include <string>

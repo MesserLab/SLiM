@@ -62,7 +62,6 @@
 #ifndef __Eidos__eidos_intrusive_ptr_h
 #define __Eidos__eidos_intrusive_ptr_h
 
-
 #include <ostream>
 
 

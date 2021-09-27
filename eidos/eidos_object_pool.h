@@ -35,7 +35,6 @@
 #ifndef __Eidos__eidos_object_pool_h
 #define __Eidos__eidos_object_pool_h
 
-
 #include <stdexcept>
 
 

@@ -20,7 +20,6 @@
 #ifndef log_file_h
 #define log_file_h
 
-
 #include "eidos_value.h"
 #include "slim_globals.h"
 

@@ -26,7 +26,6 @@
 #ifndef __Eidos__eidos_script__
 #define __Eidos__eidos_script__
 
-
 #include <vector>
 #include <string>
 

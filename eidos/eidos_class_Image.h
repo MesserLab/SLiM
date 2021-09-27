@@ -26,7 +26,6 @@
 #ifndef __Eidos__eidos_class_image__
 #define __Eidos__eidos_class_image__
 
-
 #include "eidos_value.h"
 
 

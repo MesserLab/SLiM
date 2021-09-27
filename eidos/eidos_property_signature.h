@@ -21,7 +21,6 @@
 #ifndef __Eidos__eidos_property_signature__
 #define __Eidos__eidos_property_signature__
 
-
 #include <memory>
 
 #include "eidos_globals.h"

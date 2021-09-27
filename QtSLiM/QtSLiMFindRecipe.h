@@ -24,6 +24,7 @@
 #include <QStringList>
 #include <QDialog>
 
+
 namespace Ui {
 class QtSLiMFindRecipe;
 }

@@ -7,7 +7,6 @@
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
-
 #include <iostream>
 #include <fstream>
 #include <string.h>

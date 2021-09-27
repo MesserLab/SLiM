@@ -21,7 +21,6 @@
 #ifndef __Eidos__eidos_token__
 #define __Eidos__eidos_token__
 
-
 #include <stdio.h>
 
 #include <string>

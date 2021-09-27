@@ -26,7 +26,6 @@
 #ifndef __Eidos__eidos_test__
 #define __Eidos__eidos_test__
 
-
 #include <string>
 #include <initializer_list>
 

@@ -21,7 +21,6 @@
 #ifndef __Eidos__eidos_globals__
 #define __Eidos__eidos_globals__
 
-
 #include <stdio.h>
 #include <iostream>
 #include <sstream>

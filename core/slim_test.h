@@ -20,7 +20,6 @@
 #ifndef __SLiM__slim_test__
 #define __SLiM__slim_test__
 
-
 #include <stdio.h>
 #include <string>
 

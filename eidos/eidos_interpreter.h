@@ -27,7 +27,6 @@
 #ifndef __Eidos__eidos_interpreter__
 #define __Eidos__eidos_interpreter__
 
-
 #include <vector>
 #include <string>
 #include <map>

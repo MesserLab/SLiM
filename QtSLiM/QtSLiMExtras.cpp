@@ -277,7 +277,7 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     std::ostringstream ss;
     ss << *call_signature;
     QString callSigString = QString::fromStdString(ss.str());
-
+        
     if (callSigString.endsWith(" <SLiM>") && !docSigString.endsWith(" <SLiM>"))
         callSigString.chop(7);
     

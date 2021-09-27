@@ -1,4 +1,3 @@
-
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMWindow.h"
 #include "QtSLiMPreferences.h"

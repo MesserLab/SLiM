@@ -26,7 +26,6 @@
 #ifndef __Eidos__eidos_functions__
 #define __Eidos__eidos_functions__
 
-
 #include "eidos_interpreter.h"
 #include "eidos_value.h"
 
