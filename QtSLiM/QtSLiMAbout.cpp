@@ -19,7 +19,6 @@
 
 #ifdef _WIN32
 #define GNULIB_NAMESPACE gnulib
-#include "config.h"
 #endif
 
 #include "QtSLiMAbout.h"

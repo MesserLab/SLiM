@@ -17,9 +17,6 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "QtSLiMExtras.h"
 
@@ -280,7 +277,7 @@ void ColorizeCallSignature(const EidosCallSignature *call_signature, double poin
     std::ostringstream ss;
     ss << *call_signature;
     QString callSigString = QString::fromStdString(ss.str());
-    
+
     if (callSigString.endsWith(" <SLiM>") && !docSigString.endsWith(" <SLiM>"))
         callSigString.chop(7);
     
