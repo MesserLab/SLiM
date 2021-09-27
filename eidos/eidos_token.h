@@ -21,9 +21,6 @@
 #ifndef __Eidos__eidos_token__
 #define __Eidos__eidos_token__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <stdio.h>
 

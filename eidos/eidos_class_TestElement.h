@@ -27,9 +27,6 @@
 #ifndef __Eidos__eidos_class_test_element__
 #define __Eidos__eidos_class_test_element__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "eidos_value.h"
 

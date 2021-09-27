@@ -27,9 +27,6 @@
 #ifndef __SLiM__polymorphism__
 #define __SLiM__polymorphism__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <iostream>
 

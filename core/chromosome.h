@@ -28,9 +28,6 @@
 #ifndef __SLiM__chromosome__
 #define __SLiM__chromosome__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <vector>
 #include <map>

@@ -1324,7 +1324,7 @@ bool Eidos_SlashTmpExists(void)
 				std::string prefix = "/tmp/eidos_tmp_test";
 				#else
 				// Will need to replace this hard-coding later based on an API call
-				s// in case user has windows installed on another drive
+				// in case user has windows installed on another drive
 				std::string prefix = "C:/Windows/Temp/eidos_tmp_test";
 				#endif
 				std::string suffix = ".txt";

@@ -20,9 +20,6 @@
 #ifndef __Eidos__eidos_class_dictionary__
 #define __Eidos__eidos_class_dictionary__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "eidos_globals.h"
 #include "eidos_class_Object.h"

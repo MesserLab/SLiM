@@ -27,9 +27,6 @@
 #ifndef __SLiM__mutation__
 #define __SLiM__mutation__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <iostream>
 

@@ -29,9 +29,6 @@
 #ifndef __SLiM__substitution__
 #define __SLiM__substitution__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "mutation.h"
 #include "chromosome.h"

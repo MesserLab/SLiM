@@ -27,9 +27,6 @@
 #ifndef __Eidos__eidos_interpreter__
 #define __Eidos__eidos_interpreter__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <vector>
 #include <string>

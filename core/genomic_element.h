@@ -27,9 +27,6 @@
 #ifndef __SLiM__genomic_element__
 #define __SLiM__genomic_element__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <iostream>
 

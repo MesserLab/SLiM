@@ -21,9 +21,6 @@
 #ifndef __Eidos__eidos_beep__
 #define __Eidos__eidos_beep__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <string>
 

@@ -20,9 +20,6 @@
 #ifndef __SLiM__slim_test__
 #define __SLiM__slim_test__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <stdio.h>
 #include <string>

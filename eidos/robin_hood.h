@@ -38,9 +38,6 @@
 #define ROBIN_HOOD_VERSION_MINOR 9 // for adding functionality in a backwards-compatible manner
 #define ROBIN_HOOD_VERSION_PATCH 0 // for backwards-compatible bug fixes
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <algorithm>
 #include <cstdlib>

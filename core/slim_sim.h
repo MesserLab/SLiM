@@ -26,9 +26,6 @@
 #ifndef __SLiM__slim_sim__
 #define __SLiM__slim_sim__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <stdio.h>
 #include <map>

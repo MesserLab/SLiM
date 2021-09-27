@@ -29,9 +29,6 @@
 #ifndef __SLiM__interaction_type__
 #define __SLiM__interaction_type__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <vector>
 #include <string>

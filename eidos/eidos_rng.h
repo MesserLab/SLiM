@@ -26,9 +26,6 @@
 #ifndef __Eidos__eidos_rng__
 #define __Eidos__eidos_rng__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 // We have our own private copy of (parts of) the GSL library, so that we don't have link dependencies.
 // See the _README file in the gsl directory for information on the local copy of the GSL included in this project.

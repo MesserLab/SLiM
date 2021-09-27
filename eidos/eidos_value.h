@@ -28,9 +28,6 @@
 #ifndef __Eidos__eidos_value__
 #define __Eidos__eidos_value__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <iostream>
 #include <vector>

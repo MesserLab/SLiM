@@ -27,9 +27,6 @@
 #ifndef __SLiM__population__
 #define __SLiM__population__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <vector>
 #include <map>

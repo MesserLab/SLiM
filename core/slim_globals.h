@@ -26,9 +26,6 @@
 #ifndef __SLiM__slim_globals__
 #define __SLiM__slim_globals__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <stdio.h>
 

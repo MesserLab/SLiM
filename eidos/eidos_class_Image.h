@@ -26,9 +26,6 @@
 #ifndef __Eidos__eidos_class_image__
 #define __Eidos__eidos_class_image__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "eidos_value.h"
 

@@ -26,9 +26,6 @@
 #ifndef __Eidos__eidos_test__
 #define __Eidos__eidos_test__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <string>
 #include <initializer_list>

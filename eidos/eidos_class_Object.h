@@ -20,9 +20,6 @@
 #ifndef __Eidos__eidos_class_Object__
 #define __Eidos__eidos_class_Object__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <iostream>
 #include <vector>

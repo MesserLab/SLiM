@@ -29,9 +29,6 @@
 #ifndef __SLiM__genomic_element_type__
 #define __SLiM__genomic_element_type__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <vector>
 #include <iostream>

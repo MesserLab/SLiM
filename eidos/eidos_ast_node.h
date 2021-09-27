@@ -17,13 +17,9 @@
 //
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
-
 #ifndef __Eidos__eidos_ast_node__
 #define __Eidos__eidos_ast_node__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include <stdio.h>
 #include <vector>

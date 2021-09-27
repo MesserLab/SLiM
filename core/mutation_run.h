@@ -28,9 +28,6 @@
 #ifndef __SLiM__mutation_run__
 #define __SLiM__mutation_run__
 
-#ifdef _WIN32
-#include "config.h"
-#endif
 
 #include "mutation.h"
 #include "slim_globals.h"
