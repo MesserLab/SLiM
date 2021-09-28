@@ -40,11 +40,11 @@ static void PrintBytes(std::ostream &p_out, size_t p_bytes)
 {
 	p_out << p_bytes << " bytes";
 	
-	if (p_bytes > 1024L * 1024L * 1024L * 1024L)
+	if (p_bytes > 1024.0 * 1024.0 * 1024.0 * 1024.0)
 		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)) << " TB" << ")";
-	else if (p_bytes > 1024L * 1024L * 1024L)
+	else if (p_bytes > 1024.0 * 1024.0 * 1024.0)
 		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0)) << " GB" << ")";
-	else if (p_bytes > 1024L * 1024L)
+	else if (p_bytes > 1024.0 * 1024.0)
 		p_out << " (" << (p_bytes / (1024.0 * 1024.0)) << " MB" << ")";
 	else if (p_bytes > 1024)
 		p_out << " (" << (p_bytes / 1024.0) << " K" << ")";
