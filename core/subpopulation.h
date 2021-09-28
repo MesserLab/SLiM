@@ -161,6 +161,7 @@ public:
 	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Genome *> &genome_junkyard_nonnull;	// NOT OWNED: non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	std::vector<Genome *> &genome_junkyard_null;	// NOT OWNED: null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
+	bool has_null_genomes_ = false;					// false until addRecombinant() etc. generates a null genome and sets it to true; NOT set by null genomes for sex chromosome sims; used for optimizations
 	
 	std::vector<Genome *> parent_genomes_;			// OWNED: all genomes in the parental generation; each individual gets two genomes, males are XY (not YX)
 	EidosValue_SP cached_parent_genomes_value_;		// cached for the genomes property; reset() if changed
@@ -244,7 +245,6 @@ public:
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
-	double x_chromosome_dominance_coeff_ = 1.0;						// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	// continuous-space info
 	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
@@ -290,9 +290,9 @@ public:
 	Subpopulation(const Subpopulation&) = delete;													// no copying
 	Subpopulation& operator=(const Subpopulation&) = delete;										// no copying
 	Subpopulation(void) = delete;																	// no null construction
-	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq);
+	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid);
 	Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-				  double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
+				  double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid);		// SEX ONLY: construct with a sex ratio (fraction male), chromosome type (AXY), and X dominance coeff
 	~Subpopulation(void);																			// destructor
 	
 #ifdef SLIM_WF_ONLY
@@ -369,7 +369,7 @@ public:
 	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
 	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation genomes and individuals to fit
 #endif	// SLIM_WF_ONLY
-	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq);	// given the set subpop size and requested sex ratio, make new genomes and individuals to fit
+	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid);	// given the set subpop size and requested sex ratio, make new genomes and individuals to fit
 	void CheckIndividualIntegrity(void);
 	
 	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid

@@ -577,7 +577,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		}
 		
 		// Create the population population
-		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_index, subpop_size, sex_ratio);
+		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_index, subpop_size, sex_ratio, false);
 		
 		// define a new Eidos variable to refer to the new subpopulation
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
@@ -662,6 +662,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		
 		if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+		
+		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 		
 		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -849,10 +851,22 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				
 				if (iss >> sub)
 				{
+					// BCH 9/27/2021: We instantiate null genomes only in the case where we expect them: in sex-chromosome models,
+					// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any genome is now
+					// allowed to be null, at the user's discretion, so we transform the instantiated genome to a null genome
+					// if necessary.  AddSubpopulation() created the genomes above, before we knew which would be null.
 					if (sub == "<null>")
 					{
 						if (!genome.IsNull())
-							EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+						{
+							if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (genome.Type() == GenomeType::kAutosome))
+							{
+								genome.MakeNull();
+								subpop->has_null_genomes_ = true;
+							}
+							else
+								EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTextFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+						}
 						
 						continue;	// this line is over
 					}
@@ -1206,7 +1220,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		p += sizeof(subpop_sex_ratio);
 		
 		// Create the population population
-		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, subpop_sex_ratio);
+		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, subpop_sex_ratio, false);
 		
 		// define a new Eidos variable to refer to the new subpopulation
 		EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
@@ -1325,8 +1339,11 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		if (!mutation_type_ptr) 
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
+		
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
+		
+		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved, or checked here; too edge to be bothered...
 		
 		if ((nucleotide == -1) && mutation_type_ptr->nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): mutation type m"<< mutation_type_id << " is nucleotide-based, but a nucleotide value for a mutation of this type was not supplied." << EidosTerminate();
@@ -1488,10 +1505,22 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome type does not match the instantiated genome." << EidosTerminate();
 		
 		// Check the null genome state
+		// BCH 9/27/2021: We instantiate null genomes only in the case where we expect them: in sex-chromosome models,
+		// for either the X or Y (whichever is not being simulated).  In nonWF autosomal models, any genome is now
+		// allowed to be null, at the user's discretion, so we transform the instantiated genome to a null genome
+		// if necessary.  AddSubpopulation() created the genomes above, before we knew which would be null.
 		if (total_mutations == (int32_t)0xFFFF1000)
 		{
 			if (!genome.IsNull())
-				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+			{
+				if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (genome.Type() == GenomeType::kAutosome))
+				{
+					genome.MakeNull();
+					subpop->has_null_genomes_ = true;
+				}
+				else
+					EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): genome is specified as null, but the instantiated genome is non-null." << EidosTerminate();
+			}
 		}
 		else
 		{
@@ -5282,6 +5311,10 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// sort the table collection
 	tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
+	// in DEBUG mode, we do a standard consistency check for tree-seq integrity after each simplify; unlike in
+	// CheckTreeSeqIntegrity(), this does not need TSK_NO_CHECK_POPULATION_REFS since we have a valid population table
+	// we don't need/want order checks for the tables, since we sort them here; if that doesn't do the right thing,
+	// that would be a bug in tskit, and would be caught by their tests, presumably, so no point in wasting time on it...
 	flags = 0;
 #endif
 	
@@ -5664,6 +5697,11 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 					derived_muts_bytes, (tsk_size_t)derived_state_length,
 					mutation_metadata_bytes, (tsk_size_t)mutation_metadata_length);
 	if (ret < 0) handle_error("tsk_mutation_table_add_row", ret);
+	
+#if DEBUG
+	if (time < tables_.nodes.time[genomeTSKID]) 
+		std::cout << "SLiMSim::RecordNewDerivedState(): invalid derived state recorded in generation " << Generation() << " genome " << genomeTSKID << " id " << p_genome->genome_id_ << " with time " << time << " >= " << tables_.nodes.time[genomeTSKID] << std::endl;
+#endif
 }
 
 void SLiMSim::CheckAutoSimplification(void)
@@ -6622,7 +6660,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 	ret = tsk_population_table_clear(&p_tables->populations);
 	if (ret != 0) handle_error("WritePopulationTable tsk_population_table_clear()", ret);
 
-	slim_objectid_t last_subpop_id = population_table_copy->num_rows - 1;
+	slim_objectid_t last_subpop_id = (slim_objectid_t)population_table_copy->num_rows - 1;	// FIXME note this assumes the number of rows fits into 32 bits
 	for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
 		last_subpop_id = std::max(last_subpop_id, p_tables->nodes.population[j]);
 
@@ -7153,7 +7191,7 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): no SLiM metadata; this file cannot be read." << EidosTerminate();
 		
 		// find the last record that is a SLiM provenance entry; we allow entries after ours, on the assumption that they have preserved SLiM-compliance
-		int slim_record_index = num_rows - 1;
+		int slim_record_index = (int)(num_rows - 1);
 		
 		for (; slim_record_index >= 0; --slim_record_index)
 		{
@@ -7624,12 +7662,6 @@ void SLiMSim::CheckTreeSeqIntegrity(void)
 {
 	// Here we call tskit to check the integrity of the tree-sequence tables themselves – not against
 	// SLiM's parallel data structures (done in CrosscheckTreeSeqIntegrity()), just on their own.
-	// At present this is commented out because tsk_table_collection_check_integrity() does checks
-	// that we always fail.  In particular, we have no population table in our table collection while
-	// we are running, so we always get a TSK_ERR_POPULATION_OUT_OF_BOUNDS error.  When tskit is
-	// made more flexible, in terms of being able to turn off checks that we do not want, we will
-	// enable this code with the appropriate flags.  See https://github.com/tskit-dev/tskit/issues/593
-	
 	int ret = tsk_table_collection_check_integrity(&tables_, TSK_NO_CHECK_POPULATION_REFS);
 	if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
 }
@@ -8137,8 +8169,21 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			}
 		}
 		
-		if ((node0_metadata->is_null_ != expected_is_null_0) || (node1_metadata->is_null_ != expected_is_null_1))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+		// BCH 9/27/2021: Null genomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
+		if (node0_metadata->is_null_ != expected_is_null_0)
+		{
+			if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (expected_genome_type_0 == GenomeType::kAutosome))
+				;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+		}
+		if (node1_metadata->is_null_ != expected_is_null_1)
+		{
+			if ((ModelType() == SLiMModelType::kModelTypeNonWF) && (expected_genome_type_1 == GenomeType::kAutosome))
+				;
+			else
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node is_null unexpected; this file cannot be read." << EidosTerminate();
+		}
 		if ((node0_metadata->type_ != expected_genome_type_0) || (node1_metadata->type_ != expected_genome_type_1))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): node type unexpected; this file cannot be read." << EidosTerminate();
 	}
@@ -8161,7 +8206,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 		
 		// Create the new subpopulation – without recording it in the tree-seq tables
 		recording_tree_ = false;
-		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
+		Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio, false);
 		recording_tree_ = true;
 		
 		// define a new Eidos variable to refer to the new subpopulation
@@ -8246,8 +8291,27 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				if ((node0_metadata->genome_id_ != genome0->genome_id_) || (node1_metadata->genome_id_ != genome1->genome_id_))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome id mismatch; this file cannot be read." << EidosTerminate();
-				if ((node0_metadata->is_null_ != genome0->IsNull()) || (node1_metadata->is_null_ != genome1->IsNull()))
-					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+				// BCH 9/27/2021: Null genomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
+				if (node0_metadata->is_null_ != genome0->IsNull())
+				{
+					if (node0_metadata->is_null_ && (ModelType() == SLiMModelType::kModelTypeNonWF) && (node0_metadata->type_ == GenomeType::kAutosome))
+					{
+						genome0->MakeNull();
+						new_subpop->has_null_genomes_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+				}
+				if (node1_metadata->is_null_ != genome1->IsNull())
+				{
+					if (node1_metadata->is_null_ && (ModelType() == SLiMModelType::kModelTypeNonWF) && (node1_metadata->type_ == GenomeType::kAutosome))
+					{
+						genome1->MakeNull();
+						new_subpop->has_null_genomes_ = true;
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome null mismatch; this file cannot be read." << EidosTerminate();
+				}
 				if ((node0_metadata->type_ != genome0->Type()) || (node1_metadata->type_ != genome1->Type()))
 					EIDOS_TERMINATION << "ERROR (SLiMSim::__CreateSubpopulationsFromTabulation): node-genome type mismatch; this file cannot be read." << EidosTerminate();
 			}
@@ -8295,7 +8359,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			
 			// If a nonWF model an empty subpop is legal, so create it without recording
 			recording_tree_ = false;
-			subpop = population_.AddSubpopulation(subpop_id, 0, 0.5);
+			subpop = population_.AddSubpopulation(subpop_id, 0, 0.5, false);
 			recording_tree_ = true;
 			
 			// define a new Eidos variable to refer to the new subpopulation
@@ -8401,7 +8465,7 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 		if (derived_state_length / sizeof(slim_mutationid_t) != metadata_length / metadata_rec_size)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTables): (internal error) mutation metadata length does not match derived state length." << EidosTerminate();
 		
-		int stack_count = derived_state_length / sizeof(slim_mutationid_t);
+		int stack_count = (int)(derived_state_length / sizeof(slim_mutationid_t));
 		slim_mutationid_t *derived_state_vec = (slim_mutationid_t *)derived_state_bytes;
 		const void *metadata_vec = metadata_bytes;	// either const MutationMetadataRec* or const MutationMetadataRec_PRENUC*
 		tsk_id_t site_id = mut_table.site[mut_index];

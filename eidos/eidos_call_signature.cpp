@@ -261,6 +261,12 @@ EidosCallSignature *EidosCallSignature::AddLogicalEquiv_OSN(const std::string &p
 EidosCallSignature *EidosCallSignature::AddIntObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value)		{ return AddArgWithDefault(kEidosValueMaskInt | kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class, std::move(p_default_value)); }
 EidosCallSignature *EidosCallSignature::AddObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value)		{ return AddArgWithDefault(kEidosValueMaskObject | kEidosValueMaskOptional | kEidosValueMaskSingleton | kEidosValueMaskNULL, p_argument_name, p_argument_class, std::move(p_default_value)); }
 
+EidosCallSignature *EidosCallSignature::MarkDeprecated(void)
+{
+	deprecated_ = true;
+	return this;
+}
+
 void EidosCallSignature::CheckArgument(EidosValue *p_argument, int p_signature_index) const
 {
 	EidosValueType arg_type = p_argument->Type();

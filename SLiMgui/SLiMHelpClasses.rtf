@@ -3,8 +3,8 @@
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
 \f9\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -1924,6 +1924,18 @@ The value of
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 genomesNonNull => (object<Genome>)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The pair of 
+\f3\fs18 Genome
+\f4\fs20  objects associated with this individual, as with the 
+\f3\fs18 genomes
+\f4\fs20  property, if both are not null genomes.  If one or both 
+\f1\i are
+\f4\i0  null genomes, the null genomes are excluded from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null genomes.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 genome1 => (object<Genome>$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -3829,6 +3841,25 @@ Note that this property has a quirk: it is stored internally in SLiM using a sin
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 haploidDominanceCoeff\cf0  <\cf2 \'96> (float$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The dominance coefficient used for mutations of this type when they occur opposite a null genome (as in sex-chromosome models and models involving haploids).  This defaults to 
+\f3\fs18 1.0
+\f4\fs20 , and is used only in models where null genomes are present; the 
+\f3\fs18 dominanceCoeff
+\f4\fs20  property is the dominance coefficient used in most circumstances.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f3\fs18 SLiMSim
+\f4\fs20 \'92s method 
+\f3\fs18 recalculateFitness()
+\f4\fs20  \'96 but see the documentation of that method for caveats.\
+As with the 
+\f3\fs18 dominanceCoeff
+\f4\fs20  property, this is stored internally using a single-precision float; see the documentation for 
+\f3\fs18 dominanceCoeff
+\f4\fs20  for discussion.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4217,12 +4248,17 @@ If the model is being profiled, or is executing forward to a generation number e
 \f3\fs18 \cf0 dominanceCoeffX <\'96> (float$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM manual for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\f0\b\fs20 \cf2 This property has been deprecated and removed.
+\f4\b0   In SLiM 3.7 and later, use the 
+\f3\fs18 haploidDominanceCoeff
+\f4\fs20  property of 
+\f3\fs18 MutationType
+\f4\fs20  instead.\
+\cf3 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM documentation for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f3\fs18 SLiMSim
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
-\f4\fs20  \'96 but see the documentation of that method for caveats.
-\f5 \
+\f4\fs20  \'96 but see the documentation of that method for caveats.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 generation <\'96> (integer$)\
@@ -4300,12 +4336,11 @@ This property has been deprecated, and may be removed in a future release of SLi
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 If 
+\cf3 \kerning1\expnd0\expndtw0 If 
 \f3\fs18 T
 \f4\fs20 , the simulation is presently running inside SLiMgui; if 
 \f3\fs18 F
-\f4\fs20 , it is running at the command line.  In general simulations should not care where they are running, but in special circumstances such as opening plot windows it may be necessary to know the runtime environment.
-\f5 \
+\f4\fs20 , it is running at the command line.  In general simulations should not care where they are running, but in special circumstances such as opening plot windows it may be necessary to know the runtime environment.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 interactionTypes => (object<InteractionType>)\
@@ -4457,7 +4492,7 @@ The spatial periodicity of the simulation, as specified in
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio\'a0=\'a00.5])
+\f3\i0\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpop(is$\'a0subpopID, integer$\'a0size, [float$\'a0sexRatio\'a0=\'a00.5]\cf2 , [logical$\'a0haploid\'a0=\'a0F]\cf0 )
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4481,6 +4516,19 @@ The spatial periodicity of the simulation, as specified in
 \f4\fs20  is used.  The new subpopulation will be defined as a global variable immediately by this method, and will also be returned by this method.  Subpopulations added by this method will initially consist of individuals with empty genomes. In order to model subpopulations that split from an already existing subpopulation, use 
 \f3\fs18 addSubpopSplit()
 \f5\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4 \cf2 Only in nonWF models, the 
+\f3\fs18 haploid
+\f4\fs20  parameter may be 
+\f3\fs18 T
+\f4\fs20 ; in this case, the second genome of each new individual will be a null genome, rather than an empty genome.  For even greater control in nonWF models, you can call 
+\f3\fs18 addSubpop()
+\f4\fs20  with an initial size of 
+\f3\fs18 0
+\f4\fs20  and then stock the population with new individuals created however you wish in the next generation\'92s 
+\f3\fs18 reproduction()
+\f4\fs20  callback.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(object<Subpopulation>$)addSubpopSplit(is$\'a0subpopID, integer$\'a0size, io<Subpopulation>$\'a0sourceSubpop, [float$\'a0sexRatio\'a0=\'a00.5])
@@ -4929,7 +4977,6 @@ Beginning with SLiM 3.3, the
 \f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
@@ -5964,6 +6011,14 @@ fitnessScaling <\'96> (float$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 genomesNonNull => (object<Genome>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 All of the genomes contained by the subpopulation, as with the 
+\f3\fs18 genomes
+\f4\fs20  property, if all of them are not null genomes; any null genomes present are excluded from the returned vector.  This is a convenience shorthand, sometimes useful in models that involve null genomes.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 id => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6233,7 +6288,7 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f4\fs20  callbacks, and may not be called at any other time.  In WF models, offspring generation is managed automatically by the SLiM core.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0genome1Null\'a0=\'a0NULL], [Nl$\'a0genome2Null\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation life cycle stage.  No 
@@ -6249,6 +6304,38 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f4\fs20  parameter is treated as in 
 \f3\fs18 addCrossed()
 \f4\fs20 .\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 By default \'96 when 
+\f3\fs18 genome1Null
+\f4\fs20  and 
+\f3\fs18 genome2Null
+\f4\fs20  are both 
+\f3\fs18 NULL
+\f4\fs20  \'96 null genomes will be generated instead of empty genomes only in sex-chromosome simulations, where the sex chromosome that is not being simulated is represented by a null genome; otherwise, empty genomes rather than null genomes will be created.  This default behavior can be changed by passing 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 genome1Null
+\f4\fs20  or 
+\f3\fs18 genome2Null
+\f4\fs20 , which will force the corresponding offspring genome to be null (
+\f3\fs18 T
+\f4\fs20 ) or non-null (
+\f3\fs18 F
+\f4\fs20 ).  The behavior in sex-chromosome simulations cannot be changed, since the presence of null genomes there is dictated by sex, but 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20  may be passed as long as it matches what SLiM would do anyway.  In all other simulations there is little point in passing 
+\f3\fs18 F
+\f4\fs20  (since that would be the default behavior anyway), but passing 
+\f3\fs18 T
+\f4\fs20  can be used to make one or both genomes be null genomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
+\f1\i second
+\f4\i0  genome is usually a null genome in SLiM).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\

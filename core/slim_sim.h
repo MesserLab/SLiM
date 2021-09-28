@@ -367,7 +367,6 @@ private:
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
-	double x_chromosome_dominance_coeff_ = 1.0;										// the dominance coefficient for heterozygosity at the X locus (i.e. males); this is global
 	
 	// private initialization methods
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
@@ -492,7 +491,7 @@ public:
 	int32_t nonneutral_change_counter_ = 0;
 	int32_t last_nonneutral_regime_ = 0;		// see mutation_run.h; 1 = no fitness callbacks, 2 = only constant-effect neutral callbacks, 3 = arbitrary callbacks
 	
-	// this flag is set if dominance_coeff_changed_ is set on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
+	// this flag is set if the dominance coeff (regular or haploid) changes on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
 	bool any_dominance_coeff_changed_ = false;
 	
 	// warning flags; used to issue warnings only once per run of the simulation
@@ -621,7 +620,6 @@ public:
 	inline __attribute__((always_inline)) bool PedigreesEnabledByUser(void) const											{ return pedigrees_enabled_by_user_; }
 	inline __attribute__((always_inline)) bool PreventIncidentalSelfing(void) const											{ return prevent_incidental_selfing_; }
 	inline __attribute__((always_inline)) GenomeType ModeledChromosomeType(void) const										{ return modeled_chromosome_type_; }
-	inline __attribute__((always_inline)) double XDominanceCoefficient(void) const											{ return x_chromosome_dominance_coeff_; }
 	inline __attribute__((always_inline)) int SpatialDimensionality(void) const												{ return spatial_dimensionality_; }
 	inline __attribute__((always_inline)) void SpatialPeriodicity(bool *p_x, bool *p_y, bool *p_z) const
 	{

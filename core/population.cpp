@@ -171,7 +171,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 }
 
 // add new empty subpopulation p_subpop_id of size p_subpop_size
-Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio) 
+Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio, bool p_haploid) 
 { 
 	if (sim_.SubpopulationIDInUse(p_subpop_id))
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " has been used already, and cannot be used again (to prevent conflicts)." << EidosTerminate();
@@ -182,9 +182,9 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	Subpopulation *new_subpop = nullptr;
 	
 	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, sim_.ModeledChromosomeType(), p_haploid);	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true);
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_haploid);
 	
 #ifdef SLIM_WF_ONLY
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
@@ -215,9 +215,9 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	Subpopulation *new_subpop = nullptr;
  
 	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, sim_.ModeledChromosomeType(), sim_.XDominanceCoefficient());	// SEX ONLY
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, sim_.ModeledChromosomeType(), false);	// SEX ONLY
 	else
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false);
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, false);
 	
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
 	
@@ -4537,9 +4537,11 @@ void Population::ValidateMutationFitnessCaches(void)
 		Mutation *mut = mut_block_ptr + mut_index;
 		slim_selcoeff_t sel_coeff = mut->selection_coeff_;
 		slim_selcoeff_t dom_coeff = mut->mutation_type_ptr_->dominance_coeff_;
+		slim_selcoeff_t haploid_dom_coeff = mut->mutation_type_ptr_->haploid_dominance_coeff_;
 		
 		mut->cached_one_plus_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + sel_coeff);
 		mut->cached_one_plus_dom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + dom_coeff * sel_coeff);
+		mut->cached_one_plus_haploiddom_sel_ = (slim_selcoeff_t)std::max(0.0, 1.0 + haploid_dom_coeff * sel_coeff);
 	}
 }
 
@@ -5839,10 +5841,12 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
-		if (sim_.ModeledChromosomeType() == GenomeType::kAutosome)
+		if ((sim_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
 		{
 			// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
 			// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
+			// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
+			// we can now have null genomes even with autosomes; but it is still worthwhile.
 			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
 			
@@ -6845,6 +6849,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_position_t position = mutation_ptr->position_;
 		slim_selcoeff_t selection_coeff = mutation_ptr->selection_coeff_;
 		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
+		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved; too edge to be bothered...
 		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
 		slim_generation_t generation = mutation_ptr->origin_generation_;
 		slim_refcount_t prevalence = polymorphism.prevalence_;

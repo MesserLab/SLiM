@@ -96,6 +96,8 @@ public:
 	// values use slim_selcoeff_t for speed; roundoff should not be a concern, since such differences would be inconsequential.
 	slim_selcoeff_t cached_one_plus_sel_;				// a cached value for (1 + selection_coeff_), clamped to 0.0 minimum
 	slim_selcoeff_t cached_one_plus_dom_sel_;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+	slim_selcoeff_t cached_one_plus_haploiddom_sel_;	// a cached value for (1 + haploid_dominance_coeff * selection_coeff_), clamped to 0.0 minimum
+	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying

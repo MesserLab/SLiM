@@ -349,6 +349,10 @@ void SLiM_WarmUp(void)
 		TestSparseArray();
 		
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
+		
+		//std::cout << "sizeof(int) == " << sizeof(int) << std::endl;
+		//std::cout << "sizeof(long) == " << sizeof(long) << std::endl;
+		//std::cout << "sizeof(size_t) == " << sizeof(size_t) << std::endl;
 	}
 }
 
@@ -1074,6 +1078,7 @@ const std::string &gStr_convertToSubstitution = EidosRegisteredString("convertTo
 const std::string &gStr_distributionType = EidosRegisteredString("distributionType", gID_distributionType);
 const std::string &gStr_distributionParams = EidosRegisteredString("distributionParams", gID_distributionParams);
 const std::string &gStr_dominanceCoeff = EidosRegisteredString("dominanceCoeff", gID_dominanceCoeff);
+const std::string &gStr_haploidDominanceCoeff = EidosRegisteredString("haploidDominanceCoeff", gID_haploidDominanceCoeff);
 const std::string &gStr_mutationStackGroup = EidosRegisteredString("mutationStackGroup", gID_mutationStackGroup);
 const std::string &gStr_mutationStackPolicy = EidosRegisteredString("mutationStackPolicy", gID_mutationStackPolicy);
 //const std::string &gStr_start = EidosRegisteredString("start", gID_start);
@@ -1106,6 +1111,7 @@ const std::string &gStr_migrant = EidosRegisteredString("migrant", gID_migrant);
 const std::string &gStr_fitnessScaling = EidosRegisteredString("fitnessScaling", gID_fitnessScaling);
 const std::string &gStr_firstMaleIndex = EidosRegisteredString("firstMaleIndex", gID_firstMaleIndex);
 const std::string &gStr_genomes = EidosRegisteredString("genomes", gID_genomes);
+const std::string &gStr_genomesNonNull = EidosRegisteredString("genomesNonNull", gID_genomesNonNull);
 const std::string &gStr_sex = EidosRegisteredString("sex", gID_sex);
 const std::string &gStr_individuals = EidosRegisteredString("individuals", gID_individuals);
 const std::string &gStr_subpopulation = EidosRegisteredString("subpopulation", gID_subpopulation);
