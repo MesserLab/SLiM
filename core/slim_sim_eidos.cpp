@@ -3362,7 +3362,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 	}
 	
 	// Figure out what generation stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
-	SLiMGenerationStage stage;
+	SLiMGenerationStage stage = SLiMGenerationStage::kStagePostGeneration;	// unused below, just here to silence a warning
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{

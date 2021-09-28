@@ -530,13 +530,13 @@ QColor slimColorForFraction(double fraction)
 
 QString stringForByteCount(uint64_t bytes)
 {
-    if (bytes > 512L * 1024L * 1024L * 1024L)
+    if (bytes > 512.0 * 1024.0 * 1024.0 * 1024.0)
 		return QString("%1 TB").arg(bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-	else if (bytes > 512L * 1024L * 1024L)
+	else if (bytes > 512.0 * 1024.0 * 1024.0)
 		return QString("%1 GB").arg(bytes / (1024.0 * 1024.0 * 1024.0), 0, 'f', 2);
-	else if (bytes > 512L * 1024L)
+	else if (bytes > 512.0 * 1024.0)
 		return QString("%1 MB").arg(bytes / (1024.0 * 1024.0), 0, 'f', 2);
-	else if (bytes > 512L)
+	else if (bytes > 512.0)
 		return QString("%1 KB").arg(bytes / 1024.0, 0, 'f', 2);
 	else
 		return QString("%1 bytes").arg(bytes);
