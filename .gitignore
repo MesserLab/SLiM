@@ -256,6 +256,7 @@ Makefile*
 !build-aux
 !windows_compat/gnulib/Makefile*
 !windows_compat/gnulib/gllib/Makefile*
+!windows_compat/gnulib/glm4/Makefile*
 
 # Qt unit tests
 target_wrapper.*
