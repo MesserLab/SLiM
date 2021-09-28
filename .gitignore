@@ -253,6 +253,8 @@ ui_*.h
 *.jsc
 Makefile*
 *build-*
+!build-aux
+!windows_compat/gnulib/Makefile*
 
 # Qt unit tests
 target_wrapper.*

@@ -40,12 +40,6 @@ gl_source_base='gllib'
   gl_HEADER_ERRNO_H
   gl_EXECINFO_H
   AC_REQUIRE([gl_EXTERN_INLINE])
-  gl_FUNC_FDOPEN
-  if test $REPLACE_FDOPEN = 1; then
-    AC_LIBOBJ([fdopen])
-    gl_PREREQ_FDOPEN
-  fi
-  gl_STDIO_MODULE_INDICATOR([fdopen])
   gl_FUNC_GETDELIM
   if test $HAVE_GETDELIM = 0 || test $REPLACE_GETDELIM = 1; then
     AC_LIBOBJ([getdelim])
@@ -70,9 +64,6 @@ gl_source_base='gllib'
     gl_PREREQ_GETTIMEOFDAY
   fi
   gl_SYS_TIME_MODULE_INDICATOR([gettimeofday])
-  gl_INTTYPES_H
-  gl_INTTYPES_INCOMPLETE
-  gl_INTTYPES_H_REQUIRE_DEFAULTS
   gl___INLINE
   gl_LIMITS_H
   AC_REQUIRE([gl_MSVC_INVAL])
@@ -102,7 +93,6 @@ gl_source_base='gllib'
   gl_TYPE_SOCKLEN_T
   gt_TYPE_SSIZE_T
   gl_STDALIGN_H
-  AM_STDBOOL_H
   gl_STDDEF_H
   gl_STDDEF_H_REQUIRE_DEFAULTS
   gl_STDINT_H
@@ -164,8 +154,6 @@ gl_source_base='gllib'
   gl_SYS_UTSNAME_MODULE_INDICATOR([uname])
   gl_UNISTD_H
   gl_UNISTD_H_REQUIRE_DEFAULTS
-  gl_WCHAR_H
-  gl_WCHAR_H_REQUIRE_DEFAULTS
   m4_ifval(gl_LIBSOURCES_LIST, [
     m4_syscmd([test ! -d ]m4_defn([gl_LIBSOURCES_DIR])[ ||
       for gl_file in ]gl_LIBSOURCES_LIST[ ; do
@@ -233,6 +221,5 @@ AC_DEFUN([gl_LIBSOURCES], [
 
 gl_INIT
 
-AC_CONFIG_SUBDIRS([gltests])
 AC_CONFIG_FILES([Makefile gllib/Makefile glm4/Makefile])
 AC_OUTPUT

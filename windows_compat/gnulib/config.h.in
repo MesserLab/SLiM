@@ -35,9 +35,6 @@
    whether the gnulib module scanf shall be considered present. */
 #undef GNULIB_SCANF
 
-/* Define to 1 when the gnulib module fdopen should be tested. */
-#undef GNULIB_TEST_FDOPEN
-
 /* Define to 1 when the gnulib module fgetc should be tested. */
 #undef GNULIB_TEST_FGETC
 
@@ -107,9 +104,6 @@
 /* Define to 1 when the gnulib module vprintf should be tested. */
 #undef GNULIB_TEST_VPRINTF
 
-/* Define to 1 if you have the <crtdefs.h> header file. */
-#undef HAVE_CRTDEFS_H
-
 /* Define to 1 if you have the declaration of `ecvt', and to 0 if you don't.
    */
 #undef HAVE_DECL_ECVT
@@ -150,15 +144,8 @@
    don't. */
 #undef HAVE_DECL_SETSTATE
 
-/* Define to 1 if you have the declaration of `wcsdup', and to 0 if you don't.
-   */
-#undef HAVE_DECL_WCSDUP
-
 /* Define to 1 if you have the <execinfo.h> header file. */
 #undef HAVE_EXECINFO_H
-
-/* Define to 1 if you have the <features.h> header file. */
-#undef HAVE_FEATURES_H
 
 /* Define to 1 if you have the `flockfile' function. */
 #undef HAVE_FLOCKFILE
@@ -301,9 +288,6 @@
 
 /* Define to 1 if you have the <ws2tcpip.h> header file. */
 #undef HAVE_WS2TCPIP_H
-
-/* Define to 1 if the system has the type `_Bool'. */
-#undef HAVE__BOOL
 
 /* Define to 1 if you have the `_set_invalid_parameter_handler' function. */
 #undef HAVE__SET_INVALID_PARAMETER_HANDLER
