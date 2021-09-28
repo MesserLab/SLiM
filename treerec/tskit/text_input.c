@@ -110,6 +110,11 @@ read_text_headers(char **linep, size_t *linecapp, FILE *file)
 		err = getline(linep, linecapp, file);
 		if (err < 0)
 			return err;
+		
+		if (strcmp(*linep, TSK_TABLE_SEP) == 0)
+			err = getline(linep, linecapp, file);
+		if (err < 0)
+			return err;
 	}
 	
 	return err;
@@ -506,13 +511,14 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
 {
     int ret;
     int err;
-    size_t j, k;
+    size_t k, loc_count, par_count;
     size_t MAX_LINE = 1024;
-    char *line, *start, *loc;
+    char *line, *start, *loc, *par;
     double location[MAX_LINE];
+	int parents[MAX_LINE];
     int flags, id;
     char *metadata;
-    const char *header = "id\tflags\tlocation\tmetadata\n";
+    const char *header = "id\tflags\tlocation\tparents\tmetadata\n";
 
     line = malloc(MAX_LINE);
     if (line == NULL) {
@@ -547,14 +553,14 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
         if (err < 0) {
             goto out;
         }
-        j = 0;
+		loc_count = 0;
         err = get_sep_atoa(&start, &loc, '\t');
         if (err < 0) {
             goto out;
         }
         if (err > 0) {
-            while ((err = get_sep_atof(&loc, location + j, ',')) != 0) {
-                j++;
+            while ((err = get_sep_atof(&loc, location + loc_count, ',')) != 0) {
+				loc_count++;
 				if (err == -1)
 					break;
             }
@@ -562,12 +568,28 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
                 goto out;
             }
         }
+		par_count = 0;
+		err = get_sep_atoa(&start, &par, '\t');
+		if (err < 0) {
+			goto out;
+		}
+		if (err > 0) {
+			while ((err = get_sep_atoi(&par, parents + par_count, ',')) != 0) {
+				par_count++;
+				if (err == -1)
+					break;
+			}
+			if (err == 0) {
+				goto out;
+			}
+		}
         err = get_sep_atoa(&start, &metadata, '\n');
         if (err < 0 || *start != '\0') {
             goto out;
         }
-        ret = tsk_individual_table_add_row(individual_table, flags, location, (tsk_size_t)j,
-                NULL, 0, // for individual parents
+        ret = tsk_individual_table_add_row(individual_table, flags,
+				location, (tsk_size_t)loc_count,
+                parents, (tsk_size_t)par_count, // for individual parents
                 metadata, (tsk_size_t)strlen(metadata));
         if (ret < 0) {
             goto out;

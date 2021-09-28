@@ -2001,16 +2001,22 @@
 	
 	// First, a sorted list of globals
 	for (auto symbol_sig : *terminus->Properties())
-		[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
+	{
+		if (!symbol_sig->deprecated_)
+			[candidates addObject:[NSString stringWithUTF8String:symbol_sig->property_name_.c_str()]];
+	}
 	
 	[candidates sortUsingSelector:@selector(compare:)];
 	
 	// Next, a sorted list of methods, with () appended
 	for (auto method_sig : *terminus->Methods())
 	{
-		NSString *methodName = [NSString stringWithUTF8String:method_sig->call_name_.c_str()];
-		
-		[candidates addObject:[methodName stringByAppendingString:@"()"]];
+		if (!method_sig->deprecated_)
+		{
+			NSString *methodName = [NSString stringWithUTF8String:method_sig->call_name_.c_str()];
+			
+			[candidates addObject:[methodName stringByAppendingString:@"()"]];
+		}
 	}
 	
 	return candidates;

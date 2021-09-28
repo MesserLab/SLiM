@@ -182,6 +182,33 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(vec);
 		}
+		case gID_genomesNonNull:
+		{
+			bool genome1null = genome1_->IsNull();
+			bool genome2null = genome2_->IsNull();
+			
+			if (genome1null)
+			{
+				if (genome2null)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class));
+				else
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome2_, gSLiM_Genome_Class));
+			}
+			else
+			{
+				if (genome2null)
+					return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome1_, gSLiM_Genome_Class));
+				else
+				{
+					EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->resize_no_initialize(2);
+					
+					vec->set_object_element_no_check_NORR(genome1_, 0);
+					vec->set_object_element_no_check_NORR(genome2_, 1);
+					
+					return EidosValue_SP(vec);
+				}
+			}
+		}
 		case gID_genome1:			// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(genome1_, gSLiM_Genome_Class));
@@ -1428,6 +1455,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_index,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_index));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,				true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomesNonNull,			true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genome1,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Genome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_genome1));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genome2,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Genome_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_genome2));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

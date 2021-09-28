@@ -185,12 +185,13 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSex('Y'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('Z'); stop(); }", 1, 15, "requires a chromosomeType of", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex(); stop(); }", 1, 15, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('A', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15, "requires a chromosomeType of", __LINE__);
-	SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }", __LINE__);															// legal: no minimum value for dominance coeff
-	SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
+	// BCH 9/24/2021: dominanceCoeffX has been deprecated and removed from initializeSex() for SLiM 3.7
+	//SLiMAssertScriptRaise("initialize() { initializeSex('A', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
+	//SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }", __LINE__);
+	//SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
+	//SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15, "requires a chromosomeType of", __LINE__);
+	//SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }", __LINE__);															// legal: no minimum value for dominance coeff
+	//SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
 	// Test (void)initializeSLiMModelType(string$ modelType)
@@ -325,10 +326,11 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosomeType = 'A'; } " + gen2_stop, 1, 235, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.chromosomeType == 'X') stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { sim.chromosomeType = 'X'; } " + gen2_stop, 1, 255, "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);															// legal: the property is meaningless but may be accessed
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236, "when not simulating an X chromosome", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop, __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop, __LINE__);
+	// BCH 9/24/2021: dominanceCoeffX has been deprecated and removed from initializeSex() for SLiM 3.7
+	//SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);															// legal: the property is meaningless but may be accessed
+	//SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236, "when not simulating an X chromosome", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop, __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.generationStage == 'early') stop(); } ", __LINE__);
@@ -777,6 +779,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.cloningRate == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.firstMaleIndex == p1.firstMaleIndex) stop(); }", __LINE__);					// legal but undefined value in non-sexual sims
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.genomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.genomesNonNull) == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (size(p1.individuals) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }", __LINE__);
@@ -795,6 +798,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 262, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 265, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomes = p1.genomes[0]; stop(); }", 1, 258, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.genomesNonNull = p1.genomesNonNull[0]; stop(); }", 1, 265, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.individuals = p1.individuals[0]; stop(); }", 1, 262, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.id = 1; stop(); }", 1, 253, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.immigrantSubpopFractions = 1.0; stop(); }", 1, 275, "read-only property", __LINE__);
@@ -806,6 +810,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.firstMaleIndex == 5) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.genomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.genomesNonNull) == 15) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (size(p1.individuals) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.id == 1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (identical(p1.immigrantSubpopFractions, float(0))) stop(); }", __LINE__);
@@ -824,6 +829,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 282, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 285, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.genomes = p1.genomes[0]; stop(); }", 1, 278, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.genomesNonNull = p1.genomesNonNull[0]; stop(); }", 1, 285, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.individuals = p1.individuals[0]; stop(); }", 1, 282, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.id = 1; stop(); }", 1, 273, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.immigrantSubpopFractions = 1.0; stop(); }", 1, 295, "read-only property", __LINE__);
@@ -1629,6 +1635,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genome1) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genome2) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (size(i.genomesNonNull) == 20) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (identical(i.genome1, i.genomes[0:9 * 2])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (identical(i.genome2, i.genomes[0:9 * 2 + 1])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
@@ -1655,6 +1662,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.genome1 = i[0].genomes[0]; stop(); }", 1, 277, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.genome2 = i[0].genomes[0]; stop(); }", 1, 277, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", 1, 277, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.genomesNonNull = i[0].genomes[0]; stop(); }", 1, 284, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.index = i[0].index; stop(); }", 1, 275, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.subpopulation = i[0].subpopulation; stop(); }", 1, 283, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { i = p1.individuals; i.sex = i[0].sex; stop(); }", 1, 273, "read-only property", __LINE__);
@@ -1664,6 +1672,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.genome1) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.genome2) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.genomes) == 20) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (size(i.genomesNonNull) == 15) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (identical(i.genome1, i.genomes[0:9 * 2])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (identical(i.genome2, i.genomes[0:9 * 2 + 1])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { i = p1.individuals; if (all(i.index == (0:9))) stop(); }", __LINE__);
@@ -1690,6 +1699,7 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.genome1 = i[0].genomes[0]; stop(); }", 1, 297, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.genome2 = i[0].genomes[0]; stop(); }", 1, 297, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.genomes = i[0].genomes[0]; stop(); }", 1, 297, "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.genomesNonNull = i[0].genomes[0]; stop(); }", 1, 304, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.index = i[0].index; stop(); }", 1, 295, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.subpopulation = i[0].subpopulation; stop(); }", 1, 303, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { i = p1.individuals; i.sex = i[0].sex; stop(); }", 1, 293, "read-only property", __LINE__);

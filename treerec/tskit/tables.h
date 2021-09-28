@@ -718,6 +718,9 @@ typedef struct {
 #define TSK_CLEAR_TS_METADATA_AND_SCHEMA (1 << 1)
 #define TSK_CLEAR_PROVENANCE (1 << 2)
 
+/* Separator used in text table output */
+#define TSK_TABLE_SEP "-----------------------------------------\n"
+
 /****************************************************************************/
 /* Function signatures */
 /****************************************************************************/

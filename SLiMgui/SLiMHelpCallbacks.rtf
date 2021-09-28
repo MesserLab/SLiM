@@ -215,13 +215,16 @@ A
 \f0\i w
 \f2\i0  * (1.0 + dominanceCoeff * selectionCoeff).\
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 For simulations of autosomes, the dominance coefficient is defined by the mutation type; for simulations of X sex chromosomes, the mutation type\'92s dominance coefficient is used for XX females that are heterozygous, whereas XY males that are \'93heterozygous\'94 for the mutation because they possess only one X chromosome use a global dominance coefficient (see 
-\f3\fs18 initializeSex()
-\f2\fs22  and the 
-\f3\fs18 dominanceCoeffX
-\f2\fs22  property of 
-\f3\fs18 SLiMSim
-\f2\fs22 ).\
+\cf2 \kerning1\expnd0\expndtw0 The dominance coefficient usually comes from the 
+\f3\fs18 dominanceCoeff
+\f2\fs22  property of the mutation\'92s 
+\f3\fs18 MutationType
+\f2\fs22 ; if the focal individual has only one non-null genome, however, such that the mutation is paired with a null genome (i.e., is actually hemizygous or haploid, not heterozygous), the 
+\f3\fs18 haploidDominanceCoeff
+\f2\fs22  property of the 
+\f3\fs18 MutationType
+\f2\fs22  is used instead.  See section 22.6 for further discussion of this detail.\
+\expnd0\expndtw0\kerning0
 That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
 \f3\fs18 fitness()
 \f2\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes:\
@@ -287,7 +290,8 @@ In addition to standard SLiM globals, a
 \f3\fs18 F
 \f2\fs22  (heterozygous), or 
 \f3\fs18 NULL
-\f2\fs22  (it is\uc0\u8232 paired with a null chromosome, which can occur with sex chromosomes)\
+\f2\fs22  (it is\uc0\u8232 paired with a null chromosome\kerning1\expnd0\expndtw0 , and is thus hemizygous or haploid\expnd0\expndtw0\kerning0
+)\
 
 \f3\fs18    relFitness
 \f2\fs22 	The default relative fitness value calculated by SLiM\
@@ -308,7 +312,7 @@ In addition to standard SLiM globals, a
 \pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 fitness()
-\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation, for example, you could do something like this:\
+\f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null genomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2    fitness(m1) \{\uc0\u8232       if (homozygous)\u8232          return 1.0 + mut.selectionCoeff;\u8232       else\u8232          return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232    \}\

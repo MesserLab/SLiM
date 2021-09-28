@@ -1082,13 +1082,12 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationRate(const std::
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff = 1])
+//	*********************	(void)initializeSex(string$ chromosomeType)
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_function_name, p_arguments, p_interpreter)
 	EidosValue *chromosomeType_value = p_arguments[0].get();
-	EidosValue *xDominanceCoeff_value = p_arguments[1].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_sex_declarations_ > 0)
@@ -1105,20 +1104,9 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSex(const std::string &p
 	else
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << EidosTerminate();
 	
-	if (xDominanceCoeff_value->FloatAtIndex(0, nullptr) != 1.0)
-	{
-		if (modeled_chromosome_type_ == GenomeType::kXChromosome)
-			x_chromosome_dominance_coeff_ = xDominanceCoeff_value->FloatAtIndex(0, nullptr);		// intentionally no bounds check
-		else
-			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeSex): initializeSex() xDominanceCoeff may be supplied only for chromosomeType \"X\"." << EidosTerminate();
-	}
-	
 	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeSex(\"" << chromosome_type << "\"";
-		
-		if (modeled_chromosome_type_ == GenomeType::kXChromosome)
-			output_stream << ", " << x_chromosome_dominance_coeff_;
 		
 		output_stream << ");" << std::endl;
 	}
@@ -1523,7 +1511,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::ZeroGenerationFunctionSi
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeHotspotMap, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddNumeric("multipliers")->AddInt_ON("ends", gStaticEidosValueNULL)->AddString_OS("sex", gStaticEidosValue_StringAsterisk));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSex, nullptr, kEidosValueMaskVOID, "SLiM"))
-										->AddString_S("chromosomeType")->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1));
+										->AddString_S("chromosomeType"));	// removed ->AddNumeric_OS("xDominanceCoeff", gStaticEidosValue_Float1) in SLiM 3.7
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
@@ -1786,7 +1774,9 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_dominanceCoeffX:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(x_chromosome_dominance_coeff_));
+		{
+			EIDOS_TERMINATION << "ERROR (SLiMSim::GetProperty): property dominanceCoeffX was deprecated and removed in SLiM 3.7; use the haploidDominanceCoeff property of MutationType instead." << EidosTerminate();
+		}
 		case gID_generation:
 		{
 			if (!cached_value_generation_)
@@ -1889,13 +1879,7 @@ void SLiMSim::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			
 		case gID_dominanceCoeffX:
 		{
-			if (!sex_enabled_ || (modeled_chromosome_type_ != GenomeType::kXChromosome))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::SetProperty): attempt to set property dominanceCoeffX when not simulating an X chromosome." << EidosTerminate();
-			
-			double value = p_value.FloatAtIndex(0, nullptr);
-			
-			x_chromosome_dominance_coeff_ = value;		// intentionally no bounds check
-			return;
+			EIDOS_TERMINATION << "ERROR (SLiMSim::GetProperty): property dominanceCoeffX was deprecated and removed in SLiM 3.7; use the haploidDominanceCoeff property of MutationType instead." << EidosTerminate();
 		}
 			
 		case gID_tag:
@@ -1964,7 +1948,7 @@ EidosValue_SP SLiMSim::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	}
 }
 
-//	*********************	– (object<Subpopulation>$)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio = 0.5])
+//	*********************	– (object<Subpopulation>$)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio = 0.5], [l$ haploid = F])
 //
 EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1980,6 +1964,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	EidosValue *subpopID_value = p_arguments[0].get();
 	EidosValue *size_value = p_arguments[1].get();
 	EidosValue *sexRatio_value = p_arguments[2].get();
+	EidosValue *haploid_value = p_arguments[3].get();
 	
 	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
 	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
@@ -1989,8 +1974,18 @@ EidosValue_SP SLiMSim::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	if ((sex_ratio != 0.5) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() sex ratio supplied in non-sexual simulation." << EidosTerminate();
 	
+	bool haploid = haploid_value->LogicalAtIndex(0, nullptr);
+	
+	if (haploid)
+	{
+		if (ModelType() == SLiMModelType::kModelTypeWF)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option in WF models." << EidosTerminate();
+		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_addSubpop): addSubpop() cannot create haploid individuals with the haploid=T option when simulating sex chromosomes; in sex chromosome models, null genomes are determined by sex." << EidosTerminate();
+	}
+	
 	// construct the subpop; we always pass the sex ratio, but AddSubpopulation will not use it if sex is not enabled, for simplicity
-	Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio);
+	Subpopulation *new_subpop = population_.AddSubpopulation(subpop_id, subpop_size, sex_ratio, haploid);
 	
 	// define a new Eidos variable to refer to the new subpopulation
 	EidosSymbolTableEntry &symbol_entry = new_subpop->SymbolTableEntry();
@@ -3838,7 +3833,6 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_periodicity,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -3849,11 +3843,14 @@ const std::vector<EidosPropertySignature_CSP> *SLiMSim_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeffX,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generationStage,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_verbosity,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		
+		// deprecated (may or may not be removed, in the sense of raising when you try to use them):
+		properties->emplace_back(((EidosPropertySignature *)(new EidosPropertySignature(gStr_dominanceCoeffX,		false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->MarkDeprecated()));
+		properties->emplace_back(((EidosPropertySignature *)(new EidosPropertySignature(gStr_inSLiMgui,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->MarkDeprecated()));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);
 	}
@@ -3869,7 +3866,7 @@ const std::vector<EidosMethodSignature_CSP> *SLiMSim_Class::Methods(void) const
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));
