@@ -36,6 +36,17 @@ development head:
 	add checks for malloc/calloc/realloc failures, for clusters that make allocations fail when the process is at its memory limit
 	fix a small bug involved duplicate derived states getting recorded by addNewDrawnMutation() when multiple mutations are added at the same position
 	updated to tskit C_0.99.14 (big metadata bug fix)
+	updated to unversioned tskit code to get improved consistency checking stuff quickly; will update to a tagged version when one comes out
+	add a concept of deprecated APIs in Eidos, to allow properties/methods to be documented as deprecated but not auto-completed
+	now perform fuller consistency checks (mutation/node time mismatches) every generation in DEBUG, and also now after simplification in DEBUG
+	change addRecombinant() to use (NULL, NULL, NULL) as a signal to create a null genome, rather than an empty genome without new mutations; this better reflects the existing semantics (breaks backward compatibility)
+	add genomesNonNull property to Subpopulation and Individual, returning those genomes of the subpop/individual that are not null genomes, for easier management of models that contain null genomes
+	add flags to addEmpty() allowing the user to request that either or both genomes ought to be null rather than just empty
+	add isHaploid=F flag to addSubpop()
+	remove the dominanceCoeffX property of SLiMSim and the xDominanceCoeff parameter to initializeSex() (breaks backward compatibility)
+	add a new haploidDominanceCoeff property to MutationType to take its place with more flexibility and generality
+	revise recipes as needed (16.13, 16.14 - the nonWF haploid recipes) to adjust for the above changes
+	extend outputFull(), readFromPopulationFile(), and .trees I/O to support null genomes and haploids
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

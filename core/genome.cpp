@@ -1588,6 +1588,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	p_out << "##INFO=<ID=MID,Number=.,Type=Integer,Description=\"Mutation ID in SLiM\">" << std::endl;
 	p_out << "##INFO=<ID=S,Number=.,Type=Float,Description=\"Selection Coefficient\">" << std::endl;
 	p_out << "##INFO=<ID=DOM,Number=.,Type=Float,Description=\"Dominance\">" << std::endl;
+	// Note that at present we do not output the haploid dominance coefficient; too edge
 	p_out << "##INFO=<ID=PO,Number=.,Type=Integer,Description=\"Population of Origin\">" << std::endl;
 	p_out << "##INFO=<ID=GO,Number=.,Type=Integer,Description=\"Generation of Origin\">" << std::endl;
 	p_out << "##INFO=<ID=MT,Number=.,Type=Integer,Description=\"Mutation Type\">" << std::endl;
@@ -3795,7 +3796,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 				
 				if (target_genome->IsNull())
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 				
 				for (GenomeWalker target_walker(target_genome); !target_walker.Finished(); target_walker.NextMutation())
 				{
@@ -3842,6 +3843,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	{
 		// If the user is creating substitutions for mutations, we now check for consistency at the end of the generation, so that
 		// we don't have a mutation still segregating while a substitution for it has also been created; see CheckMutationRegistry()
+		// BCH 9/24/2021: Note that we cannot do the opposite check: checking that we only substitute a mutation when it has, in fact,
+		// fixed.  We can't do that because there are models, such as the PAR (pseudo-autosomal region) recipe, that have different
+		// fixation frequences for different parts of the genome because multiple chromosomes of different ploidy are being simulated.
+		// Until we support multiple chromosomes more intrinsically, and can do that properly, substitution at less than frequency
+		// 1.0 must be supported.  Note that this also means that we have to record new derived states here, because in some cases
+		// (those same cases), the derived state for some genomes will have changed; if we do multiple chromosomes properly some day,
+		// the recording of new derived states can probably be removed here, since no genetic state will have changed.
 		if (create_substitutions)
 			pop.SetMutationRegistryNeedsCheck();
 		
@@ -4014,7 +4022,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 				
 				if (target_genome->IsNull())
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 				if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))

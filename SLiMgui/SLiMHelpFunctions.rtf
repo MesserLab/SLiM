@@ -1,9 +1,9 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
-}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+\f6\fnil\fcharset0 Menlo-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
 \deftab397
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
@@ -752,13 +752,12 @@ If the optional
 \f2\fs20  instead, in which case the supplied recombination map is used only for that sex.  In this case, two calls must be made to 
 \f1\fs18 initializeRecombinationRate()
 \f2\fs20 , one for each sex, even if a rate of zero is desired for the other sex; no default recombination map is supplied.\
-\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSex(string$\'a0chromosomeType, [numeric$\'a0xDominanceCoeff\'a0=\'a01])
-\f4 \
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (void)initializeSex(string$\'a0chromosomeType)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Enable and configure sex in the simulation.  The argument 
+\f2\fs20 \cf2 Enable and configure sex in the simulation.  The argument 
 \f1\fs18 chromosomeType
 \f2\fs20  gives the type of chromosome to be simulated; this should be 
 \f1\fs18 "A"
@@ -766,16 +765,25 @@ If the optional
 \f1\fs18 "X"
 \f2\fs20 , or 
 \f1\fs18 "Y"
-\f2\fs20 .  If the 
+\f2\fs20 .  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
+\f1\fs18 chromosomeType
+\f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b \cf2 The 
+\f6\fs18 xDominanceCoeff
+\f0\fs20  parameter has been deprecated and removed.
+\f2\b0   In SLiM 3.7 and later, use the 
+\f1\fs18 haploidDominanceCoeff
+\f2\fs20  property of 
+\f1\fs18 MutationType
+\f2\fs20  instead.  \cf3 If the 
 \f1\fs18 chromosomeType
 \f2\fs20  is 
 \f1\fs18 "X"
-\f4\fs20 ,
-\f2  the optional 
+\f2\fs20 , the optional 
 \f1\fs18 xDominanceCoeff
-\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
-\f1\fs18 chromosomeType
-\f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\f2\fs20  parameter can supply the dominance coefficient used when a mutation is present in an XY male, and is thus \'93heterozygous\'94 (but in a different sense than the heterozygosity of an XX female with one copy of the mutation).\cf2 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)initializeSLiMModelType(string$\'a0modelType)
@@ -1612,9 +1620,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1626,8 +1633,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S

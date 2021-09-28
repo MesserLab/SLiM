@@ -36,7 +36,6 @@
 #include <tskit/tables.h>
 
 #define DEFAULT_SIZE_INCREMENT 1024
-#define TABLE_SEP "-----------------------------------------\n"
 
 #define TSK_COL_OPTIONAL (1 << 0)
 
@@ -586,7 +585,7 @@ write_metadata_schema_header(
 {
     const char *fmt = "#metadata_schema#\n"
                       "%.*s\n"
-                      "#end#metadata_schema\n" TABLE_SEP;
+                      "#end#metadata_schema\n" TSK_TABLE_SEP;
     return fprintf(out, fmt, (int) metadata_schema_length, metadata_schema);
 }
 
@@ -1106,7 +1105,7 @@ tsk_individual_table_print_state(const tsk_individual_table_t *self, FILE *out)
 {
     tsk_size_t j, k;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "tsk_individual_tbl: %p:\n", (const void *) self);
     fprintf(out, "num_rows          = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -1114,7 +1113,7 @@ tsk_individual_table_print_state(const tsk_individual_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     /* We duplicate the dump_text code here because we want to output
      * the offset columns. */
     write_metadata_schema_header(
@@ -1226,6 +1225,10 @@ tsk_individual_table_dump_text(const tsk_individual_table_t *self, FILE *out)
                 }
             }
         }
+		err = fprintf(out, "\t");
+		if (err < 0) {
+			goto out;
+		}
         for (k = self->parents_offset[j]; k < self->parents_offset[j + 1]; k++) {
             err = fprintf(out, "%lld", (long long) self->parents[k]);
             if (err < 0) {
@@ -1757,7 +1760,7 @@ tsk_node_table_print_state(const tsk_node_table_t *self, FILE *out)
 {
     tsk_size_t j, k;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "tsk_node_tbl: %p:\n", (const void *) self);
     fprintf(out, "num_rows          = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -1765,7 +1768,7 @@ tsk_node_table_print_state(const tsk_node_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     /* We duplicate the dump_text code here for simplicity because we want to output
      * the flags column directly. */
     write_metadata_schema_header(
@@ -2409,7 +2412,7 @@ tsk_edge_table_print_state(const tsk_edge_table_t *self, FILE *out)
 {
     int ret;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "edge_table: %p:\n", (const void *) self);
     fprintf(out, "options         = 0x%X\n", self->options);
     fprintf(out, "num_rows        = %lld\tmax= %lld\tincrement = %lld)\n",
@@ -2418,7 +2421,7 @@ tsk_edge_table_print_state(const tsk_edge_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     ret = tsk_edge_table_dump_text(self, out);
     tsk_bug_assert(ret == 0);
 }
@@ -3096,7 +3099,7 @@ tsk_site_table_print_state(const tsk_site_table_t *self, FILE *out)
 {
     int ret;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "site_table: %p:\n", (const void *) self);
     fprintf(out, "num_rows = %lld\t(max= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -3108,7 +3111,7 @@ tsk_site_table_print_state(const tsk_site_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld(\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     ret = tsk_site_table_dump_text(self, out);
     tsk_bug_assert(ret == 0);
 
@@ -3770,7 +3773,7 @@ tsk_mutation_table_print_state(const tsk_mutation_table_t *self, FILE *out)
 {
     int ret;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "mutation_table: %p:\n", (const void *) self);
     fprintf(out, "num_rows = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -3782,7 +3785,7 @@ tsk_mutation_table_print_state(const tsk_mutation_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     ret = tsk_mutation_table_dump_text(self, out);
     tsk_bug_assert(ret == 0);
     tsk_bug_assert(self->derived_state_offset[0] == 0);
@@ -4348,7 +4351,7 @@ tsk_migration_table_print_state(const tsk_migration_table_t *self, FILE *out)
 {
     int ret;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "migration_table: %p:\n", (const void *) self);
     fprintf(out, "num_rows = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -4356,7 +4359,7 @@ tsk_migration_table_print_state(const tsk_migration_table_t *self, FILE *out)
     fprintf(out, "metadata_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     ret = tsk_migration_table_dump_text(self, out);
     tsk_bug_assert(ret == 0);
 }
@@ -4878,7 +4881,7 @@ tsk_population_table_print_state(const tsk_population_table_t *self, FILE *out)
 {
     tsk_size_t j, k;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "population_table: %p:\n", (const void *) self);
     fprintf(out, "num_rows          = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -4886,7 +4889,7 @@ tsk_population_table_print_state(const tsk_population_table_t *self, FILE *out)
     fprintf(out, "metadata_length  = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->metadata_length, (long long) self->max_metadata_length,
         (long long) self->max_metadata_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     write_metadata_schema_header(
         out, self->metadata_schema, self->metadata_schema_length);
     fprintf(out, "index\tmetadata_offset\tmetadata\n");
@@ -5449,7 +5452,7 @@ tsk_provenance_table_print_state(const tsk_provenance_table_t *self, FILE *out)
 {
     tsk_size_t j, k;
 
-    fprintf(out, "\n" TABLE_SEP);
+    fprintf(out, "\n" TSK_TABLE_SEP);
     fprintf(out, "provenance_table: %p:\n", (const void *) self);
     fprintf(out, "num_rows          = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->num_rows, (long long) self->max_rows,
@@ -5460,7 +5463,7 @@ tsk_provenance_table_print_state(const tsk_provenance_table_t *self, FILE *out)
     fprintf(out, "record_length = %lld\tmax= %lld\tincrement = %lld)\n",
         (long long) self->record_length, (long long) self->max_record_length,
         (long long) self->max_record_length_increment);
-    fprintf(out, TABLE_SEP);
+    fprintf(out, TSK_TABLE_SEP);
     fprintf(out, "index\ttimestamp_offset\ttimestamp\trecord_offset\tprovenance\n");
     for (j = 0; j < self->num_rows; j++) {
         fprintf(

@@ -36,7 +36,7 @@ reproduction() {
 }
 1 early() {
 	// start from two bacteria with different beneficial mutations
-	sim.addSubpop("p1", 2);
+	sim.addSubpop("p1", 2, haploid=T);
 	
 	// add beneficial mutations to each bacterium, but at different loci
 	g = p1.individuals.genome1;
@@ -52,9 +52,9 @@ late() {
 	muts = sim.mutations;
 	freqs = sim.mutationFrequencies(NULL, muts);
 	
-	if (all(freqs == 0.5))
+	if (all(freqs == 1.0))
 	{
-		catn(sim.generation + ": " + sum(freqs == 0.5) + " fixed.");
+		catn(sim.generation + ": " + sum(freqs == 1.0) + " fixed.");
 		sim.simulationFinished();
 	}
 }

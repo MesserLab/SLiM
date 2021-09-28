@@ -1524,17 +1524,23 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	
 	// First, a sorted list of globals
 	for (auto symbol_sig : *terminus->Properties())
-		candidates << QString::fromStdString(symbol_sig->property_name_);
-	
+    {
+        if (!symbol_sig->deprecated_)
+            candidates << QString::fromStdString(symbol_sig->property_name_);
+	}
+    
 	candidates.sort();
 	
 	// Next, a sorted list of methods, with () appended
 	for (auto method_sig : *terminus->Methods())
 	{
-		QString methodName = QString::fromStdString(method_sig->call_name_);
-		
-        methodName.append("()");
-		candidates << methodName;
+        if (!method_sig->deprecated_)
+        {
+            QString methodName = QString::fromStdString(method_sig->call_name_);
+            
+            methodName.append("()");
+            candidates << methodName;
+        }
 	}
 	
 	return candidates;

@@ -127,7 +127,7 @@ public:
 	~Population(void);										// destructor
 	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
-	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio);
+	Subpopulation *AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio, bool p_haploid);
 	
 	// Mutation registry access
 	inline const MutationIndex *MutationRegistry(int *registry_count)

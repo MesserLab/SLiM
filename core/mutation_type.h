@@ -85,7 +85,7 @@ public:
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
 	
 	slim_selcoeff_t dominance_coeff_;			// dominance coefficient (h)
-	bool dominance_coeff_changed_;				// if true, dominance_coeff_ has been changed and fitness caches need to be cleaned up
+	slim_selcoeff_t haploid_dominance_coeff_;	// dominance coefficient (h) used when one genome is null
 	
 	DFEType dfe_type_;							// distribution of fitness effects (DFE) type (f: fixed, g: gamma, e: exponential, n: normal, w: Weibull)
 	std::vector<double> dfe_parameters_;		// DFE parameters, of type double (originally float or integer type)

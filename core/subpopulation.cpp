@@ -562,7 +562,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 // Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
 // sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
 // involved in that case).  This handles both the WF and nonWF cases, which are very similar.
-void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq)
+void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid)
 {
 	SLiMSim &sim = population_.sim_;
 	bool pedigrees_enabled = sim.PedigreesEnabled();
@@ -578,6 +578,16 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) individuals or genomes already present in GenerateParentsToFit()." << EidosTerminate();
 	if ((parent_subpop_size_ == 0) && !p_allow_zero_size)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) subpop size of 0 requested." << EidosTerminate();
+	
+	if (p_haploid)
+	{
+		if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals in WF models." << EidosTerminate();
+		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals when simulating sex chromosomes." << EidosTerminate();
+		
+		has_null_genomes_ = true;
+	}
 	
 	// We also have to make space for the pointers to the genomes and individuals
 	parent_genomes_.reserve(parent_subpop_size_ * 2);
@@ -614,8 +624,15 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 					genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
 					genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 					
-					genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					if (p_haploid)
+					{
+						genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+					}
+					else
+					{
+						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+						genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					}
 					break;
 				}
 				case GenomeType::kXChromosome:
@@ -673,12 +690,21 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 		for (int new_index = 0; new_index < parent_subpop_size_; ++new_index)
 		{
 			// allocate out of our object pools
-			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			
 			// start new parental genomes out with a shared empty mutrun; can't be nullptr like child genomes can
+			Genome *genome1, *genome2;
+			
+			genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
 			genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-			genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+			
+			if (p_haploid)
+			{
+				genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+			}
+			else
+			{
+				genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+				genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+			}
 			
 			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
 			
@@ -791,8 +817,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
 			}
 			
-			if ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null))
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sexual simulation." << EidosTerminate();
+			// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
+			if ((modeled_chromosome_type_ != GenomeType::kAutosome) && ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null)))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sex chromosome simulation." << EidosTerminate();
 			if ((genome1->Type() != genome1_type) || (genome2->Type() != genome2_type))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual genome type in sexual simulation." << EidosTerminate();
 		}
@@ -801,8 +828,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (individual->sex_ != IndividualSex::kHermaphrodite)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-hermaphrodite individual in non-sexual simulation." << EidosTerminate();
 			
-			if (genome1->IsNull() || genome2->IsNull())
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
+			// BCH 9/21/2021: In SLiM 3.7 this is no longer an error, since we can get null genomes from addRecombinant() representing haploids etc.
+			//if (genome1->IsNull() || genome2->IsNull())
+			//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
 			
 			if ((genome1->Type() != GenomeType::kAutosome) || (genome2->Type() != GenomeType::kAutosome))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
@@ -903,8 +931,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
 				}
 				
-				if ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sexual simulation." << EidosTerminate();
+				// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
+				if ((modeled_chromosome_type_ != GenomeType::kAutosome) && ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null)))
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sex chromosome simulation." << EidosTerminate();
 				if ((genome1->Type() != genome1_type) || (genome2->Type() != genome2_type))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual genome type in sexual simulation." << EidosTerminate();
 			}
@@ -913,8 +942,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				if (individual->sex_ != IndividualSex::kHermaphrodite)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-hermaphrodite individual in non-sexual simulation." << EidosTerminate();
 				
-				if (genome1->IsNull() || genome2->IsNull())
-					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
+				// BCH 9/21/2021: In SLiM 3.7 this is no longer an error, since we can get null genomes from addRecombinant() representing haploids etc.
+				//if (genome1->IsNull() || genome2->IsNull())
+				//	EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in individual in non-sexual simulation." << EidosTerminate();
 				
 				if ((genome1->Type() != GenomeType::kAutosome) || (genome2->Type() != GenomeType::kAutosome))
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
@@ -972,7 +1002,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	}
 }
 
-Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq) :
+Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
 	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size)
@@ -986,18 +1016,18 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 #endif
 	
 #ifdef SLIM_WF_ONLY
@@ -1023,14 +1053,14 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
-							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, double p_x_chromosome_dominance_coeff) :
+							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
 	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
 #endif	// SLIM_WF_ONLY
-	sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type), x_chromosome_dominance_coeff_(p_x_chromosome_dominance_coeff)
+	sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	, gui_premigration_size_(p_subpop_size)
 #endif
@@ -1038,18 +1068,18 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 #if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
 	{
-		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
 #elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	GenerateChildrenToFitWF();
 #elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq);
+	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 #endif
 	
 #ifdef SLIM_WF_ONLY
@@ -1173,29 +1203,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	// The FitnessOfParent...() methods called by this method rely upon cached fitness values
 	// kept inside the Mutation objects.  Those caches may need to be validated before we can
 	// calculate fitness values.  We check for that condition and repair it first.
-	// BCH 26 Nov. 2017: Note that dominance_coeff_changed_ is really pointless in this design;
-	// we could use just any_dominance_coeff_changed_ by itself, I think.  I have retained the
-	// dominance_coeff_changed_ flag for now out of sheer inertia; maybe it will prove useful.
 	if (population_.sim_.any_dominance_coeff_changed_)
 	{
-		bool needs_recache = false;
-		
-		for (auto &mut_type_iter : mut_types)
-		{
-			MutationType *mut_type = mut_type_iter.second;
-			
-			if (mut_type->dominance_coeff_changed_)
-			{
-				needs_recache = true;
-				mut_type->dominance_coeff_changed_ = false;
-				
-				// don't break, because we want to clear all changed flags
-			}
-		}
-		
-		if (needs_recache)
-			population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
-		
+		population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
 		population_.sim_.any_dominance_coeff_changed_ = false;
 	}
 	
@@ -2098,12 +2108,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	
 	if (genome1_null && genome2_null)
 	{
-		// SEX ONLY: both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
+		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
 		return w;
 	}
 	else if (genome1_null || genome2_null)
 	{
-		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
+		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
 		const int32_t mutrun_count = genome->mutrun_count_;
 		
@@ -2122,31 +2132,9 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
 #endif
 			
-			if (genome->Type() == GenomeType::kXChromosome)
-			{
-				// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
-				// we don't cache this fitness effect because x_chromosome_dominance_coeff_ is not readily available to Mutation
-				while (genome_iter != genome_max)
-				{
-					slim_selcoeff_t selection_coeff = (mut_block_ptr + *genome_iter)->selection_coeff_;
-					
-					if (selection_coeff != 0.0F)
-					{
-						w *= (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
-						
-						if (w <= 0.0)
-							return 0.0;
-					}
-					
-					genome_iter++;
-				}
-			}
-			else
-			{
-				// with other types of unpaired chromosomes (like the Y chromosome of a male when we are modeling the Y) there is no dominance coefficient
-				while (genome_iter != genome_max)
-					w *= (mut_block_ptr + *genome_iter++)->cached_one_plus_sel_;
-			}
+			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
+			while (genome_iter != genome_max)
+				w *= (mut_block_ptr + *genome_iter++)->cached_one_plus_haploiddom_sel_;
 		}
 		
 		return w;
@@ -2322,12 +2310,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	
 	if (genome1_null && genome2_null)
 	{
-		// SEX ONLY: both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
+		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
 		return w;
 	}
 	else if (genome1_null || genome2_null)
 	{
-		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
+		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
 		const int32_t mutrun_count = genome->mutrun_count_;
 		
@@ -2346,37 +2334,17 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
 #endif
 			
-			if (genome->Type() == GenomeType::kXChromosome)
+			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
+			while (genome_iter != genome_max)
 			{
-				// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
-				// we don't cache this fitness effect because x_chromosome_dominance_coeff_ is not readily available to Mutation
-				while (genome_iter != genome_max)
-				{
-					MutationIndex genome_mutation = *genome_iter;
-					slim_selcoeff_t selection_coeff = (mut_block_ptr + genome_mutation)->selection_coeff_;
-					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, 1.0 + x_chromosome_dominance_coeff_ * selection_coeff, p_fitness_callbacks, individual, genome1, genome2);
-					
-					if (w <= 0.0)
-						return 0.0;
-					
-					genome_iter++;
-				}
-			}
-			else
-			{
-				// with other types of unpaired chromosomes (like the Y chromosome of a male when we are modeling the Y) there is no dominance coefficient
-				while (genome_iter != genome_max)
-				{
-					MutationIndex genome_mutation = *genome_iter;
-					
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
-					
-					if (w <= 0.0)
-						return 0.0;
-					
-					genome_iter++;
-				}
+				MutationIndex genome_mutation = *genome_iter;
+				
+				w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				
+				if (w <= 0.0)
+					return 0.0;
+				
+				genome_iter++;
 			}
 		}
 		
@@ -2582,12 +2550,12 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	
 	if (genome1_null && genome2_null)
 	{
-		// SEX ONLY: both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
+		// both genomes are placeholders; for example, we might be simulating the Y chromosome, and this is a female
 		return w;
 	}
 	else if (genome1_null || genome2_null)
 	{
-		// SEX ONLY: one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the x-dominance coefficient
+		// one genome is null, so we just need to scan through the modeled genome and account for its mutations, including the haploid dominance coefficient
 		const Genome *genome = genome1_null ? genome2 : genome1;
 		const int32_t mutrun_count = genome->mutrun_count_;
 		
@@ -2606,57 +2574,24 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 			const MutationIndex *genome_max = mutrun->end_pointer_const();
 #endif
 			
-			if (genome->Type() == GenomeType::kXChromosome)
+			// with an unpaired chromosome, we need to multiply each selection coefficient by the haploid dominance coefficient
+			while (genome_iter != genome_max)
 			{
-				// with an unpaired X chromosome, we need to multiply each selection coefficient by the X chromosome dominance coefficient
-				// we don't cache this fitness effect because x_chromosome_dominance_coeff_ is not readily available to Mutation
-				while (genome_iter != genome_max)
+				MutationIndex genome_mutation = *genome_iter;
+				
+				if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
 				{
-					MutationIndex genome_mutation = *genome_iter;
-					slim_selcoeff_t selection_coeff = (mut_block_ptr + genome_mutation)->selection_coeff_;
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
 					
-					if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
-					{
-						w *= ApplyFitnessCallbacks(genome_mutation, -1, 1.0 + x_chromosome_dominance_coeff_ * selection_coeff, p_fitness_callbacks, individual, genome1, genome2);
-						
-						if (w <= 0.0)
-							return 0.0;
-					}
-					else
-					{
-						if (selection_coeff != 0.0F)
-						{
-							w *= (1.0 + x_chromosome_dominance_coeff_ * selection_coeff);
-							
-							if (w <= 0.0)
-								return 0.0;
-						}
-					}
-					
-					genome_iter++;
+					if (w <= 0.0)
+						return 0.0;
 				}
-			}
-			else
-			{
-				// with other types of unpaired chromosomes (like the Y chromosome of a male when we are modeling the Y) there is no dominance coefficient
-				while (genome_iter != genome_max)
+				else
 				{
-					MutationIndex genome_mutation = *genome_iter;
-					
-					if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
-					{
-						w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
-						
-						if (w <= 0.0)
-							return 0.0;
-					}
-					else
-					{
-						w *= (mut_block_ptr + genome_mutation)->cached_one_plus_sel_;
-					}
-					
-					genome_iter++;
+					w *= (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_;
 				}
+				
+				genome_iter++;
 			}
 		}
 		
@@ -3551,7 +3486,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : child_genomes_)
-						vec->push_object_element_NORR(genome_iter);
+						vec->push_object_element_no_check_NORR(genome_iter);
 				}
 				/*
 				else
@@ -3583,7 +3518,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_genomes_value_ = EidosValue_SP(vec);
 					
 					for (auto genome_iter : parent_genomes_)
-						vec->push_object_element_NORR(genome_iter);
+						vec->push_object_element_no_check_NORR(genome_iter);
 				}
 				/*
 				else
@@ -3607,6 +3542,31 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_parent_genomes_value_;
 			}
 		}
+		case gID_genomesNonNull:
+		{
+#ifdef SLIM_WF_ONLY
+			if (child_generation_valid_)
+			{
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
+				
+				for (auto genome_iter : child_genomes_)
+					if (!genome_iter->IsNull())
+						vec->push_object_element_no_check_NORR(genome_iter);
+				
+				return EidosValue_SP(vec);
+			}
+			else
+#endif	// SLIM_WF_ONLY
+			{
+				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
+				
+				for (auto genome_iter : parent_genomes_)
+					if (!genome_iter->IsNull())
+						vec->push_object_element_no_check_NORR(genome_iter);
+				
+				return EidosValue_SP(vec);
+			}
+		}
 		case gID_individuals:
 		{
 #ifdef SLIM_WF_ONLY
@@ -3625,7 +3585,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_child_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_NORR(child_individuals_[individual_index]);
+						vec->push_object_element_no_check_NORR(child_individuals_[individual_index]);
 				}
 				
 				return cached_child_individuals_value_;
@@ -3646,7 +3606,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 					cached_parent_individuals_value_ = EidosValue_SP(vec);
 					
 					for (slim_popsize_t individual_index = 0; individual_index < subpop_size; individual_index++)
-						vec->push_object_element_NORR(parent_individuals_[individual_index]);
+						vec->push_object_element_no_check_NORR(parent_individuals_[individual_index]);
 				}
 				
 				return cached_parent_individuals_value_;
@@ -4189,6 +4149,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	bool genome1_null, genome2_null;
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
 	
+	if (genome1_null || genome2_null)
+			has_null_genomes_ = true;
+	
 	// Make the new individual as a candidate
 	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
 	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
@@ -4257,7 +4220,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	}
 }
 
-//	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL])
+//	*********************	– (No<Individual>$)addEmpty([Nfs$ sex = NULL], [Nl$ genome1Null = NULL], [Nl$ genome2Null = NULL])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4271,9 +4234,34 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may not be called from a nested callback." << EidosTerminate();
 	
 	EidosValue *sex_value = p_arguments[0].get();
+	EidosValue *genome1Null_value = p_arguments[1].get();
+	EidosValue *genome2Null_value = p_arguments[2].get();
 	GenomeType genome1_type, genome2_type;
 	bool genome1_null, genome2_null;
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+	
+	if (genome1Null_value->Type() != EidosValueType::kValueNULL)
+	{
+		bool requestedNull = genome1Null_value->LogicalAtIndex(0, nullptr);
+		
+		if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+		
+		genome1_null = requestedNull;
+	}
+	
+	if (genome2Null_value->Type() != EidosValueType::kValueNULL)
+	{
+		bool requestedNull = genome2Null_value->LogicalAtIndex(0, nullptr);
+		
+		if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+		
+		genome2_null = requestedNull;
+	}
+	
+	if (genome1_null || genome2_null)
+			has_null_genomes_ = true;
 	
 	// Make the new individual as a candidate
 	bool pedigrees_enabled = sim.PedigreesEnabled();
@@ -4302,8 +4290,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	genome2->check_cleared_to_nullptr();
 #endif
 	
-	genome1->clear_to_empty();
-	genome2->clear_to_empty();
+	if (!genome1_null)
+		genome1->clear_to_empty();
+	if (!genome2_null)
+		genome2->clear_to_empty();
 	
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
@@ -4345,6 +4335,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// If strand1 and strand2 are both non-NULL, breaks1 must be non-NULL but need not be sorted, and recombination with mutations will occur.
 	// If strand1 is NULL and strand2 is non-NULL, that is presently an error, but may be given a meaning later.
 	// The same is true, mutatis mutandis, for strand3, strand4, and breaks2.  The sex parameter is interpreted as in addCrossed().
+	// BCH 9/20/2021: For SLiM 3.7, these semantics are changing a little.  Now, when strand1 and strand2 are both NULL and breaks1 is NULL/empty,
+	// the offspring genome will be a *null* genome (not just empty), and as before will not receive mutations.  That is the way it always should
+	// have worked.  Again, mutatis mutandis, for strand3, strand4, and breaks2.  See https://github.com/MesserLab/SLiM/issues/205.
 	EidosValue *strand1_value = p_arguments[0].get();
 	EidosValue *strand2_value = p_arguments[1].get();
 	EidosValue *breaks1_value = p_arguments[2].get();
@@ -4413,27 +4406,65 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
 	
 	// Check that the chosen sex makes sense with respect to the strands given
+	// BCH 9/20/2021: Improved the logic here because in sexual sex-chromosome models the null/nonnull state of the offspring genomes is dictated by the sex.
 	if (strand1 && genome1_type != strand1->Type())
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand1 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
 	if (strand3 && genome2_type != strand3->Type())
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the type of strand3 does not match the expectation from the sex of the generated offspring." << EidosTerminate();
 	
+	if (genome1_type != GenomeType::kAutosome)
+	{
+		if ((genome1_null == true) && strand1)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring genome must be a null genome, according to its sex, but a parental genome was supplied for it." << EidosTerminate();
+		if ((genome1_null == false) && !strand1)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the first offspring genome must not be a null genome, according to its sex, but no parental genome was supplied for it." << EidosTerminate();
+	}
+	if (genome2_type != GenomeType::kAutosome)
+	{
+		if ((genome2_null == true) && strand3)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring genome must be a null genome, according to its sex, but a parental genome was supplied for it." << EidosTerminate();
+		if ((genome2_null == false) && !strand3)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): the second offspring genome must not be a null genome, according to its sex, but no parental genome was supplied for it." << EidosTerminate();
+	}
+	
 	// Check that the breakpoint vectors make sense; breakpoints may not be supplied for a NULL pair or a half-NULL pair, but must be supplied for a non-NULL pair
-	if ((breaks1_value->Count() != 0) && !strand2)
+	// BCH 9/20/2021: Added logic here in support of the new semantics that (NULL, NULL, NULL) makes a null genome, not an empty genome
+	int breaks1count = breaks1_value->Count(), breaks2count = breaks2_value->Count();
+	
+	if (!strand1 && !strand2)
+	{
+		if (breaks1count == 0)
+			genome1_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
+		else
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand1 and strand2, breaks1 must be NULL or empty." << EidosTerminate();
+	}
+	else if ((breaks1count != 0) && !strand2)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks1 supplied with a NULL strand2; recombination between strand1 and strand2 is not possible, so breaks1 must be NULL or empty." << EidosTerminate();
-	if ((breaks2_value->Count() != 0) && !strand4)
+	
+	if (!strand3 && !strand4)
+	{
+		if (breaks2count == 0)
+			genome2_null = true;	// note that according to the checks above, if this is required in a sex-chromosome simulation is is already set
+		else
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): with a NULL strand3 and strand4, breaks2 must be NULL or empty." << EidosTerminate();
+	}
+	else if ((breaks2count != 0) && !strand4)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): non-empty breaks2 supplied with a NULL strand4; recombination between strand3 and strand4 is not possible, so breaks2 must be NULL or empty." << EidosTerminate();
+	
 	if ((breaks1_value->Type() == EidosValueType::kValueNULL) && strand1 && strand2)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand1 and strand2 are both supplied, so breaks1 may not be NULL (but may be empty)." << EidosTerminate();
 	if ((breaks2_value->Type() == EidosValueType::kValueNULL) && strand3 && strand4)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): strand3 and strand4 are both supplied, so breaks2 may not be NULL (but may be empty)." << EidosTerminate();
 	
+	if (genome1_null || genome2_null)
+		has_null_genomes_ = true;
+	
 	// Sort and unique and bounds-check the breakpoints
 	std::vector<slim_position_t> breakvec1, breakvec2;
 	
-	if (breaks1_value->Count())
+	if (breaks1count)
 	{
-		for (int break_index = 0; break_index < breaks1_value->Count(); ++break_index)
+		for (int break_index = 0; break_index < breaks1count; ++break_index)
 			breakvec1.push_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex(break_index, nullptr)));
 		
 		std::sort(breakvec1.begin(), breakvec1.end());
@@ -4452,9 +4483,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		}
 	}
 	
-	if (breaks2_value->Count())
+	if (breaks2count)
 	{
-		for (int break_index = 0; break_index < breaks2_value->Count(); ++break_index)
+		for (int break_index = 0; break_index < breaks2count; ++break_index)
 			breakvec2.push_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex(break_index, nullptr)));
 		
 		std::sort(breakvec2.begin(), breakvec2.end());
@@ -4531,11 +4562,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-		// both strands are NULL, so we make a new empty genome, as addEmpty() does
+		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
 		if (sim.RecordingTreeSequence())
 			sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
 		
-		genome1->clear_to_empty();
+#if DEBUG
+		if (!genome1_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) genome1_null is false with NULL parental strands!" << EidosTerminate();
+#endif
 	}
 	
 	// Construct the second child genome, depending upon whether recombination is requested, etc.
@@ -4581,11 +4615,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-		// both strands are NULL, so we make a new empty genome, as addEmpty() does
+		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
 		if (sim.RecordingTreeSequence())
 			sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 		
-		genome2->clear_to_empty();
+#if DEBUG
+		if (!genome2_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): (internal error) genome2_null is false with NULL parental strands!" << EidosTerminate();
+#endif
 	}
 	
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
@@ -6834,6 +6871,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_firstMaleIndex,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_firstMaleIndex));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomes,						true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomesNonNull,					true,	kEidosValueMaskObject, gSLiM_Genome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individuals,					true,	kEidosValueMaskObject, gSLiM_Individual_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopIDs,				true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_immigrantSubpopFractions,		true,	kEidosValueMaskFloat)));
@@ -6875,7 +6913,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskVOID))->AddInt_S("size"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("genome1Null", gStaticEidosValueNULL)->AddLogical_OSN("genome2Null", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));

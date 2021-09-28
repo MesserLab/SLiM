@@ -66,6 +66,7 @@ public:
 	bool has_optional_args_ = false;					// if true, at least one optional argument has been added
 	bool has_ellipsis_ = false;							// if true, the function accepts arbitrary varargs at some point in its signature (given in the arg vectors above)
 	
+	bool deprecated_ = false;							// if true, the API represented by this signature has been deprecated
 	
 	EidosCallSignature(const EidosCallSignature&) = delete;					// no copying
 	EidosCallSignature& operator=(const EidosCallSignature&) = delete;		// no copying
@@ -176,6 +177,9 @@ public:
 	EidosCallSignature *AddObject_OSN(const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value);
 	EidosCallSignature *AddNumeric_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
 	EidosCallSignature *AddLogicalEquiv_OSN(const std::string &p_argument_name, EidosValue_SP p_default_value);
+	
+	// API deprecation; this prevents deprecated API from being shown in code completion, etc., even though it remains in the doc
+	EidosCallSignature *MarkDeprecated(void);
 	
 	// check arguments and returns
 	void CheckArgument(EidosValue *p_argument, int p_signature_index) const;

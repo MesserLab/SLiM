@@ -262,6 +262,12 @@ EidosPropertySignature *EidosPropertySignature::DeclareAcceleratedSet(Eidos_Acce
 	return this;
 }
 
+EidosPropertySignature *EidosPropertySignature::MarkDeprecated(void)
+{
+	deprecated_ = true;
+	return this;
+}
+
 // This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const EidosPropertySignature &p_signature)
 {

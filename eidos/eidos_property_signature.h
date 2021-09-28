@@ -63,6 +63,8 @@ public:
 	bool accelerated_set_;									// if true, can be written using a fast-access SetProperty_Accelerated_X() method
 	Eidos_AcceleratedPropertySetter accelerated_setter;		// a pointer to a (static member) function that handles the accelerated set
 	
+	bool deprecated_ = false;							// if true, the API represented by this signature has been deprecated
+
 	EidosPropertySignature(const EidosPropertySignature&) = delete;					// no copying
 	EidosPropertySignature& operator=(const EidosPropertySignature&) = delete;		// no copying
 	EidosPropertySignature(void) = delete;											// no null construction
@@ -83,6 +85,9 @@ public:
 	// property access acceleration
 	EidosPropertySignature *DeclareAcceleratedGet(Eidos_AcceleratedPropertyGetter p_getter);
 	EidosPropertySignature *DeclareAcceleratedSet(Eidos_AcceleratedPropertySetter p_setter);
+	
+	// API deprecation; this prevents deprecated API from being shown in code completion, etc., even though it remains in the doc
+	EidosPropertySignature *MarkDeprecated(void);
 };
 
 // These typedefs for shared_ptrs of these classes should generally be used; all signature objects should be under shared_ptr now.
