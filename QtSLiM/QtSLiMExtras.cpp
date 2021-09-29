@@ -927,10 +927,11 @@ void QtSLiMSplitterHandle::paintEvent(QPaintEvent *p_paintEvent)
     painter.fillRect(end2Strip, QtSLiMColorWithWhite(inDarkMode ? 0.082 : 0.918, 1.0));
     painter.fillRect(end1Strip, QtSLiMColorWithWhite(inDarkMode ? 0.278 : 0.722, 1.0));
     
+    
     // On Linux, super draws the knob one pixel to the right of where it ought to be, so we draw it ourselves
     // This code is modified from QtSplitterHandle in the Qt 5.14.2 sources (it's identical in Qt 5.9.8)
     // This may turn out to be undesirable, as it assumes that the Linux widget kit is the one I use on Ubuntu
-#if !defined(__APPLE__)
+#if defined(__linux__)
     if (orientation() == Qt::Horizontal)
     {
         QStyleOption opt(0);
@@ -1034,10 +1035,10 @@ void QtSLiMStatusBar::setHeightFromContent(void)
     }
     else
     {
-#ifdef __APPLE__
-        newMinSize = QSize(minSizeHint.width(), textSize.height() + 6);
-#else
+#ifdef __linux__
         newMinSize = QSize(minSizeHint.width(), textSize.height() + 0);
+#else
+        newMinSize = QSize(minSizeHint.width(), textSize.height() + 6);
 #endif
         newMaxHeight = newMinSize.height();
     }

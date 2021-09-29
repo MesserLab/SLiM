@@ -585,12 +585,12 @@ void QtSLiMWindow::initializeUI(void)
     
     QFont headerFont = popTableHHeader->font();
     QFont cellFont = ui->subpopTableView->font();
-#ifdef __APPLE__
-    headerFont.setPointSize(11);
-    cellFont.setPointSize(11);
-#else
+#ifdef __linux__
     headerFont.setPointSize(8);
     cellFont.setPointSize(8);
+#else
+    headerFont.setPointSize(11);
+    cellFont.setPointSize(11);
 #endif
     popTableHHeader->setFont(headerFont);
     ui->subpopTableView->setFont(cellFont);

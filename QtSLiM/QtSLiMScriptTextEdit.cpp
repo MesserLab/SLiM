@@ -1002,10 +1002,10 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 tc.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
                 tc.movePosition(QTextCursor::End, QTextCursor::KeepAnchor);
                 
-#ifdef __APPLE__
-                ColorizeCallSignature(signature.get(), 11, tc);
-#else
+#ifdef __linux__
                 ColorizeCallSignature(signature.get(), 9, tc);
+#else
+                ColorizeCallSignature(signature.get(), 11, tc);
 #endif
             }
             
