@@ -11,7 +11,6 @@
     p.p2 {margin: 6.0px 0.0px 3.0px 0.0px; font: 11.0px Optima; color: #000000}
     p.p3 {margin: 9.0px 0.0px 3.0px 36.0px; text-indent: -22.3px; font: 9.0px Menlo; color: #000000}
     p.p4 {margin: 3.0px 0.0px 3.0px 27.4px; font: 10.0px Optima; color: #000000}
-    p.p5 {margin: 0.0px 0.0px 3.0px 0.0px; font: 11.0px Optima; color: #000000}
     span.s1 {font: 9.0px Menlo}
   </style>
 </head>
@@ -90,6 +89,8 @@
 <p class="p4">The blue (B) channel of the image, represented as a 2D <span class="s1">float</span> matrix.<span class="Apple-converted-space">  </span>Values will be in [0,1], obtained by dividing the <span class="s1">integerB</span> layer by 255.<span class="Apple-converted-space">  </span>See the <span class="s1">integerB</span> property for an alternative representation.<span class="Apple-converted-space">  </span>If the image is grayscale, this property is unavailable.</p>
 <p class="p3">floatK =&gt; (float)</p>
 <p class="p4">The gray (K) channel of the image, represented as a 2D <span class="s1">float</span> matrix.<span class="Apple-converted-space">  </span>Values will be in [0,1], obtained by dividing the <span class="s1">integerK</span> layer by 255.<span class="Apple-converted-space">  </span>See the <span class="s1">integerK</span> property for an alternative representation.<span class="Apple-converted-space">  </span>If the image is color, this property is unavailable.</p>
-<p class="p5"><i>5.3.2<span class="Apple-converted-space">  </span></i><span class="s1"><i>Image</i></span><i> methods</i></p>
+<p class="p2"><i>5.3.2<span class="Apple-converted-space">  </span></i><span class="s1"><i>Image</i></span><i> methods</i></p>
+<p class="p3">– (void)write(string$ filePath)</p>
+<p class="p4">Writes the image to the given filesystem path <span class="s1">filePath</span> as PNG data.<span class="Apple-converted-space">  </span>It is suggested, but not required, that <span class="s1">filePath</span> should end in a <span class="s1">.png</span> or <span class="s1">.PNG</span> filename extension.<span class="Apple-converted-space">  </span>If the file cannot be written, an error will result.<span class="Apple-converted-space">  </span>At present, since <span class="s1">bitsPerChannel</span> is always 8, grayscale data will be written as an 8-bit grayscale PNG while color (RGB) data will be written as a 24-bit color PNG without alpha.</p>
 </body>
 </html>

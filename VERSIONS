@@ -49,6 +49,7 @@ development head:
 	extend outputFull(), readFromPopulationFile(), and .trees I/O to support null genomes and haploids
 	allow readFromPopulationFile() with a .trees file even when tree-seq recording is not enabled
 	add an rnbinom() function to draw from a negative binomial distribution
+	add -write(s$ filePath) method to Image, to write an Image as a PNG file
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

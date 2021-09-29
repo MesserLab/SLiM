@@ -73,6 +73,9 @@ public:
 	virtual void Print(std::ostream &p_ostream) const override;
 	
 	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	
+	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
+	EidosValue_SP ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 class EidosImage_Class : public EidosDictionaryRetained_Class
@@ -86,6 +89,7 @@ public:
 	inline EidosImage_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };
 

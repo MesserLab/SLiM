@@ -2596,6 +2596,7 @@ const std::string &gEidosStr_floatR = EidosRegisteredString("floatR", gEidosID_f
 const std::string &gEidosStr_floatG = EidosRegisteredString("floatG", gEidosID_floatG);
 const std::string &gEidosStr_floatB = EidosRegisteredString("floatB", gEidosID_floatB);
 const std::string &gEidosStr_floatK = EidosRegisteredString("floatK", gEidosID_floatK);
+const std::string &gEidosStr_write = EidosRegisteredString("write", gEidosID_write);
 
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below

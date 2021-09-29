@@ -33,7 +33,6 @@
 #include <string>
 #include <vector>
 
-#define LODEPNG_NO_COMPILE_ENCODER
 #include "lodepng.h"
 
 
@@ -204,6 +203,37 @@ EidosValue_SP EidosImage::GetProperty(EidosGlobalStringID p_property_id)
 	}
 }
 
+EidosValue_SP EidosImage::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	switch (p_method_id)
+	{
+		case gEidosID_write:					return ExecuteMethod_write(p_method_id, p_arguments, p_interpreter);
+		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
+	}
+}
+
+//	*********************	– (void)write([Ns$ filePath = NULL])
+//
+EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *filePath_value = p_arguments[0].get();
+	
+	std::string outfile_path = Eidos_ResolvedPath(filePath_value->StringAtIndex(0, nullptr));
+	
+	unsigned error;
+	
+	if (is_grayscale_)
+		error = lodepng::encode(outfile_path, pixels_, (unsigned)width_, (unsigned)height_, LodePNGColorType::LCT_GREY, 8);	// K channel, 8 bits per channel
+	else
+		error = lodepng::encode(outfile_path, pixels_, (unsigned)width_, (unsigned)height_, LodePNGColorType::LCT_RGB, 8);	// RGB channels, 8 bits per channel
+	
+	if (error)
+		EIDOS_TERMINATION << "ERROR (EidosImage::ExecuteMethod_write): write() could not write to " << outfile_path << " (encoder error " << error << ": " << lodepng_error_text(error) << ")." << EidosTerminate();
+	
+	return gStaticEidosValueVOID;
+}
+
 
 //
 //	Object instantiation
@@ -265,6 +295,22 @@ const std::vector<EidosPropertySignature_CSP> *EidosImage_Class::Properties(void
 	}
 	
 	return properties;
+}
+
+const std::vector<EidosMethodSignature_CSP> *EidosImage_Class::Methods(void) const
+{
+	static std::vector<EidosMethodSignature_CSP> *methods = nullptr;
+	
+	if (!methods)
+	{
+		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
+		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_write, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath));
+		
+		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
+	}
+	
+	return methods;
 }
 
 const std::vector<EidosFunctionSignature_CSP> *EidosImage_Class::Functions(void) const
