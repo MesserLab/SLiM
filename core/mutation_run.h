@@ -381,7 +381,7 @@ public:
 		++mutation_count_;
 	}
 	
-	inline void emplace_back_bulk(const MutationIndex *p_mutation_indices, long p_copy_count)
+	inline void emplace_back_bulk(const MutationIndex *p_mutation_indices, int32_t p_copy_count)
 	{
 		SLIM_MUTRUN_LOCK_CHECK();
 		

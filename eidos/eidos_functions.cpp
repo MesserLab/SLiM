@@ -4974,8 +4974,8 @@ EidosValue_SP Eidos_ExecuteFunction_quantile(const std::vector<EidosValue_SP> &p
 		{
 			double prob = probs[probs_index];
 			double index = (x_count - 1) * prob;
-			long lo = (long)std::floor(index);
-			long hi = (long)std::ceil(index);
+			int64_t lo = (int64_t)std::floor(index);
+			int64_t hi = (int64_t)std::ceil(index);
 			
 			double quantile = x_value->FloatAtIndex((int)order[lo], nullptr);
 			if (lo != hi) {
