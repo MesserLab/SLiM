@@ -17,6 +17,10 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef _WIN32
+#define GNULIB_NAMESPACE gnulib
+#endif
+
 #include "QtSLiMHelpWindow.h"
 #include "ui_QtSLiMHelpWindow.h"
 
@@ -610,10 +614,17 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         QFile topicFile(topicFilePath);
         QString topicFileData;
         
+        #ifndef _WIN32
         if (!topicFile.open(QIODevice::ReadOnly)) {
             qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): could not find HTML file " << htmlFile;
             return;
         }
+        #else
+        if (!topicFile.open(QIODevice::ReadOnly|QIODevice::Text)) {
+            qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): could not find HTML file " << htmlFile;
+            return;
+        }
+        #endif
         
         topicFileData = topicFile.readAll();
         topicFile.close();
