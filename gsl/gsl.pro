@@ -73,6 +73,7 @@ SOURCES += \
     randist/lognormal.c \
     randist/multinomial.c \
     randist/mvgauss.c \
+    randist/nbinomial.c \
     randist/poisson.c \
     randist/shuffle.c \
     randist/weibull.c \

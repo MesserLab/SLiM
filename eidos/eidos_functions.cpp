@@ -216,6 +216,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgeom",				Eidos_ExecuteFunction_rgeom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddFloat("p"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rmvnorm",			Eidos_ExecuteFunction_rmvnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mu")->AddNumeric("sigma"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnbinom",			Eidos_ExecuteFunction_rnbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddNumeric("size")->AddFloat("prob"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",				Eidos_ExecuteFunction_rnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",				Eidos_ExecuteFunction_rpois,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddNumeric("lambda"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",				Eidos_ExecuteFunction_runif,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("min", gStaticEidosValue_Float0)->AddNumeric_O("max", gStaticEidosValue_Float1));
@@ -6510,6 +6511,74 @@ EidosValue_SP Eidos_ExecuteFunction_rmvnorm(const std::vector<EidosValue_SP> &p_
 	int64_t dim[2] = {num_draws, d};
 	
 	float_result->SetDimensions(2, dim);
+	
+	return result_SP;
+}
+
+//	(integer)rnbinom(integer$ n, numeric size, float prob)
+EidosValue_SP Eidos_ExecuteFunction_rnbinom(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t num_draws = n_value->IntAtIndex(0, nullptr);
+	EidosValue *arg_size = p_arguments[1].get();
+	EidosValue *arg_prob = p_arguments[2].get();
+	int arg_size_count = arg_size->Count();
+	int arg_prob_count = arg_prob->Count();
+	bool size_singleton = (arg_size_count == 1);
+	bool prob_singleton = (arg_prob_count == 1);
+	
+	if (num_draws < 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires n to be greater than or equal to 0 (" << num_draws << " supplied)." << EidosTerminate(nullptr);
+	if (!size_singleton && (arg_size_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires size to be of length 1 or n." << EidosTerminate(nullptr);
+	if (!prob_singleton && (arg_prob_count != num_draws))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires prob to be of length 1 or n." << EidosTerminate(nullptr);
+	
+	double size0 = arg_size->FloatAtIndex(0, nullptr);
+	double probability0 = arg_prob->FloatAtIndex(0, nullptr);
+	
+	if (size_singleton && prob_singleton)
+	{
+		if ((size0 < 0) || std::isnan(size0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires size >= 0 (" << size0 << " supplied)." << EidosTerminate(nullptr);
+		if ((probability0 <= 0.0) || (probability0 > 1.0) || std::isnan(probability0))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires probability in (0.0, 1.0] (" << EidosStringForFloat(probability0) << " supplied)." << EidosTerminate(nullptr);
+		
+		if (num_draws == 1)
+		{
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_negative_binomial(EIDOS_GSL_RNG, probability0, size0)));
+		}
+		else
+		{
+			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
+			result_SP = EidosValue_SP(int_result);
+			
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				int_result->set_int_no_check(gsl_ran_negative_binomial(EIDOS_GSL_RNG, probability0, size0), draw_index);
+		}
+	}
+	else
+	{
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
+		result_SP = EidosValue_SP(int_result);
+		
+		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		{
+			double size = (size_singleton ? size0 : arg_size->FloatAtIndex(draw_index, nullptr));
+			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
+			
+			if ((size < 0) || std::isnan(size))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);
+			if ((probability <= 0.0) || (probability > 1.0) || std::isnan(probability))
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rnbinom): function rnbinom() requires probability in (0.0, 1.0] (" << EidosStringForFloat(probability) << " supplied)." << EidosTerminate(nullptr);
+			
+			int_result->set_int_no_check(gsl_ran_negative_binomial(EIDOS_GSL_RNG, probability, size), draw_index);
+		}
+	}
 	
 	return result_SP;
 }

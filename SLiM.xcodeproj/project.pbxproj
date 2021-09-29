@@ -98,6 +98,10 @@
 		982556BC1BA8EF990054CB3F /* eidos_test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985724A71AD4551C0047C223 /* eidos_test.cpp */; };
 		982663541A3BABD300A0CBBF /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 982663531A3BABD300A0CBBF /* main.cpp */; };
 		982A9DDE1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 982A9DDC1FCA9FF0007BA3DF /* GraphBarRescaleSheet.xib */; };
+		982B50C62704048E006E91BC /* nbinomial.c in Sources */ = {isa = PBXBuildFile; fileRef = 982B50C52704048E006E91BC /* nbinomial.c */; };
+		982B50C72704048E006E91BC /* nbinomial.c in Sources */ = {isa = PBXBuildFile; fileRef = 982B50C52704048E006E91BC /* nbinomial.c */; };
+		982B50C82704048E006E91BC /* nbinomial.c in Sources */ = {isa = PBXBuildFile; fileRef = 982B50C52704048E006E91BC /* nbinomial.c */; };
+		982B50C92704048E006E91BC /* nbinomial.c in Sources */ = {isa = PBXBuildFile; fileRef = 982B50C52704048E006E91BC /* nbinomial.c */; };
 		98321F911B406417007337A3 /* eidos_rng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */; };
 		98321F941B406B67007337A3 /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
 		98321F951B406B67007337A3 /* eidos_globals.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98321F921B406B67007337A3 /* eidos_globals.cpp */; };
@@ -804,6 +808,7 @@
 		982663501A3BABD300A0CBBF /* slim */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = slim; sourceTree = BUILT_PRODUCTS_DIR; };
 		982663531A3BABD300A0CBBF /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		982A9DDD1FCA9FF0007BA3DF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/GraphBarRescaleSheet.xib; sourceTree = "<group>"; };
+		982B50C52704048E006E91BC /* nbinomial.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nbinomial.c; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_globals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_globals.cpp; sourceTree = "<group>"; };
 		98321F931B406B67007337A3 /* eidos_globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_globals.h; sourceTree = "<group>"; };
 		98332A9D1FDB98ED00274FF0 /* mvgauss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mvgauss.c; sourceTree = "<group>"; };
@@ -1848,6 +1853,7 @@
 				98C820FE1C7A980000548839 /* lognormal.c */,
 				98C820FF1C7A980000548839 /* multinomial.c */,
 				98332A9D1FDB98ED00274FF0 /* mvgauss.c */,
+				982B50C52704048E006E91BC /* nbinomial.c */,
 				98C821001C7A980000548839 /* poisson.c */,
 				98C821B11C7A9B9F00548839 /* shuffle.c */,
 				98C821011C7A980000548839 /* weibull.c */,
@@ -2425,6 +2431,7 @@
 				985F3EFF24BA2F1500E712E0 /* eidos_test_functions_vector.cpp in Sources */,
 				98C821911C7A983800548839 /* taus.c in Sources */,
 				982556B71BA8EF8A0054CB3F /* eidos_call_signature.cpp in Sources */,
+				982B50C92704048E006E91BC /* nbinomial.c in Sources */,
 				985F3EF024BA2A5D00E712E0 /* eidos_test_operators_other.cpp in Sources */,
 				98C8218A1C7A983800548839 /* lognormal.c in Sources */,
 				98332ACA1FDBA74A00274FF0 /* vector.c in Sources */,
@@ -2524,6 +2531,7 @@
 				985F3EFC24BA2F1500E712E0 /* eidos_test_functions_vector.cpp in Sources */,
 				98076617244934A800F6CBB4 /* deflate.c in Sources */,
 				98C8213A1C7A980000548839 /* gamma.c in Sources */,
+				982B50C62704048E006E91BC /* nbinomial.c in Sources */,
 				98C821311C7A980000548839 /* poisson.c in Sources */,
 				98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */,
 				9876E6121ED55C6B00FF9762 /* beta.c in Sources */,
@@ -2717,6 +2725,7 @@
 				984824F3210B9F2D002402A5 /* dtrsv.c in Sources */,
 				985F3F0D24BA31D900E712E0 /* eidos_test_functions_statistics.cpp in Sources */,
 				9893C7EB1CDFE9870029AC94 /* eidos_type_interpreter.cpp in Sources */,
+				982B50C82704048E006E91BC /* nbinomial.c in Sources */,
 				9823568B252FE61A0096A745 /* eidos_class_Image.cpp in Sources */,
 				98C821A51C7A99F000548839 /* pow_int.c in Sources */,
 				987AD88B1B2CDBB80035D6C8 /* EidosConsoleWindowController.mm in Sources */,
@@ -2734,6 +2743,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				982B50C72704048E006E91BC /* nbinomial.c in Sources */,
 				98321F951B406B67007337A3 /* eidos_globals.cpp in Sources */,
 				989790DB1AF3D0E100C6B14C /* eidos_class_TestElement.cpp in Sources */,
 				98C8215A1C7A983700548839 /* pow_int.c in Sources */,
