@@ -491,7 +491,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	// Test sim - (void)outputFixedMutations(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations(NULL); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 		SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFixedMutations('" + temp_path + "/slimOutputFixedTest.txt'); }", __LINE__);
 	
 	// Test sim - (void)outputFull([string$ filePath])
@@ -506,7 +506,7 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(ages=T); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_i1x + "1 late() { sim.outputFull(ages=F); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "1 late() { sim.outputFull(NULL, T); }", 1, 308, "cannot output in binary format", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('" + temp_path + "/slimOutputFullTest.txt'); }", __LINE__);								// legal, output to file path; this test might work only on Un*x systems
 		SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { sim.outputFull('" + temp_path + "/slimOutputFullTest.slimbinary', T); }", __LINE__);						// legal, output to file path; this test might work only on Un*x systems
@@ -521,11 +521,11 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(object()); }", __LINE__);												// legal to specify an empty object vector
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(NULL); }", 1, 258, "cannot be type NULL", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations, NULL); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 		SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations, '" + temp_path + "/slimOutputMutationsTest.txt'); }", __LINE__);
 	
 	// Test - (void)readFromPopulationFile(string$ filePath)
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.txt'); }", __LINE__);												// legal, read from file path; depends on the outputFull() test above
 		SLiMAssertScriptSuccess(gen1_setup + "1 { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.slimbinary'); }", __LINE__);										// legal, read from file path; depends on the outputFull() test above

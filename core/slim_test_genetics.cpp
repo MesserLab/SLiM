@@ -870,7 +870,7 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS('" + temp_path + "/slimOutputMSTest1.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS('" + temp_path + "/slimOutputMSTest2.txt'); stop(); }", __LINE__);
@@ -879,7 +879,7 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS(NULL); stop(); }", 1, 302, "cannot output null genomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).outputMS(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).outputMS('" + temp_path + "/slimOutputMSTest3.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).outputMS('" + temp_path + "/slimOutputMSTest4.txt'); stop(); }", 1, 302, "cannot output null genomes", __LINE__);
@@ -891,7 +891,7 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).output(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 0, T).output('" + temp_path + "/slimOutputTest1.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.genomes, 100, T).output('" + temp_path + "/slimOutputTest2.txt'); stop(); }", __LINE__);
@@ -900,7 +900,7 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).output(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).output(NULL); stop(); }", 1, 302, "cannot output null genomes", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes[!p1.genomes.isNullGenome], 100, T).output(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 0, T).output('" + temp_path + "/slimOutputTest3.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_sex_p1 + "10 late() { sample(p1.genomes, 100, T).output('" + temp_path + "/slimOutputTest4.txt'); stop(); }", 1, 302, "cannot output null genomes", __LINE__);
@@ -912,14 +912,14 @@ void _RunGenomeTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest1.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest2.txt'); stop(); }", __LINE__);
 	}
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL, F); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL, F); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest3.txt', F); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest4.txt', F); stop(); }", __LINE__);
@@ -927,14 +927,14 @@ void _RunGenomeTests(std::string temp_path)
 	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest5.txt'); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest6.txt'); stop(); }", __LINE__);
 	}
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF(NULL, F); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF(NULL, F); stop(); }", __LINE__);
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 0, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest7.txt', F); stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_sex_p1 + "10 late() { sample(p1.individuals, 100, T).genomes.outputVCF('" + temp_path + "/slimOutputVCFTest8.txt', F); stop(); }", __LINE__);
