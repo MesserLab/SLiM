@@ -17,6 +17,10 @@
 //
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
+// On Windows enable gnulib namespace to avoid clashed with some class methods
+#ifdef _WIN32
+#define GNULIB_NAMESPACE gnulib
+#endif
 
 #include "eidos_globals.h"
 #include "eidos_script.h"
@@ -36,7 +40,9 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#ifndef _WIN32
 #include <pwd.h>
+#endif
 #include <unistd.h>
 #include <algorithm>
 #include "string.h"
@@ -69,6 +75,11 @@
 // for Eidos_ColorPaletteLookup()
 #include "eidos_tinycolormap.h"
 
+//Replace some functions with their gnulib equivalents on Windows
+#ifdef _WIN32
+#define mkdir gnulib::mkdir
+#define gettimeofday gnulib::gettimeofday
+#endif
 
 bool eidos_do_memory_checks = true;
 
@@ -1014,11 +1025,19 @@ size_t Eidos_GetCurrentRSS(void)
 
 size_t Eidos_GetMaxRSS(void)
 {
+
 	static bool beenHere = false;
 	static size_t max_rss = 0;
 	
 	if (!beenHere)
 	{
+
+#if defined(_WIN32)
+	// Assume unlimited on Windows with warning
+	std::cerr << "Warning: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect.";
+	max_rss = 0;
+
+#else
 #if 0
 		// Find our RSS limit by launching a subshell to run "ulimit -m"
 		std::string limit_string = Eidos_Exec("ulimit -m");
@@ -1069,11 +1088,14 @@ size_t Eidos_GetMaxRSS(void)
 			max_rss = 0;
 		}
 #endif
+#endif
 		
 		beenHere = true;
 	}
-	
+
 	return max_rss;
+
+
 }
 
 void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
@@ -1140,7 +1162,8 @@ std::string Eidos_ResolvedPath(std::string p_path)
 {
 	std::string path = p_path;
 	
-	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
+	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows... It doesn't..
+	#ifndef _WIN32
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
 		long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -1176,6 +1199,14 @@ std::string Eidos_ResolvedPath(std::string p_path)
 			}
 		}
 	}
+	#endif
+
+	#ifdef _WIN32
+	if ((path.length() > 0) && (path[0] == '~'))
+	{
+		std::cerr << "Eidos_ResolvedPath(): Could not resolve ~ in path because it is not supported on Windows";
+	}
+	#endif	
 	
 	return path;
 }

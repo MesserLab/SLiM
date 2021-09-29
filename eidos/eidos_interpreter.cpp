@@ -31,6 +31,10 @@
 #include <algorithm>
 #include <limits.h>
 
+#ifdef _WIN32
+#define strtoq strtoll
+#endif
+
 
 // We have a bunch of behaviors that we want to do only when compiled DEBUG or EIDOS_GUI; #if tests everywhere are very ugly, so we make
 // some #defines here that help structure this.

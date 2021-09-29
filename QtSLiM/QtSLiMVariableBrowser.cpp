@@ -17,6 +17,9 @@
 //
 //	You should have received a copy of the GNU General Public License along with SLiM.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef _WIN32
+#define GNULIB_NAMESPACE gnulib
+#endif
 
 #include "QtSLiMVariableBrowser.h"
 #include "ui_QtSLiMVariableBrowser.h"
