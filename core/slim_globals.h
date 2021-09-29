@@ -26,6 +26,7 @@
 #ifndef __SLiM__slim_globals__
 #define __SLiM__slim_globals__
 
+
 #include <stdio.h>
 
 #include "eidos_globals.h"
