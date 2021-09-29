@@ -3351,6 +3351,7 @@ as_fn_append ac_func_c_list " _set_invalid_parameter_handler HAVE__SET_INVALID_P
 as_fn_append ac_header_c_list " sys/resource.h sys_resource_h HAVE_SYS_RESOURCE_H"
 as_fn_append ac_header_c_list " sys/uio.h sys_uio_h HAVE_SYS_UIO_H"
 as_fn_append ac_header_c_list " sys/utsname.h sys_utsname_h HAVE_SYS_UTSNAME_H"
+as_fn_append ac_func_c_list " localtime_r HAVE_LOCALTIME_R"
 
 # Auxiliary files required by this configure script.
 ac_aux_files="config.guess config.sub compile missing install-sh"
@@ -11484,6 +11485,7 @@ printf "%s\n" "$gl_cv_time_h_has_TIME_UTC" >&6; }
 
 
 
+
 ac_fn_check_decl "$LINENO" "execvpe" "ac_cv_have_decl_execvpe" "$ac_includes_default" "$ac_c_undeclared_builtin_options" "CFLAGS"
 if test "x$ac_cv_have_decl_execvpe" = xyes
 then :
@@ -13172,6 +13174,165 @@ printf "%s\n" "#define GNULIB_TEST_FWRITE 1" >>confdefs.h
 
 
 
+
+
+
+
+
+
+
+
+
+      ac_fn_check_decl "$LINENO" "localtime_r" "ac_cv_have_decl_localtime_r" "/* mingw's <time.h> provides the functions asctime_r, ctime_r,
+         gmtime_r, localtime_r only if <unistd.h> or <pthread.h> has
+         been included before.  */
+      #if defined __MINGW32__
+      # include <unistd.h>
+      #endif
+      #include <time.h>
+
+" "$ac_c_undeclared_builtin_options" "CFLAGS"
+if test "x$ac_cv_have_decl_localtime_r" = xyes
+then :
+  ac_have_decl=1
+else $as_nop
+  ac_have_decl=0
+fi
+printf "%s\n" "#define HAVE_DECL_LOCALTIME_R $ac_have_decl" >>confdefs.h
+
+  if test $ac_cv_have_decl_localtime_r = no; then
+    HAVE_DECL_LOCALTIME_R=0
+  fi
+
+
+  if test $ac_cv_func_localtime_r = yes; then
+    HAVE_LOCALTIME_R=1
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether localtime_r is compatible with its POSIX signature" >&5
+printf %s "checking whether localtime_r is compatible with its POSIX signature... " >&6; }
+if test ${gl_cv_time_r_posix+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* mingw's <time.h> provides the functions asctime_r, ctime_r,
+                 gmtime_r, localtime_r only if <unistd.h> or <pthread.h> has
+                 been included before.  */
+              #if defined __MINGW32__
+              # include <unistd.h>
+              #endif
+              #include <time.h>
+
+int
+main (void)
+{
+/* We don't need to append 'restrict's to the argument types,
+                 even though the POSIX signature has the 'restrict's,
+                 since C99 says they can't affect type compatibility.  */
+              struct tm * (*ptr) (time_t const *, struct tm *) = localtime_r;
+              if (ptr) return 0;
+              /* Check the return type is a pointer.
+                 On HP-UX 10 it is 'int'.  */
+              *localtime_r (0, 0);
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"
+then :
+  gl_cv_time_r_posix=yes
+else $as_nop
+  gl_cv_time_r_posix=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $gl_cv_time_r_posix" >&5
+printf "%s\n" "$gl_cv_time_r_posix" >&6; }
+    if test $gl_cv_time_r_posix = yes; then
+      REPLACE_LOCALTIME_R=0
+    else
+      REPLACE_LOCALTIME_R=1
+    fi
+  else
+    HAVE_LOCALTIME_R=0
+                { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether localtime_r exists as an inline function" >&5
+printf %s "checking whether localtime_r exists as an inline function... " >&6; }
+if test ${gl_cv_func_localtime_r_inline+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+/* mingw's <time.h> provides the functions asctime_r, ctime_r,
+                 gmtime_r, localtime_r only if <unistd.h> or <pthread.h> has
+                 been included before.  */
+              #if defined __MINGW32__
+              # include <unistd.h>
+              #endif
+              #include <time.h>
+
+int
+main (void)
+{
+time_t a;
+              struct tm r;
+              localtime_r (&a, &r);
+
+  ;
+  return 0;
+}
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"
+then :
+  gl_cv_func_localtime_r_inline=yes
+else $as_nop
+  gl_cv_func_localtime_r_inline=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam \
+    conftest$ac_exeext conftest.$ac_ext
+
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $gl_cv_func_localtime_r_inline" >&5
+printf "%s\n" "$gl_cv_func_localtime_r_inline" >&6; }
+    if test $gl_cv_func_localtime_r_inline = yes; then
+      REPLACE_LOCALTIME_R=1
+    fi
+  fi
+
+  if test $HAVE_LOCALTIME_R = 0 || test $REPLACE_LOCALTIME_R = 1; then
+
+
+
+
+
+
+
+
+  gl_LIBOBJS="$gl_LIBOBJS time_r.$ac_objext"
+
+
+  :
+
+  fi
+
+
+
+
+
+
+
+
+
+          GL_GNULIB_TIME_R=1
+
+
+
+
+
+printf "%s\n" "#define GNULIB_TEST_TIME_R 1" >>confdefs.h
 
 
 

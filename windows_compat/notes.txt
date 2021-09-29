@@ -20,4 +20,4 @@ Now QtSLiM:
   correct gnulib defines...
 
 gnulib-tool command:
-/c/gnulib/gnulib-tool --create-testdir --dir=gnulib getline uname execinfo sys_resource sys_stat gettimeofday random
+/c/gnulib/gnulib-tool --create-testdir --dir=gnulib --without-tests --no-conditional-dependencies getline uname execinfo sys_resource sys_stat gettimeofday random time_r

@@ -41,6 +41,7 @@ EXTRA_DIST += sys_types_h.m4
 EXTRA_DIST += sys_uio_h.m4
 EXTRA_DIST += sys_utsname_h.m4
 EXTRA_DIST += time_h.m4
+EXTRA_DIST += time_r.m4
 EXTRA_DIST += uname.m4
 EXTRA_DIST += unistd_h.m4
 EXTRA_DIST += warn-on-use.m4

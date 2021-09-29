@@ -143,8 +143,8 @@ am__aclocal_m4_deps = $(top_srcdir)/glm4/00gnulib.m4 \
 	$(top_srcdir)/glm4/sys_types_h.m4 \
 	$(top_srcdir)/glm4/sys_uio_h.m4 \
 	$(top_srcdir)/glm4/sys_utsname_h.m4 \
-	$(top_srcdir)/glm4/time_h.m4 $(top_srcdir)/glm4/uname.m4 \
-	$(top_srcdir)/glm4/unistd_h.m4 \
+	$(top_srcdir)/glm4/time_h.m4 $(top_srcdir)/glm4/time_r.m4 \
+	$(top_srcdir)/glm4/uname.m4 $(top_srcdir)/glm4/unistd_h.m4 \
 	$(top_srcdir)/glm4/warn-on-use.m4 \
 	$(top_srcdir)/glm4/wchar_t.m4 $(top_srcdir)/glm4/wint_t.m4 \
 	$(top_srcdir)/glm4/zzgnulib.m4 $(top_srcdir)/configure.ac
@@ -188,7 +188,8 @@ am__depfiles_remade = ./$(DEPDIR)/execinfo.Po ./$(DEPDIR)/fd-hook.Po \
 	./$(DEPDIR)/msvc-inval.Po ./$(DEPDIR)/msvc-nothrow.Po \
 	./$(DEPDIR)/random.Po ./$(DEPDIR)/random_r.Po \
 	./$(DEPDIR)/sockets.Po ./$(DEPDIR)/sys_socket.Po \
-	./$(DEPDIR)/uname.Po ./$(DEPDIR)/unistd.Po
+	./$(DEPDIR)/time_r.Po ./$(DEPDIR)/uname.Po \
+	./$(DEPDIR)/unistd.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -982,8 +983,8 @@ EXTRA_DIST = errno.in.h execinfo.c execinfo.in.h fd-hook.h getdelim.c \
 	arg-nonnull.h c++defs.h warn-on-use.h w32sock.h stdalign.in.h \
 	stddef.in.h stdint.in.h stdio.in.h stdlib.in.h \
 	sys_resource.in.h sys_socket.in.h sys_stat.in.h sys_time.in.h \
-	sys_types.in.h sys_uio.in.h sys_utsname.in.h time.in.h uname.c \
-	unistd.in.h
+	sys_types.in.h sys_uio.in.h sys_utsname.in.h time.in.h \
+	time_r.c uname.c unistd.in.h
 BUILT_SOURCES = $(ERRNO_H) $(EXECINFO_H) $(LIMITS_H) $(STDALIGN_H) \
 	$(STDDEF_H) $(STDINT_H) stdio.h stdlib.h sys/resource.h \
 	sys/socket.h sys/stat.h sys/time.h sys/types.h sys/uio.h \
@@ -1009,7 +1010,7 @@ libgnu_a_LIBADD = $(gl_LIBOBJS)
 libgnu_a_DEPENDENCIES = $(gl_LIBOBJS)
 EXTRA_libgnu_a_SOURCES = execinfo.c getdelim.c gethostname.c getline.c \
 	gettimeofday.c msvc-inval.c msvc-nothrow.c random.c random_r.c \
-	uname.c
+	time_r.c uname.c
 
 # Use this preprocessor expression to decide whether #include_next works.
 # Do not rely on a 'configure'-time test for this, since the expression
@@ -1107,6 +1108,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/random_r.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sockets.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sys_socket.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/time_r.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/uname.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/unistd.Po@am__quote@ # am--include-marker
 
@@ -1348,6 +1350,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/random_r.Po
 	-rm -f ./$(DEPDIR)/sockets.Po
 	-rm -f ./$(DEPDIR)/sys_socket.Po
+	-rm -f ./$(DEPDIR)/time_r.Po
 	-rm -f ./$(DEPDIR)/uname.Po
 	-rm -f ./$(DEPDIR)/unistd.Po
 	-rm -f Makefile
@@ -1407,6 +1410,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/random_r.Po
 	-rm -f ./$(DEPDIR)/sockets.Po
 	-rm -f ./$(DEPDIR)/sys_socket.Po
+	-rm -f ./$(DEPDIR)/time_r.Po
 	-rm -f ./$(DEPDIR)/uname.Po
 	-rm -f ./$(DEPDIR)/unistd.Po
 	-rm -f Makefile

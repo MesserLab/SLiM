@@ -98,6 +98,9 @@
 /* Define to 1 when the gnulib module scanf should be tested. */
 #undef GNULIB_TEST_SCANF
 
+/* Define to 1 when the gnulib module time_r should be tested. */
+#undef GNULIB_TEST_TIME_R
+
 /* Define to 1 when the gnulib module vfprintf should be tested. */
 #undef GNULIB_TEST_VFPRINTF
 
@@ -140,6 +143,10 @@
    don't. */
 #undef HAVE_DECL_INITSTATE
 
+/* Define to 1 if you have the declaration of `localtime_r', and to 0 if you
+   don't. */
+#undef HAVE_DECL_LOCALTIME_R
+
 /* Define to 1 if you have the declaration of `setstate', and to 0 if you
    don't. */
 #undef HAVE_DECL_SETSTATE
@@ -170,6 +177,9 @@
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
+
+/* Define to 1 if you have the `localtime_r' function. */
+#undef HAVE_LOCALTIME_R
 
 /* Define to 1 if the system has the type 'long long int'. */
 #undef HAVE_LONG_LONG_INT

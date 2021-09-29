@@ -1001,6 +1001,15 @@ EXTRA_DIST += time.in.h
 
 ## end   gnulib module time
 
+## begin gnulib module time_r
+
+
+EXTRA_DIST += time_r.c
+
+EXTRA_libgnu_a_SOURCES += time_r.c
+
+## end   gnulib module time_r
+
 ## begin gnulib module uname
 
 

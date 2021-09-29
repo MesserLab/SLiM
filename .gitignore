@@ -253,7 +253,7 @@ ui_*.h
 *.jsc
 Makefile*
 *build-*
-!build-aux
+!windows_compat/gnulib/build-aux
 !windows_compat/gnulib/Makefile*
 !windows_compat/gnulib/gllib/Makefile*
 !windows_compat/gnulib/glm4/Makefile*
@@ -276,3 +276,6 @@ compile_commands.json
 
 # QtCreator local machine specific files for imported projects
 *creator.user*
+
+# VSCode
+.vscode

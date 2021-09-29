@@ -118,8 +118,8 @@ am__aclocal_m4_deps = $(top_srcdir)/glm4/00gnulib.m4 \
 	$(top_srcdir)/glm4/sys_types_h.m4 \
 	$(top_srcdir)/glm4/sys_uio_h.m4 \
 	$(top_srcdir)/glm4/sys_utsname_h.m4 \
-	$(top_srcdir)/glm4/time_h.m4 $(top_srcdir)/glm4/uname.m4 \
-	$(top_srcdir)/glm4/unistd_h.m4 \
+	$(top_srcdir)/glm4/time_h.m4 $(top_srcdir)/glm4/time_r.m4 \
+	$(top_srcdir)/glm4/uname.m4 $(top_srcdir)/glm4/unistd_h.m4 \
 	$(top_srcdir)/glm4/warn-on-use.m4 \
 	$(top_srcdir)/glm4/wchar_t.m4 $(top_srcdir)/glm4/wint_t.m4 \
 	$(top_srcdir)/glm4/zzgnulib.m4 $(top_srcdir)/configure.ac
@@ -857,8 +857,8 @@ EXTRA_DIST = 00gnulib.m4 __inline.m4 absolute-header.m4 errno_h.m4 \
 	std-gnu11.m4 stdalign.m4 stddef_h.m4 stdint.m4 stdio_h.m4 \
 	stdlib_h.m4 sys_resource_h.m4 sys_socket_h.m4 sys_stat_h.m4 \
 	sys_time_h.m4 sys_types_h.m4 sys_uio_h.m4 sys_utsname_h.m4 \
-	time_h.m4 uname.m4 unistd_h.m4 warn-on-use.m4 wchar_t.m4 \
-	wint_t.m4 zzgnulib.m4
+	time_h.m4 time_r.m4 uname.m4 unistd_h.m4 warn-on-use.m4 \
+	wchar_t.m4 wint_t.m4 zzgnulib.m4
 all: all-am
 
 .SUFFIXES:

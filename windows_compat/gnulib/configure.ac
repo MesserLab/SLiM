@@ -146,6 +146,12 @@ gl_source_base='gllib'
   AC_PROG_MKDIR_P
   gl_TIME_H
   gl_TIME_H_REQUIRE_DEFAULTS
+  gl_TIME_R
+  if test $HAVE_LOCALTIME_R = 0 || test $REPLACE_LOCALTIME_R = 1; then
+    AC_LIBOBJ([time_r])
+    gl_PREREQ_TIME_R
+  fi
+  gl_TIME_MODULE_INDICATOR([time_r])
   gl_FUNC_UNAME
   if test $HAVE_UNAME = 0; then
     AC_LIBOBJ([uname])

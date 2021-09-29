@@ -55,7 +55,9 @@
 cmake_minimum_required (VERSION 2.8 FATAL_ERROR)
 
 project(SLiM)
-include(ExternalProject)
+if(WIN32)
+    include(ExternalProject)
+endif()
 
 # Make a Release build by default
 if(NOT CMAKE_BUILD_TYPE) 
@@ -72,10 +74,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-labe
 
 # Windows specific flags
 if(WIN32)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_POSIX_THREAD_SAFE_FUNCTIONS -DDO_MEMORY_CHECKS=0")
-set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDO_MEMORY_CHECKS=0")
+    set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
