@@ -1776,17 +1776,38 @@ Cholesky decomposition of the variance-covariance matrix
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (integer)rnbinom(integer$\'a0n, numeric\'a0size, float\'a0prob)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 Returns a vector of 
 \f1\fs18 n
 \f3\fs20  
 \f0\b random draws from a negative binomial distribution
-\f3\b0  with a number of successful trials specified by 
+\f3\b0  representing the number of failures which occur in a sequence of Bernoulli trials before reaching a target number of successful trials specified by 
 \f1\fs18 size
-\f3\fs20  and a probability of success specified by 
+\f3\fs20 , given a probability of success specified by 
 \f1\fs18 prob
-\f3\fs20 .  The 
+\f3\fs20 .  The mean of this distribution for 
+\f1\fs18 size
+\f3\fs20  
+\f7\i s
+\f3\i0  and 
+\f1\fs18 prob
+\f3\fs20  
+\f7\i p
+\f3\i0  is 
+\f7\i s
+\f3\i0 (1\uc0\u8722 
+\f7\i p
+\f3\i0 )/
+\f7\i p
+\f3\i0 , with variance 
+\f7\i s
+\f3\i0 (1\uc0\u8722 
+\f7\i p
+\f3\i0 )/
+\f7\i p
+\f3\i0\fs13\fsmilli6667 \super 2
+\fs20 \nosupersub .  The 
 \f1\fs18 size
 \f3\fs20  and 
 \f1\fs18 prob
