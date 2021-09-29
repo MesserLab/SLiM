@@ -207,10 +207,10 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
     // If we had an exception while drawing values, just show a question mark and return
 	if (mut_type && !draws.size())
 	{
-#ifdef __APPLE__
-        painter.setFont(QFont("Times New Roman", 36));  // 18, but double scale
+#ifdef __linux__
+        painter.setFont(QFont("Times New Roman", 28));  // 18, but double scale
 #else
-        painter.setFont(QFont("Times New Roman", 28));  // 14, but double scale
+        painter.setFont(QFont("Times New Roman", 36));  // 14, but double scale
 #endif
         
         QString labelText("?");
