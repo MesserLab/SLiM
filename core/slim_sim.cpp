@@ -7501,16 +7501,15 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 
 void SLiMSim::FreeTreeSequence(void)
 {
-#if DEBUG
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::FreeTreeSequence): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
-#endif
-	
-	// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
-	// and also when we're wiping the slate clean with something like readFromPopulationFile().
-	tsk_table_collection_free(&tables_);
-	
-	remembered_genomes_.clear();
+	// It is now legal to call this without tree-seq recording turned on, so we check
+	if (recording_tree_)
+	{
+		// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
+		// and also when we're wiping the slate clean with something like readFromPopulationFile().
+		tsk_table_collection_free(&tables_);
+		
+		remembered_genomes_.clear();
+	}
 }
 
 void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
@@ -8933,11 +8932,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 {
 	std::string directory_path(p_file);
 	
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitTextFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
-	
-	// free the existing table collection
-	FreeTreeSequence();
+	// free the existing table collection; note that we now allow this to be called without tree-seq on, just to load
+	// in that case we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
+	if (recording_tree_)
+		FreeTreeSequence();
+	else
+		recording_mutations_ = true;
 	
 	// in nucleotide-based models, read the ancestral sequence
 	if (nucleotide_based_)
@@ -8965,18 +8965,30 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, population_path, provenance_path);
 	
 	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTables(p_interpreter);
+	slim_generation_t start_gen = _InstantiateSLiMObjectsFromTables(p_interpreter);
+	
+	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
+	if (!recording_tree_)
+	{
+		recording_tree_ = true;
+		FreeTreeSequence();
+		recording_tree_ = false;
+		recording_mutations_ = false;
+	}
+	
+	return start_gen;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	int ret;
 
-	if (!recording_tree_)
-		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitBinaryFile): to load a tree-sequence file, tree-sequence recording must be enabled with initializeTreeSeq()." << EidosTerminate();
-	
-	// free the existing table collection
-	FreeTreeSequence();
+	// free the existing table collection; note that we now allow this to be called without tree-seq on, just to load
+	// in that case we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
+	if (recording_tree_)
+		FreeTreeSequence();
+	else
+		recording_mutations_ = true;
 	
 	ret = tsk_table_collection_load(&tables_, p_file, 0);
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
@@ -9021,7 +9033,18 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	}
 
 	// make the corresponding SLiM objects
-	return _InstantiateSLiMObjectsFromTables(p_interpreter);
+	slim_generation_t start_gen = _InstantiateSLiMObjectsFromTables(p_interpreter);
+	
+	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
+	if (!recording_tree_)
+	{
+		recording_tree_ = true;
+		FreeTreeSequence();
+		recording_tree_ = false;
+		recording_mutations_ = false;
+	}
+	
+	return start_gen;
 }
 
 size_t SLiMSim::MemoryUsageForTables(tsk_table_collection_t &p_tables)

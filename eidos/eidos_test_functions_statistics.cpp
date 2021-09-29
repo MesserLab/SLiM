@@ -676,6 +676,33 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess_L("x = rmvnorm(5, c(0,NAN), matrix(c(10,3,3,2), nrow=2)); all(!isNAN(x[,0])) & all(isNAN(x[,1]));", true);
 	EidosAssertScriptRaise("rmvnorm(5, c(0,2), matrix(c(10,3,NAN,2), nrow=2));", 0, "to contain NANs");
 	
+	// rnbinom()
+	EidosAssertScriptSuccess("rnbinom(0, 10, 0.5);", gStaticEidosValue_Integer_ZeroVec);
+	EidosAssertScriptSuccess_IV("rnbinom(1, 10, 1.0);", {0});
+	EidosAssertScriptSuccess_IV("rnbinom(1, 10.0, 1.0);", {0});
+	EidosAssertScriptSuccess_IV("rnbinom(3, 10, 1.0);", {0, 0, 0});
+	EidosAssertScriptSuccess_IV("rnbinom(3, 10.0, 1.0);", {0, 0, 0});
+	EidosAssertScriptRaise("rnbinom(3, 0, 0.0);", 0, "probability in (0.0, 1.0]");
+	EidosAssertScriptSuccess_IV("rnbinom(3, 0, 1.0);", {0, 0, 0});
+	EidosAssertScriptSuccess_IV("setSeed(0); rnbinom(10, 1, 0.5);", {1, 0, 0, 0, 0, 1, 0, 0, 2, 2});
+	EidosAssertScriptSuccess_IV("setSeed(0); rnbinom(10, 1, 0.5000001);", {1, 0, 0, 0, 0, 1, 0, 0, 2, 2});
+	EidosAssertScriptSuccess_IV("setSeed(0); rnbinom(5, 10, 0.5);", {6, 13, 1, 6, 5});
+	EidosAssertScriptSuccess_IV("setSeed(1); rnbinom(5, 10, 0.5);", {2, 6, 9, 10, 7});
+	EidosAssertScriptSuccess_IV("setSeed(2); rnbinom(5, 1000, 0.01);", {103776, 97182, 94313, 95927, 92216});
+	EidosAssertScriptSuccess_IV("setSeed(3); rnbinom(5, 1000, 0.99);", {6, 6, 8, 5, 15});
+	EidosAssertScriptSuccess_IV("setSeed(4); rnbinom(3, 100, c(0.1, 0.5, 0.9));", {842, 125, 11});
+	EidosAssertScriptSuccess_IV("setSeed(5); rnbinom(3, c(10, 30, 50), 0.5);", {16, 26, 45});
+	EidosAssertScriptRaise("rnbinom(-1, 10, 0.5);", 0, "requires n to be");
+	EidosAssertScriptRaise("rnbinom(3, -1, 0.5);", 0, "requires size >= 0");
+	EidosAssertScriptRaise("rnbinom(3, 10, -0.1);", 0, "in (0.0, 1.0]");
+	EidosAssertScriptRaise("rnbinom(3, 10, 1.1);", 0, "in (0.0, 1.0]");
+	EidosAssertScriptRaise("rnbinom(3, 10, c(0.1, 0.2));", 0, "to be of length 1 or n");
+	EidosAssertScriptRaise("rnbinom(3, c(10, 12), 0.5);", 0, "to be of length 1 or n");
+	EidosAssertScriptRaise("rnbinom(2, -1, c(0.5,0.5));", 0, "requires size >= 0");
+	EidosAssertScriptRaise("rnbinom(2, c(10,10), -0.1);", 0, "in (0.0, 1.0]");
+	EidosAssertScriptRaise("rnbinom(2, 10, NAN);", 0, "in (0.0, 1.0]");
+	EidosAssertScriptRaise("rnbinom(2, NAN, 0.5);", 0, "requires size >= 0");
+	
 	// rnorm()
 	EidosAssertScriptSuccess("rnorm(0);", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess("rnorm(0, float(0), float(0));", gStaticEidosValue_Float_ZeroVec);

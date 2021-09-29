@@ -1775,7 +1775,27 @@ Cholesky decomposition of the variance-covariance matrix
 \f3\fs20  can then be done just once.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)rnorm(integer$
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (integer)rnbinom(integer$\'a0n, numeric\'a0size, float\'a0prob)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f1\fs18 n
+\f3\fs20  
+\f0\b random draws from a negative binomial distribution
+\f3\b0  with a number of successful trials specified by 
+\f1\fs18 size
+\f3\fs20  and a probability of success specified by 
+\f1\fs18 prob
+\f3\fs20 .  The 
+\f1\fs18 size
+\f3\fs20  and 
+\f1\fs18 prob
+\f3\fs20  parameters may either be singletons, specifying a single value to be used for all of the draws, or they may be vectors of length 
+\f1\fs18 n
+\f3\fs20 , specifying a value for each draw.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (float)rnorm(integer$
 \f2 \'a0
 \f1 n, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0

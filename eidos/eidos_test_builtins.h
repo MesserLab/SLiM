@@ -1161,6 +1161,12 @@ if (abs(cov - 0.2) > 0.03) stop('Mismatch in expectation vs. realization of rmvn
 // ***********************************************************************************************
 
 setSeed(asInteger(clock() * 100000));
+m = mean(rnbinom(100000, 5, 0.3));	// expectation is (1-p)r/p, 0.7*5/0.3 == 11.66667, for our parameterization (different from Wikipedia)
+if (abs(m - 11.66667) > 0.08) stop('Mismatch in expectation vs. realization of rnbinom() - could be random chance (but very unlikely), rerun test');
+
+// ***********************************************************************************************
+
+setSeed(asInteger(clock() * 100000));
 m = mean(rnorm(10000, 5, 0.3));	// expectation is 5
 if (abs(m - 5) > 0.02) stop('Mismatch in expectation vs. realization of rnorm() - could be random chance (but very unlikely), rerun test');
 
