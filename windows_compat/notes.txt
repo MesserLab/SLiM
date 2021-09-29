@@ -1,0 +1,23 @@
+gnulib modules needed:
+getline: getline module
+uname: uname module
+localtime_r: time_r module, sys_time module
+backtrace: execinfo module (provides a stub)
+<sys/resource.h>: sys_resource module
+mkdir: sys_stat module
+gettimeofday: gettimeofday module
+
+gnulib doesn't fix:
+<pwd.h>, getrlimit, getuid - Functions using these were disabled and edited to throw an error or warning in Windows  
+strtoq not defined -- Instead I converted to strtoll
+
+Looks like I need to enable GNULIB_NAMESPACE for eidos to avoid linker errors
+- okay that is done and works.
+
+Now QtSLiM:
+- problem: automoc creates .cpp files with #include <memory> as the first line..
+  I somehow need to #include <config.h> from gnulib before this, to get the
+  correct gnulib defines...
+
+gnulib-tool command:
+/c/gnulib/gnulib-tool --create-testdir --dir=gnulib --without-tests --no-conditional-dependencies getline uname execinfo sys_resource sys_stat gettimeofday random time_r
