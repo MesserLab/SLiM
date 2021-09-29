@@ -177,6 +177,9 @@ uLong ZEXPORT adler32_combine(adler1, adler2, len2)
     return adler32_combine_(adler1, adler2, len2);
 }
 
+// BCH 9/29/2021: This function appears to be unused in this branch of the code,
+// and produces a warning on Windows, so I'm going to just #if it out.
+#if 0
 uLong ZEXPORT adler32_combine64(adler1, adler2, len2)
     uLong adler1;
     uLong adler2;
@@ -184,3 +187,5 @@ uLong ZEXPORT adler32_combine64(adler1, adler2, len2)
 {
     return adler32_combine_(adler1, adler2, len2);
 }
+#endif
+
