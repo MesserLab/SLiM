@@ -2125,7 +2125,7 @@ void QtSLiMWindow::displayProfileResults(void)
     qreal displayFontSize = menlo11.pointSizeF();
     qreal scaleFactor = displayFontSize / 11.0;     // The unscaled sizes are geared toward Optima on the Mac
     
-#if !defined(__APPLE__)
+#if defined(__linux__)
     // On Linux font sizes seem to run large, who knows why, so reduce the scale factor somewhat to compensate
     scaleFactor *= 0.75;
 #endif
