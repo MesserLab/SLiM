@@ -610,7 +610,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         QFile topicFile(topicFilePath);
         QString topicFileData;
         
-        if (!topicFile.open(QIODevice::ReadOnly)) {
+        if (!topicFile.open(QIODevice::ReadOnly | QIODevice::Text)) {   // QIODevice::Text converts line endings to \n, making Windows happy; harmless
             qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): could not find HTML file " << htmlFile;
             return;
         }

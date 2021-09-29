@@ -233,7 +233,7 @@ void _RunFunctionMatrixArrayTests(void)
 #pragma mark filesystem access
 void _RunFunctionFilesystemTests(std::string temp_path)
 {
-	if (!Eidos_SlashTmpExists())
+	if (!Eidos_TemporaryDirectoryExists())
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
@@ -817,7 +817,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("getSeed(_Test(7));", 0, "too many arguments supplied");
 	
 	// source()
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		EidosAssertScriptSuccess_I("path = '" + temp_path + "'; file = path + '/EidosSourceTest.txt'; writeFile(file, 'x=9*9;'); source(file); x;", 81);														// finds the file and executes it correctly
 		EidosAssertScriptSuccess_L("path = '" + temp_path + "'; file = path + '/EidosSourceTest2.txt'; writeFile(file, 'x = getwd();'); d = getwd(); source(file, chdir=F); x == d;", true);					// doesn't change the wd with chdir=F
@@ -841,7 +841,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("suppressWarnings(T); suppressWarnings(F);", true);
 	
 	// system()
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		EidosAssertScriptRaise("system('');", 0, "non-empty command string");
 		EidosAssertScriptSuccess_S("system('expr 5 + 5');", "10");
