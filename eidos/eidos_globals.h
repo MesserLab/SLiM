@@ -891,6 +891,7 @@ extern const std::string &gEidosStr_floatR;
 extern const std::string &gEidosStr_floatG;
 extern const std::string &gEidosStr_floatB;
 extern const std::string &gEidosStr_floatK;
+extern const std::string &gEidosStr_write;
 
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
@@ -999,6 +1000,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_floatG,
 	gEidosID_floatB,
 	gEidosID_floatK,
+	gEidosID_write,
 
 	gEidosID_start,
 	gEidosID_end,

@@ -1037,7 +1037,7 @@ size_t Eidos_GetMaxRSS(void)
 			const char *c_str = limit_string.c_str();
 			char *last_used_char = nullptr;
 			
-			max_rss = strtoq(c_str, &last_used_char, 10);
+			max_rss = strtoll(c_str, &last_used_char, 10);
 			
 			if (errno || (last_used_char == c_str))
 			{
@@ -2596,6 +2596,7 @@ const std::string &gEidosStr_floatR = EidosRegisteredString("floatR", gEidosID_f
 const std::string &gEidosStr_floatG = EidosRegisteredString("floatG", gEidosID_floatG);
 const std::string &gEidosStr_floatB = EidosRegisteredString("floatB", gEidosID_floatB);
 const std::string &gEidosStr_floatK = EidosRegisteredString("floatK", gEidosID_floatK);
+const std::string &gEidosStr_write = EidosRegisteredString("write", gEidosID_write);
 
 // strings for parameters, function names, etc., that are needed as explicit registrations in a Context and thus have to be
 // explicitly registered by Eidos; see the comment in EidosStringRegistry::RegisterStringForGlobalID() below

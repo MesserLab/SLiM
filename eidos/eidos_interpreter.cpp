@@ -5103,10 +5103,10 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 	}
 	else																								// plain integer
 	{
-		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
+		int64_t converted_value = strtoll(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
 		
 		return converted_value;
 	}
@@ -5166,10 +5166,10 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 	}
 	else																										// plain integer
 	{
-		int64_t converted_value = strtoq(c_str, &last_used_char, 10);
+		int64_t converted_value = strtoll(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoq conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(converted_value));
 	}

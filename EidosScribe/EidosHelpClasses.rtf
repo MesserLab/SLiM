@@ -559,9 +559,25 @@ The
 \f4\fs20  layer by 255.  See the 
 \f3\fs18 integerK
 \f4\fs20  property for an alternative representation.  If the image is color, this property is unavailable.\
-\pard\pardeftab720\sa60\partightenfactor0
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.3.2  
 \f2\fs18 Image
 \f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)write(string$\'a0filePath)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Writes the image to the given filesystem path 
+\f3\fs18 filePath
+\f4\fs20  as PNG data.  It is suggested, but not required, that 
+\f3\fs18 filePath
+\f4\fs20  should end in a 
+\f3\fs18 .png
+\f4\fs20  or 
+\f3\fs18 .PNG
+\f4\fs20  filename extension.  If the file cannot be written, an error will result.  At present, since 
+\f3\fs18 bitsPerChannel
+\f4\fs20  is always 8, grayscale data will be written as an 8-bit grayscale PNG while color (RGB) data will be written as a 24-bit color PNG without alpha.\
 }
