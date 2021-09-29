@@ -1037,7 +1037,7 @@ size_t Eidos_GetMaxRSS(void)
 			const char *c_str = limit_string.c_str();
 			char *last_used_char = nullptr;
 			
-			max_rss = strtoq(c_str, &last_used_char, 10);
+			max_rss = strtoll(c_str, &last_used_char, 10);
 			
 			if (errno || (last_used_char == c_str))
 			{
