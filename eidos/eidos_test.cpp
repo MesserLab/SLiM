@@ -276,17 +276,11 @@ int RunEidosTests(void)
 	std::cout << "WARNING: This build of Eidos does not detect integer arithmetic overflows.  Compiling Eidos with GCC version 5.0 or later, or Clang version 3.9 or later, is required for this feature.  This means that integer addition, subtraction, or multiplication that overflows the 64-bit range of Eidos (" << INT64_MIN << " to " << INT64_MAX << ") will not be detected." << std::endl;
 #endif
 	
-	if (!Eidos_SlashTmpExists())
-		std::cout << "WARNING: This system does not appear to have a writeable /tmp directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of /tmp will raise an exception if called (and are therefore also not tested).  If this is surprising, contact the system administrator for details." << std::endl;
+	if (!Eidos_TemporaryDirectoryExists())
+		std::cout << "WARNING: This system does not appear to have a writeable temporary directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of the temporary directory will raise an exception if called (and are therefore also not tested).  If this is surprising, contact the system administrator for details." << std::endl;
 	
 	// We want to run the self-test inside a new temporary directory, to prevent collisions with other self-test runs
-	#ifndef _WIN32
-	std::string prefix = "/tmp/eidosTest_";
-	#else
-	// Will need to replace this hard-coding later based on an API call
-	// in case user has windows installed on another drive
-	std::string prefix = "C:/Windows/Temp/eidosTest_"; 
-	#endif
+	std::string prefix = Eidos_TemporaryDirectory() + "eidosTest_";
 	std::string temp_path_template = prefix + "XXXXXX";
 	char *temp_path_cstr = strdup(temp_path_template.c_str());
 	
@@ -296,7 +290,7 @@ int RunEidosTests(void)
 	}
 	else
 	{
-		std::cout << "A temporary folder within /tmp could not be created; there may be a permissions problem with /tmp.  The self-test could not be run." << std::endl;
+		std::cout << "A folder within the temporary directory could not be created; there may be a permissions problem with the temporary directory.  The self-test could not be run." << std::endl;
 		return 1;
 	}
 	

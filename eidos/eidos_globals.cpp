@@ -56,7 +56,7 @@
 #include <iomanip>
 #include <sys/param.h>
 
-// added for Eidos_mkstemps() and Eidos_SlashTmpExists()
+// added for Eidos_mkstemps() and Eidos_TemporaryDirectoryExists()
 #include <sys/stat.h>
 #include <fstream>
 #include <fcntl.h>
@@ -1294,25 +1294,25 @@ bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
 	}
 }
 
-bool Eidos_SlashTmpExists(void)
+// This is /tmp/ (with trailing slash!) on macOS and Linux, but will be elsewhere on Windows.  Should be used instead of /tmp/ everywhere.
+std::string Eidos_TemporaryDirectory(void)
 {
-	// we cache the result for speed, making the assumption that /tmp will not change underneath us
+	return "/tmp/";
+}
+
+bool Eidos_TemporaryDirectoryExists(void)
+{
+	// we cache the result for speed, making the assumption that the temporary directory will not change underneath us
 	static bool been_here = false;
 	static bool exists = false;
 	
 	if (!been_here)
 	{
-		#ifndef _WIN32
-		std::string path = "/tmp";
-		#else
-		// Will need to replace this hard-coding later based on an API call
-		// in case user has windows installed on another drive
-		std::string path = "C:/Windows/Temp";
-		#endif
+		std::string path = Eidos_TemporaryDirectory();
 		struct stat file_info;
 		bool path_exists = (stat(path.c_str(), &file_info) == 0);
 		
-		// test that /tmp itself exists and is a directory
+		// test that Eidos_TemporaryDirectory() itself exists and is a directory
 		if (path_exists)
 		{
 			bool is_directory = !!(file_info.st_mode & S_IFDIR);
@@ -1320,13 +1320,7 @@ bool Eidos_SlashTmpExists(void)
 			if (is_directory)
 			{
 				// test that it is writeable, in practice, by creating a temp file
-				#ifndef _WIN32
-				std::string prefix = "/tmp/eidos_tmp_test";
-				#else
-				// Will need to replace this hard-coding later based on an API call
-				// in case user has windows installed on another drive
-				std::string prefix = "C:/Windows/Temp/eidos_tmp_test";
-				#endif
+				std::string prefix = Eidos_TemporaryDirectory() + "eidos_tmp_test";
 				std::string suffix = ".txt";
 				std::string file_path_template = prefix + "XXXXXX" + suffix;
 				char *file_path_cstr = strdup(file_path_template.c_str());
@@ -1340,7 +1334,7 @@ bool Eidos_SlashTmpExists(void)
 					
 					if (file_stream.is_open())
 					{
-						file_stream << "Eidos test of /tmp" << std::endl;
+						file_stream << "Eidos test of the temporary directory" << std::endl;
 						
 						if (!file_stream.bad())
 						{
@@ -1349,7 +1343,7 @@ bool Eidos_SlashTmpExists(void)
 							// test that we can delete the temp file
 							if (remove(file_path.c_str()) == 0)
 							{
-								// passed all tests, so we consider that /tmp exists
+								// passed all tests, so we consider that Eidos_TemporaryDirectory() exists
 								exists = true;
 							}
 						}

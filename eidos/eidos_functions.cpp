@@ -10987,8 +10987,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	if (!Eidos_SlashTmpExists())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), the /tmp directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
+	if (!Eidos_TemporaryDirectoryExists())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), the temporary directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
 	
 	EidosValue *prefix_value = p_arguments[0].get();
 	std::string prefix = prefix_value->StringAtIndex(0, nullptr);
@@ -11007,7 +11007,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	
 	// generate the filename template from the prefix/suffix
 	std::string filename = prefix + "XXXXXX" + suffix;
-	std::string file_path_template = "/tmp/" + filename;		// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
+	std::string file_path_template = Eidos_TemporaryDirectory() + filename;
 	
 	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
@@ -12432,8 +12432,8 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 	
 	EidosValue_SP result_SP(nullptr);
 	
-	if (!Eidos_SlashTmpExists())
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): in function system(), the /tmp directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
+	if (!Eidos_TemporaryDirectoryExists())
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_system): in function system(), the temporary directory appears not to exist or is not writeable." << EidosTerminate(nullptr);
 	
 	EidosValue_String *command_value = (EidosValue_String *)p_arguments[0].get();
 	EidosValue_String *args_value = (EidosValue_String *)p_arguments[1].get();
@@ -12465,7 +12465,8 @@ EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_a
 	{
 		// thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code
 		
-		char *name = strdup("/tmp/eidos_system_XXXXXX");	// the /tmp directory is standard on OS X and Linux; probably on all Un*x systems
+		std::string name_string = Eidos_TemporaryDirectory() + "eidos_system_XXXXXX";
+		char *name = strdup(name_string.c_str());
 		int fd = mkstemp(name);
 		
 		if (fd == -1)

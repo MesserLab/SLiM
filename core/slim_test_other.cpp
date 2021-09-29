@@ -1004,7 +1004,7 @@ void _RunTreeSeqTests(std::string temp_path)
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: { sim.treeSeqRememberIndividuals(p1.individuals, permanent=F); } 100 { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	
 	// treeSeqOutput()
-	if (Eidos_SlashTmpExists())
+	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_1.trees', simplify=F, _binary=F); stop(); }", __LINE__);
 		SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 { sim.treeSeqOutput('" + temp_path + "/SLiM_treeSeq_2.trees', simplify=T, _binary=F); stop(); }", __LINE__);

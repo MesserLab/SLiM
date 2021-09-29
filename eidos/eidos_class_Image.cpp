@@ -29,9 +29,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/types.h>
-#ifndef _WIN32
-#include <pwd.h>
-#endif
 #include <algorithm>
 #include <string>
 #include <vector>
