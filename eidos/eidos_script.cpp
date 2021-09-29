@@ -113,6 +113,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 	int32_t pos = 0, len = (int)script_string_.length();
 	int32_t pos_UTF16 = 0;
 	int32_t pos_line = user_script_line_offset_;	// could be -1, or a line number in the full user script
+	bool saw_unicode = false;	// set when a Unicode character is seen, to trigger extra checks
 	
 	while (pos < len)
 	{
@@ -441,6 +442,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					// BCH: extending this to allow non-ASCII Unicode characters in identifiers.  We just assume that
 					// all UTF-8 sequences starting with 0x80 or greater are usable in identifiers, for simplicity.
 					// Note that EidosConsoleWindowController has some useful debugging code; search for @"<EOF>"
+					// BCH 09/28/2021: Note that we will now scan identifiers for illegal Unicode characters below.
 					
 					// If the high bit is set, this is the start of a UTF-8 multi-byte sequence; eat the whole sequence
 					// The design of this code assumes that UTF-8 sequences are compliant and EOF does not occur inside them
@@ -451,6 +453,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						// only one character advance for UTF-8; the remaining UTF-8 characters will be eaten below.
 						token_end++;
 						token_UTF16_end += BYTE_WIDTHS[ch];
+						saw_unicode = true;
 						
 						while (token_end < len)
 						{
@@ -497,6 +500,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							// current character), and were advancing to the *next* character, and then ultimately backing up.
 							token_end++;
 							token_UTF16_end += BYTE_WIDTHS[chx];
+							saw_unicode = true;
 							
 							while (token_end + 1 < len)
 							{
@@ -627,6 +631,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				}
 				else if (ch & 0x0080)
 				{
+					// Note that this code is no longer hit; all high-bit characters now go through the kTokenIdentifier path above.
 					// The high bit is set, so this is some sort of Unicode special byte, initiating a multi-byte sequence comprising an
 					// illegal non-ASCII character; encompass the whole thing into the token so errors, bad tokens, etc. work correctly
 					// The design of this code assumes that UTF-8 sequences are compliant and EOF does not occur inside them
@@ -668,6 +673,77 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				}
 				// else: ch is an ASCII-range single character that does not match any possible token, so it will be handled by the token_type == EidosTokenType::kTokenNone case directly below
 				break;
+		}
+		
+		if (saw_unicode)
+		{
+			// Look for illegal Unicode characters in identifiers.  If we find one, we throw an error or make a bad token.
+			// This answer is helpful: https://stackoverflow.com/a/69024306/2752221; it suggests that a regex-style list is
+			// [\u0000-\u0008\u000B-\u001F\u007F-\u009F\u2000-\u200F\u2028-\u202F\u205F-\u206F\u3000\uFEFF].  We look for a
+			// subset of those here, since I don't want to get into doing regex, etc.
+			if (token_type == EidosTokenType::kTokenIdentifier)
+			{
+				std::string identifierString = script_string_.substr(token_start, token_end - token_start + 1);
+				bool contains_illegal = false;
+				
+				contains_illegal = contains_illegal || (identifierString.find("\u2000") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2001") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2002") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2003") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2004") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2005") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2006") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2007") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2008") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2009") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200a") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200b") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200c") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200d") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200e") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u200f") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2028") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2029") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202a") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202b") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202c") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202d") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202e") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u202f") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u205f") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2060") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2061") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2062") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2063") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2064") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2065") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2066") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2067") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2068") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u2069") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206a") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206b") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206c") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206d") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206e") != std::string::npos);
+				contains_illegal = contains_illegal || (identifierString.find("\u206f") != std::string::npos);
+				
+				if (contains_illegal)
+				{
+					if (p_make_bad_tokens)
+					{
+						token_type = EidosTokenType::kTokenBad;
+					}
+					else
+					{
+						// during tokenization we don't treat the error position as a stack
+						gEidosErrorContext.errorPosition = EidosErrorPosition{token_start, token_end, token_UTF16_start, token_UTF16_end};
+						EIDOS_TERMINATION << "ERROR (EidosScript::Tokenize): illegal Unicode character in token '" << script_string_.substr(token_start, token_end - token_start + 1) << "' (note the illegal character may not print visibly).  Deleting it is recommended; if it is not visible, you might select across it and retype the text it is contained within." << EidosTerminate();
+					}
+				}
+			}
+			
+			saw_unicode = false;
 		}
 		
 		if (token_type == EidosTokenType::kTokenNone)
