@@ -17,10 +17,6 @@
 //
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifdef _WIN32
-#define GNULIB_NAMESPACE gnulib
-#endif
-
 #include "eidos_functions.h"
 #include "eidos_call_signature.h"
 #include "eidos_interpreter.h"
