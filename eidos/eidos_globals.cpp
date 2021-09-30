@@ -59,6 +59,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <fileapi.h>
+#endif
 
 // for Eidos_WelchTTest()
 #include "gsl_cdf.h"
@@ -1088,7 +1091,7 @@ size_t Eidos_GetMaxRSS(void)
 		
 		beenHere = true;
 	}
-	
+
 	return max_rss;
 }
 
@@ -1289,7 +1292,16 @@ bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
 // This is /tmp/ (with trailing slash!) on macOS and Linux, but will be elsewhere on Windows.  Should be used instead of /tmp/ everywhere.
 std::string Eidos_TemporaryDirectory(void)
 {
+	#ifdef _WIN32
+	std::string temp_path;
+	char charPath[MAX_PATH];
+	if (GetTempPathA(MAX_PATH, charPath))
+  		temp_path = charPath;
+	std::replace(temp_path.begin(), temp_path.end(), '\\', '/'); // replace windows slashes
+	return temp_path;
+	#else
 	return "/tmp/";
+	#endif
 }
 
 bool Eidos_TemporaryDirectoryExists(void)
