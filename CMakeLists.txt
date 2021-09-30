@@ -130,7 +130,6 @@ if(WIN32)
     set_target_properties(gnu PROPERTIES IMPORTED_LOCATION ${GNU_STATIC_LIB})
     set_target_properties(gnu PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${GNU_INCLUDES})
     set_target_properties(gnu PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${GNU_INCLUDES})
-
 endif()
 
 # Test for -flto support
