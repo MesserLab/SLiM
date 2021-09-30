@@ -38,7 +38,7 @@
 #include <string>
 #include <unordered_map>
 #ifndef _WIN32
-#include <pwd.h>
+#include <pwd.h> // used only by Eidos_ResolvedPath(), which is not used on Windows
 #endif
 #include <unistd.h>
 #include <algorithm>
@@ -1022,7 +1022,6 @@ size_t Eidos_GetCurrentRSS(void)
 
 size_t Eidos_GetMaxRSS(void)
 {
-
 	static bool beenHere = false;
 	static size_t max_rss = 0;
 	
@@ -1089,10 +1088,8 @@ size_t Eidos_GetMaxRSS(void)
 		
 		beenHere = true;
 	}
-
+	
 	return max_rss;
-
-
 }
 
 void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
@@ -1196,12 +1193,10 @@ std::string Eidos_ResolvedPath(std::string p_path)
 			}
 		}
 	}
-	#endif
-
-	#ifdef _WIN32
+	#else
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
-		std::cerr << "Eidos_ResolvedPath(): Could not resolve ~ in path because it is not supported on Windows";
+		EIDOS_TERMINATION << "ERROR (Eidos_ResolvedPath): Could not resolve ~ in path because it is not supported on Windows." << EidosTerminate();
 	}
 	#endif	
 	
