@@ -72,11 +72,28 @@ option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wmissing-prototypes -Wswitch -Wpointer-sign -Wsign-compare -Wstrict-prototypes -Wno-sign-conversion -Wuninitialized")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wswitch -Wsign-compare -Wno-sign-conversion -Wuninitialized")
 
-# Windows specific flags
+# Windows specific flags and variables
 if(WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDO_MEMORY_CHECKS=0")
     set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+    set(GNULIB_NAMESPACE_SOURCES "${PROJECT_SOURCE_DIR}/core/chromosome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/genome.cpp" 
+        "${PROJECT_SOURCE_DIR}/core/population.cpp"
+        "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
+        "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
+        "${PROJECT_SOURCE_DIR}/core/slim_sim.cpp"
+        "${PROJECT_SOURCE_DIR}/core/subpopulation.cpp",
+        "${PROJECT_SOURCE_DIR}/eidos/eidos_functions.cpp"
+        "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAbout.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAppDelegate.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMFindRecipe.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMGraphView.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMHaplotypeOptions.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMHelpWindow.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMScriptTextEdit.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMVariableBrowser.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMWindow.cpp")
 endif()
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
@@ -179,7 +196,7 @@ add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 if(WIN32)
-set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
+    set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
     target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
 endif()
@@ -197,7 +214,7 @@ find_package(Qt5 REQUIRED
     Widgets
 )
 if(WIN32)
-set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_autogen/mocs_compilation.cpp" PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
 endif()
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -213,6 +230,7 @@ if(APPLE)
 else()
     if(WIN32)
         set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
+        set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
         target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
         target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
     else()

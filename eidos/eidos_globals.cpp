@@ -18,9 +18,6 @@
 //	You should have received a copy of the GNU General Public License along with Eidos.  If not, see <http://www.gnu.org/licenses/>.
 
 // On Windows enable gnulib namespace to avoid clashed with some class methods
-#ifdef _WIN32
-#define GNULIB_NAMESPACE gnulib
-#endif
 
 #include "eidos_globals.h"
 #include "eidos_script.h"
