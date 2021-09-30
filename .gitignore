@@ -258,6 +258,10 @@ Makefile*
 !windows_compat/gnulib/gllib/Makefile*
 !windows_compat/gnulib/glm4/Makefile*
 
+## gnulib
+windows_compat/gnulib/autom4te.cache
+windows_compat/gnulib/configure~
+
 # Qt unit tests
 target_wrapper.*
 
