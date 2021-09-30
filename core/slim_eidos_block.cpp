@@ -23,9 +23,6 @@
 #include <algorithm>
 #include <vector>
 
-#ifdef _WIN32
-#define strtoq strtoll
-#endif
 
 std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type)
 {
