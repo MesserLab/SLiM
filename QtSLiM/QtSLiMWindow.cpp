@@ -250,13 +250,21 @@ void QtSLiMWindow::init(void)
     if (qtSLiMAppDelegate->launchedFromShell())
         sim_working_dir = qtSLiMAppDelegate->QtSLiMCurrentWorkingDirectory();
     else
+    #ifdef _WIN32
+        sim_working_dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).toStdString();
+    #else
         sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+    #endif
     
     // Check that our chosen working directory actually exists; if not, use ~
     struct stat buffer;
     
     if (stat(sim_working_dir.c_str(), &buffer) != 0)
+    #ifdef _WIN32
+        sim_working_dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation).toStdString();
+    #else
         sim_working_dir = Eidos_ResolvedPath("~");
+    #endif
     
     sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
     
