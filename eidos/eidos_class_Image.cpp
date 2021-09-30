@@ -85,6 +85,15 @@ EidosImage::EidosImage(std::string p_file_path)
 	height_ = height;
 }
 
+EidosImage::EidosImage(int64_t p_width, int64_t p_height, bool p_grayscale) : width_(p_width), height_(p_height), is_grayscale_(p_grayscale)
+{
+	if ((width_ <= 0) || (width_ > 100000) || (height_ <= 0) || (height_ > 100000))
+		EIDOS_TERMINATION << "ERROR (EidosImage::EidosImage): (internal error) image width and height must be in [1, 100000]." << EidosTerminate();
+	
+	// immediately allocate our pixel buffer at the appropriate size
+	pixels_.resize(width_ * height_ * (is_grayscale_ ? 1 : 3));
+}
+
 EidosImage::~EidosImage(void)
 {
 }
@@ -212,7 +221,7 @@ EidosValue_SP EidosImage::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	}
 }
 
-//	*********************	– (void)write([Ns$ filePath = NULL])
+//	*********************	– (void)write(string$ filePath)
 //
 EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

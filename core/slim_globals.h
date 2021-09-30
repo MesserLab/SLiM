@@ -766,6 +766,7 @@ extern const std::string &gStr_sampleIndividuals;
 extern const std::string &gStr_subsetIndividuals;
 extern const std::string &gStr_defineSpatialMap;
 extern const std::string &gStr_spatialMapColor;
+extern const std::string &gStr_spatialMapImage;
 extern const std::string &gStr_spatialMapValue;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
@@ -1104,6 +1105,7 @@ enum _SLiMGlobalStringID : int {
 	gID_subsetIndividuals,
 	gID_defineSpatialMap,
 	gID_spatialMapColor,
+	gID_spatialMapImage,
 	gID_spatialMapValue,
 	gID_outputMSSample,
 	gID_outputVCFSample,

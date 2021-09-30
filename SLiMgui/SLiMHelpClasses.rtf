@@ -4254,6 +4254,7 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20  property of 
 \f3\fs18 MutationType
 \f4\fs20  instead.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf3 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM documentation for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f3\fs18 SLiMSim
 \f4\fs20 \'92s method 
@@ -7227,6 +7228,96 @@ Set the spatial boundaries of the subpopulation to
 \f3\fs18 defineSpatialMap()
 \f4\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.
 \f5 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Image>$)spatialMapImage(string$\'a0name, [Ni$\'a0width\'a0=\'a0NULL], [Ni$\'a0height\'a0=\'a0NULL], [logical$\'a0centers\'a0=\'a0F], [logical$\'a0color\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Looks up the spatial map indicated by 
+\f3\fs18 name
+\f4\fs20 , and returns an 
+\f3\fs18 Image
+\f4\fs20  object sampled from it.  The image will be 
+\f3\fs18 width
+\f4\fs20  pixels wide and 
+\f3\fs18 height
+\f4\fs20  pixels tall; the intrinsic size of the spatial map itself will be used if one of these parameters is 
+\f3\fs18 NULL
+\f4\fs20 .  The image will be oriented in the same way as it is displayed in SLiMgui (which conceptually entails a transformation from matrix coordinates, which store values by column, to standard image coordinates, which store values by row; see the Eidos manual\'92s documentation of 
+\f3\fs18 Image
+\f4\fs20  for details).  This method may only be called for 2D spatial maps at present.\
+The sampling of the spatial map can be done in one of two ways, as controlled by the 
+\f3\fs18 centers
+\f4\fs20  parameter.  If 
+\f3\fs18 centers
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , a (
+\f3\fs18 width+1
+\f4\fs20 ) \'d7 (
+\f3\fs18 height+1
+\f4\fs20 ) grid of lines that delineates 
+\f3\fs18 width
+\f4\fs20  \'d7 
+\f3\fs18 height
+\f4\fs20  rectangular pixels will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
+\f1\i center
+\f4\i0  of each of these pixels.  If 
+\f3\fs18 centers
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), a 
+\f3\fs18 width
+\f4\fs20  \'d7 
+\f3\fs18 height
+\f4\fs20  grid of lines will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
+\f1\i vertices
+\f4\i0  of the grid.  If interpolation is not enabled for the spatial map, these two options will both recover the original matrix of values used to define the spatial map (assuming, here and below, that 
+\f3\fs18 width
+\f4\fs20  and 
+\f3\fs18 height
+\f4\fs20  are 
+\f3\fs18 NULL
+\f4\fs20 ).  If interpolation is enabled for the spatial map, however, 
+\f3\fs18 centers == F
+\f4\fs20  will recover the original values, but will not capture the \'93typical\'94 value of each pixel in the image; 
+\f3\fs18 centers == T
+\f4\fs20 , on the other hand, will not recover the original values, but will capture the \'93typical\'94 value of each pixel in the image (i.e., the value at the center of each pixel, as produced by interpolation).  The figures in section 15.11 may be helpful for visualizing the difference between these options; the overlaid grids span the full extent of the spatial map, just as shown in that section.\
+If 
+\f3\fs18 color
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  parameters supplied to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  will be used to translate map values to RGB color values as described in the documentation of that method, providing the same appearance as in SLiMgui; of course those parameters must have been supplied, otherwise an error will result.  If 
+\f3\fs18 color
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , on the other hand, a grayscale image will be produced that directly reflects the map values without color translation.  In this case, this method needs to translate map values, which can have any 
+\f3\fs18 float
+\f4\fs20  value, into grayscale pixel values that are integers in [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 255
+\f4\fs20 ].  To do so, the map values are multiplied by 
+\f3\fs18 255.0
+\f4\fs20 , clamped to [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 255.0
+\f4\fs20 ], and then rounded to the nearest integer.  This translation scheme essentially assumes that map values are in [0, 1]; for spatial maps that were defined using the 
+\f3\fs18 floatK
+\f4\fs20  channel of a grayscale PNG image, this should recover the original image\'92s pixel values.  (If a different translation scheme is desired, 
+\f3\fs18 color=T
+\f4\fs20  with the desired 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  should be used.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
