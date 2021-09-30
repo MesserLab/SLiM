@@ -171,10 +171,10 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
 	painter.fillRect(QRect(graphRect.x() + graphRect.width() - 1, axis_y + tickoff3, 1, 3), axisColor);
     
     // Draw the axis labels
-#ifdef __APPLE__
-    painter.setFont(QFont("Times New Roman", 18));  // 9, but double scale
-#else
+#ifdef __linux__
     painter.setFont(QFont("Times New Roman", 14));  // 7, but double scale
+#else
+    painter.setFont(QFont("Times New Roman", 18));  // 9, but double scale
 #endif
     
     std::ostringstream ss;
@@ -207,10 +207,10 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
     // If we had an exception while drawing values, just show a question mark and return
 	if (mut_type && !draws.size())
 	{
-#ifdef __APPLE__
-        painter.setFont(QFont("Times New Roman", 36));  // 18, but double scale
-#else
+#ifdef __linux__
         painter.setFont(QFont("Times New Roman", 28));  // 14, but double scale
+#else
+        painter.setFont(QFont("Times New Roman", 36));  // 18, but double scale
 #endif
         
         QString labelText("?");
@@ -363,12 +363,12 @@ QHeaderView *QtSLiMTablesDrawer::configureTableView(QTableView *tableView)
     
     QFont headerFont = tableHHeader->font();
     QFont cellFont = tableView->font();
-#ifdef __APPLE__
-    headerFont.setPointSize(11);
-    cellFont.setPointSize(11);
-#else
+#ifdef __linux__
     headerFont.setPointSize(8);
     cellFont.setPointSize(8);
+#else
+    headerFont.setPointSize(11);
+    cellFont.setPointSize(11);
 #endif
     tableHHeader->setFont(headerFont);
     tableView->setFont(cellFont);

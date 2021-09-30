@@ -57,7 +57,9 @@ static QFont &defaultDisplayFont(void)
         QStringList families = fontdb.families();
         
         // Use filter() to look for matches, since the foundry can be appended after the name (why isn't this easier??)
-        if (families.filter("Courier New").size() > 0)              // good on Mac
+        if (families.filter("Consola").size() > 0)                 // good on Windows
+            defaultFont = new QFont("Consola", 13);
+        else if (families.filter("Courier New").size() > 0)         // good on Mac
             defaultFont = new QFont("Courier New", 13);
         else if (families.filter("Menlo").size() > 0)               // good on Mac
             defaultFont = new QFont("Menlo", 12);
