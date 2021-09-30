@@ -26,6 +26,7 @@
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
 #include "eidos_globals.h"
+#include "eidos_class_Image.h"
 
 #include <iostream>
 #include <fstream>
@@ -3929,6 +3930,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_subsetIndividuals:		return ExecuteMethod_subsetIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_defineSpatialMap:		return ExecuteMethod_defineSpatialMap(p_method_id, p_arguments, p_interpreter);
 		case gID_spatialMapColor:		return ExecuteMethod_spatialMapColor(p_method_id, p_arguments, p_interpreter);
+		case gID_spatialMapImage:		return ExecuteMethod_spatialMapImage(p_method_id, p_arguments, p_interpreter);
 		case gID_spatialMapValue:		return ExecuteMethod_spatialMapValue(p_method_id, p_arguments, p_interpreter);
 		case gID_outputMSSample:
 		case gID_outputVCFSample:
@@ -6478,6 +6480,132 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapColor(EidosGlobalStringID p
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapColor): spatialMapColor() could not find map with name " << map_name << "." << EidosTerminate();
 }
 
+//	(object<Image>$)spatialMapImage(string$ name, [Ni$ width = NULL], [Ni$ height = NULL], [logical$ centers = F], [logical$ color = T])
+//
+EidosValue_SP Subpopulation::ExecuteMethod_spatialMapImage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue_String *name_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue *width_value = p_arguments[1].get();
+	EidosValue *height_value = p_arguments[2].get();
+	EidosValue *centers_value = p_arguments[3].get();
+	EidosValue *color_value = p_arguments[4].get();
+	
+	const std::string &map_name = name_value->StringRefAtIndex(0, nullptr);
+	
+	if (map_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() map name must not be zero-length." << EidosTerminate();
+	
+	// Find the named SpatialMap
+	auto map_iter = spatial_maps_.find(map_name);
+	
+	if (map_iter == spatial_maps_.end())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() could not find map with name " << map_name << "." << EidosTerminate();
+	
+	SpatialMap *map = map_iter->second;
+	
+	if (map->spatiality_ != 2)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() can only generate an image for 2D spatial maps." << EidosTerminate();
+	
+	int64_t map_width = map->grid_size_[0], map_height = map->grid_size_[1];
+	int64_t image_width = map_width, image_height = map_height;
+	
+	if (width_value->Type() != EidosValueType::kValueNULL)
+		image_width = width_value->IntAtIndex(0, nullptr);
+	
+	if (height_value->Type() != EidosValueType::kValueNULL)
+		image_height = height_value->IntAtIndex(0, nullptr);
+	
+	if ((image_width <= 0) || (image_width > 100000) || (image_height <= 0) || (image_height > 100000))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() requires width and height values to be in [1, 100000]." << EidosTerminate();
+	
+	bool color = color_value->LogicalAtIndex(0, nullptr);
+	
+	if (color && (map->n_colors_ == 0))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapImage): spatialMapImage() requires a defined color map for the spatial map with color=T; use color=F to get a grayscale image, or define a color map in defineSpatialMap()." << EidosTerminate();
+	
+	EidosImage *image = new EidosImage(image_width, image_height, !color);
+	unsigned char * const data = image->Data();
+	unsigned char *data_ptr = data;
+	bool centers = centers_value->LogicalAtIndex(0, nullptr);
+	
+	if (centers)
+	{
+		// grid lines are defined at [0, ..., 1] with (image_width + 1) values,
+		// and [0, ..., 1] with (image_height + 1) values, and samples are
+		// taken at the midpoints between the grid lines
+		double point[2];
+		
+		for (int y = 0; y < image_height; ++y)
+		{
+			point[1] = 1.0 - ((y + 0.5) / (double)image_height);  // (y/image_height + (y+1)/image_height) / 2
+			
+			for (int x = 0; x < image_width; ++x)
+			{
+				point[0] = (x + 0.5) / (double)image_width;  // (x/image_width + (x+1)/image_width) / 2
+				
+				double map_value = map->ValueAtPoint_S2(point);
+				
+				if (color)
+				{
+					double rgb[3];
+					
+					map->ColorForValue(map_value, rgb);
+					
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[0], 0.0), 1.0) * 255.0);
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[1], 0.0), 1.0) * 255.0);
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[2], 0.0), 1.0) * 255.0);
+				}
+				else
+				{
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(map_value, 0.0), 1.0) * 255.0);
+				}
+			}
+		}
+	}
+	else
+	{
+		// grid lines are defined at [0, ..., 1] with image_width values,
+		// and [0, ..., 1] with image_height values, and samples are
+		// taken at the grid lines
+		double point[2];
+		
+		for (int y = 0; y < image_height; ++y)
+		{
+			point[1] = 1.0 - (y / (double)(image_height - 1));
+			
+			for (int x = 0; x < image_width; ++x)
+			{
+				point[0] = x / (double)(image_width - 1);
+				
+				double map_value = map->ValueAtPoint_S2(point);
+				
+				if (color)
+				{
+					double rgb[3];
+					
+					map->ColorForValue(map_value, rgb);
+					
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[0], 0.0), 1.0) * 255.0);
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[1], 0.0), 1.0) * 255.0);
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(rgb[2], 0.0), 1.0) * 255.0);
+				}
+				else
+				{
+					*(data_ptr++) = (unsigned char)round(std::min(std::max(map_value, 0.0), 1.0) * 255.0);
+				}
+			}
+		}
+	}
+	
+	EidosValue_SP result_SP(EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(image, gEidosImage_Class)));
+	
+	// image is now retained by result_SP, so we can release it
+	image->Release();
+	
+	return result_SP;
+}
+
 //	*********************	– (float)spatialMapValue(string$ name, float point)
 //
 #define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
@@ -6920,6 +7048,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddNumeric("value"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("name")->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS("color", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat))->AddString_S("name")->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));

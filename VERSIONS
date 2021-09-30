@@ -50,6 +50,7 @@ development head:
 	allow readFromPopulationFile() with a .trees file even when tree-seq recording is not enabled
 	add an rnbinom() function to draw from a negative binomial distribution
 	add -write(s$ filePath) method to Image, to write an Image as a PNG file
+	add -spatialMapImage() method to Subpopulation to let you get an image for a spatial map
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

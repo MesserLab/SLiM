@@ -1226,6 +1226,7 @@ const std::string &gStr_sampleIndividuals = EidosRegisteredString("sampleIndivid
 const std::string &gStr_subsetIndividuals = EidosRegisteredString("subsetIndividuals", gID_subsetIndividuals);
 const std::string &gStr_defineSpatialMap = EidosRegisteredString("defineSpatialMap", gID_defineSpatialMap);
 const std::string &gStr_spatialMapColor = EidosRegisteredString("spatialMapColor", gID_spatialMapColor);
+const std::string &gStr_spatialMapImage = EidosRegisteredString("spatialMapImage", gID_spatialMapImage);
 const std::string &gStr_spatialMapValue = EidosRegisteredString("spatialMapValue", gID_spatialMapValue);
 const std::string &gStr_outputMSSample = EidosRegisteredString("outputMSSample", gID_outputMSSample);
 const std::string &gStr_outputVCFSample = EidosRegisteredString("outputVCFSample", gID_outputVCFSample);

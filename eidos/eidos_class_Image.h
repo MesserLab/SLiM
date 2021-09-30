@@ -64,7 +64,12 @@ public:
 	EidosImage& operator=(const EidosImage&) = delete;	// no copying
 	
 	explicit EidosImage(std::string p_file_path);
+	EidosImage(int64_t p_width, int64_t p_height, bool p_grayscale);
 	virtual ~EidosImage(void) override;
+	
+	inline int64_t Width(void) { return width_; }
+	inline int64_t Height(void) { return height_; }
+	inline unsigned char *Data(void) { return pixels_.data(); }
 	
 	//
 	// Eidos support
