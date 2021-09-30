@@ -1296,7 +1296,11 @@ std::string Eidos_TemporaryDirectory(void)
 	char charPath[MAX_PATH];
 	if (GetTempPathA(MAX_PATH, charPath))
   		temp_path = charPath;
-	std::replace(temp_path.begin(), temp_path.end(), '\\', '/'); // replace windows slashes
+	// GetTempPathA gives a Windows path with Windows backslashes in it.
+	// This breaks some other code because Eidos treats backslashes
+	// as escape characters. So we replace them with forward slashes
+	// which is understood by both linux and Windows.
+	std::replace(temp_path.begin(), temp_path.end(), '\\', '/'); 
 	return temp_path;
 	#else
 	return "/tmp/";
