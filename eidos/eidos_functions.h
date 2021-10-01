@@ -286,6 +286,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 EidosValue_SP Eidos_ExecuteFunction_setSeed(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_system(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_time(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_usage(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

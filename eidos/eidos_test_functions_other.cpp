@@ -843,6 +843,17 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("suppressWarnings(T);", false);
 	EidosAssertScriptSuccess_L("suppressWarnings(T); suppressWarnings(F);", true);
 	
+	// sysinfo()
+	EidosAssertScriptSuccess_L("x = sysinfo('os'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('sysname'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('release'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('version'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('nodename'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('machine'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('login'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('user'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('foo'); x == 'unknown';", true);
+	
 	// system()
 	if (Eidos_TemporaryDirectoryExists())
 	{
