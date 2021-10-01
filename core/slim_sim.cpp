@@ -7499,17 +7499,22 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 }	
 
 
-void SLiMSim::FreeTreeSequence(void)
+void SLiMSim::FreeTreeSequence(bool p_force_free)
 {
-	// It is now legal to call this without tree-seq recording turned on, so we check
-	if (recording_tree_)
-	{
-		// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
-		// and also when we're wiping the slate clean with something like readFromPopulationFile().
-		tsk_table_collection_free(&tables_);
-		
-		remembered_genomes_.clear();
-	}
+	// If p_force_free is true, we will try to free the table collection, but if it has not been
+	// initialized that might crash.  Normally p_force_free is false, and we try to free only if
+	// recording_tree_ is true, which guarantees that the table collection has been initialized.
+	// So client code should pass true only if they have initialized the tables outside of the
+	// normal context of tree-sequence recording for some reason.  Client code that calls this
+	// with p_force_free==false when recording_tree_ is false will trigger the raise below.
+	if (!p_force_free && !recording_tree_)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::FreeTreeSequence): (internal error) FreeTreeSequence() called in illegal circumstances." << EidosTerminate();
+	
+	// Free any tree-sequence recording stuff that has been allocated; called when SLiMSim is getting deallocated,
+	// and also when we're wiping the slate clean with something like readFromPopulationFile().
+	tsk_table_collection_free(&tables_);
+	
+	remembered_genomes_.clear();
 }
 
 void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
@@ -8930,13 +8935,14 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
+	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	std::string directory_path(p_file);
 	
-	// free the existing table collection; note that we now allow this to be called without tree-seq on, just to load
-	// in that case we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
 	if (recording_tree_)
 		FreeTreeSequence();
-	else
+	
+	// if tree-seq is not enabled, we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
+	if (!recording_tree_)
 		recording_mutations_ = true;
 	
 	// in nucleotide-based models, read the ancestral sequence
@@ -8970,9 +8976,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!recording_tree_)
 	{
-		recording_tree_ = true;
-		FreeTreeSequence();
-		recording_tree_ = false;
+		FreeTreeSequence(true);			// force a free even though recording_tree_, since we know the tables are initialized above
 		recording_mutations_ = false;
 	}
 	
@@ -8981,13 +8985,14 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
+	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	int ret;
 
-	// free the existing table collection; note that we now allow this to be called without tree-seq on, just to load
-	// in that case we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
 	if (recording_tree_)
 		FreeTreeSequence();
-	else
+	
+	// if tree-seq is not enabled, we set recording_mutations_ to true temporarily, so mutations get loaded without a raise
+	if (!recording_tree_)
 		recording_mutations_ = true;
 	
 	ret = tsk_table_collection_load(&tables_, p_file, 0);
@@ -9038,9 +9043,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!recording_tree_)
 	{
-		recording_tree_ = true;
-		FreeTreeSequence();
-		recording_tree_ = false;
+		FreeTreeSequence(true);			// force a free even though recording_tree_, since we know the tables are initialized above
 		recording_mutations_ = false;
 	}
 	
