@@ -4412,7 +4412,18 @@ See
 \f3\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F])
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (string$)tempdir(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns a path to a directory appropriate for saving temporary files
+\f3\b0 .  The path returned by 
+\f1\fs18 tempdir()
+\f3\fs20  is platform-specific, and is not guaranteed to be the same from one run of SLiM to the next.  It is guaranteed to end in a slash, so further path components should be appended without a leading slash.  At present, on macOS and Linux systems, the path will be 
+\f1\fs18 "/tmp/"
+\f3\fs20 ; this may change in future Eidos versions without warning.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F])
 \f2 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4436,6 +4447,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -4459,7 +4471,6 @@ See
 \f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
 \f1\fs18 readFile()
 \f3\fs20  does not currently support reading in compressed data.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f3\fs20 .  If you do not wish to have newlines added, you should use 
@@ -5292,8 +5303,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

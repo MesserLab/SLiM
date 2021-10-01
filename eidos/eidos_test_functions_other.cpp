@@ -267,6 +267,9 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 	// fileExists() – note that the fileExists() tests depend on the previous writeFile() and deleteFile() tests
 	EidosAssertScriptSuccess_L("fileExists('" + temp_path + "/EidosTest.txt');", false);
 	
+	// tempdir() - we don't try to write to it, we just call it
+	EidosAssertScriptSuccess_L("d = tempdir(); length(d) > 0;", true);
+	
 	// writeTempFile()
 	EidosAssertScriptRaise("file = writeTempFile('eidos_test_~', '.txt', '');", 7, "may not contain");
 	EidosAssertScriptRaise("file = writeTempFile('eidos_test_/', '.txt', '');", 7, "may not contain");

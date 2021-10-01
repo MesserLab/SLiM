@@ -382,6 +382,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("flushFile",			Eidos_ExecuteFunction_flushFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("tempdir",			Eidos_ExecuteFunction_tempdir,		kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents")->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 
@@ -10925,6 +10926,12 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_setwd): the working directory could not be set (error " << errno << ")" << EidosTerminate(nullptr);
 	
 	return result_SP;
+}
+
+//	(string$)tempdir(void)
+EidosValue_SP Eidos_ExecuteFunction_tempdir(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Eidos_TemporaryDirectory()));
 }
 
 //	(logical$)flushFile(string$ filePath)
