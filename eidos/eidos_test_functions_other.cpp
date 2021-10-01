@@ -267,6 +267,9 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 	// fileExists() – note that the fileExists() tests depend on the previous writeFile() and deleteFile() tests
 	EidosAssertScriptSuccess_L("fileExists('" + temp_path + "/EidosTest.txt');", false);
 	
+	// tempdir() - we don't try to write to it, we just call it
+	EidosAssertScriptSuccess_L("d = tempdir(); length(d) > 0;", true);
+	
 	// writeTempFile()
 	EidosAssertScriptRaise("file = writeTempFile('eidos_test_~', '.txt', '');", 7, "may not contain");
 	EidosAssertScriptRaise("file = writeTempFile('eidos_test_/', '.txt', '');", 7, "may not contain");
@@ -839,6 +842,17 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("suppressWarnings(F);", false);
 	EidosAssertScriptSuccess_L("suppressWarnings(T);", false);
 	EidosAssertScriptSuccess_L("suppressWarnings(T); suppressWarnings(F);", true);
+	
+	// sysinfo()
+	EidosAssertScriptSuccess_L("x = sysinfo('os'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('sysname'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('release'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('version'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('nodename'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('machine'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('login'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('user'); length(x) > 0;", true);
+	EidosAssertScriptSuccess_L("x = sysinfo('foo'); x == 'unknown';", true);
 	
 	// system()
 	if (Eidos_TemporaryDirectoryExists())

@@ -16,7 +16,7 @@ initialize() {
 }
 1000 late() {
 	// save the state of the simulation
-	sim.outputFull("/tmp/slim_" + simID + ".txt");
+	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 	
 	// introduce the sweep mutation
 	target = sample(p1.genomes, 1);
@@ -39,7 +39,7 @@ initialize() {
 		cat(simID + ": LOST BEFORE ESTABLISHMENT - RESTARTING\n");
 		
 		// go back to generation 1000
-		sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
+		sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 		
 		// start a newly seeded run
 		setSeed(rdunif(1, 0, asInteger(2^62) - 1));

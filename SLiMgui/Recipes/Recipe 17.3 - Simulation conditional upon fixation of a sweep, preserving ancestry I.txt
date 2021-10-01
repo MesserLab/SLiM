@@ -16,7 +16,7 @@ initialize() {
 1000 late() {
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
-	sim.outputFull("/tmp/slim_" + simID + ".txt");
+	sim.outputFull(tempdir() + "slim_" + simID + ".txt");
 }
 1000:100000 late() {
 	if (sim.countOfMutationsOfType(m3) == 0) {
@@ -26,7 +26,7 @@ initialize() {
 		} else {
 			cat(simID + ": LOST - RESTARTING\n");
 			
-			sim.readFromPopulationFile("/tmp/slim_" + simID + ".txt");
+			sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
 		}
 	}

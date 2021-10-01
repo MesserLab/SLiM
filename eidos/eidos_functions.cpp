@@ -44,6 +44,9 @@
 #include <limits>
 #include <sys/stat.h>
 #include <sys/param.h>
+#include <sys/utsname.h>
+#include <pwd.h>
+#include <uuid/uuid.h>
 
 #include "string.h"
 
@@ -363,6 +366,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("suppressWarnings",	Eidos_ExecuteFunction_suppressWarnings,			kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddLogical_S("suppress"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sysinfo",			Eidos_ExecuteFunction_sysinfo,		kEidosValueMaskAny))->AddString_S("key"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("system",			Eidos_ExecuteFunction_system,		kEidosValueMaskString))->AddString_S("command")->AddString_O("args", gStaticEidosValue_StringEmpty)->AddString_O("input", gStaticEidosValue_StringEmpty)->AddLogical_OS("stderr", gStaticEidosValue_LogicalF)->AddLogical_OS("wait", gStaticEidosValue_LogicalT));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("time",				Eidos_ExecuteFunction_time,			kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("usage",				Eidos_ExecuteFunction_usage,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddLogical_OS("peak", gStaticEidosValue_LogicalF));
@@ -382,6 +386,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("flushFile",			Eidos_ExecuteFunction_flushFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("readFile",			Eidos_ExecuteFunction_readFile,		kEidosValueMaskString))->AddString_S(gEidosStr_filePath));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setwd",				Eidos_ExecuteFunction_setwd,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("path"));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("tempdir",			Eidos_ExecuteFunction_tempdir,		kEidosValueMaskString | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeFile",			Eidos_ExecuteFunction_writeFile,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddString("contents")->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("writeTempFile",		Eidos_ExecuteFunction_writeTempFile,	kEidosValueMaskString | kEidosValueMaskSingleton))->AddString_S("prefix")->AddString_S("suffix")->AddString("contents")->AddLogical_OS("compress", gStaticEidosValue_LogicalF));
 
@@ -10927,6 +10932,12 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 	return result_SP;
 }
 
+//	(string$)tempdir(void)
+EidosValue_SP Eidos_ExecuteFunction_tempdir(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Eidos_TemporaryDirectory()));
+}
+
 //	(logical$)flushFile(string$ filePath)
 EidosValue_SP Eidos_ExecuteFunction_flushFile(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -12420,6 +12431,82 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValu
 	gEidosSuppressWarnings = new_suppress;
 	
 	return (old_suppress ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+}
+
+//	(*)sysinfo(string$ key)
+EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue *key_value = p_arguments[0].get();
+	std::string key = key_value->StringAtIndex(0, nullptr);
+	
+	if (key == "os")
+	{
+#if defined(__APPLE__)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("macOS"));
+#elif defined(_WIN32) || (_WIN64)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Windows"));
+#else
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("Unix"));		// assumed if we are not macOS or Windows
+#endif
+	}
+	else if (key == "sysname")
+	{
+		struct utsname name;
+		int ret = uname(&name);
+		
+		if (ret == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.sysname));
+	}
+	else if (key == "release")
+	{
+		struct utsname name;
+		int ret = uname(&name);
+		
+		if (ret == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.release));
+	}
+	else if (key == "version")
+	{
+		struct utsname name;
+		int ret = uname(&name);
+		
+		if (ret == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.version));
+	}
+	else if (key == "nodename")
+	{
+		struct utsname name;
+		int ret = uname(&name);
+		
+		if (ret == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.nodename));
+	}
+	else if (key == "machine")
+	{
+		struct utsname name;
+		int ret = uname(&name);
+		
+		if (ret == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.machine));
+	}
+	else if (key == "login")
+	{
+		char *name = getlogin();
+		
+		if (name)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name));
+	}
+	else if (key == "user")
+	{
+		uid_t uid = getuid();
+		struct passwd *pwd = getpwuid(uid);
+		
+		if (pwd && pwd->pw_name)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(pwd->pw_name));
+	}
+	
+	// if we fall through the here, the value is unknown
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("unknown"));
 }
 
 //	(string)system(string$ command, [string args = ""], [string input = ""], [logical$ stderr = F], [logical$ wait = T])

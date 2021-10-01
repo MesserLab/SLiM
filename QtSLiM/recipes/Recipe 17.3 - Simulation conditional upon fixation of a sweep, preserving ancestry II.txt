@@ -16,7 +16,7 @@ initialize() {
 1000 late() {
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
-	sim.treeSeqOutput("/tmp/slim_" + simID + ".trees");
+	sim.treeSeqOutput(tempdir() + "slim_" + simID + ".trees");
 }
 1000:100000 late() {
 	if (sim.countOfMutationsOfType(m3) == 0) {
@@ -27,7 +27,7 @@ initialize() {
 		} else {
 			cat(simID + ": LOST - RESTARTING\n");
 			
-			sim.readFromPopulationFile("/tmp/slim_" + simID + ".trees");
+			sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".trees");
 			setSeed(rdunif(1, 0, asInteger(2^62) - 1));
 		}
 	}

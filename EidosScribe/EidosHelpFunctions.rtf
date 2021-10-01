@@ -4412,7 +4412,18 @@ See
 \f3\fs20 .\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F])
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (string$)tempdir(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns a path to a directory appropriate for saving temporary files
+\f3\b0 .  The path returned by 
+\f1\fs18 tempdir()
+\f3\fs20  is platform-specific, and is not guaranteed to be the same from one run of SLiM to the next.  It is guaranteed to end in a slash, so further path components should be appended without a leading slash.  At present, on macOS and Linux systems, the path will be 
+\f1\fs18 "/tmp/"
+\f3\fs20 ; this may change in future Eidos versions without warning.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (logical$)writeFile(string$\'a0filePath, string\'a0contents, [logical$\'a0append\'a0=\'a0F], [logical$\'a0compress\'a0=\'a0F])
 \f2 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4436,6 +4447,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -4459,7 +4471,6 @@ See
 \f3\fs20  option was added in Eidos 2.4 (SLiM 3.4).  Note that 
 \f1\fs18 readFile()
 \f3\fs20  does not currently support reading in compressed data.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Note that newline characters will be added at the ends of the lines in 
 \f1\fs18 contents
 \f3\fs20 .  If you do not wish to have newlines added, you should use 
@@ -5292,8 +5303,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 
@@ -5499,7 +5511,75 @@ The
 \f3\fs20 , making it easy to suppress warnings from a given call and then return to the previous suppression state afterwards.  It is recommended that warnings be suppressed only around short blocks of code (not all the time), so that unexpected but perhaps important warnings are not missed.  And of course warnings are generally emitted for good reasons; before deciding to disregard a given warning, make sure that you understand exactly why it is being issued, and are certain that it does not represent a serious problem.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F], [logical$\'a0wait\'a0=\'a0T])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)sysinfo(string$\'a0key)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns information about the system
+\f3\b0 .  The information returned by 
+\f1\fs18 tempdir()
+\f3\fs20  depends upon the value of 
+\f1\fs18 key
+\f3\fs20 , which selects one of the pieces of information listed:\
+\pard\pardeftab2160\li547\fi360\sa60\partightenfactor0
+
+\f0\b \cf2 \ul \ulc2 key
+\f3\b0 \ulnone 	
+\f0\b \ul value
+\f3\b0 \ulnone \
+\pard\pardeftab2160\li547\fi360\sa60\partightenfactor0
+
+\f1\fs18 \cf2 os
+\f3\fs20 	the name of the OS; 
+\f1\fs18 "macOS"
+\f3\fs20  or 
+\f1\fs18 "Windows"
+\f3\fs20 , or 
+\f1\fs18 "Unix"
+\f3\fs20  for all others\
+
+\f1\fs18 sysname
+\f3\fs20 	the name of the kernel\
+
+\f1\fs18 release
+\f3\fs20 	the operating system (kernel) release\
+
+\f1\fs18 version
+\f3\fs20 	the operating system (kernel) version\
+
+\f1\fs18 nodename
+\f3\fs20 	the name by which the machine is known on the network\
+
+\f1\fs18 machine
+\f3\fs20 	the hardware type; often the CPU type (e.g., 
+\f1\fs18 "x86_64"
+\f3\fs20 )\
+
+\f1\fs18 login
+\f3\fs20 	the user\'92s login name (this may be \'93root\'94 if there is a root login process)\
+
+\f1\fs18 user
+\f3\fs20 	the name of the real user ID\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The value 
+\f1\fs18 "unknown"
+\f3\fs20  will be returned for a key if the correct value cannot be ascertained.  Note that the values of keys that refer to the kernel may not be what you expect; for example, on one particular macOS 10.15.7 system, 
+\f1\fs18 sysname
+\f3\fs20  returns 
+\f1\fs18 "Darwin"
+\f3\fs20 , 
+\f1\fs18 release
+\f3\fs20  returns 
+\f1\fs18 "19.6.0"
+\f3\fs20 , and 
+\f1\fs18 version
+\f3\fs20  returns 
+\f1\fs18 "Darwin Kernel Version 19.6.0: Thu Sep 16 20:58:47 PDT 2021; root:xnu-6153.141.40.1~1/RELEASE_X86_64"
+\f3\fs20 .\
+\pard\pardeftab1800\li547\sa180\partightenfactor0
+\cf2 Further keys can be added if there is information that would be useful.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (string)system(string$\'a0command, [string\'a0args\'a0=\'a0""], [string\'a0input\'a0=\'a0""], [logical$\'a0stderr\'a0=\'a0F], [logical$\'a0wait\'a0=\'a0T])\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf0 Runs a Un*x command in a 
