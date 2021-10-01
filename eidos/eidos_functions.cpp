@@ -45,8 +45,12 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/utsname.h>
+
+#if 0
+// These would enable further keys in sysinfo(), but cause problems on Ubuntu 18.04 and/or Windows
 #include <pwd.h>
 #include <uuid/uuid.h>
+#endif
 
 #include "string.h"
 
@@ -12489,6 +12493,8 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		if (ret == 0)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name.machine));
 	}
+#if 0
+	// "login" doesn't work on Windows, and "user" doesn't work on both Windows and Ubuntu 18.04; disabling both for now, nobody has asked for them anyway
 	else if (key == "login")
 	{
 		char *name = getlogin();
@@ -12504,6 +12510,7 @@ EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_
 		if (pwd && pwd->pw_name)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(pwd->pw_name));
 	}
+#endif
 	
 	// if we fall through the here, the value is unknown
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("unknown"));
