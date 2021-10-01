@@ -850,8 +850,9 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("x = sysinfo('version'); length(x) > 0;", true);
 	EidosAssertScriptSuccess_L("x = sysinfo('nodename'); length(x) > 0;", true);
 	EidosAssertScriptSuccess_L("x = sysinfo('machine'); length(x) > 0;", true);
-	EidosAssertScriptSuccess_L("x = sysinfo('login'); length(x) > 0;", true);
-	EidosAssertScriptSuccess_L("x = sysinfo('user'); length(x) > 0;", true);
+	// These two keys are not yet supported due to problems on Windows and Ubuntu 18.04
+	//EidosAssertScriptSuccess_L("x = sysinfo('login'); length(x) > 0;", true);
+	//EidosAssertScriptSuccess_L("x = sysinfo('user'); length(x) > 0;", true);
 	EidosAssertScriptSuccess_L("x = sysinfo('foo'); x == 'unknown';", true);
 	
 	// system()
