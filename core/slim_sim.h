@@ -151,11 +151,20 @@ typedef struct __attribute__((__packed__)) {
 
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
+	slim_pedigreeid_t pedigree_p1_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 1
+	slim_pedigreeid_t pedigree_p2_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 2
 	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
 	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
 } IndividualMetadataRec;
+typedef struct __attribute__((__packed__)) {
+	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
+	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
+	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
+	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
+	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
+} IndividualMetadataRec_PREPARENT;	// used to read .trees file versions 0.6 and earlier, before parent pedigree ids were added
 
 #define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this generation
 
@@ -183,7 +192,7 @@ typedef struct __attribute__((__packed__)) {
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
-static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec is not 24 bytes!");
+static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
 static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");
 static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec is not 12 bytes!");
 
@@ -458,6 +467,15 @@ private:
     std::vector<tsk_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
 	
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
+	typedef robin_hood::pair<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH_PAIR;
+#elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
+	typedef std::pair<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH_PAIR;
+#endif
+	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
+	
 	bool running_coalescence_checks_ = false;	// true if we check for coalescence after each simplification
 	bool last_coalescence_state_ = false;		// if running_coalescence_checks_==true, updated every simplification
 	
@@ -665,8 +683,8 @@ public:
 	void RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, const Genome *p_initial_parental_genome, const Genome *p_second_parental_genome);
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
-    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, tsk_flags_t p_flags);
-	void AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables);
+    void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags);
+	void AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
@@ -676,6 +694,8 @@ public:
 	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
+	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
+	void BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
