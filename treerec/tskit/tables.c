@@ -9507,11 +9507,15 @@ tsk_table_collection_check_individual_integrity(
                 goto out;
             }
             /* Check parents are ordered */
+			// BCH 10/8/2021: optimistically removing this check, in the hopes that
+			// https://github.com/tskit-dev/tskit/issues/1774 gets approved.
+			/*
             if (check_individual_ordering && individuals.parents[k] != TSK_NULL
                 && individuals.parents[k] >= (tsk_id_t) j) {
                 ret = TSK_ERR_UNSORTED_INDIVIDUALS;
                 goto out;
             }
+			*/
         }
     }
 out:
