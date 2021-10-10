@@ -333,11 +333,11 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	color manipulation functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("colors",			Eidos_ExecuteFunction_colors,		kEidosValueMaskString))->AddNumeric(gEidosStr_x)->AddString_S("name"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rainbow",			Eidos_ExecuteFunction_rainbow,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->AddFloat_OS(gEidosStr_s, gStaticEidosValue_Float1)->AddFloat_OS("v", gStaticEidosValue_Float1)->AddFloat_OS(gEidosStr_start, gStaticEidosValue_Float0)->AddFloat_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddLogical_OS("ccw", gStaticEidosValue_LogicalT));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,	kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString))->AddFloat("rgb"));
