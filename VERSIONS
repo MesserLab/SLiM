@@ -53,6 +53,7 @@ development head:
 	add -spatialMapImage() method to Subpopulation to let you get an image for a spatial map
 	add tempdir() function to Eidos for better cross-platform support; revise recipes that use /tmp to use this (9.2, 9.3, 9.6.2, 17.3 I, 17.3 II)
 	add sysinfo() function to Eidos for better cross-platform support
+	add grep() function to Eidos for regular expression matching
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

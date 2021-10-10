@@ -86,6 +86,8 @@ extern EidosValue_String_SP gStaticEidosValue_StringSpace;
 extern EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 extern EidosValue_String_SP gStaticEidosValue_StringComma;
+extern EidosValue_String_SP gStaticEidosValue_String_ECMAScript;
+extern EidosValue_String_SP gStaticEidosValue_String_indices;
 
 
 #pragma mark -

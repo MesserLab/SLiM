@@ -198,6 +198,7 @@ EidosValue_SP Eidos_ExecuteFunction_type(const std::vector<EidosValue_SP> &p_arg
 #pragma mark -
 
 //	string manipulation functions
+EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_strcontains(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
