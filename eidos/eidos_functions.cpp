@@ -11121,7 +11121,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 }
 
 //	(string$)tempdir(void)
-EidosValue_SP Eidos_ExecuteFunction_tempdir(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_tempdir(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Eidos_TemporaryDirectory()));
 }
@@ -12622,7 +12622,7 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValu
 }
 
 //	(*)sysinfo(string$ key)
-EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *key_value = p_arguments[0].get();
 	std::string key = key_value->StringAtIndex(0, nullptr);
