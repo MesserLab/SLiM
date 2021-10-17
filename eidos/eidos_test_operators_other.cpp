@@ -87,8 +87,8 @@ void _RunOperatorSubsetTests(void)
 	EidosAssertScriptRaise("x = 5; x[-1];", 8, "out of range");
 	EidosAssertScriptSuccess_IV("x = 5; x[integer(0)];", {});
 	EidosAssertScriptSuccess_I("x = 5; x[0.0];", 5);
-	EidosAssertScriptRaise("x = 5; x[1.0];", 8, "out of range");
-	EidosAssertScriptRaise("x = 5; x[-1.0];", 8, "out of range");
+	EidosAssertScriptRaise("x = 5; x[1.0];", 8, "out-of-range");
+	EidosAssertScriptRaise("x = 5; x[-1.0];", 8, "out-of-range");
 	EidosAssertScriptSuccess_IV("x = 5; x[float(0)];", {});
 	
 	EidosAssertScriptRaise("x = 5:9; x[matrix(0)];", 10, "matrix or array index operand is not supported");

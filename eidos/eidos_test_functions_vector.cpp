@@ -1111,15 +1111,10 @@ void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
 #pragma mark value type testing / coercion
 void _RunStringManipulationTests(void)
 {
-	// grep() - we test only ECMAScript.  There is a problem with grep on Ubuntu 18.04 for some reason, so we check for that here and issue a warning as needed
-	std::regex pattern_regex("cd", std::regex_constants::ECMAScript);
-	std::string x_element = "bcd";
-	std::smatch match_info;
-	bool is_match = std::regex_search(x_element, match_info, pattern_regex);
-	
-	if (!is_match)
+	// grep() - we test only ECMAScript
+	if (!Eidos_RegexWorks())
 	{
-		std::cout << "WARNING: This build of Eidos does not have a working grep() function, due to a bug in the underlying C++ standard library provided by the system.  Calls to grep() with fixed=F, to do regular expression matching, will find that the pattern never matches any string; the grep() function should therefore only be used with fixed=T.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
+		std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, another warning will be emitted.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
 	}
 	else
 	{
@@ -1399,8 +1394,8 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess_SV("asString(-1);", {"-1"});
 	EidosAssertScriptSuccess_SV("asString(3);", {"3"});
 	EidosAssertScriptSuccess_SV("asString(-1:3);", {"-1","0","1","2","3"});
-	EidosAssertScriptSuccess_SV("asString(-1.0:3);", {"-1","0","1","2","3"});
-	EidosAssertScriptSuccess_SV("asString(c(1.0, NAN, -2.0));", {"1","NAN","-2"});
+	EidosAssertScriptSuccess_SV("asString(-1.0:3);", {"-1.0","0.0","1.0","2.0","3.0"});
+	EidosAssertScriptSuccess_SV("asString(c(1.0, NAN, -2.0));", {"1.0","NAN","-2.0"});
 	EidosAssertScriptSuccess_SV("asString(c(T,F,T,F));", {"T","F","T","F"});
 	EidosAssertScriptSuccess_SV("asString(c('1','2','3'));", {"1","2","3"});
 	EidosAssertScriptSuccess_L("identical(asString(matrix(-1:3)), matrix(c('-1','0','1','2','3')));", true);

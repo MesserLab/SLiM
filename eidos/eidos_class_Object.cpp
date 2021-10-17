@@ -28,6 +28,7 @@
 #include "eidos_value.h"
 #include "eidos_class_Object.h"
 #include "eidos_class_Dictionary.h"
+#include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
 #include "eidos_class_TestElement.h"
 #include "json.hpp"
@@ -286,6 +287,7 @@ std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_c
 			(class_object == gEidosTestElement_Class) ||
 			(class_object == gEidosDictionaryUnretained_Class) ||
 			(class_object == gEidosDictionaryRetained_Class) ||
+			(class_object == gEidosDataFrame_Class) ||
 			(class_object == gEidosImage_Class))
 			builtin = true;
 		

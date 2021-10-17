@@ -55,10 +55,10 @@ void _RunOperatorPlusTests1(void)
 	EidosAssertScriptSuccess_FV("(15.0:13)+(0:2.0);", {15, 15, 15});
 	EidosAssertScriptRaise("(15:12.0)+(0:2);", 9, "operator requires that either");
 	EidosAssertScriptSuccess_S("'foo'+5;", "foo5");
-	EidosAssertScriptSuccess_S("'foo'+5.0;", "foo5");
+	EidosAssertScriptSuccess_S("'foo'+5.0;", "foo5.0");
 	EidosAssertScriptSuccess_S("'foo'+5.1;", "foo5.1");
 	EidosAssertScriptSuccess_S("5+'foo';", "5foo");
-	EidosAssertScriptSuccess_S("5.0+'foo';", "5foo");
+	EidosAssertScriptSuccess_S("5.0+'foo';", "5.0foo");
 	EidosAssertScriptSuccess_S("5.1+'foo';", "5.1foo");
 	EidosAssertScriptSuccess_SV("'foo'+1:3;", {"foo1", "foo2", "foo3"});
 	EidosAssertScriptSuccess_SV("1:3+'foo';", {"1foo", "2foo", "3foo"});

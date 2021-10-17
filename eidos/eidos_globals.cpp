@@ -26,6 +26,7 @@
 #include "eidos_ast_node.h"
 #include "eidos_class_Object.h"
 #include "eidos_class_Dictionary.h"
+#include "eidos_class_DataFrame.h"
 #include "eidos_class_Image.h"
 #include "eidos_class_TestElement.h"
 
@@ -49,6 +50,7 @@
 #include <utility>
 #include <iomanip>
 #include <sys/param.h>
+#include <regex>
 
 // added for Eidos_mkstemps() and Eidos_TemporaryDirectoryExists()
 #include <sys/stat.h>
@@ -278,6 +280,8 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("*"));
 		gStaticEidosValue_StringDoubleAsterisk = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("**"));
 		gStaticEidosValue_StringComma = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(","));
+		gStaticEidosValue_StringPeriod = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("."));
+		gStaticEidosValue_StringDoubleQuote = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("\""));
 		gStaticEidosValue_String_ECMAScript = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("ECMAScript"));
 		gStaticEidosValue_String_indices = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("indices"));
 		
@@ -287,6 +291,7 @@ void Eidos_WarmUp(void)
 		gEidosObject_Class =				new EidosClass(							gEidosStr_Object,			nullptr);
 		gEidosDictionaryUnretained_Class =	new EidosDictionaryUnretained_Class(	gEidosStr_DictionaryBase,	gEidosObject_Class);
 		gEidosDictionaryRetained_Class =	new EidosDictionaryRetained_Class(		gEidosStr_Dictionary,		gEidosDictionaryUnretained_Class);
+		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,		gEidosDictionaryRetained_Class);
 		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,			gEidosDictionaryRetained_Class);
 		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,		gEidosDictionaryRetained_Class);
 		
@@ -2128,7 +2133,7 @@ bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &su
 	}
 }
 
-// case-insensitive string find; see https://stackoverflow.com/a/19839371/2752221
+// case-insensitive string find and string equality; see https://stackoverflow.com/a/19839371/2752221
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle)
 {
 	auto it = std::search(
@@ -2137,6 +2142,14 @@ bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const 
 						  [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); }
 						  );
 	return (it != strHaystack.end() );
+}
+
+bool Eidos_string_equalsCaseInsensitive(const std::string &s1, const std::string &s2)
+{
+	if (s1.length() != s2.length())
+		return false;
+	
+	return Eidos_string_containsCaseInsensitive(s1, s2);
 }
 
 // quotes and adds backslash escapes
@@ -2192,6 +2205,28 @@ std::string Eidos_string_escaped(const std::string &unescapedString, EidosString
 	return escapedString;
 }
 
+// quotes and ""-escapes quotes
+std::string Eidos_string_escaped_CSV(const std::string &unescapedString)
+{
+	std::string escapedString;
+	
+	escapedString = '"';
+	
+	// add characters from unquotedString one by one, escaping them if necessary; for CSV we only escape double quotes
+	for (char ch : unescapedString)
+	{
+		if (ch == '\"')
+			escapedString += "\"\"";	// a single " turns into "", in the CSV quoting style
+		else
+			escapedString += ch;
+	}
+	
+	// add the closing quote
+	escapedString += '"';
+	
+	return escapedString;
+}
+
 // run a Un*x command; thanks to http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c-using-posix
 /*std::string Eidos_Exec(const char *p_cmd)
 {
@@ -2224,8 +2259,45 @@ std::string EidosStringForFloat(double p_value)
 		std::ostringstream ss;
 		ss << std::setprecision(gEidosFloatOutputPrecision);
 		ss << p_value;
-		return ss.str();
+		std::string string_value = ss.str();
+		
+		// BCH 10/13/2021: I'd like float values to always print with a decimal point.  This is a change in
+		// behavior in Eidos 2.7 (SLiM 3.7), but it seems unlikely to bite anybody – the opposite, really,
+		// since it increases clarity and consistency.  So now we look for a decimal point in the float,
+		// and if there is none, we append ".0".  We also need to worry about scientific notation; if there
+		// is an "e" or "E", we insert the ".0" just before that to produce 1.0e30 rather than 1e30.
+		if (string_value.find(".") == std::string::npos)
+		{
+			size_t e_pos = string_value.find_first_of("eE");
+			
+			if (e_pos == std::string::npos)
+				string_value.append(".0");
+			else
+				string_value.insert(e_pos, ".0");
+		}
+		
+		return string_value;
 	}
+}
+
+bool Eidos_RegexWorks(void)
+{
+	// check whether <regex> works, because on some platforms it doesn't (!); test just once and cache the result
+	static bool beenHere = false;
+	static bool regex_works = false;
+	
+	if (!beenHere)
+	{
+		std::regex pattern_regex("cd", std::regex_constants::ECMAScript);
+		std::string x_element = "bcd";
+		std::smatch match_info;
+		bool is_match = std::regex_search(x_element, match_info, pattern_regex);
+		
+		regex_works = is_match;
+		beenHere = true;
+	}
+	
+	return regex_works;
 }
 
 
@@ -2583,6 +2655,18 @@ const std::string &gEidosStr_setValue = EidosRegisteredString("setValue", gEidos
 
 // strings for Dictionary (i.e., for EidosDictionaryRetained, which is the publicly visible class called "Dictionary" in Eidos)
 const std::string &gEidosStr_Dictionary = EidosRegisteredString("Dictionary", gEidosID_Dictionary);
+
+// strings for DataFrame
+const std::string &gEidosStr_DataFrame = EidosRegisteredString("DataFrame", gEidosID_DataFrame);
+const std::string &gEidosStr_colNames = EidosRegisteredString("colNames", gEidosID_colNames);
+const std::string &gEidosStr_dim = EidosRegisteredString("dim", gEidosID_dim);
+const std::string &gEidosStr_ncol = EidosRegisteredString("ncol", gEidosID_ncol);
+const std::string &gEidosStr_nrow = EidosRegisteredString("nrow", gEidosID_nrow);
+const std::string &gEidosStr_cbind = EidosRegisteredString("cbind", gEidosID_cbind);
+const std::string &gEidosStr_rbind = EidosRegisteredString("rbind", gEidosID_rbind);
+const std::string &gEidosStr_subset = EidosRegisteredString("subset", gEidosID_subset);
+const std::string &gEidosStr_subsetColumns = EidosRegisteredString("subsetColumns", gEidosID_subsetColumns);
+const std::string &gEidosStr_subsetRows = EidosRegisteredString("subsetRows", gEidosID_subsetRows);
 
 // strings for EidosImage
 const std::string &gEidosStr_Image = EidosRegisteredString("Image", gEidosID_Image);

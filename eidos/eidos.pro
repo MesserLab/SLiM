@@ -71,6 +71,7 @@ SOURCES += \
     eidos_ast_node.cpp \
     eidos_beep.cpp \
     eidos_call_signature.cpp \
+    eidos_class_DataFrame.cpp \
     eidos_class_Dictionary.cpp \
     eidos_class_Image.cpp \
     eidos_class_Object.cpp \
@@ -100,6 +101,7 @@ HEADERS += \
     eidos_ast_node.h \
     eidos_beep.h \
     eidos_call_signature.h \
+	eidos_class_DataFrame.h \
     eidos_class_Dictionary.h \
     eidos_class_Object.h \
     eidos_class_TestElement.h \

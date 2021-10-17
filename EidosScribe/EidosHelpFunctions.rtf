@@ -5,9 +5,9 @@
 \f9\fswiss\fcharset0 Helvetica-Oblique;\f10\fswiss\fcharset0 Helvetica;\f11\fnil\fcharset0 Menlo-Bold;
 \f12\ftech\fcharset77 Symbol;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;\red213\green0\blue5;
-}
+\red150\green150\blue150;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;\cssrgb\c87536\c0\c0;
-}
+\cssrgb\c65500\c65500\c65500;}
 {\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
 {\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
 {\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}}
@@ -4515,9 +4515,229 @@ The initial working directory is \'96 as is generally the case on Un*x \'96 simp
 \f3\fs20 , if you are not sure.  Alternatively, you can simply use 
 \f1\fs18 setwd()
 \f3\fs20  to set the working directory to a known path.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (object<DataFrame>$)readCSV(string$\'a0filePath, [ls\'a0colNames\'a0=\'a0T], [Ns$\'a0colTypes\'a0=\'a0NULL], [string$\'a0sep\'a0=\'a0","], [string$\'a0quote\'a0=\'a0'"'], [string$\'a0dec\'a0=\'a0"."], [string$\'a0comment\'a0=\'a0""])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Reads data from a CSV or other delimited file
+\f3\b0  specified by 
+\f1\fs18 filePath
+\f3\fs20  and returns a 
+\f1\fs18 DataFrame
+\f3\fs20  object containing the data in a tabular form.  CSV (comma-separated value) files use a somewhat standard file format in which a table of data is provided, with values within a row separated by commas, while rows in the table are separated by newlines.  Software from R to Excel (and Eidos; see the 
+\f1\fs18 serialize()
+\f3\fs20  method of 
+\f1\fs18 Dictionary
+\f3\fs20 ) can export data in CSV format.  This function can actually also read files that use a delimiter other than commas; TSV (tab-separated value) files are a popular alternative.  Since there is substantial variation in the exact file format for CSV files, this documentation will try to specify the precise format expected by this function.  Note that CSV files represent values differently that Eidos usually does, and some of the format options allowed by 
+\f1\fs18 readCSV()
+\f3\fs20 , such as decimal commas, are not otherwise available in Eidos.\
+If 
+\f1\fs18 colNames
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20  (the default), the first row of data is taken to be a header, containing the string names of the columns in the data table; those names will be used by the resulting 
+\f1\fs18 DataFrame
+\f3\fs20 .  If 
+\f1\fs18 colNames
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20 , a header row is not expected and column names are auto-generated as 
+\f1\fs18 X1
+\f3\fs20 , 
+\f1\fs18 X2
+\f3\fs20 , etc.  If 
+\f1\fs18 colNames
+\f3\fs20  is a 
+\f1\fs18 string
+\f3\fs20  vector, a header row is not expected and 
+\f1\fs18 colNames
+\f3\fs20  will be used as the column names; if additional columns exist beyond the length of 
+\f1\fs18 colNames
+\f3\fs20  their names will be auto-generated.  Duplicate column names will generate a warning and be made unique.\
+If 
+\f1\fs18 colTypes
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20  (the default), the value type for each column will be guessed from the values it contains, as described below.  If 
+\f1\fs18 colTypes
+\f3\fs20  is a singleton 
+\f1\fs18 string
+\f3\fs20 , it should contain single-letter codes indicating the desired type for each column, from left to right.  The letters 
+\f1\fs18 lifs
+\f3\fs20  have the same meaning as in Eidos signatures (
+\f1\fs18 logical
+\f3\fs20 , 
+\f1\fs18 integer
+\f3\fs20 , 
+\f1\fs18 float
+\f3\fs20 , and 
+\f1\fs18 string
+\f3\fs20 ); in addition, 
+\f1\fs18 ?
+\f3\fs20  may be used to indicate that the type for that column should be guessed as by default, and 
+\f1\fs18 _
+\f3\fs20  or 
+\f1\fs18 -
+\f3\fs20  may be used to indicate that that column should be skipped \'96 omitted from the returned 
+\f1\fs18 DataFrame
+\f3\fs20 .  Other characters in 
+\f1\fs18 colTypes
+\f3\fs20  will result in an error.  If additional columns exist beyond the end of the 
+\f1\fs18 colTypes
+\f3\fs20  string their types will be guessed as by default.\
+The separator between values is supplied by 
+\f1\fs18 sep
+\f3\fs20 ; it is a comma by default, but a tab can be used instead by supplying tab (
+\f1\fs18 "\\t"
+\f3\fs20  in Eidos), or another character may also be used.\
+Similarly, the character used to quote string values is a double quote (
+\f1\fs18 '"'
+\f3\fs20  in Eidos), by default, but another character may be supplied in 
+\f1\fs18 quote
+\f3\fs20 .  When the string delimiter is encountered, 
+\f7\i all
+\f3\i0  following characters are considered to be part of the string until another string delimiter is encountered, terminating the string; this includes spaces, comment characters, newlines, and everything else.  Within a string value, the string delimiter itself is used twice in a row to indicate that the delimiter itself is present within the string; for example, if the string value (shown without the usual surrounding quotes to try to avoid confusion) is 
+\f1\fs18 she said "hello"
+\f3\fs20 , and the string delimiter is the double quote as it is by default, then in the CSV file the value would be given as 
+\f1\fs18 "she said ""hello"""
+\f3\fs20 .  The usual Eidos style of escaping characters using a backslash is 
+\f7\i not
+\f3\i0  part of the CSV standard followed here.  (When a string value is provided 
+\f7\i without
+\f3\i0  using the string delimiter, all following characters are considered part of the string except a newline, the value separator 
+\f1\fs18 sep
+\f3\fs20 , the quote separator 
+\f1\fs18 quote
+\f3\fs20 , and the comment separator 
+\f1\fs18 comment
+\f3\fs20 ; if none of those characters are present in the string value, the quote delimiter may be omitted.)\
+The character used to indicate a decimal delimiter in numbers may be supplied with 
+\f1\fs18 dec
+\f3\fs20 ; by default this is 
+\f1\fs18 "."
+\f3\fs20  (and so 
+\f1\fs18 10.0
+\f3\fs20  would be ten, written with a decimal point), but 
+\f1\fs18 ","
+\f3\fs20  is common in European data files (and so 
+\f1\fs18 10,0
+\f3\fs20  would be ten, written with a decimal comma).  Note that 
+\f1\fs18 dec
+\f3\fs20  and 
+\f1\fs18 sep
+\f3\fs20  may not be the same, so that it is unambiguous whether 
+\f1\fs18 10,0
+\f3\fs20  is two numbers (
+\f1\fs18 10
+\f3\fs20  and 
+\f1\fs18 0
+\f3\fs20 ) or one number (
+\f1\fs18 10.0
+\f3\fs20 ).  For this reason, European CSV files that use a decimal comma typically use a semicolon as the value separator, which may be supplied with 
+\f1\fs18 sep=";"
+\f3\fs20  to 
+\f1\fs18 readCSV()
+\f3\fs20 .\
+Finally, the remainder of a line following a comment character will be ignored when the file is read; by default 
+\f1\fs18 comment
+\f3\fs20  is the empty string, 
+\f1\fs18 ""
+\f3\fs20 , indicating that comments do not exist at all, but 
+\f1\fs18 "#"
+\f3\fs20  is a popular comment prefix.\
+To translate the CSV data into a 
+\f1\fs18 DataFrame
+\f3\fs20 , it is necessary for Eidos to guess what value type each column is unless a column type is specified by 
+\f1\fs18 colTypes
+\f3\fs20 .  Quotes surrounding a value are irrelevant to this guess; for example, 
+\f1\fs18 1997
+\f3\fs20  and 
+\f1\fs18 "1997"
+\f3\fs20  are both candidates to be 
+\f1\fs18 integer
+\f3\fs20  values (because some programs generate CSV output in which 
+\f7\i every
+\f3\i0  value is quoted regardless of type).  If 
+\f7\i every
+\f3\i0  value in a column is either 
+\f1\fs18 true
+\f3\fs20 , 
+\f1\fs18 false
+\f3\fs20 , 
+\f1\fs18 TRUE
+\f3\fs20 , 
+\f1\fs18 FALSE
+\f3\fs20 , 
+\f1\fs18 T
+\f3\fs20 , or 
+\f1\fs18 F
+\f3\fs20 , the column will be taken to be 
+\f1\fs18 logical
+\f3\fs20 .  Otherwise, if 
+\f7\i every
+\f3\i0  value in a column is an integer (here defined as an optional 
+\f1\fs18 +
+\f3\fs20  or 
+\f1\fs18 -
+\f3\fs20 , followed by nothing but decimal digits 
+\f1\fs18 0123456789
+\f3\fs20 ), the column will be taken to be 
+\f1\fs18 integer
+\f3\fs20 .  Otherwise, if 
+\f7\i every
+\f3\i0  value in a column is a floating-point number (here defined as an optional 
+\f1\fs18 +
+\f3\fs20  or 
+\f1\fs18 -
+\f3\fs20 , followed by decimal digits 
+\f1\fs18 0123456789
+\f3\fs20 , optionally a decimal separator and then optionally more decimal digits, and ending with an optional exponent like 
+\f1\fs18 e7
+\f3\fs20 , 
+\f1\fs18 E+05
+\f3\fs20 , or 
+\f1\fs18 e-2
+\f3\fs20 ), the column will be taken to be 
+\f1\fs18 float
+\f3\fs20 ; the special values 
+\f1\fs18 NAN
+\f3\fs20 , 
+\f1\fs18 INF
+\f3\fs20 , 
+\f1\fs18 INFINITY
+\f3\fs20 , 
+\f1\fs18 -INF
+\f3\fs20 , and 
+\f1\fs18 -INFINITY
+\f3\fs20  (not case-sensitive) are also candidates to be 
+\f1\fs18 float
+\f3\fs20  (if the rest of the column is also convertible to 
+\f1\fs18 float
+\f3\fs20 ), representing the corresponding 
+\f1\fs18 float
+\f3\fs20  constants.  Otherwise, the column will be taken to be 
+\f1\fs18 string
+\f3\fs20 .  
+\f1\fs18 NULL
+\f3\fs20  and 
+\f1\fs18 NA
+\f3\fs20  are not recognized by 
+\f1\fs18 readCSV()
+\f3\fs20  in CSV files and will be read as strings.  Every line in a CSV file must contain the same number of values (forming a rectangular data table); missing values are not allowed by 
+\f1\fs18 readCSV()
+\f3\fs20  since there is no way to represent them in 
+\f1\fs18 DataFrame
+\f3\fs20  (since Eidos has no equivalent of R\'92s 
+\f1\fs18 NA
+\f3\fs20  value).  Spaces are considered part of a data field and are not trimmed, following the RFC 4180 standard.  These choices are an attempt to provide optimal behavior for most clients, but given the lack of any universal standard for CSV files, and the lack of any type information in the CSV format, they will not always work as desired; in such cases, it should be reasonably straightforward to preprocess input files using standard Unix text-processing tools like 
+\f1\fs18 sed
+\f3\fs20  and 
+\f1\fs18 awk
+\f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (string)readFile(string$\'a0filePath)
+\f1\fs18 \cf0 (string)readFile(string$\'a0filePath)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4704,16 +4924,14 @@ If
 (string)cmColors(integer$\'a0n)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf2 Generate colors in a \'93cyan-magenta\'94 color palette
-\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f0\b\fs20 \cf2 \kerning1\expnd0\expndtw0 This method has been deprecated, and may be removed in a future release of Eidos.
+\f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "cm")
-\f3\fs20 .  See the 
-\f1\fs18 colors()
-\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
-\
+\f3\fs20  instead.\
+\cf5 Generate colors in a \'93cyan-magenta\'94 color palette.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (string)colors(numeric\'a0x, string$\'a0name)\
+\f1\fs18 \cf2 (string)colors(numeric\'a0x, string$\'a0name)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Generate colors in a standard color palette
@@ -4819,16 +5037,14 @@ This function can also be called with a non-singleton vector of color strings in
 \f1\fs18 \cf2 (string)heatColors(integer$\'a0n)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf2 Generate colors in a \'93heat map\'94 color palette
-\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f0\b\fs20 \cf2 \kerning1\expnd0\expndtw0 This method has been deprecated, and may be removed in a future release of Eidos.
+\f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "heat")
-\f3\fs20 .  See the 
-\f1\fs18 colors()
-\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
-\
+\f3\fs20  instead.\
+\cf5 Generate colors in a \'93heat map\'94 color palette.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)hsv2rgb(float\'a0hsv)
+\f1\fs18 \cf0 (float)hsv2rgb(float\'a0hsv)
 \f2 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4852,7 +5068,7 @@ This function can also be called with a matrix of HSV values, with three columns
 \f3\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (string)rainbow(integer$\'a0n, [float$\'a0s\'a0=\'a01], [float$\'a0v\'a0=\'a01], [float$\'a0start\'a0=\'a00], [Nf$\'a0end\'a0=\'a0NULL], [logical$\'a0ccw\'a0=\'a0T])\
+\f1\fs18 \cf2 (string)rainbow(integer$\'a0n, [float$\'a0s\'a0=\'a01.0], [float$\'a0v\'a0=\'a01.0], [float$\'a0start\'a0=\'a00.0], [Nf$\'a0end\'a0=\'a0NULL], [logical$\'a0ccw\'a0=\'a0T])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Generate colors in a \'93rainbow\'94 color palette
@@ -4881,13 +5097,9 @@ This function can also be called with a matrix of HSV values, with three columns
 \f3\fs20  is used, producing a complete rainbow around the color wheel when 
 \f1\fs18 start
 \f3\fs20  is also the default value of 
-\f1\fs18 0
+\f1\fs18 0.0
 \f3\fs20 .  See 
-\f1\fs18 cmColors()
-\f3\fs20 , 
-\f1\fs18 heatColors()
-\f3\fs20 , and 
-\f1\fs18 terrainColors()
+\f1\fs18 colors()
 \f3\fs20  for other color palettes.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -4947,16 +5159,14 @@ This function can also be called with a matrix of RGB values, with three columns
 \f1\fs18 \cf2 (string)terrainColors(integer$\'a0n)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b\fs20 \cf2 Generate colors in a \'93terrain\'94 color palette
-\f3\b0 .  \kerning1\expnd0\expndtw0 This function is deprecated; new code should instead call 
+\f0\b\fs20 \cf2 \kerning1\expnd0\expndtw0 This method has been deprecated, and may be removed in a future release of Eidos.
+\f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "terrain")
-\f3\fs20 .  See the 
-\f1\fs18 colors()
-\f3\fs20  function for further documentation.\expnd0\expndtw0\kerning0
-\
+\f3\fs20  instead.\
+\cf5 Generate colors in a \'93terrain\'94 color palette.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.11.  Miscellaneous functions\
+\f0\b\fs22 \cf0 3.11.  Miscellaneous functions\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf2 (void)assert(logical\'a0assertions, [Ns$\'a0message\'a0=\'a0NULL])\

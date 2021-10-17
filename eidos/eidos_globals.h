@@ -466,6 +466,7 @@ std::string Eidos_string_join(const std::vector<std::string> &p_vec, const std::
 bool Eidos_string_hasPrefix(std::string const &fullString, std::string const &prefix);
 bool Eidos_string_hasSuffix(std::string const &fullString, std::string const &suffix);
 bool Eidos_string_containsCaseInsensitive(const std::string &strHaystack, const std::string &strNeedle);
+bool Eidos_string_equalsCaseInsensitive(const std::string &s1, const std::string &s2);
 
 // Quote and escape a string
 enum class EidosStringQuoting {
@@ -476,6 +477,7 @@ enum class EidosStringQuoting {
 };
 
 std::string Eidos_string_escaped(const std::string &unescapedString, EidosStringQuoting quoting);		// quotes and adds backslash escapes
+std::string Eidos_string_escaped_CSV(const std::string &unescapedString);								// quotes and ""-escapes quotes
 
 // Run a Unix command
 // BCH 13 December 2017: no longer used, commenting this out
@@ -571,6 +573,9 @@ BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 	
 	return begin;
 }
+
+// The <regex> library does not work on Ubuntu 18.04, annoyingly; probably a very old compiler or something.  So we have to check.
+bool Eidos_RegexWorks(void);
 
 
 // *******************************************************************************************************************
@@ -878,6 +883,17 @@ extern const std::string &gEidosStr_setValue;
 
 extern const std::string &gEidosStr_Dictionary;
 
+extern const std::string &gEidosStr_DataFrame;
+extern const std::string &gEidosStr_colNames;
+extern const std::string &gEidosStr_dim;
+extern const std::string &gEidosStr_ncol;
+extern const std::string &gEidosStr_nrow;
+extern const std::string &gEidosStr_cbind;
+extern const std::string &gEidosStr_rbind;
+extern const std::string &gEidosStr_subset;
+extern const std::string &gEidosStr_subsetColumns;
+extern const std::string &gEidosStr_subsetRows;
+
 extern const std::string &gEidosStr_Image;
 extern const std::string &gEidosStr_width;
 extern const std::string &gEidosStr_height;
@@ -987,6 +1003,17 @@ enum _EidosGlobalStringID : uint32_t
 
 	gEidosID_Dictionary,
 
+	gEidosID_DataFrame,
+	gEidosID_colNames,
+	gEidosID_dim,
+	gEidosID_ncol,
+	gEidosID_nrow,
+	gEidosID_cbind,
+	gEidosID_rbind,
+	gEidosID_subset,
+	gEidosID_subsetColumns,
+	gEidosID_subsetRows,
+
 	gEidosID_Image,
 	gEidosID_width,
 	gEidosID_height,
@@ -1019,7 +1046,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 410		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 420		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN
