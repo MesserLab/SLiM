@@ -1217,52 +1217,64 @@ void _RunClassTests(void)
 	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(4);", 42, "out-of-range");
 	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(T);", 42, "logical index operand must match");
 	
-	// DataFrame serialize and readCSV() round-trip
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", false);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
+	// DataFrame serialize and readCSV() round-trip; tests that specify column types explicitly work without <regex>, the rest don't run if it is broken
 	EidosAssertScriptRaise("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='li');", 112, "could not be represented");
 	
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames=F); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames='b'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); DataFrame('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i'); DataFrame('a', 3:5).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='?'); DataFrame('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='f'); DataFrame('a', 3.0:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='s'); DataFrame('a', asString(3:5)).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i_'); Dictionary('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i-'); Dictionary('a', 3:5).identicalContents(y);", true);
 	
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", false);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
 	EidosAssertScriptRaise("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='li', sep='\t');", 112, "could not be represented");
 	
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames=F, sep='\t'); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames='b', sep='\t'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i', sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='?', sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='f', sep='\t'); DataFrame('a', 3.0:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='s', sep='\t'); DataFrame('a', asString(3:5)).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i_', sep='\t'); Dictionary('a', 3:5).identicalContents(y);", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i-', sep='\t'); Dictionary('a', 3:5).identicalContents(y);", true);
-	
-	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:6, 'b', c(121,131,141,141141)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, quote='1'); Dictionary('\"a\"', 3:6, '\"b\"', c(2:4, 414)).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('b', c('10$25', '10$0', '10$')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$'); Dictionary('b', c(10.25, 10, 10)).identicalContents(y);", true);
-	EidosAssertScriptSuccess_L("x = Dictionary('a', c('foo', 'bar'), 'b', c(10.5, 10.25)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$', comment='.'); Dictionary('a', c('foo', 'bar'), 'b', c(10, 10)).identicalContents(y);", true);
+
+	if (!Eidos_RegexWorks())
+	{
+		// already warned about this in _RunStringManipulationTests()
+		//std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, another warning will be emitted.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
+	}
+	else
+	{
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", false);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames=F); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames='b'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); DataFrame('a', 3:5).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='?'); DataFrame('a', 3:5).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", false);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames=F, sep='\t'); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames='b', sep='\t'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='?', sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = Dictionary('a', 3:6, 'b', c(121,131,141,141141)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, quote='1'); Dictionary('\"a\"', 3:6, '\"b\"', c(2:4, 414)).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('b', c('10$25', '10$0', '10$')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$'); Dictionary('b', c(10.25, 10, 10)).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c('foo', 'bar'), 'b', c(10.5, 10.25)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$', comment='.'); Dictionary('a', c('foo', 'bar'), 'b', c(10, 10)).identicalContents(y);", true);
+	}
 	
 	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, and then save that Image out to disk, I guess that would provide an avenue for testing...  FIXME
 }
