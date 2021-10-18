@@ -1,62 +1,67 @@
 // Keywords: recombination suppression, inversion, gamete generation, meiosis, fitness()
 
 initialize() {
+	defineConstant("L", 1000000);
+	defineConstant("INV_LENGTH", 500000);
+	defineConstant("INV_START", asInteger(L/2 - INV_LENGTH/2));
+	defineConstant("INV_END", INV_START + INV_LENGTH - 1);
+	defineConstant("N", 500);
+	
 	initializeMutationRate(1e-7);
-	initializeMutationType("m1", 0.5, "f", 0.0);
-	initializeMutationType("m2", 0.5, "f", 0.0);  // inversion marker
-	m2.color = "red";
+	initializeMutationType("m1", 0.5, "f", 0.0);  // neutral sites
+	initializeMutationType("m2", 0.5, "f", 0.0);  // start marker
+	initializeMutationType("m3", 0.5, "f", 0.0);  // end marker
+	c(m2,m3).convertToSubstitution = T;
+	c(m2,m3).color = "red";
+	
 	initializeGenomicElementType("g1", m1, 1.0);
-	initializeGenomicElement(g1, 0, 99999);
-	initializeRecombinationRate(1e-6);
-}
-1 {
-	sim.addSubpop("p1", 500);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(1e-8);
 }
 1 late() {
-	// give half the population the inversion
-	inverted = sample(p1.individuals, integerDiv(p1.individualCount, 2));
-	inverted.genomes.addNewDrawnMutation(m2, 25000);
-}
-1:9999 late() {
-	if (sim.generation % 50 != 0)
-		return;
-	
-	// assess the prevalence of the inversion
-	pScr = "sum(applyValue.genomes.containsMarkerMutation(m2, 25000));";
-	p = sapply(p1.individuals, pScr);
-	p__ = sum(p == 0);
-	pI_ = sum(p == 1);
-	pII = sum(p == 2);
-	cat("Generation " + format("%4d", sim.generation) + ": ");
-	cat(format("%3d", p__) + " --   ");
-	cat(format("%3d", pI_) + " I-   ");
-	cat(format("%3d", pII) + " II\n");
-	
-	if (p__ == 0) stop("Inversion fixed!");
-	if (pII == 0) stop("Inversion lost!");
+	sim.addSubpop("p1", N);
+
+	// give some genomes an inversion
+	inverted = sample(p1.genomes, 100);
+	inverted.addNewDrawnMutation(m2, INV_START);
+	inverted.addNewDrawnMutation(m3, INV_END);
 }
 fitness(m2) {
 	// fitness of the inversion is frequency-dependent
 	f = sim.mutationFrequencies(NULL, mut);
 	return 1.0 - (f - 0.5) * 0.2;
 }
-recombination() {
-	if (genome1.containsMarkerMutation(m2, 25000) ==
-			genome2.containsMarkerMutation(m2, 25000))
-		return F;
-	
-	inInv = (breakpoints > 25000) & (breakpoints < 75000);
-	if (!any(inInv))
-		return F;
-	
-	breakpoints = breakpoints[!inInv];
-	return T;
-}
-9999 late() {
+5000 late() {
 	sim.outputFixedMutations();
 	
 	// Assess fixation inside vs. outside the inversion
 	pos = sim.substitutions.position;
-	cat(sum((pos >= 25000) & (pos < 75000)) + " inside inversion.\n");
-	cat(sum((pos < 25000) | (pos >= 75000)) + " outside inversion.\n");
+	catn(sum((pos >= INV_START) & (pos < INV_END)) + " inside.");
+	catn(sum((pos < INV_START) | (pos >= INV_END)) + " outside.");
+}
+
+recombination() {
+	gm1 = genome1.containsMarkerMutation(m2, INV_START);
+	gm2 = genome2.containsMarkerMutation(m2, INV_START);
+	if (!(gm1 | gm2)) {
+		// homozygote non-inverted
+		return F;
+	}
+	inInv = (breakpoints > INV_START) & (breakpoints <= INV_END);
+	if (sum(inInv) % 2 == 0) {
+		return F;
+	}
+	if (gm1 & gm2) {
+		// homozygote inverted
+		left = (breakpoints == INV_START);
+		right = (breakpoints == INV_END + 1);
+		breakpoints = sort(c(breakpoints[!(left | right)],
+			c(INV_START, INV_END + 1)[c(sum(left) > 0, sum(right) > 0)]));
+		return T;
+	} else {
+		// heterozygote inverted: resample to get an even number of breakpoints
+		// this is *recursive*: it calls this recombination callback again!
+		breakpoints = sim.chromosome.drawBreakpoints(individual);
+	}
+	return T;
 }
