@@ -710,7 +710,10 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 								migrantFraction = 1.0;
 						}
 						
-						drawArrowFromSubpopToSubpop(painter, sourceSubpop, destSubpop, migrantFraction);
+                        if (migrationArrows_ == 1)
+                            drawArrowFromSubpopToSubpop(painter, sourceSubpop, destSubpop, 0.002);              // thin arrows; 0.002 is arbitrary but seems reasonable
+                        else if (migrationArrows_ == 2)
+                            drawArrowFromSubpopToSubpop(painter, sourceSubpop, destSubpop, migrantFraction);    // migration-scaled arrow thickness
 					}
 				}
 			}
@@ -736,14 +739,31 @@ void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &cont
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to
     // handle those, and there's no way to revert back after it messes things up, and so forth
+    bool userDefinedCenter = false;
+    
     for (auto subpopIter : pop.subpops_)
         if (subpopIter.second->gui_center_from_user_)
         {
-            menuItem->setEnabled(false);
-            return;
+            userDefinedCenter = true;
+            break;
         }
     
-    menuItem->setEnabled(true);
+    menuItem->setEnabled(!userDefinedCenter);
+    
+    // Offer a choice regarding the migration arrow style, since they can clutter things up a lot
+    contextMenu.addSeparator();
+    
+    QAction *noMigAction = contextMenu.addAction("No Migration Arrows", this, [this]() { migrationArrows_ = 0; update(); });
+    QAction *thinMigAction = contextMenu.addAction("Thin Migration Arrows", this, [this]() { migrationArrows_ = 1; update(); });
+    QAction *fullMigAction = contextMenu.addAction("Full Migration Arrows", this, [this]() { migrationArrows_ = 2; update(); });
+    
+    noMigAction->setCheckable(true);
+    thinMigAction->setCheckable(true);
+    fullMigAction->setCheckable(true);
+    
+    noMigAction->setChecked(migrationArrows_ == 0);
+    thinMigAction->setChecked(migrationArrows_ == 1);
+    fullMigAction->setChecked(migrationArrows_ == 2);
 }
 
 void QtSLiMGraphView_PopulationVisualization::appendStringForData(QString & /* string */)

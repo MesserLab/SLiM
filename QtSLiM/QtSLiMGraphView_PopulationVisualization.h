@@ -47,7 +47,9 @@ private:
     
     bool optimizePositions_;
     double scorePositions(double *center_x, double *center_y, bool *connected, size_t subpopCount);
-    void optimizePositions(void);    
+    void optimizePositions(void); 
+    
+    int migrationArrows_ = 2;   // 0 == none, 1 == thin, 2 == full
     
     QRectF rectForSubpop(Subpopulation *subpop, QPointF center);
     void drawSubpop(QPainter &painter, Subpopulation *subpop, slim_objectid_t subpopID, QPointF center);
