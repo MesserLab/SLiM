@@ -1237,7 +1237,7 @@ void _RunClassTests(void)
 	if (!Eidos_RegexWorks())
 	{
 		// already warned about this in _RunStringManipulationTests()
-		//std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, another warning will be emitted.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
+		//std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, an error will result.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
 	}
 	else
 	{

@@ -841,79 +841,74 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	}
 	
 	// Resolve the type for columns that we're supposed to guess on
-	std::regex integer_regex("[+-]?[0-9]+", std::regex_constants::ECMAScript);
-	std::regex float_regex(std::string("[+-]?[0-9]+(\\") + std::string(1, dec) + std::string("[0-9]*)?([eE][+-]?[0-9]+)?"), std::regex_constants::ECMAScript);
-	
-	if (has_null_coltype && !Eidos_RegexWorks())
+	if (has_null_coltype)
 	{
-		static bool beenHere = false;
+		if (!Eidos_RegexWorks())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  Calls to readCSV() that require guessing the type of a column (which uses regex) are therefore not allowed.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << EidosTerminate(nullptr);
+	
+		std::regex integer_regex("[+-]?[0-9]+", std::regex_constants::ECMAScript);
+		std::regex float_regex(std::string("[+-]?[0-9]+(\\") + std::string(1, dec) + std::string("[0-9]*)?([eE][+-]?[0-9]+)?"), std::regex_constants::ECMAScript);
 		
-		if (!beenHere)
+		for (int col_index = 0; col_index < ncols; ++col_index)
 		{
-			std::cout << "WARNING: This build of Eidos does not have a working regex library, due to a bug in the underlying C++ standard library provided by the system.  As a result, CSV columns will never be guessed as integer or float type; they will either be logical or string.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system.  You can supply explicit column types using the colTypes parameter to readCSV() to work around this problem." << std::endl;
-			beenHere = true;
-		}
-	}
-	
-	for (int col_index = 0; col_index < ncols; ++col_index)
-	{
-		if (coltypes[col_index] == EidosValueType::kValueNULL)
-		{
-			// Try EidosValueType::kValueLogical first; candidate values are "T", "TRUE", "true", "F", "FALSE", or "false", case-sensitive
-			EidosValueType coltype = EidosValueType::kValueLogical;
-			
-			if (coltype == EidosValueType::kValueLogical)
+			if (coltypes[col_index] == EidosValueType::kValueNULL)
 			{
-				for (const auto &row : rows)
+				// Try EidosValueType::kValueLogical first; candidate values are "T", "TRUE", "true", "F", "FALSE", or "false", case-sensitive
+				EidosValueType coltype = EidosValueType::kValueLogical;
+				
+				if (coltype == EidosValueType::kValueLogical)
 				{
-					const std::string &row_value = row[col_index];
-					
-					if ((row_value != "T") && (row_value != "TRUE") && (row_value != "true") && (row_value != "F") && (row_value != "FALSE") && (row_value != "false"))
+					for (const auto &row : rows)
 					{
-						coltype = EidosValueType::kValueInt;	// try integer next
-						break;
+						const std::string &row_value = row[col_index];
+						
+						if ((row_value != "T") && (row_value != "TRUE") && (row_value != "true") && (row_value != "F") && (row_value != "FALSE") && (row_value != "false"))
+						{
+							coltype = EidosValueType::kValueInt;	// try integer next
+							break;
+						}
 					}
 				}
-			}
-			
-			if (coltype == EidosValueType::kValueInt)
-			{
-				for (const auto &row : rows)
+				
+				if (coltype == EidosValueType::kValueInt)
 				{
-					const std::string &row_value = row[col_index];
-					
-					if (!std::regex_match(row_value, integer_regex))
+					for (const auto &row : rows)
 					{
-						coltype = EidosValueType::kValueFloat;	// try float next
-						break;
+						const std::string &row_value = row[col_index];
+						
+						if (!std::regex_match(row_value, integer_regex))
+						{
+							coltype = EidosValueType::kValueFloat;	// try float next
+							break;
+						}
 					}
 				}
-			}
-			
-			if (coltype == EidosValueType::kValueFloat)
-			{
-				for (const auto &row : rows)
+				
+				if (coltype == EidosValueType::kValueFloat)
 				{
-					const std::string &row_value = row[col_index];
-					
-					if (Eidos_string_equalsCaseInsensitive(row_value, "NAN") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "INF") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "INFINITY") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "-INF") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "-INFINITY") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "+INF") ||
-						Eidos_string_equalsCaseInsensitive(row_value, "+INFINITY"))
-						continue;
-					
-					if (!std::regex_match(row_value, float_regex))
+					for (const auto &row : rows)
 					{
-						coltype = EidosValueType::kValueString;	// string is the fallback
-						break;
+						const std::string &row_value = row[col_index];
+						
+						if (Eidos_string_equalsCaseInsensitive(row_value, "NAN") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "INF") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "INFINITY") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "-INF") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "-INFINITY") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "+INF") ||
+							Eidos_string_equalsCaseInsensitive(row_value, "+INFINITY"))
+							continue;
+						
+						if (!std::regex_match(row_value, float_regex))
+						{
+							coltype = EidosValueType::kValueString;	// string is the fallback
+							break;
+						}
 					}
 				}
+				
+				coltypes[col_index] = coltype;
 			}
-			
-			coltypes[col_index] = coltype;
 		}
 	}
 	

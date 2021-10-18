@@ -9589,15 +9589,7 @@ EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arg
 	else
 	{
 		if (!Eidos_RegexWorks())
-		{
-			static bool beenHere = false;
-			
-			if (!beenHere)
-			{
-				std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  Calls to grep() with fixed=F, to do regular expression matching, will find that the pattern never matches any string; the grep() function should therefore only be used with fixed=T.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
-				beenHere = true;
-			}
-		}
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  Calls to grep() with fixed=F, to do regular expression matching, are therefore not allowed.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << EidosTerminate(nullptr);
 		
 		// pattern is a regular expression, so use <regex> to find matches using grammar, honoring ignoreCase and invert
 		if (ignoreCase)
