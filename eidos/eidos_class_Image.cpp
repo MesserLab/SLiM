@@ -251,15 +251,117 @@ EidosValue_SP EidosImage::ExecuteMethod_write(EidosGlobalStringID p_method_id, c
 #pragma mark Object instantiation
 #pragma mark -
 
-//	(object<Image>$)Image(string$ filePath)
+//	(object<Image>$)Image(...)
 static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
-	
 	EidosValue_SP result_SP(nullptr);
+	EidosImage *objectElement = nullptr;
 	
-	EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
-	EidosImage *objectElement = new EidosImage(filePath_value->StringRefAtIndex(0, nullptr));
+	if ((p_arguments.size() == 1) && (p_arguments[0]->Type() == EidosValueType::kValueString) && (p_arguments[0]->Count() == 1))
+	{
+		EidosValue_String *filePath_value = (EidosValue_String *)p_arguments[0].get();
+		objectElement = new EidosImage(filePath_value->StringRefAtIndex(0, nullptr));
+	}
+	else if ((p_arguments.size() == 1) &&
+			 ((p_arguments[0]->Type() == EidosValueType::kValueInt) || (p_arguments[0]->Type() == EidosValueType::kValueFloat)) &&
+			 (p_arguments[0]->Count() >= 1))
+	{
+		// test: x = matrix(c(255, 255, 255, 0, 0, rep(0, 10)), nrow=3, ncol=5, byrow=T); y = Image(x); y.write("~/Desktop/test.png");
+		// test: x = matrix(c(1.0, 1, 1, 0, 0, rep(0, 10)), nrow=3, ncol=5, byrow=T); y = Image(x); y.write("~/Desktop/test.png");
+		EidosValue *numeric_value = p_arguments[0].get();
+		
+		if (numeric_value->DimensionCount() != 2)
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a numeric vector, requires that vector to be a matrix." << EidosTerminate();
+		
+		int64_t height = numeric_value->Dimensions()[0];	// height in pixels == number of rows
+		int64_t width = numeric_value->Dimensions()[1];		// width in pixels == number of columns
+		
+		if (numeric_value->Type() == EidosValueType::kValueInt)
+		{
+			if (numeric_value->Count() == 1)
+			{
+				// singleton case
+				objectElement = new EidosImage(1, 1, true);
+				
+				unsigned char *image_data = objectElement->Data();
+				int64_t int_value = numeric_value->IntAtIndex(0, nullptr);
+				
+				if ((int_value < 0) || (int_value > 255))
+					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
+				
+				*image_data = (unsigned char)int_value;
+			}
+			else
+			{
+				// vector case, fast access
+				objectElement = new EidosImage(width, height, true);
+				
+				unsigned char *image_data = objectElement->Data();
+				EidosValue_Int_vector *int_values = (EidosValue_Int_vector *)p_arguments[0].get();
+				const int64_t *int_data = int_values->data();
+				
+				// translate the data from by-column to by-row, to match the in-memory format of images
+				for (int64_t y = 0; y < height; ++y)
+				{
+					for (int64_t x = 0; x < width; ++x)
+					{
+						int64_t int_value = *(int_data + y + x * height);
+						
+						if ((int_value < 0) || (int_value > 255))
+							EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed an integer vector, requires values to be in [0, 255]." << EidosTerminate();
+						
+						*(image_data + x + y * width) = (unsigned char)int_value;
+					}
+				}
+			}
+		}
+		else if (numeric_value->Type() == EidosValueType::kValueFloat)
+		{
+			if (numeric_value->Count() == 1)
+			{
+				// singleton case
+				objectElement = new EidosImage(1, 1, true);
+				
+				unsigned char *image_data = objectElement->Data();
+				double float_value = numeric_value->FloatAtIndex(0, nullptr);
+				
+				if ((float_value < 0.0) || (float_value > 1.0))
+					EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
+				
+				int int_value = (int)round(float_value * 255.0);
+				*image_data = (unsigned char)int_value;
+			}
+			else
+			{
+				// vector case, fast access
+				objectElement = new EidosImage(width, height, true);
+				
+				unsigned char *image_data = objectElement->Data();
+				EidosValue_Float_vector *float_values = (EidosValue_Float_vector *)p_arguments[0].get();
+				const double *float_data = float_values->data();
+				
+				// translate the data from by-column to by-row, to match the in-memory format of images
+				for (int64_t y = 0; y < height; ++y)
+				{
+					for (int64_t x = 0; x < width; ++x)
+					{
+						double float_value = *(float_data + y + x * height);
+						
+						if ((float_value < 0.0) || (float_value > 1.0))
+							EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): Image(), when passed a float vector, requires values to be in [0.0, 1.0]." << EidosTerminate();
+						
+						int int_value = (int)round(float_value * 255.0);
+						*(image_data + x + y * width) = (unsigned char)int_value;
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): the Image() constructor requires either a singleton string (a file path) or a numeric vector (a matrix of pixel values)." << EidosTerminate();
+	}
+	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosImage_Class));
 	
 	// objectElement is now retained by result_SP, so we can release it
@@ -331,7 +433,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosImage_Class::Functions(void)
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		
-		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S(gEidosStr_filePath));
+		functions->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_Image, Eidos_Instantiate_EidosImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddEllipsis());
 		
 		std::sort(functions->begin(), functions->end(), CompareEidosCallSignatures);
 	}

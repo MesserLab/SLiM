@@ -295,7 +295,7 @@ int RunSLiMTests(void)
 	// SLiM's Eidos interface work properly.  SLiM itself will get a little incidental testing along the way.
 	
 	if (!Eidos_TemporaryDirectoryExists())
-		std::cout << "WARNING: This system does not appear to have a writeable temporary directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of the temporary directory will raise an exception if called (and are therefore also not tested).  If this is surprising, contact the system administrator for details." << std::endl;
+		std::cout << "WARNING: This system does not appear to have a writeable temporary directory.  Filesystem tests are disabled, and functions such as writeTempFile() and system() that depend upon the existence of the temporary directory will raise an exception if called (and are therefore also not tested).  Other self-tests that rely on writing temporary files, such as of readCSV() and Image, will also be disabled.  If this is surprising, contact the system administrator for details." << std::endl;
 	
 	// We want to run the self-test inside a new temporary directory, to prevent collisions with other self-test runs
 	std::string prefix = Eidos_TemporaryDirectory() + "slimTest_";
