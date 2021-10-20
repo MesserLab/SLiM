@@ -3747,14 +3747,14 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (individuals_value->Count() == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables_, flag);
+		AddIndividualsToTable(&ind, 1, &tables_, &tabled_individuals_hash_, flag);
 	}
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
 		EidosObject * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables_, flag);
+		AddIndividualsToTable(ind_buffer, ind_count, &tables_, &tabled_individuals_hash_, flag);
 	}
 	
 	return gStaticEidosValueVOID;

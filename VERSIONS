@@ -64,6 +64,8 @@ development head:
 	change Eidos output of float values slightly; 1.0 now outputs as "1.0", not "1", to show that it is a float; seems better, breaks backward compatibility in a minor way
 	replace recipe 14.4 (modeling inversions), incorporating changes from Vince Buffalo, Peter Ralph, & Andy Kern that fix several problems (see new discussion in the manual)
 	add the ability to create a new grayscale Image from a 2D matrix of values, the inverse of the integerK / floatK properties, as Image(numeric matrix); RGB may be added later if needed
+	keep a hash table from pedigree ID to individual table row, to speed up remembering of additional individuals
+ 	add parent pedigree ids to individual metadata (.trees file version increment); add pedigree-based info to the parent column of the individuals table
 	
 
 version 3.6 (build 2784; Eidos version 2.6):
