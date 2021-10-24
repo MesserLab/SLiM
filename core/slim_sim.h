@@ -717,7 +717,7 @@ public:
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
 	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
-	slim_generation_t _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter);								// given tree-seq tables, makes individuals, genomes, and mutations
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_generation_t p_metadata_gen, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
 	slim_generation_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
 	slim_generation_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);

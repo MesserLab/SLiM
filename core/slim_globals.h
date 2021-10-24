@@ -510,7 +510,7 @@ public:
 	// Write nucleotides to a char buffer; the buffer must be allocated with sufficient length
 	// Read nucleotides from a char buffer; the buffer is assumed to be of appropriate length
 	void WriteNucleotidesToBuffer(char *buffer) const;
-	void ReadNucleotidesFromBuffer(char *buffer);
+	void ReadNucleotidesFromBuffer(const char *buffer);
 	
 	// Write compressed nucleotides to an ostream as a binary block, with a leading 64-bit size in nucleotides
 	// Read compressed nucleotides from a buffer as a binary block, with a leading size, advancing the pointer
