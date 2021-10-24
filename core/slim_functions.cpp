@@ -1270,7 +1270,7 @@ static inline double DoSummarizeOperation(Individual *individual, SummarizeOpera
 		case SummarizeOperation::kAge:					return individual->age_;
 		case SummarizeOperation::kFitnessScaling:		return individual->fitness_scaling_;
 		case SummarizeOperation::kMigrant:				return individual->migrant_;
-		case SummarizeOperation::kReproductiveOutput:	return individual->reproductive_output_;
+		case SummarizeOperation::kReproductiveOutput:	return individual->ReproductiveOutput();
 		case SummarizeOperation::kTag:
 		{
 			slim_usertag_t tag_value = individual->tag_value_;
