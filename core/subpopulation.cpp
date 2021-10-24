@@ -238,9 +238,9 @@ void _SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 	}
 	else
 	{
-		// this is the case when a color table was defined; here, min < max
+		// this is the case when a color table was defined; here, min < max (BCH 10/20/2021: now, can be equal here too)
 		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
-		double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
 		double color_index = value_fraction * (n_colors_ - 1);
 		int color_index_1 = (int)floor(color_index);
 		int color_index_2 = (int)ceil(color_index);
@@ -279,9 +279,9 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 	}
 	else
 	{
-		// this is the case when a color table was defined; here, min < max
+		// this is the case when a color table was defined; here, min < max (BCH 10/20/2021: now, can be equal here too)
 		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
-		double value_fraction = (p_value - min_value_) / (max_value_ - min_value_);
+		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
 		double color_index = value_fraction * (n_colors_ - 1);
 		int color_index_1 = (int)floor(color_index);
 		int color_index_2 = (int)ceil(color_index);
@@ -6333,8 +6333,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		range_min = value_range->FloatAtIndex(0, nullptr);
 		range_max = value_range->FloatAtIndex(1, nullptr);
 		
-		if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min >= range_max))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange must be finite, and min < max is required." << EidosTerminate();
+		if (!std::isfinite(range_min) || !std::isfinite(range_max) || (range_min > range_max))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() valueRange must be finite, and min <= max is required." << EidosTerminate();
 		
 		color_count = colors->Count();
 		

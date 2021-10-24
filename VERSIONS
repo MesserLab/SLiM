@@ -66,6 +66,8 @@ development head:
 	add the ability to create a new grayscale Image from a 2D matrix of values, the inverse of the integerK / floatK properties, as Image(numeric matrix); RGB may be added later if needed
 	keep a hash table from pedigree ID to individual table row, to speed up remembering of additional individuals
  	add parent pedigree ids to individual metadata (.trees file version increment); add pedigree-based info to the parent column of the individuals table
+	add summarizeIndividuals() to create vectors/matrices/arrays, and thereby spatial maps, that summarize a set of individuals
+	add recipe 15.13 showing how to use summarizeIndividuals() to make a spatial map (for density-dependent fecundity)
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

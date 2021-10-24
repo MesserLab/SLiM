@@ -1,0 +1,36 @@
+// Keywords: continuous space, continuous spatial landscape, spatial map, density, competition, regulation, fertility, per unit area
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeMutationRate(1e-7);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 99999);
+	initializeRecombinationRate(1e-8);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	p1.individuals.setSpatialPosition(p1.pointUniform(1000));
+}
+late() {
+	inds = p1.individuals;
+	bounds = p1.spatialBounds;
+	
+	// make a density map: 0 is empty, 1 is maximum density
+	density = summarizeIndividuals(inds, c(10, 10), bounds,
+		operation="1;", gather="sum", empty=0.0, perUnitArea=T);
+	density = density / max(density);
+	p1.defineSpatialMap("density", "xy", density, F,
+		range(density), c("black", "orange", "red"));
+}
+modifyChild() {
+	pos = parent1.spatialPosition + rnorm(2, 0, 0.01);
+	pos = p1.pointReflected(pos);
+	
+	if (runif(1) < p1.spatialMapValue("density", pos))
+		return F;
+	
+	child.setSpatialPosition(pos);
+	return T;
+}
+10000 late() { sim.outputFixedMutations(); }
