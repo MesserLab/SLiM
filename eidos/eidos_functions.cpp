@@ -10495,7 +10495,13 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	bool nrow_null = (nrow_value->Type() == EidosValueType::kValueNULL);
 	bool ncol_null = (ncol_value->Type() == EidosValueType::kValueNULL);
 	
-	int64_t nrow, ncol;
+	int64_t nrow = nrow_null ? -1 : nrow_value->IntAtIndex(0, nullptr);
+	int64_t ncol = ncol_null ? -1 : ncol_value->IntAtIndex(0, nullptr);
+	
+	if ((!nrow_null && (nrow <= 0)) || (!ncol_null && (ncol <= 0)))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrix): dimension <= 0 requested, which is not allowed." << EidosTerminate(nullptr);
+	if (data_count == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_matrix): matrix() cannot create a matrix with zero elements; matrix dimensions equal to zero are not allowed." << EidosTerminate(nullptr);
 	
 	if (nrow_null && ncol_null)
 	{
@@ -10506,8 +10512,6 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	else if (nrow_null)
 	{
 		// try to infer a row count
-		ncol = ncol_value->IntAtIndex(0, nullptr);
-		
 		if (data_count % ncol == 0)
 			nrow = data_count / ncol;
 		else
@@ -10516,8 +10520,6 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	else if (ncol_null)
 	{
 		// try to infer a column count
-		nrow = nrow_value->IntAtIndex(0, nullptr);
-		
 		if (data_count % nrow == 0)
 			ncol = data_count / nrow;
 		else
@@ -10537,7 +10539,7 @@ EidosValue_SP Eidos_ExecuteFunction_matrix(const std::vector<EidosValue_SP> &p_a
 	if (byrow)
 	{
 		// The non-default case: use the values in data to fill rows one by one, requiring transposition here; singletons are easy, though
-		if (data_count == 1)
+		if (data_count <= 1)
 			result_SP = data_value->CopyValues();
 		else
 		{

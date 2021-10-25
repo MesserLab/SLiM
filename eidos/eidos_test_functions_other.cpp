@@ -122,6 +122,9 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptRaise("matrix(1.0:5, nrow=2, ncol=2);", 0, "length equal to the product");
 	EidosAssertScriptSuccess_L("identical(matrix(1.0:6, ncol=2), matrix(c(1.0, 4, 2, 5, 3, 6), ncol=2, byrow=T));", true);
 	EidosAssertScriptSuccess_L("identical(matrix(1.0:6, ncol=3), matrix(c(1.0, 3, 5, 2, 4, 6), ncol=3, byrow=T));", true);
+	EidosAssertScriptRaise("matrix(integer(0), nrow=0);", 0, "dimension <= 0");
+	EidosAssertScriptRaise("matrix(integer(0), ncol=0);", 0, "dimension <= 0");
+	EidosAssertScriptRaise("matrix(integer(0));", 0, "matrix with zero elements");
 	
 	// matrixMult()
 	EidosAssertScriptRaise("matrixMult(matrix(5), 5);", 0, "is not a matrix");
