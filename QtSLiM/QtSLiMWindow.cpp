@@ -250,13 +250,21 @@ void QtSLiMWindow::init(void)
     if (qtSLiMAppDelegate->launchedFromShell())
         sim_working_dir = qtSLiMAppDelegate->QtSLiMCurrentWorkingDirectory();
     else
+    #ifdef _WIN32
+        sim_working_dir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation).toStdString();
+    #else
         sim_working_dir = Eidos_ResolvedPath("~/Desktop");
+    #endif
     
     // Check that our chosen working directory actually exists; if not, use ~
     struct stat buffer;
     
     if (stat(sim_working_dir.c_str(), &buffer) != 0)
+    #ifdef _WIN32
+        sim_working_dir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation).toStdString();
+    #else
         sim_working_dir = Eidos_ResolvedPath("~");
+    #endif
     
     sim_requested_working_dir = sim_working_dir;	// return to the working dir on recycle unless the user overrides it
     
@@ -582,12 +590,12 @@ void QtSLiMWindow::initializeUI(void)
     
     QFont headerFont = popTableHHeader->font();
     QFont cellFont = ui->subpopTableView->font();
-#ifdef __APPLE__
-    headerFont.setPointSize(11);
-    cellFont.setPointSize(11);
-#else
+#ifdef __linux__
     headerFont.setPointSize(8);
     cellFont.setPointSize(8);
+#else
+    headerFont.setPointSize(11);
+    cellFont.setPointSize(11);
 #endif
     popTableHHeader->setFont(headerFont);
     ui->subpopTableView->setFont(cellFont);
@@ -2122,7 +2130,7 @@ void QtSLiMWindow::displayProfileResults(void)
     qreal displayFontSize = menlo11.pointSizeF();
     qreal scaleFactor = displayFontSize / 11.0;     // The unscaled sizes are geared toward Optima on the Mac
     
-#if !defined(__APPLE__)
+#if defined(__linux__)
     // On Linux font sizes seem to run large, who knows why, so reduce the scale factor somewhat to compensate
     scaleFactor *= 0.75;
 #endif

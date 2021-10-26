@@ -37,7 +37,9 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
-#include <pwd.h>
+#ifndef _WIN32
+#include <pwd.h> // used only by Eidos_ResolvedPath(), which is not used on Windows
+#endif
 #include <unistd.h>
 #include <algorithm>
 #include "string.h"
@@ -58,6 +60,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#ifdef _WIN32
+#include <fileapi.h>
+#endif
 
 // for Eidos_WelchTTest()
 #include "gsl_cdf.h"
@@ -71,6 +76,11 @@
 // for Eidos_ColorPaletteLookup()
 #include "eidos_tinycolormap.h"
 
+//Replace some functions with their gnulib equivalents on Windows
+#ifdef _WIN32
+#define mkdir gnulib::mkdir
+#define gettimeofday gnulib::gettimeofday
+#endif
 
 bool eidos_do_memory_checks = true;
 
@@ -1026,6 +1036,13 @@ size_t Eidos_GetMaxRSS(void)
 	
 	if (!beenHere)
 	{
+
+#if defined(_WIN32)
+	// Assume unlimited on Windows with warning
+	std::cerr << "Warning: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect.";
+	max_rss = 0;
+
+#else
 #if 0
 		// Find our RSS limit by launching a subshell to run "ulimit -m"
 		std::string limit_string = Eidos_Exec("ulimit -m");
@@ -1076,10 +1093,11 @@ size_t Eidos_GetMaxRSS(void)
 			max_rss = 0;
 		}
 #endif
+#endif
 		
 		beenHere = true;
 	}
-	
+
 	return max_rss;
 }
 
@@ -1147,7 +1165,8 @@ std::string Eidos_ResolvedPath(std::string p_path)
 {
 	std::string path = p_path;
 	
-	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows...
+	// if there is a leading '~', replace it with the user's home directory; not sure if this works on Windows... It doesn't..
+	#ifndef _WIN32
 	if ((path.length() > 0) && (path[0] == '~'))
 	{
 		long bufsize = sysconf(_SC_GETPW_R_SIZE_MAX);
@@ -1183,6 +1202,12 @@ std::string Eidos_ResolvedPath(std::string p_path)
 			}
 		}
 	}
+	#else
+	if ((path.length() > 0) && (path[0] == '~'))
+	{
+		EIDOS_TERMINATION << "ERROR (Eidos_ResolvedPath): Could not resolve ~ in path because it is not supported on Windows." << EidosTerminate();
+	}
+	#endif	
 	
 	return path;
 }
@@ -1273,7 +1298,20 @@ bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
 // This is /tmp/ (with trailing slash!) on macOS and Linux, but will be elsewhere on Windows.  Should be used instead of /tmp/ everywhere.
 std::string Eidos_TemporaryDirectory(void)
 {
+	#ifdef _WIN32
+	std::string temp_path;
+	char charPath[MAX_PATH];
+	if (GetTempPathA(MAX_PATH, charPath))
+  		temp_path = charPath;
+	// GetTempPathA gives a Windows path with Windows backslashes in it.
+	// This breaks some other code because Eidos treats backslashes
+	// as escape characters. So we replace them with forward slashes
+	// which is understood by both linux and Windows.
+	std::replace(temp_path.begin(), temp_path.end(), '\\', '/'); 
+	return temp_path;
+	#else
 	return "/tmp/";
+	#endif
 }
 
 bool Eidos_TemporaryDirectoryExists(void)

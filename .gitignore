@@ -253,6 +253,14 @@ ui_*.h
 *.jsc
 Makefile*
 *build-*
+!windows_compat/gnulib/build-aux
+!windows_compat/gnulib/Makefile*
+!windows_compat/gnulib/gllib/Makefile*
+!windows_compat/gnulib/glm4/Makefile*
+
+## gnulib
+windows_compat/gnulib/autom4te.cache
+windows_compat/gnulib/configure~
 
 # Qt unit tests
 target_wrapper.*
@@ -272,3 +280,6 @@ compile_commands.json
 
 # QtCreator local machine specific files for imported projects
 *creator.user*
+
+# VSCode
+.vscode

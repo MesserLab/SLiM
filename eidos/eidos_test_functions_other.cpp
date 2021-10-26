@@ -237,10 +237,13 @@ void _RunFunctionFilesystemTests(std::string temp_path)
 		return;
 	
 	// filesAtPath() – hard to know how to test this!  These tests should be true on Un*x machines, anyway – but might be disallowed by file permissions.
-	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp')) == 'string';", true);
+	EidosAssertScriptSuccess_L("type(filesAtPath(tempdir())) == 'string';", true);
+	// these always fail on Windows and I can't think of any good easy replacement
+	#ifndef _WIN32
 	EidosAssertScriptSuccess_L("type(filesAtPath('/tmp/')) == 'string';", true);
 	EidosAssertScriptSuccess("sum(filesAtPath('/') == 'bin');", gStaticEidosValue_Integer1);
 	EidosAssertScriptSuccess("sum(filesAtPath('/', T) == '/bin');", gStaticEidosValue_Integer1);
+	#endif
 	EidosAssertScriptSuccess_NULL("filesAtPath('foo_is_a_bad_path');");
 	
 	// writeFile()
@@ -859,6 +862,17 @@ void _RunFunctionMiscTests(std::string temp_path)
 	if (Eidos_TemporaryDirectoryExists())
 	{
 		EidosAssertScriptRaise("system('');", 0, "non-empty command string");
+		// sadly none of the original tests work in Windows, including the echo one, 
+		// because Windows does not understand ;
+		// here I just make Windows versions of each original test (see the #else below)
+		#ifdef _WIN32
+		EidosAssertScriptSuccess_S("system('set /a 5 + 5');", "10");
+		EidosAssertScriptSuccess_S("system('set', args=c('/a', '5', '+', '5'));", "10");
+		EidosAssertScriptSuccess_S("system('set /a 5 / 0', stderr=T);", "Divide by zero error.");
+		EidosAssertScriptSuccess_S("system('echo foo');", "foo");
+		// input doesn't currently work because ofstream() fails
+		EidosAssertScriptSuccess_SV("system('echo foo&echo bar&echo baz');", {"foo", "bar", "baz"});
+		#else
 		EidosAssertScriptSuccess_S("system('expr 5 + 5');", "10");
 		EidosAssertScriptSuccess_S("system('expr', args=c('5', '+', '5'));", "10");
 		EidosAssertScriptSuccess_L("err = system('expr 5 / 0', stderr=T); (err == 'expr: division by zero') | (err == 'expr: división por cero') | (err == 'expr: division par zéro') | (substr(err, 0, 5) == 'expr: ');", true);	// unfortunately system localization makes the message returned vary
@@ -867,6 +881,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 		EidosAssertScriptSuccess_S("system(\"(wc -l | sed 's/ //g')\", input='foo\\nbar\\nbaz\\n');", "3");
 		EidosAssertScriptSuccess_S("system(\"(wc -l | sed 's/ //g')\", input=c('foo', 'bar', 'baz'));", "3");
 		EidosAssertScriptSuccess_SV("system(\"echo foo; echo bar; echo baz;\");", {"foo", "bar", "baz"});
+		#endif
 	}
 	
 	// time()
