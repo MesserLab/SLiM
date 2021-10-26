@@ -242,7 +242,7 @@ QtSLiMVariableBrowser::QtSLiMVariableBrowser(QtSLiMEidosConsole *p_parent) :
     QAbstractItemDelegate *outlineDelegate = new QtSLiMVariableBrowserDelegate(browserTree);
     browserTree->setItemDelegate(outlineDelegate);
     
-#if !defined(__APPLE__)
+#if defined(__linux__)
     {
         // use a smaller font for the outline on Linux
         QFont browserFont(browserTree->font());

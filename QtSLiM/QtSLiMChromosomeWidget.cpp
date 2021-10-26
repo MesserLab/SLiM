@@ -398,10 +398,10 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
     if (!tickFont)
     {
         tickFont = new QFont();
-#ifdef __APPLE__
-        tickFont->setPointSize(9);
-#else
+#ifdef __linux__
         tickFont->setPointSize(7);
+#else
+        tickFont->setPointSize(9);
 #endif
     }
     painter.setFont(*tickFont);

@@ -262,7 +262,7 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     ui->topicOutlineView->setItemDelegate(outlineDelegate);
     
     // tweak appearance on Linux; the form is adjusted for macOS
-#if !defined(__APPLE__)
+#if defined(__linux__)
     {
         // use a smaller font for the outline
         QFont outlineFont(ui->topicOutlineView->font());
