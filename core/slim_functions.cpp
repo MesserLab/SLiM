@@ -31,7 +31,55 @@
 #include <vector>
 
 
-// Source code for built-in functions that are implemented in Eidos.  These strings are globals mostly so the
+extern const char *gSLiMSourceCode_calcFST;
+extern const char *gSLiMSourceCode_calcVA;
+extern const char *gSLiMSourceCode_calcPairHeterozygosity;
+extern const char *gSLiMSourceCode_calcHeterozygosity;
+extern const char *gSLiMSourceCode_calcWattersonsTheta;
+
+
+const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(void)
+{
+	// Allocate our own EidosFunctionSignature objects
+	static std::vector<EidosFunctionSignature_CSP> sim_func_signatures_;
+	
+	if (!sim_func_signatures_.size())
+	{
+		// Nucleotide utilities
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToNucleotides", SLiM_ExecuteFunction_codonsToNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
+		
+		// Population genetics utilities (implemented with Eidos code
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("genome1", gSLiM_Genome_Class)->AddObject_S("genome2", gSLiM_Genome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		
+		// Other built-in SLiM functions
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddString_S("gather")->AddLogicalEquiv_OS("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
+	}
+	
+	return &sim_func_signatures_;
+}
+
+
+// ************************************************************************************
+//
+//	population genetics utilities
+//
+#pragma mark -
+#pragma mark Population genetics utilities
+#pragma mark -
+
+// These are implemented in Eidos, for transparency/modifiability.  These strings are globals mostly so the
 // formatting of the code looks nice in Xcode; they are used only by SLiMSim::SLiMFunctionSignatures().
 
 // (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
@@ -166,33 +214,13 @@ R"({
 })";
 
 
-const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(void)
-{
-	// Allocate our own EidosFunctionSignature objects
-	static std::vector<EidosFunctionSignature_CSP> sim_func_signatures_;
-	
-	if (!sim_func_signatures_.size())
-	{
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToNucleotides", SLiM_ExecuteFunction_codonsToNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mm16To256", SLiM_ExecuteFunction_mm16To256, kEidosValueMaskFloat, "SLiM"))->AddFloat("mutationMatrix16"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmJukesCantor", SLiM_ExecuteFunction_mmJukesCantor, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("mmKimura", SLiM_ExecuteFunction_mmKimura, kEidosValueMaskFloat, "SLiM"))->AddFloat_S("alpha")->AddFloat_S("beta"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideCounts", SLiM_ExecuteFunction_nucleotideCounts, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotideFrequencies", SLiM_ExecuteFunction_nucleotideFrequencies, kEidosValueMaskFloat, "SLiM"))->AddIntString("sequence"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
-		
-		// Built-in SLiM functions implemented with Eidos code
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("genome1", gSLiM_Genome_Class)->AddObject_S("genome2", gSLiM_Genome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
-	}
-	
-	return &sim_func_signatures_;
-}
+// ************************************************************************************
+//
+//	codon tables
+//
+#pragma mark -
+#pragma mark Codon tables
+#pragma mark -
 
 static std::string codon2aa_short[64] = {
 	/* AAA */	"K",
@@ -394,6 +422,15 @@ static int codon2aa_int[64] = {
 	/* TTG */	11,
 	/* TTT */	14
 };
+
+
+// ************************************************************************************
+//
+//	nucleotide utilities
+//
+#pragma mark -
+#pragma mark Nucleotide utilities
+#pragma mark -
 
 //	(string)codonsToAminoAcids(integer codons, [li$ long = F])
 EidosValue_SP SLiM_ExecuteFunction_codonsToAminoAcids(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -1117,6 +1154,727 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 }
 
 
+// ************************************************************************************
+//
+//	other functions
+//
+#pragma mark -
+#pragma mark Other functions
+#pragma mark -
+
+enum SummarizeOperation {
+	kOne,
+	kAge,
+	kFitnessScaling,
+	kMigrant,
+	kReproductiveOutput,
+	kTag,
+	kTagF,
+	kLambda
+};
+
+enum SummarizeGather {
+	kSum,
+	kMean,
+	kProduct,
+	kMin,
+	kMax
+};
+
+static inline int SummarizeGridIndex_1D(Individual *individual, int component0, double *spatialBounds, int64_t *dims, __attribute__((unused)) int64_t result_count)
+{
+	double coord0 = (&(individual->spatial_x_))[component0];
+	
+	if ((coord0 < spatialBounds[0]) || (coord0 > spatialBounds[1]))
+		return -1;	// a flag value that indicates "individual out of bounds"
+	
+	// figure out which grid cell this individual is in
+	int grid0 = (int)round(((coord0 - spatialBounds[0]) / (spatialBounds[1] - spatialBounds[0])) * (dims[0] - 1));
+	
+#if DEBUG
+	if ((grid0 < 0) || (grid0 >= dims[0]))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid coordinates out of bounds." << EidosTerminate();
+#endif
+	
+	int grid_index = (int)grid0;	// this is the index in tallies, result_data
+	
+#if DEBUG
+	if ((grid_index < 0) || (grid_index >= result_count))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid index out of bounds." << EidosTerminate();
+#endif
+	
+	return grid_index;
+}
+
+static inline int SummarizeGridIndex_2D(Individual *individual, int component0, int component1, double *spatialBounds, int64_t *dims, __attribute__((unused)) int64_t result_count)
+{
+	double coord0 = (&(individual->spatial_x_))[component0];	// x, for "xy"
+	double coord1 = (&(individual->spatial_x_))[component1];	// y, for "xy"
+	
+	if ((coord0 < spatialBounds[0]) || (coord0 > spatialBounds[1]) || (coord1 < spatialBounds[2]) || (coord1 > spatialBounds[3]))
+		return -1;	// a flag value that indicates "individual out of bounds"
+	
+	// figure out which grid cell this individual is in
+	int grid0 = (int)round(((coord0 - spatialBounds[0]) / (spatialBounds[1] - spatialBounds[0])) * (dims[1] - 1));	// x index, for "xy"
+	int grid1 = (int)round(((coord1 - spatialBounds[2]) / (spatialBounds[3] - spatialBounds[2])) * (dims[0] - 1));	// y index, for "xy"
+	
+#if DEBUG
+	if (((grid0 < 0) || (grid0 >= dims[1])) || ((grid1 < 0) || (grid1 >= dims[0])))		// dims[0] is row count, dims[1] is col count
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid coordinates out of bounds." << EidosTerminate();
+#endif
+	
+	int grid_index = (int)(grid0 * dims[0] + dims[0] - 1 - grid1);	// this is the index in tallies, result_data; x * row_count + y, by row, for "xy"
+	
+#if DEBUG
+	if ((grid_index < 0) || (grid_index >= result_count))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid index out of bounds." << EidosTerminate();
+#endif
+	
+	return grid_index;
+}
+
+static inline int SummarizeGridIndex_3D(Individual *individual, int component0, int component1, int component2, double *spatialBounds, int64_t *dims, __attribute__((unused)) int64_t result_count)
+{
+	double coord0 = (&(individual->spatial_x_))[component0];	// x, for "xyz"
+	double coord1 = (&(individual->spatial_x_))[component1];	// y, for "xyz"
+	double coord2 = (&(individual->spatial_x_))[component2];	// z, for "xyz"
+	
+	if ((coord0 < spatialBounds[0]) || (coord0 > spatialBounds[1]) || (coord1 < spatialBounds[2]) || (coord1 > spatialBounds[3]) || (coord2 < spatialBounds[4]) || (coord2 > spatialBounds[5]))
+		return -1;	// a flag value that indicates "individual out of bounds"
+	
+	// figure out which grid cell this individual is in
+	int grid0 = (int)round(((coord0 - spatialBounds[0]) / (spatialBounds[1] - spatialBounds[0])) * (dims[1] - 1));	// x index, for "xyz"
+	int grid1 = (int)round(((coord1 - spatialBounds[2]) / (spatialBounds[3] - spatialBounds[2])) * (dims[0] - 1));	// y index, for "xyz"
+	int grid2 = (int)round(((coord2 - spatialBounds[4]) / (spatialBounds[5] - spatialBounds[4])) * (dims[2] - 1));	// z index, for "xyz"
+	
+#if DEBUG
+	if (((grid0 < 0) || (grid0 >= dims[1])) || ((grid1 < 0) || (grid1 >= dims[0])) || ((grid2 < 0) || (grid2 >= dims[2])))		// dims[0] is row count, dims[1] is col count
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid coordinates out of bounds." << EidosTerminate();
+#endif
+	
+	int grid_index = (int)(grid0 * dims[0] + dims[0] - 1 - grid1 + grid2 * dims[0] * dims[1]);	// this is the index in tallies, result_data; x * row_count + y + z * cow_count * col_count, by row, for "xy"
+	
+#if DEBUG
+	if ((grid_index < 0) || (grid_index >= result_count))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) grid index out of bounds." << EidosTerminate();
+#endif
+	
+	return grid_index;
+}
+
+static inline double DoSummarizeOperation(Individual *individual, SummarizeOperation operation)
+{
+	switch (operation)
+	{
+		case SummarizeOperation::kOne:					return 1;
+		case SummarizeOperation::kAge:					return individual->age_;
+		case SummarizeOperation::kFitnessScaling:		return individual->fitness_scaling_;
+		case SummarizeOperation::kMigrant:				return individual->migrant_;
+		case SummarizeOperation::kReproductiveOutput:	return individual->ReproductiveOutput();
+		case SummarizeOperation::kTag:
+		{
+			slim_usertag_t tag_value = individual->tag_value_;
+			
+			if (tag_value == SLIM_TAG_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tag accessed on individual before being set." << EidosTerminate();
+			
+			return tag_value;
+		}
+		case SummarizeOperation::kTagF:
+		{
+			double tagF_value = individual->tagF_value_;
+			
+			if (tagF_value == SLIM_TAGF_UNSET_VALUE)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagF accessed on individual before being set." << EidosTerminate();
+			
+			return tagF_value;
+		}
+		case SummarizeOperation::kLambda:
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) SummarizeOperation::kLambda mishandled." << EidosTerminate();
+	}
+}
+
+static void DoSummarizeGather(const std::vector<std::vector<double>> &tallies, double *result_data, int64_t result_count, SummarizeGather gather, double empty)
+{
+	for (int grid_index = 0; grid_index < result_count; ++grid_index)
+	{
+		const std::vector<double> &cell_values = tallies[grid_index];
+		int value_count = (int)cell_values.size();
+		double gathered;
+		
+		if (value_count == 0)
+		{
+			// With no tallies in a cell, use the special empty value
+			result_data[grid_index] = empty;
+		}
+		else
+		{
+			switch (gather)
+			{
+				case SummarizeGather::kSum:			// sum of all values
+				{
+					gathered = 0.0;
+					for (int value_index = 0; value_index < value_count; ++value_index)
+						gathered += cell_values[value_index];
+					break;
+				}
+				case SummarizeGather::kMean:		// mean of all values
+				{
+					gathered = 0.0;
+					for (int value_index = 0; value_index < value_count; ++value_index)
+						gathered += cell_values[value_index];
+					gathered /= value_count;
+					break;
+				}
+				case SummarizeGather::kProduct:		// product of all values
+				{
+					gathered = 1.0;
+					for (int value_index = 0; value_index < value_count; ++value_index)
+						gathered *= cell_values[value_index];
+					break;
+				}
+				case SummarizeGather::kMin:			// minimum of all values
+				{
+					gathered = std::numeric_limits<double>::infinity();
+					for (int value_index = 0; value_index < value_count; ++value_index)
+						gathered = std::min(gathered, cell_values[value_index]);
+					break;
+				}
+				case SummarizeGather::kMax:			// maximum of all values
+				{
+					gathered = -std::numeric_limits<double>::infinity();
+					for (int value_index = 0; value_index < value_count; ++value_index)
+						gathered = std::max(gathered, cell_values[value_index]);
+					break;
+				}
+			}
+			
+			result_data[grid_index] = gathered;
+		}
+	}
+}
+
+// (float)summarizeIndividuals(o<Individual> individuals, integer dim, numeric spatialBounds, s$ operation, s$ gather, [lif$ empty = 0.0], [l$ perUnitArea = F], [Ns$ spatiality = NULL])
+EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	static bool beenHere = false;
+	
+	if (!beenHere)
+	{
+		// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
+		// We can use nullptr here because we don't read or write to the pointer, we're just doing address calculations
+		Individual *test_ind_layout = nullptr;
+	
+		if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||
+			((&(test_ind_layout->spatial_x_)) + 2 != (&(test_ind_layout->spatial_z_))))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) Individual ivar layout unexpected." << EidosTerminate();
+		
+		beenHere = true;
+	}
+	
+	EidosValue *individuals_value = p_arguments[0].get();
+	EidosValue *dim_value = p_arguments[1].get();
+	EidosValue *spatialBounds_value = p_arguments[2].get();
+	EidosValue *operation_value = p_arguments[3].get();
+	EidosValue *gather_value = p_arguments[4].get();
+	EidosValue *empty_value = p_arguments[5].get();
+	EidosValue *perUnitArea_value = p_arguments[6].get();
+	EidosValue *spatiality_value = p_arguments[7].get();
+	
+	// Get individuals vector; complicated as usual by singleton vs. vector
+	int individuals_count = individuals_value->Count();
+	Individual *singleton_ind = nullptr;
+	Individual **individuals_buffer = nullptr;
+	
+	if (individuals_count == 1)
+	{
+		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		individuals_buffer = &singleton_ind;
+	}
+	else
+	{
+		individuals_buffer = (Individual **)((EidosValue_Object_vector *)individuals_value)->data();
+	}
+	
+	// Get the model's dimensionality, which will be context for everything we do below
+	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
+	int spatial_dimensionality = sim.SpatialDimensionality();
+	
+	if (spatial_dimensionality <= 0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() can only be called in spatial models, since it summarizes spatially-partitioned information." << EidosTerminate();
+	
+	// Get our spatiality and interpret it
+	int spatiality, required_dimensionality;
+	int component0 = -1, component1 = -1, component2 = -1;
+	
+	if (spatiality_value->Type() == EidosValueType::kValueNULL)
+	{
+		spatiality = spatial_dimensionality;
+		required_dimensionality = spatial_dimensionality;
+		
+		if (spatiality >= 1)
+			component0 = 0;
+		if (spatiality >= 2)
+			component1 = 1;
+		if (spatiality >= 3)
+			component2 = 2;
+	}
+	else
+	{
+		std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+		
+		if (spatiality_string.compare(gEidosStr_x) == 0)		{ spatiality = 1; required_dimensionality = 1; component0 = 0; }
+		else if (spatiality_string.compare(gEidosStr_y) == 0)	{ spatiality = 1; required_dimensionality = 2; component0 = 1; }
+		else if (spatiality_string.compare(gEidosStr_z) == 0)	{ spatiality = 1; required_dimensionality = 3; component0 = 2; }
+		else if (spatiality_string.compare("xy") == 0)			{ spatiality = 2; required_dimensionality = 2; component0 = 0; component1 = 1; }
+		else if (spatiality_string.compare("xz") == 0)			{ spatiality = 2; required_dimensionality = 3; component0 = 0; component1 = 2; }
+		else if (spatiality_string.compare("yz") == 0)			{ spatiality = 2; required_dimensionality = 3; component0 = 1; component1 = 2; }
+		else if (spatiality_string.compare("xyz") == 0)			{ spatiality = 3; required_dimensionality = 3; component0 = 0; component1 = 1; component2 = 2; }
+		else
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatiality \"" << spatiality_string << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << EidosTerminate();
+	}
+	
+	if (required_dimensionality > spatial_dimensionality)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatiality cannot utilize spatial dimensions beyond those set in initializeSLiMOptions()." << EidosTerminate();
+	
+	if ((spatiality != 1) && (spatiality != 2) && (spatiality != 3))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) unexpected spatiality " << spatiality << "." << EidosTerminate();
+	
+	// Get the spatial bounds and check that it matches the model dimensionality; note that we rearrange the order of the bounds vector here!
+	int spatialBounds_count = spatialBounds_value->Count();
+	double spatialBounds[6] = {-1, -1, -1, -1, -1, -1};
+	bool invalid_bounds = false;
+	
+	if (spatialBounds_count != spatial_dimensionality * 2)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatialBounds is an unexpected length.  It must be supplied in the model's dimensionality (as from the spatialBounds property of a Subpopulation)." << EidosTerminate();
+	
+	if (spatiality >= 1)
+	{
+		spatialBounds[0] = spatialBounds_value->FloatAtIndex(component0, nullptr);
+		spatialBounds[1] = spatialBounds_value->FloatAtIndex(component0 + spatiality, nullptr);
+		if (spatialBounds[0] >= spatialBounds[1])
+			invalid_bounds = true;
+	}
+	if (spatiality >= 2)
+	{
+		spatialBounds[2] = spatialBounds_value->FloatAtIndex(component1, nullptr);
+		spatialBounds[3] = spatialBounds_value->FloatAtIndex(component1 + spatiality, nullptr);
+		if (spatialBounds[2] >= spatialBounds[3])
+			invalid_bounds = true;
+	}
+	if (spatiality >= 3)
+	{
+		spatialBounds[4] = spatialBounds_value->FloatAtIndex(component2, nullptr);
+		spatialBounds[5] = spatialBounds_value->FloatAtIndex(component2 + spatiality, nullptr);
+		if (spatialBounds[4] >= spatialBounds[5])
+			invalid_bounds = true;
+	}
+	
+	if (invalid_bounds)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatialBounds are invalid; it is required that x0 < x1, y0 < y1, and z0 < z1." << EidosTerminate();
+	
+	// Get the operation, and look for some standard operations that we optimize
+	std::string operation_string = operation_value->StringAtIndex(0, nullptr);
+	SummarizeOperation operation;
+	
+	if ((operation_string == "1;") || (operation_string == "return 1;"))
+	{
+		operation = SummarizeOperation::kOne;
+	}
+	else if ((operation_string == "individual.age;") || (operation_string == "return individual.age;"))
+	{
+		if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
+		operation = SummarizeOperation::kAge;
+	}
+	else if ((operation_string == "individual.fitnessScaling;") || (operation_string == "return individual.fitnessScaling;"))
+	{
+		operation = SummarizeOperation::kFitnessScaling;
+	}
+	else if ((operation_string == "individual.migrant;") || (operation_string == "return individual.migrant;"))
+	{
+		operation = SummarizeOperation::kMigrant;
+	}
+	else if ((operation_string == "individual.reproductiveOutput;") || (operation_string == "return individual.reproductiveOutput;"))
+	{
+		if (!sim.PedigreesEnabledByUser())
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
+		operation = SummarizeOperation::kReproductiveOutput;
+	}
+	else if ((operation_string == "individual.tag;") || (operation_string == "return individual.tag;"))
+	{
+		operation = SummarizeOperation::kTag;
+	}
+	else if ((operation_string == "individual.tagF;") || (operation_string == "return individual.tagF;"))
+	{
+		operation = SummarizeOperation::kTagF;
+	}
+	else
+	{
+		operation = SummarizeOperation::kLambda;
+	}
+	
+	// Get the gather, which must be one of a set of gathers we support
+	std::string gather_string = gather_value->StringAtIndex(0, nullptr);
+	SummarizeGather gather;
+	
+	if (gather_string == "sum")
+		gather = SummarizeGather::kSum;
+	else if (gather_string == "mean")
+		gather = SummarizeGather::kMean;
+	else if (gather_string == "product")
+		gather = SummarizeGather::kProduct;
+	else if (gather_string == "min")
+		gather = SummarizeGather::kMin;
+	else if (gather_string == "max")
+		gather = SummarizeGather::kMax;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() unrecognized gather string '" << gather_string << "'." << EidosTerminate();
+	
+	double empty = empty_value->FloatAtIndex(0, nullptr);	// handles logical, integer, and float
+	
+	// Get the edgeScale value, which is used to postprocess vaues at the very end
+	bool perUnitArea = perUnitArea_value->LogicalAtIndex(0, nullptr);
+	
+	if (perUnitArea && std::isfinite(empty) && (empty != 0.0))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires that when perUnitArea is T, empty is F, 0, 0.0, INF, -INF, or NAN (so that the empty value does not get scaled, which presumably does not make sense)." << EidosTerminate();
+	
+	// Get our dimensions, for our returned vector/matrix/array
+	int dim_count = dim_value->Count();
+	
+	if (dim_count != spatiality)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatiality does not match the number of dimensions in dim; " << spatiality << " dimension(s) expected based on spatiality." << EidosTerminate();
+	
+	int64_t dims[3] = {0, 0, 0};
+	int64_t result_count = 1;
+	
+	for (int dim_index = 0; dim_index < dim_count; ++dim_index)
+	{
+		dims[dim_index] = dim_value->IntAtIndex(dim_index, nullptr);
+		
+		if ((dims[dim_index] < 2) || (dims[dim_index] > 10000))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires dimensions in dim to be in the range [2, 10000]." << EidosTerminate();
+		
+		result_count *= dims[dim_index];
+	}
+	
+	if ((result_count <= 0) || (result_count >= INT32_MAX))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) calculated size for returned vector (" << result_count << ") is out of range for int32_t." << EidosTerminate();
+	
+	// Allocate our return value, set its dimensions, and get set up for using it
+	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(result_count);
+	double *result_data = result_vec->data();
+	
+	if (dim_count > 1)
+		result_vec->SetDimensions(dim_count, dims);
+	
+	// Handle the lambda case separately; it has so much shared code between the different spatiality levels that is doesn't make sense to split it
+	if (operation == SummarizeOperation::kLambda)
+	{
+		// allocate our vector of std::vectors where we keep all our results
+		std::vector<std::vector<double>> tallies;
+		tallies.resize(result_count);
+		
+		// LAMBDA OPERATION: handled separately here since it is so different from the base case
+		EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(operation_value);
+		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
+		
+		// Errors in lambdas should be reported for the lambda script, not for the calling script,
+		// if possible.  In the GUI this does not work well, however; there, errors should be
+		// reported as occurring in the call to sapply().  Here we save off the current
+		// error context and set up the error context for reporting errors inside the lambda,
+		// in case that is possible; see how exceptions are handled below.
+		EidosErrorContext error_context_save = gEidosErrorContext;
+		
+		// We try to do tokenization and parsing once per script, by caching the script inside the EidosValue_String_singleton instance
+		if (!script)
+		{
+			script = new EidosScript(operation_string, -1);
+			
+			gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+			
+			try
+			{
+				script->Tokenize();
+				script->ParseInterpreterBlockToAST(false);
+			}
+			catch (...)
+			{
+				if (gEidosTerminateThrows)
+					gEidosErrorContext = error_context_save;
+				
+				delete script;
+				
+				throw;
+			}
+			
+			if (lambda_value_singleton)
+				lambda_value_singleton->SetCachedScript(script);
+		}
+		
+		// Execute inside try/catch so we can handle errors well
+		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
+		
+		try
+		{
+			EidosSymbolTable &interpreter_symbols = p_interpreter.SymbolTable();						// use our own symbol table
+			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &interpreter_symbols);	// add a variables symbol table on top, shared across all invocations
+			EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
+			EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+			
+			// go through the individuals and tally them
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *individual = individuals_buffer[individual_index];
+				int grid_index;
+				
+				if (spatiality == 1)
+					grid_index = SummarizeGridIndex_1D(individuals_buffer[individual_index], component0, spatialBounds, dims, result_count);
+				else if (spatiality == 2)
+					grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
+				else // (spatiality == 3)
+					grid_index = SummarizeGridIndex_3D(individuals_buffer[individual_index], component0, component1, component2, spatialBounds, dims, result_count);
+				
+				if (grid_index >= 0)
+				{
+					// calculate the value for it based on execution of the lambda
+					double individual_value;
+				
+					// Set the variable "individual" to the focal individual
+					symbols.SetValueForSymbol(gID_individual, individual->CachedEidosValue());
+					
+					// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
+					// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
+					// bugs that would otherwise not manifest.
+					EidosValue_SP &&return_value_SP = interpreter.EvaluateInterpreterBlock(false, true);		// do not print output, return the last statement value
+					
+					if ((return_value_SP->Count() == 1) && ((return_value_SP->Type() == EidosValueType::kValueFloat) || (return_value_SP->Type() == EidosValueType::kValueInt) || (return_value_SP->Type() == EidosValueType::kValueLogical)))
+					{
+						individual_value = return_value_SP->FloatAtIndex(0, nullptr);
+					}
+					else if (return_value_SP->Type() == EidosValueType::kValueNULL)
+					{
+						continue;
+					}
+					else
+					{
+						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): the lambda operation must return a singleton float, integer, or logical, or NULL to indicate that the individual should not be counted in the operation." << EidosTerminate();
+					}
+				
+					// append that value to a std::vector kept for that grid cell
+					tallies[grid_index].emplace_back(individual_value);
+				}
+			}
+		}
+		catch (...)
+		{
+			// If exceptions throw, then we want to set up the error information to highlight the
+			// sapply() that failed, since we can't highlight the actual error.  (If exceptions
+			// don't throw, this catch block will never be hit; exit() will already have been called
+			// and the error will have been reported from the context of the lambda script string.)
+			if (gEidosTerminateThrows)
+				gEidosErrorContext = error_context_save;
+			
+			if (!lambda_value_singleton)
+				delete script;
+			
+			throw;
+		}
+		
+		// Restore the normal error context in the event that no exception occurring within the lambda
+		gEidosErrorContext = error_context_save;
+		
+		if (!lambda_value_singleton)
+			delete script;
+		
+		// do the gather operation into the return value vector/matrix/array
+		DoSummarizeGather(tallies, result_data, result_count, gather, empty);
+	}
+	else
+	{
+		// Otherwise, split into three cases based on the spatiality, to keep the logic simpler
+		if (spatiality == 1)
+		{
+			// allocate our vector of std::vectors where we keep all our results
+			std::vector<std::vector<double>> tallies;
+			tallies.resize(result_count);
+			
+			// BASE CASE: this handles everything except SummarizeOperation::kLambda
+			// go through the individuals and tally them
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *individual = individuals_buffer[individual_index];
+				int grid_index = SummarizeGridIndex_1D(individual, component0, spatialBounds, dims, result_count);
+				if (grid_index >= 0)
+					tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
+			}
+			
+			// do the gather operation into the return value vector/matrix/array
+			DoSummarizeGather(tallies, result_data, result_count, gather, empty);
+		}
+		else if (spatiality == 2)
+		{
+			if ((operation == SummarizeOperation::kOne) && (gather == SummarizeGather::kSum))
+			{
+				// optimize kOne / kSum specially; we avoid keeping a vector of values for each grid square
+				std::vector<int32_t> tallies;
+				tallies.resize(result_count);
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					int grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
+					if (grid_index >= 0)
+						tallies[grid_index]++;
+				}
+				
+				// move int32_t tallies into result_data, treating empty separately if necessary
+				if (empty == 0.0)
+					for (int gather_index = 0; gather_index < result_count; ++gather_index)
+						result_data[gather_index] = tallies[gather_index];
+				else
+					for (int gather_index = 0; gather_index < result_count; ++gather_index)
+						result_data[gather_index] = tallies[gather_index] ? tallies[gather_index] : empty;		// use empty for a tally of 0
+			}
+			else if ((operation == SummarizeOperation::kOne) && ((gather == SummarizeGather::kMean) || (gather == SummarizeGather::kProduct) || (gather == SummarizeGather::kMin) || (gather == SummarizeGather::kMax)))
+			{
+				// optimize kOne with other gathers specially; this is presence/absence, for all of the gathers, since mean/product/min/max
+				// of a vector containing nothing but 1s would be 1 in all cases; we avoid keeping a vector of values for each grid square
+				std::vector<uint8_t> tallies;
+				tallies.resize(result_count);
+				
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					int grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
+					if (grid_index >= 0)
+						tallies[grid_index] = 1;
+				}
+				
+				// move uint8_t tallies into result_data, treating empty separately if necessary
+				if (empty == 0.0)
+					for (int gather_index = 0; gather_index < result_count; ++gather_index)
+						result_data[gather_index] = tallies[gather_index];
+				else
+					for (int gather_index = 0; gather_index < result_count; ++gather_index)
+						result_data[gather_index] = tallies[gather_index] ? tallies[gather_index] : empty;		// use empty for a tally of 0
+			}
+			else
+			{
+				// allocate our vector of std::vectors where we keep all our results
+				std::vector<std::vector<double>> tallies;
+				tallies.resize(result_count);
+				
+				// BASE CASE: this handles everything except special-cased combinations above (which would work fine here too), and SummarizeOperation::kLambda
+				// go through the individuals and tally them
+				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+				{
+					Individual *individual = individuals_buffer[individual_index];
+					int grid_index = SummarizeGridIndex_2D(individual, component0, component1, spatialBounds, dims, result_count);
+					if (grid_index >= 0)
+						tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
+				}
+				
+				// do the gather operation into the return value vector/matrix/array
+				DoSummarizeGather(tallies, result_data, result_count, gather, empty);
+			}
+		}
+		else // (spatiality == 3)
+		{
+			std::vector<std::vector<double>> tallies;
+			tallies.resize(result_count);
+			
+			// BASE CASE: this handles everything except SummarizeOperation::kLambda
+			// go through the individuals and tally them
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				Individual *individual = individuals_buffer[individual_index];
+				int grid_index = SummarizeGridIndex_3D(individual, component0, component1, component2, spatialBounds, dims, result_count);
+				if (grid_index >= 0)
+					tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
+			}
+			
+			// do the gather operation into the return value vector/matrix/array
+			DoSummarizeGather(tallies, result_data, result_count, gather, empty);
+		}
+	}
+	
+	// rescale values if requested with perUnitArea; this post-processing code is shared with the lambda case
+	if (perUnitArea)
+	{
+		if (spatiality == 1)
+		{
+			// first scale end values by the amount of area they contain relative to interior grid cells
+			*(result_data) *= 2.0;
+			*(result_data + dims[0] - 1) *= 2.0;
+			
+			// now divide each value by the area encompassed by an interior grid cell, which is a fraction of the total spatialBounds area
+			double total_area = spatialBounds[1] - spatialBounds[0];
+			double interior_cell_count = dims[0] - 1;								// -1 because end cells combine to make one fewer cell
+			double interior_cell_area = total_area / interior_cell_count;
+			
+			for (int value_index = 0; value_index < result_count; ++value_index)
+				result_data[value_index] /= interior_cell_area;
+		}
+		else if (spatiality == 2)
+		{
+			// first scale edge and corner values by the amount of area they contain relative to interior grid cells
+			// note that these loops hit the corners twice, intentionally; they contain 1/4 the area of interior cells
+			for (int row = 0; row < dims[0]; row++)
+			{
+				*(result_data + row) *= 2.0;
+				*(result_data + row + (dims[1] - 1) * dims[0]) *= 2.0;
+			}
+			for (int col = 0; col < dims[1]; col++)
+			{
+				*(result_data + col * dims[0]) *= 2.0;
+				*(result_data + (dims[0] - 1) + col * dims[0]) *= 2.0;
+			}
+			
+			// now divide each value by the area encompassed by an interior grid cell, which is a fraction of the total spatialBounds area
+			double total_area = (spatialBounds[1] - spatialBounds[0]) * (spatialBounds[3] - spatialBounds[2]);		// width * height
+			double interior_cell_count = (dims[0] - 1) * (dims[1] - 1);												// -1 because edge/corner cells combine to make one fewer rows/columns
+			double interior_cell_area = total_area / interior_cell_count;
+			
+			for (int value_index = 0; value_index < result_count; ++value_index)
+				result_data[value_index] /= interior_cell_area;
+		}
+		else if (spatiality == 3)
+		{
+			// first scale edge and corner values by the amount of area they contain relative to interior grid cells
+			// note that this hits the corners three times, intentionally; they contain 1/8 the area of interior cells
+			// we do this by scanning through the whole array; it's less efficient but the logic is much simpler
+			for (int row = 0; row < dims[0]; row++)
+			{
+				for (int col = 0; col < dims[1]; col++)
+				{
+					for (int plane = 0; plane < dims[2]; plane++)
+					{
+						int extreme_row = ((row == 0) || (row == dims[0] - 1)) ? 1 : 0;
+						int extreme_col = ((col == 0) || (col == dims[1] - 1)) ? 1 : 0;
+						int extreme_plane = ((plane == 0) || (plane == dims[2] - 1)) ? 1 : 0;
+						int extremity_sum = extreme_row + extreme_col + extreme_plane;
+						
+						if (extremity_sum == 0)
+							continue;
+						
+						double factor = 1.0 * (extreme_row ? 2.0 : 1.0) * (extreme_col ? 2.0 : 1.0) * (extreme_plane ? 2.0 : 1.0);
+						
+						*(result_data + row + col * dims[0] + plane * dims[0] * dims[1]) *= factor;	// (dims[0] - 1 - row) not row, actually, but we can do it flipped, doesn't matter
+					}
+				}
+			}
+			
+			// now divide each value by the area encompassed by an interior grid cell, which is a fraction of the total spatialBounds area
+			double total_area = (spatialBounds[1] - spatialBounds[0]) * (spatialBounds[3] - spatialBounds[2]) * (spatialBounds[5] - spatialBounds[4]);		// width * height * depth
+			double interior_cell_count = (dims[0] - 1) * (dims[1] - 1) * (dims[2] - 1);							// -1 because edge/corner cells combine to make one fewer rows/columns
+			double interior_cell_area = total_area / interior_cell_count;
+			
+			for (int value_index = 0; value_index < result_count; ++value_index)
+				result_data[value_index] /= interior_cell_area;
+		}
+	}
+
+	return EidosValue_SP(result_vec);
+}
 
 
 

@@ -180,5 +180,6 @@
         <file>recipes/Recipe 16.21 - Dynamic population structure in nonWF models.txt</file>
         <file>recipes/Recipe 16.22 - Sperm storage with a survival() callback.txt</file>
         <file>recipes/Recipe 16.23 - Tracking separate sexes in script, nonWF style.txt</file>
+        <file>recipes/Recipe 15.13 - Density-dependent fecundity with summarizeIndividuals().txt</file>
     </qresource>
 </RCC>

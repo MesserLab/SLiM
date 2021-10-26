@@ -107,7 +107,8 @@ static const char *SLIM_TREES_FILE_VERSION_PRENUC = "0.2";		// before introducti
 static const char *SLIM_TREES_FILE_VERSION_POSTNUC = "0.3";		// SLiM 3.3.x, with the added nucleotide field in MutationMetadataRec
 static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";		// SLiM 3.4.x, with the new model_hash key in provenance
 static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, with information in metadata instead of provenance
-static const char *SLIM_TREES_FILE_VERSION = "0.6";				// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
+static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
+static const char *SLIM_TREES_FILE_VERSION = "0.7";				// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
 
 #pragma mark -
 #pragma mark SLiMSim
@@ -5193,6 +5194,91 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 	}
 }
 
+void SLiMSim::AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash)
+{
+	// Build a parents column in the individuals table for output, from the pedigree IDs in the metadata
+	// We create the parents column and fill it with info.  Note that we always know the pedigree ID if a parent
+	// existed, so a parent pedigree ID of -1 means "there was no parent", and should result in no parent table entry.
+	// A parent pedigree ID that is not present in the individuals table translates to TSK_NULL, which means
+	// "this parent did exist, but was not put in the table, or was simplified away".  We allocate two entries
+	// per individual, which might be an overallocation but is unlikely to matter.
+	size_t num_rows = p_tables->individuals.num_rows;
+	size_t parents_buffer_size = num_rows * 2 * sizeof(tsk_id_t);
+	tsk_id_t *parents_buffer = (tsk_id_t *)malloc(parents_buffer_size);
+	tsk_size_t *parents_offset_buffer = (tsk_size_t *)malloc(p_tables->individuals.max_rows * sizeof(tsk_size_t));
+	
+	if (!parents_buffer || !parents_offset_buffer)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::AddParentsColumnForOutput): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	tsk_id_t *parents_buffer_ptr = parents_buffer;
+	
+	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
+	{
+		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
+		slim_pedigreeid_t pedigree_p1 = metadata_rec->pedigree_p1_;
+		slim_pedigreeid_t pedigree_p2 = metadata_rec->pedigree_p2_;
+		
+		parents_offset_buffer[individual_index] = parents_buffer_ptr - parents_buffer;
+		
+		if (pedigree_p1 != -1)
+		{
+			auto p1_iter = p_individuals_hash->find(pedigree_p1);
+			tsk_id_t p1_tskid = (p1_iter == p_individuals_hash->end()) ? TSK_NULL : p1_iter->second;
+			
+			//std::cout << "first parent pedigree ID " << pedigree_p1 << " is tskid " << p1_tskid << std::endl;
+			*(parents_buffer_ptr++) = p1_tskid;
+		}
+		
+		if (pedigree_p2 != -1)
+		{
+			auto p2_iter = p_individuals_hash->find(pedigree_p2);
+			tsk_id_t p2_tskid = (p2_iter == p_individuals_hash->end()) ? TSK_NULL : p2_iter->second;
+			
+			//std::cout << "second parent pedigree ID " << pedigree_p2 << " is tskid " << p2_tskid << std::endl;
+			*(parents_buffer_ptr++) = p2_tskid;
+		}
+	}
+	
+	parents_offset_buffer[num_rows] = parents_buffer_ptr - parents_buffer;
+	
+	// Put the new parents buffers into the individuals table
+	if (p_tables->individuals.parents)
+		free(p_tables->individuals.parents);
+	p_tables->individuals.parents = parents_buffer;
+	
+	if (p_tables->individuals.parents_offset)
+		free(p_tables->individuals.parents_offset);
+	p_tables->individuals.parents_offset = parents_offset_buffer;
+	
+	p_tables->individuals.parents_length = parents_buffer_ptr - parents_buffer;
+	p_tables->individuals.max_parents_length = parents_buffer_size;
+}
+
+void SLiMSim::BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash)
+{
+	// Here we rebuild a hash table for fast lookup of individuals table rows.
+	// The key is the pedigree ID, so we can look up tabled individuals quickly; the value
+	// is the index of that pedigree ID in the list of tabled individuals.  This code
+	// used to live in AddNewIndividualsToTable(), building a temporary table; now it can
+	// rebuild a permanent table (tabled_individuals_hash_), or make a temporary table
+	// for local use.
+	p_individuals_hash->clear();
+	
+	tsk_size_t num_rows = p_tables->individuals.num_rows;
+	char *metadata_base = p_tables->individuals.metadata;
+	tsk_size_t *metadata_offset = p_tables->individuals.metadata_offset;
+	
+	for (tsk_size_t individual_index = 0; individual_index < num_rows; individual_index++)
+	{
+		IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(metadata_base + metadata_offset[individual_index]);
+		slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
+		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+		
+		p_individuals_hash->emplace(INDIVIDUALS_HASH_PAIR(pedigree_id, tsk_individual));
+	}
+}
+
 struct edge_plus_time {
 	double time;
 	tsk_id_t parent, child;
@@ -5357,6 +5443,9 @@ void SLiMSim::SimplifyTreeSequence(void)
 	// update map of remembered_genomes_, which are now the first n entries in the node table
 	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_genomes_.size(); i++)
 		remembered_genomes_[i] = i;
+	
+	// remake our hash table of pedigree ids to tsk_ids, since simplify reordered the individuals table
+	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);
 	
 	// reset current position, used to rewind individuals that are rejected by modifyChild()
 	RecordTablePosition();
@@ -5818,6 +5907,9 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	
 	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
 	
+	if (file_version != 7)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): reading text trees data from older file formats is not supported; this file cannot be read." << EidosTerminate();
+	
 	// We will be replacing the columns of some of the tables in tables with de-ASCII-fied versions.  That can't be
 	// done in place, so we make a copy of tables here to act as a source for the process of copying new information
 	// back into tables.
@@ -5963,7 +6055,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	
 	/***** De-ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = tables_.individuals.metadata;
 		tsk_size_t *metadata_offset = tables_.individuals.metadata_offset;
@@ -5978,15 +6070,17 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			std::string string_metadata(metadata + metadata_offset[j], metadata_offset[j+1] - metadata_offset[j]);
 			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
 			
-			if (metadata_parts.size() != 5)
+			if (metadata_parts.size() != 7)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
 			
 			IndividualMetadataRec metarec;
 			metarec.pedigree_id_ = (slim_pedigreeid_t)std::stoll(metadata_parts[0]);
-			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[1]);
-			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[2]);
-			metarec.sex_ = (IndividualSex)std::stoll(metadata_parts[3]);
-			metarec.flags_ = (uint32_t)std::stoull(metadata_parts[4]);
+			metarec.pedigree_p1_ = (slim_pedigreeid_t)std::stoll(metadata_parts[1]);
+			metarec.pedigree_p2_ = (slim_pedigreeid_t)std::stoll(metadata_parts[2]);
+			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[3]);
+			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[4]);
+			metarec.sex_ = (IndividualSex)std::stoll(metadata_parts[5]);
+			metarec.flags_ = (uint32_t)std::stoull(metadata_parts[6]);
 			
 			binary_metadata.emplace_back(metarec);
 			
@@ -6225,7 +6319,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	
 	/***** Ascii-ify Individuals Table *****/
 	{
-		static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+		static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 		
 		const char *metadata = p_tables->individuals.metadata;
 		tsk_size_t *metadata_offset = p_tables->individuals.metadata_offset;
@@ -6239,6 +6333,10 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			IndividualMetadataRec *struct_individual_metadata = (IndividualMetadataRec *)(metadata + metadata_offset[j]);
 			
 			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_id_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_p1_));
+			text_metadata.append(",");
+			text_metadata.append(std::to_string(struct_individual_metadata->pedigree_p2_));
 			text_metadata.append(",");
 			text_metadata.append(std::to_string(struct_individual_metadata->age_));
 			text_metadata.append(",");
@@ -6457,7 +6555,7 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 	tsk_mutation_table_free(&mutations_copy);
 }
 
-void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, tsk_flags_t p_flags)
+void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags)
 {
 	// We use currently use this function in two ways, depending on p_flags:
 	//  1. (SLIM_TSK_INDIVIDUAL_REMEMBERED) for individuals to be permanently
@@ -6476,60 +6574,6 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	if (p_tables == nullptr)
 		p_tables = &tables_;
 	
-	// first, construct the map of individuals currently in the individuals table; this
-	// is remembered individuals as well as others in the table for other reasons
-	// BCH 16 Nov. 2019: Making this into an unordered_map for faster lookup; this can end up
-	// being accessed for a large number of individuals, making for an O(N*M) bottleneck.
-	// The key is the pedigree ID, so we can look up tabled individuals quickly; the value
-	// is the index of that pedigree ID in the list of tabled individuals, so we can
-	// look up the metadata for the tabled individual and patch it with new information.
-	// BCH 28 Jan. 2020: My previous optimization turns out to be quite slow in one case: when
-	// p_num_individuals == 1, because the user is adding just a single remembered individual
-	// to the list.  When this is done many times (as in my #116 test case!), the overhead of
-	// building a whole std::unordered_map for a single lookup proves to be a big problem --
-	// a large percentage of total runtime, when it used to be negligible.  This seems like
-	// a case that might well arise in real-world use, so I'm optimizing it by re-introducing
-	// the old std::vector code, used only when p_num_individuals < 5 (a wild guess at a
-	// heuristic).  This makes the code a bit messy, but it's simple really: we just use one
-	// of two data structures, std::vector or std::unordered_map, to do our lookups based on
-	// how many lookups we anticipate doing.
-	bool using_std_vector = (p_num_individuals < 5);
-	std::vector<slim_pedigreeid_t> tabled_individuals;												// used when using_std_vector==true
-#if EIDOS_ROBIN_HOOD_HASHING
-	robin_hood::unordered_flat_map<slim_pedigreeid_t, slim_popsize_t> tabled_individuals_lookup;	// used when using_std_vector==false
-	typedef robin_hood::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
-#elif STD_UNORDERED_MAP_HASHING
-	std::unordered_map<slim_pedigreeid_t, slim_popsize_t> tabled_individuals_lookup;				// used when using_std_vector==false
-	typedef std::pair<slim_pedigreeid_t, slim_popsize_t> MAP_PAIR;
-#endif
-	
-	// BCH 8 Jan. 2021: We used to add individuals to the individuals map by looping over
-	// remembered_genomes_.  That was complicated; finding the individuals for the genomes,
-	// making sure to add them only once even though there are two genomes per individual,
-	// etc.  @hyanwong pointed out that we can simply loop over the individuals table instead,
-	// since our goal is simply to add all of those individuals anyway.  This also removes
-	// a brittle reliance on remembered_genomes_ being in the same order as the individuals
-	// table.
-	if (using_std_vector)
-	{
-		for (tsk_size_t individual_index = 0; individual_index < p_tables->individuals.num_rows; individual_index++)
-		{
-			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
-			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-			tabled_individuals.push_back(metadata_rec->pedigree_id_);
-		}
-	}
-	else
-	{
-		for (tsk_size_t individual_index = 0; individual_index < p_tables->individuals.num_rows; individual_index++)
-		{
-			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
-			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(p_tables->individuals.metadata + p_tables->individuals.metadata_offset[tsk_individual]);
-			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;	// need a temp to avoid compile error due to reference to packed struct field
-			tabled_individuals_lookup.emplace(MAP_PAIR(pedigree_id, tsk_individual));
-		}
-	}
-	
 	// loop over individuals and add entries to the individual table; if they are already
 	// there, we just need to update their flags, metadata, location, etc.
 	for (size_t j = 0; j < p_num_individuals; j++)
@@ -6545,37 +6589,20 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		IndividualMetadataRec metadata_rec;
 		MetadataForIndividual(ind, &metadata_rec);
 		
-		tsk_id_t tsk_individual;
+		// do a fast lookup to see whether this individual is already in the individuals table
+		auto ind_pos = p_individuals_hash->find(ped_id);
 		
-		if (using_std_vector)
-		{
-			// this case has a slow lookup (linear search), but the vector is fast to build
-			auto ind_pos = std::find(tabled_individuals.begin(), tabled_individuals.end(), ped_id);
-			
-			if (ind_pos == tabled_individuals.end())
-				tsk_individual = TSK_NULL;	// not in the table already
-			else
-				tsk_individual = (tsk_id_t)std::distance(tabled_individuals.begin(), ind_pos);
-		}
-		else
-		{
-			// this case has a fast search (hash table), but the unordered_map is slow to build
-			auto ind_pos = tabled_individuals_lookup.find(ped_id);
-			
-			if (ind_pos == tabled_individuals_lookup.end())
-				tsk_individual = TSK_NULL;	// not in the table already
-			else
-				tsk_individual = ind_pos->second;
-		}
-		
-		if (tsk_individual == TSK_NULL) {
+		if (ind_pos == p_individuals_hash->end()) {
 			// This individual is not already in the tables.
-			tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
+			tsk_id_t tsk_individual = tsk_individual_table_add_row(&p_tables->individuals,
 					p_flags, location.data(), (uint32_t)location.size(), 
                     NULL, 0, // individual parents
 					(char *)&metadata_rec, (uint32_t)sizeof(IndividualMetadataRec));
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			
+			// Add the new individual to our hash table, for fast lookup as done above
+			p_individuals_hash->emplace(INDIVIDUALS_HASH_PAIR(ped_id, tsk_individual));
+
 			// Update node table
 			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
 				   && ind->genome2_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows);
@@ -6590,6 +6617,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			}
 		} else {
 			// This individual is already there; we need to update the information.
+			tsk_id_t tsk_individual =  ind_pos->second;
+
 			assert(((size_t)tsk_individual < p_tables->individuals.num_rows)
 				   && (location.size()
 					   == (p_tables->individuals.location_offset[tsk_individual + 1]
@@ -6629,13 +6658,13 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	}
 }
 
-void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables)
+void SLiMSim::AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash)
 {
 	// add currently alive individuals to the individuals table, so they persist
 	// through simplify and can be revived when loading saved state
 	for (auto subpop_iter : population_.subpops_)
 	{
-		AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, SLIM_TSK_INDIVIDUAL_ALIVE);
+		AddIndividualsToTable(subpop_iter.second->parent_individuals_.data(), subpop_iter.second->parent_individuals_.size(), p_tables, p_individuals_hash, SLIM_TSK_INDIVIDUAL_ALIVE);
 	}
 }
 
@@ -6780,6 +6809,30 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	// leaving other keys that might already be there.
 	// But that's being a headache, so we're skipping it.
 	nlohmann::json metadata;
+	
+	// BCH 10/24/2021: Save the ancestral sequence (if any) to the top-level metadata; this is a temporary
+	// place for it, until tskit provides a final home in its data, but it solves some problems now.  See
+	// https://github.com/MesserLab/SLiM/issues/180 for discussion.  For file version "0.6" and earlier,
+	// the ancestral sequence was put under its own kastore key; this move happened with "0.7" (SLiM 3.7).
+	if (nucleotide_based_)
+	{
+		std::size_t buflen = chromosome_->AncestralSequence()->size();
+		std::string buffer_str;		// we can't use NucleotideArray's internal buffer because it is not in ASCII
+		
+		buffer_str.resize(buflen);	// fills with 0, which is an annoying waste of time but unavoidable
+		
+		// get a pointer into buffer_str so we can use it as our buffer, avoiding the usual std::string copy
+		// we can't use data() because const, but this is legal if we don't touch the terminating NUL; see
+		// https://stackoverflow.com/questions/14290795/why-is-modifying-a-string-through-a-retrieved-pointer-to-its-data-not-allowed
+		char *buffer = &buffer_str[0];
+		if (!buffer)
+			EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+		
+		chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
+		
+		// hopefully avoid additional copies by having nlohmann::json adopt our string with emplace()
+		metadata.emplace("reference_sequence", buffer_str);
+	}
 	
 	// Add user-defined metadata under the SLiM key, if it was supplied by the user
 	// See https://github.com/MesserLab/SLiM/issues/122
@@ -7176,10 +7229,30 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 		auto file_version_03 = metadata["SLiM"]["file_version"];
 		if (file_version_03 == SLIM_TREES_FILE_VERSION_META)
 			*p_file_version = 5;
-		else if (file_version_03 == SLIM_TREES_FILE_VERSION)
+		else if (file_version_03 == SLIM_TREES_FILE_VERSION_PREPARENT)
 			*p_file_version = 6;
+		else if (file_version_03 == SLIM_TREES_FILE_VERSION)
+			*p_file_version = 7;
 		else
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
+		
+		// read the ancestral nucleotide sequence, for file version "0.7" and later; for earlier versions it is in kastore
+		if (nucleotide_based_ && (*p_file_version >= 7))
+		{
+			if (!metadata.contains("reference_sequence"))
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
+			
+			nlohmann::json sequence_json = metadata["reference_sequence"];
+			auto buffer_ptr = sequence_json.get_ptr<const std::string*>();
+			size_t buffer_length = buffer_ptr->length();
+			
+			if (!buffer_ptr)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this is a nucleotide-based model, but there is no reference nucleotide sequence." << EidosTerminate();
+			if (buffer_length != chromosome_->AncestralSequence()->size())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitBinaryFile): the reference nucleotide sequence length does not match the model." << EidosTerminate();
+			
+			chromosome_->AncestralSequence()->ReadNucleotidesFromBuffer(buffer_ptr->data());
+		}
 	} catch (...) {
 	///////////////////////
 	// Previous formats: everything is in provenance
@@ -7256,8 +7329,12 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 				*p_file_version = 3;
 			else if (file_version_02 == SLIM_TREES_FILE_VERSION_HASH)
 				*p_file_version = 4;
-			else if (file_version_02 == SLIM_TREES_FILE_VERSION)
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION_META)
 				*p_file_version = 5;
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION_PREPARENT)
+				*p_file_version = 6;
+			else if (file_version_02 == SLIM_TREES_FILE_VERSION)
+				*p_file_version = 7;
 			else
 				EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): this .trees file was generated by an unrecognized version of SLiM or pyslim; this file cannot be read." << EidosTerminate();
 			
@@ -7356,13 +7433,27 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	ret = tsk_table_collection_compute_mutation_parents(&output_tables, 0);
 	if (ret < 0) handle_error("tsk_table_collection_compute_mutation_parents", ret);
 	
-	// Add information about the current generation to the individual table; 
-	// this modifies "remembered" individuals, since information comes from the
-	// time of output, not creation
-	AddCurrentGenerationToIndividuals(&output_tables);
+	{
+		// Create a local hash table for pedigree IDs to individuals table indices.  If we simplified, that validated
+		// tabled_individuals_hash_ as a side effect, so we can copy that as a base; otherwise, we make one from scratch.
+		// Note that this hash table is used only for AddCurrentGenerationToIndividuals() below; after that we reorder
+		// the individuals table, so we'll make another hash table for AddParentsColumnForOutput(), unfortunately.
+		INDIVIDUALS_HASH local_individuals_lookup;
+
+		if (p_simplify)
+			local_individuals_lookup = tabled_individuals_hash_;
+		else
+			BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
+
+		// Add information about the current generation to the individual table; 
+		// this modifies "remembered" individuals, since information comes from the
+		// time of output, not creation
+		AddCurrentGenerationToIndividuals(&output_tables, &local_individuals_lookup);
+	}
 
 	// We need the individual table's order, for alive individuals, to match that of
 	// SLiM so that when we read back in it doesn't cause a reordering as a side effect
+	// all other individuals in the table will be retained, at the end
 	std::vector<int> individual_map;
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
@@ -7378,9 +7469,17 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		}
 	}
 
-	// all other individuals in the table will be retained, at the end
 	ReorderIndividualTable(&output_tables, individual_map, true);
 	
+	// Now that the table is reordered, we can build the parents column of the individuals table
+	// This requires a new pedigree id to tskid lookup table, which we construct here.
+	{
+		INDIVIDUALS_HASH local_individuals_lookup;
+
+		BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
+		AddParentsColumnForOutput(&output_tables, &local_individuals_lookup);
+	}
+
 	// Rebase the times in the nodes to be in tskit-land; see _InstantiateSLiMObjectsFromTables() for the inverse operation
 	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
 	// This makes sense; as far as tree-seq recording is concerned, tree_seq_generation_ is the generation counter
@@ -7406,31 +7505,6 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		DerivedStatesToAscii(&output_tables);
 		
 		tsk_table_collection_dump(&output_tables, path.c_str(), 0);
-		
-		// In nucleotide-based models, write out the ancestral sequence, re-opening the kastore to append
-		if (nucleotide_based_)
-		{
-			std::size_t buflen = chromosome_->AncestralSequence()->size();
-			char *buffer;	// kastore needs to provide us with a memory location to which to write the data
-			kastore_t store;
-			
-			buffer = (char *)malloc(buflen);
-			if (!buffer)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
-			
-			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
-			
-			ret = kastore_open(&store, path.c_str(), "a", 0);
-			if (ret < 0) handle_error("kastore_open", ret);
-				
-			kastore_oputs_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
-			if (ret < 0) handle_error("kastore_oputs_int8", ret);
-			
-			ret = kastore_close(&store);
-			if (ret < 0) handle_error("kastore_close", ret);
-			
-			// kastore owns buffer now, so we do not free it
-		}
 	}
 	else
 	{
@@ -7473,20 +7547,6 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			fclose(MspTxtIndividualTable);
 			fclose(MspTxtPopulationTable);
 			fclose(MspTxtProvenanceTable);
-			
-			// In nucleotide-based models, write out the ancestral sequence as a separate text file
-			if (nucleotide_based_)
-			{
-				std::string RefSeqFileName = path + "/ReferenceSequence.txt";
-				std::ofstream outfile;
-				
-				outfile.open(RefSeqFileName, std::ofstream::out);
-				if (!outfile.is_open())
-					EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): treeSeqOutput() could not open "<< RefSeqFileName << "." << EidosTerminate();
-				
-				outfile << *(chromosome_->AncestralSequence());
-				outfile.close();
-			}
 		}
 		else
 		{
@@ -7515,6 +7575,7 @@ void SLiMSim::FreeTreeSequence(bool p_force_free)
 	tsk_table_collection_free(&tables_);
 	
 	remembered_genomes_.clear();
+	tabled_individuals_hash_.clear();
 }
 
 void SLiMSim::RecordAllDerivedStatesFromSLiM(void)
@@ -7600,12 +7661,14 @@ void SLiMSim::MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata)
 
 void SLiMSim::MetadataForIndividual(Individual *p_individual, IndividualMetadataRec *p_metadata)
 {
-	static_assert(sizeof(IndividualMetadataRec) == 24, "IndividualMetadataRec has changed size; this code probably needs to be updated");
+	static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec has changed size; this code probably needs to be updated");
 	
 	if (!p_individual || !p_metadata)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::MetadataForIndividual): (internal error) bad parameters to MetadataForIndividual()." << EidosTerminate();
 	
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
+	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
+	p_metadata->pedigree_p2_ = p_individual->Parent2PedigreeID();
 #ifdef SLIM_NONWF_ONLY
 	p_metadata->age_ = p_individual->age_;
 #else
@@ -7978,6 +8041,31 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_free()", ret);
 		free(tables_copy);
 	}
+
+	// check that tabled_individuals_hash_ is the right size and has all the right entries
+	if (recording_tree_)
+	{
+		tsk_individual_table_t &individuals = tables_.individuals;
+
+		if (individuals.num_rows != tabled_individuals_hash_.size())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) tabled_individuals_hash_ size (" << tabled_individuals_hash_.size() << ") does not match the individuals table size (" << individuals.num_rows << ")." << EidosTerminate();
+
+		for (tsk_size_t individual_index = 0; individual_index < individuals.num_rows; individual_index++)
+		{
+			tsk_id_t tsk_individual = (tsk_id_t)individual_index;
+			IndividualMetadataRec *metadata_rec = (IndividualMetadataRec *)(individuals.metadata + individuals.metadata_offset[tsk_individual]);
+			slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
+			auto lookup = tabled_individuals_hash_.find(pedigree_id);
+
+			if (lookup == tabled_individuals_hash_.end())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) missing entry for a pedigree id in tabled_individuals_hash_." << EidosTerminate();
+
+			tsk_id_t lookup_tskid = lookup->second;
+
+			if (tsk_individual != lookup_tskid)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) incorrect entry for a pedigree id in tabled_individuals_hash_." << EidosTerminate();
+		}
+	}
 }
 
 void SLiMSim::TSXC_Enable(void)
@@ -8024,6 +8112,8 @@ typedef struct ts_subpop_info {
 	std::vector<IndividualSex> sex_;
 	std::vector<tsk_id_t> nodes_;
 	std::vector<slim_pedigreeid_t> pedigreeID_;
+	std::vector<slim_pedigreeid_t> pedigreeP1_;
+	std::vector<slim_pedigreeid_t> pedigreeP2_;
 	std::vector<slim_age_t> age_;
 	std::vector<double> spatial_x_;
 	std::vector<double> spatial_y_;
@@ -8098,11 +8188,16 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		subpop_info.nodes_.push_back(individual.nodes[0]);
 		subpop_info.nodes_.push_back(individual.nodes[1]);
 		
-		// bounds-check and save off the pedigree ID, which we will use again
+		// bounds-check and save off the pedigree ID, which we will use again; note that parent pedigree IDs are allowed to be -1
 		if (metadata->pedigree_id_ < 0)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have pedigree IDs >= 0." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have pedigree IDs >= 0." << EidosTerminate();
 		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
 		
+		if ((metadata->pedigree_p1_ < -1) || (metadata->pedigree_p2_ < -1))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have parent pedigree IDs >= -1." << EidosTerminate();
+		subpop_info.pedigreeP1_.push_back(metadata->pedigree_p1_);
+		subpop_info.pedigreeP2_.push_back(metadata->pedigree_p2_);
+
 		// save off the flags for later use
 		subpop_info.flags_.push_back(metadata->flags_);
 		
@@ -8809,21 +8904,13 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	free(vg);
 }
 
-slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter)
+void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_generation_t p_metadata_gen, SLiMModelType p_file_model_type, int p_file_version)
 {
-	// first, check the provenance table to make sure this is a SLiM-compatible file of a version we understand
-	// if it is, set the generation from the provenance data
-	// note that ReadTreeSequenceMetadata() presently throws an exception if asked to read a SLiM 3.0 .trees file;
-	// the changes in the tables, metadata, etc., were just too extensive for it to be reasonable to do...
-	slim_generation_t metadata_gen;
-	SLiMModelType file_model_type;
-	int file_version;
-	
+	// set the generation from the provenance data
 	if (tables_.sequence_length != chromosome_->last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
 	
-	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
-	SetGeneration(metadata_gen);
+	SetGeneration(p_metadata_gen);
 	
 	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
 	// BCH 4/4/2019: switched to using tree_seq_generation_ to avoid a parent/child timestamp conflict
@@ -8836,6 +8923,57 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
 		tables_.mutations.time[mut_index] -= time_adjustment;
 	
+	// rewrite individuals table metadata if it is in the old (pre-parent-pedigree-id) format; after this,
+	// the format is current, so all downstream code can just assume the current metadata format
+	if (p_file_version < 7)
+	{
+		size_t row_count = tables_.individuals.num_rows;
+
+		if (row_count > 0)
+		{
+			size_t old_metadata_rec_size = sizeof(IndividualMetadataRec_PREPARENT);
+			size_t new_metadata_rec_size = sizeof(IndividualMetadataRec);
+
+			if (row_count * old_metadata_rec_size != tables_.individuals.metadata_length)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): unexpected individuals table metadata length when translating metadata from pre-parent format." << EidosTerminate();
+
+			size_t new_metadata_length = row_count * new_metadata_rec_size;
+			IndividualMetadataRec *new_metadata_buffer = (IndividualMetadataRec *)malloc(new_metadata_length);
+
+			if (!new_metadata_buffer)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+
+			for (size_t row_index = 0; row_index < row_count; ++row_index)
+			{
+				IndividualMetadataRec_PREPARENT *old_metadata = ((IndividualMetadataRec_PREPARENT *)tables_.individuals.metadata) + row_index;
+				IndividualMetadataRec *new_metadata = new_metadata_buffer + row_index;
+
+				new_metadata->pedigree_id_ = old_metadata->pedigree_id_;
+				new_metadata->pedigree_p1_ = -1;
+				new_metadata->pedigree_p2_ = -1;
+				new_metadata->age_ = old_metadata->age_;
+				new_metadata->subpopulation_id_ = old_metadata->subpopulation_id_;
+				new_metadata->sex_ = old_metadata->sex_;
+				new_metadata->flags_ = old_metadata->flags_;
+			}
+
+			for (size_t row_index = 0; row_index <= row_count; ++row_index)
+				tables_.individuals.metadata_offset[row_index] = row_index * new_metadata_rec_size;
+
+			free(tables_.individuals.metadata);
+			tables_.individuals.metadata = (char *)new_metadata_buffer;
+			tables_.individuals.metadata_length = new_metadata_length;
+			tables_.individuals.max_metadata_length = new_metadata_length;
+		}
+
+		// replace the metadata schema; note that we don't check that the old schema is what we expect it to be
+		int ret = tsk_individual_table_set_metadata_schema(&tables_.individuals,
+				gSLiM_tsk_individual_metadata_schema.c_str(),
+				(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_individual_table_set_metadata_schema", ret);
+	}
+
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
 	// that are not presently alive, so we have to tread carefully; the actually alive individuals are flagged with 
@@ -8855,7 +8993,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	{
 		std::unordered_map<slim_objectid_t, ts_subpop_info> subpopInfoMap;
 		
-		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts, file_model_type);
+		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts, p_file_model_type);
 		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter, nodeToGenomeMap);
 		__ConfigureSubpopulationsFromTables(p_interpreter);
 	}
@@ -8865,7 +9003,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	{
 		std::unordered_map<slim_mutationid_t, ts_mut_info> mutInfoMap;
 		
-		__TabulateMutationsFromTables(mutInfoMap, file_version);
+		__TabulateMutationsFromTables(mutInfoMap, p_file_version);
 		__TallyMutationReferencesWithTreeSequence(mutInfoMap, nodeToGenomeMap, ts);
 		__CreateMutationsFromTabulation(mutInfoMap, mutIndexMap);
 	}
@@ -8914,6 +9052,7 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 			individual_map.push_back(j);
 	}
 	ReorderIndividualTable(&tables_, individual_map, false);
+	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
@@ -8946,9 +9085,6 @@ slim_generation_t SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p
 	
 	// Reset our last coalescence state; we don't know whether we're coalesced now or not
 	last_coalescence_state_ = false;
-	
-	// return the current simulation generation as reconstructed from the file
-	return metadata_gen;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter)
@@ -8963,20 +9099,6 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 	if (!recording_tree_)
 		recording_mutations_ = true;
 	
-	// in nucleotide-based models, read the ancestral sequence
-	if (nucleotide_based_)
-	{
-		std::string RefSeqFileName = directory_path + "/ReferenceSequence.txt";
-		std::ifstream infile;
-		
-		infile.open(RefSeqFileName, std::ifstream::in);
-		if (!infile.is_open())
-			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromTskitTextFile): readFromPopulationFile() could not open "<< RefSeqFileName << "; this model is nucleotide-based, but the ancestral sequence is missing or unreadable." << EidosTerminate();
-		
-		infile >> *(chromosome_->AncestralSequence());	// raises if the sequence is the wrong length
-		infile.close();
-	}
-	
 	// read the files from disk
 	std::string edge_path = directory_path + "/EdgeTable.txt";
 	std::string node_path = directory_path + "/NodeTable.txt";
@@ -8988,8 +9110,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 	
 	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, population_path, provenance_path);
 	
+	// read in the tree sequence metadata first
+	slim_generation_t metadata_gen;
+	SLiMModelType file_model_type;
+	int file_version;
+	
+	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
+	
 	// make the corresponding SLiM objects
-	slim_generation_t start_gen = _InstantiateSLiMObjectsFromTables(p_interpreter);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_gen, file_model_type, file_version);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!recording_tree_)
@@ -8998,7 +9127,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitTextFile(const char *p_
 		recording_mutations_ = false;
 	}
 	
-	return start_gen;
+	return metadata_gen;
 }
 
 slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
@@ -9027,8 +9156,16 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
 	DerivedStatesFromAscii(&tables_);
 	
-	// in nucleotide-based models, read the ancestral sequence
-	if (nucleotide_based_)
+	// read in the tree sequence metadata first so we have file version information
+	slim_generation_t metadata_gen;
+	SLiMModelType file_model_type;
+	int file_version;
+	
+	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
+	
+	// in nucleotide-based models, read the ancestral sequence; BCH 10/24/2021: this is now only for file version
+	// less than "0.7"; now it is in the metadata and is read by ReadTreeSequenceMetadata() above
+	if (nucleotide_based_ && (file_version < 7))
 	{
 		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
 		std::size_t buffer_length;	// kastore needs to provide us with the length, in bytes, of the buffer
@@ -9056,7 +9193,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	}
 
 	// make the corresponding SLiM objects
-	slim_generation_t start_gen = _InstantiateSLiMObjectsFromTables(p_interpreter);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_gen, file_model_type, file_version);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!recording_tree_)
@@ -9065,7 +9202,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 		recording_mutations_ = false;
 	}
 	
-	return start_gen;
+	return metadata_gen;
 }
 
 size_t SLiMSim::MemoryUsageForTables(tsk_table_collection_t &p_tables)
@@ -9079,11 +9216,15 @@ size_t SLiMSim::MemoryUsageForTables(tsk_table_collection_t &p_tables)
 		usage += t.individuals.max_rows * sizeof(uint32_t);
 	if (t.individuals.location_offset)
 		usage += t.individuals.max_rows * sizeof(tsk_size_t);
+	if (t.individuals.parents_offset)
+		usage += t.individuals.max_rows * sizeof(tsk_size_t);
 	if (t.individuals.metadata_offset)
 		usage += t.individuals.max_rows * sizeof(tsk_size_t);
 	
 	if (t.individuals.location)
 		usage += t.individuals.max_location_length * sizeof(double);
+	if (t.individuals.parents)
+		usage += t.individuals.max_parents_length * sizeof(tsk_id_t);
 	if (t.individuals.metadata)
 		usage += t.individuals.max_metadata_length * sizeof(char);
 	

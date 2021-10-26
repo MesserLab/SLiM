@@ -1063,6 +1063,7 @@ void QtSLiMHelpWindow::outlineSelectionChanged(void)
             if (!firstItem)
             {
                 insertion.insertBlock(hrBlockFormat);
+                // inserting an HR doesn't work properly, but the bug I filed got a useful response if I ever want to revisit this: https://bugreports.qt.io/browse/QTBUG-80473
                 //            insertion.insertHtml("<HR>");
                 insertion.insertText("––––––––––––––––––––");
                 insertion.insertBlock(defaultBlockFormat);

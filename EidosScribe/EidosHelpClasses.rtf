@@ -867,18 +867,64 @@ The
 \f0\b\fs22 \cf2 5.4  Class Image\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\b0\fs18 \cf2 (object<Image>$)Image(string$\'a0filePath)\
+\f3\b0\fs18 \cf2 (object<Image>$)Image(...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Creates a new 
 \f3\fs18 Image
-\f4\fs20  object from the PNG file at 
+\f4\fs20  object.  This can be called in a few different ways.\
+Passed a singleton 
+\f3\fs18 string
+\f4\fs20 , as 
+\f3\fs18 Image(string$ filePath)
+\f4\fs20 , it creates a new 
+\f3\fs18 Image
+\f4\fs20  from the PNG file at 
 \f3\fs18 filePath
 \f4\fs20 .  If the file represents a grayscale image, an 8-bit grayscale (K) 
 \f3\fs18 Image
 \f4\fs20  will be created; all other PNG files will yield a 24-bit color (RGB) 
 \f3\fs18 Image
 \f4\fs20 .\
+Passed an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector, as 
+\f3\fs18 Image(numeric matrix)
+\f4\fs20 , it creates a new grayscale 
+\f3\fs18 Image
+\f4\fs20  from the values in 
+\f3\fs18 matrix
+\f4\fs20 , which must be a matrix as its name suggests.  If 
+\f3\fs18 matrix
+\f4\fs20  is 
+\f3\fs18 integer
+\f4\fs20 , its values must be in [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 255
+\f4\fs20 ], and will be used directly as 8-bit pixel values without translation; if 
+\f3\fs18 matrix
+\f4\fs20  is 
+\f3\fs18 float
+\f4\fs20 , its values must be in [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ], and will be translated into 8-bit pixel values.  The dimensions of the image, in pixels, will be equal to the dimensions of the matrix.  The orientation of the image will match that of the matrix, in the sense that the image will appear as the matrix does when printed in the Eidos console; internally this requires a transposition of values, as discussed further below.  For the 
+\f3\fs18 integer
+\f4\fs20  case, the 
+\f3\fs18 integerK
+\f4\fs20  property of the resulting image will recover the original matrix exactly; for the 
+\f3\fs18 float
+\f4\fs20  case, the 
+\f3\fs18 floatK
+\f4\fs20  property will only approximately recover the original matrix since the translation into 8-bit pixel values involves quantization, but values of 
+\f3\fs18 0.0
+\f4\fs20  and 
+\f3\fs18 1.0
+\f4\fs20  will be recovered exactly.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.4.1  

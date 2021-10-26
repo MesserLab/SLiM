@@ -160,6 +160,7 @@ public:
 	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)		{ pedigree_id_ = p_new_id; }	// should basically never be called
 	inline __attribute__((always_inline)) slim_pedigreeid_t Parent1PedigreeID()		{ return pedigree_p1_; }
 	inline __attribute__((always_inline)) slim_pedigreeid_t Parent2PedigreeID()		{ return pedigree_p2_; }
+	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
 	
 	//
 	// Eidos support

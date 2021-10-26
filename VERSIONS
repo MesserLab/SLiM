@@ -63,6 +63,11 @@ development head:
 	modify Dictionary method getRowValues() to make it useful as a contrast to DataFrame.subsetRows(), by allowing ragged rows, matrix/array elements; add [drop=F]; these changes are backward-compatible
 	change Eidos output of float values slightly; 1.0 now outputs as "1.0", not "1", to show that it is a float; seems better, breaks backward compatibility in a minor way
 	replace recipe 14.4 (modeling inversions), incorporating changes from Vince Buffalo, Peter Ralph, & Andy Kern that fix several problems (see new discussion in the manual)
+	add the ability to create a new grayscale Image from a 2D matrix of values, the inverse of the integerK / floatK properties, as Image(numeric matrix); RGB may be added later if needed
+	keep a hash table from pedigree ID to individual table row, to speed up remembering of additional individuals
+ 	add parent pedigree ids to individual metadata (.trees file version increment); add pedigree-based info to the parent column of the individuals table
+	add summarizeIndividuals() to create vectors/matrices/arrays, and thereby spatial maps, that summarize a set of individuals
+	add recipe 15.13 showing how to use summarizeIndividuals() to make a spatial map (for density-dependent fecundity)
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

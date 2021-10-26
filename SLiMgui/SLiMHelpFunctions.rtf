@@ -1620,8 +1620,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1633,7 +1634,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
@@ -1806,4 +1808,213 @@ This function assumes that mutations of type
 \f2\fs20 ), a new user-defined function following the pattern of 
 \f1\fs18 calcVA()
 \f2\fs20  can easily be written.\
+\pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 3.4.  Other utilities
+\f2\b0\fs20 \cf2 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)summarizeIndividuals(object<Individual>\'a0individuals, integer\'a0dim, numeric\'a0spatialBounds, string$\'a0operation, string$\'a0gather, [lif$\'a0empty\'a0=\'a00.0], [logical$\'a0perUnitArea\'a0=\'a0F], [Ns$\'a0spatiality\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Returns a vector, matrix, or array that summarizes spatial patterns of information related to the individuals in 
+\f1\fs18 individuals
+\f2\fs20 .  In essence, those individuals are assigned into 
+\f3\i bins
+\f2\i0  according to their spatial position, and then a summary value for each bin is calculated based upon the individuals each bin contains.  The individuals might be binned in one dimension (resulting in a vector of summary values), in two dimensions (resulting in a matrix), or in three dimensions (resulting in an array).  Typically the spatiality of the result (the dimensions into which the individuals are binned) will match the dimensionality of the model, as indicated by the default value of 
+\f1\fs18 NULL
+\f2\fs20  for the optional 
+\f1\fs18 spatiality
+\f2\fs20  parameter; for example, a two-dimensional (
+\f1\fs18 "xy"
+\f2\fs20 ) model would by default produce a two-dimensional matrix as a summary.  However, a spatiality that is more restrictive than the model dimensionality may be passed; for example, in a two-dimensional (
+\f1\fs18 "xy"
+\f2\fs20 ) model a 
+\f1\fs18 spatiality
+\f2\fs20  of 
+\f1\fs18 "y"
+\f2\fs20  could be passed to summarize individuals into a vector, rather than a matrix, assigning them to bins based only upon their 
+\f3\i y
+\f2\i0  position (i.e., the value of their 
+\f1\fs18 y
+\f2\fs20  property).  Whatever spatiality is chosen, the parameter 
+\f1\fs18 dim
+\f2\fs20  provides the dimensions of the desired result, in the same form that the 
+\f1\fs18 dim()
+\f2\fs20  function does: first the number of rows, then the number of columns, and then the number of planes, as needed (see the Eidos manual for discussion of matrices, arrays, and 
+\f1\fs18 dim()
+\f2\fs20 ).  The length of 
+\f1\fs18 dims
+\f2\fs20  must match the requested spatiality; for spatiality 
+\f1\fs18 "xy"
+\f2\fs20 , for example, 
+\f1\fs18 dims
+\f2\fs20  might be 
+\f1\fs18 c(50,100)
+\f2\fs20  to request that the returned matrix have 
+\f1\fs18 50
+\f2\fs20  rows and 
+\f1\fs18 100
+\f2\fs20  columns.  The result vector/matrix/array is in the correct orientation to be directly usable as a spatial map, by passing it to the 
+\f1\fs18 defineSpatialMap()
+\f2\fs20  method of 
+\f1\fs18 Subpopulation
+\f2\fs20 .  For further discussion of dimensionality and spatiality, see section 24.1 on 
+\f1\fs18 initializeInteractionType()
+\f2\fs20 , and section 24.7 on 
+\f1\fs18 InteractionType
+\f2\fs20 .\
+The 
+\f1\fs18 spatialBounds
+\f2\fs20  parameter defines the spatial boundaries within which the individuals are binned.  Typically this is the spatial bounds of a particular subpopulation, within which the individuals reside; for individuals in 
+\f1\fs18 p1
+\f2\fs20 , for example, you would likely pass 
+\f1\fs18 p1.spatialBounds
+\f2\fs20  for this.  However, this is not required; individuals may come from any or all subpopulations in the model, and 
+\f1\fs18 spatialBounds
+\f2\fs20  may be any bounds of non-zero area (if an individual falls outside of the given spatial bounds, it is excluded, as if it were not in 
+\f1\fs18 individuals
+\f2\fs20  at all).  If you have multiple subpopulations that conceptually reside within the same overall coordinate space, for example, that can be accommodated here.  The bounds are supplied in the dimensionality of the model, in the same form as for 
+\f1\fs18 Subpopulation
+\f2\fs20 ; for an 
+\f1\fs18 "xy"
+\f2\fs20  model, for example, they are supplied as a four-element vector of the form 
+\f1\fs18 c(x0, y0, x1, y1)
+\f2\fs20  even if the summary is being produced with spatiality 
+\f1\fs18 "y"
+\f2\fs20 .  To produce the result, a grid with dimensions defined by 
+\f1\fs18 dims
+\f2\fs20  is conceptually stretched out across the given spatial bounds, such that the 
+\f3\i centers
+\f2\i0  of the edge and corner grid squares are aligned with the limits of the spatial bounds.  This matches the way that 
+\f1\fs18 defineSpatialMap()
+\f2\fs20  defines its maps; see section 15.11 for illustration.\
+The particular summary produced depends upon the parameters 
+\f1\fs18 operation
+\f2\fs20 , 
+\f1\fs18 gather
+\f2\fs20 , and 
+\f1\fs18 empty
+\f2\fs20 .  Consider a single grid square represented by a single element in the result.  That grid square contains zero or more of the individuals in 
+\f1\fs18 individuals
+\f2\fs20 .  If it contains zero individuals, the 
+\f1\fs18 empty
+\f2\fs20  value is used in the result, regardless of 
+\f1\fs18 operation
+\f2\fs20  and 
+\f1\fs18 gather
+\f2\fs20 , providing complete control over the treatment of empty grid squares.  Otherwise, two steps occur.  First, for every individual in the grid square, 
+\f1\fs18 operation
+\f2\fs20  is executed as an Eidos 
+\f3\i lambda
+\f2\i0  \'96 a small snippet of code, supplied as a singleton 
+\f1\fs18 string
+\f2\fs20 , that is executed in a manner similar to a function call.  Within the execution of the 
+\f1\fs18 operation
+\f2\fs20  lambda, a variable named 
+\f1\fs18 individual
+\f2\fs20  is defined to be the focal individual being evaluated.  This lambda should evaluate to a 
+\f1\fs18 logical
+\f2\fs20 , 
+\f1\fs18 integer
+\f2\fs20 , or 
+\f1\fs18 float
+\f2\fs20  value; these types will all be coerced to 
+\f1\fs18 float
+\f2\fs20  (
+\f1\fs18 T
+\f2\fs20  being 
+\f1\fs18 1
+\f2\fs20  and 
+\f1\fs18 F
+\f2\fs20  being 
+\f1\fs18 0
+\f2\fs20 ), or it should evaluate to 
+\f1\fs18 NULL
+\f2\fs20 , which excludes the focal individual from the results as if it had never been in 
+\f1\fs18 individuals
+\f2\fs20  at all.  A common value for 
+\f1\fs18 operation
+\f2\fs20 , 
+\f1\fs18 "1;"
+\f2\fs20 , simply evaluates to 
+\f1\fs18 1
+\f2\fs20  for each individual in a given grid square; another common 
+\f1\fs18 operation
+\f2\fs20  value would be 
+\f1\fs18 "individual.tag;"
+\f2\fs20 , evaluating to the 
+\f1\fs18 tag
+\f2\fs20  value of each individual.  Lambdas are not limited in their complexity; they can use 
+\f1\fs18 if
+\f2\fs20 , 
+\f1\fs18 for
+\f2\fs20 , etc., and can call methods and functions.  However, keep in mind that the lambda will be evaluated for every individual, so efficiency can be a concern, and you may wish to pre-calculate and cache values shared by all of the lambda calls.\
+Finally, given values returned by 
+\f1\fs18 operation
+\f2\fs20  for every individual in a given grid square, 
+\f1\fs18 gather
+\f2\fs20  specifies a calculation that condenses these values down to the single 
+\f1\fs18 float
+\f2\fs20  value used for the corresponding element of the returned vector/matrix/array.  The 
+\f1\fs18 gather
+\f2\fs20  parameter is 
+\f3\i not
+\f2\i0  a lambda; it must have one of a specific set of values described here.  For 
+\f1\fs18 gather="sum"
+\f2\fs20 , the final value is the 
+\f3\i sum
+\f2\i0  of all of the gathered values (adding them together).  For 
+\f1\fs18 gather="mean"
+\f2\fs20 , the final value is the 
+\f3\i mean
+\f2\i0  of all of the gathered values (the sum of the values divided by the number of values).  For 
+\f1\fs18 gather="product"
+\f2\fs20 , the final value is the 
+\f3\i product
+\f2\i0  of all of the gathered values (multiplying them together).  For 
+\f1\fs18 gather="min"
+\f2\fs20 , the final value is the 
+\f3\i smallest
+\f2\i0  of all of the gathered values (the closest to 
+\f1\fs18 -INF
+\f2\fs20 ).  For 
+\f1\fs18 gather="max"
+\f2\fs20 , the final value is the 
+\f3\i largest
+\f2\i0  of all of the gathered values (the closest to 
+\f1\fs18 INF
+\f2\fs20 ).\
+There is one last twist, if 
+\f1\fs18 perUnitArea
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 : values are divided by the area (or length, in 1D, or volume, in 3D) that their corresponding grid cell comprises, so that each value is in units of \'93per unit area\'94 (or \'93per unit length\'94, or \'93per unit volume\'94).  The total area of the grid is defined by the spatial bounds, and the area of a given grid cell is defined by the portion of the spatial bounds that is within that cell.  This is not the same for all grid cells; grid cells that fall partially outside 
+\f1\fs18 spatialBounds
+\f2\fs20  (because, remember, the 
+\f3\i centers
+\f2\i0  of the edge/corner grid cells are aligned with the limits of 
+\f1\fs18 spatialBounds
+\f2\fs20 ) will have a smaller area inside the bounds.  For an 
+\f1\fs18 "xy"
+\f2\fs20  spatiality summary, for example, corner cells have only a quarter of their area inside 
+\f1\fs18 spatialBounds
+\f2\fs20 , while edge elements have half of their area inside 
+\f1\fs18 spatialBounds
+\f2\fs20 ; for purposes of 
+\f1\fs18 perUnitArea
+\f2\fs20 , then, their respective areas are \'bc and \'bd the area of an interior grid cell.  By default, 
+\f1\fs18 perUnitArea
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , and no scaling is performed.  Whether you want 
+\f1\fs18 perUnitArea
+\f2\fs20  to be 
+\f1\fs18 F
+\f2\fs20  or 
+\f1\fs18 T
+\f2\fs20  depends upon whether the summary you are producing is, conceptually, \'93per unit area\'94, such as density (individuals per unit area) or local competition strength (total interaction strength per unit area), or is not, such as \'93mean individual age\'94, or \'93maximum 
+\f1\fs18 tag
+\f2\fs20  value\'94.\
 }

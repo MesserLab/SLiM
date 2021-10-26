@@ -125,7 +125,7 @@ extern void _RunFunctionFilesystemTests(std::string temp_path);
 extern void _RunColorManipulationTests(void);
 extern void _RunFunctionMiscTests_apply_sapply(void);
 extern void _RunFunctionMiscTests(std::string temp_path);
-extern void _RunClassTests(void);
+extern void _RunClassTests(std::string temp_path);
 extern void _RunCodeExampleTests(void);
 extern void _RunUserDefinedFunctionTests(void);
 extern void _RunVoidEidosValueTests(void);

@@ -1054,7 +1054,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
 					
-					float value_fraction = (float)((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_));
+					float value_fraction = (background_map->min_value_ < background_map->max_value_) ? (float)((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_)) : 0.0f;
 					float color_index = value_fraction * (n_colors - 1);
 					int color_index_1 = (int)floorf(color_index);
 					int color_index_2 = (int)ceilf(color_index);
