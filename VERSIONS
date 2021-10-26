@@ -68,6 +68,8 @@ development head:
  	add parent pedigree ids to individual metadata (.trees file version increment); add pedigree-based info to the parent column of the individuals table
 	add summarizeIndividuals() to create vectors/matrices/arrays, and thereby spatial maps, that summarize a set of individuals
 	add recipe 15.13 showing how to use summarizeIndividuals() to make a spatial map (for density-dependent fecundity)
+	fix the reproductiveOutput property to increment by 1 for cloning/selfing; seems like a bug that it incremented by 2; breaks back compatibility but regarded as a bug fix
+	fix the reproductiveOutput property so that it doesn't increment (or, in fact, decrements back down!) if a child is rejected by modifyChild()
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

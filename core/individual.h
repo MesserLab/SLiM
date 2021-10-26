@@ -125,7 +125,7 @@ public:
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
-	inline __attribute__((always_inline)) void TrackParentage(Individual &p_parent1, Individual &p_parent2)
+	inline __attribute__((always_inline)) void TrackParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
@@ -144,14 +144,56 @@ public:
 		p_parent2.reproductive_output_++;
 	}
 	
-	// This alternative to TrackParentage() is used when the parents are not known, as in
-	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
-	inline __attribute__((always_inline)) void TrackParentageWithoutParents()
+	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
+	{
+		p_parent1.reproductive_output_--;
+		p_parent2.reproductive_output_--;
+	}
+	
+	// Uniparental tracking; this is now an important distinction since we keep reproductive output metrics
+	// BCH 10/26/2021: The addition of this case is basically a bug fix.  In SLiM 3.5 when the reproductiveOutput
+	// property was added, it incremented selfers/cloners by 2.  I have no record of why.  It *might* have been
+	// thinking of it as "how much genetic material did I pass down", but that doesn't seem super-useful; I think
+	// it's more useful, for an individual-based modeling perspective, to want to know "how many offspring have
+	// I had?"; that's more likely to be needed to govern the behavior of the individuals in the model.  So I
+	// have changed it to 1 for selfers/cloners, by adding this method.  This breaks backward compatibility,
+	// but the original behavior just doesn't seem right/useful to me, so it should change.
+	inline __attribute__((always_inline)) void TrackParentage_Uniparental(Individual &p_parent)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
 		
 		genome1_->genome_id_ = pedigree_id_ * 2;
 		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+		
+		pedigree_p1_ = p_parent.pedigree_id_;
+		pedigree_p2_ = p_parent.pedigree_id_;
+		
+		pedigree_g1_ = p_parent.pedigree_p1_;
+		pedigree_g2_ = p_parent.pedigree_p2_;
+		pedigree_g3_ = p_parent.pedigree_p1_;
+		pedigree_g4_ = p_parent.pedigree_p2_;
+		
+		p_parent.reproductive_output_++;
+	}
+	
+	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
+	{
+		p_parent.reproductive_output_--;
+	}
+	
+	// This alternative to TrackParentage() is used when the parents are not known, as in
+	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
+	inline __attribute__((always_inline)) void TrackParentage_Parentless()
+	{
+		pedigree_id_ = gSLiM_next_pedigree_id++;
+		
+		genome1_->genome_id_ = pedigree_id_ * 2;
+		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+	}
+	
+	inline __attribute__((always_inline)) void RevokeParentage_Parentless()
+	{
+		// just for parallel design, no parentage to revoke
 	}
 	
 	double RelatednessToIndividual(Individual &p_ind);

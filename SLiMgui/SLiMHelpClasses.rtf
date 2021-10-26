@@ -2030,18 +2030,18 @@ In nonWF models, this flag is
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \kerning1\expnd0\expndtw0 reproductiveOutput => (integer$)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 If pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 reproductiveOutput
-\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not enabled, this property is unavailable.  If an individual is a parent by cloning or selfing, or as 
+\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not enabled, this property is unavailable.  If an individual is a parent by cloning or selfing, this value is incremented by one (a policy change made in SLiM 3.7; previously it incremented by two); if an individual happens to act as 
 \f1\i both
-\f4\i0  parents for a biparental mating, this value is incremented by two.  Involvement of an individual as a parent for an 
+\f4\i0  parents for a biparental mating (but did not actually self, as far as SLiM\'92s semantics are concerned), this value is incremented by two.  Involvement of an individual as a parent for an 
 \f3\fs18 addRecombinant()
 \f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one must conduct separate bookkeeping for that case if necessary.\
-This property is only useful in nonWF models, since in WF models the parental generation dies immediately after reproduction, giving no opportunity to query this property.  For WF models (and nonWF models, too), see the 
+See also the 
 \f3\fs18 Subpopulation
 \f4\fs20  property 
 \f3\fs18 lifetimeReproductiveOutput
@@ -4978,7 +4978,6 @@ Beginning with SLiM 3.3, the
 \f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.

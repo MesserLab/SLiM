@@ -4057,7 +4057,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage(*parent, *parent);
+		individual->TrackParentage_Uniparental(*parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4078,7 +4078,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
 	
 	if (modify_child_callbacks_.size())
+	{
 		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, &parent_genome_1, &parent_genome_1, parent, &parent_genome_2, &parent_genome_2, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+	
+		if (pedigrees_enabled && !proposed_child_accepted)
+			individual->RevokeParentage_Uniparental(*parent);
+	}
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	if (proposed_child_accepted)
@@ -4162,7 +4167,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage(*parent1, *parent2);
+		individual->TrackParentage_Biparental(*parent1, *parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4182,6 +4187,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	if (modify_child_callbacks_.size())
 	{
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1, parent1->genome1_, parent1->genome2_, parent2, parent2->genome1_, parent2->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		
+		if (pedigrees_enabled && !proposed_child_accepted)
+			individual->RevokeParentage_Biparental(*parent1, *parent2);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		if (proposed_child_accepted)
@@ -4274,7 +4282,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	
 	if (pedigrees_enabled)
-		individual->TrackParentageWithoutParents();
+		individual->TrackParentage_Parentless();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4299,7 +4307,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	bool proposed_child_accepted = true;
 	
 	if (registered_modify_child_callbacks_.size())
+	{
 		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		
+		if (pedigrees_enabled && !proposed_child_accepted)
+			individual->RevokeParentage_Parentless();
+	}
 	
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 	if (proposed_child_accepted) gui_offspring_empty_++;
@@ -4511,7 +4524,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
-		individual->TrackParentageWithoutParents();
+		individual->TrackParentage_Parentless();
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4630,13 +4643,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, /* p_parent1 */ nullptr, strand1, strand2, /* p_parent2 */ nullptr, strand3, strand4, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
+		if (pedigrees_enabled && !proposed_child_accepted)
+			individual->RevokeParentage_Parentless();
+		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		if (proposed_child_accepted)
 		{
 			gui_offspring_crossed_++;
 			
 			// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
-			// we tally things, SLiMgui display purposes, as if it were generated in the parental subpops and then moved
+			// we tally things, for SLiMgui display purposes, as if it were generated in the parental subpops and then moved
 			// this is pretty gross, but runs only in SLiMgui, so whatever :->
 			Subpopulation *strand1_subpop = (strand1_parent ? strand1_parent->subpopulation_ : nullptr);
 			Subpopulation *strand2_subpop = (strand2_parent ? strand2_parent->subpopulation_ : nullptr);
@@ -4803,7 +4819,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage(*parent, *parent);
+		individual->TrackParentage_Uniparental(*parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (sim.RecordingTreeSequence())
@@ -4821,6 +4837,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (modify_child_callbacks_.size())
 	{
 		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, parent->genome1_, parent->genome2_, parent, parent->genome1_, parent->genome2_, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+		
+		if (pedigrees_enabled && !proposed_child_accepted)
+			individual->RevokeParentage_Uniparental(*parent);
 		
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 		if (proposed_child_accepted)

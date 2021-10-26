@@ -401,7 +401,7 @@ private:
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
-	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage()
+	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage_X()
 	bool pedigrees_enabled_ = false;
 	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
 	bool pedigrees_enabled_by_SLiM_ = false;		// pedigree tracking has been forced on by tree-seq recording or SLiMgui, which is not user-visible

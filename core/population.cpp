@@ -1380,7 +1380,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->migrant_ = false;
 						
 						if (pedigrees_enabled)
-							new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1449,7 +1449,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->migrant_ = false;
 						
 						if (pedigrees_enabled)
-							new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						{
+							if (selfed)
+								new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
+							else
+								new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1480,6 +1485,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
 								sim_.RetractNewIndividual();
+							
+							if (pedigrees_enabled)
+							{
+								if (cloned || selfed)
+									child->RevokeParentage_Uniparental(*parent1_ind);
+								else
+									child->RevokeParentage_Biparental(*parent1_ind, *parent2_ind);
+							}
 							
 							num_tries++;
 							goto retryChild;
@@ -1528,7 +1541,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = false;
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1555,6 +1568,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
 								sim_.RetractNewIndividual();
+							
+							if (pedigrees_enabled)
+								child->RevokeParentage_Biparental(*parent1_ind, *parent2_ind);
 							
 							num_tries++;
 							
@@ -1813,7 +1829,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent1]);
+						new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1882,7 +1898,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					{
+						if (selfed)
+							new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
+						else
+							new_child->TrackParentage_Biparental(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+					}
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1923,6 +1944,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
 							sim_.RetractNewIndividual();
+						
+						if (pedigrees_enabled)
+						{
+							if (cloned || selfed)
+								child->RevokeParentage_Uniparental(*parent1_ind);
+							else
+								child->RevokeParentage_Biparental(*parent1_ind, *parent2_ind);
+						}
 						
 						num_tries++;
 						goto retryWithNewSourceSubpop;
@@ -2015,7 +2044,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
 								if (pedigrees_enabled)
-									new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -2044,7 +2073,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
 								if (pedigrees_enabled)
-									new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -2087,7 +2116,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								new_child->migrant_ = (&source_subpop != &p_subpop);
 								
 								if (pedigrees_enabled)
-									new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent1]);
+									new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
@@ -2115,11 +2144,17 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									parent1_sex = IndividualSex::kHermaphrodite;
 								}
 								
+								Individual *new_child = p_subpop.child_individuals_[child_count];
+								new_child->migrant_ = (&source_subpop != &p_subpop);
+								
 								if (number_to_self > 0)
 								{
 									parent2 = parent1;
 									parent2_sex = parent1_sex;
 									--number_to_self;
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
 								}
 								else
 								{
@@ -2136,13 +2171,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 										
 										parent2_sex = IndividualSex::kHermaphrodite;
 									}
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								}
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
