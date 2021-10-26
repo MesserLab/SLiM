@@ -92,7 +92,367 @@
 \f4\fs20 \cf2 Prints the internal property structure of the receiving object; in particular, the element type of the object is printed, followed, on successive lines, by all of the properties supported by the object, their types, and a sample of their values.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf2 5.2  Class Dictionary\
+\f0\b\fs22 \cf2 5.2  Class DataFrame\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\b0\fs18 \cf2 (object<DataFrame>$)DataFrame(...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The 
+\f3\fs18 DataFrame
+\f4\fs20  constructor can be called in the same ways as the constructor for 
+\f3\fs18 Dictionary
+\f4\fs20  (its superclass): with no parameters to make an empty 
+\f3\fs18 DataFrame
+\f4\fs20 , with key-value pairs, with a singleton 
+\f3\fs18 Dictionary
+\f4\fs20  (or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 , like 
+\f3\fs18 DataFrame
+\f4\fs20 ) to make a copy, or with a singleton string in JSON format.  See the 
+\f3\fs18 Dictionary
+\f4\fs20  class for further documentation.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.2.1  
+\f2\fs18 DataFrame
+\f1\fs22  properties\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 colNames => (string)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A vector containing all of the 
+\f3\fs18 string
+\f4\fs20  column names in the 
+\f3\fs18 DataFrame
+\f4\fs20 , in order.  This property is currently an alias for the 
+\f3\fs18 Dictionary
+\f4\fs20  property 
+\f3\fs18 allKeys
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 dim => (integer)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A two-element vector containing the dimensions of the 
+\f3\fs18 DataFrame
+\f4\fs20 .  The 
+\f3\fs18 0
+\f4\fs20 th element is the number of rows (as provided by 
+\f3\fs18 nrow
+\f4\fs20 ), and the 
+\f3\fs18 1
+\f4\fs20 st element is the number of columns (as provided by 
+\f3\fs18 ncol
+\f4\fs20 ).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 ncol => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The number of columns in the 
+\f3\fs18 DataFrame
+\f4\fs20 ; this will be equal to the length of 
+\f3\fs18 colNames
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 nrow => (integer$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The number of rows in the 
+\f3\fs18 DataFrame
+\f4\fs20  (i.e., the number of elements in a column).  This will be the same for every column, by definition.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.2.2  
+\f2\fs18 DataFrame
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(void)cbind(object\'a0source, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds all of the columns contained by 
+\f3\fs18 source
+\f4\fs20  (which must be a 
+\f3\fs18 Dictionary
+\f4\fs20  or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20  such as 
+\f3\fs18 DataFrame
+\f4\fs20 ) to the receiver.  This method makes the target 
+\f3\fs18 DataFrame
+\f4\fs20  wider, by adding new columns.  If 
+\f3\fs18 source
+\f4\fs20  contains a column name that is already defined in the target, an error will result.  As always for 
+\f3\fs18 DataFrame
+\f4\fs20 , the columns of the resulting 
+\f3\fs18 DataFrame
+\f4\fs20  must all be the same length.\
+The 
+\f3\fs18 source
+\f4\fs20  parameter may be a non-singleton vector containing multiple 
+\f3\fs18 Dictionary
+\f4\fs20  objects, and additional 
+\f3\fs18 Dictionary
+\f4\fs20  vectors may be supplied (thus the ellipsis in the signature).  Each 
+\f3\fs18 Dictionary
+\f4\fs20  supplied will be added to the target, in the order supplied.\
+This method is similar to the 
+\f3\fs18 Dictionary
+\f4\fs20  method 
+\f3\fs18 addKeysAndValuesFrom()
+\f4\fs20 , which may be used instead if replacement of duplicate columns is desired.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)rbind(object\'a0source, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Appends all of the columns contained by 
+\f3\fs18 source
+\f4\fs20  (which must be a 
+\f3\fs18 Dictionary
+\f4\fs20  or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20  such as 
+\f3\fs18 DataFrame
+\f4\fs20 ) to the receiver.  This method makes the 
+\f3\fs18 DataFrame
+\f4\fs20  taller, by adding new rows.  If the source and target do not contain the same column names in the same order, an error will result.  As always for 
+\f3\fs18 DataFrame
+\f4\fs20 , the columns of the resulting 
+\f3\fs18 DataFrame
+\f4\fs20  must all be the same length.\
+The 
+\f3\fs18 source
+\f4\fs20  parameter may be a non-singleton vector containing multiple 
+\f3\fs18 Dictionary
+\f4\fs20  objects, and additional 
+\f3\fs18 Dictionary
+\f4\fs20  vectors may be supplied (thus the ellipsis in the signature).  Each 
+\f3\fs18 Dictionary
+\f4\fs20  supplied will be appended to the target, in the order supplied.\
+This method is similar to the 
+\f3\fs18 Dictionary
+\f4\fs20  method 
+\f3\fs18 appendKeysAndValuesFrom()
+\f4\fs20 , which may be used instead if one wishes the append to work even when the columns are in different orders, or other such situations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(*)subset(li\'a0rows, lis\'a0cols)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the elements in the selected rows and columns of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .  The selection logic is identical to that for 
+\f3\fs18 subsetRows()
+\f4\fs20  and 
+\f3\fs18 subsetColumns()
+\f4\fs20 , respectively; in short, rows may be selected by 
+\f3\fs18 integer
+\f4\fs20  indices or by a 
+\f3\fs18 logical
+\f4\fs20  vector, and columns may be selected by 
+\f3\fs18 integer
+\f4\fs20  indices, by a 
+\f3\fs18 logical
+\f4\fs20  vector, or by a 
+\f3\fs18 string
+\f4\fs20  vector of column names.\
+The first step performed by 
+\f3\fs18 subset()
+\f4\fs20  is to produce a 
+\f3\fs18 DataFrame
+\f4\fs20  that contains the selected rows and columns.  If that 
+\f3\fs18 DataFrame
+\f4\fs20  contains more than one column, it is simply returned, and the behavior of 
+\f3\fs18 subset()
+\f4\fs20  is identical to calling 
+\f3\fs18 subsetRows()
+\f4\fs20  and 
+\f3\fs18 subsetColumns()
+\f4\fs20  in sequence (in either order).  If, however, the resulting 
+\f3\fs18 DataFrame
+\f4\fs20  contains only a single column, then 
+\f3\fs18 subset()
+\f4\fs20  will return a vector containing the elements in that column \'96 unlike the behavior of 
+\f3\fs18 subsetRows()
+\f4\fs20  and 
+\f3\fs18 subsetColumns()
+\f4\fs20 , which always return a 
+\f3\fs18 DataFrame
+\f4\fs20 .  It is therefore a convenient way to get a single value, or multiple values from the same column, from a 
+\f3\fs18 DataFrame
+\f4\fs20 .  (Note that the 
+\f3\fs18 Dictionary
+\f4\fs20  method 
+\f3\fs18 getValue()
+\f4\fs20  can also be used to get all of the values from a given 
+\f3\fs18 DataFrame
+\f4\fs20  column.)\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<DataFrame>$)subsetColumns(lis\'a0index)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a new 
+\f3\fs18 DataFrame
+\f4\fs20  containing values for the selected columns of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .  The selection logic described below is similar to how the subset operator 
+\f3\fs18 []
+\f4\fs20  in Eidos works, selecting the columns of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .\
+The index parameter may be either 
+\f3\fs18 integer
+\f4\fs20 , 
+\f3\fs18 logical
+\f4\fs20 , or 
+\f3\fs18 string
+\f4\fs20 ; we will discuss the 
+\f3\fs18 integer
+\f4\fs20  case first.  If 
+\f3\fs18 index
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20 , the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will contain the 
+\f3\fs18 index
+\f4\fs20 \'92th column of the target (counting from the left, from 
+\f3\fs18 0
+\f4\fs20 ).  If 
+\f3\fs18 index
+\f4\fs20  is a non-singleton 
+\f3\fs18 integer
+\f4\fs20  vector, the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will contains all of the selected columns, in the order that they are selected by 
+\f3\fs18 index
+\f4\fs20 .  If any 
+\f3\fs18 index
+\f4\fs20  value is out of range for the target 
+\f3\fs18 DataFrame
+\f4\fs20  (such that the 
+\f3\fs18 DataFrame
+\f4\fs20  does not have an 
+\f3\fs18 index
+\f4\fs20 \'92th column), an error will result.  If the same column is specified more than once, unique column names will be automatically generated for the additional copies of the column.\
+If 
+\f3\fs18 index
+\f4\fs20  is a 
+\f3\fs18 string
+\f4\fs20  vector, the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will contain copies of the columns in the target named by 
+\f3\fs18 index
+\f4\fs20 .  As with an 
+\f3\fs18 integer
+\f4\fs20  vector, it is an error if a given column does not exist in the target; and unique column names will be generated for additional copies of a column.\
+Finally, if 
+\f3\fs18 index
+\f4\fs20  is a 
+\f3\fs18 logical
+\f4\fs20  vector, the length of 
+\f3\fs18 index
+\f4\fs20  must be equal to the number of columns in the target.  In this case, the 
+\f3\fs18 T
+\f4\fs20  values in 
+\f3\fs18 index
+\f4\fs20  select the columns which will be included in the returned 
+\f3\fs18 DataFrame
+\f4\fs20 .  The columns in the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will be in the same order as in the target.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<DataFrame>$)subsetRows(li\'a0index, [logical$\'a0drop\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a new 
+\f3\fs18 DataFrame
+\f4\fs20  containing values for selected rows of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .  The selection logic described below works exactly as the subset operator 
+\f3\fs18 []
+\f4\fs20  does in Eidos, selecting the rows of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .\
+The 
+\f3\fs18 index
+\f4\fs20  parameter may be either 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 logical
+\f4\fs20 ; we will discuss the 
+\f3\fs18 integer
+\f4\fs20  case first.  If 
+\f3\fs18 index
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20 , the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will contain the 
+\f3\fs18 index
+\f4\fs20 \'92th element of the value of each key of the target, under the same keys; this is a single row of the target 
+\f3\fs18 DataFrame
+\f4\fs20 .  If 
+\f3\fs18 index
+\f4\fs20  is a non-singleton 
+\f3\fs18 integer
+\f4\fs20  vector, the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will contain the values for all of the selected rows, in the order that they are selected by 
+\f3\fs18 index
+\f4\fs20 .  If any index value in 
+\f3\fs18 index
+\f4\fs20  is out of range for the target 
+\f3\fs18 DataFrame
+\f4\fs20  (such that that DataFrame does not have an 
+\f3\fs18 index
+\f4\fs20 \'92th row), an error will result.\
+If 
+\f3\fs18 index
+\f4\fs20  is 
+\f3\fs18 logical
+\f4\fs20 , the length of 
+\f3\fs18 index
+\f4\fs20  must be equal to the number of rows in the target.  In this case, the 
+\f3\fs18 T
+\f4\fs20  values in 
+\f3\fs18 index
+\f4\fs20  select the rows which will be included in the returned 
+\f3\fs18 DataFrame
+\f4\fs20 .  The values of each column in the returned 
+\f3\fs18 DataFrame
+\f4\fs20  will be in the same order as in the target.\
+If the values of 
+\f3\fs18 index
+\f4\fs20  are such that 
+\f1\i no
+\f4\i0  value for a given key is selected, the 
+\f3\fs18 drop
+\f4\fs20  parameter controls the resulting behavior.  If 
+\f3\fs18 drop
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the key will be included in the returned dictionary with a zero-length value of matching type, such as 
+\f3\fs18 integer(0)
+\f4\fs20  or 
+\f3\fs18 string(0)
+\f4\fs20 .  If 
+\f3\fs18 drop
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the key will be omitted from the returned dictionary.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf2 5.3  Class Dictionary\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\b0\fs18 \cf2 (object<Dictionary>$)Dictionary(...)\
@@ -162,7 +522,7 @@ A final alternative is to call
 \f4\fs20  since JSON does not provide a way to specify the type of a zero-length array.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.2.1  
+\f1\i\fs22 \cf2 5.3.1  
 \f2\fs18 Dictionary
 \f1\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -170,12 +530,14 @@ A final alternative is to call
 \f3\i0\fs18 \cf2 allKeys => (string)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 A vector containing all of the string keys that have been assigned values using 
+\f4\fs20 \cf2 A vector containing all of the 
+\f3\fs18 string
+\f4\fs20  keys that have been assigned values using 
 \f3\fs18 setValue()
 \f4\fs20 , in sorted (alphabetical) order.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.2.2  
+\f1\i\fs22 \cf2 5.3.2  
 \f2\fs18 Dictionary
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -225,7 +587,7 @@ In the current implementation, it is an error for either of the values involved 
 \f4\fs20 \cf2 Removes all key-value pairs from the receiver.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Dictionary>$)getRowValues(li\'a0index)\
+\f3\fs18 \cf2 \'96\'a0(object<Dictionary>$)getRowValues(li\'a0index, [logical$\'a0drop\'a0=\'a0F])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a new 
@@ -234,11 +596,19 @@ In the current implementation, it is an error for either of the values involved 
 \f3\fs18 Dictionary
 \f4\fs20 , allowing 
 \f3\fs18 Dictionary
-\f4\fs20  to act similarly to a dataframe (see the 
+\f4\fs20  to act similarly to a 
+\f3\fs18 DataFrame
+\f4\fs20 .  See the 
+\f3\fs18 subsetRows()
+\f4\fs20  method of class 
+\f3\fs18 DataFrame
+\f4\fs20  for comparison; the main utility of 
+\f3\fs18 getRowValues()
+\f4\fs20  is that it can be used on a 
 \f3\fs18 Dictionary
-\f4\fs20  class documentation for discussion).  From this perspective, the selection logic described below works exactly as the subset operator 
+\f4\fs20  that has ragged \'93rows\'94.  The selection logic described below works similarly to the subset operator 
 \f3\fs18 []
-\f4\fs20  does in Eidos, selecting the \'93rows\'94 of the target 
+\f4\fs20  in Eidos, selecting the \'93rows\'94 of the target 
 \f3\fs18 Dictionary
 \f4\fs20 .\
 The 
@@ -273,27 +643,47 @@ The
 \f3\fs18 Dictionary
 \f4\fs20  (such that that key does not have an 
 \f3\fs18 index
-\f4\fs20 \'92th value), an error will result.\
+\f4\fs20 \'92th value), the returned dictionary will simply not have a value for that \'93row\'94 of that key.\
 If 
 \f3\fs18 index
 \f4\fs20  is 
 \f3\fs18 logical
-\f4\fs20 , the target 
-\f3\fs18 Dictionary
-\f4\fs20  must not be \'93ragged\'94 (the length of the values for all of its keys must be equal), and the length of 
-\f3\fs18 index
-\f4\fs20  must be equal to the number of \'93rows\'94 in the target.  In this case, the 
+\f4\fs20 , the 
 \f3\fs18 T
 \f4\fs20  values in 
 \f3\fs18 index
 \f4\fs20  select the \'93rows\'94 which will be included in the returned 
 \f3\fs18 Dictionary
-\f4\fs20 .  The values of each column in the returned 
+\f4\fs20 .  The values within each column in the returned 
 \f3\fs18 Dictionary
-\f4\fs20  will be in the same order as in the target.\
-In the current implementation, it is an error for any value in the target 
+\f4\fs20  will be in the same order as in the target.  The length of 
+\f3\fs18 index
+\f4\fs20  need not match any column of the 
 \f3\fs18 Dictionary
-\f4\fs20  to be a matrix or array; values in the target should be simple vectors.  This limitation preserves the future option to expand this method\'92s functionality to do smart things with matrices and arrays.\
+\f4\fs20 ; excess \'93rows\'94 beyond the length of 
+\f3\fs18 index
+\f4\fs20  will not be selected, and excess values in 
+\f3\fs18 index
+\f4\fs20  beyond the end of the longest \'93column\'94 will have no effect.\
+If the values of 
+\f3\fs18 index
+\f4\fs20  are such that 
+\f1\i no
+\f4\i0  value for a given key is selected, the 
+\f3\fs18 drop
+\f4\fs20  parameter controls the resulting behavior.  If 
+\f3\fs18 drop
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the key will be included in the returned dictionary with a zero-length value of matching type, such as 
+\f3\fs18 integer(0)
+\f4\fs20  or 
+\f3\fs18 string(0)
+\f4\fs20 .  If 
+\f3\fs18 drop
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , the key will be omitted from the returned dictionary.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(*)getValue(string$\'a0key)\
@@ -337,18 +727,30 @@ Note that if
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(string$)serialize([string$\'a0format\'a0=\'a0"slim"])\
+\f3\fs18 \cf2 \'96\'a0(string)serialize([string$\'a0format\'a0=\'a0"slim"])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns a serialized form of the dictionary\'92s contents as a singleton 
+\f4\fs20 \cf2 Returns a serialized form of the dictionary\'92s contents as a 
 \f3\fs18 string
-\f4\fs20 .  Two formats are supported at present, as chosen with the 
+\f4\fs20  singleton or vector.  Four formats are supported at present, as chosen with the 
 \f3\fs18 format
 \f4\fs20  parameter: 
 \f3\fs18 "slim"
 \f4\fs20  and 
-\f3\fs18 "json"
-\f4\fs20 .\
+\f3\fs18 \'93json"
+\f4\fs20  produce a singleton string, whereas 
+\f3\fs18 "csv"
+\f4\fs20  and 
+\f3\fs18 "tsv"
+\f4\fs20  produce a 
+\f3\fs18 string
+\f4\fs20  vector.  These serializations can be written to disk with 
+\f3\fs18 writeFile()
+\f4\fs20  or 
+\f3\fs18 writeTempFile()
+\f4\fs20 , written to the output stream with 
+\f3\fs18 cat()
+\f4\fs20 , or used in any other way.\
 The default 
 \f3\fs18 "slim"
 \f4\fs20  format is intended for simple, informal use where a very easily parseable string is desired.  For a simple dictionary containing only keys with singleton non-object values, this will be a semicolon-delimited string like 
@@ -373,12 +775,16 @@ The default
 \f3\fs18 "key1=\{key1=value1;key2=value2;\};"
 \f4\fs20 .  Keys, since they are also of type 
 \f3\fs18 string
-\f4\fs20 , will be quoted and backslash-escaped if necessary, but simple keys that do not require that treatment will be serialized without quotes for simplicity.\
+\f4\fs20 , will be quoted and backslash-escaped if necessary, but simple keys that do not require that treatment will be serialized without quotes for simplicity.  No facility for parsing 
+\f3\fs18 "slim"
+\f4\fs20  serializations back into Eidos is presently provided.\
 The 
 \f3\fs18 "json"
 \f4\fs20  format, introduced in Eidos 2.7 (SLiM 3.7), provides serialization of the 
 \f3\fs18 Dictionary
-\f4\fs20  into the standard JSON format, which may not be quite as brief or human-readable, but which can be used as a standard interchange format and read by many other programs.  For example, a 
+\f4\fs20  into the standard JSON format, which may not be quite as brief or human-readable, but which can be used as a standard interchange format and read by the 
+\f3\fs18 Dictionary()
+\f4\fs20  constructor in Eidos as well as by many other programs.  For example, a 
 \f3\fs18 Dictionary
 \f4\fs20  with a key 
 \f3\fs18 "key1"
@@ -397,6 +803,41 @@ The
 \f4\fs20 , where the outer single quotes are not part of the serialization itself, but are indicating that the serialization is a 
 \f3\fs18 string
 \f4\fs20  value.  Note that since all Eidos values are vectors, even singleton values are serialized into JSON as arrays by Eidos; the hope is that this will make automated parsing of these JSON strings easier, since the singleton case will not have to be special-cased.  Documentation on the JSON format can be found online.\
+The 
+\f3\fs18 "csv"
+\f4\fs20  and 
+\f3\fs18 "tsv"
+\f4\fs20  formats produce standard comma-separated value (CSV) or tab-separated value (TSV) data.  These formats are primarily intended for output from 
+\f3\fs18 DataFrame
+\f4\fs20 , since that class is used to represent the sort of data tables that CSV/TSV are typically used for; but it may be used with 
+\f3\fs18 Dictionary
+\f4\fs20  too, particularly if it is being used to represent a data table with ragged columns (missing values will just be skipped over, producing two commas or two tabs in sequence).  Values of type 
+\f3\fs18 string
+\f4\fs20  will always be quoted, with double quotes (with a repeated double quote used to indicate the presence of a double quote inside a 
+\f3\fs18 string
+\f4\fs20  value, as usual in CSV); values of other types never will.  Decimal points (not decimal commas, regardless of system localization) will always be used for 
+\f3\fs18 float
+\f4\fs20  values, and will never be used for 
+\f3\fs18 integer
+\f4\fs20  values.  Values of logical type will be serialized as 
+\f3\fs18 TRUE
+\f4\fs20  or 
+\f3\fs18 FALSE
+\f4\fs20 , without quotes.  A header line providing the names of the columns (i.e., the keys of the target 
+\f3\fs18 Dictionary
+\f4\fs20 ) will always be generated; those column names will also be quoted.  One 
+\f3\fs18 string
+\f4\fs20  element will be generated for each row of the target, plus one 
+\f3\fs18 string
+\f4\fs20  element for the header line; newlines will not be present in the resulting 
+\f3\fs18 string
+\f4\fs20  vector unless newlines were present within the 
+\f3\fs18 string
+\f4\fs20  values in the 
+\f3\fs18 Dictionary
+\f4\fs20 .  The resulting data, if written to a file, should be readable in Eidos using 
+\f3\fs18 readCSV()
+\f4\fs20  (as long as there are no ragged columns or missing values), as well as in other software such as R and Excel.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
@@ -423,7 +864,7 @@ The
 \f4\fs20  removes that key from the dictionary.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf2 5.3  Class Image\
+\f0\b\fs22 \cf2 5.4  Class Image\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\b0\fs18 \cf2 (object<Image>$)Image(string$\'a0filePath)\
@@ -440,7 +881,7 @@ The
 \f4\fs20 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.3.1  
+\f1\i\fs22 \cf2 5.4.1  
 \f2\fs18 Image
 \f1\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -561,7 +1002,7 @@ The
 \f4\fs20  property for an alternative representation.  If the image is color, this property is unavailable.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf2 5.3.2  
+\f1\i\fs22 \cf2 5.4.2  
 \f2\fs18 Image
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0

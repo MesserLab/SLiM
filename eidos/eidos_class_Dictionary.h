@@ -42,45 +42,78 @@ typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
 
 extern EidosClass *gEidosDictionaryUnretained_Class;
 
+// This is a helper class for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
+// so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
+// actually used (which it usually isn't, since many SLiM objects inherit from Dictionary but rarely use it).
+struct EidosDictionaryState
+{
+	// This hash table contains the values we are tracking.  Note that DictionarySymbols() should be
+	// used by all code that does not need to modify the dictionary.
+	EidosDictionaryHashTable dictionary_symbols_;
+	
+	// The dictionary_symbols_ table has no order for the keys.  We want to define an ordering; for
+	// Dictionary the ordering is sorted, for DataFrame it is user-defined.  This vector determines
+	// the user-visible ordering.  Whenever a new key is added, call KeyAddedToDictionary() to register it.
+	// The SortedKeys() accessor should be used by all code that does not need to modify the keys.
+	std::vector<std::string> sorted_keys_;
+};
+
 // This class is known in Eidos as "DictionaryBase"
 class EidosDictionaryUnretained : public EidosObject
 {
 private:
 	typedef EidosObject super;
 
-private:
-	// We keep a pointer to our hash table for values we are tracking.  The reason to use a pointer is
-	// that most clients of SLiM will not use getValue()/setValue() for most objects most of the time,
-	// so we want to keep that case as minimal as possible in terms of speed and memory footprint.
-	// Those who do use getValue()/setValue() will pay a little additional cost; that's OK.
-	EidosDictionaryHashTable *hash_symbols_ = nullptr;
+protected:
+	EidosDictionaryState *state_ptr_ = nullptr;
 	
 public:
-	EidosDictionaryUnretained(const EidosDictionaryUnretained &p_original);
+	EidosDictionaryUnretained(const EidosDictionaryUnretained &p_original) = delete;				// no copy-construct
 	EidosDictionaryUnretained& operator= (const EidosDictionaryUnretained &p_original) = delete;	// no assignment
 	inline EidosDictionaryUnretained(void) { }
 	
 	inline virtual ~EidosDictionaryUnretained(void) override
 	{
-		if (hash_symbols_)
-			delete hash_symbols_;
+		if (state_ptr_)
+		{
+			delete state_ptr_;
+			state_ptr_ = nullptr;
+		}
 	}
 	
-	int KeyCount(void) const { return (hash_symbols_ ? (int)hash_symbols_->size() : 0); }
+	// Whenever possible, access should go through these accessors to control modification of our symbols
+	const EidosDictionaryHashTable *DictionarySymbols(void) const { return state_ptr_ ? &(state_ptr_->dictionary_symbols_) : nullptr; }
+	const std::vector<std::string> *SortedKeys(void) const { return state_ptr_ ? &(state_ptr_->sorted_keys_) : nullptr; }
+	
+	// This method must be called whenever a key is added to the DictionarySymbols(), to add it to SortedKeys() correctly
+	// The correct way to add new keys is different for Dictionary than for DataFrame, so always use this accessor
+	virtual void KeyAddedToDictionary(const std::string &p_key);
+	
+	// This method must be called at the end of any code that changes the contents of the dictionary; it checks several invariants
+	// Low-level accessors (RemoveAllKeys(), SetKeyValue(), etc.) should *not* call this; the top-level code controlling the change should
+	virtual void ContentsChanged(const std::string &p_operation_name);
+	
+	int KeyCount(void) const { const std::vector<std::string> *keys = SortedKeys(); return keys ? (int)keys->size() : 0; }
 	virtual EidosValue_SP AllKeys(void) const;
 	
-	std::string Serialization(void) const;
+	std::string Serialization_SLiM(void) const;
+	EidosValue_SP Serialization_CSV(std::string p_delimiter) const;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
+	// Non-const methods: callers of these methods must ensure that ContentsChanged() is called!
 	inline __attribute__((always_inline)) void RemoveAllKeys(void)
 	{
-		if (hash_symbols_)
-			hash_symbols_->clear();
+		if (state_ptr_)
+		{
+			// We keep state_ptr_ allocated to try to avoid allocation thrash
+			state_ptr_->dictionary_symbols_.clear();
+			state_ptr_->sorted_keys_.clear();
+		}
 	}
 	
 	void SetKeyValue(const std::string &key, EidosValue_SP value);
-	
-	void AddKeysAndValuesFrom(EidosDictionaryUnretained *p_source);
+	void AddKeysAndValuesFrom(EidosDictionaryUnretained *p_source, bool p_allow_replace = true);
+	void AppendKeysAndValuesFrom(EidosDictionaryUnretained *p_source, bool p_require_column_match = false);
 	void AddJSONFrom(nlohmann::json &json);
 	
 	
@@ -135,7 +168,7 @@ private:
 	uint32_t refcount_ = 1;				// start life with a refcount of 1; the allocator does not need to call Retain()
 	
 public:
-	inline EidosDictionaryRetained(const EidosDictionaryRetained &p_original) : EidosDictionaryUnretained(p_original) { }
+	EidosDictionaryRetained(const EidosDictionaryRetained &p_original) = delete;		// no copy-construct
 	EidosDictionaryRetained& operator=(const EidosDictionaryRetained&) = delete;		// no copying
 	inline EidosDictionaryRetained(void) { }
 	inline virtual ~EidosDictionaryRetained(void) override { }
@@ -152,6 +185,9 @@ public:
 	}
 	
 	virtual void SelfDelete(void);
+	
+	// construct from Eidos arguments; shared with DataFrame; the caller must call ContentsChanged()
+	void ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, std::string p_caller_name, std::string p_constructor_name);
 	
 	//
 	// Eidos support

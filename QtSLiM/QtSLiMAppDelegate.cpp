@@ -65,8 +65,11 @@
 // -D NO_QT_VERSION_ERROR; at present, that is used to allow GitHub Actions to test version
 // combinations that are not officially supported.  I do not recommend that end users use this flag.
 #ifdef NO_QT_VERSION_ERROR
+
 #warning "Qt version check for SLiMgui disabled by -D NO_QT_VERSION_ERROR"
+
 #else
+
 #ifdef __APPLE__
 // On macOS we enforce Qt 5.15.2 as a hard limit; macOS does not have Qt preinstalled, and there is
 // not much reason for anybody to use a version prior to 5.15.2 for a build.  5.15.2 is the only
@@ -85,6 +88,13 @@
 #error "SLiMgui on Linux requires Qt version 5.9.5 or later.  Please uninstall Qt and then install a more recent version (5.12 LTS or 5.15 LTS recommended)."
 #endif
 #endif
+
+// Also now check for a Qt version of 6.0 or greater and decline; that is completely untested
+// and probably doesn't even compile.  That will be a whole new adventure.
+#if (QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#error "SLiMgui does not build against Qt 6.  Please uninstall Qt 6 and install Qt 5 (5.15.2 recommended)."
+#endif
+
 #endif
 
 

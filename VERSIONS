@@ -53,6 +53,16 @@ development head:
 	add -spatialMapImage() method to Subpopulation to let you get an image for a spatial map
 	add tempdir() function to Eidos for better cross-platform support; revise recipes that use /tmp to use this (9.2, 9.3, 9.6.2, 17.3 I, 17.3 II)
 	add sysinfo() function to Eidos for better cross-platform support
+	add grep() function to Eidos for regular expression matching
+	add DataFrame class to Eidos (a subclass of Dictionary for representing data tables), with:
+		properties: colnames, dim, ncol, nrow
+		methods: cbind(), rbind(), subset(), subsetColumns(), subsetRows()
+		other features: prints as a data table rather than a dictionary
+	add "csv" and "tsv" options to the Dictionary method serialize(), for generating CSV/TSV content (note serialize() now returns string, not string$)
+	add readCSV() function that reads a CSV (or TSV) file and returns a DataFrame
+	modify Dictionary method getRowValues() to make it useful as a contrast to DataFrame.subsetRows(), by allowing ragged rows, matrix/array elements; add [drop=F]; these changes are backward-compatible
+	change Eidos output of float values slightly; 1.0 now outputs as "1.0", not "1", to show that it is a float; seems better, breaks backward compatibility in a minor way
+	replace recipe 14.4 (modeling inversions), incorporating changes from Vince Buffalo, Peter Ralph, & Andy Kern that fix several problems (see new discussion in the manual)
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

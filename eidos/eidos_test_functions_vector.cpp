@@ -23,6 +23,7 @@
 #include "eidos_class_TestElement.h"
 
 #include <limits>
+#include <regex>
 
 
 #pragma mark vector construction
@@ -1110,6 +1111,114 @@ void _RunFunctionValueInspectionManipulationTests_s_through_z(void)
 #pragma mark value type testing / coercion
 void _RunStringManipulationTests(void)
 {
+	// grep() - we test only ECMAScript
+	if (!Eidos_RegexWorks())
+	{
+		std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, an error will result.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
+	}
+	else
+	{
+		EidosAssertScriptRaise("grep('', c('abc', 'bcd', 'cde', 'def', 'ecDf'));", 0, "pattern to be of length >= 1");
+		EidosAssertScriptRaise("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), grammar='fooScript');", 0, "requires grammar to be one of");
+		EidosAssertScriptRaise("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), value='objects');", 0, "requires value to be one of");
+		EidosAssertScriptRaise("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), value='matches', invert=T);", 0, "does not allow value=");
+		EidosAssertScriptSuccess_IV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=T, invert=F);", {1, 2});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=T, invert=F);", {});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=T, invert=F);", {1, 2, 4});
+		EidosAssertScriptSuccess_IV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=T, invert=T);", {0, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=T, invert=T);", {0, 1, 2, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=T, invert=T);", {0, 3});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=T, invert=F);", {"bcd", "cde"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=T, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=T, invert=F);", {"bcd", "cde", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=T, invert=T);", {"abc", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=T, invert=T);", {"abc", "bcd", "cde", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=T, invert=T);", {"abc", "def"});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=T, invert=F);", {"cd", "cd"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=T, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=T, invert=F);", {"cd", "cd", "cD"});
+		EidosAssertScriptRaise("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=T, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=T, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=T, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptSuccess_LV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=T, invert=F);", {false, true, true, false, false});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=T, invert=F);", {false, false, false, false, false});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=T, invert=F);", {false, true, true, false, true});
+		EidosAssertScriptSuccess_LV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=T, invert=T);", {true, false, false, true, true});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=T, invert=T);", {true, true, true, true, true});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=T, invert=T);", {true, false, false, true, false});
+		
+		EidosAssertScriptSuccess_IV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1, 2});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1, 2, 4});
+		EidosAssertScriptSuccess_IV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 1, 2, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 3});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd", "cde"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd", "cde", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "bcd", "cde", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "def"});
+		EidosAssertScriptSuccess_SV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd", "cd"});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd", "cd", "cD"});
+		EidosAssertScriptRaise("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptSuccess_LV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, true, false, false});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, false, false, false, false});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, true, false, true});
+		EidosAssertScriptSuccess_LV("grep('cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, false, false, true, true});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, true, true, true, true});
+		EidosAssertScriptSuccess_LV("grep('Cd', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, false, false, true, false});
+
+		EidosAssertScriptSuccess_IV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1, 2});
+		EidosAssertScriptSuccess_IV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_IV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1, 2, 4});
+		EidosAssertScriptSuccess_IV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 1, 2, 3, 4});
+		EidosAssertScriptSuccess_IV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='indices', fixed=F, invert=T);", {0, 3});
+		EidosAssertScriptSuccess_SV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd", "cde"});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd", "cde", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "bcd", "cde", "def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='elements', fixed=F, invert=T);", {"abc", "def"});
+		EidosAssertScriptSuccess_SV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd", "cd"});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {});
+		EidosAssertScriptSuccess_SV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd", "cd", "cD"});
+		EidosAssertScriptRaise("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptRaise("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='matches', fixed=F, invert=T);", 0, "does not allow value=");
+		EidosAssertScriptSuccess_LV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, true, false, false});
+		EidosAssertScriptSuccess_LV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, false, false, false, false});
+		EidosAssertScriptSuccess_LV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, true, false, true});
+		EidosAssertScriptSuccess_LV("grep('[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, false, false, true, true});
+		EidosAssertScriptSuccess_LV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, true, true, true, true});
+		EidosAssertScriptSuccess_LV("grep('[Cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=T, grammar='ECMAScript', value='logical', fixed=F, invert=T);", {true, false, false, true, false});
+		
+		EidosAssertScriptSuccess_IV("grep('^[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {2});
+		EidosAssertScriptSuccess_IV("grep('[cd]{2}$', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1});
+		EidosAssertScriptSuccess_IV("grep('(cd)|(cD)', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {1, 2, 4});
+		EidosAssertScriptSuccess_IV("grep('.f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {3, 4});
+		EidosAssertScriptSuccess_IV("grep('[[:alpha:]]f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='indices', fixed=F, invert=F);", {3, 4});
+		EidosAssertScriptSuccess_SV("grep('^[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"cde"});
+		EidosAssertScriptSuccess_SV("grep('[cd]{2}$', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd"});
+		EidosAssertScriptSuccess_SV("grep('(cd)|(cD)', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"bcd", "cde", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('.f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('[[:alpha:]]f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='elements', fixed=F, invert=F);", {"def", "ecDf"});
+		EidosAssertScriptSuccess_SV("grep('^[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd"});
+		EidosAssertScriptSuccess_SV("grep('[cd]{2}$', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd"});
+		EidosAssertScriptSuccess_SV("grep('(cd)|(cD)', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"cd", "cd", "cD"});
+		EidosAssertScriptSuccess_SV("grep('.f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"ef", "Df"});
+		EidosAssertScriptSuccess_SV("grep('[[:alpha:]]f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='matches', fixed=F, invert=F);", {"ef", "Df"});
+		EidosAssertScriptSuccess_LV("grep('^[cd]{2}', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, false, true, false, false});
+		EidosAssertScriptSuccess_LV("grep('[cd]{2}$', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, false, false, false});
+		EidosAssertScriptSuccess_LV("grep('(cd)|(cD)', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, true, true, false, true});
+		EidosAssertScriptSuccess_LV("grep('.f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, false, false, true, true});
+		EidosAssertScriptSuccess_LV("grep('[[:alpha:]]f', c('abc', 'bcd', 'cde', 'def', 'ecDf'), ignoreCase=F, grammar='ECMAScript', value='logical', fixed=F, invert=F);", {false, false, false, true, true});
+	}
+	
 	// nchar()
 	EidosAssertScriptRaise("nchar(NULL);", 0, "cannot be type");
 	EidosAssertScriptRaise("nchar(T);", 0, "cannot be type");
@@ -1285,8 +1394,8 @@ void _RunFunctionValueTestingCoercionTests(void)
 	EidosAssertScriptSuccess_SV("asString(-1);", {"-1"});
 	EidosAssertScriptSuccess_SV("asString(3);", {"3"});
 	EidosAssertScriptSuccess_SV("asString(-1:3);", {"-1","0","1","2","3"});
-	EidosAssertScriptSuccess_SV("asString(-1.0:3);", {"-1","0","1","2","3"});
-	EidosAssertScriptSuccess_SV("asString(c(1.0, NAN, -2.0));", {"1","NAN","-2"});
+	EidosAssertScriptSuccess_SV("asString(-1.0:3);", {"-1.0","0.0","1.0","2.0","3.0"});
+	EidosAssertScriptSuccess_SV("asString(c(1.0, NAN, -2.0));", {"1.0","NAN","-2.0"});
 	EidosAssertScriptSuccess_SV("asString(c(T,F,T,F));", {"T","F","T","F"});
 	EidosAssertScriptSuccess_SV("asString(c('1','2','3'));", {"1","2","3"});
 	EidosAssertScriptSuccess_L("identical(asString(matrix(-1:3)), matrix(c('-1','0','1','2','3')));", true);

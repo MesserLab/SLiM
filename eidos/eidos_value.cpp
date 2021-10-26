@@ -73,6 +73,10 @@ EidosValue_String_SP gStaticEidosValue_StringSpace;
 EidosValue_String_SP gStaticEidosValue_StringAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringDoubleAsterisk;
 EidosValue_String_SP gStaticEidosValue_StringComma;
+EidosValue_String_SP gStaticEidosValue_StringPeriod;
+EidosValue_String_SP gStaticEidosValue_StringDoubleQuote;
+EidosValue_String_SP gStaticEidosValue_String_ECMAScript;
+EidosValue_String_SP gStaticEidosValue_String_indices;
 
 EidosClass *gEidosObject_Class = nullptr;
 

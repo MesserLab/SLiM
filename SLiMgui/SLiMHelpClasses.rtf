@@ -4978,6 +4978,7 @@ Beginning with SLiM 3.3, the
 \f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
@@ -5847,15 +5848,17 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f3\fs18 metadata
 \f4\fs20  may actually be any subclass of 
 \f3\fs18 Dictionary
-\f4\fs20 , such as the 
+\f4\fs20 , such as a 
+\f3\fs18 DataFrame
+\f4\fs20 .  It can even be the 
 \f3\fs18 SLiMSim
 \f4\fs20  simulation object 
 \f3\fs18 sim
 \f4\fs20 , or a 
 \f3\fs18 LogFile
-\f4\fs20  instance.  However, only the keys and values contained by the object\'92s 
+\f4\fs20  instance; however, only the keys and values contained by the object\'92s 
 \f3\fs18 Dictionary
-\f4\fs20  superclass state will be serialized into the metadata; properties of the subclass will be ignored.\
+\f4\fs20  superclass state will be serialized into the metadata (properties of the subclass will be ignored).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0

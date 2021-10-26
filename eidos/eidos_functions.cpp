@@ -42,6 +42,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <regex>
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <sys/utsname.h>
@@ -205,25 +206,25 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dbeta",				Eidos_ExecuteFunction_dbeta,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("alpha")->AddNumeric("beta"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dgamma",			Eidos_ExecuteFunction_dgamma,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mean")->AddNumeric("shape"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pnorm",				Eidos_ExecuteFunction_pnorm,		kEidosValueMaskFloat))->AddFloat("q")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("qnorm",				Eidos_ExecuteFunction_qnorm,		kEidosValueMaskFloat))->AddFloat("p")->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dnorm",				Eidos_ExecuteFunction_dnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mean", gStaticEidosValue_Integer0)->AddNumeric_O("sd", gStaticEidosValue_Integer1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pnorm",				Eidos_ExecuteFunction_pnorm,		kEidosValueMaskFloat))->AddFloat("q")->AddNumeric_O("mean", gStaticEidosValue_Integer0)->AddNumeric_O("sd", gStaticEidosValue_Integer1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("qnorm",				Eidos_ExecuteFunction_qnorm,		kEidosValueMaskFloat))->AddFloat("p")->AddNumeric_O("mean", gStaticEidosValue_Integer0)->AddNumeric_O("sd", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbeta",				Eidos_ExecuteFunction_rbeta,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbinom",			Eidos_ExecuteFunction_rbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt("size")->AddFloat("prob"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",			Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Float0)->AddNumeric_O("scale", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rcauchy",			Eidos_ExecuteFunction_rcauchy,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("location", gStaticEidosValue_Integer0)->AddNumeric_O("scale", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rdunif",			Eidos_ExecuteFunction_rdunif,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddInt_O("min", gStaticEidosValue_Integer0)->AddInt_O("max", gStaticEidosValue_Integer1));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rexp",				Eidos_ExecuteFunction_rexp,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mu", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rf",				Eidos_ExecuteFunction_rf,			kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("d1")->AddNumeric("d2"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgamma",			Eidos_ExecuteFunction_rgamma,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mean")->AddNumeric("shape"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgeom",				Eidos_ExecuteFunction_rgeom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddFloat("p"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Float0)->AddNumeric_O("sdlog", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rlnorm",			Eidos_ExecuteFunction_rlnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("meanlog", gStaticEidosValue_Integer0)->AddNumeric_O("sdlog", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rmvnorm",			Eidos_ExecuteFunction_rmvnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnbinom",			Eidos_ExecuteFunction_rnbinom,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddNumeric("size")->AddFloat("prob"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",				Eidos_ExecuteFunction_rnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mean", gStaticEidosValue_Float0)->AddNumeric_O("sd", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rnorm",				Eidos_ExecuteFunction_rnorm,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("mean", gStaticEidosValue_Integer0)->AddNumeric_O("sd", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rpois",				Eidos_ExecuteFunction_rpois,		kEidosValueMaskInt))->AddInt_S(gEidosStr_n)->AddNumeric("lambda"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",				Eidos_ExecuteFunction_runif,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("min", gStaticEidosValue_Float0)->AddNumeric_O("max", gStaticEidosValue_Float1));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("runif",				Eidos_ExecuteFunction_runif,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric_O("min", gStaticEidosValue_Integer0)->AddNumeric_O("max", gStaticEidosValue_Integer1));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rweibull",			Eidos_ExecuteFunction_rweibull,		kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddNumeric("lambda")->AddNumeric("k"));
 		
 		
@@ -300,6 +301,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	string manipulation functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("grep",				Eidos_ExecuteFunction_grep,			kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskString))->AddString_S("pattern")->AddString("x")->AddLogical_OS("ignoreCase", gStaticEidosValue_LogicalF)->AddString_OS("grammar", gStaticEidosValue_String_ECMAScript)->AddString_OS("value", gStaticEidosValue_String_indices)->AddLogical_OS("fixed", gStaticEidosValue_LogicalF)->AddLogical_OS("invert", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nchar",				Eidos_ExecuteFunction_nchar,		kEidosValueMaskInt))->AddString("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("strcontains",		Eidos_ExecuteFunction_strcontains,	kEidosValueMaskLogical))->AddString("x")->AddString_S("s")->AddInt_OS("pos", gStaticEidosValue_Integer0));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("strfind",			Eidos_ExecuteFunction_strfind,		kEidosValueMaskInt))->AddString("x")->AddString_S("s")->AddInt_OS("pos", gStaticEidosValue_Integer0));
@@ -331,11 +333,11 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	color manipulation functions
 		//
 		
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("cmColors",			Eidos_ExecuteFunction_cmColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("colors",			Eidos_ExecuteFunction_colors,		kEidosValueMaskString))->AddNumeric(gEidosStr_x)->AddString_S("name"));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("heatColors",		Eidos_ExecuteFunction_heatColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rainbow",			Eidos_ExecuteFunction_rainbow,		kEidosValueMaskString))->AddInt_S(gEidosStr_n)->AddFloat_OS(gEidosStr_s, gStaticEidosValue_Float1)->AddFloat_OS("v", gStaticEidosValue_Float1)->AddFloat_OS(gEidosStr_start, gStaticEidosValue_Float0)->AddFloat_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddLogical_OS("ccw", gStaticEidosValue_LogicalT));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,		kEidosValueMaskString))->AddInt_S(gEidosStr_n));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("terrainColors",		Eidos_ExecuteFunction_terrainColors,	kEidosValueMaskString))->AddInt_S(gEidosStr_n)->MarkDeprecated());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("hsv2rgb",			Eidos_ExecuteFunction_hsv2rgb,		kEidosValueMaskFloat))->AddFloat("hsv"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2hsv",			Eidos_ExecuteFunction_rgb2hsv,		kEidosValueMaskFloat))->AddFloat("rgb"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rgb2color",			Eidos_ExecuteFunction_rgb2color,	kEidosValueMaskString))->AddFloat("rgb"));
@@ -1075,9 +1077,10 @@ EidosValue_SP UniqueEidosValue(const EidosValue *p_x_value, bool p_force_new_vec
 	return result_SP;
 }
 
-EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosValue *p_indices, EidosToken *p_error_token)
+EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosValue *p_indices, EidosToken *p_error_token, bool p_raise_range_errors)
 {
 	// We have a simple vector-style subset that is not NULL; handle it as we did in Eidos 1.5 and earlier
+	// If p_raise_range_errors is false, out-of-range indices will be ignored; if it is true, they will cause an error
 	EidosValueType original_value_type = p_original_value->Type();
 	EidosValueType indices_type = p_indices->Type();
 	
@@ -1088,9 +1091,15 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 	
 	if (indices_type == EidosValueType::kValueLogical)
 	{
-		// Subsetting with a logical vector means the vectors must match in length; indices with a T value will be taken
+		// Subsetting with a logical vector means the vectors must match in length, if p_raise_range_errors is true; indices with a T value will be taken
+		// If p_raise_range_errors is false, we here clip indices_count to original_value_count so we can loop over it safely
 		if (original_value_count != indices_count)
-			EIDOS_TERMINATION << "ERROR (SubsetEidosValue): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(p_error_token);
+		{
+			if (p_raise_range_errors)
+				EIDOS_TERMINATION << "ERROR (SubsetEidosValue): the '[]' operator requires that the size() of a logical index operand must match the size() of the indexed operand." << EidosTerminate(p_error_token);
+			else
+				indices_count = std::min(indices_count, original_value_count);
+		}
 		
 		// Subsetting with a logical vector does not attempt to allocate singleton values, for now; seems unlikely to be a frequently hit case
 		const eidos_logical_t *logical_index_data = p_indices->LogicalVector()->data();
@@ -1176,8 +1185,18 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 		if (indices_count == 1)
 		{
 			// Subsetting with a singleton int/float vector is common and should return a singleton value for speed
-			// This is guaranteed to return a singleton value (when available), and bounds-checks for us
-			result_SP = p_original_value->GetValueAtIndex((int)p_indices->IntAtIndex(0, p_error_token), p_error_token);
+			// This is guaranteed to return a singleton value (when available)
+			int index_value = (int)p_indices->IntAtIndex(0, p_error_token);
+			
+			if ((index_value < 0) || (index_value >= original_value_count))
+			{
+				if (p_raise_range_errors)
+					EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+				else
+					result_SP = p_original_value->NewMatchingType();
+			}
+			else
+				result_SP = p_original_value->GetValueAtIndex(index_value, p_error_token);
 		}
 		else if (original_value_count == 1)
 		{
@@ -1192,7 +1211,10 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 				
 				if ((index_value < 0) || (index_value >= original_value_count))
-					EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+				{
+					if (p_raise_range_errors)
+						EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+				}
 				else
 					result->PushValueFromIndexOfEidosValue((int)index_value, *p_original_value, p_error_token);
 			}
@@ -1205,7 +1227,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				// result type is float; optimize for that
 				const double *first_child_data = p_original_value->FloatVector()->data();
 				EidosValue_Float_vector_SP float_result_SP = EidosValue_Float_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
-				EidosValue_Float_vector *float_result = float_result_SP->resize_no_initialize(indices_count);
+				EidosValue_Float_vector *float_result = float_result_SP->reserve(indices_count);
 				
 				if (indices_type == EidosValueType::kValueInt)
 				{
@@ -1217,9 +1239,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = int_index_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							float_result->set_float_no_check(first_child_data[index_value], value_idx);
+							float_result->push_float_no_check(first_child_data[index_value]);
 					}
 				}
 				else
@@ -1230,9 +1255,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							float_result->set_float_no_check(first_child_data[index_value], value_idx);
+							float_result->push_float_no_check(first_child_data[index_value]);
 					}
 				}
 				
@@ -1243,7 +1271,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				// result type is integer; optimize for that
 				const int64_t *first_child_data = p_original_value->IntVector()->data();
 				EidosValue_Int_vector_SP int_result_SP = EidosValue_Int_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
-				EidosValue_Int_vector *int_result = int_result_SP->resize_no_initialize(indices_count);
+				EidosValue_Int_vector *int_result = int_result_SP->reserve(indices_count);
 				
 				if (indices_type == EidosValueType::kValueInt)
 				{
@@ -1255,9 +1283,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = int_index_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							int_result->set_int_no_check(first_child_data[index_value], value_idx);
+							int_result->push_int_no_check(first_child_data[index_value]);
 					}
 				}
 				else
@@ -1268,9 +1299,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							int_result->set_int_no_check(first_child_data[index_value], value_idx);
+							int_result->push_int_no_check(first_child_data[index_value]);
 					}
 				}
 				
@@ -1281,7 +1315,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				// result type is object; optimize for that
 				EidosObject * const *first_child_vec = p_original_value->ObjectElementVector()->data();
 				EidosValue_Object_vector_SP obj_result_SP = EidosValue_Object_vector_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(((EidosValue_Object *)p_original_value)->Class()));
-				EidosValue_Object_vector *obj_result = obj_result_SP->resize_no_initialize(indices_count);
+				EidosValue_Object_vector *obj_result = obj_result_SP->reserve(indices_count);
 				
 				if (indices_type == EidosValueType::kValueInt)
 				{
@@ -1293,9 +1327,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = int_index_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
+							obj_result->push_object_element_no_check_CRR(first_child_vec[index_value]);
 					}
 				}
 				else
@@ -1306,9 +1343,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							obj_result->set_object_element_no_check_CRR(first_child_vec[index_value], value_idx);
+							obj_result->push_object_element_no_check_CRR(first_child_vec[index_value]);
 					}
 				}
 				
@@ -1319,7 +1359,7 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 				// result type is logical; optimize for that
 				const eidos_logical_t *first_child_data = p_original_value->LogicalVector()->data();
 				EidosValue_Logical_SP logical_result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical());
-				EidosValue_Logical *logical_result = logical_result_SP->resize_no_initialize(indices_count);
+				EidosValue_Logical *logical_result = logical_result_SP->reserve(indices_count);
 				
 				if (indices_type == EidosValueType::kValueInt)
 				{
@@ -1331,9 +1371,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = int_index_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							logical_result->set_logical_no_check(first_child_data[index_value], value_idx);
+							logical_result->push_logical_no_check(first_child_data[index_value]);
 					}
 				}
 				else
@@ -1344,9 +1387,12 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
-							logical_result->set_logical_no_check(first_child_data[index_value], value_idx);
+							logical_result->push_logical_no_check(first_child_data[index_value]);
 					}
 				}
 				
@@ -1369,7 +1415,10 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = int_index_data[value_idx];
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
 							string_result->PushString(first_child_vec[index_value]);
 					}
@@ -1382,7 +1431,10 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 						int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 						
 						if ((index_value < 0) || (index_value >= original_value_count))
-							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						{
+							if (p_raise_range_errors)
+								EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+						}
 						else
 							string_result->PushString(first_child_vec[index_value]);
 					}
@@ -1403,7 +1455,10 @@ EidosValue_SP SubsetEidosValue(const EidosValue *p_original_value, const EidosVa
 					int64_t index_value = p_indices->IntAtIndex(value_idx, p_error_token);
 					
 					if ((index_value < 0) || (index_value >= original_value_count))
-						EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+					{
+						if (p_raise_range_errors)
+							EIDOS_TERMINATION << "ERROR (SubsetEidosValue): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(p_error_token);
+					}
 					else
 						result->PushValueFromIndexOfEidosValue((int)index_value, *p_original_value, p_error_token);
 				}
@@ -9398,6 +9453,191 @@ EidosValue_SP Eidos_ExecuteFunction_type(const std::vector<EidosValue_SP> &p_arg
 #pragma mark -
 
 
+//	(lis)grep(string$ pattern, string x, [logical$ ignoreCase = F], [string$ grammar = "ECMAScript"], [string$ value = "indices"], [logical$ fixed = F], [logical$ invert = F])
+EidosValue_SP Eidos_ExecuteFunction_grep(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_String *pattern_value = (EidosValue_String *)(p_arguments[0].get());
+	EidosValue_String *x_value = (EidosValue_String *)(p_arguments[1].get());
+	EidosValue_Logical *ignoreCase_value = (EidosValue_Logical *)(p_arguments[2].get());
+	EidosValue_String *grammar_value = (EidosValue_String *)(p_arguments[3].get());
+	EidosValue_String *value_value = (EidosValue_String *)(p_arguments[4].get());
+	EidosValue_Logical *fixed_value = (EidosValue_Logical *)(p_arguments[5].get());
+	EidosValue_Logical *invert_value = (EidosValue_Logical *)(p_arguments[6].get());
+	
+	// Figure out our parameters
+	const std::string &pattern = pattern_value->StringRefAtIndex(0, nullptr);
+	size_t pattern_length = pattern.length();
+	int x_count = x_value->Count();
+	bool ignoreCase = ignoreCase_value->LogicalAtIndex(0, nullptr);
+	const std::string &grammar = grammar_value->StringRefAtIndex(0, nullptr);
+	const std::string &value = value_value->StringRefAtIndex(0, nullptr);
+	bool fixed = fixed_value->LogicalAtIndex(0, nullptr);
+	bool invert = invert_value->LogicalAtIndex(0, nullptr);
+	
+	if (pattern_length == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): function grep() requires pattern to be of length >= 1." << EidosTerminate(nullptr);
+	
+	std::regex_constants::syntax_option_type grammar_enum;
+	
+	if (grammar == "ECMAScript")	grammar_enum = std::regex_constants::ECMAScript;
+	else if (grammar == "basic")	grammar_enum = std::regex_constants::basic;
+	else if (grammar == "extended")	grammar_enum = std::regex_constants::extended;
+	else if (grammar == "awk")		grammar_enum = std::regex_constants::awk;
+	else if (grammar == "grep")		grammar_enum = std::regex_constants::grep;
+	else if (grammar == "egrep")	grammar_enum = std::regex_constants::egrep;
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): function grep() requires grammar to be one of 'ECMAScript', 'basic', 'extended', 'awk', 'grep', or 'egrep'." << EidosTerminate(nullptr);
+	
+	enum Eidos_grepValueType {
+		kIndices = 0,
+		kElements,
+		kMatches,
+		kLogical
+	};
+	
+	Eidos_grepValueType value_enum;
+	
+	if (value == "indices")			value_enum = kIndices;
+	else if (value == "elements")	value_enum = kElements;
+	else if (value == "matches")	value_enum = kMatches;
+	else if (value == "logical")	value_enum = kLogical;
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): function grep() requires value to be one of 'indices', 'elements', 'matches', or 'logical'." << EidosTerminate(nullptr);
+	
+	if (invert && (value_enum == kMatches))
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): function grep() does not allow value='matches' when invert=T." << EidosTerminate(nullptr);
+	
+	// Make our return value
+	EidosValue_SP result_SP(nullptr);
+	EidosValue_Logical *result_logical = nullptr;
+	EidosValue_Int_vector *result_int = nullptr;
+	EidosValue_String_vector *result_string = nullptr;
+	
+	if (value_enum == kIndices)
+	{
+		result_int = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector());
+		result_SP = EidosValue_SP(result_int);
+	}
+	else if ((value_enum == kElements) || (value_enum == kMatches))
+	{
+		result_string = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector());
+		result_SP = EidosValue_SP(result_string);
+	}
+	else if (value_enum == kLogical)
+	{
+		result_logical = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(x_count);
+		result_SP = EidosValue_SP(result_logical);
+	}
+	
+	// Do the matching, producing the appropriate value type into the result
+	if (fixed)
+	{
+		// pattern is a fixed string, so use basic C++ string searching, honoring ignoreCase and invert
+		for (int i = 0; i < x_count; ++i)
+		{
+			const std::string &x_element = x_value->StringRefAtIndex(i, nullptr);
+			size_t match_pos = std::string::npos;	// not valid when invert==T, which is why "match" is disallowed then
+			bool is_match = false;
+			
+			if (ignoreCase)
+			{
+				// see https://stackoverflow.com/a/19839371/2752221
+				auto iter = std::search(x_element.begin(), x_element.end(),
+									  pattern.begin(),   pattern.end(),
+									  [](char ch1, char ch2) { return std::toupper(ch1) == std::toupper(ch2); });
+				is_match = (iter != x_element.end());
+				if (is_match)
+					match_pos = iter - x_element.begin();
+			}
+			else
+			{
+				match_pos = x_element.find(pattern, 0);
+				is_match = (match_pos != std::string::npos);
+			}
+			
+			if (invert)
+				is_match = !is_match;
+			
+			if (is_match)
+			{
+				if (value_enum == kIndices)
+				{
+					result_int->push_int(i);
+				}
+				else if (value_enum == kElements)
+				{
+					std::string x_element_copy = x_element;
+					result_string->PushString(x_element_copy);
+				}
+				else if (value_enum == kMatches)
+				{
+					std::string matched_substring = x_element.substr(match_pos, pattern_length);
+					result_string->PushString(matched_substring);
+				}
+				else if (value_enum == kLogical)
+				{
+					result_logical->set_logical_no_check(true, i);
+				}
+			}
+			else
+			{
+				if (value_enum == kLogical)
+					result_logical->set_logical_no_check(false, i);
+			}
+		}
+	}
+	else
+	{
+		if (!Eidos_RegexWorks())
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_grep): This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  Calls to grep() with fixed=F, to do regular expression matching, are therefore not allowed.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << EidosTerminate(nullptr);
+		
+		// pattern is a regular expression, so use <regex> to find matches using grammar, honoring ignoreCase and invert
+		if (ignoreCase)
+			grammar_enum |= std::regex_constants::icase;
+		
+		std::regex pattern_regex(pattern, grammar_enum);
+		
+		for (int i = 0; i < x_count; ++i)
+		{
+			const std::string &x_element = x_value->StringRefAtIndex(i, nullptr);
+			std::smatch match_info;
+			bool is_match = std::regex_search(x_element, match_info, pattern_regex);
+			
+			if (invert)
+				is_match = !is_match;
+			
+			if (is_match)
+			{
+				if (value_enum == kIndices)
+				{
+					result_int->push_int(i);
+				}
+				else if (value_enum == kElements)
+				{
+					std::string x_element_copy = x_element;
+					result_string->PushString(x_element_copy);
+				}
+				else if (value_enum == kMatches)
+				{
+					std::string matched_substring = match_info.str(0);
+					result_string->PushString(matched_substring);
+				}
+				else if (value_enum == kLogical)
+				{
+					result_logical->set_logical_no_check(true, i);
+				}
+			}
+			else
+			{
+				if (value_enum == kLogical)
+					result_logical->set_logical_no_check(false, i);
+			}
+		}
+	}
+	
+	return result_SP;
+}
+
 //	(integer)nchar(string x)
 EidosValue_SP Eidos_ExecuteFunction_nchar(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -10937,7 +11177,7 @@ EidosValue_SP Eidos_ExecuteFunction_setwd(const std::vector<EidosValue_SP> &p_ar
 }
 
 //	(string$)tempdir(void)
-EidosValue_SP Eidos_ExecuteFunction_tempdir(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_tempdir(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(Eidos_TemporaryDirectory()));
 }
@@ -11157,6 +11397,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 
 
 //	(string)cmColors(integer$ n)
+//	DEPRECATED IN SLIM 3.5; use colors()
 EidosValue_SP Eidos_ExecuteFunction_cmColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -11294,6 +11535,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &
 }
 
 //	(string)heatColors(integer$ n)
+//	DEPRECATED IN SLIM 3.5; use colors()
 EidosValue_SP Eidos_ExecuteFunction_heatColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -11512,6 +11754,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const std::vector<EidosValue_SP> &p_
 }
 
 //	(string)terrainColors(integer$ n)
+//	DEPRECATED IN SLIM 3.5; use colors()
 EidosValue_SP Eidos_ExecuteFunction_terrainColors(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue_SP result_SP(nullptr);
@@ -12438,7 +12681,7 @@ EidosValue_SP Eidos_ExecuteFunction_suppressWarnings(const std::vector<EidosValu
 }
 
 //	(*)sysinfo(string$ key)
-EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_sysinfo(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	EidosValue *key_value = p_arguments[0].get();
 	std::string key = key_value->StringAtIndex(0, nullptr);

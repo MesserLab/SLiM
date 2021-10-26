@@ -354,6 +354,11 @@
 		988880ED20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
 		988880EE20744F0100E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
 		988880EF20744F0200E10172 /* cauchy.c in Sources */ = {isa = PBXBuildFile; fileRef = 988880EB20744EE800E10172 /* cauchy.c */; };
+		9890D1ED27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
+		9890D1EE27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
+		9890D1EF27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
+		9890D1F027136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
+		9890D2002713741C001EAE98 /* eidos_class_DataFrame.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */; };
 		9892282B1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282C1BAE279700429674 /* EidosHelpOperators.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282A1BAE279700429674 /* EidosHelpOperators.rtf */; };
 		9892282E1BAE27AA00429674 /* EidosHelpTypes.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */; };
@@ -994,6 +999,8 @@
 		988794711EA8C42200AE0C8D /* SLiMPDFView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMPDFView.h; sourceTree = "<group>"; };
 		988794721EA8C42200AE0C8D /* SLiMPDFView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMPDFView.mm; sourceTree = "<group>"; };
 		988880EB20744EE800E10172 /* cauchy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cauchy.c; sourceTree = "<group>"; };
+		9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_class_DataFrame.cpp; sourceTree = "<group>"; };
+		9890D1EC27136BB7001EAE98 /* eidos_class_DataFrame.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_class_DataFrame.h; sourceTree = "<group>"; };
 		9892282A1BAE279700429674 /* EidosHelpOperators.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpOperators.rtf; sourceTree = "<group>"; };
 		9892282D1BAE27AA00429674 /* EidosHelpTypes.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpTypes.rtf; sourceTree = "<group>"; };
 		989228301BAF496C00429674 /* EidosHelpStatements.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = EidosHelpStatements.rtf; sourceTree = "<group>"; };
@@ -1565,6 +1572,8 @@
 				98ACDC9C253522B80038703F /* eidos_class_Object.cpp */,
 				98ACDC9B2534CA120038703F /* eidos_class_Dictionary.h */,
 				989A5BE82525304100E7192D /* eidos_class_Dictionary.cpp */,
+				9890D1EC27136BB7001EAE98 /* eidos_class_DataFrame.h */,
+				9890D1EB27136BB7001EAE98 /* eidos_class_DataFrame.cpp */,
 				9823568E252FE62F0096A745 /* eidos_class_Image.h */,
 				98235688252FE61A0096A745 /* eidos_class_Image.cpp */,
 				989790D91AF3D0E100C6B14C /* eidos_class_TestElement.h */,
@@ -2429,6 +2438,7 @@
 				98C821951C7A983800548839 /* log.c in Sources */,
 				9876E6051ED55A7900FF9762 /* gamma_inc.c in Sources */,
 				985F3EFF24BA2F1500E712E0 /* eidos_test_functions_vector.cpp in Sources */,
+				9890D1F027136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				98C821911C7A983800548839 /* taus.c in Sources */,
 				982556B71BA8EF8A0054CB3F /* eidos_call_signature.cpp in Sources */,
 				982B50C92704048E006E91BC /* nbinomial.c in Sources */,
@@ -2599,6 +2609,7 @@
 				98C821421C7A980000548839 /* infnan.c in Sources */,
 				9807662924493A8F00F6CBB4 /* crc32.c in Sources */,
 				98C8213F1C7A980000548839 /* zeta.c in Sources */,
+				9890D1ED27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				98C821351C7A980000548839 /* rng.c in Sources */,
 				98332ACE1FDBA81A00274FF0 /* oper.c in Sources */,
 				98C821291C7A980000548839 /* beta.c in Sources */,
@@ -2621,6 +2632,7 @@
 				989A5BED2525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
 				984D5FB31E3AF18C00473719 /* EidosTests.mm in Sources */,
 				9823568D252FE61A0096A745 /* eidos_class_Image.cpp in Sources */,
+				9890D2002713741C001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2700,6 +2712,7 @@
 				989A5BEB2525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
 				982556661BA450980054CB3F /* EidosHelpController.mm in Sources */,
 				98332AEE1FDBC29500274FF0 /* rowcol.c in Sources */,
+				9890D1EF27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
 				9807662B24493E0B00F6CBB4 /* crc32.c in Sources */,
 				98C821661C7A983800548839 /* beta.c in Sources */,
@@ -2902,6 +2915,7 @@
 				9854D2622278B9F8001D43BC /* genotypes.c in Sources */,
 				988794731EA8C42200AE0C8D /* SLiMPDFView.mm in Sources */,
 				98DE4C301B713F68004FDF5F /* ScriptMod_AddGenomicElement.mm in Sources */,
+				9890D1EE27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				98D4C1E11A6F544500FFB083 /* genome.cpp in Sources */,
 				9854D2662278B9F8001D43BC /* stats.c in Sources */,
 				98076627244934A800F6CBB4 /* adler32.c in Sources */,

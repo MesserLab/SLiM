@@ -990,13 +990,20 @@ void _RunClassTests(void)
 	// getRowValues()
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(0); y.identicalContents(Dictionary('a', 0, 'b', 2));", true);
 	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(1); y.identicalContents(Dictionary('a', 1, 'b', 3));", true);
-	EidosAssertScriptRaise("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(4);", 42, "subscript 4 out of range");
-	EidosAssertScriptRaise("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(c(T, F, T, T));", 42, "logical index operand must match");
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(4); y.identicalContents(Dictionary('a', integer(0), 'b', 6));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(4, drop=T); y.identicalContents(Dictionary('b', 6));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(c(T, F, T, T)); y.identicalContents(Dictionary('a', c(0, 2, 3), 'b', c(2, 4, 5)));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(F); y.identicalContents(Dictionary('a', integer(0), 'b', integer(0)));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(c(F, F)); y.identicalContents(Dictionary('a', integer(0), 'b', integer(0)));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(F, drop=T); y.identicalContents(Dictionary());", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 0:3, 'b', 2:8); y = x.getRowValues(c(F, F), drop=T); y.identicalContents(Dictionary());", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(0).identicalContents(Dictionary('a', 0, 'b', 'foo', 'c', T, 'd', 1.1));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(1).identicalContents(Dictionary('a', 1, 'b', 'bar', 'c', F, 'd', 2.2));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(2).identicalContents(Dictionary('a', 2, 'b', 'baz', 'c', T, 'd', 3.3));", true);
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(3);", 97, "subscript 3 out of range");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(-1);", 97, "subscript -1 out of range");
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(3).identicalContents(Dictionary('a', integer(0), 'b', string(0), 'c', logical(0), 'd', float(0)));", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(3, drop=T).identicalContents(Dictionary());", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(-1).identicalContents(Dictionary('a', integer(0), 'b', string(0), 'c', logical(0), 'd', float(0)));", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(-1, drop=T).identicalContents(Dictionary());", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(0:1).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(1:0).identicalContents(Dictionary('a', 1:0, 'b', c('bar', 'foo'), 'c', c(F, T), 'd', c(2.2, 1.1)));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F, F)).identicalContents(Dictionary('a', integer(0), 'b', string(0), 'c', logical(0), 'd', float(0)));", true);
@@ -1004,8 +1011,10 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, T, F)).identicalContents(Dictionary('a', 1, 'b', 'bar', 'c', F, 'd', 2.2));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F, T)).identicalContents(Dictionary('a', 2, 'b', 'baz', 'c', T, 'd', 3.3));", true);
 	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T, F)).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", true);
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T, F, T));", 97, "logical index operand must match");
-	EidosAssertScriptRaise("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T));", 97, "logical index operand must match");
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T, F, T)).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(T, T)).identicalContents(Dictionary('a', 0:1, 'b', c('foo', 'bar'), 'c', c(T, F), 'd', c(1.1, 2.2)));", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F)).identicalContents(Dictionary('a', integer(0), 'b', string(0), 'c', logical(0), 'd', float(0)));", true);
+	EidosAssertScriptSuccess_L("y = Dictionary('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); y.getRowValues(c(F, F), drop=T).identicalContents(Dictionary());", true);
 	
 	// clearKeysAndValues()
 	EidosAssertScriptSuccess("x = Dictionary(); x.setValue('bar', 2); x.setValue('baz', 'foo'); x.clearKeysAndValues(); x.allKeys;", gStaticEidosValue_String_ZeroVec);
@@ -1016,14 +1025,35 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize();", "foo=1 2 3;");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize();", "bar=\"baz\";foo=1 2 3;");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize();", "foo=1 2 3;xyzzy={a=1.5;b=T;};");
+	
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('slim');", "");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('slim');", "foo=1 2 3;");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('slim');", "bar=\"baz\";foo=1 2 3;");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize('slim');", "foo=1 2 3;xyzzy={a=1.5;b=T;};");
+	
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('json');", "{}");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('json');", "{\"foo\":[1,2,3]}");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('json');", "{\"bar\":[\"baz\"],\"foo\":[1,2,3]}");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); y.setValue('a', 1.5); y.setValue('b', T); x.setValue('xyzzy', y); x.serialize('json');", "{\"foo\":[1,2,3],\"xyzzy\":[{\"a\":[1.5],\"b\":[true]}]}");
+	
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('csv');", "");
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('csv');", {"\"foo\"", "1", "2", "3"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('csv');", {"\"bar\",\"foo\"", "\"baz\",1", ",2", ",3"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', 'baz'); x.serialize('csv');", {"\"bar\",\"foo\"", "1,\"baz\"", "2,", "3,"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', c(T,F)); x.serialize('csv');", {"\"bar\",\"foo\"", "1,TRUE", "2,FALSE", "3,"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', c(1.0, 2.1, 3.2)); x.serialize('csv');", {"\"bar\",\"foo\"", "1,1.0", "2,2.1", "3,3.2"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', c(INF, -INF, NAN)); x.serialize('csv');", {"\"foo\"", "INF", "-INF", "NAN"});
+	EidosAssertScriptRaise("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); x.setValue('xyzzy', y); x.serialize('csv');", 86, "object to CSV/TSV");
+	
+	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize('tsv');", "");
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', 1:3); x.serialize('tsv');", {"\"foo\"", "1", "2", "3"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', 1:3); x.setValue('bar', 'baz'); x.serialize('tsv');", {"\"bar\"\t\"foo\"", "\"baz\"\t1", "\t2", "\t3"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', 'baz'); x.serialize('tsv');", {"\"bar\"\t\"foo\"", "1\t\"baz\"", "2\t", "3\t"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', c(T,F)); x.serialize('tsv');", {"\"bar\"\t\"foo\"", "1\tTRUE", "2\tFALSE", "3\t"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('bar', 1:3); x.setValue('foo', c(1.0, 2.1, 3.2)); x.serialize('tsv');", {"\"bar\"\t\"foo\"", "1\t1.0", "2\t2.1", "3\t3.2"});
+	EidosAssertScriptSuccess_SV("x = Dictionary(); x.setValue('foo', c(INF, -INF, NAN)); x.serialize('tsv');", {"\"foo\"", "INF", "-INF", "NAN"});
+	EidosAssertScriptRaise("x = Dictionary(); x.setValue('foo', 1:3); y = Dictionary(); x.setValue('xyzzy', y); x.serialize('tsv');", 86, "object to CSV/TSV");
+	
 	EidosAssertScriptRaise("x = Dictionary(); x.serialize('foo');", 20, "does not recognize the format");
 	
 	// serialize(format='json') exact tests
@@ -1068,6 +1098,198 @@ void _RunClassTests(void)
 	EidosAssertScriptSuccess_S("a = Dictionary('{\"a\": \"b\"}'); a.serialize('json');", "{\"a\":[\"b\"]}");
 	EidosAssertScriptSuccess_S("a = Dictionary('{\"a\": [\"b\"]}'); a.serialize('json');", "{\"a\":[\"b\"]}");
 	EidosAssertScriptSuccess_L("a = Dictionary(); a.setValue('logical_empty', logical(0)); a.setValue('logical_T', T); a.setValue('logical_F', F); a.setValue('logical_vector', c(T, F, T, F)); a.setValue('int_empty', integer(0)); a.setValue('int_singleton', 1); a.setValue('int_vector', 1:3); a.setValue('float_empty', float(0)); a.setValue('float_singleton', 1.0); a.setValue('float_vector', 1.0:3); a.setValue('string_empty', string(0)); a.setValue('string_singleton', 'foo'); a.setValue('string_vector', c('foo', 'bar', 'baz')); sa_json = a.serialize('json'); b = Dictionary(sa_json); sb_json = b.serialize('json'); identical(sa_json,sb_json);", true);
+	
+	// DataFrame(...)
+	// identicalContents()
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); x.identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'e', c(1.1, 2.2, 3.3)); x.identicalContents(y);", false);
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.15, 2.2, 3.3)); x.identicalContents(y);", false);
+	EidosAssertScriptRaise("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3, 4.4));", 111, "inconsistent column sizes");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3, 4.4));", 4, "inconsistent column sizes");
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); x.identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); y.identicalContents(x);", true);
+	EidosAssertScriptRaise("DataFrame(5);", 0, "be a singleton Dictionary");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(c(y,y));", 94, "be a singleton");
+	EidosAssertScriptRaise("y = DataFrame('a', 0:2, 'b', c('foo', 'bar', 'baz'), 'c', c(T, F, T), 'd', c(1.1, 2.2, 3.3)); DataFrame(y, y);", 94, "keys be singleton strings");
+	
+	EidosAssertScriptSuccess_L("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = DataFrame(x); y.identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3)); y = Dictionary(x); y.identicalContents(x);", true);
+	EidosAssertScriptRaise("x = Dictionary(); x.setValue('a', 0:2); x.setValue('b', c('foo', 'bar', 'baz')); x.setValue('c', c(T, F, T)); x.setValue('d', c(1.1, 2.2, 3.3, 4.4)); y = DataFrame(x); y.identicalContents(x);", 154, "inconsistent column sizes");
+	
+	// DataFrame test column length check after Dictionary operations
+	EidosAssertScriptRaise("x = DataFrame(); x.setValue('bar', 2); x.setValue('foo', 2:3);", 41, "inconsistent column sizes");
+	EidosAssertScriptRaise("x = DataFrame('a', 2:4, 'b', 3:5); y = Dictionary('c', 4:7); x.appendKeysAndValuesFrom(y);", 63, "inconsistent column sizes");
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 2:4, 'b', 2:4); y = Dictionary('a', 5, 'b', 5, 'c', 4:7); x.appendKeysAndValuesFrom(y); x.identicalContents(DataFrame('a', 2:5, 'b', 2:5, 'c', 4:7));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 2:4, 'b', 2:4); y = Dictionary('b', 5, 'a', 5, 'c', 4:7); x.appendKeysAndValuesFrom(y); x.identicalContents(DataFrame('a', 2:5, 'b', 2:5, 'c', 4:7));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 2:4, 'a', 2:4); y = Dictionary('a', 5, 'b', 5, 'c', 4:7); x.appendKeysAndValuesFrom(y); x.identicalContents(DataFrame('b', 2:5, 'a', 2:5, 'c', 4:7));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 2:4, 'b', 2:4); y = Dictionary('a', 5, 'b', 5, 'c', 4:7); x.appendKeysAndValuesFrom(y); x.identicalContents(DataFrame('b', 2:5, 'a', 2:5, 'c', 4:7));", false);
+	
+	// DataFrame properties: colnames, dim, ncol, nrow
+	EidosAssertScriptSuccess_L("x = DataFrame(); identical(x.colNames, string(0));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); identical(x.dim, c(0, 0));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); identical(x.ncol, 0);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame(); identical(x.nrow, 0);", true);
+
+	EidosAssertScriptSuccess_L("x = DataFrame('a', integer(0), 'b', logical(0)); identical(x.colNames, c('a', 'b'));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', integer(0), 'b', logical(0)); identical(x.colNames, c('b', 'a'));", false);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', integer(0), 'a', logical(0)); identical(x.colNames, c('b', 'a'));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', integer(0), 'b', logical(0)); identical(x.dim, c(0, 2));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', integer(0), 'b', logical(0)); identical(x.ncol, 2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', integer(0), 'b', logical(0)); identical(x.nrow, 0);", true);
+
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3, 'b', c(T,F,T)); identical(x.colNames, c('a', 'b'));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3, 'b', c(T,F,T)); identical(x.colNames, c('b', 'a'));", false);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.colNames, c('b', 'a'));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.dim, c(3, 2));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.ncol, 2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.nrow, 3);", true);
+	
+	// DataFrame cbind()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame(); y.cbind(x); y.identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('c', 2.0:4); y.cbind(x); DataFrame('c', 2.0:4, 'b', 1:3, 'a', c(T,F,T)).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('c', 2.0:4); x.cbind(y); DataFrame('b', 1:3, 'a', c(T,F,T), 'c', 2.0:4).identicalContents(x);", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('c', 2.0:5); x.cbind(y);", 69, "inconsistent column sizes");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.cbind(x);", 42, "already exists");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('a', 2.0:4); x.cbind(y);", 69, "already exists");
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3); y = DataFrame('c', 2.0:4); z = DataFrame('a', c(T,F,T)); x.cbind(y, z); DataFrame('b', 1:3, 'c', 2.0:4, 'a', c(T,F,T)).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3); y = DataFrame('c', 2.0:4); z = DataFrame('a', c(T,F,T)); x.cbind(c(y, z)); DataFrame('b', 1:3, 'c', 2.0:4, 'a', c(T,F,T)).identicalContents(x);", true);
+	
+	// DataFrame rbind()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame(); y.rbind(x); y.identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('b', 4:5, 'a', c(T,F)); x.rbind(y); DataFrame('b', 1:5, 'a', c(T,F,T,T,F)).identicalContents(x);", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = Dictionary('b', 4:5, 'a', c(T,F)); x.rbind(y);", 81, "do not match the columns");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('a', 4:5, 'b', c(T,F)); x.rbind(y);", 80, "do not match the columns");
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3, 'b', c(T,F,T)); y = Dictionary('a', 4:5, 'b', c(T,F)); x.rbind(y); DataFrame('a', 1:5, 'b', c(T,F,T,T,F)).identicalContents(x);", true);
+	EidosAssertScriptRaise("x = DataFrame('a', 1:3, 'b', c(T,F,T)); y = Dictionary('a', 4:5, 'b', F); x.rbind(y);", 76, "inconsistent column sizes");
+	EidosAssertScriptRaise("x = DataFrame('a', 1:3, 'b', c(T,F,T)); x.rbind(x);", 42, "to itself");
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3, 'b', c(T,F,T)); y = DataFrame(x); x.rbind(y); DataFrame('a', c(1:3,1:3), 'b', c(T,F,T,T,F,T)).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3, 'b', c(T,F,T)); y = DataFrame(x); x.rbind(c(y, y), y); DataFrame('a', c(1:3,1:3,1:3,1:3), 'b', c(T,F,T,T,F,T,T,F,T,T,F,T)).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('b', 4.0:5, 'a', c(T,F)); x.rbind(y); DataFrame('b', 1.0:5, 'a', c(T,F,T,T,F)).identicalContents(x);", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('b', Dictionary(), 'a', T); x.rbind(y);", 84, "cannot be mixed");
+	
+	// DataFrame subset()
+	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 0);", 1);
+	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 0);", 2);
+	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 'b');", 1);
+	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 'b');", 2);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 1);", false);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(2, 1);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 'a');", false);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(2, 'a');", true);
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1:2, 0);", {2, 3});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(2:1, 0);", {3, 2});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(c(F, T, T), 0);", {2, 3});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(c(T, T, T), 0);", {1, 2, 3});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(c(F, F, F), 0);", {});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(integer(0), 0);", {});
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1:2, c(T, F));", {2, 3});
+	EidosAssertScriptSuccess_LV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1:2, c(F, T));", {false, true});
+	EidosAssertScriptSuccess_LV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(2:1, c(F, T));", {true, false});
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(2:1, integer(0)).identicalContents(DataFrame());", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 0:1).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 1:0).identicalContents(DataFrame('a', F, 'b', 2));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, c(T, T)).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, c('b', 'a')).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, c('a', 'b')).identicalContents(DataFrame('a', F, 'b', 2));", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(4, 0);", 42, "out-of-range index");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 4);", 42, "out of range");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(T, 0);", 42, "logical index operand must match");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, T);", 42, "logical index vector length does not match");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 'c');", 42, "key c is not defined");
+	
+	// DataFrame subsetColumns()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(integer(0)).identicalContents(DataFrame());", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c(F,F)).identicalContents(DataFrame());", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(string(0)).identicalContents(DataFrame());", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(0).identicalContents(DataFrame('b', 1:3));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(1).identicalContents(DataFrame('a', c(T,F,T)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c(T,F)).identicalContents(DataFrame('b', 1:3));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c(F,T)).identicalContents(DataFrame('a', c(T,F,T)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns('b').identicalContents(DataFrame('b', 1:3));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns('a').identicalContents(DataFrame('a', c(T,F,T)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(0:1).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c(T,T)).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c('b','a')).identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(1:0).identicalContents(DataFrame('a', c(T,F,T), 'b', 1:3));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(c('a','b')).identicalContents(DataFrame('a', c(T,F,T), 'b', 1:3));", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(4);", 42, "out of range");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns(T);", 42, "logical index vector length does not match");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetColumns('c');", 42, "key c is not defined");
+	
+	// DataFrame subsetRows()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(integer(0)).identicalContents(DataFrame('b', integer(0), 'a', logical(0)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(c(F,F,F)).identicalContents(DataFrame('b', integer(0), 'a', logical(0)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(0).identicalContents(DataFrame('b', 1, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(1).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(2).identicalContents(DataFrame('b', 3, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(c(T,F,F)).identicalContents(DataFrame('b', 1, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(c(F,T,F)).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(c(F,F,T)).identicalContents(DataFrame('b', 3, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(0:1).identicalContents(DataFrame('b', 1:2, 'a', c(T,F)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(c(T,T,F)).identicalContents(DataFrame('b', 1:2, 'a', c(T,F)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(1:0).identicalContents(DataFrame('b', 2:1, 'a', c(F,T)));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(0:2).identicalContents(x);", true);
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(4);", 42, "out-of-range");
+	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subsetRows(T);", 42, "logical index operand must match");
+	
+	// DataFrame serialize and readCSV() round-trip; tests that specify column types explicitly work without <regex>, the rest don't run if it is broken
+	EidosAssertScriptRaise("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='li');", 112, "could not be represented");
+	
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i'); DataFrame('a', 3:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='f'); DataFrame('a', 3.0:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='s'); DataFrame('a', asString(3:5)).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i_'); Dictionary('a', 3:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='i-'); Dictionary('a', 3:5).identicalContents(y);", true);
+	
+	EidosAssertScriptRaise("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='li', sep='\t');", 112, "could not be represented");
+	
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i', sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='f', sep='\t'); DataFrame('a', 3.0:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='s', sep='\t'); DataFrame('a', asString(3:5)).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i_', sep='\t'); Dictionary('a', 3:5).identicalContents(y);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 3:5, 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='i-', sep='\t'); Dictionary('a', 3:5).identicalContents(y);", true);
+
+	if (!Eidos_RegexWorks())
+	{
+		// already warned about this in _RunStringManipulationTests()
+		//std::cout << "WARNING: This build of Eidos does not have a working <regex> library, due to a bug in the underlying C++ standard library provided by the system.  This may cause problems with the Eidos functions grep() and readCSV(); if you do not use those functions, it should not affect you.  If a case where a problem does occur is encountered, an error will result.  This problem might be resolved by updating your compiler or toolchain, or by upgrading to a more recent version of your operating system." << std::endl;
+	}
+	else
+	{
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); x.identicalContents(y);", false);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames=F); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colNames='b'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file); DataFrame('a', 3:5).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, colTypes='?'); DataFrame('a', 3:5).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 1.0:3); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar', 'baz')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F)); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('b', c(T, T, F), 'a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); x.identicalContents(y);", false);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c(T, T, F), 'b', 3:4); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); Dictionary('a', c(T, T, F), 'b', c('3','4','')).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames=F, sep='\t'); DataFrame('X1', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', c('foo', 'bar')); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colNames='b', sep='\t'); DataFrame('b', c('a', 'foo', 'bar')).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = DataFrame('a', 3:5); file = writeTempFile('eidos_test_', '.tsv', x.serialize('tsv')); y = readCSV(file, colTypes='?', sep='\t'); DataFrame('a', 3:5).identicalContents(y);", true);
+		
+		EidosAssertScriptSuccess_L("x = Dictionary('a', 3:6, 'b', c(121,131,141,141141)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, quote='1'); Dictionary('\"a\"', 3:6, '\"b\"', c(2:4, 414)).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('b', c('10$25', '10$0', '10$')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$'); Dictionary('b', c(10.25, 10, 10)).identicalContents(y);", true);
+		EidosAssertScriptSuccess_L("x = Dictionary('a', c('foo', 'bar'), 'b', c(10.5, 10.25)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$', comment='.'); Dictionary('a', c('foo', 'bar'), 'b', c(10, 10)).identicalContents(y);", true);
+	}
 	
 	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, and then save that Image out to disk, I guess that would provide an avenue for testing...  FIXME
 }

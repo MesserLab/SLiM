@@ -1734,7 +1734,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		// OK, we have a simple vector-style subset that is not NULL; handle it as we did in Eidos 1.5 and earlier
 		EidosValue_SP second_child_value = subset_indices[0];
 		
-		result_SP = SubsetEidosValue(first_child_value.get(), second_child_value.get(), operator_token);
+		result_SP = SubsetEidosValue(first_child_value.get(), second_child_value.get(), operator_token, /* p_raise_range_errors */ true);
 	}
 	else
 	{

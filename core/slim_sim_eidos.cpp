@@ -1657,7 +1657,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_inSLiMgui:
 		{
-			// THIS PROPERTY WAS DEPRECATED IN SLIM 3.2.1; use exists("slimgui") instead
+			// DEPRECATED IN SLIM 3.2.1; use exists("slimgui") instead
 			if (!warned_inSLiMgui_deprecated_)
 			{
 				if (!gEidosSuppressWarnings)
@@ -1775,6 +1775,7 @@ EidosValue_SP SLiMSim::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gID_dominanceCoeffX:
 		{
+			// DEPRECATED IN SLIM 3.7; use MutationType.haploidDominanceCoeff instead
 			EIDOS_TERMINATION << "ERROR (SLiMSim::GetProperty): property dominanceCoeffX was deprecated and removed in SLiM 3.7; use the haploidDominanceCoeff property of MutationType instead." << EidosTerminate();
 		}
 		case gID_generation:

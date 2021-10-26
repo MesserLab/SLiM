@@ -2914,6 +2914,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	{
 		for (Individual *child : child_individuals_)
 			child->RemoveAllKeys();
+			// no call to ContentsChanged() here, for speed; we know child is a Dictionary not a DataFrame
 	}
 	
 	if (Individual::s_any_individual_color_set_)

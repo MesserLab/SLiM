@@ -8442,7 +8442,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 
 typedef struct ts_mut_info {
 	slim_position_t position;
-	MutationMetadataRec *metadata;
+	MutationMetadataRec metadata;
 	slim_refcount_t ref_count;
 } ts_mut_info;
 
@@ -8485,10 +8485,26 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 		for (int stack_index = 0; stack_index < stack_count; ++stack_index)
 		{
 			slim_mutationid_t mut_id = derived_state_vec[stack_index];
-			auto mut_info_insert = p_mutMap.insert(std::pair<slim_mutationid_t, ts_mut_info>(mut_id, ts_mut_info()));
-			ts_mut_info &mut_info = (mut_info_insert.first)->second;
 			
-			mut_info.position = position;
+			auto mut_info_find = p_mutMap.find(mut_id);
+			ts_mut_info *mut_info;
+			
+			if (mut_info_find == p_mutMap.end())
+			{
+				// no entry already present; create one
+				auto mut_info_insert = p_mutMap.insert(std::pair<slim_mutationid_t, ts_mut_info>(mut_id, ts_mut_info()));
+				mut_info = &((mut_info_insert.first)->second);
+				
+				mut_info->position = position;
+			}
+			else
+			{
+				// entry already present; check that it refers to the same mutation, using its position (see https://github.com/MesserLab/SLiM/issues/179)
+				mut_info = &(mut_info_find->second);
+				
+				if (mut_info->position != position)
+					EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateMutationsFromTables): inconsistent mutation position observed reading tree sequence data; this may indicate that mutation IDs are not unique." << EidosTerminate();
+			}
 			
 			// This method handles the fact that a file version of 2 or below will not contain a nucleotide field for its mutation metadata.
 			// We hide this fact from the rest of the initialization code; ts_mut_info uses MutationMetadataRec, and we fill in a value of
@@ -8497,15 +8513,17 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 			{
 				MutationMetadataRec_PRENUC *prenuc_metadata = (MutationMetadataRec_PRENUC *)metadata_vec + stack_index;
 				
-				mut_info.metadata->mutation_type_id_ = prenuc_metadata->mutation_type_id_;
-				mut_info.metadata->selection_coeff_ = prenuc_metadata->selection_coeff_;
-				mut_info.metadata->subpop_index_ = prenuc_metadata->subpop_index_;
-				mut_info.metadata->origin_generation_ = prenuc_metadata->origin_generation_;
-				mut_info.metadata->nucleotide_ = -1;
+				mut_info->metadata.mutation_type_id_ = prenuc_metadata->mutation_type_id_;
+				mut_info->metadata.selection_coeff_ = prenuc_metadata->selection_coeff_;
+				mut_info->metadata.subpop_index_ = prenuc_metadata->subpop_index_;
+				mut_info->metadata.origin_generation_ = prenuc_metadata->origin_generation_;
+				mut_info->metadata.nucleotide_ = -1;
 			}
 			else
 			{
-				mut_info.metadata = (MutationMetadataRec *)metadata_vec + stack_index;
+				MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_vec + stack_index;
+				
+				mut_info->metadata = *metadata;
 			}
 		}
 	}
@@ -8617,7 +8635,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 	{
 		slim_mutationid_t mutation_id = mut_info_iter.first;
 		ts_mut_info &mut_info = mut_info_iter.second;
-		MutationMetadataRec *metadata_ptr = mut_info.metadata;
+		MutationMetadataRec *metadata_ptr = &mut_info.metadata;
 		MutationMetadataRec metadata;
 		slim_position_t position = mut_info.position;
 		

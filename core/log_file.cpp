@@ -412,6 +412,8 @@ void LogFile::AppendNewRow(void)
 		line_vec.push_back(&row_line);
 	}
 	
+	ContentsChanged("LogFile::AppendNewRow()");
+	
 	// Write out the row
 	EidosFileFlush flush = EidosFileFlush::kDefaultFlush;
 	
