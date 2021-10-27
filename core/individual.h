@@ -150,14 +150,6 @@ public:
 		p_parent2.reproductive_output_--;
 	}
 	
-	// Uniparental tracking; this is now an important distinction since we keep reproductive output metrics
-	// BCH 10/26/2021: The addition of this case is basically a bug fix.  In SLiM 3.5 when the reproductiveOutput
-	// property was added, it incremented selfers/cloners by 2.  I have no record of why.  It *might* have been
-	// thinking of it as "how much genetic material did I pass down", but that doesn't seem super-useful; I think
-	// it's more useful, for an individual-based modeling perspective, to want to know "how many offspring have
-	// I had?"; that's more likely to be needed to govern the behavior of the individuals in the model.  So I
-	// have changed it to 1 for selfers/cloners, by adding this method.  This breaks backward compatibility,
-	// but the original behavior just doesn't seem right/useful to me, so it should change.
 	inline __attribute__((always_inline)) void TrackParentage_Uniparental(Individual &p_parent)
 	{
 		pedigree_id_ = gSLiM_next_pedigree_id++;
@@ -173,12 +165,12 @@ public:
 		pedigree_g3_ = p_parent.pedigree_p1_;
 		pedigree_g4_ = p_parent.pedigree_p2_;
 		
-		p_parent.reproductive_output_++;
+		p_parent.reproductive_output_ += 2;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
 	{
-		p_parent.reproductive_output_--;
+		p_parent.reproductive_output_ -= 2;
 	}
 	
 	// This alternative to TrackParentage() is used when the parents are not known, as in

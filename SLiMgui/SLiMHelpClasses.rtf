@@ -2036,9 +2036,9 @@ In nonWF models, this flag is
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 , 
 \f3\fs18 reproductiveOutput
-\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not enabled, this property is unavailable.  If an individual is a parent by cloning or selfing, this value is incremented by one (a policy change made in SLiM 3.7; previously it incremented by two); if an individual happens to act as 
+\f4\fs20  contains the number of offspring for which this individual has been a parent.  If pedigree tracking is not enabled, this property is unavailable.  If an individual is a parent by cloning or selfing, or as 
 \f1\i both
-\f4\i0  parents for a biparental mating (but did not actually self, as far as SLiM\'92s semantics are concerned), this value is incremented by two.  Involvement of an individual as a parent for an 
+\f4\i0  parents for a biparental mating, this value is incremented by two.  Involvement of an individual as a parent for an 
 \f3\fs18 addRecombinant()
 \f4\fs20  call does not change this property\'92s value, since the reproductive contribution in that case is unclear; one must conduct separate bookkeeping for that case if necessary.\
 See also the 
