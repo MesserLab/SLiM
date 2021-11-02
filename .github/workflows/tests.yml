@@ -205,7 +205,7 @@ jobs:
         include:
         - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
-    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    name: Windows CLI (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
         shell: msys2 {0}
@@ -223,6 +223,8 @@ jobs:
         update: true
         install: >-
           git
+          base-devel
+          msys2-devel
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
 
@@ -254,7 +256,7 @@ jobs:
         include:
         - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
-    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    name: Windows GUI (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
         shell: msys2 {0}
@@ -272,6 +274,8 @@ jobs:
         update: true
         install: >-
           git
+          base-devel
+          msys2-devel
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-qt5-base
@@ -291,7 +295,7 @@ jobs:
         include:
         - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
-    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    name: Windows pacman (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
         shell: msys2 {0}
