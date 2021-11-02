@@ -802,7 +802,11 @@ The
 \f3\fs18 '\{"key1":[1,2,3],"key2":["value2"]\}'
 \f4\fs20 , where the outer single quotes are not part of the serialization itself, but are indicating that the serialization is a 
 \f3\fs18 string
-\f4\fs20  value.  Note that since all Eidos values are vectors, even singleton values are serialized into JSON as arrays by Eidos; the hope is that this will make automated parsing of these JSON strings easier, since the singleton case will not have to be special-cased.  Documentation on the JSON format can be found online.\
+\f4\fs20  value.  Note that since all Eidos values are vectors, even singleton values are serialized into JSON as arrays by Eidos; the hope is that this will make automated parsing of these JSON strings easier, since the singleton case will not have to be special-cased.  For example, 
+\f3\fs18 Dictionary("a", 1, "b", Dictionary("x", 2))
+\f4\fs20  would be serialized into JSON as 
+\f3\fs18 '\{"a":[1],"b":[\{"x":[2]\}]\}'
+\f4\fs20 .  Documentation on the JSON format can be found online.\
 The 
 \f3\fs18 "csv"
 \f4\fs20  and 
