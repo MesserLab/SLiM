@@ -191,8 +191,126 @@ jobs:
           make -j 2
 
   # Just test that the repository can be cloned on windows.
-  tests-windows:
+  tests-windows-clone:
     runs-on: windows-2019
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+  # test windows-latest compilation
+  tests-windows-latest-CLI:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+        - { sys: mingw32, env: i686 }
+        - { sys: mingw64, env: x86_64 }
+    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup MSYS2 ${{matrix.sys}}
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        update: true
+        install: >-
+          git
+          mingw-w64-${{matrix.env}}-toolchain
+          mingw-w64-${{matrix.env}}-cmake
+
+    - name: Debug
+      run: |
+        mkdir Debug
+        cd Debug
+        cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
+        make -j 2
+
+    - name: Build (Release)
+      run: |
+        mkdir Release
+        cd Release
+        cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+        make -j 2
+
+    - name: Test (Release)
+        run: |
+          cd Release
+          ./eidos -testEidos
+          ./slim -testEidos
+          ./slim -testSLiM
+
+  tests-windows-latest-GUI:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+        - { sys: mingw32, env: i686 }
+        - { sys: mingw64, env: x86_64 }
+    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup MSYS2 ${{matrix.sys}}
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        update: true
+        install: >-
+          git
+          mingw-w64-${{matrix.env}}-toolchain
+          mingw-w64-${{matrix.env}}-cmake
+          mingw-w64-${{matrix.env}}-qt5-base
+
+    - name: Build (cmake)
+        run: |
+          # Just do a release build.
+          mkdir Release
+          cd Release
+          cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release ..
+          make -j 2
+
+  tests-windows-latest-pacman:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+        - { sys: mingw32, env: i686 }
+        - { sys: mingw64, env: x86_64 }
+    name: Windows (${{ matrix.sys }}, ${{ matrix.env }})
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup MSYS2 ${{matrix.sys}}
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{matrix.sys}}
+        update: true
+        install: >-
+          mingw-w64-${{matrix.env}}-slim-simulator
+
+    - name: Test
+        run: |
+          eidos -testEidos
+          slim -testEidos
+          slim -testSLiM
