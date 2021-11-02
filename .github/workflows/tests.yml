@@ -241,11 +241,11 @@ jobs:
         make -j 2
 
     - name: Test (Release)
-        run: |
-          cd Release
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
+      run: |
+        cd Release
+        ./eidos -testEidos
+        ./slim -testEidos
+        ./slim -testSLiM
 
   tests-windows-latest-GUI:
     runs-on: windows-latest
