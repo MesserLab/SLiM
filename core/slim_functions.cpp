@@ -1292,6 +1292,9 @@ static inline double DoSummarizeOperation(Individual *individual, SummarizeOpera
 		case SummarizeOperation::kLambda:
 			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) SummarizeOperation::kLambda mishandled." << EidosTerminate();
 	}
+	
+	// eliminate a spurious "control reaches end" warning
+	EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) unexpected SummarizeOperation value." << EidosTerminate();
 }
 
 static void DoSummarizeGather(const std::vector<std::vector<double>> &tallies, double *result_data, int64_t result_count, SummarizeGather gather, double empty)
