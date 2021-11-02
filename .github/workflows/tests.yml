@@ -204,8 +204,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
+        - { sys: mingw64, env: ucrt-x86_64 }
     name: Windows CLI (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
@@ -256,8 +256,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
+        - { sys: mingw64, env: ucrt-x86_64 }
     name: Windows GUI (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
@@ -296,8 +296,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { sys: mingw32, env: i686 }
         - { sys: mingw64, env: x86_64 }
+        - { sys: mingw64, env: ucrt-x86_64 }
     name: Windows pacman (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
