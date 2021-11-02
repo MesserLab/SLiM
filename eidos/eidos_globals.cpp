@@ -82,6 +82,11 @@
 #define gettimeofday gnulib::gettimeofday
 #endif
 
+
+// Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
+static_assert(sizeof(char *) == 8, "SLiM must be built for 64-bit, not 32-bit.");
+
+
 bool eidos_do_memory_checks = true;
 
 EidosSymbolTable *gEidosConstantsSymbolTable = nullptr;

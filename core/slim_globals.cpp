@@ -41,6 +41,10 @@
 #include <vector>
 
 
+// Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
+static_assert(sizeof(char *) == 8, "SLiM must be built for 64-bit, not 32-bit.");
+
+
 EidosValue_String_SP gStaticEidosValue_StringA;
 EidosValue_String_SP gStaticEidosValue_StringC;
 EidosValue_String_SP gStaticEidosValue_StringG;
