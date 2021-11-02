@@ -84,8 +84,9 @@ if(WIN32)
         "${PROJECT_SOURCE_DIR}/core/slim_sim.cpp"
         "${PROJECT_SOURCE_DIR}/core/subpopulation.cpp"
         "${PROJECT_SOURCE_DIR}/eidos/eidos_functions.cpp"
-        "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp")
-    set(GNULIB_NAMESPACE_SOURCES_SLIMGUI "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAbout.cpp"
+        "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp"
+        "${PROJECT_SOURCE_DIR}/eidos/eidos_class_DataFrame.cpp"
+        "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAbout.cpp"
         "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMAppDelegate.cpp"
         "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMFindRecipe.cpp"
         "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMGraphView.cpp"
@@ -185,6 +186,7 @@ target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOU
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 if(WIN32)
     set_source_files_properties(${SLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
+    set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
 endif()
@@ -196,9 +198,9 @@ target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOU
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
 if(WIN32)
     set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
+    set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
     target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
-    set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
 endif()
 
 install(TARGETS slim eidos DESTINATION bin)
@@ -230,7 +232,7 @@ if(APPLE)
 else()
     if(WIN32)
         set_source_files_properties(${QTSLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
-        set_source_files_properties(${GNULIB_NAMESPACE_SOURCES_SLIMGUI} TARGET_DIRECTORY SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
+        set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos SLiMgui PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
         target_include_directories(${TARGET_NAME} BEFORE PUBLIC ${GNU_DIR})
         target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
     else()
