@@ -196,6 +196,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        
   # test windows-latest compilation
   tests-windows-latest-CLI:
     runs-on: windows-latest
