@@ -201,6 +201,7 @@ jobs:
   tests-windows-latest-CLI:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
         - { sys: mingw32, env: i686 }
@@ -252,6 +253,7 @@ jobs:
   tests-windows-latest-GUI:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
         - { sys: mingw32, env: i686 }
@@ -291,6 +293,7 @@ jobs:
   tests-windows-latest-pacman:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
         - { sys: mingw32, env: i686 }
