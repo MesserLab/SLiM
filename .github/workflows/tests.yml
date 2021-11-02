@@ -277,12 +277,12 @@ jobs:
           mingw-w64-${{matrix.env}}-qt5-base
 
     - name: Build (cmake)
-        run: |
-          # Just do a release build.
-          mkdir Release
-          cd Release
-          cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release ..
-          make -j 2
+      run: |
+        # Just do a release build.
+        mkdir Release
+        cd Release
+        cmake -G"MSYS Makefiles" -DBUILD_SLIMGUI=ON -DCMAKE_BUILD_TYPE=Release ..
+        make -j 2
 
   tests-windows-latest-pacman:
     runs-on: windows-latest
@@ -311,7 +311,7 @@ jobs:
           mingw-w64-${{matrix.env}}-slim-simulator
 
     - name: Test
-        run: |
-          eidos -testEidos
-          slim -testEidos
-          slim -testSLiM
+      run: |
+        eidos -testEidos
+        slim -testEidos
+        slim -testSLiM
