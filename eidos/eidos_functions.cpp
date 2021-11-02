@@ -9747,7 +9747,7 @@ EidosValue_SP Eidos_ExecuteFunction_strfind(const std::vector<EidosValue_SP> &p_
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
 			size_t index = string_vec[value_index].find(s, pos);
-			int_result->set_int_no_check(index == std::string::npos ? -1 : index, (int64_t)value_index);
+			int_result->set_int_no_check(index == std::string::npos ? -1 : (int64_t)index, value_index);
 		}
 	}
 	
