@@ -56,7 +56,7 @@ recombination() {
 		left = (breakpoints == INV_START);
 		right = (breakpoints == INV_END + 1);
 		breakpoints = sort(c(breakpoints[!(left | right)],
-			c(INV_START, INV_END + 1)[c(sum(left) > 0, sum(right) > 0)]));
+			c(INV_START, INV_END + 1)[c(sum(left) == 0, sum(right) == 0)]));
 		return T;
 	} else {
 		// heterozygote inverted: resample to get an even number of breakpoints
