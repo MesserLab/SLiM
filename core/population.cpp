@@ -5906,7 +5906,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count)
 {
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	double denominator = 1.0 / total_genome_count;
+	double denominator = total_genome_count;
 	EidosValue_SP result_SP;
 	
 	// BCH 10/3/2020: Note that we now have to worry about being asked for the frequency of mutations that are
@@ -5928,7 +5928,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 			int8_t mut_state = mut->state_;
 			double freq;
 			
-			if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+			if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) / denominator;
 			else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
 			else													freq = 1.0;
 			
@@ -5945,7 +5945,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 				int8_t mut_state = mut->state_;
 				double freq;
 				
-				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) * denominator;
+				if (mut_state == MutationState::kInRegistry)			freq = *(refcount_block_ptr + mut->BlockIndex()) / denominator;
 				else if (mut_state == MutationState::kLostAndRemoved)	freq = 0.0;
 				else													freq = 1.0;
 				
@@ -5970,7 +5970,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 			int8_t mut_state = (mutation_block_ptr + mut_index)->state_;
 			double freq;
 			
-			if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) * denominator;
+			if (mut_state == MutationState::kInRegistry)		freq = *(refcount_block_ptr + mut_index) / denominator;
 			else /* MutationState::kRemovedWithSubstitution */	freq = 1.0;
 			
 			float_result->set_float_no_check(freq, registry_index);
@@ -5986,7 +5986,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
-		float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) * denominator, registry_index);
+		float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / denominator, registry_index);
 	}
 	
 	return result_SP;
