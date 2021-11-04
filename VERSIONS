@@ -72,6 +72,7 @@ development head:
 	add clippedIntegral() method to calculate the integral of an interaction function clipped to the spatial bounds of focal individuals
 	add localPopulationDensity() method to divide total strengths by clipped integrals to provide weighted local density values
 	revise recipe 16.11 to use localPopulationDensity()
+	update to robin hood hashing version 3.11.3 to get a few nice fixes and speed improvements
 	
 
 version 3.6 (build 2784; Eidos version 2.6):
