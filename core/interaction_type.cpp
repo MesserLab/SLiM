@@ -72,6 +72,11 @@ InteractionType::InteractionType(SLiMSim &p_sim, slim_objectid_t p_interaction_t
 
 InteractionType::~InteractionType(void)
 {
+	if (clipped_integral_)
+	{
+		free(clipped_integral_);
+		clipped_integral_ = nullptr;
+	}
 }
 
 void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate)
@@ -981,6 +986,372 @@ double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Indivi
 	strength = ApplyInteractionCallbacks(p_receiver, p_exerter, p_subpop, strength, p_distance, p_interaction_callbacks);
 	
 	return strength;
+}
+
+// the number of grid cells along one side of the 1D/2D/3D clipped_integral_ buffer; probably best to be a power of two
+// we want to make this big enough that we don't need to interpolate; picking the closest value is within ~0.25% for 1024
+// at this size, clipped_integral_ takes 8 MB, which is quite acceptable, and the temp buffer takes about the same
+static const int64_t clipped_integral_size = 1024;
+
+void InteractionType::CacheClippedIntegral_1D(void)
+{
+	if (clipped_integral_valid_ && clipped_integral_)
+		return;
+	
+	if (clipped_integral_)
+	{
+		free(clipped_integral_);
+		clipped_integral_ = nullptr;
+	}
+	
+	if (!std::isfinite(max_distance_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::CacheClippedIntegral_1D): clippedIntegral() requires that the maxDistance of the interaction be finite; integrals out to infinity cannot be computed numerically." << EidosTerminate();
+	
+	// First, build a temporary buffer holding interaction function values for distances from a focal individual.
+	// This is a 1D matrix of values, with the focal individual positioned at the very end of it, sitting on
+	// the grid position at (0, 0).  Distances used here are in [0, max_distance_], except that they are the
+	// distance from the edge grid position (where the focal individual is) to the *center* of each cell (each value)
+	// in the grid, so in fact the distances represent a slightly narrower range of values than [0, max_distance_].
+	int64_t dts_quadrant = clipped_integral_size - 1;	// -1 because this is the count of cells between grid lines
+	double *distance_to_strength = (double *)calloc(dts_quadrant, sizeof(double));
+	double dts_sum = 0.0;
+	
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+	{
+		double cx = x + 0.5;										// center of the interval starting at x
+		double distance = (cx / dts_quadrant) * max_distance_;		// x distance from the focal individual
+		
+		if (distance <= max_distance_)								// if not, calloc() provides 0.0
+		{
+			double strength = CalculateStrengthNoCallbacks(distance);
+			
+			distance_to_strength[x] = strength;
+			dts_sum += strength;
+		}
+	}
+	
+#if 0
+	// debug output of distance_to_strength
+	std::cout << "distance_to_strength :" << std::endl;
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+		printf("%.6f ", distance_to_strength[x]);
+	std::cout << std::endl;
+#endif
+	
+	// Now we build clipped_integral_ itself.  It is one larger than distance_to_strength in each dimension,
+	// providing the integral for distances (dx) from the focal individual to the nearest edge in each
+	// dimension.  Each value in it is a sum of strengths from a linear subset of distance_to_strength:
+	// the strengths that would be inside the spatial bounds, for the given (dx).  The value at (0)
+	// is exactly the sum of distance_to_strength, representing the integral for an individual that is
+	// positioned at the edge of the space.  At (clipped_integral_size - 1) is the value for an individual
+	// exactly (max_distance_), or further, from the nearest edge; it is 2x the sum of the entirety of
+	// distance_to_strength.  Note that clipped_integral_ is dts_quadrant+1 values in length, because each
+	// value of clipped_integral_ is conceptually positioned at the *grid position* between the intervals
+	// of distance_to_strength; its values represent focal individual positions, which fall on the grid
+	// positions of distance_to_strength.
+	clipped_integral_ = (double *)calloc(clipped_integral_size, sizeof(double));
+	
+	// fill the first row/column so we have previously computed values to work with below
+	clipped_integral_[0] = dts_sum;
+	
+	for (int64_t x = 1; x < clipped_integral_size; ++x)
+	{
+		// start with a previously computed value
+		double integral = clipped_integral_[x - 1];
+		
+		// add the next value
+		integral += distance_to_strength[x - 1];
+		
+		clipped_integral_[x] = integral;
+	}
+	
+#if 0
+	// debug output of clipped_integral_
+	std::cout << "clipped_integral_ (point 1) :" << std::endl;
+	for (int64_t x = 0; x < clipped_integral_size; ++x)
+		printf("%.6f ", clipped_integral_[x]);
+	std::cout << std::endl;
+#endif
+	
+	// rescale clipped_integral_ by the size of each grid cell: of the area covered by the grid
+	// (max_distance_ x max_distance_), the subarea comprised by one cell (1/dts_quadrant^2) of that
+	// we do this as a post-pass mostly for debugging purposes, so that the steps above can be
+	// verified to be working correctly in themselves before complicating matters by rescaling
+	int64_t grid_count = clipped_integral_size;
+	double normalization = (1.0 / dts_quadrant) * max_distance_;
+	
+	for (int64_t index = 0; index < grid_count; ++index)
+		clipped_integral_[index] *= normalization;
+	
+#if 0
+	// debug output of clipped_integral_
+	std::cout << "clipped_integral_ (point 2) :" << std::endl;
+	for (int64_t x = 0; x < clipped_integral_size; ++x)
+		printf("%.6f ", clipped_integral_[x]);
+	std::cout << std::endl;
+#endif
+	
+	free(distance_to_strength);
+	
+	clipped_integral_valid_ = true;
+}
+
+void InteractionType::CacheClippedIntegral_2D(void)
+{
+	if (clipped_integral_valid_ && clipped_integral_)
+		return;
+	
+	//double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC, end_time;
+	
+	if (clipped_integral_)
+	{
+		free(clipped_integral_);
+		clipped_integral_ = nullptr;
+	}
+	
+	if (!std::isfinite(max_distance_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::CacheClippedIntegral_2D): clippedIntegral() requires that the maxDistance of the interaction be finite; integrals out to infinity cannot be computed numerically." << EidosTerminate();
+	
+	// First, build a temporary buffer holding interaction function values for distances from a focal individual.
+	// This is a 2D matrix of values, with the focal individual positioned at the very corner of it, sitting on
+	// the grid lines that form the outside corner around the value at (0, 0).  Distances used here are in
+	// [0, max_distance_], except that they are the distance from the corner grid intersection (where the focal
+	// individual is) to the *center* of each cell (each value) in the grid, so in fact the distances represent
+	// a slightly narrower range of values than [0, max_distance_].
+	int64_t dts_quadrant = clipped_integral_size - 1;	// -1 because this is the count of cells between grid lines
+	double *distance_to_strength = (double *)calloc(dts_quadrant * dts_quadrant, sizeof(double));
+	
+	//std::cout << "distance_to_strength size == " << ((dts_quadrant * dts_quadrant * sizeof(double)) / (1024.0 * 1024.0)) << "MB" << std::endl << std::endl;
+	
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+	{
+		for (int64_t y = x; y < dts_quadrant; ++y)
+		{
+			double cx = x + 0.5, cy = y + 0.5;							// center of the grid cell (x, y)
+			double dx = (cx / dts_quadrant) * max_distance_;			// x distance from the focal individual
+			double dy = (cy / dts_quadrant) * max_distance_;			// y distance from the focal individual
+			double distance = sqrt(dx * dx + dy * dy);					// distance from the focal individual
+			
+			if (distance <= max_distance_)								// if not, calloc() provides 0.0
+			{
+				double strength = CalculateStrengthNoCallbacks(distance);
+				
+				distance_to_strength[x + y * dts_quadrant] = strength;
+				distance_to_strength[y + x * dts_quadrant] = strength;
+			}
+		}
+	}
+	
+#if 0
+	// debug output of distance_to_strength
+	std::cout << "distance_to_strength :" << std::endl;
+	for (int64_t y = 0; y < dts_quadrant; ++y)
+	{
+		for (int64_t x = 0; x < dts_quadrant; ++x)
+		{
+			printf("%.6f ", distance_to_strength[x + y * dts_quadrant]);
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+#endif
+	
+	// Now do preparatory summations to get a vector of cumulative column sums across distance_to_strength.
+	// The first element of this vector is the sum of values from the first column of distance_to_strength.
+	// The second element of this vector is that, *plus* the sum of the second column.  And so forth, such
+	// that the last element of this vector of the sum of the entirety of distance_to_strength.  This will
+	// allow us to work more efficiently below.  Since building clipped_integral_ the brute force way is
+	// an O(N^4) algorithm (NxN values, each a sum of NxN values from distance_to_strength), this kind of
+	// work will be important if we try to build a large clipped_integral_ buffer.
+	double *dts_cumsums = (double *)malloc(dts_quadrant * sizeof(double));
+	double *dts_colsums = (double *)malloc(dts_quadrant * sizeof(double));
+	double total = 0.0;
+	
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+	{
+		double colsum = 0.0;
+		
+		for (int64_t y = 0; y < dts_quadrant; ++y)
+			colsum += distance_to_strength[x + y * dts_quadrant];
+		
+		dts_colsums[x] = colsum;
+		
+		total += colsum;
+		dts_cumsums[x] = total;
+	}
+	
+#if 0
+	// debug output of dts_colsums
+	std::cout << "dts_colsums :" << std::endl;
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+		printf("%.6f ", dts_colsums[x]);
+	std::cout << std::endl << std::endl;
+	
+	// debug output of dts_cumsums
+	std::cout << "dts_cumsums :" << std::endl;
+	for (int64_t x = 0; x < dts_quadrant; ++x)
+		printf("%.6f ", dts_cumsums[x]);
+	std::cout << std::endl << std::endl;
+#endif
+	
+	// Now we build clipped_integral_ itself.  It is one larger than distance_to_strength in each dimension,
+	// providing the integral for distances (dx, dy) from the focal individual to the nearest edge in each
+	// dimension.  Each value in it is a sum of strengths from a rectangular subset of distance_to_strength:
+	// the strengths that would be inside the spatial bounds, for the given (dx, dy).  The value at (0, 0)
+	// is exactly the sum of distance_to_strength, representing the integral for an individual that is
+	// positioned at the corner of the space.  At (clipped_integral_size - 1, clipped_integral_size - 1) is
+	// the value for an individual exactly (max_distance_, max_distance_), or further, from the nearest
+	// corner; it is 4x the sum of the entirety of distance_to_strength.  Each side of clipped_integral_ is
+	// dts_quadrant+1 values in length, because each value of clipped_integral_ is conceptually positioned
+	// at the *intersection of grid lines* between the cells of distance_to_strength; its values represent
+	// focal individual positions, which fall on the grid lines of distance_to_strength.
+	clipped_integral_ = (double *)calloc(clipped_integral_size * clipped_integral_size, sizeof(double));
+	
+	//std::cout << "clipped_integral_ size == " << ((clipped_integral_size * clipped_integral_size * sizeof(double)) / (1024.0 * 1024.0)) << "MB" << std::endl << std::endl;
+	
+	// fill the first row/column so we have previously computed values to work with below
+	for (int64_t x = 0; x < clipped_integral_size; ++x)
+	{
+		double integral = dts_cumsums[dts_quadrant - 1];	// full quadrant
+		
+		if (x > 0)
+			integral += dts_cumsums[x - 1];					// additional columns
+		
+		clipped_integral_[x + 0 * clipped_integral_size] = integral;
+		clipped_integral_[0 + x * clipped_integral_size] = integral;
+	}
+	
+	for (int64_t y = 1; y < clipped_integral_size; ++y)
+	{
+		// start with a previously computed value
+		double integral = clipped_integral_[y + (y - 1) * clipped_integral_size];
+		
+		// add in previous values in the same row in this quadrant
+		for (int64_t x = 1; x < y; ++x)
+			integral += distance_to_strength[(x - 1) + (y - 1) * dts_quadrant];
+		
+		// now fill new values in this row
+		for (int64_t x = y; x < clipped_integral_size; ++x)
+		{
+			// add in the full row in the other quadrant
+			integral += dts_colsums[x - 1];
+			
+			// add in previous values in the same column in this quadrant; when x==y these were already in the previously computed value
+			if (x > y)
+			{
+				for (int64_t yr = 1; yr < y; ++yr)
+					integral += distance_to_strength[(x - 1) + (yr - 1) * dts_quadrant];
+			}
+			
+			// add in the one new value for this new column in this row
+			integral += distance_to_strength[(x - 1) + (y - 1) * dts_quadrant];
+			
+			clipped_integral_[x + y * clipped_integral_size] = integral;
+			clipped_integral_[y + x * clipped_integral_size] = integral;
+		}
+	}
+	
+#if 0
+	// debug output of clipped_integral_
+	std::cout << "clipped_integral_ (point 1) :" << std::endl;
+	for (int64_t y = 0; y < clipped_integral_size; ++y)
+	{
+		for (int64_t x = 0; x < clipped_integral_size; ++x)
+		{
+			printf("%.6f ", clipped_integral_[x + y * clipped_integral_size]);
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+#endif
+	
+	// rescale clipped_integral_ by the size of each grid cell: of the area covered by the grid
+	// (max_distance_ x max_distance_), the subarea comprised by one cell (1/dts_quadrant^2) of that
+	// we do this as a post-pass mostly for debugging purposes, so that the steps above can be
+	// verified to be working correctly in themselves before complicating matters by rescaling
+	int64_t grid_count = clipped_integral_size * clipped_integral_size;
+	double normalization = (1.0 / (dts_quadrant * dts_quadrant)) * (max_distance_ * max_distance_);
+	
+	for (int64_t index = 0; index < grid_count; ++index)
+		clipped_integral_[index] *= normalization;
+	
+#if 0
+	// debug output of clipped_integral_
+	std::cout << "clipped_integral_ (point 2) :" << std::endl;
+	for (int64_t y = 0; y < clipped_integral_size; ++y)
+	{
+		for (int64_t x = 0; x < clipped_integral_size; ++x)
+		{
+			printf("%.6f ", clipped_integral_[x + y * clipped_integral_size]);
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+#endif
+	
+	free(distance_to_strength);
+	free(dts_cumsums);
+	free(dts_colsums);
+	
+	clipped_integral_valid_ = true;
+	
+	// for 1024x1024 this takes ~0.5 seconds, so ouch, but it generally only needs to be done once
+	// note that the step commented "Now we build clipped_integral_ itself" is where 90% of the time here is spent
+	//end_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
+	//std::cout << "InteractionType::CacheClippedIntegral_2D() time == " << (end_time - start_time) << std::endl;
+}
+
+double InteractionType::ClippedIntegral_1D(double indDistanceA1, double indDistanceA2)
+{
+	if (periodic_x_)
+	{
+		indDistanceA1 = max_distance_;
+		indDistanceA2 = max_distance_;
+	}
+	
+	if ((indDistanceA1 < max_distance_) && (indDistanceA2 < max_distance_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ClippedIntegral_1D): clippedIntegral() requires that the maximum interaction distance be less than half of the spatial bounds extent, for non-periodic boundaries, such that the interaction function cannot be clipped on both sides." << EidosTerminate();
+	
+	double indDistanceA = std::min(std::min(indDistanceA1, indDistanceA2), max_distance_) / max_distance_;
+	
+	if (indDistanceA < 0.0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ClippedIntegral_1D): clippedIntegral() requires that individuals lie within the spatial bounds of their subpopulation." << EidosTerminate();
+	
+	int coordA = (int)round(indDistanceA * (clipped_integral_size - 1));
+	
+	//std::cout << "indDistanceA == " << indDistanceA << " : coordA == " << coordA << " : " << clipped_integral_[coordA] << std::endl;
+	
+	return clipped_integral_[coordA];
+}
+
+double InteractionType::ClippedIntegral_2D(double indDistanceA1, double indDistanceA2, double indDistanceB1, double indDistanceB2)
+{
+	if (periodic_x_)
+	{
+		indDistanceA1 = max_distance_;
+		indDistanceA2 = max_distance_;
+	}
+	if (periodic_y_)
+	{
+		indDistanceB1 = max_distance_;
+		indDistanceB2 = max_distance_;
+	}
+	
+	if (((indDistanceA1 < max_distance_) && (indDistanceA2 < max_distance_)) || ((indDistanceB1 < max_distance_) && (indDistanceB2 < max_distance_)))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ClippedIntegral_2D): clippedIntegral() requires that the maximum interaction distance be less than half of the spatial bounds extent, for non-periodic boundaries, such that the interaction function cannot be clipped on both sides." << EidosTerminate();
+	
+	double indDistanceA = std::min(std::min(indDistanceA1, indDistanceA2), max_distance_) / max_distance_;
+	double indDistanceB = std::min(std::min(indDistanceB1, indDistanceB2), max_distance_) / max_distance_;
+	
+	if ((indDistanceA < 0.0) || (indDistanceB < 0.0))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ClippedIntegral_2D): clippedIntegral() requires that individuals lie within the spatial bounds of their subpopulation." << EidosTerminate();
+	
+	int coordA = (int)round(indDistanceA * (clipped_integral_size - 1));
+	int coordB = (int)round(indDistanceB * (clipped_integral_size - 1));
+	
+	//std::cout << "indDistanceA == " << indDistanceA << ", indDistanceB == " << indDistanceB << " : coordA == " << coordA << ", coordB == " << coordB << " : " << clipped_integral_[coordA + coordB * clipped_integral_size] << std::endl;
+	
+	return clipped_integral_[coordA + coordB * clipped_integral_size];
 }
 
 double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
@@ -2701,6 +3072,9 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 			// tweak a flag to make SLiMgui update
 			sim_.interaction_types_changed_ = true;
 			
+			// changing max_distance_ invalidates the cached clipped_integral_ buffer; we don't deallocate it, just invalidate it
+			clipped_integral_valid_ = false;
+			
 			return;
 		}
 			
@@ -2723,11 +3097,13 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 {
 	switch (p_method_id)
 	{
+		case gID_clippedIntegral:			return ExecuteMethod_clippedIntegral(p_method_id, p_arguments, p_interpreter);
 		case gID_distance:					return ExecuteMethod_distance(p_method_id, p_arguments, p_interpreter);
 		case gID_distanceToPoint:			return ExecuteMethod_distanceToPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_drawByStrength:			return ExecuteMethod_drawByStrength(p_method_id, p_arguments, p_interpreter);
 		case gID_evaluate:					return ExecuteMethod_evaluate(p_method_id, p_arguments, p_interpreter);
 		case gID_interactingNeighborCount:	return ExecuteMethod_interactingNeighborCount(p_method_id, p_arguments, p_interpreter);
+		case gID_localPopulationDensity:	return ExecuteMethod_localPopulationDensity(p_method_id, p_arguments, p_interpreter);
 		case gID_interactionDistance:		return ExecuteMethod_interactionDistance(p_method_id, p_arguments, p_interpreter);
 		case gID_nearestInteractingNeighbors:	return ExecuteMethod_nearestInteractingNeighbors(p_method_id, p_arguments, p_interpreter);
 		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_interpreter);
@@ -2741,10 +3117,154 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 }
 
 //
+//	*********************	– (float)clippedIntegral(No<Individual> individuals)
+EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *individuals_value = p_arguments[0].get();
+	int individuals_count = individuals_value->Count();
+	// BEWARE: ExecuteMethod_localPopulationDensity() assumes that its API matches that of ExecuteMethod_clippedIntegral()!
+	// If any arguments are added here, its code will need to change because that assumption will then be violated!
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_clippedIntegral): clippedIntegral() has no meaning for non-spatial interactions." << EidosTerminate();
+	if (spatiality_ == 3)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_clippedIntegral): clippedIntegral() has not been implemented for the 'xyz' case yet.  If you need this functionality, please file a GitHub issue." << EidosTerminate();
+	
+	if (spatiality_ == 1)
+		CacheClippedIntegral_1D();
+	else if (spatiality_ == 2)
+		CacheClippedIntegral_2D();
+	else // (spatiality_ == 3)
+		;	// FIXME the big obstacle here is that a 1024x1024x1024 array of precalculated values is way too large, so interpolation is probably needed
+	
+	// NULL means "what's the integral for an individual that is not near any edge?"
+	if ((individuals_count == 0) && (individuals_value->Type() == EidosValueType::kValueNULL))
+	{
+		double integral;
+		
+		if (spatiality_ == 1)
+			integral = ClippedIntegral_1D(max_distance_, max_distance_);
+		else if (spatiality_ == 2)
+			integral = ClippedIntegral_2D(max_distance_, max_distance_, max_distance_, max_distance_);
+		else // (spatiality_ == 3)
+			integral = 0.0;			// FIXME
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(integral));
+	}
+	
+	// Otherwise, we have a singleton or vector of individuals; we'd like to treat them both in the same way, so we set up for that here
+	// We do not try to create a singleton return value when passed a singleton individual; too complicated to optimize for that here
+	const Individual * const *individuals_data;
+	const Individual *individuals_singleton = nullptr;
+	
+	if (individuals_count == 1)
+	{
+		individuals_singleton = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		individuals_data = &individuals_singleton;
+	}
+	else
+	{
+		individuals_data = (Individual * const *)individuals_value->ObjectElementVector()->data();
+	}
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(individuals_count);
+
+	// Now treat cases according to spatiality
+	if (spatiality_ == 1)
+	{
+		if (spatiality_string_ == "x")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_x_;
+				double integral = ClippedIntegral_1D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+		else if (spatiality_string_ == "y")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_y_;
+				double integral = ClippedIntegral_1D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+		else // (spatiality_string_ == "z")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_z_;
+				double integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+	}
+	else if (spatiality_ == 2)
+	{
+		if (spatiality_string_ == "xy")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_x_;
+				double indB = individual->spatial_y_;
+				double integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_y0_, subpop->bounds_y1_ - indB);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+		else if (spatiality_string_ == "xz")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_x_;
+				double indB = individual->spatial_z_;
+				double integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+		else // (spatiality_string_ == "yz")
+		{
+			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			{
+				const Individual *individual = individuals_data[individual_index];
+				Subpopulation *subpop = individual->subpopulation_;
+				double indA = individual->spatial_y_;
+				double indB = individual->spatial_z_;
+				double integral = ClippedIntegral_2D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB);
+				
+				float_result->set_float_no_check(integral, individual_index);
+			}
+		}
+	}
+	else // (spatiality_ == 3)
+	{
+		// FIXME
+	}
+	
+	return EidosValue_SP(float_result);
+}
+
+//
 //	*********************	– (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_arguments, p_interpreter)
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *individuals1_value = p_arguments[0].get();
 	EidosValue *individuals2_value = p_arguments[1].get();
 	
@@ -3270,6 +3790,123 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	}
 }
 
+//	*********************	– (float)localPopulationDensity(object<Individual> individuals)
+//
+EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *individuals_value = p_arguments[0].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that the interaction be spatial." << EidosTerminate();
+	if (spatiality_ == 3)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() does not support the 'xyz' case yet.  If you need this functionality, please file a GitHub issue." << EidosTerminate();
+	
+	// process the individuals vector
+	EidosValue *individuals = individuals_value;
+	int count = individuals->Count();
+	
+	if (count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// individuals is guaranteed to have at least one value
+	Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
+	Subpopulation *subpop = first_ind->subpopulation_;
+	slim_objectid_t subpop_id = subpop->subpopulation_id_;
+	auto subpop_data_iter = data_.find(subpop_id);
+	
+	if ((subpop_data_iter == data_.end()) || !subpop_data_iter->second.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that the interaction has been evaluated for the subpopulation first." << EidosTerminate();
+	
+	InteractionsData &subpop_data = subpop_data_iter->second;
+	std::vector<SLiMEidosBlock*> &callbacks = subpop_data.evaluation_interaction_callbacks_;
+	
+	if (callbacks.size())
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that no interaction() callbacks are active, since they cannot be incorporated into the calculation of the clipped integral of the interaction function." << EidosTerminate();
+	
+	// calculate all strengths, on the presumption that this method is almost always used across many/most individuals eventually
+	CalculateAllStrengths(subpop);
+	
+	double strength_for_zero_distance = CalculateStrengthNoCallbacks(0.0);	// probably always if_param1_, but let's not hard-code that...
+	
+	// subcontract to ExecuteMethod_clippedIntegral(); this handles all the spatiality crap for us
+	// note that we pass our own parameters through to clippedIntegral()!  so our APIs need to be the same!
+	EidosValue_SP clipped_integrals = ExecuteMethod_clippedIntegral(p_method_id, p_arguments, p_interpreter);
+	
+	if (count == 1)
+	{
+		// Just one value, so we can return a singleton and skip some work
+		SparseArray &sa = *subpop_data.dist_str_;
+		slim_popsize_t ind_index_in_subpop = first_ind->index_;
+		
+		if (ind_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		
+		// Get the sparse array data
+		uint32_t row_nnz;
+		const uint32_t *row_columns;
+		const sa_strength_t *strengths;
+		
+		strengths = sa.StrengthsForRow(ind_index_in_subpop, &row_nnz, &row_columns);
+		
+		// Total the interaction strengths
+		double total_strength = 0.0;
+		
+		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+			total_strength += strengths[col_index];
+		
+		// Add the interaction strength for the focal individual to the focal point, since it counts for density
+		total_strength += strength_for_zero_distance;
+		
+		// Divide by the corresponding clipped integral to get density
+		total_strength /= clipped_integrals->FloatAtIndex(0, nullptr);
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(total_strength));
+	}
+	else
+	{
+		// Loop over the requested individuals and get the totals
+		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(count);
+		SparseArray &sa = *subpop_data.dist_str_;
+		
+		for (int ind_index = 0; ind_index < count; ++ind_index)
+		{
+			Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
+			
+			if (subpop != individual->subpopulation_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all individuals be in the same subpopulation." << EidosTerminate();
+			
+			slim_popsize_t ind_index_in_subpop = individual->index_;
+			
+			if (ind_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): interactions can only be calculated for individuals that are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
+			// Get the sparse array data
+			uint32_t row_nnz;
+			const uint32_t *row_columns;
+			const sa_strength_t *strengths;
+			
+			strengths = sa.StrengthsForRow(ind_index_in_subpop, &row_nnz, &row_columns);
+			
+			// Total the interaction strengths
+			double total_strength = 0.0;
+			
+			for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
+				total_strength += strengths[col_index];
+			
+			// Add the interaction strength for the focal individual to the focal point, since it counts for density
+			total_strength += strength_for_zero_distance;
+			
+			// Divide by the corresponding clipped integral to get density
+			total_strength /= clipped_integrals->FloatAtIndex(ind_index, nullptr);
+			
+			result_vec->set_float_no_check(total_strength, ind_index);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+}
+
 //
 //	*********************	– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
 EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -3661,6 +4298,9 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
 	sim_.interaction_types_changed_ = true;
 	
+	// changing the interaction function invalidates the cached clipped_integral_ buffer; we don't deallocate it, just invalidate it
+	clipped_integral_valid_ = false;
+	
 	return gStaticEidosValueVOID;
 }
 
@@ -3982,11 +4622,13 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_clippedIntegral, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddObject_ON("individuals2", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceToPoint, kEidosValueMaskFloat))->AddObject("individuals1", gSLiM_Individual_Class)->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddIntObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("immediate", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_localPopulationDensity, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactionDistance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("individual", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));

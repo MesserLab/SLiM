@@ -2571,7 +2571,38 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f1\fs22  methods\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf0 \'96\'a0(float)distance(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
+\f3\i0\fs18 \cf2 \'96\'a0(float)clippedIntegral(object<Individual>\'a0individuals)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing the integral of the interaction function as experienced by each of the individuals in 
+\f3\fs18 individuals
+\f4\fs20 .  For each given individual, the interaction function is clipped to the edges of the spatial bounds of the subpopulation that individual inhabits; the individual\'92s spatial position must be within bounds or an error is raised.  A periodic boundary will, correctly, not clip the interaction function.  The interaction function is also clipped to the interaction\'92s maximum distance; that distance must be less than half of the extent of the spatial bounds in each dimension (so that, for a given dimension, the interaction function is clipped by the spatial bounds on only one side), otherwise an error is raised.\
+The computed value of the integral is not exact; it is calculated by an approximate numerical method designed to be fast, but the error should be fairly small (typically less than 1% from the true value).  A large amount of computation will occur the first time this method is called (perhaps taking more than a second, depending upon hardware), but subsequent calls should be very fast.  This method does not depend upon the evaluation of the interaction at all; 
+\f3\fs18 evaluate()
+\f4\fs20  does not need to be called beforehand.  Similarly, 
+\f3\fs18 interaction()
+\f4\fs20  callbacks are not invoked by this method; the calculated integrals are only for the interaction function itself, and so will not be accurate if 
+\f3\fs18 interaction()
+\f4\fs20  callbacks modify the relationship between distance and interaction strength.  For these reasons, the overhead of the first call will 
+\f1\i not
+\f4\i0  reoccur when individuals move or when the interaction is re-evaluated; for typical models, the initial overhead will be incurred only once.  The initial overhead will reoccur, however, if the interaction function itself, or the maximum interaction distance, are changed; frequent change of those parameters may render the performance of this method unacceptable.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The integral values returned by 
+\f3\fs18 clippedIntegral()
+\f4\fs20  can be useful for computing interaction metrics that are scaled by the amount of \'93interaction field\'94 (to coin a term) that is present for a given individual, producing metrics of interaction 
+\f1\i density
+\f4\i0 .  Notably, the 
+\f3\fs18 localPopulationDensity()
+\f4\fs20  method automatically incorporates the mechanics of 
+\f3\fs18 clippedIntegral()
+\f4\fs20  into the calculations it performs; see that method\'92s documentation for further discussion of this concept.  This approach can also be useful with the 
+\f3\fs18 interactingNeighborCount()
+\f4\fs20  method, provided that the interaction function is of type 
+\f3\fs18 "f"
+\f4\fs20  (since the neighbor count does not depend upon interaction strength).\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0(float)distance(object<Individual>\'a0individuals1, [No<Individual>\'a0individuals2\'a0=\'a0NULL])
 \f5 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -2807,7 +2838,44 @@ Importantly, distances are calculated according to the spatiality of the
 \f4\fs20  for an alternative distance definition.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Individual>)nearestInteractingNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])\
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(float)localPopulationDensity(object<Individual>\'a0individuals)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector of the local population density present at the location of each individual in 
+\f3\fs18 individuals
+\f4\fs20 , which does not need to be a singleton; indeed, it can be a vector of all of the individuals in a given subpopulation.  However, all of the individuals in 
+\f3\fs18 individuals
+\f4\fs20  must be in the same subpopulation.\
+Population density is estimated using interaction strengths, effectively doing a kernel density estimate using the interaction function as the kernel.  What is returned is computed as the total interaction strength present at a given point, divided by the integral of the interaction function around that point after clipping by the spatial bounds of the focal subpopulation (what one might think of as the amount of \'93interaction field\'94 around the point).  This provides an estimate of local population density, in units of individuals per unit area, as a weighted average over the area covered by the interaction function, where the weight of each individual in the average is the value of the interaction function at that individual\'92s position.  This can also be thought of as a measure of the amount of interaction happening per unit of interaction field in the space surrounding the point.\
+To calculate the clipped integral of the interaction function, this method uses the same numerical estimator used by the 
+\f3\fs18 clippedIntegral()
+\f4\fs20  method of 
+\f3\fs18 InteractionType
+\f4\fs20 , and all of the caveats described for that method apply here also; notably, all individuals must be within spatial bounds, the maximum interaction distance must be less than half the spatial extent of the subpopulation, and 
+\f3\fs18 interaction()
+\f4\fs20  callbacks are not used (and so, for this method, are not allowed to be active).  See the documentation for 
+\f3\fs18 clippedIntegral()
+\f4\fs20  for further discussion of the details of these calculations.\
+To calculate the total interaction strength around the position of a given individual, this method uses the same machinery as the 
+\f3\fs18 totalOfNeighborStrengths()
+\f4\fs20  method of 
+\f3\fs18 InteractionType
+\f4\fs20 , 
+\f1\i except
+\f4\i0  that \'96 in contrast to other 
+\f3\fs18 InteractionType
+\f4\fs20  methods \'96 the interaction strength exerted by the focal individual itself is included in the total.  This is because population density at the location of an individual includes the individual itself.  If this is not desirable, the 
+\f3\fs18 totalOfNeighborStrengths()
+\f4\fs20  method should probably be used.\
+To see the point of this method, consider an individual located near the edge of the spatial bounds of its subpopulation.  Some portion of the interaction function that surrounds that individual falls outside the spatial bounds of its subpopulation, and will therefore never contain an interacting individual.  If, for example, interaction strengths are used as a measure of competition, this individual will therefore have an advantage, because it will never feel any competition from the portion of its range that falls outside spatial bounds.  However, that portion of its range is presumably also not available to the individual itself, for foraging or hunting, in which case this advantage is not biologically realistic, but is instead just an undesirable \'93edge effect\'94.  Dividing by the integral of the interaction function, clipped to the spatial bounds, provides a way to compensate for this edge effect.  A nice side effect of using local population densities instead of total interaction strengths is that the maximum interaction strength passed to 
+\f3\fs18 setInteractionFunction()
+\f4\fs20  no longer matters; it cancels out when the total interaction strength is divided by the focal individual\'92s clipped integral.  However, the 
+\f1\i shape
+\f4\i0  of the interaction function does still matter; it determines the relative weights used for individuals at different distances from the position of the focal individual.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(object<Individual>)nearestInteractingNeighbors(object<Individual>$\'a0individual, [integer$\'a0count\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns up to 
@@ -2964,14 +3032,15 @@ If the needed interaction strengths have already been calculated, those cached v
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0individuals)
 \f5 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Returns a vector of the total interaction strength felt by each individual in 
+\f4\fs20 \cf2 Returns a vector of the total interaction strength felt by each individual in 
 \f3\fs18 individuals
 \f4\fs20 , which does not need to be a singleton; indeed, it can be a vector of all of the individuals in a given subpopulation.  However, all of the individuals in 
 \f3\fs18 individuals
 \f4\fs20  must be in the same subpopulation.\
-For one individual, this is essentially the same as calling 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 For one individual, this is essentially the same as calling 
 \f3\fs18 nearestNeighbors()
 \f4\fs20  with a large 
 \f3\fs18 count
@@ -2994,6 +3063,9 @@ Similarly, for one individual this is essentially the same as calling
 If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
 \f3\fs18 interaction()
 \f4\fs20  callbacks.\
+\cf2 See 
+\f3\fs18 localPopulationDensity()
+\f4\fs20  for a related method that calculates the total interaction strength divided by the amount of \'93interaction field\'94 present for an individual (i.e., the integral of the interaction function clipped to the spatial bounds of the subpopulation) to provide an estimate of the \'93interaction density\'94 felt by an individual.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)unevaluate(void)

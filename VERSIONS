@@ -69,6 +69,9 @@ development head:
 	add summarizeIndividuals() to create vectors/matrices/arrays, and thereby spatial maps, that summarize a set of individuals
 	add recipe 15.13 showing how to use summarizeIndividuals() to make a spatial map (for density-dependent fecundity)
 	fix the reproductiveOutput property so that it doesn't increment (or, in fact, decrements back down!) if a child is rejected by modifyChild()
+	add clippedIntegral() method to calculate the integral of an interaction function clipped to the spatial bounds of focal individuals
+	add localPopulationDensity() method to divide total strengths by clipped integrals to provide weighted local density values
+	revise recipe 16.11 to use localPopulationDensity()
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

@@ -2,7 +2,7 @@
 
 initialize() {
 	initializeSLiMModelType("nonWF");
-	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+	initializeSLiMOptions(dimensionality="xy");
 	defineConstant("K", 300);   // carrying-capacity density
 	defineConstant("S", 0.1);   // sigma_S, the spatial interaction width
 	
@@ -37,8 +37,9 @@ reproduction() {
 			offspring = subpop.addSelfed(individual);
 		
 		// set offspring position
-		pos = individual.spatialPosition + rnorm(2, 0, 0.02);
-		offspring.setSpatialPosition(p1.pointPeriodic(pos));
+		do pos = individual.spatialPosition + rnorm(2, 0, 0.02);
+		while (!p1.pointInBounds(pos));
+		offspring.setSpatialPosition(pos);
 	}
 }
 1 early() {
@@ -52,8 +53,7 @@ early() {
 	
 	// spatial competition provides density-dependent selection
 	inds = p1.individuals;
-	competition = i1.totalOfNeighborStrengths(inds);
-	competition = (competition + 1) / (2 * PI * S^2);
+	competition = i1.localPopulationDensity(inds);
 	inds.fitnessScaling = K / competition;
 }
 late()
@@ -61,8 +61,9 @@ late()
 	// move around a bit
 	for (ind in p1.individuals)
 	{
-		newPos = ind.spatialPosition + runif(2, -0.01, 0.01);
-		ind.setSpatialPosition(p1.pointPeriodic(newPos));
+		do newPos = ind.spatialPosition + runif(2, -0.01, 0.01);
+		while (!p1.pointInBounds(newPos));
+		ind.setSpatialPosition(newPos);
 	}
 }
 10000 late() {

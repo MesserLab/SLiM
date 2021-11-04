@@ -781,7 +781,9 @@ extern const std::string &gStr_outputVCF;
 extern const std::string &gStr_output;
 extern const std::string &gStr_evaluate;
 extern const std::string &gStr_distance;
+extern const std::string &gStr_localPopulationDensity;
 extern const std::string &gStr_interactionDistance;
+extern const std::string &gStr_clippedIntegral;
 extern const std::string &gStr_distanceToPoint;
 extern const std::string &gStr_nearestNeighbors;
 extern const std::string &gStr_nearestInteractingNeighbors;
@@ -1120,7 +1122,9 @@ enum _SLiMGlobalStringID : int {
 	gID_output,
 	gID_evaluate,
 	gID_distance,
+	gID_localPopulationDensity,
 	gID_interactionDistance,
+	gID_clippedIntegral,
 	gID_distanceToPoint,
 	gID_nearestNeighbors,
 	gID_nearestInteractingNeighbors,

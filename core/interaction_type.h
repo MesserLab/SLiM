@@ -202,6 +202,12 @@ private:
 	void FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
 	void FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual);
 	
+	// this is a malloced 1D/2D/3D buffer, depending on our spatiality, that contains clipped integral values
+	// for distances, for a focal individual, from 0 to max_distance_ to the nearest edge in each dimension
+	// it is a cache that can be invalidated, without being deallocated, by setting the cached flag to false
+	double *clipped_integral_ = nullptr;
+	bool clipped_integral_valid_ = false;
+	
 public:
 	
 	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
@@ -217,6 +223,11 @@ public:
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
 	bool AnyEvaluated(void);
 	void Invalidate(void);
+	
+	void CacheClippedIntegral_1D(void);
+	void CacheClippedIntegral_2D(void);
+	double ClippedIntegral_1D(double indDistanceA1, double indDistanceA2);
+	double ClippedIntegral_2D(double indDistanceA1, double indDistanceA2, double indDistanceB1, double indDistanceB2);
 	
 	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
 	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
@@ -239,11 +250,13 @@ public:
 	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
 	
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
+	EidosValue_SP ExecuteMethod_clippedIntegral(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_distance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_localPopulationDensity(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_interactionDistance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
