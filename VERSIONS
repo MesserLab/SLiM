@@ -74,6 +74,7 @@ development head:
 	revise recipe 16.11 to use localPopulationDensity()
 	update to robin hood hashing version 3.11.3 to get a few nice fixes and speed improvements
 	fix a floating-point roundoff issue that would cause the frequency of fixed mutations, from mutationFrequencies(), to sometimes differ very slightly from 1.0
+	add recipe 16.24, haplodiploidy
 	
 
 version 3.6 (build 2784; Eidos version 2.6):
