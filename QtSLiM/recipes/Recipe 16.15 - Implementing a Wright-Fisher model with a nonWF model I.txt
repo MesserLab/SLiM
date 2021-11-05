@@ -1,22 +1,25 @@
-// Keywords: nonWF, non-Wright-Fisher, Wright-Fisher, non-overlapping generations, discrete generations, random mating
+// Keywords: nonWF, non-Wright-Fisher, Wright-Fisher, non-overlapping generations, discrete generations
 
 initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeMutationType("m1", 0.5, "f", 0.0);
 	m1.convertToSubstitution = T;
-	initializeGenomicElementType("g1", m1, 1.0);
+	initializeMutationType("m2", 0.0, "f", -0.5);
+	initializeGenomicElementType("g1", c(m1, m2), c(1.0, 0.05));
 	initializeGenomicElement(g1, 0, 99999);
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 }
 reproduction() {
 	K = sim.getValue("K");
+	
+	// parents are chosen randomly, irrespective of fitness
+	parents1 = p1.sampleIndividuals(K, replace=T);
+	parents2 = p1.sampleIndividuals(K, replace=T);
+	
 	for (i in seqLen(K))
-	{
-		firstParent = p1.sampleIndividuals(1);
-		secondParent = p1.sampleIndividuals(1);
-		p1.addCrossed(firstParent, secondParent);
-	}
+		p1.addCrossed(parents1[i], parents2[i]);
+		
 	self.active = 0;
 }
 1 early() {
@@ -25,6 +28,7 @@ reproduction() {
 }
 early()
 {
+	// parents die; offspring survive proportional to fitness
 	inds = sim.subpopulations.individuals;
 	inds[inds.age > 0].fitnessScaling = 0.0;
 }

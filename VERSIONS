@@ -75,6 +75,7 @@ development head:
 	update to robin hood hashing version 3.11.3 to get a few nice fixes and speed improvements
 	fix a floating-point roundoff issue that would cause the frequency of fixed mutations, from mutationFrequencies(), to sometimes differ very slightly from 1.0
 	add recipe 16.24, haplodiploidy
+	modify recipe 16.15 (WF models implemented as nonWF models); there are now two recipes, the second one showing how to implement fitness-based mating success
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

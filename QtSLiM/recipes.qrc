@@ -132,7 +132,6 @@
         <file>recipes/Recipe 16.12 - Forcing a specific pedigree in a nonWF model II.txt</file>
         <file>recipes/Recipe 16.13 - Modeling clonal haploids in a nonWF model with addRecombinant().txt</file>
         <file>recipes/Recipe 16.14 - Modeling clonal haploid bacteria with horizontal gene transfer.txt</file>
-        <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model.txt</file>
         <file>recipes/Recipe 16.16 - Alternation of generations.txt</file>
         <file>recipes/Recipe 16.17 - Meiotic drive.txt</file>
         <file>recipes/Recipe 16.18 - A spatial epidemiological S-I-R model.txt</file>
@@ -182,5 +181,7 @@
         <file>recipes/Recipe 16.23 - Tracking separate sexes in script, nonWF style.txt</file>
         <file>recipes/Recipe 15.13 - Density-dependent fecundity with summarizeIndividuals().txt</file>
         <file>recipes/Recipe 16.24 - Modeling haplodiploidy with addRecombinant().txt</file>
+        <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model I.txt</file>
+        <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model II.txt</file>
     </qresource>
 </RCC>
