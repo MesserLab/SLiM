@@ -599,7 +599,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 			if ((ch == 0) || (comment && (ch == comment)))
 			{
 				// empty element and then end the line
-				row.emplace_back(std::string());
+				row.emplace_back();
 				break;
 			}
 			
@@ -607,7 +607,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 			// we make the empty element, eat the separator, and loop back for the next element
 			if (ch == sep)
 			{
-				row.emplace_back(std::string());
+				row.emplace_back();
 				ch = *(++line_ptr);
 				continue;
 			}

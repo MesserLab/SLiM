@@ -2274,7 +2274,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 				if (last_added_pos == -1)
 				{
 					// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
-					new_derived_state_positions.emplace_back(std::pair<Genome *, std::vector<slim_position_t>>(target_genome, std::vector<slim_position_t>(1, mut_pos)));
+					new_derived_state_positions.emplace_back(target_genome, std::vector<slim_position_t>(1, mut_pos));
 				}
 				else
 				{
@@ -3918,7 +3918,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 					if (last_added_pos == -1)
 					{
 						// no pair entry in new_derived_state_positions yet, so make a new pair entry for this genome
-						new_derived_state_positions.emplace_back(std::pair<Genome *, std::vector<slim_position_t>>(target_genome, std::vector<slim_position_t>(1, mut_pos)));
+						new_derived_state_positions.emplace_back(target_genome, std::vector<slim_position_t>(1, mut_pos));
 					}
 					else
 					{

@@ -647,7 +647,7 @@ int Chromosome::DrawSortedUniquedMutationPositions(int p_count, IndividualSex p_
 		// old 32-bit position not MT64 code:
 		//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
 		
-		p_positions.emplace_back(std::pair<slim_position_t, GenomicElement *>(position, source_element));
+		p_positions.emplace_back(position, source_element);
 	}
 	
 	// sort and unique by position; 1 and 2 mutations are particularly common, so try to speed those up
@@ -1232,7 +1232,7 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
 			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
 			
-			dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(0, 0, noncrossover, simple));
+			dsb_infos.emplace_back(0, 0, noncrossover, simple);
 		}
 	}
 	else
@@ -1244,7 +1244,7 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
 			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
 			
-			dsb_infos.emplace_back(std::tuple<slim_position_t, slim_position_t, bool, bool>(extent1, extent2, noncrossover, simple));
+			dsb_infos.emplace_back(extent1, extent2, noncrossover, simple);
 		}
 	}
 	
@@ -1270,9 +1270,9 @@ generateDSBs:
 			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		if ((*rates)[recombination_interval] == 0.5)
-			dsb_points.emplace_back(std::pair<slim_position_t, bool>(breakpoint, true));
+			dsb_points.emplace_back(breakpoint, true);
 		else
-			dsb_points.emplace_back(std::pair<slim_position_t, bool>(breakpoint, false));
+			dsb_points.emplace_back(breakpoint, false);
 	}
 	
 	// Sort and unique the resulting DSB vector

@@ -2116,7 +2116,7 @@ std::vector<std::string> Eidos_string_split(const std::string &joined_string, co
 	{
 		// special-case a zero-length separator
 		for (const char &ch : joined_string)
-			tokens.emplace_back(std::string(&ch, 1));
+			tokens.emplace_back(&ch, 1);
 	}
 	else
 	{

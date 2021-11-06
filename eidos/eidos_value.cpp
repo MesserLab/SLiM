@@ -2448,7 +2448,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<eidos_logical_t, EidosObject*>(temp_result->LogicalAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(temp_result->LogicalAtIndex(0, nullptr), value);
 			}
 			
 			// sort the vector of pairs
@@ -2489,7 +2489,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<int64_t, EidosObject*>(temp_result->IntAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(temp_result->IntAtIndex(0, nullptr), value);
 			}
 			
 			// sort the vector of pairs
@@ -2530,7 +2530,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<double, EidosObject*>(temp_result->FloatAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(temp_result->FloatAtIndex(0, nullptr), value);
 			}
 			
 			// sort the vector of pairs
@@ -2571,7 +2571,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 				if (temp_result->Type() != property_type)
 					EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SortBy): sorting property " << p_property << " did not produce a consistent result type; a single type is required for a sorting key." << EidosTerminate(nullptr);
 				
-				sortable_pairs.emplace_back(std::pair<std::string, EidosObject*>(temp_result->StringAtIndex(0, nullptr), value));
+				sortable_pairs.emplace_back(temp_result->StringAtIndex(0, nullptr), value);
 			}
 			
 			// sort the vector of pairs

@@ -4391,7 +4391,7 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 		history_record.history_ = nullptr;
 		history_record.history_length_ = 0;
 		
-		auto emplace_rec = fitness_histories_.emplace(std::pair<slim_objectid_t,FitnessHistory>(p_subpop_id, std::move(history_record)));
+		auto emplace_rec = fitness_histories_.emplace(p_subpop_id, std::move(history_record));
 		
 		if (emplace_rec.second)
 			history_rec_ptr = &(emplace_rec.first->second);
@@ -4440,7 +4440,7 @@ void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_object
 		history_record.history_ = nullptr;
 		history_record.history_length_ = 0;
 		
-		auto emplace_rec = subpop_size_histories_.emplace(std::pair<slim_objectid_t,SubpopSizeHistory>(p_subpop_id, std::move(history_record)));
+		auto emplace_rec = subpop_size_histories_.emplace(p_subpop_id, std::move(history_record));
 		
 		if (emplace_rec.second)
 			history_rec_ptr = &(emplace_rec.first->second);

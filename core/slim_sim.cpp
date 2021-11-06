@@ -5275,7 +5275,7 @@ void SLiMSim::BuildTabledIndividualsHash(tsk_table_collection_t *p_tables, INDIV
 		slim_pedigreeid_t pedigree_id = metadata_rec->pedigree_id_;
 		tsk_id_t tsk_individual = (tsk_id_t)individual_index;
 		
-		p_individuals_hash->emplace(INDIVIDUALS_HASH_PAIR(pedigree_id, tsk_individual));
+		p_individuals_hash->emplace(pedigree_id, tsk_individual);
 	}
 }
 
@@ -5359,7 +5359,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		for (tsk_id_t sid : remembered_genomes_)
 		{
 			samples.push_back(sid);
-			remembered_genomes_lookup.emplace(MAP_PAIR(sid, index));
+			remembered_genomes_lookup.emplace(sid, index);
 			index++;
 		}
 		
@@ -6601,7 +6601,7 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			if (tsk_individual < 0) handle_error("tsk_individual_table_add_row", tsk_individual);
 			
 			// Add the new individual to our hash table, for fast lookup as done above
-			p_individuals_hash->emplace(INDIVIDUALS_HASH_PAIR(ped_id, tsk_individual));
+			p_individuals_hash->emplace(ped_id, tsk_individual);
 
 			// Update node table
 			assert(ind->genome1_->tsk_node_id_ < (tsk_id_t) p_tables->nodes.num_rows
@@ -6831,7 +6831,8 @@ void SLiMSim::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 		chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 		
 		// hopefully avoid additional copies by having nlohmann::json adopt our string with emplace()
-		metadata.emplace("reference_sequence", buffer_str);
+		// see https://github.com/nlohmann/json/discussions/3105#discussioncomment-1577893 regarding this
+		metadata.emplace("reference_sequence", std::move(buffer_str));
 	}
 	
 	// Add user-defined metadata under the SLiM key, if it was supplied by the user
