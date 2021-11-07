@@ -99,7 +99,7 @@ void AddMutationToPolymorphismMap(PolymorphismMap *p_polymorphisms, const Mutati
 		slim_polymorphismid_t polymorphism_id = static_cast<slim_polymorphismid_t>(polymorphisms_size);
 		Polymorphism new_polymorphism = Polymorphism(polymorphism_id, p_mutation, 1);
 		
-		p_polymorphisms->insert(PolymorphismPair(p_mutation->mutation_id_, new_polymorphism));
+		p_polymorphisms->emplace(p_mutation->mutation_id_, new_polymorphism);
 	}
 	else
 	{

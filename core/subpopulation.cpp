@@ -6450,7 +6450,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		spatial_maps_.erase(map_iter);
 	}
 	
-	spatial_maps_.insert(SpatialMapPair(map_name, spatial_map));
+	spatial_maps_.emplace(map_name, spatial_map);
 	
 	return gStaticEidosValueVOID;
 }

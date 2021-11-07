@@ -197,7 +197,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	new_subpop->gui_selected_ = gui_all_selected_;
 #endif
 	
-	subpops_.insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	subpops_.emplace(p_subpop_id, new_subpop);
 	
 	return new_subpop;
 }
@@ -228,7 +228,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	new_subpop->gui_selected_ = gui_all_selected_;
 #endif
 	
-	subpops_.insert(std::pair<const slim_objectid_t,Subpopulation*>(p_subpop_id, new_subpop));
+	subpops_.emplace(p_subpop_id, new_subpop);
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;
@@ -493,7 +493,7 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 		p_subpop.migrant_fractions_.erase(p_source_subpop_id);
 	
 	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
-		p_subpop.migrant_fractions_.insert(std::pair<const slim_objectid_t,double>(p_source_subpop_id, p_migrant_fraction)); 
+		p_subpop.migrant_fractions_.emplace(p_source_subpop_id, p_migrant_fraction); 
 }
 #endif	// SLIM_WF_ONLY
 
@@ -4910,7 +4910,7 @@ void Population::UniqueMutationRuns(void)
 					if (range.first == range.second)
 					{
 						// No previous mutrun found with this hash, so add this mutrun to the multimap
-						runmap.insert(std::pair<int64_t, MutationRun *>(hash, mut_run));
+						runmap.emplace(hash, mut_run);
 						total_final++;
 					}
 					else
@@ -4943,7 +4943,7 @@ void Population::UniqueMutationRuns(void)
 						}
 						
 						// If there was no identical match, then we have a hash collision; put it in the multimap
-						runmap.insert(std::pair<int64_t, MutationRun *>(hash, mut_run));
+						runmap.emplace(hash, mut_run);
 						total_hash_collisions++;
 						total_final++;
 						
@@ -5093,7 +5093,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 								mutruns_buf[mutruns_buf_index++] = first_half;
 								mutruns_buf[mutruns_buf_index++] = second_half;
 								
-								split_map.insert(SLiM_SPLIT_PAIR(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half)));
+								split_map.emplace(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half));
 								
 								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 								// reused out from under us, which would happen otherwise when their last occurrence was replaced
@@ -5122,7 +5122,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	} catch (...) {
-		// I think the insert() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
+		// I think the emplace() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
 		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
 	
@@ -5290,7 +5290,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 								
 								mutruns_buf[mutruns_buf_index++] = joined_run;
 								
-								join_map.insert(SLiM_JOIN_PAIR(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run));
+								join_map.emplace(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run);
 								
 								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 								// reused out from under us, which would happen otherwise when their last occurrence was replaced
@@ -5320,7 +5320,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	} catch (...) {
-		// I think the insert() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
+		// I think the emplace() call is the only thing above that is likely to raise, due e.g. to using a bad hash function...
 		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
 
@@ -6306,7 +6306,7 @@ void Population::RemoveAllFixedMutations(void)
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
 				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation);
 				
-				treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(mut_to_remove->position_, sub));
+				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
 				substitutions_.emplace_back(sub);
 			}
 		}

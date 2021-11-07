@@ -92,7 +92,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 	if (data_iter == data_.end())
 	{
 		// No entry in our map table for this subpop_id, so we need to make a new entry
-		subpop_data = &(data_.insert(std::pair<slim_objectid_t, InteractionsData>(subpop_id, InteractionsData(subpop_size, p_subpop->parent_first_male_index_))).first->second);
+		subpop_data = &(data_.emplace(subpop_id, InteractionsData(subpop_size, p_subpop->parent_first_male_index_)).first->second);
 	}
 	else
 	{

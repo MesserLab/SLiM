@@ -677,7 +677,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 		Mutation *new_mut = new (gSLiM_Mutation_Block + new_mut_index) Mutation(mutation_id, mutation_type_ptr, position, selection_coeff, subpop_index, generation, nucleotide);
 		
 		// add it to our local map, so we can find it when making genomes, and to the population's mutation registry
-		mutations.insert(std::pair<slim_polymorphismid_t,MutationIndex>(polymorphism_id, new_mut_index));
+		mutations.emplace(polymorphism_id, new_mut_index);
 		population_.MutationRegistryAdd(new_mut);
 		
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
@@ -1751,7 +1751,7 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 					
 					if (start == end)
 					{
-						cached_fitnessglobal_callbacks_onegen_.insert(std::pair<slim_generation_t, SLiMEidosBlock*>(start, script_block));
+						cached_fitnessglobal_callbacks_onegen_.emplace(start, script_block);
 					}
 					else
 					{
@@ -8153,7 +8153,7 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have subpop indices >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
 		
 		// find the ts_subpop_info rec for this individual's subpop
-		auto subpop_info_insert = p_subpopInfoMap.insert(std::pair<slim_objectid_t, ts_subpop_info>(subpop_id, ts_subpop_info()));
+		auto subpop_info_insert = p_subpopInfoMap.emplace(subpop_id, ts_subpop_info());
 		ts_subpop_info &subpop_info = (subpop_info_insert.first)->second;
 		
 		// check and tabulate sex within each subpop
@@ -8354,8 +8354,8 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->genome1_->tsk_node_id_ = node_id_0;
 				individual->genome2_->tsk_node_id_ = node_id_1;
 				
-				p_nodeToGenomeMap.insert(std::pair<tsk_id_t, Genome *>(node_id_0, individual->genome1_));
-				p_nodeToGenomeMap.insert(std::pair<tsk_id_t, Genome *>(node_id_1, individual->genome2_));
+				p_nodeToGenomeMap.emplace(node_id_0, individual->genome1_);
+				p_nodeToGenomeMap.emplace(node_id_1, individual->genome2_);
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
@@ -8530,7 +8530,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			if ((rate < 0.0) || (rate > 1.0))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): out-of-range migration rate; this file cannot be read." << EidosTerminate();
 			
-			subpop->migrant_fractions_.insert(std::pair<slim_objectid_t, double>(source_id, rate));
+			subpop->migrant_fractions_.emplace(source_id, rate);
 		}
 #endif
 	}
@@ -8588,7 +8588,7 @@ void SLiMSim::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 			if (mut_info_find == p_mutMap.end())
 			{
 				// no entry already present; create one
-				auto mut_info_insert = p_mutMap.insert(std::pair<slim_mutationid_t, ts_mut_info>(mut_id, ts_mut_info()));
+				auto mut_info_insert = p_mutMap.emplace(mut_id, ts_mut_info());
 				mut_info = &((mut_info_insert.first)->second);
 				
 				mut_info->position = position;
@@ -8763,7 +8763,7 @@ void SLiMSim::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 			// this mutation is fixed, and the muttype wants substitutions, so make a substitution
 			Substitution *sub = new Substitution(mutation_id, mutation_type_ptr, position, metadata.selection_coeff_, metadata.subpop_index_, metadata.origin_generation_, generation_, metadata.nucleotide_);
 			
-			population_.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(position, sub));
+			population_.treeseq_substitutions_map_.emplace(position, sub);
 			population_.substitutions_.emplace_back(sub);
 			
 			// add -1 to our local map, so we know there's an entry but we also know it's a substitution

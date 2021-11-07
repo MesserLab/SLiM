@@ -367,7 +367,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeGenomicElementType(const
 	if (nucleotide_based_)
 		new_genomic_element_type->SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
 	
-	genomic_element_types_.insert(std::pair<const slim_objectid_t,GenomicElementType*>(map_identifier, new_genomic_element_type));
+	genomic_element_types_.emplace(map_identifier, new_genomic_element_type);
 	genomic_element_types_changed_ = true;
 	
 	// define a new Eidos variable to refer to the new genomic element type
@@ -478,7 +478,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeInteractionType(const st
 	
 	InteractionType *new_interaction_type = new InteractionType(*this, map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
 	
-	interaction_types_.insert(std::pair<const slim_objectid_t,InteractionType*>(map_identifier, new_interaction_type));
+	interaction_types_.emplace(map_identifier, new_interaction_type);
 	interaction_types_changed_ = true;
 	
 	// define a new Eidos variable to refer to the new mutation type
@@ -547,7 +547,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeMutationType(const std::
 	MutationType *new_mutation_type = new MutationType(*this, map_identifier, dominance_coeff, nucleotide_based, dfe_type, dfe_parameters, dfe_strings);
 #endif
 	
-	mutation_types_.insert(std::pair<const slim_objectid_t,MutationType*>(map_identifier, new_mutation_type));
+	mutation_types_.emplace(map_identifier, new_mutation_type);
 	mutation_types_changed_ = true;
 	
 	// define a new Eidos variable to refer to the new mutation type
@@ -1530,7 +1530,7 @@ void SLiMSim::AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map)
 	if (signatures)
 	{
 		for (const EidosFunctionSignature_CSP &signature : *signatures)
-			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
+			p_map.emplace(signature->call_name_, signature);
 	}
 }
 
@@ -1552,7 +1552,7 @@ void SLiMSim::AddSLiMFunctionsToMap(EidosFunctionMap &p_map)
 	if (signatures)
 	{
 		for (const EidosFunctionSignature_CSP &signature : *signatures)
-			p_map.insert(EidosFunctionMapPair(signature->call_name_, signature));
+			p_map.emplace(signature->call_name_, signature);
 	}
 }
 
@@ -2278,7 +2278,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 					std::vector<Individual *> &inds = subpop->CurrentIndividuals();
 					
 					for (Individual *ind : inds)
-						fromIDToIndividual.insert(MAP_PAIR(ind->PedigreeID(), ind));
+						fromIDToIndividual.emplace(ind->PedigreeID(), ind);
 				}
 			} catch (...) {
 				EIDOS_TERMINATION << "ERROR (ExecuteMethod_individualsWithPedigreeIDs): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);

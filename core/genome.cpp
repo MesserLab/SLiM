@@ -158,7 +158,7 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 		mutruns_[p_mutrun_index] = MutationRun_SP(product_run);
 		
 		try {
-			s_bulk_operation_runs_.insert(SLiMBulkOperationPair(original_run, product_run));
+			s_bulk_operation_runs_.emplace(original_run, product_run);
 		} catch (...) {
 			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 		}
@@ -1438,7 +1438,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 	
 	try {
 		for (const Polymorphism &polymorphism : sorted_polymorphisms) 
-			genotype_string_positions.insert(MAP_PAIR(polymorphism.mutation_ptr_, genotype_string_position++));
+			genotype_string_positions.emplace(polymorphism.mutation_ptr_, genotype_string_position++);
 	} catch (...) {
 		EIDOS_TERMINATION << "ERROR (Genome::PrintGenomes_MS): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 	}
@@ -3947,7 +3947,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 				// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
 				if (sim.RecordingTreeSequence())
-					pop.treeseq_substitutions_map_.insert(std::pair<slim_position_t, Substitution *>(mut->position_, sub));
+					pop.treeseq_substitutions_map_.emplace(mut->position_, sub);
 				
 				pop.substitutions_.emplace_back(sub);
 			}
