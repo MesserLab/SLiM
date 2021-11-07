@@ -342,7 +342,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
             
             if (subpopGenomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sample1Genomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+                    sample1Genomes.emplace_back(subpopGenomes[random() % subpopGenomeCount]);
             
             tallyGUIMutationReferences(sample1Genomes, selectedMutationTypeIndex_);
         }
@@ -353,7 +353,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts1.push_back(mutation->gui_scratch_reference_count_);
+                refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
         // Get frequencies for a sample taken from subpop2
@@ -364,7 +364,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
             
             if (subpopGenomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sample2Genomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+                    sample2Genomes.emplace_back(subpopGenomes[random() % subpopGenomeCount]);
             
             tallyGUIMutationReferences(sample2Genomes, selectedMutationTypeIndex_);
         }
@@ -375,7 +375,7 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts2.push_back(mutation->gui_scratch_reference_count_);
+                refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
         // Tally up the binned 2D SFS from the 1D data

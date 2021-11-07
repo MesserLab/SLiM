@@ -292,7 +292,7 @@ std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_c
 			builtin = true;
 		
 		if ((builtin && p_builtin) || (!builtin && p_context))
-			filteredRegistry.push_back(class_object);
+			filteredRegistry.emplace_back(class_object);
 	}
 	
 	return filteredRegistry;
@@ -406,7 +406,7 @@ void EidosClass::CheckForDuplicateMethodsOrProperties(void)
 EidosClass::EidosClass(const std::string &p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
 {
 	// Every EidosClass instance gets added to a shared registry, so that Eidos can find them all
-	EidosClassRegistry().push_back(this);
+	EidosClassRegistry().emplace_back(this);
 }
 
 EidosClass::~EidosClass(void)

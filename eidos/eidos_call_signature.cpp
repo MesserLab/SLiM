@@ -163,7 +163,7 @@ EidosCallSignature *EidosCallSignature::AddEllipsis(void)
 		EIDOS_TERMINATION << "ERROR (EidosCallSignature::AddEllipsis): cannot add more than one ellipsis." << EidosTerminate(nullptr);
 	
 	arg_masks_.emplace_back(kEidosValueMaskAny);
-	arg_names_.push_back(gEidosStr_ELLIPSIS);
+	arg_names_.emplace_back(gEidosStr_ELLIPSIS);
 	arg_name_IDs_.emplace_back(gEidosID_ELLIPSIS);
 	arg_classes_.emplace_back(nullptr);
 	arg_defaults_.emplace_back(nullptr);

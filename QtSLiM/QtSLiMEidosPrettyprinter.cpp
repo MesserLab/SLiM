@@ -226,7 +226,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 				// Track braces
 			case EidosTokenType::kTokenLBrace:
 			{
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
                 pretty.append(tokenString);
 				break;
 			}
@@ -268,7 +268,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 						indentStack.pop_back();
 				}
 				
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
                 pretty.append(tokenString);
 				break;
 			}
@@ -278,7 +278,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 			case EidosTokenType::kTokenFor:
 			case EidosTokenType::kTokenConditional:		// note this does not generate indent, but is put on the stack
 			{
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
                 pretty.append(tokenString);
 				break;
 			}
@@ -301,7 +301,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 					}
 				}
 				
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
                 pretty.append(tokenString);
 				break;
 			}

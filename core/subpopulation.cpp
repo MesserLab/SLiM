@@ -508,9 +508,9 @@ void Subpopulation::GenerateChildrenToFitWF()
 			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
 			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 			
-			child_genomes_.push_back(genome1);
-			child_genomes_.push_back(genome2);
-			child_individuals_.push_back(individual);
+			child_genomes_.emplace_back(genome1);
+			child_genomes_.emplace_back(genome2);
+			child_individuals_.emplace_back(individual);
 		}
 	}
 	else if (new_individual_count < old_individual_count)
@@ -677,9 +677,9 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
-			parent_genomes_.push_back(genome1);
-			parent_genomes_.push_back(genome2);
-			parent_individuals_.push_back(individual);
+			parent_genomes_.emplace_back(genome1);
+			parent_genomes_.emplace_back(genome2);
+			parent_individuals_.emplace_back(individual);
 		}
 	}
 	else
@@ -714,9 +714,9 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
-			parent_genomes_.push_back(genome1);
-			parent_genomes_.push_back(genome2);
-			parent_individuals_.push_back(individual);
+			parent_genomes_.emplace_back(genome1);
+			parent_genomes_.emplace_back(genome2);
+			parent_individuals_.emplace_back(individual);
 		}
 	}
 }
@@ -2876,15 +2876,15 @@ void Subpopulation::TallyLifetimeReproductiveOutput(void)
 			for (Individual *ind : parent_individuals_)
 			{
 				if (ind->sex_ == IndividualSex::kFemale)
-					lifetime_reproductive_output_F_.push_back(ind->reproductive_output_);
+					lifetime_reproductive_output_F_.emplace_back(ind->reproductive_output_);
 				else
-					lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
+					lifetime_reproductive_output_MH_.emplace_back(ind->reproductive_output_);
 			}
 		}
 		else
 		{
 			for (Individual *ind : parent_individuals_)
-				lifetime_reproductive_output_MH_.push_back(ind->reproductive_output_);
+				lifetime_reproductive_output_MH_.emplace_back(ind->reproductive_output_);
 		}
 	}
 }
@@ -3142,9 +3142,9 @@ void Subpopulation::MergeReproductionOffspring(void)
 			
 			individual->index_ = parent_subpop_size_ + new_index;
 			
-			parent_genomes_.push_back(genome1);
-			parent_genomes_.push_back(genome2);
-			parent_individuals_.push_back(individual);
+			parent_genomes_.emplace_back(genome1);
+			parent_genomes_.emplace_back(genome2);
+			parent_individuals_.emplace_back(individual);
 		}
 	}
 	
@@ -3288,7 +3288,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	{
 		// if the callbacks used settled upon a decision of moving the individual, note that now; we do this in a delayed fashion
 		// so that if there is more than one survival() callback active, we register only the final verdict after all callbacks
-		move_destination->nonWF_survival_moved_individuals_.push_back(p_individual);
+		move_destination->nonWF_survival_moved_individuals_.emplace_back(p_individual);
 	}
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3370,16 +3370,16 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 					if (individual->sex_ == IndividualSex::kFemale)
 					{
 						females_deceased++;
-						lifetime_reproductive_output_F_.push_back(individual->reproductive_output_);
+						lifetime_reproductive_output_F_.emplace_back(individual->reproductive_output_);
 					}
 					else
 					{
-						lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+						lifetime_reproductive_output_MH_.emplace_back(individual->reproductive_output_);
 					}
 				}
 				else
 				{
-					lifetime_reproductive_output_MH_.push_back(individual->reproductive_output_);
+					lifetime_reproductive_output_MH_.emplace_back(individual->reproductive_output_);
 				}
 			}
 			else
@@ -4478,7 +4478,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (breaks1count)
 	{
 		for (int break_index = 0; break_index < breaks1count; ++break_index)
-			breakvec1.push_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex(break_index, nullptr)));
+			breakvec1.emplace_back(SLiMCastToPositionTypeOrRaise(breaks1_value->IntAtIndex(break_index, nullptr)));
 		
 		std::sort(breakvec1.begin(), breakvec1.end());
 		breakvec1.erase(unique(breakvec1.begin(), breakvec1.end()), breakvec1.end());
@@ -4499,7 +4499,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (breaks2count)
 	{
 		for (int break_index = 0; break_index < breaks2count; ++break_index)
-			breakvec2.push_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex(break_index, nullptr)));
+			breakvec2.emplace_back(SLiMCastToPositionTypeOrRaise(breaks2_value->IntAtIndex(break_index, nullptr)));
 		
 		std::sort(breakvec2.begin(), breakvec2.end());
 		breakvec2.erase(unique(breakvec2.begin(), breakvec2.end()), breakvec2.end());
@@ -4968,9 +4968,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				// room has to be made for females by shifting the first male and changing the first male index
 				Individual *backfill = parent_individuals_[parent_first_male_index_];
 				
-				parent_individuals_.push_back(backfill);
-				parent_genomes_.push_back(parent_genomes_[parent_first_male_index_ * 2]);
-				parent_genomes_.push_back(parent_genomes_[parent_first_male_index_ * 2 + 1]);
+				parent_individuals_.emplace_back(backfill);
+				parent_genomes_.emplace_back(parent_genomes_[parent_first_male_index_ * 2]);
+				parent_genomes_.emplace_back(parent_genomes_[parent_first_male_index_ * 2 + 1]);
 				backfill->index_ = parent_subpop_size_;
 				
 				parent_individuals_[parent_first_male_index_] = migrant;
@@ -4985,9 +4985,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 			else
 			{
 				// males and hermaphrodites can just be added to the end; so can females, if no males are present
-				parent_individuals_.push_back(migrant);
-				parent_genomes_.push_back(migrant->genome1_);
-				parent_genomes_.push_back(migrant->genome2_);
+				parent_individuals_.emplace_back(migrant);
+				parent_genomes_.emplace_back(migrant->genome1_);
+				parent_genomes_.emplace_back(migrant->genome2_);
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_subpop_size_;
 				

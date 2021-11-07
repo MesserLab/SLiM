@@ -3491,7 +3491,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 			{
 				int hit_index = (int)gsl_ran_discrete(EIDOS_GSL_RNG, gsl_lookup);
 				
-				draw_indices.push_back(hit_index);
+				draw_indices.emplace_back(hit_index);
 			}
 			
 			gsl_ran_discrete_free(gsl_lookup);
@@ -3525,7 +3525,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 						hit_index = 0;
 				}
 				
-				draw_indices.push_back(hit_index);
+				draw_indices.emplace_back(hit_index);
 			}
 		}
 	}
@@ -3637,7 +3637,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			sa_strength_t strength = strengths[col_index];
 			
 			total_interaction_strength += strength;
-			double_strengths.push_back((double)strength);
+			double_strengths.emplace_back((double)strength);
 		}
 		
 		// Draw individuals
@@ -4075,7 +4075,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		std::vector<std::pair<uint32_t, sa_distance_t>> neighbors;
 		
 		for (uint32_t col_index = 0; col_index < row_nnz; ++col_index)
-			neighbors.push_back(std::pair<uint32_t, sa_distance_t>(col_index, distances[col_index]));
+			neighbors.emplace_back(col_index, distances[col_index]);
 		
 		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sa_distance_t> &l, const std::pair<uint32_t, sa_distance_t> &r) {
 			return l.second < r.second;

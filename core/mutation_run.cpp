@@ -295,7 +295,7 @@ const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(sli
 		slim_position_t mut_position = mut->position_;
 		
 		if (mut_position == p_position)
-			return_vec.push_back(mut);
+			return_vec.emplace_back(mut);
 		else if (mut_position < p_position)
 			break;
 	}

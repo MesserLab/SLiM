@@ -227,7 +227,7 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 	{
 		Subpopulation *selectedSubpop = selectedSubpopulations[0];
 		
-		subpopTiles.insert(std::pair<slim_objectid_t, QRect>(selectedSubpop->subpopulation_id_, bounds));
+		subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
 		
 		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
 		{
@@ -269,7 +269,7 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 				QRect boxBounds(boxLeft, boxTop, boxRight - boxLeft, boxBottom - boxTop);
 				Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
 				
-				candidateTiles.insert(std::pair<slim_objectid_t, QRect>(subpop->subpopulation_id_, boxBounds));
+				candidateTiles.emplace(subpop->subpopulation_id_, boxBounds);
 				
 				// find out what pixel area actually gets used by this box, and use that to choose the optimal layout
 				QRect spatialDisplayBounds = spatialDisplayBoundsForSubpopulation(subpop, boxBounds);
@@ -303,7 +303,7 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 			QRect boxBounds(bounds.left(), boxTop, bounds.width(), boxBottom - boxTop);
 			Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
 			
-			subpopTiles.insert(std::pair<slim_objectid_t, QRect>(subpop->subpopulation_id_, boxBounds));
+			subpopTiles.emplace(subpop->subpopulation_id_, boxBounds);
 			
 			if (!canDisplayIndividualsFromSubpopulationInArea(subpop, boxBounds))
 			{
@@ -1483,7 +1483,7 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
             }
             else
             {
-                backgroundSettings.insert(std::pair<const int, PopulationViewBackgroundSettings>(subpopForEvent->subpopulation_id_, PopulationViewBackgroundSettings{newDisplayBackground, mapName}));
+                backgroundSettings.emplace(subpopForEvent->subpopulation_id_, PopulationViewBackgroundSettings{newDisplayBackground, mapName});
                 update();
             }
         }

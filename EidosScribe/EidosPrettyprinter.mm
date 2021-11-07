@@ -208,7 +208,7 @@
 				// Track braces
 			case EidosTokenType::kTokenLBrace:
 			{
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
 				[pretty appendString:tokenString];
 				break;
 			}
@@ -250,7 +250,7 @@
 						indentStack.pop_back();
 				}
 				
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
 				[pretty appendString:tokenString];
 				break;
 			}
@@ -260,7 +260,7 @@
 			case EidosTokenType::kTokenFor:
 			case EidosTokenType::kTokenConditional:		// note this does not generate indent, but is put on the stack
 			{
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
 				[pretty appendString:tokenString];
 				break;
 			}
@@ -283,7 +283,7 @@
 					}
 				}
 				
-				indentStack.push_back(&token);
+				indentStack.emplace_back(&token);
 				[pretty appendString:tokenString];
 				break;
 			}

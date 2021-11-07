@@ -440,14 +440,14 @@ bool QtSLiMHelpWindow::findItemsMatchingSearchString(QTreeWidgetItem *root, cons
 			
 			if (isMatch)
 			{
-				matchKeys.push_back(childItem);
+				matchKeys.emplace_back(childItem);
 				anyChildMatches = true;
 			}
 		}
 	}
 	
 	if (anyChildMatches)
-		expandItems.push_back(root);
+		expandItems.emplace_back(root);
 	
 	return anyChildMatches;
 }
@@ -1123,7 +1123,7 @@ void QtSLiMHelpWindow::itemClicked(QTreeWidgetItem *item, int __attribute__((__u
                 
                 while (classDocumentation)
                 {
-                    expandItems.push_back(classDocumentation);
+                    expandItems.emplace_back(classDocumentation);
                     classDocumentation = classDocumentation->parent();
                 }
                 

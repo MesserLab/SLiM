@@ -1616,7 +1616,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	{
 		Subpopulation *selectedSubpop = selectedSubpopulations[0];
 		
-		subpopTiles.insert(std::pair<slim_objectid_t, NSRect>(selectedSubpop->subpopulation_id_, bounds));
+		subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
 		
 		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
 		{
@@ -1658,7 +1658,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 				NSRect boxBounds = NSMakeRect(boxLeft, boxTop, boxRight - boxLeft, boxBottom - boxTop);
 				Subpopulation *subpop = selectedSubpopulations[subpopIndex];
 				
-				candidateTiles.insert(std::pair<slim_objectid_t, NSRect>(subpop->subpopulation_id_, boxBounds));
+				candidateTiles.emplace(subpop->subpopulation_id_, boxBounds);
 				
 				// find out what pixel area actually gets used by this box, and use that to choose the optimal layout
 				NSRect spatialDisplayBounds = [self spatialDisplayBoundsForSubpopulation:subpop tileBounds:boxBounds];
@@ -1690,7 +1690,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			NSRect boxBounds = NSMakeRect(bounds.origin.x, boxTop, bounds.size.width, boxBottom - boxTop);
 			Subpopulation *subpop = selectedSubpopulations[subpopIndex];
 			
-			subpopTiles.insert(std::pair<slim_objectid_t, NSRect>(subpop->subpopulation_id_, boxBounds));
+			subpopTiles.emplace(subpop->subpopulation_id_, boxBounds);
 			
 			if (![self canDisplayIndividualsFromSubpopulation:subpop inArea:boxBounds])
 			{
@@ -1825,7 +1825,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	else
 	{
-		backgroundSettings.insert(std::pair<const int, PopulationViewBackgroundSettings>(lastContextMenuSubpopID, PopulationViewBackgroundSettings{newDisplayBackground, mapName}));
+		backgroundSettings.emplace(lastContextMenuSubpopID, PopulationViewBackgroundSettings{newDisplayBackground, mapName});
 		[self setNeedsDisplay:YES];
 	}
 }

@@ -165,7 +165,7 @@ void EidosDataFrame::KeyAddedToDictionary(const std::string &p_key)
 	if (iter == sorted_keys.end())
 	{
 		// DataFrame keeps its keys in the order in which they are added
-		sorted_keys.push_back(p_key);
+		sorted_keys.emplace_back(p_key);
 	}
 }
 
@@ -230,7 +230,7 @@ void EidosDataFrame::Print(std::ostream &p_ostream) const
 				key_quoting = EidosStringQuoting::kDoubleQuotes;		// if we use quotes, always use double quotes, for ease of parsing
 			
 			ss << Eidos_string_escaped(key, key_quoting);
-			col_output.push_back(ss.str());
+			col_output.emplace_back(ss.str());
 			ss.clear();
 			ss.str(gEidosStr_empty_string);
 			
@@ -245,7 +245,7 @@ void EidosDataFrame::Print(std::ostream &p_ostream) const
 				for (int value_index = 0; value_index < value_count; ++value_index)
 				{
 					value->PrintValueAtIndex(value_index, ss);
-					col_output.push_back(ss.str());
+					col_output.emplace_back(ss.str());
 					ss.clear();
 					ss.str(gEidosStr_empty_string);
 				}
@@ -762,7 +762,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	{
 		// colNames == F means "autogenerate column names of the form X1, X2, ..."
 		for (int col_index = 0; col_index < ncols; ++col_index)
-			columnNames.push_back(std::string("X") + std::to_string(col_index + 1));
+			columnNames.emplace_back(std::string("X") + std::to_string(col_index + 1));
 	}
 	else if (colNames_value->Type() == EidosValueType::kValueString)
 	{
@@ -821,13 +821,13 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		for (char ch : colTypes_string)
 		{
 			switch (ch) {
-				case 'l': coltypes.push_back(EidosValueType::kValueLogical); break;
-				case 'i': coltypes.push_back(EidosValueType::kValueInt); break;
-				case 'f': coltypes.push_back(EidosValueType::kValueFloat); break;
-				case 's': coltypes.push_back(EidosValueType::kValueString); break;
-				case '?': coltypes.push_back(EidosValueType::kValueNULL); has_null_coltype = true; break;
+				case 'l': coltypes.emplace_back(EidosValueType::kValueLogical); break;
+				case 'i': coltypes.emplace_back(EidosValueType::kValueInt); break;
+				case 'f': coltypes.emplace_back(EidosValueType::kValueFloat); break;
+				case 's': coltypes.emplace_back(EidosValueType::kValueString); break;
+				case '?': coltypes.emplace_back(EidosValueType::kValueNULL); has_null_coltype = true; break;
 				case '_':
-				case '-': coltypes.push_back(EidosValueType::kValueVOID); break;
+				case '-': coltypes.emplace_back(EidosValueType::kValueVOID); break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() did not recognize column type '" << ch << "' in colTypes." << EidosTerminate(nullptr);
 			}
@@ -836,7 +836,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	
 	while ((int)coltypes.size() < ncols)
 	{
-		coltypes.push_back(EidosValueType::kValueNULL);		// guess by default
+		coltypes.emplace_back(EidosValueType::kValueNULL);		// guess by default
 		has_null_coltype = true;
 	}
 	

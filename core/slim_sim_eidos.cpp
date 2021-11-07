@@ -2074,7 +2074,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_createLogFile(EidosGlobalStringID p_method_
 		int ic_count = initialContents_value->Count();
 		
 		for (int ic_index = 0; ic_index < ic_count; ++ic_index)
-			initialContents.push_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
+			initialContents.emplace_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
 	}
 	
 	if (logInterval_value->Type() == EidosValueType::kValueNULL)
@@ -2106,7 +2106,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_createLogFile(EidosGlobalStringID p_method_
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(logfile, gSLiM_LogFile_Class));
 	
 	// Add it to our registry; it has a retain count from new that we will take over at this point
-	log_file_registry_.push_back(logfile);
+	log_file_registry_.emplace_back(logfile);
 	
 	// Configure it
 	logfile->SetLogInterval(autologging, logInterval);
@@ -2190,7 +2190,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	{
 		// Search through all subpops
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			subpops_to_search.push_back(subpop_pair.second);
+			subpops_to_search.emplace_back(subpop_pair.second);
 	}
 	else
 	{
@@ -3444,7 +3444,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p
 		generations.reserve(gen_count);
 		
 		for (int gen_index = 0; gen_index < gen_count; ++gen_index)
-			generations.push_back(SLiMCastToGenerationTypeOrRaise(generations_value->IntAtIndex(gen_index, nullptr)));
+			generations.emplace_back(SLiMCastToGenerationTypeOrRaise(generations_value->IntAtIndex(gen_index, nullptr)));
 		
 		// next, sort the generation list and check that the first scheduling it requests is not in the past
 		std::sort(generations.begin(), generations.end());

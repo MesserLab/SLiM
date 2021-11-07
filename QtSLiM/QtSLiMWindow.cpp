@@ -890,7 +890,7 @@ void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, s
 		{
 			elementColor = &QtSLiMWindow::blackContrastingColorForIndex(static_cast<int>(genomicElementColorRegistry.size()));
             
-            genomicElementColorRegistry.insert(std::pair<slim_objectid_t, QColor>(elementTypeID, *elementColor));
+            genomicElementColorRegistry.emplace(elementTypeID, *elementColor);
 		}
         else
         {
@@ -2549,7 +2549,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			if (signature->body_script_ && signature->user_defined_)
 			{
 				signature->body_script_->AST()->ConvertProfileTotalsToSelfCounts();
-				userDefinedFunctions.push_back(signature);
+				userDefinedFunctions.emplace_back(signature);
 			}
 		}
 		

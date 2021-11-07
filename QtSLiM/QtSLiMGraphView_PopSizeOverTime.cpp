@@ -358,7 +358,7 @@ QtSLiMLegendSpec QtSLiMGraphView_PopSizeOverTime::legendKey(void)
     std::vector<slim_objectid_t> subpopsToDisplay;
     
     for (auto history_record_iter : controller_->sim->population_.subpop_size_histories_)
-        subpopsToDisplay.push_back(history_record_iter.first);
+        subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);
 }

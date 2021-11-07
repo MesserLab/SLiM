@@ -707,7 +707,7 @@
 - (void)_gatherKeysWithinDictionary:(NSDictionary *)searchDict intoVector:(std::vector<pointer_t> &)vec
 {
 	[searchDict enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
-		vec.push_back((pointer_t)key);
+		vec.emplace_back((pointer_t)key);
 		
 		if ([obj isKindOfClass:[NSDictionary class]])
 			[self _gatherKeysWithinDictionary:obj intoVector:vec];

@@ -1452,7 +1452,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
 					MutationType *muttype = muttype_iter.second;
 					slim_objectid_t muttype_id = muttype->mutation_type_id_;
 					
-					all_muttypes.push_back(muttype_id);
+					all_muttypes.emplace_back(muttype_id);
 				}
 				
 				all_muttypes.insert(all_muttypes.end(), display_muttypes_.begin(), display_muttypes_.end());
@@ -1504,7 +1504,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
                             slim_objectid_t muttype_id = muttype->mutation_type_id_;
                             
                             if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
-                                display_muttypes_.push_back(muttype_id);
+                                display_muttypes_.emplace_back(muttype_id);
                         }
                     }
                     else
@@ -1516,7 +1516,7 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
                         if (present_iter == display_muttypes_.end())
                         {
                             // this mut-type is not being displayed, so add it to our display list
-                            display_muttypes_.push_back(muttype_id);
+                            display_muttypes_.emplace_back(muttype_id);
                         }
                         else
                         {

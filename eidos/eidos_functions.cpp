@@ -3371,7 +3371,7 @@ EidosValue_SP Eidos_ExecuteFunction_setSymmetricDifference(const std::vector<Eid
 					break;
 			
 			if (value_index == result_count)
-				string_vec.push_back(string1);
+				string_vec.emplace_back(string1);
 			else
 				string_vec.erase(string_vec.begin() + value_index);
 		}
@@ -10056,8 +10056,8 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_apply): specified margin " << margin << " was already specified to function apply(); a given margin may be specified only once." << EidosTerminate(nullptr);
 		}
 		
-		margins.push_back((int)margin);
-		margin_sizes.push_back(x_dim[margin]);
+		margins.emplace_back((int)margin);
+		margin_sizes.emplace_back(x_dim[margin]);
 	}
 	
 	// Get the lambda string and cache its script
@@ -10120,9 +10120,9 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 			std::vector<int64_t> indices;
 			
 			for (int dim_index = 0; dim_index < dim_size; ++dim_index)
-				indices.push_back(dim_index);
+				indices.emplace_back(dim_index);
 			
-			inclusion_counts.push_back((int)indices.size());
+			inclusion_counts.emplace_back((int)indices.size());
 			inclusion_indices.emplace_back(indices);
 		}
 		
@@ -10140,7 +10140,7 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 				int margin_dim = margins[margin_index];
 				
 				inclusion_indices[margin_dim].clear();
-				inclusion_indices[margin_dim].push_back(margin_counter[margin_index]);
+				inclusion_indices[margin_dim].emplace_back(margin_counter[margin_index]);
 			}
 			
 			EidosValue_SP apply_value = x_value->Subset(inclusion_indices, true, nullptr);
@@ -11217,7 +11217,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	std::vector<const std::string *> contents_buffer;
 	
 	for (int value_index = 0; value_index < contents_count; ++value_index)
-		contents_buffer.push_back(&contents_value->StringRefAtIndex(value_index, nullptr));
+		contents_buffer.emplace_back(&contents_value->StringRefAtIndex(value_index, nullptr));
 	
 	// the third argument is an optional append flag, F by default
 	bool append = p_arguments[2]->LogicalAtIndex(0, nullptr);
@@ -12007,7 +12007,7 @@ EidosValue_SP Eidos_ExecuteFunction_doCall(const std::vector<EidosValue_SP> &p_a
 	std::vector<EidosValue_SP> arguments;
 	
 	for (int argument_index = 1; argument_index < argument_count; argument_index++)
-		arguments.push_back(p_arguments[argument_index]);
+		arguments.emplace_back(p_arguments[argument_index]);
 	
 	// Look up the signature for this function dynamically
 	EidosFunctionMap &function_map = p_interpreter.FunctionMap();

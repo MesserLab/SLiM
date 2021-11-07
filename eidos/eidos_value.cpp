@@ -522,7 +522,7 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		if (dim_size == 0)
 			empty_dimension = true;
 		
-		inclusion_counts.push_back(dim_size);
+		inclusion_counts.emplace_back(dim_size);
 	}
 	
 	if (empty_dimension)
@@ -1066,7 +1066,7 @@ nlohmann::json EidosValue_Logical::JSONRepresentation(void) const
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(values_[i] ? true : false);
+		json_object.emplace_back(values_[i] ? true : false);
 	
 	return json_object;
 }
@@ -1287,7 +1287,7 @@ nlohmann::json EidosValue_String::JSONRepresentation(void) const
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(StringRefAtIndex(i, nullptr));
+		json_object.emplace_back(StringRefAtIndex(i, nullptr));
 	
 	return json_object;
 }
@@ -1531,7 +1531,7 @@ nlohmann::json EidosValue_Int::JSONRepresentation(void) const
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(IntAtIndex(i, nullptr));
+		json_object.emplace_back(IntAtIndex(i, nullptr));
 	
 	return json_object;
 }
@@ -1836,7 +1836,7 @@ nlohmann::json EidosValue_Float::JSONRepresentation(void) const
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(FloatAtIndex(i, nullptr));
+		json_object.emplace_back(FloatAtIndex(i, nullptr));
 	
 	return json_object;
 }
@@ -2135,7 +2135,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
-		gEidosValue_Object_Mutation_Registry.push_back(this);
+		gEidosValue_Object_Mutation_Registry.emplace_back(this);
 		registered_for_patching_ = true;
 		
 		//std::cout << "pushed Mutation EidosValue_Object, count == " << gEidosValue_Object_Mutation_Registry.size() << std::endl;
@@ -2242,7 +2242,7 @@ nlohmann::json EidosValue_Object::JSONRepresentation(void) const
 	int count = Count();
 	
 	for (int i = 0; i < count; ++i)
-		json_object.push_back(ObjectElementAtIndex(i, nullptr)->JSONRepresentation());
+		json_object.emplace_back(ObjectElementAtIndex(i, nullptr)->JSONRepresentation());
 	
 	return json_object;
 }
@@ -2390,24 +2390,16 @@ void EidosValue_Object_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::PushValueFromIndexOfEidosValue): type mismatch." << EidosTerminate(p_blame_token);
 }
 
-static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j);
 static bool CompareLogicalObjectSortPairsAscending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j)	{ return (i.first < j.first); }
-static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j);
 static bool CompareLogicalObjectSortPairsDescending(std::pair<eidos_logical_t, EidosObject*> i, std::pair<eidos_logical_t, EidosObject*> j)	{ return (i.first > j.first); }
 
-static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j);
 static bool CompareIntObjectSortPairsAscending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j)				{ return (i.first < j.first); }
-static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j);
 static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObject*> i, std::pair<int64_t, EidosObject*> j)				{ return (i.first > j.first); }
 
-static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j);
 static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first < j.first); }
-static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j);
 static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first > j.first); }
 
-static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j);
 static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)		{ return (i.first < j.first); }
-static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j);
 static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)	{ return (i.first > j.first); }
 
 void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)

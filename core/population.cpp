@@ -445,8 +445,8 @@ void Population::ResolveSurvivalPhaseMovement(void)
 		
 		for (Individual *individual : subpop->nonWF_offspring_individuals_)
 		{
-			subpop->nonWF_offspring_genomes_.push_back(individual->genome1_);
-			subpop->nonWF_offspring_genomes_.push_back(individual->genome2_);
+			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome1_);
+			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome2_);
 			
 #if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
 			// tally this as an incoming migrant for SLiMgui
@@ -3462,7 +3462,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				while (true)
 				{
 					if (repair_toward_noncopy)
-						repair_additions.push_back(noncopy_walker.CurrentMutation());
+						repair_additions.emplace_back(noncopy_walker.CurrentMutation());
 					
 					noncopy_walker.NextMutation();
 					if (noncopy_walker.Finished())
@@ -3482,7 +3482,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 			if (advance_offspring)
 			{
 				if (repair_toward_noncopy)
-					repair_removals.push_back(repair_pos);
+					repair_removals.emplace_back(repair_pos);
 				
 				while (true)
 				{
@@ -3603,7 +3603,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		// We repurpose repair_removals here as a vector of all positions that changed due to heteroduplex repair.
 		// We therefore add in the positions for each entry in repair_additions, then sort and unique.
 		for (Mutation *added_mut : repair_additions)
-			repair_removals.push_back(added_mut->position_);
+			repair_removals.emplace_back(added_mut->position_);
 		
 		std::sort(repair_removals.begin(), repair_removals.end());
 		repair_removals.erase(unique(repair_removals.begin(), repair_removals.end()), repair_removals.end());
@@ -5097,7 +5097,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 								
 								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 								// reused out from under us, which would happen otherwise when their last occurrence was replaced
-								mutrun_retain.push_back(mutrun_sp_ref);
+								mutrun_retain.emplace_back(mutrun_sp_ref);
 							}
 						}
 					}
@@ -5294,8 +5294,8 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 								
 								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
 								// reused out from under us, which would happen otherwise when their last occurrence was replaced
-								mutrun_retain.push_back(mutrun1_sp_ref);
-								mutrun_retain.push_back(mutrun2_sp_ref);
+								mutrun_retain.emplace_back(mutrun1_sp_ref);
+								mutrun_retain.emplace_back(mutrun2_sp_ref);
 							}
 						}
 					}
@@ -7096,7 +7096,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 			}
 		} while (subpop_genomes[genome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.push_back(subpop_genomes[genome_index]);
+		sample.emplace_back(subpop_genomes[genome_index]);
 	}
 	
 	// print the sample using Genome's static member function
@@ -7144,7 +7144,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 			}
 		} while (subpop_genomes[genome_index]->IsNull() || (p_subpop.sex_enabled_ && p_requested_sex != IndividualSex::kUnspecified && p_subpop.SexOfIndividual(genome_index / 2) != p_requested_sex));
 		
-		sample.push_back(subpop_genomes[genome_index]);
+		sample.emplace_back(subpop_genomes[genome_index]);
 	}
 	
 	// print the sample using Genome's static member function
@@ -7198,8 +7198,8 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 		genome1 = individual_index * 2;
 		genome2 = genome1 + 1;
 		
-		sample.push_back(subpop_genomes[genome1]);
-		sample.push_back(subpop_genomes[genome2]);
+		sample.emplace_back(subpop_genomes[genome1]);
+		sample.emplace_back(subpop_genomes[genome2]);
 	}
 	
 	// print the sample using Genome's static member function

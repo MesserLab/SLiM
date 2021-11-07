@@ -52,11 +52,11 @@
 		
 		for (auto subpop_pair : population.subpops_)
 			if (subpop_pair.second->gui_selected_)
-				selected_subpops.push_back(subpop_pair.second);
+				selected_subpops.emplace_back(subpop_pair.second);
 		
 		if (selected_subpops.size() == 0)
 			for (auto subpop_pair : population.subpops_)
-				selected_subpops.push_back(subpop_pair.second);
+				selected_subpops.emplace_back(subpop_pair.second);
 		
 		// Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...
 		ChromosomeView *overviewChromosomeView = controller->chromosomeOverview;
@@ -106,7 +106,7 @@
 		for (Subpopulation *subpop : selected_subpops)
 			for (Genome *genome : subpop->parent_genomes_)
 				if (!genome->IsNull())
-					genomes.push_back(genome);
+					genomes.emplace_back(genome);
 		
 		// If a sample is requested, select that now; sampleSize <= 0 means no sampling
 		if ((sampleSize > 0) && ((int)genomes.size() > sampleSize))
@@ -170,7 +170,7 @@
 	{
 		// Remember the subpop ID for each genome
 		for (Genome *genome : genomes)
-			genomeSubpopIDs.push_back(genome->individual_->subpopulation_->subpopulation_id_);
+			genomeSubpopIDs.emplace_back(genome->individual_->subpopulation_->subpopulation_id_);
 		
 		// Build our plotting data vectors.  Because we are a snapshot, we can't rely on our controller's data
 		// at all after this method returns; we have to remember everything we need to create our display list.
@@ -390,14 +390,14 @@ cancelledExit:
 						MutationIndex mut_index = *mut_ptr;
 						
 						if ((mutationInfo + mut_index)->display_)
-							genome_display.push_back(*mut_ptr);
+							genome_display.emplace_back(*mut_ptr);
 					}
 				}
 				else
 				{
 					// displaying all mutation types, no need to check
 					for (const MutationIndex *mut_ptr = mut_start_ptr; mut_ptr < mut_end_ptr; ++mut_ptr)
-						genome_display.push_back(*mut_ptr);
+						genome_display.emplace_back(*mut_ptr);
 				}
 			}
 		}
@@ -422,7 +422,7 @@ cancelledExit:
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
 							if ((mutationInfo + mut_index)->display_)
-								genome_display.push_back(mut_index);
+								genome_display.emplace_back(mut_index);
 					}
 				}
 				else
@@ -434,7 +434,7 @@ cancelledExit:
 						slim_position_t mut_position = *(mutationPositions + mut_index);
 						
 						if ((mut_position >= subrangeFirstBase) && (mut_position <= subrangeLastBase))
-							genome_display.push_back(mut_index);
+							genome_display.emplace_back(mut_index);
 					}
 				}
 			}
@@ -1330,7 +1330,7 @@ static float *glArrayColors = nil;
 	do
 	{
 		// add the chosen genome to our path
-		solution.push_back(last_path_index);
+		solution.emplace_back(last_path_index);
 		
 		if ([backgroundController haplotypeProgressIsCancelled])
 			break;
@@ -1514,7 +1514,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 			continue;
 		
 		// OK, the edge is legal.  Add it to our path, and maintain the group tags
-		path_components.push_back(candidate_edge);
+		path_components.emplace_back(candidate_edge);
 		node_degrees[i]++;
 		node_degrees[k]++;
 		
@@ -1579,7 +1579,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 			if (node_degrees[last_index] == 1)
 				break;
 		
-		solution.push_back(last_index);
+		solution.emplace_back(last_index);
 		
 		do
 		{
@@ -1607,7 +1607,7 @@ bool comp_greedy_edge_count(greedy_edge &i, greedy_edge &j) { slim_greedy_progre
 				break;
 			
 			// found it; assimilate it into the path and remove it from path_components
-			solution.push_back(next_index);
+			solution.emplace_back(next_index);
 			last_index = next_index;
 			
 			path_components[next_edge_index] = path_components[--remaining_edge_count];

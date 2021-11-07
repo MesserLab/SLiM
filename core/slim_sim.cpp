@@ -764,7 +764,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 			int opt_param_count;
 			
 			while (iss >> sub)
-				opt_params.push_back(sub);
+				opt_params.emplace_back(sub);
 			
 			opt_param_count = (int)opt_params.size();
 			
@@ -1734,11 +1734,11 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 		{
 			switch (script_block->type_)
 			{
-				case SLiMEidosBlockType::SLiMEidosEventFirst:				cached_first_events_.push_back(script_block);				break;
-				case SLiMEidosBlockType::SLiMEidosEventEarly:				cached_early_events_.push_back(script_block);				break;
-				case SLiMEidosBlockType::SLiMEidosEventLate:				cached_late_events_.push_back(script_block);				break;
-				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		cached_initialize_callbacks_.push_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			cached_fitness_callbacks_.push_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosEventFirst:				cached_first_events_.emplace_back(script_block);				break;
+				case SLiMEidosBlockType::SLiMEidosEventEarly:				cached_early_events_.emplace_back(script_block);				break;
+				case SLiMEidosBlockType::SLiMEidosEventLate:				cached_late_events_.emplace_back(script_block);					break;
+				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		cached_initialize_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			cached_fitness_callbacks_.emplace_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
 				{
 					// Global fitness callbacks are not order-dependent, so we don't have to preserve their order
@@ -1755,18 +1755,18 @@ void SLiMSim::ValidateScriptBlockCaches(void)
 					}
 					else
 					{
-						cached_fitnessglobal_callbacks_multigen_.push_back(script_block);
+						cached_fitnessglobal_callbacks_multigen_.emplace_back(script_block);
 					}
 					break;
 				}
-				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		cached_interaction_callbacks_.push_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		cached_matechoice_callbacks_.push_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.push_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.push_back(script_block);	break;
-				case SLiMEidosBlockType::SLiMEidosMutationCallback:			cached_mutation_callbacks_.push_back(script_block);			break;
-				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			cached_survival_callbacks_.push_back(script_block);			break;
-				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.push_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.push_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		cached_interaction_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		cached_matechoice_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		cached_modifychild_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	cached_recombination_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosMutationCallback:			cached_mutation_callbacks_.emplace_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			cached_survival_callbacks_.emplace_back(script_block);			break;
+				case SLiMEidosBlockType::SLiMEidosReproductionCallback:		cached_reproduction_callbacks_.emplace_back(script_block);		break;
+				case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		cached_userdef_functions_.emplace_back(script_block);			break;
 				case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
 			}
 		}
@@ -2665,7 +2665,7 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	x_current_runtimes_[x_current_buflen_] = p_last_gen_runtime;
 	
 	// Remember the history of the mutation run count
-	x_mutcount_history_.push_back(x_current_mutcount_);
+	x_mutcount_history_.emplace_back(x_current_mutcount_);
 	
 	// If the current experiment is not over, continue running it
 	++x_current_buflen_;
@@ -3015,8 +3015,8 @@ void SLiMSim::MaintainMutationRunExperiments(double p_last_gen_runtime)
 void SLiMSim::CollectSLiMguiMutationProfileInfo(void)
 {
 	// maintain our history of the number of mutruns per genome and the nonneutral regime
-	profile_mutcount_history_.push_back(chromosome_->mutrun_count_);
-	profile_nonneutral_regime_history_.push_back(last_nonneutral_regime_);
+	profile_mutcount_history_.emplace_back(chromosome_->mutrun_count_);
+	profile_nonneutral_regime_history_.emplace_back(last_nonneutral_regime_);
 	
 	// track the maximum number of mutations in existence at one time
 	int registry_size;
@@ -4513,7 +4513,7 @@ void SLiMSim::_CheckMutationStackPolicy(void)
 						EIDOS_TERMINATION << "ERROR (SLiMSim::_CheckMutationStackPolicy): inconsistent mutationStackPolicy values within one mutationStackGroup." << EidosTerminate();
 				}
 				
-				checked_groups.push_back(stack_group);
+				checked_groups.emplace_back(stack_group);
 			}
 		}
 	}
@@ -5149,7 +5149,7 @@ void SLiMSim::ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vect
 			if (inverse_map[j] == TSK_NULL)
 			{
 				inverse_map[j] = (tsk_id_t)p_individual_map.size();
-				p_individual_map.push_back(j);
+				p_individual_map.emplace_back(j);
 			}
 		}
 		assert(p_individual_map.size() == p_tables->individuals.num_rows);
@@ -5300,7 +5300,7 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 	auto nodes = &sorter->tables->nodes;
 	
 	for (tsk_size_t i = 0; i < sorter->tables->edges.num_rows; ++i)
-		temp.push_back(edge_plus_time{ nodes->time[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] });
+		temp.emplace_back(edge_plus_time{ nodes->time[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] });
 	
 	std::sort(begin(temp), end(temp),
 		[](const edge_plus_time &lhs, const edge_plus_time &rhs) {
@@ -5358,7 +5358,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 		
 		for (tsk_id_t sid : remembered_genomes_)
 		{
-			samples.push_back(sid);
+			samples.emplace_back(sid);
 			remembered_genomes_lookup.emplace(sid, index);
 			index++;
 		}
@@ -5380,7 +5380,7 @@ void SLiMSim::SimplifyTreeSequence(void)
 				
 				if (iter == remembered_genomes_lookup.end())
 				{
-					samples.push_back(M);
+					samples.emplace_back(M);
 					genome->tsk_node_id_ = newValueInNodeTable++;
 				}
 				else
@@ -5496,7 +5496,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 		Genome **genome_ptr = genomes.data();
 		
 		for (slim_popsize_t genome_index = 0; genome_index < genome_count; ++genome_index)
-			all_extant_nodes.push_back(genome_ptr[genome_index]->tsk_node_id_);
+			all_extant_nodes.emplace_back(genome_ptr[genome_index]->tsk_node_id_);
 	}
 	
 	int64_t extant_node_count = (int64_t)all_extant_nodes.size();
@@ -5751,9 +5751,9 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	mutation_metadata.clear();
 	for (Mutation *mutation : p_derived_mutations)
 	{
-		derived_mutation_ids.push_back(mutation->mutation_id_);
+		derived_mutation_ids.emplace_back(mutation->mutation_id_);
 		MetadataForMutation(mutation, &metadata_rec);
-		mutation_metadata.push_back(metadata_rec);
+		mutation_metadata.emplace_back(metadata_rec);
 	}
 	
 	// find and incorporate any fixed mutations at this position, which exist in all new derived states but are not included by SLiM
@@ -5769,9 +5769,9 @@ void SLiMSim::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	{
 		Substitution *substitution = position_iter->second;
 		
-		derived_mutation_ids.push_back(substitution->mutation_id_);
+		derived_mutation_ids.emplace_back(substitution->mutation_id_);
 		MetadataForSubstitution(substitution, &metadata_rec);
-		mutation_metadata.push_back(metadata_rec);
+		mutation_metadata.emplace_back(metadata_rec);
 	}
 	
 	// add the mutation table row with the final derived state and metadata
@@ -5939,8 +5939,8 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		std::vector<tsk_size_t> binary_mutation_metadata_offset;
 		size_t mutation_metadata_total_part_count = 0;
 		
-		binary_derived_state_offset.push_back(0);
-		binary_mutation_metadata_offset.push_back(0);
+		binary_derived_state_offset.emplace_back(0);
+		binary_mutation_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < tables_.mutations.num_rows; j++)
 		{
@@ -5952,7 +5952,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 				binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
 			
 			derived_state_total_part_count += derived_state_parts.size();
-			binary_derived_state_offset.push_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
+			binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
 			
 			// Mutation metadata
 			std::string string_mutation_metadata(mutation_metadata + mutation_metadata_offset[j], mutation_metadata_offset[j+1] - mutation_metadata_offset[j]);
@@ -5978,7 +5978,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			}
 			
 			mutation_metadata_total_part_count += mutation_metadata_parts.size();
-			binary_mutation_metadata_offset.push_back((tsk_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
+			binary_mutation_metadata_offset.emplace_back((tsk_size_t)(mutation_metadata_total_part_count * sizeof(MutationMetadataRec)));
 		}
 		
 		// if we have no rows, these vectors will be empty, and .data() will return NULL, which tskit doesn't like;
@@ -6012,7 +6012,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		std::vector<tsk_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
-		binary_metadata_offset.push_back(0);
+		binary_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < tables_.nodes.num_rows; j++)
 		{
@@ -6039,7 +6039,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_metadata.emplace_back(metarec);
 			
 			metadata_total_part_count++;
-			binary_metadata_offset.push_back((tsk_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
+			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(GenomeMetadataRec)));
 		}
 		
 		ret = tsk_node_table_set_columns(&tables_.nodes,
@@ -6063,7 +6063,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		std::vector<tsk_size_t> binary_metadata_offset;
 		size_t metadata_total_part_count = 0;
 		
-		binary_metadata_offset.push_back(0);
+		binary_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < tables_.individuals.num_rows; j++)
 		{
@@ -6085,7 +6085,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			binary_metadata.emplace_back(metarec);
 			
 			metadata_total_part_count++;
-			binary_metadata_offset.push_back((tsk_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
+			binary_metadata_offset.emplace_back((tsk_size_t)(metadata_total_part_count * sizeof(IndividualMetadataRec)));
 		}
 		
 		ret = tsk_individual_table_set_columns(&tables_.individuals,
@@ -6109,7 +6109,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 		char *binary_metadata = NULL;
 		std::vector<tsk_size_t> binary_metadata_offset;
 		
-		binary_metadata_offset.push_back(0);
+		binary_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < tables_.populations.num_rows; j++)
 		{
@@ -6118,7 +6118,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 			if (metadata_string_length == 0)
 			{
 				// empty population table entries just get preserved verbatim; these are unused subpop IDs
-				binary_metadata_offset.push_back(binary_metadata_offset[j]);
+				binary_metadata_offset.emplace_back(binary_metadata_offset[j]);
 				continue;
 			}
 			
@@ -6162,7 +6162,7 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 				binary_metadata_migrations[migration_index].migration_rate_ = std::stod(metadata_parts[12 + migration_index * 2 + 1]);
 			}
 			
-			binary_metadata_offset.push_back((tsk_size_t)(binary_metadata_offset[j] + metadata_length));
+			binary_metadata_offset.emplace_back((tsk_size_t)(binary_metadata_offset[j] + metadata_length));
 		}
 		
 		ret = tsk_population_table_set_columns(&tables_.populations,
@@ -6227,8 +6227,8 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 		std::string text_mutation_metadata;
 		std::vector<tsk_size_t> text_mutation_metadata_offset;
 		
-		text_derived_state_offset.push_back(0);
-		text_mutation_metadata_offset.push_back(0);
+		text_derived_state_offset.emplace_back(0);
+		text_mutation_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
 		{
@@ -6241,7 +6241,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 				if (i != 0) text_derived_state.append(",");
 				text_derived_state.append(std::to_string(int_derived_state[i]));
 			}
-			text_derived_state_offset.push_back((tsk_size_t)text_derived_state.size());
+			text_derived_state_offset.emplace_back((tsk_size_t)text_derived_state.size());
 			
 			// Mutation metadata
 			MutationMetadataRec *struct_mutation_metadata = (MutationMetadataRec *)(mutation_metadata + mutation_metadata_offset[j]);
@@ -6267,7 +6267,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 				text_mutation_metadata.append(std::to_string(struct_mutation_metadata->nucleotide_));	// new in SLiM 3.3, file format 0.3 and later; -1 if no nucleotide
 				struct_mutation_metadata++;
 			}
-			text_mutation_metadata_offset.push_back((tsk_size_t)text_mutation_metadata.size());
+			text_mutation_metadata_offset.emplace_back((tsk_size_t)text_mutation_metadata.size());
 		}
 		
 		ret = tsk_mutation_table_set_columns(&p_tables->mutations,
@@ -6292,7 +6292,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 		std::string text_metadata;
 		std::vector<tsk_size_t> text_metadata_offset;
 		
-		text_metadata_offset.push_back(0);
+		text_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->nodes.num_rows; j++)
 		{
@@ -6303,7 +6303,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			text_metadata.append(struct_genome_metadata->is_null_ ? "T" : "F");
 			text_metadata.append(",");
 			text_metadata.append(StringForGenomeType(struct_genome_metadata->type_));
-			text_metadata_offset.push_back((tsk_size_t)text_metadata.size());
+			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 		}
 		
 		ret = tsk_node_table_set_columns(&p_tables->nodes,
@@ -6326,7 +6326,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 		std::string text_metadata;
 		std::vector<tsk_size_t> text_metadata_offset;
 		
-		text_metadata_offset.push_back(0);
+		text_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
 		{
@@ -6345,7 +6345,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			text_metadata.append(std::to_string((int32_t)struct_individual_metadata->sex_));
 			text_metadata.append(",");
 			text_metadata.append(std::to_string(struct_individual_metadata->flags_));
-			text_metadata_offset.push_back((tsk_size_t)text_metadata.size());
+			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 		}
 		
 		ret = tsk_individual_table_set_columns(&p_tables->individuals,
@@ -6369,7 +6369,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 		std::string text_metadata;
 		std::vector<tsk_size_t> text_metadata_offset;
 		
-		text_metadata_offset.push_back(0);
+		text_metadata_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->populations.num_rows; j++)
 		{
@@ -6378,7 +6378,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 			if (metadata_binary_length == 0)
 			{
 				// empty population table entries just get preserved verbatim; these are unused subpop IDs
-				text_metadata_offset.push_back((tsk_size_t)text_metadata.size());
+				text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 				continue;
 			}
 			
@@ -6432,7 +6432,7 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 				text_metadata.append(double_buf);
 			}
 			
-			text_metadata_offset.push_back((tsk_size_t)text_metadata.size());
+			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
 		}
 		
 		ret = tsk_population_table_set_columns(&p_tables->populations,
@@ -6461,7 +6461,7 @@ void SLiMSim::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 		std::vector<tsk_size_t> binary_derived_state_offset;
 		size_t derived_state_total_part_count = 0;
 		
-		binary_derived_state_offset.push_back(0);
+		binary_derived_state_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
 		{
@@ -6488,7 +6488,7 @@ void SLiMSim::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 				derived_state_total_part_count += derived_state_parts.size();
 			}
 			
-			binary_derived_state_offset.push_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
+			binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
 		}
 		
 		if (binary_derived_state.size() == 0)
@@ -6524,7 +6524,7 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 		std::string text_derived_state;
 		std::vector<tsk_size_t> text_derived_state_offset;
 		
-		text_derived_state_offset.push_back(0);
+		text_derived_state_offset.emplace_back(0);
 		
 		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
 		{
@@ -6536,7 +6536,7 @@ void SLiMSim::DerivedStatesToAscii(tsk_table_collection_t *p_tables)
 				if (i != 0) text_derived_state.append(",");
 				text_derived_state.append(std::to_string(int_derived_state[i]));
 			}
-			text_derived_state_offset.push_back((tsk_size_t)text_derived_state.size());
+			text_derived_state_offset.emplace_back((tsk_size_t)text_derived_state.size());
 		}
 		
 		ret = tsk_mutation_table_set_columns(&p_tables->mutations,
@@ -6582,9 +6582,9 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 		slim_pedigreeid_t ped_id = ind->PedigreeID();
 
 		std::vector<double> location;
-		location.push_back(ind->spatial_x_);
-		location.push_back(ind->spatial_y_);
-		location.push_back(ind->spatial_z_);
+		location.emplace_back(ind->spatial_x_);
+		location.emplace_back(ind->spatial_y_);
+		location.emplace_back(ind->spatial_z_);
 		
 		IndividualMetadataRec metadata_rec;
 		MetadataForIndividual(ind, &metadata_rec);
@@ -6612,8 +6612,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			// update remembered genomes
 			if (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
 			{
-				remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
-				remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
+				remembered_genomes_.emplace_back(ind->genome1_->tsk_node_id_);
+				remembered_genomes_.emplace_back(ind->genome2_->tsk_node_id_);
 			}
 		} else {
 			// This individual is already there; we need to update the information.
@@ -6633,8 +6633,8 @@ void SLiMSim::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 			if (((p_tables->individuals.flags[tsk_individual] & SLIM_TSK_INDIVIDUAL_REMEMBERED) == 0)
 				&& (p_flags & SLIM_TSK_INDIVIDUAL_REMEMBERED))
 			{
-				remembered_genomes_.push_back(ind->genome1_->tsk_node_id_);
-				remembered_genomes_.push_back(ind->genome2_->tsk_node_id_);
+				remembered_genomes_.emplace_back(ind->genome1_->tsk_node_id_);
+				remembered_genomes_.emplace_back(ind->genome2_->tsk_node_id_);
 			}
 
 			memcpy(p_tables->individuals.location
@@ -7466,7 +7466,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			tsk_id_t node_id = individual->genome1_->tsk_node_id_;
 			tsk_id_t ind_id = output_tables.nodes.individual[node_id];
 			
-			individual_map.push_back(ind_id);
+			individual_map.emplace_back(ind_id);
 		}
 	}
 
@@ -7747,7 +7747,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		std::vector<Substitution *> multimap_subs;
 		
 		for (auto entry : population_.treeseq_substitutions_map_)
-			multimap_subs.push_back(entry.second);
+			multimap_subs.emplace_back(entry.second);
 		
 		std::sort(vector_subs.begin(), vector_subs.end());
 		std::sort(multimap_subs.begin(), multimap_subs.end());
@@ -7765,7 +7765,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 		Subpopulation *subpop = pop_iter.second;
 		
 		for (Genome *genome : subpop->parent_genomes_)
-			genomes.push_back(genome);
+			genomes.emplace_back(genome);
 	}
 	
 	// if we have no genomes to check, we return; we could check that the tree sequences are also empty, but we don't
@@ -7812,7 +7812,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 			
 			for (auto iter : population_.subpops_)
 				for (Genome *genome : iter.second->parent_genomes_)
-					samples.push_back(genome->tsk_node_id_);
+					samples.emplace_back(genome->tsk_node_id_);
 			
 			tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
@@ -7885,7 +7885,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 				
 				fixed_mutids.clear();
 				for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
-					fixed_mutids.push_back(substitution_iter->second->mutation_id_);
+					fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
 				
 				// Check all the genomes against the tsk_vargen_t's belief about this site
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
@@ -7981,7 +7981,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 						
 						// tabulate all tree mutations
 						for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-							allele_mutids.push_back(genome_allele[mutid_index]);
+							allele_mutids.emplace_back(genome_allele[mutid_index]);
 						
 						// tabulate segregating SLiM mutations
 						while (true)
@@ -7996,7 +7996,7 @@ void SLiMSim::CrosscheckTreeSeqIntegrity(void)
 									EIDOS_TERMINATION << "ERROR (SLiMSim::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (bulk case)." << EidosTerminate();
 								else if (current_mut_pos == variant_pos_int)
 								{
-									genome_mutids.push_back(current_mut->mutation_id_);
+									genome_mutids.emplace_back(current_mut->mutation_id_);
 									genome_walker.NextMutation();
 								}
 								else break;
@@ -8180,27 +8180,27 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 				EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unrecognized individual sex value " << sex << "." << EidosTerminate();
 		}
 		
-		subpop_info.sex_.push_back(sex);
+		subpop_info.sex_.emplace_back(sex);
 		
 		// check that the individual has exactly two nodes; we are always diploid
 		if (individual.nodes_length != 2)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unexpected node count; this file cannot be read." << EidosTerminate();
 		
-		subpop_info.nodes_.push_back(individual.nodes[0]);
-		subpop_info.nodes_.push_back(individual.nodes[1]);
+		subpop_info.nodes_.emplace_back(individual.nodes[0]);
+		subpop_info.nodes_.emplace_back(individual.nodes[1]);
 		
 		// bounds-check and save off the pedigree ID, which we will use again; note that parent pedigree IDs are allowed to be -1
 		if (metadata->pedigree_id_ < 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have pedigree IDs >= 0." << EidosTerminate();
-		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
+		subpop_info.pedigreeID_.emplace_back(metadata->pedigree_id_);
 		
 		if ((metadata->pedigree_p1_ < -1) || (metadata->pedigree_p2_ < -1))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have parent pedigree IDs >= -1." << EidosTerminate();
-		subpop_info.pedigreeP1_.push_back(metadata->pedigree_p1_);
-		subpop_info.pedigreeP2_.push_back(metadata->pedigree_p2_);
+		subpop_info.pedigreeP1_.emplace_back(metadata->pedigree_p1_);
+		subpop_info.pedigreeP2_.emplace_back(metadata->pedigree_p2_);
 
 		// save off the flags for later use
-		subpop_info.flags_.push_back(metadata->flags_);
+		subpop_info.flags_.emplace_back(metadata->flags_);
 		
 		// bounds-check ages; we cross-translate ages of 0 and -1 if the model type has been switched
 		slim_age_t age = metadata->age_;
@@ -8215,15 +8215,15 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		if ((age != -1) && (model_type_ == SLiMModelType::kModelTypeWF))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have age values == -1." << EidosTerminate();
 		
-		subpop_info.age_.push_back(age);
+		subpop_info.age_.emplace_back(age);
 		
 		// no bounds-checks for spatial position
 		if (individual.location_length != 3)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): unexpected individual location length; this file cannot be read." << EidosTerminate();
 		
-		subpop_info.spatial_x_.push_back(individual.location[0]);
-		subpop_info.spatial_y_.push_back(individual.location[1]);
-		subpop_info.spatial_z_.push_back(individual.location[2]);
+		subpop_info.spatial_x_.emplace_back(individual.location[0]);
+		subpop_info.spatial_y_.emplace_back(individual.location[1]);
+		subpop_info.spatial_z_.emplace_back(individual.location[2]);
 		
 		// check the referenced nodes; right now this is not essential for re-creating the saved state, but is just a crosscheck
 		// here we crosscheck the node information against expected values from other places in the tables or the model
@@ -8359,7 +8359,7 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				
 				slim_pedigreeid_t pedigree_id = subpop_info.pedigreeID_[tabulation_index];
 				individual->SetPedigreeID(pedigree_id);
-				pedigree_id_check.push_back(pedigree_id);	// we will test for collisions below
+				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
 				
 				uint32_t flags = subpop_info.flags_[tabulation_index];
@@ -8650,9 +8650,9 @@ void SLiMSim::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
-			indexToGenomeMap.push_back(sample_nodeToGenome_iter->second);
+			indexToGenomeMap.emplace_back(sample_nodeToGenome_iter->second);
 		else
-			indexToGenomeMap.push_back(nullptr);	// this sample is not extant; no corresponding genome
+			indexToGenomeMap.emplace_back(nullptr);	// this sample is not extant; no corresponding genome
 	}
 	
 	// add mutations to genomes by looping through variants
@@ -8827,12 +8827,12 @@ void SLiMSim::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
 		{
 			// we found a genome for this sample, so record it
-			indexToGenomeMap.push_back(sample_nodeToGenome_iter->second);
+			indexToGenomeMap.emplace_back(sample_nodeToGenome_iter->second);
 		}
 		else
 		{
 			// this sample is not extant; no corresponding genome, so record nullptr
-			indexToGenomeMap.push_back(nullptr);
+			indexToGenomeMap.emplace_back(nullptr);
 		}
 	}
 	
@@ -9026,7 +9026,7 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		{
 			uint32_t flags = tables_.individuals.flags[ind];
 			if (flags & SLIM_TSK_INDIVIDUAL_REMEMBERED)
-				remembered_genomes_.push_back(j);
+				remembered_genomes_.emplace_back(j);
 		}
 	}
 	assert(remembered_genomes_.size() % 2 == 0);
@@ -9050,7 +9050,7 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	{
 		uint32_t flags = tables_.individuals.flags[j];
 		if (flags & (SLIM_TSK_INDIVIDUAL_REMEMBERED | SLIM_TSK_INDIVIDUAL_RETAINED))
-			individual_map.push_back(j);
+			individual_map.emplace_back(j);
 	}
 	ReorderIndividualTable(&tables_, individual_map, false);
 	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);

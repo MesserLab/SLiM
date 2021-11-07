@@ -159,7 +159,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
                 // Note we use sim->generation_ - 1, because the generation counter has already been advanced to the next generation
                 MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, sim->generation_ - 1);
                 
-                frequencyHistoryDict_.insert(std::pair<slim_mutationid_t, MutationFrequencyHistory *>(mutationID, history));
+                frequencyHistoryDict_.emplace(mutationID, history);
             }
         }
     }
@@ -199,7 +199,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
             {
                 // The mutation is gone, so we need to put its history into cold storage, but we can't modify
                 // our dictionary since we are enumerating it, so we just make a record and do it below
-                historiesToAddToColdStorage.push_back(history);
+                historiesToAddToColdStorage.emplace_back(history);
             }
         }
     }
@@ -227,12 +227,12 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
         if (wasFixed)
         {
             history->addEntry(UINT16_MAX);
-            frequencyHistoryColdStorageFixed_.push_back(history);
+            frequencyHistoryColdStorageFixed_.emplace_back(history);
         }
         else
         {
             history->addEntry(0);
-            frequencyHistoryColdStorageLost_.push_back(history);
+            frequencyHistoryColdStorageLost_.emplace_back(history);
         }
         
         auto history_iter = frequencyHistoryDict_.find(mutationID);
@@ -456,13 +456,13 @@ QtSLiMLegendSpec QtSLiMGraphView_FrequencyTrajectory::legendKey(void)
 	QtSLiMLegendSpec legend_key;
 	
 	if (plotLostMutations_)
-		legend_key.push_back(QtSLiMLegendEntry("lost", Qt::red));
+		legend_key.emplace_back("lost", Qt::red);
 	
 	if (plotFixedMutations_)
-		legend_key.push_back(QtSLiMLegendEntry("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0)));
+		legend_key.emplace_back("fixed", QtSLiMColorWithRGB(0.4, 0.4, 1.0, 1.0));
 	
 	if (plotActiveMutations_)
-		legend_key.push_back(QtSLiMLegendEntry("active", Qt::black));
+		legend_key.emplace_back("active", Qt::black);
 	
 	return legend_key;
 }
@@ -519,7 +519,7 @@ void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
         std::vector<MutationFrequencyHistory *> allActive;
         
         for (auto &pair_ref : frequencyHistoryDict_)
-            allActive.push_back(pair_ref.second);
+            allActive.emplace_back(pair_ref.second);
         
 		appendEntriesToString(allActive, string, completedGenerations);
         string.append("\n\n");

@@ -334,7 +334,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 				if ((subset_index_token_type == EidosTokenType::kTokenComma) || (subset_index_token_type == EidosTokenType::kTokenRBracket))
 				{
 					// We have a placeholder node indicating a skipped expression, so we save NULL as the value
-					subset_indices.push_back(gStaticEidosValueNULL);
+					subset_indices.emplace_back(gStaticEidosValueNULL);
 				}
 				else
 				{
@@ -487,7 +487,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 					{
 						// We skipped over this dimension or had NULL, so every valid index in the dimension is included
 						for (int dim_index = 0; dim_index < dim_size; ++dim_index)
-							indices.push_back(dim_index);
+							indices.emplace_back(dim_index);
 					}
 					else if (subset_type == EidosValueType::kValueLogical)
 					{
@@ -499,7 +499,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 						
 						for (int dim_index = 0; dim_index < dim_size; dim_index++)
 							if (logical_index_data[dim_index])
-								indices.push_back(dim_index);
+								indices.emplace_back(dim_index);
 					}
 					else
 					{
@@ -511,7 +511,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 							if ((index_value < 0) || (index_value >= dim_size))
 								EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessSubsetAssignment): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(parent_token);
 							else
-								indices.push_back(index_value);
+								indices.emplace_back(index_value);
 						}
 					}
 					
@@ -521,7 +521,7 @@ void EidosInterpreter::_ProcessSubsetAssignment(EidosValue_SP *p_base_value_ptr,
 						break;
 					}
 					
-					inclusion_counts.push_back((int)indices.size());
+					inclusion_counts.emplace_back((int)indices.size());
 					inclusion_indices.emplace_back(indices);
 				}
 				
@@ -1099,8 +1099,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				{
 					// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
 					p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
-					no_fill_index.push_back((uint8_t)arg_buffer.size());
-					arg_buffer.push_back(child->cached_literal_value_);
+					no_fill_index.emplace_back((uint8_t)arg_buffer.size());
+					arg_buffer.emplace_back(child->cached_literal_value_);
 				}
 				else
 				{
@@ -1169,7 +1169,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 							EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 #endif
 						
-						no_fill_index.push_back((uint8_t)arg_buffer.size());
+						no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 						arg_buffer.emplace_back(default_value);
 					}
 					
@@ -1196,8 +1196,8 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 			{
 				// if a cached literal value is available for the node, we don't need to evaluate it at runtime, we can use the cached value forever
 				p_call_signature->CheckArgument(child->cached_literal_value_.get(), sig_arg_index);
-				no_fill_index.push_back((uint8_t)arg_buffer.size());
-				arg_buffer.push_back(child->cached_literal_value_);
+				no_fill_index.emplace_back((uint8_t)arg_buffer.size());
+				arg_buffer.emplace_back(child->cached_literal_value_);
 			}
 			else
 			{
@@ -1265,7 +1265,7 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): (internal error) missing default value for optional argument." << EidosTerminate(nullptr);
 #endif
 			
-			no_fill_index.push_back((uint8_t)arg_buffer.size());
+			no_fill_index.emplace_back((uint8_t)arg_buffer.size());
 			arg_buffer.emplace_back(default_value);
 		}
 		
@@ -1673,7 +1673,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 		if ((subset_index_token_type == EidosTokenType::kTokenComma) || (subset_index_token_type == EidosTokenType::kTokenRBracket))
 		{
 			// We have a placeholder node indicating a skipped expression, so we save NULL as the value
-			subset_indices.push_back(gStaticEidosValueNULL);
+			subset_indices.emplace_back(gStaticEidosValueNULL);
 		}
 		else
 		{
@@ -1757,7 +1757,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 			{
 				// We skipped over this dimension or had NULL, so every valid index in the dimension is included
 				for (int dim_index = 0; dim_index < dim_size; ++dim_index)
-					indices.push_back(dim_index);
+					indices.emplace_back(dim_index);
 			}
 			else if (subset_type == EidosValueType::kValueLogical)
 			{
@@ -1769,7 +1769,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 				
 				for (int dim_index = 0; dim_index < dim_size; dim_index++)
 					if (logical_index_data[dim_index])
-						indices.push_back(dim_index);
+						indices.emplace_back(dim_index);
 			}
 			else
 			{
@@ -1781,7 +1781,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Subset(const EidosASTNode *p_node)
 					if ((index_value < 0) || (index_value >= dim_size))
 						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Subset): out-of-range index " << index_value << " used with the '[]' operator." << EidosTerminate(operator_token);
 					else
-						indices.push_back(index_value);
+						indices.emplace_back(index_value);
 				}
 			}
 			
@@ -6258,7 +6258,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 					sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, std::move(default_value));
 				}
 				
-				used_param_names.push_back(param_name);
+				used_param_names.emplace_back(std::move(param_name));
 			}
 		}
 		

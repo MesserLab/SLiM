@@ -263,7 +263,7 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 			// We just use eidos_functions here, since it does exactly what we want anyway
 			std::vector<EidosValue_SP> argument_vec;
 			
-			argument_vec.push_back(result_SP);
+			argument_vec.emplace_back(result_SP);
 			
 			if (result_SP->Count() == 1)
 			{
@@ -333,7 +333,7 @@ void LogFile::AppendNewRow(void)
 		}
 		
 		header_line = ss.str();
-		line_vec.push_back(&header_line);
+		line_vec.emplace_back(&header_line);
 		
 		// Having emitted the header line, we lock ourselves to prevent inconsistencies in the emitted table
 		header_logged_ = true;
@@ -409,7 +409,7 @@ void LogFile::AppendNewRow(void)
 		}
 		
 		row_line = ss.str();
-		line_vec.push_back(&row_line);
+		line_vec.emplace_back(&row_line);
 	}
 	
 	ContentsChanged("LogFile::AppendNewRow()");
@@ -604,7 +604,7 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	gEidosErrorContext = error_context_save;
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CustomScript, source_script, -1, context_value});
-	column_names_.push_back(column_name);
+	column_names_.emplace_back(column_name);
 	
 	return gStaticEidosValueVOID;
 }
@@ -618,7 +618,7 @@ EidosValue_SP LogFile::ExecuteMethod_addGeneration(EidosGlobalStringID p_method_
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Generation, nullptr, -1, EidosValue_SP()});
 	
-	column_names_.push_back("generation");
+	column_names_.emplace_back("generation");
 	
 	return gStaticEidosValueVOID;
 }
@@ -631,7 +631,7 @@ EidosValue_SP LogFile::ExecuteMethod_addGenerationStage(EidosGlobalStringID p_me
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addGenerationStage");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_GenerationStage, nullptr, -1, EidosValue_SP()});
-	column_names_.push_back("gen_stage");
+	column_names_.emplace_back("gen_stage");
 	
 	return gStaticEidosValueVOID;
 }
@@ -673,8 +673,8 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	gEidosErrorContext = error_context_save;
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CustomMeanAndSD, source_script, -1, context_value});
-	column_names_.push_back(column_name + "_mean");
-	column_names_.push_back(column_name + "_sd");
+	column_names_.emplace_back(column_name + "_mean");
+	column_names_.emplace_back(column_name + "_sd");
 	
 	return gStaticEidosValueVOID;
 }
@@ -687,7 +687,7 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSexRatio(EidosGlobalStringID p
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSexRatio");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, -1, EidosValue_SP()});
-	column_names_.push_back("sex_ratio");
+	column_names_.emplace_back("sex_ratio");
 	
 	return gStaticEidosValueVOID;
 }
@@ -700,7 +700,7 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSize(EidosGlobalStringID p_met
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSize");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSize, nullptr, -1, EidosValue_SP()});
-	column_names_.push_back("num_individuals");
+	column_names_.emplace_back("num_individuals");
 	
 	return gStaticEidosValueVOID;
 }
@@ -734,7 +734,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringI
 	}
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SubpopulationSexRatio, nullptr, subpop_id, EidosValue_SP()});
-	column_names_.push_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_sex_ratio");
+	column_names_.emplace_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_sex_ratio");
 	
 	return gStaticEidosValueVOID;
 }
@@ -768,7 +768,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 	}
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SubpopulationSize, nullptr, subpop_id, EidosValue_SP()});
-	column_names_.push_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_num_individuals");
+	column_names_.emplace_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_num_individuals");
 	
 	return gStaticEidosValueVOID;
 }
@@ -841,7 +841,7 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 		int ic_count = initialContents_value->Count();
 		
 		for (int ic_index = 0; ic_index < ic_count; ++ic_index)
-			initialContents.push_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
+			initialContents.emplace_back(&ic_string_value->StringRefAtIndex(ic_index, nullptr));
 	}
 	
 	if (compress_value->Type() != EidosValueType::kValueNULL)

@@ -137,7 +137,7 @@ bool CompareEidosValues(const EidosValue &p_value1, int p_index1, const EidosVal
 //		and then set the values inside it without needing to either zero-initialize the buffer first or set
 //		the count after each value added.  In contrast, std::vector does not allow this mode of operation;
 //		you can either resize the vector first (which zero-initializes), or you can reserve but not resize
-//		(avoiding the zero-initialize) and then push_back() values, but that writes a new count value out to
+//		(avoiding the zero-initialize) and then emplace_back() values, but that writes a new count value out to
 //		memory on every push.  Since this sort of large-N result generation is very common, this is a big win.
 //
 //	-	When adding new values, it lets us skip both bounds-checking and capacity-checking when we know we

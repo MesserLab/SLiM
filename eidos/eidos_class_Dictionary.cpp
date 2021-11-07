@@ -49,7 +49,7 @@ void EidosDictionaryUnretained::KeyAddedToDictionary(const std::string &p_key)
 	
 	if (iter == sorted_keys.end())
 	{
-		sorted_keys.push_back(p_key);
+		sorted_keys.emplace_back(p_key);
 		
 		// Dictionary keeps its keys in sorted order regardless of the order in which they are added
 		// Sorting every time would be painful with many keys, but we don't expect that...

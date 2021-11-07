@@ -1802,7 +1802,7 @@
 			if (signature->body_script_ && signature->user_defined_)
 			{
 				signature->body_script_->AST()->ConvertProfileTotalsToSelfCounts();
-				userDefinedFunctions.push_back(signature);
+				userDefinedFunctions.emplace_back(signature);
 			}
 		}
 		

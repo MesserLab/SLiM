@@ -2051,7 +2051,7 @@
 		if (score != INT64_MIN)
 		{
 			[unsortedCompletions addObject:candidate];
-			scores.push_back(score);
+			scores.emplace_back(score);
 		}
 	}
 	

@@ -1234,11 +1234,11 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
     
     // put "All" first, if it occurs in subpopsToDisplay
     if (std::find(subpopsToDisplay.begin(), subpopsToDisplay.end(), -1) != subpopsToDisplay.end())
-        legend_key.push_back(QtSLiMLegendEntry("All", Qt::black));
+        legend_key.emplace_back("All", Qt::black);
 
     if (drawSubpopsGray)
     {
-        legend_key.push_back(QtSLiMLegendEntry("pX", QtSLiMColorWithWhite(0.5, 1.0)));
+        legend_key.emplace_back("pX", QtSLiMColorWithWhite(0.5, 1.0));
     }
     else
     {
@@ -1248,7 +1248,7 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
             {
                 QString labelString = QString("p%1").arg(subpop_id);
 
-                legend_key.push_back(QtSLiMLegendEntry(labelString, controller_->whiteContrastingColorForIndex(subpop_id)));
+                legend_key.emplace_back(labelString, controller_->whiteContrastingColorForIndex(subpop_id));
             }
         }
     }

@@ -214,13 +214,13 @@ void Eidos_WarmUp(void)
 		been_here = true;
 		
 		// Set up the vector of Eidos constant names
-		gEidosConstantNames.push_back(gEidosStr_T);
-		gEidosConstantNames.push_back(gEidosStr_F);
-		gEidosConstantNames.push_back(gEidosStr_NULL);
-		gEidosConstantNames.push_back(gEidosStr_PI);
-		gEidosConstantNames.push_back(gEidosStr_E);
-		gEidosConstantNames.push_back(gEidosStr_INF);
-		gEidosConstantNames.push_back(gEidosStr_NAN);
+		gEidosConstantNames.emplace_back(gEidosStr_T);
+		gEidosConstantNames.emplace_back(gEidosStr_F);
+		gEidosConstantNames.emplace_back(gEidosStr_NULL);
+		gEidosConstantNames.emplace_back(gEidosStr_PI);
+		gEidosConstantNames.emplace_back(gEidosStr_E);
+		gEidosConstantNames.emplace_back(gEidosStr_INF);
+		gEidosConstantNames.emplace_back(gEidosStr_NAN);
 		
 		// Make the shared EidosValue pool
 		size_t maxEidosValueSize = sizeof(EidosValue_NULL);
@@ -1625,7 +1625,7 @@ void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::st
 			auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 			
 			if (buffer_iter == gEidosBufferedZipAppendData.end())
-				buffer_iter = gEidosBufferedZipAppendData.emplace(std::pair<std::string, std::string>(p_file_path, "")).first;
+				buffer_iter = gEidosBufferedZipAppendData.emplace(p_file_path, "").first;
 			
 			std::string &buffer = buffer_iter->second;
 			
@@ -2851,7 +2851,7 @@ const std::string &EidosRegisteredString(const char *p_cstr, EidosGlobalStringID
 	// We add registration objects to a thunk vector so we can free them at the end to un-confuse Valgrind;
 	// see Eidos_FreeGlobalStrings().  Note that this thunk vector is not used by Eidos or SLiM, but the
 	// registration objects are; they hold onto the std::string objects used by _RegisterStringForGlobalID().
-	gIDToString_Thunk.push_back(registration_object);
+	gIDToString_Thunk.emplace_back(registration_object);
 #endif
 	
 	return registration_object->string_;

@@ -407,9 +407,9 @@ public:
 		if (p_proposed_child_accepted)
 		{
 			// The child was accepted, so add it to our staging area and return it to the caller
-			nonWF_offspring_genomes_.push_back(p_genome1);
-			nonWF_offspring_genomes_.push_back(p_genome2);
-			nonWF_offspring_individuals_.push_back(p_individual);
+			nonWF_offspring_genomes_.emplace_back(p_genome1);
+			nonWF_offspring_genomes_.emplace_back(p_genome2);
+			nonWF_offspring_individuals_.emplace_back(p_individual);
 			
 			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class);
 			

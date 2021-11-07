@@ -262,9 +262,9 @@ void TestSparseArray(void)
 				for (int col = 0; col < 100; ++col)
 					if (*(distances + row + col * 100) != 0)
 					{
-						columns.push_back(col);
-						row_distances.push_back(*(distances + row + col * 100));
-						row_strengths.push_back(*(strengths + row + col * 100));
+						columns.emplace_back(col);
+						row_distances.emplace_back(*(distances + row + col * 100));
+						row_strengths.emplace_back(*(strengths + row + col * 100));
 					}
 				
 				sa.AddRowInteractions(row, columns.data(), row_distances.data(), row_strengths.data(), (uint32_t)columns.size());

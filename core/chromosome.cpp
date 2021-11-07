@@ -1302,7 +1302,7 @@ generateDSBs:
 			if (dsb_point <= last_position_used)
 				goto generateDSBs;
 			
-			p_crossovers.push_back(dsb_point);
+			p_crossovers.emplace_back(dsb_point);
 			last_position_used = dsb_point;
 		}
 		else
@@ -1325,23 +1325,23 @@ generateDSBs:
 			{
 				// gene conversion tract of zero length, so no tract after all, but we do use non_crossover here
 				if (!std::get<2>(dsb_info))
-					p_crossovers.push_back(tract_start);
+					p_crossovers.emplace_back(tract_start);
 				last_position_used = tract_start;
 			}
 			else
 			{
 				// gene conversion tract of non-zero length, so generate the tract
-				p_crossovers.push_back(tract_start);
+				p_crossovers.emplace_back(tract_start);
 				if (std::get<2>(dsb_info))
-					p_crossovers.push_back(tract_end);
+					p_crossovers.emplace_back(tract_end);
 				last_position_used = tract_end;
 				
 				// decide if it is a simple or a complex tract
 				if (!std::get<3>(dsb_info))
 				{
 					// complex gene conversion tract; we need to save it in the list of heteroduplex regions
-					p_heteroduplex.push_back(tract_start);
-					p_heteroduplex.push_back(tract_end - 1);	// heteroduplex positions are base positions, so the last position is to the left of the GC tract end
+					p_heteroduplex.emplace_back(tract_start);
+					p_heteroduplex.emplace_back(tract_end - 1);	// heteroduplex positions are base positions, so the last position is to the left of the GC tract end
 				}
 			}
 		}

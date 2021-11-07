@@ -1662,7 +1662,7 @@ QStringList QtSLiMTextEdit::completionsFromArrayMatchingBase(QStringList candida
 		if (score != INT64_MIN)
 		{
 			unsortedCompletions << candidate;
-			scores.push_back(score);
+			scores.emplace_back(score);
 		}
 	}
 	

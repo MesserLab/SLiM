@@ -266,7 +266,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
             
             if (subpopGenomeCount)
                 for (int i = 0; i < histogramBinCount_ - 1; ++i)
-                    sampleGenomes.push_back(subpopGenomes[random() % subpopGenomeCount]);
+                    sampleGenomes.emplace_back(subpopGenomes[random() % subpopGenomeCount]);
             
             tallyGUIMutationReferences(sampleGenomes, selectedMutationTypeIndex_);
         }

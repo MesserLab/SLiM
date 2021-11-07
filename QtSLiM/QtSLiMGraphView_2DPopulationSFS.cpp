@@ -237,7 +237,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts1.push_back(mutation->gui_scratch_reference_count_);
+                refcounts1.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
         if (subpop1_total_genome_count == 0)
@@ -250,7 +250,7 @@ double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
         {
             const Mutation *mutation = mut_block_ptr + *registry_iter;
             if (mutation->mutation_type_ptr_->mutation_type_index_ == selectedMutationTypeIndex_)
-                refcounts2.push_back(mutation->gui_scratch_reference_count_);
+                refcounts2.emplace_back(mutation->gui_scratch_reference_count_);
         }
         
         if (subpop2_total_genome_count == 0)

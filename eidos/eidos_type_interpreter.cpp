@@ -338,7 +338,7 @@ void EidosTypeInterpreter::_ProcessArgumentListTypes(const EidosASTNode *p_node,
 							// To be a completion match, the name must not be private API ('_' prefix) or an ellipsis ('...')
 							// Whether it is an acceptable completion in other respects will be checked by the completion engine
 							if ((arg_name[0] != '_') && !is_ellipsis)
-								argument_completions_->push_back(arg_name);
+								argument_completions_->emplace_back(arg_name);
 							
 							// If the argument we just examined is non-optional, we don't want to offer any further suggestions
 							// since they would not be legal to supply in this position in the function/method call.
@@ -1091,7 +1091,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 						sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, EidosValue_SP(nullptr), true);	// true is fault-tolerant
 					}
 					
-					used_param_names.push_back(param_name);
+					used_param_names.emplace_back(param_name);
 				}
 			}
 			

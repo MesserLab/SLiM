@@ -737,7 +737,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 			{
 				double draw = mut_type->DrawSelectionCoefficient();
 				
-				draws.push_back(draw);
+				draws.emplace_back(draw);
 				
 				if (draw < 0.0)			draw_negative = true;
 				else if (draw > 0.0)	draw_positive = true;

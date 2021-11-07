@@ -426,10 +426,10 @@ void _RunSLiMTimingTests(void)
 		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> genome_unordered_map;
 		
 		for (int i = 0; i < 4; ++i)
-			genome_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i])));
+			genome_map.emplace(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i]));
 		
 		for (int i = 0; i < 4; ++i)
-			genome_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i])));
+			genome_unordered_map.emplace(genome_properties[i], gSLiM_Genome_Class->_SignatureForProperty(genome_properties[i]));
 		
 		{
 			std::clock_t begin = std::clock();
@@ -497,10 +497,10 @@ void _RunSLiMTimingTests(void)
 		std::unordered_map<EidosGlobalStringID, const EidosPropertySignature *> individual_unordered_map;
 		
 		for (int i = 0; i < 17; ++i)
-			individual_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i])));
+			individual_map.emplace(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i]));
 		
 		for (int i = 0; i < 17; ++i)
-			individual_unordered_map.emplace(std::pair<EidosGlobalStringID, const EidosPropertySignature *>(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i])));
+			individual_unordered_map.emplace(individual_properties[i], gSLiM_Individual_Class->_SignatureForProperty(individual_properties[i]));
 		
 		{
 			std::clock_t begin = std::clock();
