@@ -3136,7 +3136,9 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	else if (spatiality_ == 2)
 		CacheClippedIntegral_2D();
 	else // (spatiality_ == 3)
+	{
 		;	// FIXME the big obstacle here is that a 1024x1024x1024 array of precalculated values is way too large, so interpolation is probably needed
+	}
 	
 	// NULL means "what's the integral for an individual that is not near any edge?"
 	if ((individuals_count == 0) && (individuals_value->Type() == EidosValueType::kValueNULL))

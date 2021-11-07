@@ -8192,15 +8192,15 @@ void SLiMSim::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		// bounds-check and save off the pedigree ID, which we will use again; note that parent pedigree IDs are allowed to be -1
 		if (metadata->pedigree_id_ < 0)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have pedigree IDs >= 0." << EidosTerminate();
-		subpop_info.pedigreeID_.emplace_back(metadata->pedigree_id_);
+		subpop_info.pedigreeID_.push_back(metadata->pedigree_id_);
 		
 		if ((metadata->pedigree_p1_ < -1) || (metadata->pedigree_p2_ < -1))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__TabulateSubpopulationsFromTreeSequence): individuals loaded must have parent pedigree IDs >= -1." << EidosTerminate();
-		subpop_info.pedigreeP1_.emplace_back(metadata->pedigree_p1_);
-		subpop_info.pedigreeP2_.emplace_back(metadata->pedigree_p2_);
+		subpop_info.pedigreeP1_.push_back(metadata->pedigree_p1_);
+		subpop_info.pedigreeP2_.push_back(metadata->pedigree_p2_);
 
 		// save off the flags for later use
-		subpop_info.flags_.emplace_back(metadata->flags_);
+		subpop_info.flags_.push_back(metadata->flags_);
 		
 		// bounds-check ages; we cross-translate ages of 0 and -1 if the model type has been switched
 		slim_age_t age = metadata->age_;
