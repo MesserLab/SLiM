@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <ctime>
 
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)
@@ -2551,6 +2552,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		Eidos_CheckRSSAgainstMax("SLiMSim::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): The memory usage was already out of bounds on entry.)");
 #endif
 	
+	std::clock_t before = clock();
+	
 	// Output header line
 	out << "#OUT: " << generation_ << " F";
 	
@@ -2583,6 +2586,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	if (has_file)
 		outfile.close(); 
 	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
+	
 	return gStaticEidosValueVOID;
 }
 			
@@ -2610,6 +2616,8 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 			}
 		}
 	}
+	
+	std::clock_t before = clock();
 	
 	bool use_binary = binary_value->LogicalAtIndex(0, nullptr);
 	bool output_spatial_positions = spatialPositions_value->LogicalAtIndex(0, nullptr);
@@ -2670,6 +2678,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		}
 	}
 	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
+	
 	return gStaticEidosValueVOID;
 }
 			
@@ -2713,6 +2724,7 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
+	std::clock_t before = clock();
 	int mutations_count = mutations_value->Count();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
@@ -2779,6 +2791,9 @@ EidosValue_SP SLiMSim::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (has_file)
 		outfile.close(); 
+	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
 	
 	return gStaticEidosValueVOID;
 }
@@ -3004,9 +3019,13 @@ EidosValue_SP SLiMSim::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		}
 	}
 	
+	std::clock_t before = clock();
 	EidosValue *filePath_value = p_arguments[0].get();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
 	slim_generation_t file_generation = InitializePopulationFromFile(file_path, &p_interpreter);
+	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(file_generation));
 }
@@ -3717,7 +3736,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
 	
+	std::clock_t before = clock();
 	SimplifyTreeSequence();
+	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
 	
 	return gStaticEidosValueVOID;
 }
@@ -3805,7 +3828,11 @@ EidosValue_SP SLiMSim::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteMethod_treeSeqOutput): (internal) metadata object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
 	}
 	
+	std::clock_t before = clock();
 	WriteTreeSequence(path_string, binary, simplify, includeModel, metadata_dict);
+	
+	// we want to exclude this method's time from mutation run experiments, since it typically executes infrequently and takes a long time
+	x_excluded_clocks_ += (clock() - before);
 	
 	return gStaticEidosValueVOID;
 }

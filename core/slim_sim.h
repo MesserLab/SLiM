@@ -453,6 +453,9 @@ private:
 	
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
 	
+	std::clock_t x_excluded_clocks_;	// a counter of clocks to be excluded from the generation runtime; FIXME not clear that this is a very good
+										// design, because any kind of "if (sim.generation % X == 0)" type code will skew the counts anyway...
+	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording ivars

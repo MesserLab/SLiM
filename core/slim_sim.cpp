@@ -3275,7 +3275,7 @@ bool SLiMSim::_RunOneGenerationWF(void)
 	
 	// make a clock if we're running experiments
 	std::clock_t x_clock0 = (x_experiments_enabled_ ? std::clock() : 0);
-	
+	x_excluded_clocks_ = 0;
 	
 	// ******************************************************************
 	//
@@ -3687,7 +3687,10 @@ bool SLiMSim::_RunOneGenerationWF(void)
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		if (x_experiments_enabled_)
-			MaintainMutationRunExperiments((std::clock() - x_clock0) / (double)CLOCKS_PER_SEC);
+		{
+			MaintainMutationRunExperiments(((std::clock() - x_clock0) - x_excluded_clocks_) / (double)CLOCKS_PER_SEC);
+			x_excluded_clocks_ = 0;
+		}
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -3798,7 +3801,7 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 	
 	// make a clock if we're running experiments
 	std::clock_t x_clock0 = (x_experiments_enabled_ ? std::clock() : 0);
-	
+	x_excluded_clocks_ = 0;
 	
 	// ******************************************************************
 	//
@@ -4255,7 +4258,10 @@ bool SLiMSim::_RunOneGenerationNonWF(void)
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
 		if (x_experiments_enabled_)
-			MaintainMutationRunExperiments((std::clock() - x_clock0) / (double)CLOCKS_PER_SEC);
+		{
+			MaintainMutationRunExperiments(((std::clock() - x_clock0) - x_excluded_clocks_) / (double)CLOCKS_PER_SEC);
+			x_excluded_clocks_ = 0;
+		}
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
