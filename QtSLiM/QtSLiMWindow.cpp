@@ -3880,6 +3880,79 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             }
             else
             {
+                // we cannot handle within-text formatting, since Qt doesn't support it; just an overall style
+                // this is supported only on these section header items; we can't do the formatting on script block items
+                
+                // handle # H1 to ###### H6 headers, used to set the font size; these cannot be nested
+                int headerLevel = 3;    // 1/2 are bigger; 3 is "default" and has no effect; 4/5/6 are progressively smaller
+                
+                if (comment.startsWith("# "))
+                {
+                    headerLevel = 1;
+                    comment = comment.mid(2);
+                }
+                else if (comment.startsWith("## "))
+                {
+                    headerLevel = 2;
+                    comment = comment.mid(3);
+                }
+                else if (comment.startsWith("### "))
+                {
+                    headerLevel = 3;
+                    comment = comment.mid(4);
+                }
+                else if (comment.startsWith("#### "))
+                {
+                    headerLevel = 4;
+                    comment = comment.mid(5);
+                }
+                else if (comment.startsWith("##### "))
+                {
+                    headerLevel = 5;
+                    comment = comment.mid(6);
+                }
+                else if (comment.startsWith("###### "))
+                {
+                    headerLevel = 6;
+                    comment = comment.mid(7);
+                }
+                
+                // handle **bold** and _italic_ markdown; these can be nested and all get eaten
+                bool isBold = false, isItalic = false;
+                bool sawStyleChange = false;
+                
+                do
+                {
+                    // loop until this stays false, so we handle nested styles
+                    sawStyleChange = false;
+                    
+                    if (comment.startsWith("__") && comment.endsWith("__"))
+                    {
+                        isBold = true;
+                        sawStyleChange = true;
+                        comment = comment.mid(2, comment.length() - 4);
+                    }
+                    if (comment.startsWith("**") && comment.endsWith("**"))
+                    {
+                        isBold = true;
+                        sawStyleChange = true;
+                        comment = comment.mid(2, comment.length() - 4);
+                    }
+                    if (comment.startsWith("_") && comment.endsWith("_"))
+                    {
+                        isItalic = true;
+                        sawStyleChange = true;
+                        comment = comment.mid(1, comment.length() - 2);
+                    }
+                    if (comment.startsWith("*") && comment.endsWith("*"))
+                    {
+                        isItalic = true;
+                        sawStyleChange = true;
+                        comment = comment.mid(1, comment.length() - 2);
+                    }
+                }
+                while (sawStyleChange);
+                
                 jumpAction = new QAction(comment);
                 connect(jumpAction, &QAction::triggered, scriptTE, [scriptTE, comment_start, comment_end]() {
                     QTextCursor cursor = scriptTE->textCursor();
@@ -3890,7 +3963,22 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 });
                 
                 QFont action_font = jumpAction->font();
-                action_font.setBold(true);
+                if (isBold)
+                    action_font.setBold(true);
+                if (isItalic)
+                    action_font.setItalic(true);
+                if (headerLevel == 1)
+                    action_font.setPointSizeF(action_font.pointSizeF() * 1.50);
+                if (headerLevel == 2)
+                    action_font.setPointSizeF(action_font.pointSizeF() * 1.25);
+                //if (headerLevel == 3)
+                //    action_font.setPointSizeF(action_font.pointSizeF() * 1.00);
+                if (headerLevel == 4)
+                    action_font.setPointSizeF(action_font.pointSizeF() * 0.96);
+                if (headerLevel == 5)
+                    action_font.setPointSizeF(action_font.pointSizeF() * 0.85);
+                if (headerLevel == 6)
+                    action_font.setPointSizeF(action_font.pointSizeF() * 0.75);
                 jumpAction->setFont(action_font);
             }
             
