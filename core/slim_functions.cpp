@@ -29,6 +29,8 @@
 
 #include <string>
 #include <vector>
+#include <limits>
+#include <algorithm>
 
 
 extern const char *gSLiMSourceCode_calcFST;

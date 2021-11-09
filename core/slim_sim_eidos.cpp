@@ -35,6 +35,7 @@
 #include <vector>
 #include <cmath>
 #include <ctime>
+#include <unordered_map>
 
 
 static void PrintBytes(std::ostream &p_out, size_t p_bytes)

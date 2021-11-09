@@ -23,6 +23,10 @@
 
 #include <fstream>
 #include <regex>
+#include <limits>
+#include <string>
+#include <algorithm>
+#include <vector>
 
 
 //

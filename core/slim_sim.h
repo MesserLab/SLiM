@@ -31,6 +31,7 @@
 #include <map>
 #include <vector>
 #include <iostream>
+#include <ctime>
 
 #include "slim_globals.h"
 #include "mutation.h"
