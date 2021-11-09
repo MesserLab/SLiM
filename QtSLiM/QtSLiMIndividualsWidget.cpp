@@ -84,7 +84,7 @@ void QtSLiMIndividualsWidget::paintGL()
     painter.fillRect(rect(), Qt::red);
     
     //
-	//	NOTE this code is parallel to code in tileSubpopulations: and both should be maintained!
+	//	NOTE this code is parallel to code in tileSubpopulations() and both should be maintained!
 	//
 	
 	QRect bounds = rect();
@@ -98,13 +98,7 @@ void QtSLiMIndividualsWidget::paintGL()
     tileSubpopulations(selectedSubpopulations);
     
 	// Decide on our display mode
-	if (!controller->invalidSimulation() && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
-	{
-		if (displayMode == -1)
-			displayMode = ((sim->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 0))
-			displayMode = 0;
-	}
+    determineDisplayMode(selectedSubpopulations);
 	
 	if ((selectedSubpopCount == 0) || !canDisplayAllIndividuals)
 	{
@@ -142,6 +136,8 @@ void QtSLiMIndividualsWidget::paintGL()
 		
         painter.beginNativePainting();
         
+        bool clearBackground = true;    // used for display mode 2 to prevent repeated clearing
+        
 		for (Subpopulation *subpop : selectedSubpopulations)
 		{
 			auto tileIter = subpopTiles.find(subpop->subpopulation_id_);
@@ -150,27 +146,31 @@ void QtSLiMIndividualsWidget::paintGL()
 			{
 				QRect tileBounds = tileIter->second;
 				
-                if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
+                if ((displayMode == 1) || (displayMode == 2))
 				{
-					drawSpatialBackgroundInBoundsForSubpopulation(tileBounds, subpop, sim->spatial_dimensionality_);
-					drawSpatialIndividualsFromSubpopulationInArea(subpop, tileBounds.adjusted(1, 1, -1, -1), sim->spatial_dimensionality_);
-					drawViewFrameInBounds(tileBounds);
-				}
-				else if ((displayMode == 1) && (sim->spatial_dimensionality_ > 1))
-				{
-					// clear to a shade of gray
-					glColor3f(0.9f, 0.9f, 0.9f);
-                    glRecti(tileBounds.left(), tileBounds.top(), (tileBounds.left() + tileBounds.width()), (tileBounds.top() + tileBounds.height()));
-					
-					// Frame our view
-					drawViewFrameInBounds(tileBounds);
-					
-					// Now determine a subframe and draw spatial information inside that.
-					QRect spatialDisplayBounds = spatialDisplayBoundsForSubpopulation(subpop, tileBounds);
-					
-					drawSpatialBackgroundInBoundsForSubpopulation(spatialDisplayBounds, subpop, sim->spatial_dimensionality_);
+                    QRect spatialDisplayBounds = spatialDisplayBoundsForSubpopulation(subpop, tileBounds);
+                    QRect frameBounds = spatialDisplayBounds.adjusted(-1, -1, 1, 1);
+                    
+                    if (clearBackground)
+                    {
+                        if (frameBounds != tileBounds)
+                        {
+                            // If we have inset the tileBounds because of aspect ratio considerations
+                            // in spatialDisplayBoundsForSubpopulation() (which only happens in 2D),
+                            // clear to a shade of gray and frame the overall tileBounds
+                            glColor3f(0.9f, 0.9f, 0.9f);
+                            glRecti(tileBounds.left(), tileBounds.top(), (tileBounds.left() + tileBounds.width()), (tileBounds.top() + tileBounds.height()));
+                            drawViewFrameInBounds(tileBounds);
+                        }
+                        
+                        drawSpatialBackgroundInBoundsForSubpopulation(spatialDisplayBounds, subpop, sim->spatial_dimensionality_);
+                    }
+                    
 					drawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, sim->spatial_dimensionality_);
-                    drawViewFrameInBounds(spatialDisplayBounds.adjusted(-1, -1, 1, 1));
+					drawViewFrameInBounds(frameBounds); // framed more than once in displayMode 2, which is OK
+                    
+                    if (displayMode == 2)
+                        clearBackground = false;
 				}
 				else	// displayMode == 0
 				{
@@ -192,55 +192,111 @@ void QtSLiMIndividualsWidget::paintGL()
 	}
 }
 
+bool QtSLiMIndividualsWidget::canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+    int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
+    
+    if (!controller->invalidSimulation() && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
+	{
+        if (sim->spatial_dimensionality_ == 0)
+            return false;
+        if (selectedSubpopCount <= 1)
+            return true;                // allow us to stay in unified mode across a recycle, even if subpops are added gradually
+        
+        // we need all the subpops to have the same spatial bounds, so their coordinate systems match up
+        double x0 = 0, x1 = 0, y0 = 0, y1 = 0, z0 = 0, z1 = 0;  // suppress unused warnings
+        bool first = true;
+        
+        for (Subpopulation *subpop : selectedSubpopulations)
+        {
+            if (first)
+            {
+                x0 = subpop->bounds_x0_;    x1 = subpop->bounds_x1_;
+                y0 = subpop->bounds_y0_;    y1 = subpop->bounds_y1_;
+                z0 = subpop->bounds_z0_;    z1 = subpop->bounds_z1_;
+                first = false;
+            }
+            else
+            {
+                if ((x0 != subpop->bounds_x0_) || (x1 != subpop->bounds_x1_) ||
+                        (y0 != subpop->bounds_y0_) || (y1 != subpop->bounds_y1_) ||
+                        (z0 != subpop->bounds_z0_) || (z1 != subpop->bounds_z1_))
+                    return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    return true;    // allow unified to be chosen as long as we have no information to the contrary
+}
+
+void QtSLiMIndividualsWidget::determineDisplayMode(std::vector<Subpopulation*> &selectedSubpopulations)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+    
+    if (!controller->invalidSimulation() && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
+	{
+        if ((displayMode == 2) && !canDisplayUnified(selectedSubpopulations))
+            displayMode = 1;
+		if (displayMode == -1)
+			displayMode = ((sim->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 0))
+			displayMode = 0;
+	}
+}
+
 void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &selectedSubpopulations)
 {
 	//
-	//	NOTE this code is parallel to code in drawRect: and both should be maintained!
+	//	NOTE this code is parallel to code in paintGL() and both should be maintained!
 	//
 	
 	// We will decide upon new tiles for our subpopulations here, so start out empty
 	subpopTiles.clear();
 	
     QRect bounds = rect();
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	SLiMSim *sim = controller->sim;
     int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
 	
 	// Decide on our display mode
-    if (!controller->invalidSimulation() && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
-	{
-		if (displayMode == -1)
-			displayMode = ((sim->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 0))
-			displayMode = 0;
-	}
-	
+	determineDisplayMode(selectedSubpopulations);
+    
 	if (selectedSubpopCount == 0)
 	{
 		canDisplayAllIndividuals = true;
 	}
+    else if (displayMode == 2)
+	{
+        // set all tiles to be the full bounds for overlay mode
+        for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
+        {
+            Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
+            
+            subpopTiles.emplace(subpop->subpopulation_id_, bounds);
+        }
+        canDisplayAllIndividuals = true;
+	}
+    else if (selectedSubpopCount == 1)
+	{
+        Subpopulation *selectedSubpop = selectedSubpopulations[0];
+        
+        subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
+        
+        if (displayMode == 1)
+        {
+            canDisplayAllIndividuals = true;
+        }
+        else
+        {
+            canDisplayAllIndividuals = canDisplayIndividualsFromSubpopulationInArea(selectedSubpop, bounds);
+        }
+    }
 	else if (selectedSubpopCount > 10)
 	{
 		canDisplayAllIndividuals = false;
-	}
-	else if (selectedSubpopCount == 1)
-	{
-		Subpopulation *selectedSubpop = selectedSubpopulations[0];
-		
-		subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
-		
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
-		{
-			canDisplayAllIndividuals = true;
-		}
-		else if ((displayMode == 1) && (sim->spatial_dimensionality_ > 1))
-		{
-			canDisplayAllIndividuals = true;
-		}
-		else
-		{
-            canDisplayAllIndividuals = canDisplayIndividualsFromSubpopulationInArea(selectedSubpop, bounds);
-		}
 	}
     else if (displayMode == 1)
 	{
@@ -349,32 +405,39 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
 {
 	// Determine a subframe for drawing spatial information inside.  The subframe we use is the maximal subframe
 	// with integer boundaries that preserves, as closely as possible, the aspect ratio of the subpop's bounds.
+    // If sim->spatial_dimensionality_ is 1, there are no aspect ratio considerations so we just inset.
 	QRect spatialDisplayBounds = tileBounds.adjusted(1, 1, -1, -1);
-	double displayAspect = spatialDisplayBounds.width() / static_cast<double>(spatialDisplayBounds.height());
-	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
-	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
-	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
-	double subpopAspect = bounds_x_size / bounds_y_size;
-	
-	if (subpopAspect > displayAspect)
-	{
-		// The display bounds will need to shrink vertically to match the subpop
-		int idealSize = qRound(spatialDisplayBounds.width() / subpopAspect);
-		int roundedOffset = qRound((spatialDisplayBounds.height() - idealSize) / 2.0);
-		
-        spatialDisplayBounds.setY(spatialDisplayBounds.y() + roundedOffset);
-        spatialDisplayBounds.setHeight(idealSize);
-	}
-	else if (subpopAspect < displayAspect)
-	{
-		// The display bounds will need to shrink horizontally to match the subpop
-		int idealSize = qRound(spatialDisplayBounds.height() * subpopAspect);
-		int roundedOffset = qRound((spatialDisplayBounds.width() - idealSize) / 2.0);
-		
-		spatialDisplayBounds.setX(spatialDisplayBounds.x() + roundedOffset);
-		spatialDisplayBounds.setWidth(idealSize);
-	}
-	
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+    
+    if (sim && (sim->spatial_dimensionality_ > 1))
+    {
+        double displayAspect = spatialDisplayBounds.width() / static_cast<double>(spatialDisplayBounds.height());
+        double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
+        double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
+        double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
+        double subpopAspect = bounds_x_size / bounds_y_size;
+        
+        if (subpopAspect > displayAspect)
+        {
+            // The display bounds will need to shrink vertically to match the subpop
+            int idealSize = qRound(spatialDisplayBounds.width() / subpopAspect);
+            int roundedOffset = qRound((spatialDisplayBounds.height() - idealSize) / 2.0);
+            
+            spatialDisplayBounds.setY(spatialDisplayBounds.y() + roundedOffset);
+            spatialDisplayBounds.setHeight(idealSize);
+        }
+        else if (subpopAspect < displayAspect)
+        {
+            // The display bounds will need to shrink horizontally to match the subpop
+            int idealSize = qRound(spatialDisplayBounds.height() * subpopAspect);
+            int roundedOffset = qRound((spatialDisplayBounds.width() - idealSize) / 2.0);
+            
+            spatialDisplayBounds.setX(spatialDisplayBounds.x() + roundedOffset);
+            spatialDisplayBounds.setWidth(idealSize);
+        }
+    }
+    
 	return spatialDisplayBounds;
 }
 
@@ -1318,28 +1381,45 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
 	
     QMenu contextMenu("population_menu", this);
     
-    QAction *displayNonSpatial = contextMenu.addAction("Display Individuals (non-spatial)");
+    QAction *displayNonSpatial = contextMenu.addAction("Display Non-spatial");
     displayNonSpatial->setData(0);
     displayNonSpatial->setCheckable(true);
     displayNonSpatial->setEnabled(!disableAll);
     
-    QAction *displaySpatial = contextMenu.addAction("Display Individuals (spatial)");
+    QAction *displaySpatial = contextMenu.addAction("Display Spatial (separate)");
     displaySpatial->setData(1);
     displaySpatial->setCheckable(true);
     displaySpatial->setEnabled(!disableAll && (sim->spatial_dimensionality_ > 0));
     
+    QAction *displayUnified = contextMenu.addAction("Display Spatial (unified)");
+    displayUnified->setData(2);
+    displayUnified->setCheckable(true);
+    if (disableAll)
+        displayUnified->setEnabled(false);
+    else
+    {
+        std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
+        displayUnified->setEnabled(canDisplayUnified(selectedSubpopulations));
+    }
+    
     // Check the item corresponding to our current display preference, if any
     if (!disableAll)
-        (displayMode == 0 ? displayNonSpatial : displaySpatial)->setChecked(true);
+    {
+        if (displayMode == 0)   displayNonSpatial->setChecked(true);
+        if (displayMode == 1)   displaySpatial->setChecked(true);
+        if (displayMode == 2)   displayUnified->setChecked(true);
+    }
     
     QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
     displayGroup->addAction(displayNonSpatial);
     displayGroup->addAction(displaySpatial);
+    displayGroup->addAction(displayUnified);
     
 	// If we're displaying spatially, find the subpop that was clicked in
+    // in "unified" display mode, we always show the context menu for the first selected subpop
     Subpopulation *subpopForEvent = nullptr;
     
-	if (!disableAll && (sim->spatial_dimensionality_ > 0) && (displayMode == 1))
+	if (!disableAll && (sim->spatial_dimensionality_ > 0) && ((displayMode == 1) || (displayMode == 2)))
 	{
 		std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
         QPoint viewPoint = p_event->pos();
@@ -1440,7 +1520,7 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)
     {
-        if ((action == displayNonSpatial) || (action == displaySpatial))
+        if ((action == displayNonSpatial) || (action == displaySpatial) || (action == displayUnified))
         {
             // - (IBAction)setDisplayStyle:(id)sender
             int newDisplayMode = action->data().toInt();

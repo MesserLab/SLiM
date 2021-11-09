@@ -44,7 +44,7 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
     
-    // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial)
+    // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial, separate), 2 == individual (spatial, overplotted)
 	int displayMode = 0;
 	
 	// display background preferences, kept indexed by subpopulation id
@@ -69,6 +69,8 @@ protected:
     virtual void resizeGL(int w, int h) override;
     virtual void paintGL() override;
 
+    bool canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations);
+    void determineDisplayMode(std::vector<Subpopulation*> &selectedSubpopulations);
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
     QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
     
