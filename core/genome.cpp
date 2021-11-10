@@ -1429,10 +1429,10 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 	// make a hash table that looks up the genotype string position from a mutation pointer
 #if EIDOS_ROBIN_HOOD_HASHING
 	robin_hood::unordered_flat_map<const Mutation*, int> genotype_string_positions;
-	typedef robin_hood::pair<const Mutation*, int> MAP_PAIR;
+	//typedef robin_hood::pair<const Mutation*, int> MAP_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<const Mutation*, int> genotype_string_positions;
-	typedef std::pair<const Mutation*, int> MAP_PAIR;
+	//typedef std::pair<const Mutation*, int> MAP_PAIR;
 #endif
 	int genotype_string_position = 0;
 	

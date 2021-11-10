@@ -5353,10 +5353,10 @@ void SLiMSim::SimplifyTreeSequence(void)
 	{
 #if EIDOS_ROBIN_HOOD_HASHING
 		robin_hood::unordered_flat_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
-		typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
+		//typedef robin_hood::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
 		std::unordered_map<tsk_id_t, uint32_t> remembered_genomes_lookup;
-		typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
+		//typedef std::pair<tsk_id_t, uint32_t> MAP_PAIR;
 #endif
 		
 		// the remembered_genomes_ come first in the list of samples

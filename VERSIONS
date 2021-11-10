@@ -78,6 +78,7 @@ development head:
 	modify recipe 16.15 (WF models implemented as nonWF models); there are now two recipes, the second one showing how to implement fitness-based mating success
 	add support for Markdown in the Jump menu (_italic_, *italic*, __bold__, **bold**; only in section header items, not in script block comments (Qt doesn't allow within-item formatting)
 		also headers: # a lot larger (H1), ## a little larger (H2), ### default size (H3), #### a little smaller (H4), ##### medium-small (H5), ###### a lot smaller (H6)) (note the space after the hashes is required!)
+	add "unified" display mode in SLiMgui's individuals view
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

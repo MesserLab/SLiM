@@ -5017,10 +5017,10 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	// make a map to keep track of which mutation runs split into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
 	robin_hood::unordered_flat_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
-    typedef robin_hood::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+    //typedef robin_hood::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
-    typedef std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+    //typedef std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
 #endif
 	
 	std::vector<MutationRun_SP> mutrun_retain;
@@ -5216,10 +5216,10 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	// make a map to keep track of which mutation runs join into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
 	robin_hood::unordered_flat_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
-    typedef robin_hood::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+    //typedef robin_hood::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
 	std::unordered_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
-    typedef std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+    //typedef std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
 #endif
 	std::vector<MutationRun_SP> mutrun_retain;
 	int mutruns_buf_index;

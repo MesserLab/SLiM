@@ -2268,10 +2268,10 @@ EidosValue_SP SLiMSim::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 			// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
 #if EIDOS_ROBIN_HOOD_HASHING
 			robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
-			typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+			//typedef robin_hood::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
 			std::unordered_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
-			typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
+			//typedef std::pair<slim_pedigreeid_t, Individual *> MAP_PAIR;
 #endif
 			
 			try {
