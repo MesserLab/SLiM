@@ -1,3 +1,7 @@
+/// # Gravel Model in SLiM
+/// #### _(with Jump Menu annotations)_
+///
+
 initialize() {
 	initializeMutationRate(2.36e-8);
 	initializeMutationType("m1", 0.5, "f", 0.0);
@@ -7,7 +11,7 @@ initialize() {
 }
 
 ///
-/// Demography:
+/// **Demography:**
 
 1 /* create p1 */ {
 	sim.addSubpop("p1", asInteger(round(7310.370867595234)));
@@ -42,7 +46,7 @@ initialize() {
 }
 
 /***/
-/** Final output: */
+/** **Final output:** */
 
 79024 late() {
 	p1.outputSample(216);

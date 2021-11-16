@@ -3831,6 +3831,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
     
     // First we scan for comments of the form /** comment */ or /// comment, which are taken to be section headers
     // BCH 10/13/2020: Now we exclude comments of the form /*** or ////, since they are not of the expected form, but are instead just somebody's fancy comment block
+    // BCH 11/15/2021: Whoops, the previous change broke /***/ as a separator item; added back in as a special case
     if (cstr)
     {
         SLiMEidosScript script(cstr);
@@ -3845,7 +3846,11 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         {
             const EidosToken &token = tokens[token_index];
             
-            if ((token.token_type_ == EidosTokenType::kTokenComment) && (token.token_string_.rfind("///", 0) == 0) && (token.token_string_.rfind("////", 0) != 0))
+            if ((token.token_type_ == EidosTokenType::kTokenCommentLong) && (token.token_string_ == "/***/"))
+            {
+                comment = QString();
+            }
+            else if ((token.token_type_ == EidosTokenType::kTokenComment) && (token.token_string_.rfind("///", 0) == 0) && (token.token_string_.rfind("////", 0) != 0))
             {
                 comment = QString::fromStdString(token.token_string_);
                 comment = comment.mid(3);
