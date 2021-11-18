@@ -1002,7 +1002,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
-	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	population_(p_population), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size)
 #ifdef SLIM_WF_ONLY
 	, child_subpop_size_(p_subpop_size)
@@ -1053,7 +1053,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
 							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
-	population_(p_population), subpopulation_id_(p_subpopulation_id), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	population_(p_population), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
 #ifdef SLIM_WF_ONLY
 	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
@@ -1192,6 +1192,39 @@ Subpopulation::~Subpopulation(void)
 		if (map_ptr)
 			delete map_ptr;
 	}
+}
+
+void Subpopulation::SetName(const std::string &p_name)
+{
+	if (p_name == name_)
+		return;
+	
+	if (p_name.length() == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::SetName): property name must not be zero-length." << EidosTerminate();
+	
+	bool isSubpopID = (p_name == SLiMEidosScript::IDStringWithPrefix('p', subpopulation_id_));
+	
+	// check that names of the form "pX" match our self-symbol; can't use somebody else's identifier!
+	if (!isSubpopID && SLiMEidosScript::StringIsIDWithPrefix(p_name, 'p'))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::SetName): property name must not be a subpopulation symbol ('p1', 'p2', etc.) unless it matches the symbol of the subpopulation itself." << EidosTerminate();
+	
+	// we suggest in the doc that subpopulation names ought to be Python identifiers, for maximum interoperability, but
+	// we do not enforce that here since tskit itself does not require this; this is more of an msprime/Demes thing
+	
+	// names have to be unique across all time, and cannot be shared or reused; check and remember names here
+	// note that we don't unique or track names that match the subpop ID, since they are guaranteed unique
+	// and cannot be used by any other subpop anyway (and no other subpop can have the same ID)
+	if (!isSubpopID)
+	{
+		SLiMSim &sim = population_.sim_;
+		
+		if (sim.subpop_names_.count(p_name))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::SetName): property name must be unique across all subpopulations; " << p_name << " is already in use, or was previously used." << EidosTerminate();
+		
+		sim.subpop_names_.emplace(p_name);	// added; never removed unless the simulation state is reset
+	}
+	
+	name_ = p_name;
 }
 
 void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
@@ -3688,6 +3721,14 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(int_result);
 		}
+		case gID_name:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name_));
+		}
+		case gID_description:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(description_));
+		}
 		case gID_selfingRate:
 		{
 			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
@@ -3841,6 +3882,20 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 			if ((fitness_scaling_ < 0.0) || std::isnan(fitness_scaling_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
+			return;
+		}
+		case gID_name:
+		{
+			SetName(p_value.StringAtIndex(0, nullptr));
+			return;
+		}
+		case gID_description:
+		{
+			std::string description = p_value.StringAtIndex(0, nullptr);
+			
+			// there are no restrictions on descriptions at all
+			
+			description_ = description;
 			return;
 		}
 			
@@ -7023,6 +7078,8 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutput,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutputM,	true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_lifetimeReproductiveOutputF,	true,	kEidosValueMaskInt)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,							false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,					false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selfingRate,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,						true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));

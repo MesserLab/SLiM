@@ -101,6 +101,9 @@ Population::~Population(void)
 
 void Population::RemoveAllSubpopulationInfo(void)
 {
+    // BEWARE: do not access sim_ in this method!  This is called from
+    // Population::~Population(), at which point sim_ no longer exists!
+    
 	// Free all subpopulations and then clear out our subpopulation list
 	for (auto subpopulation : subpops_)
 		delete subpopulation.second;
@@ -128,6 +131,11 @@ void Population::RemoveAllSubpopulationInfo(void)
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// If we're keeping any separate registries inside mutation types, clear those now as well
+    // NOTE: The access of sim_ here is permissible because it will not happen after sim_ has been
+    // destructed, due to the clearing of keeping_muttype_registries_ at the end of this block.
+    // This block will execute when this method is called directly by SLiMSim::~SLiMSim(), and
+    // then it will not execute again when this method is called by Population::~Population().
+    // This design could probably stand to get cleaned up.  FIXME
 	if (keeping_muttype_registries_)
 	{
 		for (auto muttype_iter : sim_.MutationTypes())
@@ -198,6 +206,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
+	sim_.subpop_ids_.emplace(p_subpop_id);
 	
 	return new_subpop;
 }
@@ -229,6 +238,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
+	sim_.subpop_ids_.emplace(p_subpop_id);
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;

@@ -425,13 +425,23 @@ slim_generation_t SLiMSim::InitializePopulationFromFile(const std::string &p_fil
 	
 	// then we dispose of all existing subpopulations, mutations, etc.
 	population_.RemoveAllSubpopulationInfo();
-	
-	const char *file_cstr = p_file_string.c_str();
-	slim_generation_t new_generation = 0;
+    
+    // Forget remembered subpop IDs and names since we are resetting our state.  We need to do this
+    // to add in subpopulations we will load after resetting; however, it does leave open a window
+    // for incorrect usage since ids/names that were used previously but are no longer extant will
+    // be forgotten as a side effect of reloading, and could then get reused.  This seems unlikely
+    // to arise in practice, and if it does it should produce a downstream error in Python if it
+    // matters, due to ambiguity of duplicated ids/names, so we won't worry about it here - we'd
+    // have to persist the list of known ids/names in metadata, which isn't worth the effort.
+    subpop_ids_.clear();
+    subpop_names_.clear();
 	
 	// Read in the file.  The SLiM file-reading methods are not tree-sequence-aware, so we bracket them
 	// with calls that fix the tree sequence recording state around them.  The treeSeq output methods
 	// are of course treeSeq-aware, so we don't need to do that for them.
+    const char *file_cstr = p_file_string.c_str();
+    slim_generation_t new_generation = 0;
+    
 	if ((file_format == SLiMFileFormat::kFormatSLiMText) || (file_format == SLiMFileFormat::kFormatSLiMBinary))
 	{
 		// TREE SEQUENCE RECORDING
@@ -5572,8 +5582,8 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 
 bool SLiMSim::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 {
-	// First check our own data structures
-	if (population_.subpops_.count(p_subpop_id) != 0)
+	// First check our own data structures; we now do not allow reuse of subpop ids, even disjoint in time
+	if (subpop_ids_.count(p_subpop_id))
 		return true;
 	
 	// Then check the tree-sequence population table, if there is one; we assume that every valid index is "in use"
@@ -6106,84 +6116,9 @@ void SLiMSim::TreeSequenceDataFromAscii(std::string NodeFileName,
 	}
 	
 	/***** De-ascii-ify Population Table *****/
-	{
-		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
-		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = tables_.populations.metadata;
-		tsk_size_t *metadata_offset = tables_.populations.metadata_offset;
-		char *binary_metadata = NULL;
-		std::vector<tsk_size_t> binary_metadata_offset;
-		
-		binary_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < tables_.populations.num_rows; j++)
-		{
-			tsk_size_t metadata_string_length = metadata_offset[j+1] - metadata_offset[j];
-			
-			if (metadata_string_length == 0)
-			{
-				// empty population table entries just get preserved verbatim; these are unused subpop IDs
-				binary_metadata_offset.emplace_back(binary_metadata_offset[j]);
-				continue;
-			}
-			
-			std::string string_metadata(metadata + metadata_offset[j], metadata_string_length);
-			std::vector<std::string> metadata_parts = Eidos_string_split(string_metadata, ",");
-			
-			if (metadata_parts.size() < 12)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): unexpected population metadata length; this file cannot be read." << EidosTerminate();
-			
-			SubpopulationMetadataRec metarec;
-			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[0]);
-			metarec.selfing_fraction_ = std::stod(metadata_parts[1]);
-			metarec.female_clone_fraction_ = std::stod(metadata_parts[2]);
-			metarec.male_clone_fraction_ = std::stod(metadata_parts[3]);
-			metarec.sex_ratio_ = std::stod(metadata_parts[4]);
-			metarec.bounds_x0_ = std::stod(metadata_parts[5]);
-			metarec.bounds_x1_ = std::stod(metadata_parts[6]);
-			metarec.bounds_y0_ = std::stod(metadata_parts[7]);
-			metarec.bounds_y1_ = std::stod(metadata_parts[8]);
-			metarec.bounds_z0_ = std::stod(metadata_parts[9]);
-			metarec.bounds_z1_ = std::stod(metadata_parts[10]);
-			metarec.migration_rec_count_ = (uint32_t)std::stoll(metadata_parts[11]);
-			
-			if (metadata_parts.size() != (12 + metarec.migration_rec_count_ * 2))
-				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): malformed population metadata record; this file cannot be read." << EidosTerminate();
-			
-			size_t metadata_length = sizeof(SubpopulationMetadataRec) + metarec.migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec);
-			
-			binary_metadata = (char *)realloc(binary_metadata, binary_metadata_offset[j] + metadata_length);
-			if (!binary_metadata)
-				EIDOS_TERMINATION << "ERROR (SLiMSim::TreeSequenceDataFromAscii): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
-			
-			SubpopulationMetadataRec *binary_metadata_subpop_rec = (SubpopulationMetadataRec *)(binary_metadata + binary_metadata_offset[j]);
-			SubpopulationMigrationMetadataRec *binary_metadata_migrations = (SubpopulationMigrationMetadataRec *)(binary_metadata_subpop_rec + 1);
-			
-			*binary_metadata_subpop_rec = metarec;
-			
-			for (size_t migration_index = 0; migration_index < metarec.migration_rec_count_; ++migration_index)
-			{
-				binary_metadata_migrations[migration_index].source_subpop_id_ = (slim_objectid_t)std::stoll(metadata_parts[12 + migration_index * 2]);
-				binary_metadata_migrations[migration_index].migration_rate_ = std::stod(metadata_parts[12 + migration_index * 2 + 1]);
-			}
-			
-			binary_metadata_offset.emplace_back((tsk_size_t)(binary_metadata_offset[j] + metadata_length));
-		}
-		
-		ret = tsk_population_table_set_columns(&tables_.populations,
-										   tables_copy.populations.num_rows,
-										   binary_metadata,
-										   binary_metadata_offset.data());
-		if (ret < 0) handle_error("convert_from_ascii", ret);
-		
-		if (binary_metadata)
-		{
-			free(binary_metadata);
-			binary_metadata = NULL;
-		}
-	}
-
+	// This used to translate the population table's metadata from ASCII back into the binary format we used,
+	// but now the population table's metadata is in JSON and thus requires no translation.
+	
 	// not sure if we need to do this here, but it doesn't hurt
 	RecordTablePosition();
 	
@@ -6366,87 +6301,8 @@ void SLiMSim::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	}
 	
 	/***** Ascii-ify Population Table *****/
-	{
-		static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec has changed size; this code probably needs to be updated");
-		static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec has changed size; this code probably needs to be updated");
-		
-		const char *metadata = p_tables->populations.metadata;
-		tsk_size_t *metadata_offset = p_tables->populations.metadata_offset;
-		std::string text_metadata;
-		std::vector<tsk_size_t> text_metadata_offset;
-		
-		text_metadata_offset.emplace_back(0);
-		
-		for (size_t j = 0; j < p_tables->populations.num_rows; j++)
-		{
-			tsk_size_t metadata_binary_length = metadata_offset[j+1] - metadata_offset[j];
-			
-			if (metadata_binary_length == 0)
-			{
-				// empty population table entries just get preserved verbatim; these are unused subpop IDs
-				text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
-				continue;
-			}
-			
-			SubpopulationMetadataRec *struct_population_metadata = (SubpopulationMetadataRec *)(metadata + metadata_offset[j]);
-			SubpopulationMigrationMetadataRec *struct_migration_metadata = (SubpopulationMigrationMetadataRec *)(struct_population_metadata + 1);
-			
-			text_metadata.append(std::to_string(struct_population_metadata->subpopulation_id_));
-			text_metadata.append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->selfing_fraction_);
-			text_metadata.append(double_buf);
-			text_metadata.append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->female_clone_fraction_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->male_clone_fraction_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->sex_ratio_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_x0_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_x1_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_y0_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_y1_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_z0_);
-			text_metadata.append(double_buf).append(",");
-			
-			sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_population_metadata->bounds_z1_);
-			text_metadata.append(double_buf).append(",");
-			
-			text_metadata.append(std::to_string(struct_population_metadata->migration_rec_count_));
-			
-			for (size_t migration_index = 0; migration_index < struct_population_metadata->migration_rec_count_; ++migration_index)
-			{
-				text_metadata.append(",");
-				
-				text_metadata.append(std::to_string(struct_migration_metadata[migration_index].source_subpop_id_));
-				text_metadata.append(",");
-				
-				sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_migration_metadata[migration_index].migration_rate_);
-				text_metadata.append(double_buf);
-			}
-			
-			text_metadata_offset.emplace_back((tsk_size_t)text_metadata.size());
-		}
-		
-		ret = tsk_population_table_set_columns(&p_tables->populations,
-										   tables_copy.populations.num_rows,
-										   text_metadata.c_str(),
-										   text_metadata_offset.data());
-		if (ret < 0) handle_error("convert_to_ascii", ret);
-	}
+	// This used to translate the population table's metadata from the binary format we used into ASCII,
+	// but now the population table's metadata is in JSON and thus requires no translation.
 	
 	// We are done with our private copy of the table collection
 	tsk_table_collection_free(&tables_copy);
@@ -6707,7 +6563,8 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		Subpopulation *subpop = subpop_iter.second;
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
 		
-		// first, write out empty entries for unused subpop ids before this one
+		// first, write out empty entries for unused subpop ids before this one; note metadata should always be JSON here,
+		// binary metadata got translated to JSON by _InstantiateSLiMObjectsFromTables() on read
 		while (last_id_written < subpop_id - 1)
 		{
 			last_id_written++;
@@ -6730,53 +6587,62 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 		}
 		
 		// now we're at the slot for this subpopulation, so construct it and write it out
-#ifdef SLIM_WF_ONLY
-		size_t migration_rec_count = subpop->migrant_fractions_.size();
-#else
-		size_t migration_rec_count = 0;
-#endif	// SLIM_WF_ONLY
-		size_t metadata_length = sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec);
-		SubpopulationMetadataRec *metadata_rec = (SubpopulationMetadataRec *)malloc(metadata_length);
-		if (!metadata_rec)
-			EIDOS_TERMINATION << "ERROR (SLiMSim::WritePopulationTable): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		nlohmann::json pop_metadata = nlohmann::json::object();
 		
-		metadata_rec->subpopulation_id_ = subpop->subpopulation_id_;
-#ifdef SLIM_WF_ONLY
-		metadata_rec->selfing_fraction_ = subpop->selfing_fraction_;
-		metadata_rec->female_clone_fraction_ = subpop->female_clone_fraction_;
-		metadata_rec->male_clone_fraction_ = subpop->male_clone_fraction_;
-		metadata_rec->sex_ratio_ = subpop->parent_sex_ratio_;
-#else
-		metadata_rec->selfing_fraction_ = 0.0;
-		metadata_rec->female_clone_fraction_ = 0.0;
-		metadata_rec->male_clone_fraction_ = 0.0;
-		metadata_rec->sex_ratio_ = 0.0;
-#endif	// SLIM_WF_ONLY
-		metadata_rec->bounds_x0_ = subpop->bounds_x0_;
-		metadata_rec->bounds_x1_ = subpop->bounds_x1_;
-		metadata_rec->bounds_y0_ = subpop->bounds_y0_;
-		metadata_rec->bounds_y1_ = subpop->bounds_y1_;
-		metadata_rec->bounds_z0_ = subpop->bounds_z0_;
-		metadata_rec->bounds_z1_ = subpop->bounds_z1_;
-		metadata_rec->migration_rec_count_ = (uint32_t)migration_rec_count;
+		pop_metadata["slim_id"] = subpop->subpopulation_id_;
 		
-#ifdef SLIM_WF_ONLY
-		SubpopulationMigrationMetadataRec *migration_rec_base = (SubpopulationMigrationMetadataRec *)(metadata_rec + 1);
-		int migration_index = 0;
-		
-		for (std::pair<slim_objectid_t,double> migration_pair : subpop->migrant_fractions_)
+		if (spatial_dimensionality_ >= 1)
 		{
-			migration_rec_base[migration_index].source_subpop_id_ = migration_pair.first;
-			migration_rec_base[migration_index].migration_rate_ = migration_pair.second;
-			migration_index++;
+			pop_metadata["bounds_x0"] = subpop->bounds_x0_;
+			pop_metadata["bounds_x1"] = subpop->bounds_x1_;
 		}
-#endif	// SLIM_WF_ONLY
+		if (spatial_dimensionality_ >= 2)
+		{
+			pop_metadata["bounds_y0"] = subpop->bounds_y0_;
+			pop_metadata["bounds_y1"] = subpop->bounds_y1_;
+		}
+		if (spatial_dimensionality_ >= 3)
+		{
+			pop_metadata["bounds_z0"] = subpop->bounds_z0_;
+			pop_metadata["bounds_z1"] = subpop->bounds_z1_;
+		}
 		
-		tsk_population_id = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec, (uint32_t)metadata_length);
+		pop_metadata["name"] = subpop->name_;
+		if (subpop->description_.length())
+			pop_metadata["description"] = subpop->description_;
+		
+#ifdef SLIM_WF_ONLY
+		if (model_type_ == SLiMModelType::kModelTypeWF)
+		{
+			if (subpop->selfing_fraction_ > 0.0)
+				pop_metadata["selfing_fraction"] = subpop->selfing_fraction_;
+			if (subpop->female_clone_fraction_ > 0.0)
+				pop_metadata["female_cloning_fraction"] = subpop->female_clone_fraction_;
+			if (subpop->male_clone_fraction_ > 0.0)
+				pop_metadata["male_cloning_fraction"] = subpop->male_clone_fraction_;
+			if (subpop->parent_sex_ratio_ != 0.5)
+				pop_metadata["sex_ratio"] = subpop->parent_sex_ratio_;
+			
+			nlohmann::json migration_records = nlohmann::json::array();
+			
+			for (std::pair<slim_objectid_t,double> migration_pair : subpop->migrant_fractions_)
+			{
+				nlohmann::json migration_record = nlohmann::json::object();
+				
+				migration_record["source_subpop"] = migration_pair.first;
+				migration_record["migration_rate"] = migration_pair.second;
+				migration_records.emplace_back(std::move(migration_record));
+			}
+			
+			pop_metadata["migration_records"] = std::move(migration_records);
+		}
+#endif
+		
+		std::string metadata_rec = pop_metadata.dump();
+		
+		tsk_population_id = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec.c_str(), (uint32_t)metadata_rec.length());
 		last_id_written++;
 		assert(tsk_population_id == last_id_written);
-		
-		free(metadata_rec);
 		
 		if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 	}
@@ -8434,6 +8300,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	
 	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
+		// validate and parse metadata; get metadata values or fall back to default values
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
 		
 		if (metadata_length == 0)
@@ -8443,12 +8310,140 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		}
 		
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+		std::string metadata_string(metadata_char, metadata_length);
+		nlohmann::json subpop_metadata;
 		
-		if (metadata_length < sizeof(SubpopulationMetadataRec))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed population metadata; this file cannot be read." << EidosTerminate();
+		try {
+			subpop_metadata = nlohmann::json::parse(metadata_string);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
+		}
 		
-		SubpopulationMetadataRec *metadata = (SubpopulationMetadataRec *)metadata_char;
-		slim_objectid_t subpop_id = metadata->subpopulation_id_;
+		if (!subpop_metadata.is_object())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
+		
+		slim_objectid_t subpop_id;
+		
+		if (!subpop_metadata.contains("slim_id"))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
+		else if (!subpop_metadata["slim_id"].is_number_integer())
+			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+		else
+			subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
+		
+		double metadata_selfing_fraction = 0.0;
+		double metadata_female_clone_fraction = 0.0;
+		double metadata_male_clone_fraction = 0.0;
+		double metadata_sex_ratio = 0.5;
+		double metadata_bounds_x0 = 0.0;
+		double metadata_bounds_x1 = 1.0;
+		double metadata_bounds_y0 = 0.0;
+		double metadata_bounds_y1 = 1.0;
+		double metadata_bounds_z0 = 0.0;
+		double metadata_bounds_z1 = 1.0;
+		
+		if (subpop_metadata.contains("bounds_x0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_x0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_x0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_x0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_x1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_x1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_x1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_x1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_y0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_y0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_y0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_y0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_y1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_y1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_y1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_y1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_z0"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_z0"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_z0' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_z0 = value.get<double>();
+		}
+		if (subpop_metadata.contains("bounds_z1"))
+		{
+			nlohmann::json value = subpop_metadata["bounds_z1"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'bounds_z1' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_bounds_z1 = value.get<double>();
+		}
+		if (subpop_metadata.contains("female_cloning_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["female_cloning_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'female_cloning_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_female_clone_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("male_cloning_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["male_cloning_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'male_cloning_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_male_clone_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("selfing_fraction"))
+		{
+			nlohmann::json value = subpop_metadata["selfing_fraction"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'selfing_fraction' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_selfing_fraction = value.get<double>();
+		}
+		if (subpop_metadata.contains("sex_ratio"))
+		{
+			nlohmann::json value = subpop_metadata["sex_ratio"];
+			if (!value.is_number())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'sex_ratio' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_sex_ratio = value.get<double>();
+		}
+		
+		std::string metadata_name = SLiMEidosScript::IDStringWithPrefix('p', subpop_id);
+		std::string metadata_description;
+		
+		if (subpop_metadata.contains("name"))
+		{
+			nlohmann::json value = subpop_metadata["name"];
+			if (!value.is_string())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'name' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_name = value.get<std::string>();
+		}
+		if (subpop_metadata.contains("description"))
+		{
+			nlohmann::json value = subpop_metadata["description"];
+			if (!value.is_string())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'description' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			metadata_description = value.get<std::string>();
+		}
+		
+		size_t migration_rec_count = 0;
+		nlohmann::json migration_records;
+		
+		if (subpop_metadata.contains("migration_records"))
+		{
+			nlohmann::json value = subpop_metadata["migration_records"];
+			if (!value.is_array())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata key 'migration_records' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+			migration_records = value;
+			migration_rec_count = migration_records.size();
+		}
+		
+		// construct the subpopulation from the metadata values and other information we have decoded
 		Subpopulation *subpop = SubpopulationWithID(subpop_id);
 		
 		if (!subpop)
@@ -8472,13 +8467,16 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			simulation_constants_->InitializeConstantSymbolEntry(symbol_entry);
 		}
 		
+		subpop->SetName(metadata_name);
+		subpop->description_ = metadata_description;
+		
 #ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
-			subpop->selfing_fraction_ = metadata->selfing_fraction_;
-			subpop->female_clone_fraction_ = metadata->female_clone_fraction_;
-			subpop->male_clone_fraction_ = metadata->male_clone_fraction_;
-			subpop->child_sex_ratio_ = metadata->sex_ratio_;
+			subpop->selfing_fraction_ = metadata_selfing_fraction;
+			subpop->female_clone_fraction_ = metadata_female_clone_fraction;
+			subpop->male_clone_fraction_ = metadata_male_clone_fraction;
+			subpop->child_sex_ratio_ = metadata_sex_ratio;
 			
 			if (!sex_enabled_ && (subpop->female_clone_fraction_ != subpop->male_clone_fraction_))
 				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): cloning rate mismatch for non-sexual model; this file cannot be read." << EidosTerminate();
@@ -8493,12 +8491,12 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		}
 #endif	// SLIM_WF_ONLY
 		
-		subpop->bounds_x0_ = metadata->bounds_x0_;
-		subpop->bounds_x1_ = metadata->bounds_x1_;
-		subpop->bounds_y0_ = metadata->bounds_y0_;
-		subpop->bounds_y1_ = metadata->bounds_y1_;
-		subpop->bounds_z0_ = metadata->bounds_z0_;
-		subpop->bounds_z1_ = metadata->bounds_z1_;
+		subpop->bounds_x0_ = metadata_bounds_x0;
+		subpop->bounds_x1_ = metadata_bounds_x1;
+		subpop->bounds_y0_ = metadata_bounds_y0;
+		subpop->bounds_y1_ = metadata_bounds_y1;
+		subpop->bounds_z0_ = metadata_bounds_z0;
+		subpop->bounds_z1_ = metadata_bounds_z1;
 		
 		if (((spatial_dimensionality_ >= 1) && (subpop->bounds_x0_ >= subpop->bounds_x1_)) ||
 			((spatial_dimensionality_ >= 2) && (subpop->bounds_y0_ >= subpop->bounds_y1_)) ||
@@ -8509,20 +8507,19 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			((spatial_dimensionality_ >= 3) && periodic_z_ && (subpop->bounds_z0_ != 0.0)))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): periodic bounds must have a minimum coordinate of 0.0; this file cannot be read." << EidosTerminate();
 		
-		uint32_t migration_rec_count = metadata->migration_rec_count_;
-		
-		if (metadata_length != sizeof(SubpopulationMetadataRec) + migration_rec_count * sizeof(SubpopulationMigrationMetadataRec))
-			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): malformed migration metadata; this file cannot be read." << EidosTerminate();
 		if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (migration_rec_count > 0))
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): migration rates cannot be provided in a nonWF model; this file cannot be read." << EidosTerminate();
 		
 #ifdef SLIM_WF_ONLY
-		SubpopulationMigrationMetadataRec *migration_recs = (SubpopulationMigrationMetadataRec *)(metadata + 1);
-		
 		for (size_t migration_index = 0; migration_index < migration_rec_count; ++migration_index)
 		{
-			slim_objectid_t source_id = migration_recs[migration_index].source_subpop_id_;
-			double rate = migration_recs[migration_index].migration_rate_;
+			nlohmann::json migration_rec = migration_records[migration_index];
+			
+			if (!migration_rec.is_object() || !migration_rec.contains("migration_rate") || !migration_rec["migration_rate"].is_number() || !migration_rec.contains("source_subpop") || !migration_rec["source_subpop"].is_number_integer())
+				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata migration record does not obey the metadata schema; this file cannot be read." << EidosTerminate(nullptr);
+			
+			slim_objectid_t source_id = migration_rec["source_subpop"].get<slim_objectid_t>();
+			double rate = migration_rec["migration_rate"].get<double>();
 			
 			if (source_id == subpop_id)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): self-referential migration record; this file cannot be read." << EidosTerminate();
@@ -8975,7 +8972,146 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		if (ret != 0)
 			handle_error("tsk_individual_table_set_metadata_schema", ret);
 	}
-
+	
+	// check population table metadata
+	char *pop_schema_ptr = tables_.populations.metadata_schema;
+	tsk_size_t pop_schema_len = tables_.populations.metadata_schema_length;
+	std::string pop_schema(pop_schema_ptr, pop_schema_len);
+	
+	if (pop_schema == gSLiM_tsk_population_metadata_schema_PREJSON)
+	{
+		// The population table metadata is in the old (pre-JSON) format; rewrite it.  After this munging,
+		// the format is current, so all downstream code can just assume the current metadata format.
+		size_t row_count = tables_.populations.num_rows;
+		
+		if (row_count > 0)
+		{
+			std::string new_metadata;
+			tsk_size_t *new_metadata_offsets = (tsk_size_t *)malloc((row_count + 1) * sizeof(tsk_size_t));
+			
+			if (!new_metadata_offsets)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			new_metadata_offsets[0] = 0;
+			
+			for (size_t row_index = 0; row_index < row_count; ++row_index)
+			{
+				SubpopulationMetadataRec_PREJSON *old_metadata = ((SubpopulationMetadataRec_PREJSON *)tables_.populations.metadata) + row_index;
+				tsk_size_t old_metadata_length = tables_.populations.metadata_offset[row_index + 1] - tables_.populations.metadata_offset[row_index];
+				
+				if (old_metadata_length)
+				{
+					if (old_metadata_length < sizeof(SubpopulationMetadataRec_PREJSON))
+						EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
+					
+					tsk_size_t old_metadata_expected_length = sizeof(SubpopulationMetadataRec_PREJSON) + old_metadata->migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec_PREJSON);
+					
+					if (old_metadata_length != old_metadata_expected_length)
+						EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
+					
+					nlohmann::json new_metadata_json = nlohmann::json::object();
+					
+					double bounds_x0 = old_metadata->bounds_x0_;		// need to use temporaries because some compilers don't like taking a reference inside a packed struct
+					double bounds_x1 = old_metadata->bounds_x1_;
+					double bounds_y0 = old_metadata->bounds_y0_;
+					double bounds_y1 = old_metadata->bounds_y1_;
+					double bounds_z0 = old_metadata->bounds_z0_;
+					double bounds_z1 = old_metadata->bounds_z1_;
+					slim_objectid_t subpopulation_id = old_metadata->subpopulation_id_;
+					double selfing_fraction = old_metadata->selfing_fraction_;
+					double female_clone_fraction = old_metadata->female_clone_fraction_;
+					double male_clone_fraction = old_metadata->male_clone_fraction_;
+					double sex_ratio = old_metadata->sex_ratio_;
+					
+					new_metadata_json["bounds_x0"] = bounds_x0;
+					new_metadata_json["bounds_x1"] = bounds_x1;
+					new_metadata_json["bounds_y0"] = bounds_y0;
+					new_metadata_json["bounds_y1"] = bounds_y1;
+					new_metadata_json["bounds_z0"] = bounds_z0;
+					new_metadata_json["bounds_z1"] = bounds_z1;
+					new_metadata_json["female_cloning_fraction"] = female_clone_fraction;
+					new_metadata_json["male_cloning_fraction"] = male_clone_fraction;
+					new_metadata_json["selfing_fraction"] = selfing_fraction;
+					new_metadata_json["sex_ratio"] = sex_ratio;
+					new_metadata_json["slim_id"] = subpopulation_id;
+					
+					if (old_metadata->migration_rec_count_ > 0)
+					{
+						SubpopulationMigrationMetadataRec_PREJSON *migration_base_ptr = (SubpopulationMigrationMetadataRec_PREJSON *)(old_metadata + 1);
+						nlohmann::json migration_records = nlohmann::json::array();
+						
+						for (size_t migration_index = 0; migration_index < old_metadata->migration_rec_count_; ++migration_index)
+						{
+							nlohmann::json migration_record = nlohmann::json::object();
+							
+							double migration_rate = migration_base_ptr[migration_index].migration_rate_;				// avoid compiler issues with packed structs
+							slim_objectid_t source_subpop_id = migration_base_ptr[migration_index].source_subpop_id_;
+							
+							migration_record["migration_rate"] = migration_rate;
+							migration_record["source_subpop"] = source_subpop_id;
+							
+							migration_records.emplace_back(std::move(migration_record));
+						}
+						
+						new_metadata_json["migration_records"] = std::move(migration_records);
+					}
+					
+					new_metadata_json["name"] = SLiMEidosScript::IDStringWithPrefix('p', old_metadata->subpopulation_id_);
+					
+					std::string new_metadata_record = new_metadata_json.dump();
+					
+					new_metadata.append(new_metadata_record);
+					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + new_metadata_record.length();
+				}
+				else
+				{
+					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index];
+				}
+			}
+			
+			size_t new_metadata_length = new_metadata.length();
+			char *new_metadata_buffer = (char *)malloc(new_metadata_length);
+			
+			if (!new_metadata_buffer)
+				EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			memcpy(new_metadata_buffer, new_metadata.c_str(), new_metadata_length);
+			
+			free(tables_.populations.metadata);
+			free(tables_.populations.metadata_offset);
+			tables_.populations.metadata = new_metadata_buffer;
+			tables_.populations.metadata_length = new_metadata_length;
+			tables_.populations.max_metadata_length = new_metadata_length;
+			tables_.populations.metadata_offset = new_metadata_offsets;
+		}
+		
+		// replace the metadata schema
+		int ret = tsk_population_table_set_metadata_schema(&tables_.populations,
+				gSLiM_tsk_population_metadata_schema.c_str(),
+				(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_population_table_set_metadata_schema", ret);
+	}
+	else
+	{
+		// If it is not in the pre-JSON format, check that it is JSON; we don't accept binary non-JSON metadata.
+		// This is necessary because we will carry this metadata over when we output a new population table on save;
+		// this metadata must be compatible with our schema, which is a JSON schema.  Technically (FIXME), we ought to
+		// confirm that this schema also considers `slim_id` to be a required key, I think, otherwise the data we
+		// carry over might be non-compliant with the schema we state for it; but for now we pend such checks.
+		// See https://github.com/MesserLab/SLiM/issues/169 for discussion about schema checking/compatibility.
+		nlohmann::json pop_schema_json = pop_schema;
+		
+		try {
+			pop_schema_json = nlohmann::json::parse(pop_schema);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): the population metadata schema does not parse as a valid JSON string." << EidosTerminate(nullptr);
+		}
+		
+		if (pop_schema_json["codec"] != "json")
+			EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): the population metadata schema must be JSON, or must match the exact binary schema used by SLiM prior to 3.7." << EidosTerminate(nullptr);
+	}
+	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
 	// that are not presently alive, so we have to tread carefully; the actually alive individuals are flagged with 
