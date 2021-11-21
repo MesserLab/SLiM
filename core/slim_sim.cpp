@@ -1022,6 +1022,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 	infile.read(buf, file_size);
 	
 	// Close the file; we will work only with our buffer from here on
+	// Note that we use memcpy() to read values from the buffer, since it takes care of alignment issues
+	// for us that otherwise both the UndefinedBehaviorSanitizer.  On platforms that don't care about
+	// alignment this should compile down to the same code; on platforms that do care, it avoids a crash.
 	infile.close();
 	
 	int32_t section_end_tag;
@@ -1034,10 +1037,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if (p + sizeof(endianness_tag) + sizeof(version_tag) > buf_end)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
-		endianness_tag = *(int32_t *)p;
+		memcpy(&endianness_tag, p, sizeof(endianness_tag));
 		p += sizeof(endianness_tag);
 		
-		version_tag = *(int32_t *)p;
+		memcpy(&version_tag, p, sizeof(version_tag));
 		p += sizeof(version_tag);
 		
 		if (endianness_tag != 0x12345678)
@@ -1074,15 +1077,15 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		if (p + header_length > buf_end)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
 		
-		double_size = *(int32_t *)p;
+		memcpy(&double_size, p, sizeof(double_size));
 		p += sizeof(double_size);
 		
-		double_test = *(double *)p;
+		memcpy(&double_test, p, sizeof(double_test));
 		p += sizeof(double_test);
 		
 		if (file_version >= 5)
 		{
-			flags = *(int64_t *)p;
+			memcpy(&flags, p, sizeof(flags));
 			p += sizeof(flags);
 			
 			if (flags & 0x01) age_output_count = 1;
@@ -1092,30 +1095,30 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				if (flags & 0x04) pedigree_output_count = 1;
 		}
 		
-		slim_generation_t_size = *(int32_t *)p;
+		memcpy(&slim_generation_t_size, p, sizeof(slim_generation_t_size));
 		p += sizeof(slim_generation_t_size);
 		
-		slim_position_t_size = *(int32_t *)p;
+		memcpy(&slim_position_t_size, p, sizeof(slim_position_t_size));
 		p += sizeof(slim_position_t_size);
 		
-		slim_objectid_t_size = *(int32_t *)p;
+		memcpy(&slim_objectid_t_size, p, sizeof(slim_objectid_t_size));
 		p += sizeof(slim_objectid_t_size);
 		
-		slim_popsize_t_size = *(int32_t *)p;
+		memcpy(&slim_popsize_t_size, p, sizeof(slim_popsize_t_size));
 		p += sizeof(slim_popsize_t_size);
 		
-		slim_refcount_t_size = *(int32_t *)p;
+		memcpy(&slim_refcount_t_size, p, sizeof(slim_refcount_t_size));
 		p += sizeof(slim_refcount_t_size);
 		
-		slim_selcoeff_t_size = *(int32_t *)p;
+		memcpy(&slim_selcoeff_t_size, p, sizeof(slim_selcoeff_t_size));
 		p += sizeof(slim_selcoeff_t_size);
 		
 		if (file_version >= 2)
 		{
-			slim_mutationid_t_size = *(int32_t *)p;
+			memcpy(&slim_mutationid_t_size, p, sizeof(slim_mutationid_t_size));
 			p += sizeof(slim_mutationid_t_size);
 			
-			slim_polymorphismid_t_size = *(int32_t *)p;
+			memcpy(&slim_polymorphismid_t_size, p, sizeof(slim_polymorphismid_t_size));
 			p += sizeof(slim_polymorphismid_t_size);
 		}
 		else
@@ -1127,13 +1130,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		
 		if (file_version >= 6)
 		{
-			slim_age_t_size = *(int32_t *)p;
+			memcpy(&slim_age_t_size, p, sizeof(slim_age_t_size));
 			p += sizeof(slim_age_t_size);
 			
-			slim_pedigreeid_t_size = *(int32_t *)p;
+			memcpy(&slim_pedigreeid_t_size, p, sizeof(slim_pedigreeid_t_size));
 			p += sizeof(slim_pedigreeid_t_size);
 			
-			slim_genomeid_t_size = *(int32_t *)p;
+			memcpy(&slim_genomeid_t_size, p, sizeof(slim_genomeid_t_size));
 			p += sizeof(slim_genomeid_t_size);
 		}
 		else
@@ -1144,12 +1147,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			slim_genomeid_t_size = sizeof(slim_genomeid_t);
 		}
 		
-		file_generation = *(slim_generation_t *)p;
+		memcpy(&file_generation, p, sizeof(file_generation));
 		p += sizeof(file_generation);
 		
 		if (file_version >= 3)
 		{
-			spatial_output_count = *(int32_t *)p;
+			memcpy(&spatial_output_count, p, sizeof(spatial_output_count));
 			p += sizeof(spatial_output_count);
 		}
 		else
@@ -1158,7 +1161,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			spatial_output_count = 0;
 		}
 		
-		section_end_tag = *(int32_t *)p;
+		memcpy(&section_end_tag, p, sizeof(section_end_tag));
 		p += sizeof(section_end_tag);
 		
 		if (double_size != sizeof(double))
@@ -1211,26 +1214,26 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			break;
 		
 		// If the first int32_t is not a subpop start tag, then we are done with this section
-		subpop_start_tag = *(int32_t *)p;
+		memcpy(&subpop_start_tag, p, sizeof(subpop_start_tag));
 		if (subpop_start_tag != (int32_t)0xFFFF0001)
 			break;
 		
 		// Otherwise, we have a subpop record; read in the rest of it
 		p += sizeof(subpop_start_tag);
 		
-		subpop_id = *(slim_objectid_t *)p;
+		memcpy(&subpop_id, p, sizeof(subpop_id));
 		p += sizeof(subpop_id);
 		
-		subpop_size = *(slim_popsize_t *)p;
+		memcpy(&subpop_size, p, sizeof(subpop_size));
 		p += sizeof(subpop_size);
 		
-		sex_flag = *(int32_t *)p;
+		memcpy(&sex_flag, p, sizeof(sex_flag));
 		p += sizeof(sex_flag);
 		
 		if (sex_flag != population_.sim_.sex_enabled_)
 			EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): sex vs. hermaphroditism mismatch between file and simulation." << EidosTerminate();
 		
-		subpop_sex_ratio = *(double *)p;
+		memcpy(&subpop_sex_ratio, p, sizeof(subpop_sex_ratio));
 		p += sizeof(subpop_sex_ratio);
 		
 		// Create the population population
@@ -1249,7 +1252,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after subpopulations." << EidosTerminate();
 	else
 	{
-		section_end_tag = *(int32_t *)p;
+		memcpy(&section_end_tag, p, sizeof(section_end_tag));
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
@@ -1263,7 +1266,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF at mutation map size." << EidosTerminate();
 	else
 	{
-		mutation_map_size = *(int32_t *)p;
+		memcpy(&mutation_map_size, p, sizeof(mutation_map_size));
 		p += sizeof(mutation_map_size);
 	}
 	
@@ -1300,19 +1303,19 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			break;
 		
 		// If the first int32_t is not a mutation start tag, then we are done with this section
-		mutation_start_tag = *(int32_t *)p;
+		memcpy(&mutation_start_tag, p, sizeof(mutation_start_tag));
 		if (mutation_start_tag != (int32_t)0xFFFF0002)
 			break;
 		
 		// Otherwise, we have a mutation record; read in the rest of it
 		p += sizeof(mutation_start_tag);
 		
-		polymorphism_id = *(slim_polymorphismid_t *)p;
+		memcpy(&polymorphism_id, p, sizeof(polymorphism_id));
 		p += sizeof(polymorphism_id);
 		
 		if (file_version >= 2)
 		{
-			mutation_id = *(slim_mutationid_t *)p;
+			memcpy(&mutation_id, p, sizeof(mutation_id));
 			p += sizeof(mutation_id);
 		}
 		else
@@ -1320,31 +1323,31 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			mutation_id = polymorphism_id;		// when parsing version 1 output, we use the polymorphism id as the mutation id
 		}
 		
-		mutation_type_id = *(slim_objectid_t *)p;
+		memcpy(&mutation_type_id, p, sizeof(mutation_type_id));
 		p += sizeof(mutation_type_id);
 		
-		position = *(slim_position_t *)p;
+		memcpy(&position, p, sizeof(position));
 		p += sizeof(position);
 		
-		selection_coeff = *(slim_selcoeff_t *)p;
+		memcpy(&selection_coeff, p, sizeof(selection_coeff));
 		p += sizeof(selection_coeff);
 		
-		dominance_coeff = *(slim_selcoeff_t *)p;
+		memcpy(&dominance_coeff, p, sizeof(dominance_coeff));
 		p += sizeof(dominance_coeff);
 		
-		subpop_index = *(slim_objectid_t *)p;
+		memcpy(&subpop_index, p, sizeof(subpop_index));
 		p += sizeof(subpop_index);
 		
-		generation = *(slim_generation_t *)p;
+		memcpy(&generation, p, sizeof(generation));
 		p += sizeof(generation);
 		
-		prevalence = *(slim_refcount_t *)p;
+		memcpy(&prevalence, p, sizeof(prevalence));
 		(void)prevalence;	// we don't use the frequency when reading the pop data back in; let the static analyzer know that's OK
 		p += sizeof(prevalence);
 		
 		if (has_nucleotides)
 		{
-			nucleotide = *(int8_t *)p;
+			memcpy(&nucleotide, p, sizeof(nucleotide));
 			p += sizeof(nucleotide);
 		}
 		
@@ -1392,7 +1395,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
 	else
 	{
-		section_end_tag = *(int32_t *)p;
+		memcpy(&section_end_tag, p, sizeof(section_end_tag));
 		p += sizeof(section_end_tag);
 		
 		if (section_end_tag != (int32_t)0xFFFF0000)
@@ -1420,7 +1423,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			break;
 		
 		// First check the first 32 bits to see if it is a section end tag
-		genome_type = *(int32_t *)p;
+		memcpy(&genome_type, p, sizeof(genome_type));
 		
 		if (genome_type == (int32_t)0xFFFF0000)
 			break;
@@ -1428,10 +1431,10 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		// If not, proceed with reading the genome entry
 		p += sizeof(genome_type);
 		
-		subpop_id = *(slim_objectid_t *)p;
+		memcpy(&subpop_id, p, sizeof(subpop_id));
 		p += sizeof(subpop_id);
 		
-		genome_index = *(slim_popsize_t *)p;
+		memcpy(&genome_index, p, sizeof(genome_index));
 		p += sizeof(genome_index);
 		
 		// Look up the subpopulation
@@ -1452,17 +1455,17 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			
 			if (spatial_output_count >= 1)
 			{
-				individual.spatial_x_ = *(double *)p;
+				memcpy(&individual.spatial_x_, p, sizeof(individual.spatial_x_));
 				p += sizeof(double);
 			}
 			if (spatial_output_count >= 2)
 			{
-				individual.spatial_y_ = *(double *)p;
+				memcpy(&individual.spatial_y_, p, sizeof(individual.spatial_y_));
 				p += sizeof(double);
 			}
 			if (spatial_output_count >= 3)
 			{
-				individual.spatial_z_ = *(double *)p;
+				memcpy(&individual.spatial_z_, p, sizeof(individual.spatial_z_));
 				p += sizeof(double);
 			}
 		}
@@ -1478,7 +1481,9 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			{
 				int individual_index = genome_index / 2;
 				Individual &individual = *subpop->parent_individuals_[individual_index];
-				slim_pedigreeid_t pedigree_id = *(slim_pedigreeid_t *)p;
+				slim_pedigreeid_t pedigree_id;
+				
+				memcpy(&pedigree_id, p, sizeof(pedigree_id));
 				
 				individual.SetPedigreeID(pedigree_id);
 				individual.genome1_->SetGenomeID(pedigree_id * 2);
@@ -1500,12 +1505,12 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 			int individual_index = genome_index / 2;
 			Individual &individual = *subpop->parent_individuals_[individual_index];
 			
-			individual.age_ = *(slim_age_t *)p;
+			memcpy(&individual.age_, p, sizeof(individual.age_));
 			p += sizeof(slim_age_t);
 		}
 #endif  // SLIM_NONWF_ONLY
 		
-		total_mutations = *(int32_t *)p;
+		memcpy(&total_mutations, p, sizeof(total_mutations));
 		p += sizeof(total_mutations);
 		
 		// Look up the genome
@@ -1554,7 +1559,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
-					mutation_id = *(uint16_t *)p;
+					memcpy(&mutation_id, p, sizeof(mutation_id));
 					p += sizeof(mutation_id);
 					
 					// Add mutation to genome
@@ -1574,7 +1579,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				
 				for (; mutcount < total_mutations; ++mutcount)
 				{
-					mutation_id = *(int32_t *)p;
+					memcpy(&mutation_id, p, sizeof(mutation_id));
 					p += sizeof(mutation_id);
 					
 					// Add mutation to genome
@@ -1611,7 +1616,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 		EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after genomes." << EidosTerminate();
 	else
 	{
-		section_end_tag = *(int32_t *)p;
+		memcpy(&section_end_tag, p, sizeof(section_end_tag));
 		p += sizeof(section_end_tag);
 		(void)p;	// dead store above is deliberate
 		
@@ -1636,7 +1641,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromBinaryFile(const char *p_fil
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InitializePopulationFromBinaryFile): unexpected EOF after ancestral sequence." << EidosTerminate();
 			else
 			{
-				section_end_tag = *(int32_t *)p;
+				memcpy(&section_end_tag, p, sizeof(section_end_tag));
 				p += sizeof(section_end_tag);
 				(void)p;	// dead store above is deliberate
 				
