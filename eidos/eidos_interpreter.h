@@ -30,6 +30,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <cassert>
 
 #include "eidos_script.h"
 #include "eidos_value.h"
