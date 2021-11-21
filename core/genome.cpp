@@ -2370,7 +2370,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_target, p_arguments, p_interpreter)
 	
 #ifdef __clang_analyzer__
-	assert(((p_method_id == gID_addNewDrawnMutation) && (argument_count == 5)) || ((p_method_id == gID_addNewMutation) && (argument_count == 6)));
+	assert(((p_method_id == gID_addNewDrawnMutation) && (p_arguments.size() == 5)) || ((p_method_id == gID_addNewMutation) && (p_arguments.size() == 6)));
 #endif
 	
 	EidosValue *arg_muttype = p_arguments[0].get();

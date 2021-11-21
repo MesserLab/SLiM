@@ -689,14 +689,16 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
 	
-	// objectElement is now retained by result_SP, so we can release it
-	objectElement->Release();
-	
 	// With no columns, the indices don't matter, and the result is a new empty dictionary
 	const EidosDictionaryHashTable *symbols = DictionarySymbols();
 	
 	if (!symbols || (symbols->size() == 0))
+	{
+		// objectElement is now retained by result_SP, so we can release it
+		objectElement->Release();
+		
 		return result_SP;
+	}
 	
 	// Otherwise, we subset to get the result value for each key we contain
 	// We go through the keys in sorted order, which probably doesn't matter since we're making a Dictionary, but it follows EidosDataFrame::ExecuteMethod_subsetRows()
@@ -717,6 +719,9 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	}
 	
 	objectElement->ContentsChanged("getRowValues()");
+	
+	// objectElement is now retained by result_SP, so we can release it
+	objectElement->Release();
 	
 	return result_SP;
 }
@@ -1005,11 +1010,11 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
 	
-	// objectElement is now retained by result_SP, so we can release it
-	objectElement->Release();
-	
 	objectElement->ConstructFromEidos(p_arguments, p_interpreter, "Eidos_Instantiate_EidosDictionaryRetained", "Dictionary");
 	objectElement->ContentsChanged("Dictionary()");
+	
+	// objectElement is now retained by result_SP, so we can release it
+	objectElement->Release();
 	
 	return result_SP;
 }

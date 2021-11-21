@@ -6390,6 +6390,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	
 	const double *values_float_vec_ptr = (values->Type() == EidosValueType::kValueFloat) ? values->FloatVector()->data() : nullptr;
 	const int64_t *values_integer_vec_ptr = (values->Type() == EidosValueType::kValueInt) ? values->IntVector()->data() : nullptr;
+	
+	assert(values_float_vec_ptr || values_integer_vec_ptr);
+	
 	bool range_is_null = (value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (colors->Type() == EidosValueType::kValueNULL);
 	double range_min = 0.0, range_max = 0.0;

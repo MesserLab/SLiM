@@ -2462,8 +2462,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			std::swap(parent_genome_1, parent_genome_2);
 			//std::swap(parent1_genome_type, parent2_genome_type);		// Not used below this point...
 		}
-		else
-			do_swap = false;
+		//else
+		//	do_swap = false;		// Not used below this point...
 	}
 	
 	// check for null cases

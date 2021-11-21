@@ -169,6 +169,7 @@ public:
 			// We don't already have an argument cache, so create one and use it
 			_CreateArgumentList(p_node, p_call_signature);
 			argument_cache = p_node->argument_cache_;
+			assert(argument_cache);		// static analyzer doesn't understand that _CreateArgumentList() created the cache
 			argument_buffer = &argument_cache->argument_buffer_;
 			argument_cache->argument_buffer_in_use_ = true;
 		}

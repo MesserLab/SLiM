@@ -913,6 +913,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTextFile(const char *p_file,
 				MutationIndex mutation = found_mut_pair->second;
 				slim_mutrun_index_t mutrun_index = (slim_mutrun_index_t)((mut_block_ptr + mutation)->position_ / mutrun_length_);
 				
+				assert(mutrun_index != -1);		// to clue in the static analyzer
+				
 				if (mutrun_index != current_mutrun_index)
 				{
 					current_mutrun_index = mutrun_index;
@@ -5696,6 +5698,8 @@ void SLiMSim::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	if (!p_initial_parental_genome && !p_second_parental_genome)
 		return;
 	
+	assert(p_initial_parental_genome);	// this cannot be nullptr if p_second_parental_genome is non-null, so now it is guaranteed non-null
+	
 	// map the Parental Genome SLiM Id's to TSK IDs.
 	tsk_id_t genome1TSKID = p_initial_parental_genome->tsk_node_id_;
 	tsk_id_t genome2TSKID = (!p_second_parental_genome) ? genome1TSKID : p_second_parental_genome->tsk_node_id_;
@@ -6836,6 +6840,10 @@ void SLiMSim::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	
 	struct utsname name;
 	ret = uname(&name);
+	
+	if (ret == -1)
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): (internal error) uname() failed." << EidosTerminate();
+	
 	j["environment"]["os"]["version"] = std::string(name.version);
 	j["environment"]["os"]["node"] = std::string(name.nodename);
 	j["environment"]["os"]["release"] = std::string(name.release);
@@ -7194,9 +7202,6 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 	}
 	
 	// check the model type; at the moment we do not require the model type to match what we are running, but we issue a warning on a mismatch
-	if ((model_type_str != "WF") && (model_type_str != "nonWF"))
-		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): unrecognized model type; this file cannot be read." << EidosTerminate();
-	
 	if (((model_type_str == "WF") && (ModelType() != SLiMModelType::kModelTypeWF)) ||
 		((model_type_str == "nonWF") && (ModelType() != SLiMModelType::kModelTypeNonWF)))
 	{
@@ -7208,6 +7213,8 @@ void SLiMSim::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ge
 		*p_model_type = SLiMModelType::kModelTypeWF;
 	else if (model_type_str == "nonWF")
 		*p_model_type = SLiMModelType::kModelTypeNonWF;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiMSim::ReadTreeSequenceMetadata): unrecognized model type; this file cannot be read." << EidosTerminate();
 	
 	// bounds-check the generation
 	if ((gen_ll < 1) || (gen_ll > SLIM_MAX_GENERATION))

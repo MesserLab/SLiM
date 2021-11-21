@@ -100,33 +100,54 @@ read_text_headers(char **linep, size_t *linecapp, FILE *file, char **metadata_sc
 	if (err < 0)
 		return err;
 	
+	char *local_schema = NULL;
+	
 	if (strcmp(*linep, "#metadata_schema#\n") == 0)
 	{
 		do {
 			err = getline(linep, linecapp, file);
 			if (err < 0)
+			{
+				free(local_schema);
 				return err;
+			}
             if (strcmp(*linep, "#end#metadata_schema\n") == 0)
                 break;
             
-            if (metadata_schema && (*metadata_schema == NULL))
-            {
-                size_t schema_len = strlen(*linep);
-                
-                *metadata_schema = malloc(schema_len + 1);  // +1 for the NUL
-                strcpy(*metadata_schema, *linep);
-                (*metadata_schema)[schema_len] = '\0';    // replace the trailing newline with a new NUL
-            }
+			// take the first non-empty line in this section as the full schema; multiline schemas are not understood
+			// we keep this in a local variable until we're done, since we don't want to return it if an error occurs
+			size_t schema_len = strlen(*linep);
+			
+			if (schema_len && !local_schema)
+			{
+				local_schema = malloc(schema_len + 1);  // +1 for the NUL
+				strcpy(local_schema, *linep);
+				local_schema[schema_len] = '\0';    // replace the trailing newline with a new NUL
+			}
 		} while (true);
 		
 		err = getline(linep, linecapp, file);
 		if (err < 0)
+		{
+			free(local_schema);
 			return err;
+		}
 		
 		if (strcmp(*linep, TSK_TABLE_SEP) == 0)
 			err = getline(linep, linecapp, file);
 		if (err < 0)
+		{
+			free(local_schema);
 			return err;
+		}
+	}
+
+	if (local_schema)
+	{
+		if ((err == 0) && metadata_schema && (*metadata_schema == NULL))
+			*metadata_schema = local_schema;
+		else
+			free(local_schema);
 	}
 	
 	return err;
@@ -170,7 +191,7 @@ node_table_load_text(tsk_node_table_t *node_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err <= 0) {
@@ -248,7 +269,7 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err <= 0) {
@@ -328,7 +349,7 @@ site_table_load_text(tsk_site_table_t *site_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -399,7 +420,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -479,7 +500,7 @@ migration_table_load_text(tsk_migration_table_t *migration_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atof(&start, &left, '\t');
         if (err < 0) {
@@ -555,7 +576,7 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoi(&start, &id, '\t');
         if (err < 0) {
@@ -650,7 +671,7 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 		goto out;
 	}
 	
-	while ((err = (int) getline(&line, &k, file)) != -1) {
+	while (getline(&line, &k, file) != -1) {
 		start = line;
 		err = get_sep_atoa(&start, &metadata, '\n');
 		if (err < 0 || *start != '\0') {
@@ -710,7 +731,7 @@ provenance_table_load_text(tsk_provenance_table_t *provenance_table, FILE *file)
         goto out;
     }
 
-    while ((err = (int) getline(&line, &k, file)) != -1) {
+    while (getline(&line, &k, file) != -1) {
         start = line;
         err = get_sep_atoa(&start, &record, '\t');
         if (err < 0) {

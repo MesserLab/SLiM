@@ -1779,6 +1779,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	std::vector<SLiMEidosBlock*> recombination_callbacks;
 	Subpopulation *parent_subpop = nullptr;
 	
+	// Note that if parent is nullptr, we ignore recombination() callbacks!  This is strange, but necessary and documented.
 	if (parent)
 	{
 		parent_sex = parent->sex_;
@@ -1815,7 +1816,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		else
 			DrawCrossoverBreakpoints(parent_sex, num_breakpoints, all_breakpoints);
 		
-		if (recombination_callbacks.size())
+		if (parent && recombination_callbacks.size())
 		{
 			// a non-zero number of breakpoints, with recombination callbacks
 			sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
@@ -1827,7 +1828,7 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 			}
 		}
 	}
-	else if (recombination_callbacks.size())
+	else if (parent && recombination_callbacks.size())
 	{
 		// zero breakpoints from the SLiM core, but we have recombination() callbacks
 		sim_->ThePopulation().ApplyRecombinationCallbacks(parent->index_, parent->genome1_, parent->genome2_, parent_subpop, all_breakpoints, recombination_callbacks);
@@ -1968,6 +1969,10 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 				ancestral_seq_buffer_ = new NucleotideArray(fasta_sequence.length(), fasta_sequence.c_str());
 			}
 		}
+	}
+	else
+	{
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setAncestralNucleotides): (internal error) unrecognized sequence type." << EidosTerminate();
 	}
 	
 	// check that the length of the new sequence matches the chromosome length

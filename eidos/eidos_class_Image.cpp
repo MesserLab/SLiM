@@ -356,6 +356,10 @@ static EidosValue_SP Eidos_Instantiate_EidosImage(const std::vector<EidosValue_S
 				}
 			}
 		}
+		else
+		{
+			EIDOS_TERMINATION << "ERROR (Eidos_Instantiate_EidosImage): (internal error) unexpected type for numeric_value." << EidosTerminate();
+		}
 	}
 	else
 	{

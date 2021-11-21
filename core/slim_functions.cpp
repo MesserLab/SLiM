@@ -923,7 +923,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_randomNucleotides): function randomNucleotides() requires length to be in [0, 2e9]." << EidosTerminate(nullptr);
 	
 	// Figure out the probability threshold for each base
-	double pA = 0.25, pC = 0.25, pG = 0.25, pT = 0.25;
+	double pA = 0.25, pC = 0.25, pG = 0.25, pT; // = 0.25;	// not used below
 	
 	if (basis_value->Type() != EidosValueType::kValueNULL)
 	{
@@ -947,11 +947,11 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		pA = pA / sum;
 		pC = pC / sum;
 		pG = pG / sum;
-		pT = pT / sum;
+		//pT = pT / sum;		// not used below since it will end up as 1.0 below
 	}
 	
 	// Convert probabilities to thresholds
-	pT += pA + pC + pG;		// should be 1.0; not used
+	//pT += pA + pC + pG;		// should be 1.0; not used
 	pG += pA + pC;
 	pC += pA;
 	
