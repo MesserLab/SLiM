@@ -176,6 +176,10 @@ extern bool eidos_do_memory_checks;
 // keep Valgrind from getting confused.
 #define SLIM_LEAK_CHECKING	0
 
+#if SLIM_LEAK_CHECKING
+#warning SLIM_LEAK_CHECKING enabled!
+#endif
+
 // Enabling "debug points" in SLiMgui.  These are only enabled under SLiMgui (i.e., QtSLiM), and should always be enabled
 // in that scenario, for end users.  However, I've put a define here to control them for my own debugging purposes.
 #ifdef SLIMGUI
@@ -747,6 +751,7 @@ private:
 	std::unordered_map<std::string, EidosGlobalStringID> gStringToID;
 	std::unordered_map<EidosGlobalStringID, const std::string *> gIDToString;
 	std::vector<const _EidosRegisteredString *> gIDToString_Thunk;
+	std::vector<const std::string *> globalString_Thunk;
 	EidosGlobalStringID gNextUnusedID;
 	
 	EidosStringRegistry(const EidosStringRegistry&) = delete;					// no copying
@@ -772,7 +777,7 @@ private:
 	{
 		return EidosStringRegistry::sharedRegistry()._RegisterStringForGlobalID(p_string, p_string_id);
 	}
-	
+    
 public:
 	// GlobalStringIDForString() takes any string and uniques it through a hash table.  If the string does not already exist
 	// in the hash table, it is copied, and the copy is registered and returned as the uniqued string.
@@ -788,6 +793,13 @@ public:
 	{
 		return EidosStringRegistry::sharedRegistry()._StringForGlobalStringID(p_string_id);
 	}
+    
+#if SLIM_LEAK_CHECKING
+    static inline void ThunkRegistration(_EidosRegisteredString *p_registration_object)
+    {
+        EidosStringRegistry::sharedRegistry().gIDToString_Thunk.emplace_back(p_registration_object);
+    }
+#endif
 	
 	friend class _EidosRegisteredString;
 };

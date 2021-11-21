@@ -91,9 +91,10 @@ get_sep_atoa(char **start, char **out, int sep)
 
 // This reads the header line of a file into *linep, just like a call to
 // getline(linep, linecapp, stream), but also eats any metadata header
-// present, throwing it away; FIXME should do something with it
+// present, returning the first line of it (which should be all of it,
+// if the metadata is compactified as expected) to the caller if requested
 static ssize_t
-read_text_headers(char **linep, size_t *linecapp, FILE *file)
+read_text_headers(char **linep, size_t *linecapp, FILE *file, char **metadata_schema)
 {
 	ssize_t err = getline(linep, linecapp, file);
 	if (err < 0)
@@ -105,7 +106,18 @@ read_text_headers(char **linep, size_t *linecapp, FILE *file)
 			err = getline(linep, linecapp, file);
 			if (err < 0)
 				return err;
-		} while (strcmp(*linep, "#end#metadata_schema\n") != 0);
+            if (strcmp(*linep, "#end#metadata_schema\n") == 0)
+                break;
+            
+            if (metadata_schema && (*metadata_schema == NULL))
+            {
+                size_t schema_len = strlen(*linep);
+                
+                *metadata_schema = malloc(schema_len + 1);  // +1 for the NUL
+                strcpy(*metadata_schema, *linep);
+                (*metadata_schema)[schema_len] = '\0';    // replace the trailing newline with a new NUL
+            }
+		} while (true);
 		
 		err = getline(linep, linecapp, file);
 		if (err < 0)
@@ -149,7 +161,7 @@ node_table_load_text(tsk_node_table_t *node_table, FILE *file)
 	
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -227,7 +239,7 @@ edge_table_load_text(tsk_edge_table_t *edge_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -307,7 +319,7 @@ site_table_load_text(tsk_site_table_t *site_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -378,7 +390,7 @@ mutation_table_load_text(tsk_mutation_table_t *mutation_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -458,7 +470,7 @@ migration_table_load_text(tsk_migration_table_t *migration_table, FILE *file)
 
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -534,7 +546,7 @@ individual_table_load_text(tsk_individual_table_t *individual_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }
@@ -610,6 +622,7 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 	size_t k;
 	size_t MAX_LINE = 1024;
 	char *line = NULL;
+    char *metadata_schema = NULL;
 	char *metadata;
 	const char *header = "metadata\n";
 	char *start;
@@ -628,7 +641,7 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 	
 	// check the header
 	ret = TSK_ERR_FILE_FORMAT;
-	err = (int) read_text_headers(&line, &k, file);
+	err = (int) read_text_headers(&line, &k, file, &metadata_schema);
 	if (err < 0) {
 		goto out;
 	}
@@ -650,6 +663,11 @@ population_table_load_text(tsk_population_table_t *population_table, FILE *file)
 			goto out;
 		}
 	}
+    if (metadata_schema && strlen(metadata_schema))
+    {
+        population_table->metadata_schema = metadata_schema;
+        population_table->metadata_schema_length = strlen(metadata_schema);
+    }
 	ret = 0;
 out:
 	free(line);
@@ -683,7 +701,7 @@ provenance_table_load_text(tsk_provenance_table_t *provenance_table, FILE *file)
     
     // check the header
     ret = TSK_ERR_FILE_FORMAT;
-    err = (int) read_text_headers(&line, &k, file);
+    err = (int) read_text_headers(&line, &k, file, NULL);
     if (err < 0) {
         goto out;
     }

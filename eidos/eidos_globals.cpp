@@ -2766,6 +2766,13 @@ EidosStringRegistry::~EidosStringRegistry(void)
 		delete (gstr_iter);
 	
 	gIDToString_Thunk.clear();
+
+	// We also free all the std::strings we allocated in _GlobalStringIDForString() to avoid
+	// them being reported as leaks.
+	for (auto g_string : globalString_Thunk)
+		delete (g_string);
+	
+	globalString_Thunk.clear();
 }
 
 void EidosStringRegistry::_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
@@ -2824,6 +2831,12 @@ EidosGlobalStringID EidosStringRegistry::_GlobalStringIDForString(const std::str
 		gStringToID[*copied_string] = string_id;	// makes another copy for the key
 		gIDToString[string_id] = copied_string;		// uses the copy we made above
 		
+#if SLIM_LEAK_CHECKING
+		// We add the string copies to a thunk object for later freeing, if we're leak-checking.
+		// Normally all these copied strings live for the lifespan of the process.
+		globalString_Thunk.emplace_back(copied_string);
+#endif
+		
 		//std::cout << "_GlobalStringIDForString(): added string " << p_string << ", id " << string_id << std::endl;
 		
 		return string_id;
@@ -2849,9 +2862,9 @@ const std::string &EidosRegisteredString(const char *p_cstr, EidosGlobalStringID
 	
 #if SLIM_LEAK_CHECKING
 	// We add registration objects to a thunk vector so we can free them at the end to un-confuse Valgrind;
-	// see Eidos_FreeGlobalStrings().  Note that this thunk vector is not used by Eidos or SLiM, but the
+	// see ~EidosStringRegistry().  Note that this thunk vector is not used by Eidos or SLiM, but the
 	// registration objects are; they hold onto the std::string objects used by _RegisterStringForGlobalID().
-	gIDToString_Thunk.emplace_back(registration_object);
+	EidosStringRegistry::ThunkRegistration(registration_object);
 #endif
 	
 	return registration_object->string_;

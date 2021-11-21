@@ -3063,6 +3063,7 @@ Similarly, for one individual this is essentially the same as calling
 If the needed interaction strengths have already been calculated, those cached values are simply used.  Otherwise, calling this method triggers evaluation of the needed interactions, including calls to any applicable 
 \f3\fs18 interaction()
 \f4\fs20  callbacks.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 See 
 \f3\fs18 localPopulationDensity()
 \f4\fs20  for a related method that calculates the total interaction strength divided by the amount of \'93interaction field\'94 present for an individual (i.e., the integral of the interaction function clipped to the spatial bounds of the subpopulation) to provide an estimate of the \'93interaction density\'94 felt by an individual.\
@@ -5050,6 +5051,7 @@ Beginning with SLiM 3.3, the
 \f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a generation.
@@ -6035,6 +6037,18 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 description <\'96> (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A human-readable 
+\f3\fs18 string
+\f4\fs20  description for the subpopulation.  By default, this is the empty string, 
+\f3\fs18 ""
+\f4\fs20 ; however, it may be set to whatever you wish.  When tree-sequence recording is enabled, 
+\f3\fs18 description
+\f4\fs20  is persisted in the subpopulation\'92s metadata in tree-sequence output.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 firstMaleIndex => (integer$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6178,6 +6192,34 @@ fitnessScaling <\'96> (float$)\
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
 \f4\fs20  for all male individuals in the subpopulation that died in the last selection/mortality generation cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 name <\'96> (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A human-readable 
+\f3\fs18 string
+\f4\fs20  name for the subpopulation.  By default, this is the subpopulation\'92s symbol as a 
+\f3\fs18 string
+\f4\fs20 ; for subpopulation 
+\f3\fs18 p3
+\f4\fs20 , for example, 
+\f3\fs18 name
+\f4\fs20  defaults to 
+\f3\fs18 "p3"
+\f4\fs20 .  However, it may be set to whatever you wish except that subpopulation names must be unique across time (two different subpopulations may not both have the name 
+\f3\fs18 "foo"
+\f4\fs20 , even if they never exist at the same time).  A subpopulation\'92s 
+\f3\fs18 name
+\f4\fs20  may appear as a label in SLiMgui, and it can be useful in generating output, debugging, and other purposes.  When tree-sequence recording is enabled, 
+\f3\fs18 name
+\f4\fs20  is persisted in the subpopulation\'92s metadata in tree-sequence output, and can then be used in Python to identify the subpopulation; if you plan to take advantage of that feature, 
+\f3\fs18 name
+\f4\fs20  should follow the syntax of Python identifiers: starting with a letter or underscore 
+\f3\fs18 [a-zA-Z_]
+\f4\fs20 , followed by letters, digits, or underscores 
+\f3\fs18 [a-zA-Z0-9_]
+\f4\fs20 , without spaces, hyphens, or other characters.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 selfingRate => (float$)\

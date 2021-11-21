@@ -461,6 +461,7 @@ extern const std::string gSLiM_tsk_site_metadata_schema;
 extern const std::string gSLiM_tsk_mutation_metadata_schema;
 extern const std::string gSLiM_tsk_node_metadata_schema;
 extern const std::string gSLiM_tsk_individual_metadata_schema;
+extern const std::string gSLiM_tsk_population_metadata_schema_PREJSON;		// before SLiM 3.7
 extern const std::string gSLiM_tsk_population_metadata_schema;
 
 
@@ -664,6 +665,8 @@ extern const std::string &gStr_subpopulation;
 extern const std::string &gStr_index;
 extern const std::string &gStr_immigrantSubpopIDs;
 extern const std::string &gStr_immigrantSubpopFractions;
+extern const std::string &gStr_name;
+extern const std::string &gStr_description;
 extern const std::string &gStr_selfingRate;
 extern const std::string &gStr_cloningRate;
 extern const std::string &gStr_sexRatio;
@@ -1005,6 +1008,8 @@ enum _SLiMGlobalStringID : int {
 	gID_index,
 	gID_immigrantSubpopIDs,
 	gID_immigrantSubpopFractions,
+	gID_name,
+	gID_description,
 	gID_selfingRate,
 	gID_cloningRate,
 	gID_sexRatio,

@@ -794,6 +794,14 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.fitnessScaling = 0.0; if (p1.fitnessScaling == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.fitnessScaling = -0.01; }", 1, 265, "must be >= 0.0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.fitnessScaling = NAN; }", 1, 265, "must be >= 0.0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.name == 'p1') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.name = 'p1'; if (p1.name == 'p1') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.name = 'foo'; if (p1.name == 'foo') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.name = 'foo'; p1.name = 'bar'; if (p1.name == 'bar') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.name = 'p2'; }", 1, 255, "subpopulation symbol", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.name = 'foo'; p1.name = 'bar'; p1.name = 'foo'; }", 1, 289, "must be unique", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { if (p1.description == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { p1.description = 'this is groovy'; if (p1.description == 'this is groovy') stop(); }", __LINE__);
 
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 262, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 265, "read-only property", __LINE__);
@@ -825,6 +833,14 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.fitnessScaling = 0.0; if (p1.fitnessScaling == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.fitnessScaling = -0.01; }", 1, 285, "must be >= 0.0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.fitnessScaling = NAN; }", 1, 285, "must be >= 0.0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.name == 'p1') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.name = 'p1'; if (p1.name == 'p1') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.name = 'foo'; if (p1.name == 'foo') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.name = 'foo'; p1.name = 'bar'; if (p1.name == 'bar') stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.name = 'p2'; }", 1, 275, "subpopulation symbol", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.name = 'foo'; p1.name = 'bar'; p1.name = 'foo'; }", 1, 309, "must be unique", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { if (p1.description == '') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 { p1.description = 'this is groovy'; if (p1.description == 'this is groovy') stop(); }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.cloningRate = 0.0; stop(); }", 1, 282, "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 { p1.firstMaleIndex = p1.firstMaleIndex; stop(); }", 1, 285, "read-only property", __LINE__);

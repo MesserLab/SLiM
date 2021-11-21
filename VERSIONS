@@ -81,6 +81,8 @@ development head:
 	add "unified" display mode in SLiMgui's individuals view
 	Windows port, thanks to Russell Dinnage!  see manual for install instructions, etc.
 	fix recipe 5.4 II (jump menu annotations with the Gravel model) to work with the new Markdown support added
+	policy change: the same subpop identifier, such as p1, may not be reused in a model; this was already true for tree-seq, now it is enforced for all models for consistency (breaks backward compatibility)
+	add name and description properties to Subpopulation; persist them in treeseq metadata in the population table; switch the population table metadata schema from binary to JSON so we can add `name` and `description` in a way tskit and others can read
 	
 
 version 3.6 (build 2784; Eidos version 2.6):

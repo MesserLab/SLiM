@@ -32,6 +32,7 @@
 #include <vector>
 #include <iostream>
 #include <ctime>
+#include <unordered_set>
 
 #include "slim_globals.h"
 #include "mutation.h"
@@ -169,6 +170,7 @@ typedef struct __attribute__((__packed__)) {
 
 #define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this generation
 
+// *** Subpopulation metadata is now JSON
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the id of this subpopulation
 	double selfing_fraction_;				// 8 bytes (double): selfing fraction (unused in non-sexual models), unused in nonWF models
@@ -183,19 +185,19 @@ typedef struct __attribute__((__packed__)) {
 	double bounds_z1_;						// 8 bytes (double): spatial bounds, unused in non-spatial / 1D / 2D models
 	uint32_t migration_rec_count_;			// 4 bytes (int32_t): the number of migration records, 0 in nonWF models
 	// followed by migration_rec_count_ instances of SubpopulationMigrationMetadataRec
-} SubpopulationMetadataRec;
+} SubpopulationMetadataRec_PREJSON;
 
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t source_subpop_id_;		// 4 bytes (int32_t): the id of the source subpopulation, unused in nonWF models
 	double migration_rate_;					// 8 bytes (double): the migration rate from source_subpop_id_, unused in nonWF models
-} SubpopulationMigrationMetadataRec;
+} SubpopulationMigrationMetadataRec_PREJSON;
 
 // We double-check the size of these records to make sure we understand what they contain and how they're packed
 static_assert(sizeof(MutationMetadataRec) == 17, "MutationMetadataRec is not 17 bytes!");
 static_assert(sizeof(GenomeMetadataRec) == 10, "GenomeMetadataRec is not 10 bytes!");
 static_assert(sizeof(IndividualMetadataRec) == 40, "IndividualMetadataRec is not 40 bytes!");
-static_assert(sizeof(SubpopulationMetadataRec) == 88, "SubpopulationMetadataRec is not 88 bytes!");
-static_assert(sizeof(SubpopulationMigrationMetadataRec) == 12, "SubpopulationMigrationMetadataRec is not 12 bytes!");
+static_assert(sizeof(SubpopulationMetadataRec_PREJSON) == 88, "SubpopulationMetadataRec_PREJSON is not 88 bytes!");
+static_assert(sizeof(SubpopulationMigrationMetadataRec_PREJSON) == 12, "SubpopulationMigrationMetadataRec_PREJSON is not 12 bytes!");
 
 // We check endianness on the platform we're building on; we assume little-endianness in our read/write code, I think.
 #if defined(__BYTE_ORDER__)
@@ -539,6 +541,10 @@ public:
 	// provenance-related stuff: remembering the seed and command-line args
 	unsigned long int original_seed_;												// the initial seed value, from the user via the -s CLI option, or auto-generated
 	std::vector<std::string> cli_params_;											// CLI parameters; an empty vector when run in SLiMgui, at least for now
+	
+	// global state about what symbols/names/identifiers have been used or are being used
+	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
+	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
 	
 	SLiMSim(const SLiMSim&) = delete;												// no copying
 	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
