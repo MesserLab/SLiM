@@ -68,7 +68,7 @@ class Population
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 
 	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
-	bool registry_needs_consistency_check_;					// set this to run CheckMutationRegistry() at the end of the generation
+	bool registry_needs_consistency_check_ = false;			// set this to run CheckMutationRegistry() at the end of the generation
 	
 public:
 	

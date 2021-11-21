@@ -146,6 +146,9 @@ SLiMSim::SLiMSim(std::istream &p_infile) : population_(*this), self_symbol_(gID_
 	}
 	catch (...) {
 		// try to clean up what we've allocated so far
+		delete chromosome_;
+		chromosome_ = nullptr;
+		
 		delete simulation_globals_;
 		simulation_globals_ = nullptr;
 		
@@ -2594,6 +2597,7 @@ void SLiMSim::InitiateMutationRunExperiments(void)
 	
 	x_stasis_limit_ = 5;				// once we reach stasis, we will conduct 5 stasis experiments before exploring again
 	x_stasis_alpha_ = 0.01;				// initially, we use an alpha of 0.01 to break out of stasis due to a change in mean
+	x_stasis_counter_ = 0;
 	x_prev1_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
 	x_prev2_stasis_mutcount_ = 0;		// we have never reached stasis before, so we have no memory of it
 	

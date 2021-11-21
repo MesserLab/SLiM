@@ -120,7 +120,6 @@ static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
-	Eidos_FreeGlobalStrings();
 	MutationRun::DeleteMutationRunFreeList();
 	FreeSymbolTablePool();
 	Eidos_FreeRNG(gEidos_RNG);
@@ -134,7 +133,7 @@ static void test_exit(int test_result)
 	
 	// sleep() to give time to assess leaks at the command line
 	std::cout << "\nSLEEPING" << std::endl;
-	sleep(100000);
+	sleep(60);
 #endif
 	
 	exit(test_result);
@@ -500,7 +499,7 @@ int main(int argc, char *argv[])
 		
 		// sleep() to give time to assess leaks at the command line
 		std::cout << "\nSLEEPING" << std::endl;
-		sleep(100000);
+		sleep(60);
 #endif
 	}
 	
