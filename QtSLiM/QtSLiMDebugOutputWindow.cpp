@@ -397,7 +397,7 @@ void QtSLiMDebugOutputWindow::clearOutputClicked(void)
 
 void QtSLiMDebugOutputWindow::selectedTabChanged(void)
 {
-    size_t tabIndex = ui->tabBar->currentIndex();
+    int tabIndex = ui->tabBar->currentIndex();
     
     ui->tabBar->setTabTextColor(tabIndex, ui->tabBar->tabTextColor(-1));  // set to an invalid color to clear to the default color
     
@@ -415,7 +415,7 @@ void QtSLiMDebugOutputWindow::selectedTabChanged(void)
     {
         tabIndex -= 2;                      // zero-base the index for logfilePaths
         
-        if ((tabIndex >= 0) && (tabIndex < logfilePaths.size()))
+        if ((tabIndex >= 0) && (tabIndex < (int)logfilePaths.size()))
         {
             showLogFile(tabIndex);
             return;
@@ -423,7 +423,7 @@ void QtSLiMDebugOutputWindow::selectedTabChanged(void)
         
         tabIndex -= logfilePaths.size();    // zero-base the index for filePaths
         
-        if ((tabIndex >= 0) && (tabIndex < fileViews.size()))
+        if ((tabIndex >= 0) && (tabIndex < (int)fileViews.size()))
         {
             showFile(tabIndex);
             return;
