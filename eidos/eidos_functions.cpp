@@ -11231,6 +11231,23 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	// write the contents out
 	Eidos_WriteToFile(file_path, contents_buffer, append, do_compress, EidosFileFlush::kDefaultFlush);
 	
+#ifdef SLIMGUI
+	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
+	// we make a separate buffer for this purpose, with string copies, to donate to SLiMSim with &&
+	{
+		EidosContext *context = p_interpreter.Context();
+		std::vector<std::string> slimgui_buffer;
+		
+		for (int value_index = 0; value_index < contents_count; ++value_index)
+			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex(value_index, nullptr));
+		
+		if (context)
+			context->FileWriteNotification(file_path, std::move(slimgui_buffer), append);
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeFile): (internal error) no Context in Eidos_ExecuteFunction_writeFile()." << EidosTerminate(nullptr);
+	}
+#endif
+	
 	return gStaticEidosValue_LogicalT;	// we used to return F if we had a warning condition; now those are errors, so we always return T
 }
 
@@ -11250,7 +11267,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	std::string suffix = suffix_value->StringAtIndex(0, nullptr);
 	
 	// the third argument is the file contents to write
-	EidosValue *contents_value = p_arguments[2].get();
+	EidosValue_String *contents_value = (EidosValue_String *)p_arguments[2].get();
 	int contents_count = contents_value->Count();
 	
 	// and then there is a flag for optional gzip compression
@@ -11275,6 +11292,24 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		free(file_path_cstr);
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) Eidos_mkstemps() failed!" << EidosTerminate(nullptr);
 	}
+	
+#ifdef SLIMGUI
+	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
+	// we make a separate buffer for this purpose, with string copies, to donate to SLiMSim with &&
+	{
+		EidosContext *context = p_interpreter.Context();
+		std::string file_path(file_path_cstr);
+		std::vector<std::string> slimgui_buffer;
+		
+		for (int value_index = 0; value_index < contents_count; ++value_index)
+			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex(value_index, nullptr));
+		
+		if (context)
+			context->FileWriteNotification(file_path, std::move(slimgui_buffer), false);
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): (internal error) no Context in Eidos_ExecuteFunction_writeTempFile()." << EidosTerminate(nullptr);
+	}
+#endif
 	
 	if (do_compress)
 	{

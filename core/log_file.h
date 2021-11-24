@@ -59,7 +59,11 @@ class LogFile : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 
+#ifdef SLIMGUI
+public:
+#else
 private:
+#endif
 	SLiMSim &sim_;												// UNOWNED POINTER: the simulation object we're working with
 	
 	std::string user_file_path_;								// the one given by the user to us
@@ -86,6 +90,11 @@ private:
 	
 	// Columns; note that one generator can generate more than one column!
 	std::vector<std::string> column_names_;
+	
+#ifdef SLIMGUI
+	// For SLiMgui, LogFile keeps a record of all of the output it generates, which SLiMgui pulls out of it
+	std::vector<std::vector<std::string>> emitted_lines_;
+#endif
 	
 	void RaiseForLockedHeader(const std::string &p_caller_name);
 	

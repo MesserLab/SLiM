@@ -324,16 +324,30 @@ void LogFile::AppendNewRow(void)
 		std::ostringstream ss;
 		bool first_column = true;
 		
+#ifdef SLIMGUI
+		std::vector<std::string> gui_line;
+#endif
+		
 		for (const std::string &column_name : column_names_)
 		{
 			if (!first_column)
 				ss << sep_;
 			first_column = false;
 			ss << column_name;
+			
+#ifdef SLIMGUI
+			std::ostringstream gui_ss;
+			gui_ss << column_name;
+			gui_line.emplace_back(gui_ss.str());
+#endif
 		}
 		
 		header_line = ss.str();
 		line_vec.emplace_back(&header_line);
+		
+#ifdef SLIMGUI
+		emitted_lines_.emplace_back(std::move(gui_line));
+#endif
 		
 		// Having emitted the header line, we lock ourselves to prevent inconsistencies in the emitted table
 		header_logged_ = true;
@@ -343,6 +357,10 @@ void LogFile::AppendNewRow(void)
 	{
 		std::ostringstream ss;
 		int column_index = 0;
+		
+#ifdef SLIMGUI
+		std::vector<std::string> gui_line;
+#endif
 		
 		for (const LogFileGeneratorInfo &generator : generator_info_)
 		{
@@ -384,6 +402,12 @@ void LogFile::AppendNewRow(void)
 					
 					_OutputValue(ss, generated_value_1.get());
 					
+#ifdef SLIMGUI
+					std::ostringstream gui_ss;
+					_OutputValue(gui_ss, generated_value_1.get());
+					gui_line.emplace_back(gui_ss.str());
+#endif
+					
 					if (generated_value_1->Type() != EidosValueType::kValueNULL)
 						SetKeyValue(column_names_[column_index], std::move(generated_value_1));
 					
@@ -402,6 +426,12 @@ void LogFile::AppendNewRow(void)
 			
 			_OutputValue(ss, generated_value.get());
 			
+#ifdef SLIMGUI
+			std::ostringstream gui_ss;
+			_OutputValue(gui_ss, generated_value.get());
+			gui_line.emplace_back(gui_ss.str());
+#endif
+			
 			if (generated_value->Type() != EidosValueType::kValueNULL)
 				SetKeyValue(column_names_[column_index], std::move(generated_value));
 			
@@ -410,6 +440,10 @@ void LogFile::AppendNewRow(void)
 		
 		row_line = ss.str();
 		line_vec.emplace_back(&row_line);
+		
+#ifdef SLIMGUI
+		emitted_lines_.emplace_back(std::move(gui_line));
+#endif
 	}
 	
 	ContentsChanged("LogFile::AppendNewRow()");

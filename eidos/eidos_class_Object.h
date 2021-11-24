@@ -86,11 +86,16 @@ public:
 	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 #ifdef SLIMGUI
-	// Support for debugging points in SLiMgui.  Because this class is used for the Eidos Context, stuff related
-	// to the context has to be defined here.  We don't want to dictate what subclass of EidosObject the context
-	// might actually inherit from, so we can't define this in a subclass.  I wish we had Obj-C protocols...
+	// Because this class is used for the Eidos Context, stuff related to the context has to be defined here.
+	// We don't want to dictate what subclass of EidosObject the context might actually inherit from, so we
+	// can't define this in a subclass.  I wish we had Obj-C protocols...
+	
+	// Support for debugging points in SLiMgui
 	virtual EidosInterpreterDebugPointsSet *DebugPoints(void) { return nullptr; };
 	virtual std::string DebugPointInfo(void) { return ""; };
+	
+	// Support for monitoring of file I/O in SLiMgui
+	virtual void FileWriteNotification(__attribute__((unused)) const std::string &p_file_path, __attribute__((unused)) std::vector<std::string> &&p_lines, __attribute__((unused)) bool p_append) { ; };
 #endif
 };
 

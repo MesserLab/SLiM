@@ -1166,7 +1166,7 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 #pragma mark -
 
 // resolve a leading ~ in a filesystem path to the user's home directory
-std::string Eidos_ResolvedPath(std::string p_path)
+std::string Eidos_ResolvedPath(const std::string &p_path)
 {
 	std::string path = p_path;
 	
@@ -1217,6 +1217,19 @@ std::string Eidos_ResolvedPath(std::string p_path)
 	return path;
 }
 
+// Get the filename (or a trailing directory name) from a path
+std::string Eidos_LastPathComponent(const std::string &p_path)
+{
+	std::string path = Eidos_StripTrailingSlash(p_path);
+	
+	auto components = Eidos_string_split(path, "/");
+	
+	if (components.size() == 0)
+		return "";
+	
+	return components.back();
+}
+
 // Get the current working directory; oddly, C++ has no API for this
 std::string Eidos_CurrentDirectory(void)
 {
@@ -1239,19 +1252,24 @@ std::string Eidos_CurrentDirectory(void)
 }
 
 // Remove a trailing slash in a path like ~/foo/bar/
-std::string Eidos_StripTrailingSlash(std::string p_path)
+std::string Eidos_StripTrailingSlash(const std::string &p_path)
 {
 	int path_length = (int)p_path.length();
 	bool path_ends_in_slash = (path_length > 0) && (p_path[path_length-1] == '/');
 	
 	if (path_ends_in_slash)
-		p_path.pop_back();		// remove the trailing slash, which just confuses stat()
+	{
+		std::string path = p_path;
+		
+		path.pop_back();		// remove the trailing slash, which just confuses stat()
+		return path;
+	}
 	
 	return p_path;
 }
 
 // Create a directory at the given path if it does not already exist; returns false if an error occurred (which emits a warning)
-bool Eidos_CreateDirectory(std::string p_path, std::string* p_error_string)
+bool Eidos_CreateDirectory(const std::string &p_path, std::string *p_error_string)
 {
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_path));
 	

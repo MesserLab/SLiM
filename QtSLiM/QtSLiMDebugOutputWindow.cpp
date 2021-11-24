@@ -22,11 +22,15 @@
 #include "ui_QtSLiMDebugOutputWindow.h"
 
 #include <QSettings>
+#include <QMenu>
+#include <QAction>
+#include <QTableWidget>
 #include <QDebug>
 
 #include "QtSLiMWindow.h"
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMExtras.h"
 
 
 //
@@ -57,11 +61,35 @@ QtSLiMDebugOutputWindow::QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent) :
     move(settings.value("pos", QPoint(25, 445)).toPoint());
     settings.endGroup();
     
+    // set up the tab bar; annoyingly, this cannot be configured in Designer at all!
+    ui->tabBar->setAcceptDrops(false);
+    ui->tabBar->setDocumentMode(false);
+    ui->tabBar->setDrawBase(false);
+    ui->tabBar->setExpanding(false);
+    ui->tabBar->setMovable(false);
+    ui->tabBar->setShape(QTabBar::RoundedNorth);
+    ui->tabBar->setTabsClosable(false);
+    ui->tabBar->setUsesScrollButtons(false);
+    ui->tabBar->setIconSize(QSize(15, 15));
+    
+    ui->tabBar->addTab("Debug Output");
+    ui->tabBar->setTabToolTip(0, "Debug Output");
+    ui->tabBar->addTab("Run Output");
+    ui->tabBar->setTabToolTip(1, "Run Output");
+    resetTabIcons();
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { resetTabIcons(); }); // adjust to dark mode change
+    
+    connect(ui->tabBar, &QTabBar::currentChanged, this, &QtSLiMDebugOutputWindow::selectedTabChanged);
+    
     // glue UI; no separate file since this is very simple
     connect(ui->clearOutputButton, &QPushButton::clicked, this, &QtSLiMDebugOutputWindow::clearOutputClicked);
     ui->clearOutputButton->qtslimSetBaseName("delete");
     connect(ui->clearOutputButton, &QPushButton::pressed, this, &QtSLiMDebugOutputWindow::clearOutputPressed);
     connect(ui->clearOutputButton, &QPushButton::released, this, &QtSLiMDebugOutputWindow::clearOutputReleased);
+    
+    // fix the layout of the window
+    ui->outputHeaderLayout->setSpacing(4);
+    ui->outputHeaderLayout->setMargin(0);
     
     // QtSLiMTextEdit attributes
     ui->debugOutputTextEdit->setOptionClickEnabled(false);
@@ -69,6 +97,14 @@ QtSLiMDebugOutputWindow::QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent) :
     ui->debugOutputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
     ui->debugOutputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     ui->debugOutputTextEdit->setReadOnly(true);
+    
+    ui->runOutputTextEdit->setOptionClickEnabled(false);
+    ui->runOutputTextEdit->setCodeCompletionEnabled(false);
+    ui->runOutputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
+    ui->runOutputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
+    ui->runOutputTextEdit->setReadOnly(true);
+    
+    showDebugOutput();
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
@@ -79,14 +115,322 @@ QtSLiMDebugOutputWindow::~QtSLiMDebugOutputWindow()
     delete ui;
 }
 
-QtSLiMTextEdit *QtSLiMDebugOutputWindow::debugOutputTextView(void)
+void QtSLiMDebugOutputWindow::resetTabIcons(void)
 {
-    return ui->debugOutputTextEdit;
+    // No icons for now, see how it goes
+    /*
+    QIcon debugTabIcon(QtSLiMImagePath("debug", false));
+    
+    ui->tabBar->setTabIcon(0, debugTabIcon);
+    ui->tabBar->setTabIcon(1, qtSLiMAppDelegate->applicationIcon());
+    */
+}
+
+void QtSLiMDebugOutputWindow::hideAllViews(void)
+{
+    ui->debugOutputTextEdit->setVisible(false);
+    ui->runOutputTextEdit->setVisible(false);
+    
+    for (QTableWidget *logtable : logfileViews)
+        logtable->setVisible(false);
+    
+    for (QtSLiMTextEdit *fileview : fileViews)
+        fileview->setVisible(false);
+}
+
+void QtSLiMDebugOutputWindow::showDebugOutput()
+{
+    hideAllViews();
+    ui->debugOutputTextEdit->setVisible(true);
+}
+
+void QtSLiMDebugOutputWindow::showRunOutput()
+{
+    hideAllViews();
+    ui->runOutputTextEdit->setVisible(true);
+}
+
+void QtSLiMDebugOutputWindow::showLogFile(int logFileIndex)
+{
+    QTableWidget *table = logfileViews[logFileIndex];
+    
+    hideAllViews();
+    table->setVisible(true);
+}
+
+void QtSLiMDebugOutputWindow::showFile(int fileIndex)
+{
+    QtSLiMTextEdit *fileview = fileViews[fileIndex];
+    
+    hideAllViews();
+    fileview->setVisible(true);
+}
+
+void QtSLiMDebugOutputWindow::tabReceivedInput(int tabIndex)
+{
+    // set the tab's text color to red when new input is received, if it is not the current tab
+    // the color depends on dark mode; FIXME we should fix it on dark mode change but we don't
+    if (tabIndex != ui->tabBar->currentIndex())
+    {
+        QColor color = (QtSLiMInDarkMode() ? QColor(255, 128, 128, 255) : QColor(192, 0, 0, 255));
+        
+        ui->tabBar->setTabTextColor(tabIndex, color);
+    }
+}
+
+void QtSLiMDebugOutputWindow::takeDebugOutput(QString str)
+{
+    ui->debugOutputTextEdit->moveCursor(QTextCursor::End);
+    ui->debugOutputTextEdit->insertPlainText(str);
+    ui->debugOutputTextEdit->moveCursor(QTextCursor::End);
+    
+    tabReceivedInput(0);
+}
+
+void QtSLiMDebugOutputWindow::takeRunOutput(QString str)
+{
+    ui->runOutputTextEdit->moveCursor(QTextCursor::End);
+    ui->runOutputTextEdit->insertPlainText(str);
+    ui->runOutputTextEdit->moveCursor(QTextCursor::End);
+    
+    tabReceivedInput(1);
+}
+
+void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path)
+{
+    // First, find the index of the log file view we're taking input into
+    // If we didn't find one, make a new one
+    auto pathIter = std::find(logfilePaths.begin(), logfilePaths.end(), path);
+    QTableWidget *table;
+    size_t tableIndex;
+    
+    if (pathIter != logfilePaths.end())
+    {
+        tableIndex = std::distance(logfilePaths.begin(), pathIter);
+        table = logfileViews[tableIndex];
+    }
+    else
+    {
+        QLayout *layout = this->layout();
+        
+        table = new QTableWidget();
+        table->setSortingEnabled(false);
+        table->setAlternatingRowColors(true);
+        table->setDragEnabled(false);
+        table->setAcceptDrops(false);
+        table->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+        table->setSelectionMode(QAbstractItemView::NoSelection);
+        table->horizontalHeader()->setResizeContentsPrecision(100);     // look at the first 100 rows to determine sizing
+        table->horizontalHeader()->setMinimumSectionSize(100);          // wide enough to fit most floating-point output
+        table->horizontalHeader()->setMaximumSectionSize(400);          // don't let super-wide output push the table width too far
+        table->setVisible(false);
+        layout->addWidget(table);
+        
+        // Make a new tab and insert it at the correct position in the tab bar
+        QString filename = QString::fromStdString(Eidos_LastPathComponent(path));
+        
+        tableIndex = logfilePaths.size();
+        ui->tabBar->insertTab(tableIndex + 2, filename);
+        ui->tabBar->setTabToolTip(tableIndex + 2, filename);
+        
+        // Add the new view's info
+        logfilePaths.emplace_back(path);
+        logfileViews.emplace_back(table);
+        logfileLineNumbers.emplace_back(-1);
+    }
+    
+    // Then create a new QTableWidgetItem for each item in the row
+    // If this is the first row we have taken, then it's the header row
+    bool firstTime = !table->horizontalHeaderItem(0);
+    
+    if (firstTime)
+    {
+        int col = 0;
+        
+        table->setColumnCount(lineElements.size());
+        
+        for (const std::string &str : lineElements)
+        {
+            QString qstr = QString::fromStdString(str);
+            QTableWidgetItem *colItem = new QTableWidgetItem(qstr);
+            colItem->setFlags(Qt::ItemIsEnabled);
+            
+            QFont itemFont = colItem->font();
+            itemFont.setBold(true);
+            colItem->setFont(itemFont);
+            
+            table->setHorizontalHeaderItem(col, colItem);
+            col++;
+        }
+    }
+    else
+    {
+        int rowIndex = table->rowCount();
+        int lineNumber = logfileLineNumbers[tableIndex] + 1;
+        int col = 0;
+        
+        table->setRowCount(rowIndex + 1);
+        
+        QTableWidgetItem *rowItem = new QTableWidgetItem(QString("%1").arg(lineNumber));
+        rowItem->setFlags(Qt::NoItemFlags);
+        rowItem->setTextAlignment(Qt::AlignRight);
+        rowItem->setForeground(Qt::darkGray);
+        table->setVerticalHeaderItem(rowIndex, rowItem);
+        
+        logfileLineNumbers[tableIndex] = lineNumber;
+        
+        for (const std::string &str : lineElements)
+        {
+            QString qstr = QString::fromStdString(str);
+            QTableWidgetItem *item = new QTableWidgetItem(qstr);
+            item->setFlags(Qt::ItemIsEnabled);
+            item->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            table->setItem(rowIndex, col, item);
+            col++;
+        }
+        
+        table->scrollToBottom();
+    }
+    
+    // adjust to fit the headers and the initial rows; this is probably rather expensive,
+    // but LogFile usually only fires once per generation or less, so hopefully not a big deal
+    table->resizeColumnsToContents();
+    
+    tabReceivedInput(tableIndex + 2);
+}
+
+void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path)
+{
+    // First, find the index of the file view we're taking input into
+    // If we didn't find one, make a new one
+    auto pathIter = std::find(filePaths.begin(), filePaths.end(), path);
+    QtSLiMTextEdit *fileview;
+    size_t fileIndex;
+    
+    if (pathIter != filePaths.end())
+    {
+        fileIndex = std::distance(filePaths.begin(), pathIter);
+        fileview = fileViews[fileIndex];
+    }
+    else
+    {
+        QLayout *layout = this->layout();
+        
+        fileview = new QtSLiMTextEdit();
+        fileview->setUndoRedoEnabled(false);
+        fileview->setOptionClickEnabled(false);
+        fileview->setCodeCompletionEnabled(false);
+        fileview->setScriptType(QtSLiMTextEdit::NoScriptType);
+        fileview->setSyntaxHighlightType(QtSLiMTextEdit::NoHighlighting);
+        fileview->setReadOnly(true);
+        fileview->setVisible(false);
+        layout->addWidget(fileview);
+        
+        // Make a new tab and add it at the end of the tab bar
+        QString filename = QString::fromStdString(Eidos_LastPathComponent(path));
+        
+        fileIndex = filePaths.size();
+        ui->tabBar->insertTab(ui->tabBar->count(), filename);
+        ui->tabBar->setTabToolTip(ui->tabBar->count() - 1, filename);
+        
+        // Add the new view's info
+        filePaths.emplace_back(path);
+        fileViews.emplace_back(fileview);
+    }
+    
+    // Then append the new text to the view, as with the built in textviews
+    if (!append)
+        fileview->setPlainText("");
+    
+    fileview->moveCursor(QTextCursor::End);
+    
+    bool hasPrecedingLines = (fileview->textCursor().position() != 0);
+    
+    for (const std::string &str : lines)
+    {
+        if (hasPrecedingLines)
+            fileview->insertPlainText("\n");
+        fileview->insertPlainText(QString::fromStdString(str));
+        hasPrecedingLines = true;
+    }
+    
+    fileview->moveCursor(QTextCursor::End);
+    
+    tabReceivedInput(fileIndex + 2 + logfilePaths.size());
+}
+
+void QtSLiMDebugOutputWindow::clearAllOutput(void)
+{
+    ui->debugOutputTextEdit->setPlainText("");
+    ui->runOutputTextEdit->setPlainText("");
+    
+    // Remove all tabs but the base two completely; they may not exist again after recycling
+    while (ui->tabBar->count() > 2)
+        ui->tabBar->removeTab(2);
+    
+    // Reset the base two tabs to the default text color
+    ui->tabBar->setTabTextColor(0, ui->tabBar->tabTextColor(-1));
+    ui->tabBar->setTabTextColor(1, ui->tabBar->tabTextColor(-1));
+    
+    logfilePaths.clear();
+    logfileViews.clear();
+    filePaths.clear();
+    fileViews.clear();
 }
 
 void QtSLiMDebugOutputWindow::clearOutputClicked(void)
 {
-    ui->debugOutputTextEdit->setPlainText("");
+    if (ui->debugOutputTextEdit->isVisible())
+        ui->debugOutputTextEdit->setPlainText("");
+    
+    if (ui->runOutputTextEdit->isVisible())
+        ui->runOutputTextEdit->setPlainText("");
+    
+    for (QTableWidget *table : logfileViews)
+        if (table->isVisible())
+            table->setRowCount(0);
+    
+    for (QtSLiMTextEdit *file : fileViews)
+        if (file->isVisible())
+            file->setPlainText("");
+}
+
+void QtSLiMDebugOutputWindow::selectedTabChanged(void)
+{
+    size_t tabIndex = ui->tabBar->currentIndex();
+    
+    ui->tabBar->setTabTextColor(tabIndex, ui->tabBar->tabTextColor(-1));  // set to an invalid color to clear to the default color
+    
+    if (tabIndex == 0)
+    {
+        showDebugOutput();
+        return;
+    }
+    else if (tabIndex == 1)
+    {
+        showRunOutput();
+        return;
+    }
+    else
+    {
+        tabIndex -= 2;                      // zero-base the index for logfilePaths
+        
+        if ((tabIndex >= 0) && (tabIndex < logfilePaths.size()))
+        {
+            showLogFile(tabIndex);
+            return;
+        }
+        
+        tabIndex -= logfilePaths.size();    // zero-base the index for filePaths
+        
+        if ((tabIndex >= 0) && (tabIndex < fileViews.size()))
+        {
+            showFile(tabIndex);
+            return;
+        }
+        
+        qDebug() << "unexpected current tab index" << ui->tabBar->currentIndex() << "in selectedTabChanged()";
+    }
 }
 
 void QtSLiMDebugOutputWindow::clearOutputPressed(void)

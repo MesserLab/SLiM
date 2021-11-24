@@ -316,9 +316,6 @@ private:
 	std::vector<SLiMEidosBlock*> cached_reproduction_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
 	
-	// LogFile registry, for logging data out to a file
-	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
-	
 #ifdef SLIMGUI
 	EidosInterpreterDebugPointsSet *debug_points_ = nullptr;						// NOT OWNED; line numbers for all lines with debugging points set
 #endif
@@ -428,6 +425,9 @@ private:
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;								// a user-defined tag value
+	
+	// LogFile registry, for logging data out to a file
+	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
 	
 	// Mutation run optimization.  The ivars here are used only internally by SLiMSim; the canonical reference regarding the
 	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Genome (for each genome object).
@@ -667,6 +667,14 @@ public:
 	virtual std::string DebugPointInfo(void) override { return std::string(", gen ") + std::to_string(generation_); };
 #endif
 	
+	// ***********************************  Support for file observing notifications in SLiMgui
+#ifdef SLIMGUI
+	virtual void FileWriteNotification(const std::string &p_file_path, std::vector<std::string> &&p_lines, bool p_append) override;
+	
+	std::vector<std::string> file_write_paths_;						// full file paths for the file writes we have seen, in order of occurrence
+    std::vector<std::vector<std::string>> file_write_buffers_;		// remembered file write lines, keyed by the full file path; read by SLiMgui
+    std::vector<uint8_t> file_write_appends_;						// a parallel map just keeping a bool flag: true == append, false == overwrite
+#endif
 
 	
 	// TREE SEQUENCE RECORDING

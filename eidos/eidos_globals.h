@@ -395,20 +395,23 @@ std::string Eidos_GetUntrimmedRaiseMessage(void);
 #pragma mark -
 
 // Resolve a leading ~ in a filesystem path to the user's home directory
-std::string Eidos_ResolvedPath(std::string p_path);
+std::string Eidos_ResolvedPath(const std::string &p_path);
+
+// Get the filename (or a trailing directory name) from a path
+std::string Eidos_LastPathComponent(const std::string &p_path);
 
 // Get the current working directory; oddly, C++ has no API for this
 std::string Eidos_CurrentDirectory(void);
 
 // Remove a trailing slash in a path like ~/foo/bar/
-std::string Eidos_StripTrailingSlash(std::string p_path);
+std::string Eidos_StripTrailingSlash(const std::string &p_path);
 
 // Create a directory at a given filesystem path if it does not already exist (which is not an error);
 // calls Eidos_ResolvedPath() on the given path, since I think we always want that anyway.  Returns false
 // if the operation fails (i.e. the directory may or may not even exist).  Returns true if the directory
 // exists.  A warning string can be returned through p_error_string, even if true is returned; for example,
 // if the directory already exists a warning is emitted but the return value is true.
-bool Eidos_CreateDirectory(std::string p_path, std::string *p_error_string);
+bool Eidos_CreateDirectory(const std::string &p_path, std::string *p_error_string);
 
 // This is /tmp/ (with trailing slash!) on macOS and Linux, but will be elsewhere on Windows.  Should be used instead of /tmp/ everywhere.
 std::string Eidos_TemporaryDirectory(void);

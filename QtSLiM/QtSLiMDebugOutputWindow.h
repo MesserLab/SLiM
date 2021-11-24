@@ -26,6 +26,7 @@
 class QCloseEvent;
 class QtSLiMWindow;
 class QtSLiMTextEdit;
+class QTableWidget;
 
 
 namespace Ui {
@@ -42,21 +43,45 @@ public:
     explicit QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent = nullptr);
     virtual ~QtSLiMDebugOutputWindow() override;
     
-    QtSLiMTextEdit *debugOutputTextView(void);
+    // Our various output views, which each collect output independently
+    void takeDebugOutput(QString str);
+    void takeRunOutput(QString str);
+    void takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path);
+    void takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path);
     
 public slots:
+    void clearAllOutput(void);
     void clearOutputClicked(void);
+    
+    void showDebugOutput(void);
+    void showRunOutput(void);
+    void showLogFile(int logFileIndex);
+    void showFile(int fileIndex);
     
 signals:
     void willClose(void);
     
 private slots:
+    void tabReceivedInput(int tabIndex);
+    void selectedTabChanged(void);
     virtual void closeEvent(QCloseEvent *p_event) override;
     void clearOutputPressed(void);
     void clearOutputReleased(void);
     
 private:
     Ui::QtSLiMDebugOutputWindow *ui;
+    
+    // all the LogFile paths we have seen, views containing their output, and the last line number emitted
+    std::vector<std::string> logfilePaths;
+    std::vector<QTableWidget *> logfileViews;
+    std::vector<size_t> logfileLineNumbers;
+    
+    // all the ordinary file paths we have seen, from writeFile() and similar, and output views
+    std::vector<std::string> filePaths;
+    std::vector<QtSLiMTextEdit *> fileViews;
+    
+    void resetTabIcons(void);
+    void hideAllViews(void);
 };
 
 

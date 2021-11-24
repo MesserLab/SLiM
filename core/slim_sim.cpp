@@ -5144,6 +5144,36 @@ void SLiMSim::CollectSLiMguiMemoryUsageProfileInfo(void)
 }
 #endif
 
+#ifdef SLIMGUI
+void SLiMSim::FileWriteNotification(const std::string &p_file_path, std::vector<std::string> &&p_lines, bool p_append)
+{
+	auto buffer_iter = std::find(file_write_paths_.begin(), file_write_paths_.end(), p_file_path);
+	
+	if (buffer_iter == file_write_paths_.end())
+	{
+		// No existing buffer for this path, so make a new one; this does not mean the file is new!
+		file_write_paths_.emplace_back(p_file_path);
+		file_write_buffers_.emplace_back(std::move(p_lines));
+		file_write_appends_.emplace_back(p_append);
+	}
+	else
+	{
+		// Use the existing buffer for this path
+		size_t buffer_index = std::distance(file_write_paths_.begin(), buffer_iter);
+		std::vector<std::string> &buffer = file_write_buffers_[buffer_index];
+		
+		if (!p_append)
+			buffer.clear();
+		
+		for (std::string &line : p_lines)
+			buffer.emplace_back(std::move(line));
+		
+		// Note the append flag; the vector here is always parallel to the main vector
+		file_write_appends_[buffer_index] = p_append;
+	}
+}
+#endif
+
 
 //
 // TREE SEQUENCE RECORDING

@@ -81,6 +81,7 @@
 #include "individual.h"
 #include "eidos_test.h"
 #include "slim_test.h"
+#include "log_file.h"
 
 
 static std::string defaultWFScriptString(void)
@@ -1415,6 +1416,7 @@ QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
 
 void QtSLiMWindow::updateOutputViews(void)
 {
+    QtSLiMDebugOutputWindow *debugWindow = debugOutputWindow();
     std::string &&newOutput = gSLiMOut.str();
 	
 	if (!newOutput.empty())
@@ -1447,6 +1449,10 @@ void QtSLiMWindow::updateOutputViews(void)
 		//if (scrolledToBottom)
 		//	[outputTextView scrollRangeToVisible:NSMakeRange([[outputTextView string] length], 0)];
 		
+        // We add run output to the appropriate subview of the output viewer, too; it shows up in both places
+        if (debugWindow)
+            debugWindow->takeRunOutput(str);
+        
 		// clear any error flags set on the stream and empty out its string so it is ready to receive new output
 		gSLiMOut.clear();
 		gSLiMOut.str("");
@@ -1459,21 +1465,46 @@ void QtSLiMWindow::updateOutputViews(void)
     if (!newErrors.empty())
     {
         QString str = QString::fromStdString(newErrors);
-        QtSLiMDebugOutputWindow *debugWindow = debugOutputWindow();
-        QtSLiMTextEdit *debugOutputTextEdit = (debugWindow ? debugWindow->debugOutputTextView() : nullptr);
-		
-        if (debugOutputTextEdit)
+        
+        if (debugWindow)
         {
-            debugOutputTextEdit->moveCursor(QTextCursor::End);
-            debugOutputTextEdit->insertPlainText(str);
-            debugOutputTextEdit->moveCursor(QTextCursor::End);
-            
-            gSLiMError.clear();
-            gSLiMError.str("");
+            debugWindow->takeDebugOutput(str);
             
             // Flash the debugging output button to alert the user to new output
             flashDebugButton();
         }
+        
+        gSLiMError.clear();
+        gSLiMError.str("");
+    }
+    
+    // Scan through LogFile instances kept by the sim and flush them to the debug window
+    if (debugWindow && !invalidSimulation_ && sim)
+    {
+        for (LogFile *logfile : sim->log_file_registry_)
+        {
+            for (auto &lineElements : logfile->emitted_lines_)
+            {
+                // This call takes a vector of string elements comprising one logfile output line
+                debugWindow->takeLogFileOutput(lineElements, logfile->user_file_path_);
+            }
+            
+            logfile->emitted_lines_.clear();
+        }
+    }
+    
+    // Scan through file output kept by the sim and flush it to the debug window
+    if (debugWindow && !invalidSimulation_ && sim)
+    {
+        for (size_t index = 0; index < sim->file_write_paths_.size(); ++index)
+        {
+            // This call takes a vector of lines comprising all the output for one file
+            debugWindow->takeFileOutput(sim->file_write_buffers_[index], sim->file_write_appends_[index], sim->file_write_paths_[index]);
+        }
+        
+        sim->file_write_paths_.clear();
+        sim->file_write_buffers_.clear();
+        sim->file_write_appends_.clear();
     }
 }
 
@@ -3628,7 +3659,7 @@ void QtSLiMWindow::recycleClicked(void)
     
     clearOutputClicked();
     if (debugOutputWindow_)
-        debugOutputWindow_->clearOutputClicked();
+        debugOutputWindow_->clearAllOutput();
     
     setScriptStringAndInitializeSimulation(utf8_script_string);
     

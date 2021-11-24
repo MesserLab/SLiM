@@ -1207,7 +1207,7 @@ QSlider::handle:horizontal:disabled {
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show debugging output&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;show the debugging output viewer&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="text">
              <string/>
@@ -2008,6 +2008,11 @@ QSlider::handle:horizontal:disabled {
    <header>QtSLiMExtras.h</header>
   </customwidget>
   <customwidget>
+   <class>QtSLiMTextEdit</class>
+   <extends>QPlainTextEdit</extends>
+   <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
    <class>QtSLiMChromosomeWidget</class>
    <extends>QOpenGLWidget</extends>
    <header>QtSLiMChromosomeWidget.h</header>
@@ -2029,11 +2034,6 @@ QSlider::handle:horizontal:disabled {
   </customwidget>
   <customwidget>
    <class>QtSLiMScriptTextEdit</class>
-   <extends>QPlainTextEdit</extends>
-   <header>QtSLiMScriptTextEdit.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QtSLiMTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
   </customwidget>
