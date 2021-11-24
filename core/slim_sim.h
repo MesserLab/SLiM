@@ -720,7 +720,7 @@ public:
     void TreeSequenceDataFromAscii(std::string NodeFileName, 
             std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
             std::string IndividualsFileName, std::string PopulationFileName, std::string ProvenanceFileName);
-	void FreeTreeSequence(bool p_force_free = false);	// "false" frees only when recording_tree_ is true, and raises otherwise; "true" tries to free always (which might crash if it is incorrect)
+	void FreeTreeSequence();
 	void RecordAllDerivedStatesFromSLiM(void);
 	void DumpMutationTable(void);
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
