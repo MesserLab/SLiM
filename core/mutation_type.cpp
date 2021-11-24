@@ -260,7 +260,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 			{
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &sim_.SymbolTable());
 				EidosFunctionMap &function_map = sim_.FunctionMap();
-				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+				EidosInterpreter interpreter(*cached_dfe_script_, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 				
 				EidosValue_SP result_SP = interpreter.EvaluateInterpreterBlock(false, true);	// do not print output, return the last statement value
 				EidosValue *result = result_SP.get();

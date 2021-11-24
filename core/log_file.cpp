@@ -205,7 +205,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 		EidosFunctionMap &function_map = sim_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
