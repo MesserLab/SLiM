@@ -9140,7 +9140,7 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		// confirm that this schema also considers `slim_id` to be a required key, I think, otherwise the data we
 		// carry over might be non-compliant with the schema we state for it; but for now we pend such checks.
 		// See https://github.com/MesserLab/SLiM/issues/169 for discussion about schema checking/compatibility.
-		nlohmann::json pop_schema_json = pop_schema;
+		nlohmann::json pop_schema_json;
 		
 		try {
 			pop_schema_json = nlohmann::json::parse(pop_schema);

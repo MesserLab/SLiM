@@ -144,7 +144,7 @@ read_text_headers(char **linep, size_t *linecapp, FILE *file, char **metadata_sc
 
 	if (local_schema)
 	{
-		if ((err == 0) && metadata_schema && (*metadata_schema == NULL))
+		if ((err >= 0) && metadata_schema && (*metadata_schema == NULL))
 			*metadata_schema = local_schema;
 		else
 			free(local_schema);
