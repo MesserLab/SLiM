@@ -41,7 +41,7 @@
       <enum>QLayout::SetMinimumSize</enum>
      </property>
      <item>
-      <widget class="QtSLiMPushButton" name="iconSLiM">
+      <widget class="QtSLiMIconView" name="iconSLiM">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -256,7 +256,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QtSLiMPushButton</class>
+   <class>QtSLiMIconView</class>
    <extends>QPushButton</extends>
    <header>QtSLiMExtras.h</header>
   </customwidget>
