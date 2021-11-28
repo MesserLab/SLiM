@@ -5517,6 +5517,8 @@ void SLiMSim::SimplifyTreeSequence(void)
 
 void SLiMSim::CheckCoalescenceAfterSimplification(void)
 {
+#warning FIXME uncomment all of this; commented out so it compiles for now!
+	/*
 #if DEBUG
 	if (!recording_tree_ || !running_coalescence_checks_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
@@ -5618,7 +5620,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	}
 	
 	//std::cout << generation_ << ": fully_coalesced == " << (fully_coalesced ? "TRUE" : "false") << std::endl;
-	last_coalescence_state_ = fully_coalesced;
+	last_coalescence_state_ = fully_coalesced;*/
 }
 
 bool SLiMSim::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
