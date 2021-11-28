@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019 Tskit Developers
+ * Copyright (c) 2019-2021 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -36,13 +36,7 @@ extern "C" {
 
 #include <tskit/tables.h>
 
-/* The TSK_SAMPLE_COUNTS was removed in version 0.99.3, where
- * the default is now to always count samples except when
- * TSK_NO_SAMPLE_COUNTS is specified. This macro can be undefined
- * at some point in the future and the option reused for something
- * else. */
 // clang-format off
-#define TSK_SAMPLE_COUNTS           (1 << 0)
 #define TSK_SAMPLE_LISTS            (1 << 1)
 #define TSK_NO_SAMPLE_COUNTS        (1 << 2)
 
@@ -51,8 +45,9 @@ extern "C" {
 #define TSK_STAT_NODE               (1 << 2)
 
 /* Leave room for other stat types */
-#define TSK_STAT_POLARISED          (1 << 10)
-#define TSK_STAT_SPAN_NORMALISE     (1 << 11)
+#define TSK_STAT_POLARISED               (1 << 10)
+#define TSK_STAT_SPAN_NORMALISE          (1 << 11)
+#define TSK_STAT_ALLOW_TIME_UNCALIBRATED (1 << 12)
 
 /* Options for map_mutations */
 #define TSK_MM_FIXED_ANCESTRAL_STATE (1 << 0)
@@ -71,6 +66,12 @@ typedef struct {
     tsk_size_t num_trees;
     tsk_size_t num_samples;
     tsk_id_t *samples;
+    /* Does this tree sequence have time_units == "uncalibrated" */
+    bool time_uncalibrated;
+    /* Are all genome coordinates discrete? */
+    bool discrete_genome;
+    /* Are all time values discrete? */
+    bool discrete_time;
     /* Breakpoints along the sequence, including 0 and L. */
     double *breakpoints;
     /* If a node is a sample, map to its index in the samples list */
@@ -124,10 +125,10 @@ typedef struct {
      */
     const tsk_treeseq_t *tree_sequence;
     /**
-     * @brief The leftmost root in the tree. Roots are siblings, and
-     * other roots can be found using right_sib.
+     @brief The ID of the "virtual root" whose children are the roots of the
+     tree.
      */
-    tsk_id_t left_root;
+    tsk_id_t virtual_root;
     /**
      @brief The parent of node u is parent[u]. Equal to TSK_NULL if node u is a
      root or is not a node in the current tree.
@@ -153,31 +154,34 @@ typedef struct {
      if node u has no siblings to its right.
      */
     tsk_id_t *right_sib;
-
+    /**
+     @brief The total number of edges defining the topology of this tree.
+     This is equal to the number of tree sequence edges that intersect with
+     the tree's genomic interval.
+     */
+    tsk_size_t num_edges;
+    /* FIXME Undocumenting this for now to resolve some sphinx/doxygen issues */
+    /*
+     @brief Left and right coordinates of the genomic interval that this
+     tree covers. The left coordinate is inclusive and the right coordinate
+     exclusive.
+     */
+    struct {
+        double left;
+        double right;
+    } interval;
     tsk_size_t num_nodes;
     tsk_flags_t options;
     tsk_size_t root_threshold;
     const tsk_id_t *samples;
-    /* TODO before documenting this should be change to interval. */
-    /* Left and right physical coordinates of the tree */
-    double left;
-    double right;
     tsk_id_t index;
     /* These are involved in the optional sample tracking; num_samples counts
      * all samples below a give node, and num_tracked_samples counts those
      * from a specific subset. By default sample counts are tracked and roots
      * maintained. If TSK_NO_SAMPLE_COUNTS is specified, then neither sample
      * counts or roots are available. */
-    /* TODO should these be tsk_size_t values? */
-    tsk_id_t *num_samples;
-    tsk_id_t *num_tracked_samples;
-    /* TODO the only place this feature seems to be used is in the ld_calculator.
-     * when this is being replaced we should come up with a better way of doing
-     * whatever this is being used for. */
-    /* All nodes that are marked during a particular transition are marked
-     * with a given value. */
-    uint8_t *marked;
-    uint8_t mark;
+    tsk_size_t *num_samples;
+    tsk_size_t *num_tracked_samples;
     /* These are for the optional sample list tracking. */
     tsk_id_t *left_sample;
     tsk_id_t *right_sample;
@@ -191,8 +195,7 @@ typedef struct {
     tsk_id_t right_index;
 } tsk_tree_t;
 
-/* Diff iterator. TODO Not sure if we want to keep this, as it's not used
- * very much in the C code. */
+/* Diff iterator. */
 typedef struct _tsk_edge_list_node_t {
     tsk_edge_t edge;
     struct _tsk_edge_list_node_t *next;
@@ -254,12 +257,16 @@ const char *tsk_treeseq_get_metadata(const tsk_treeseq_t *self);
 tsk_size_t tsk_treeseq_get_metadata_length(const tsk_treeseq_t *self);
 const char *tsk_treeseq_get_metadata_schema(const tsk_treeseq_t *self);
 tsk_size_t tsk_treeseq_get_metadata_schema_length(const tsk_treeseq_t *self);
+const char *tsk_treeseq_get_time_units(const tsk_treeseq_t *self);
+tsk_size_t tsk_treeseq_get_time_units_length(const tsk_treeseq_t *self);
 const char *tsk_treeseq_get_file_uuid(const tsk_treeseq_t *self);
 double tsk_treeseq_get_sequence_length(const tsk_treeseq_t *self);
 const double *tsk_treeseq_get_breakpoints(const tsk_treeseq_t *self);
 const tsk_id_t *tsk_treeseq_get_samples(const tsk_treeseq_t *self);
 const tsk_id_t *tsk_treeseq_get_sample_index_map(const tsk_treeseq_t *self);
 bool tsk_treeseq_is_sample(const tsk_treeseq_t *self, tsk_id_t u);
+bool tsk_treeseq_get_discrete_genome(const tsk_treeseq_t *self);
+bool tsk_treeseq_get_discrete_time(const tsk_treeseq_t *self);
 
 int tsk_treeseq_get_node(const tsk_treeseq_t *self, tsk_id_t index, tsk_node_t *node);
 int tsk_treeseq_get_edge(const tsk_treeseq_t *self, tsk_id_t index, tsk_edge_t *edge);
@@ -401,8 +408,59 @@ int tsk_tree_last(tsk_tree_t *self);
 int tsk_tree_next(tsk_tree_t *self);
 int tsk_tree_prev(tsk_tree_t *self);
 int tsk_tree_clear(tsk_tree_t *self);
+int tsk_tree_seek(tsk_tree_t *self, double position, tsk_flags_t options);
 
 void tsk_tree_print_state(const tsk_tree_t *self, FILE *out);
+
+/**
+@brief Return an upper bound on the number of nodes reachable
+    from the roots of this tree.
+
+@rst
+This function provides an upper bound on the number of nodes that
+can be reached in tree traversals, and is intended to be used
+for memory allocation purposes. If ``num_nodes`` is the number
+of nodes visited in a tree traversal from the virtual root
+(e.g., ``tsk_tree_preorder(tree, tree->virtual_root, nodes,
+&num_nodes)``), the bound ``N`` returned here is guaranteed to
+be greater than or equal to ``num_nodes``.
+
+.. warning:: The precise value returned is not defined and should
+    not be depended on, as it may change from version-to-version.
+
+@endrst
+
+@param self A pointer to a tsk_tree_t object.
+@return An upper bound on the number nodes reachable from the roots
+    of this tree, or zero if this tree has not been initialised.
+*/
+tsk_size_t tsk_tree_get_size_bound(const tsk_tree_t *self);
+
+/**
+@brief Returns the sum of the lengths of all branches reachable from
+    the specified node, or from all roots if node=TSK_NULL.
+
+@rst
+Return the total branch length in a particular subtree or of the
+entire tree. If the specified node is TSK_NULL (or the virtual
+root) the sum of the lengths of all branches reachable from roots
+is returned. Branch length is defined as difference between the time
+of a node and its parent. The branch length of a root is zero.
+
+Note that if the specified node is internal its branch length is
+*not* included, so that, e.g., the total branch length of a
+leaf node is zero.
+@endrst
+
+@param self A pointer to a tsk_tree_t object.
+@param node The tree node to compute branch length or TSK_NULL to return the
+    total branch length of the tree.
+@param ret_tbl A double pointer to store the returned total branch length.
+@return 0 on success or a negative value on failure.
+*/
+int tsk_tree_get_total_branch_length(
+    const tsk_tree_t *self, tsk_id_t node, double *ret_tbl);
+
 /** @} */
 
 int tsk_tree_set_root_threshold(tsk_tree_t *self, tsk_size_t root_threshold);
@@ -415,14 +473,20 @@ bool tsk_tree_equals(const tsk_tree_t *self, const tsk_tree_t *other);
 bool tsk_tree_is_descendant(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v);
 bool tsk_tree_is_sample(const tsk_tree_t *self, tsk_id_t u);
 
+tsk_id_t tsk_tree_get_left_root(const tsk_tree_t *self);
+tsk_id_t tsk_tree_get_right_root(const tsk_tree_t *self);
+
 int tsk_tree_copy(const tsk_tree_t *self, tsk_tree_t *dest, tsk_flags_t options);
+
+int tsk_tree_track_descendant_samples(tsk_tree_t *self, tsk_id_t node);
 int tsk_tree_set_tracked_samples(
     tsk_tree_t *self, tsk_size_t num_tracked_samples, const tsk_id_t *tracked_samples);
-int tsk_tree_set_tracked_samples_from_sample_list(
-    tsk_tree_t *self, tsk_tree_t *other, tsk_id_t node);
 
-int tsk_tree_get_parent(const tsk_tree_t *self, tsk_id_t u, tsk_id_t *parent);
+int tsk_tree_get_branch_length(
+    const tsk_tree_t *self, tsk_id_t u, double *branch_length);
 int tsk_tree_get_time(const tsk_tree_t *self, tsk_id_t u, double *t);
+int tsk_tree_get_parent(const tsk_tree_t *self, tsk_id_t u, tsk_id_t *parent);
+int tsk_tree_get_depth(const tsk_tree_t *self, tsk_id_t u, int *depth);
 int tsk_tree_get_mrca(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca);
 int tsk_tree_get_num_samples(
     const tsk_tree_t *self, tsk_id_t u, tsk_size_t *num_samples);
@@ -430,7 +494,13 @@ int tsk_tree_get_num_tracked_samples(
     const tsk_tree_t *self, tsk_id_t u, tsk_size_t *num_tracked_samples);
 int tsk_tree_get_sites(
     const tsk_tree_t *self, const tsk_site_t **sites, tsk_size_t *sites_length);
-int tsk_tree_depth(const tsk_tree_t *self, tsk_id_t u, tsk_size_t *depth);
+
+int tsk_tree_preorder(
+    const tsk_tree_t *self, tsk_id_t root, tsk_id_t *nodes, tsk_size_t *num_nodes);
+int tsk_tree_postorder(
+    const tsk_tree_t *self, tsk_id_t root, tsk_id_t *nodes, tsk_size_t *num_nodes);
+int tsk_tree_preorder_samples(
+    const tsk_tree_t *self, tsk_id_t root, tsk_id_t *nodes, tsk_size_t *num_nodes);
 
 typedef struct {
     tsk_id_t node;

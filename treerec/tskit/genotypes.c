@@ -462,10 +462,11 @@ tsk_vargen_mark_missing_i16(tsk_vargen_t *self)
     const tsk_id_t *restrict left_child = self->tree.left_child;
     const tsk_id_t *restrict right_sib = self->tree.right_sib;
     const tsk_id_t *restrict sample_index_map = self->sample_index_map;
+    const tsk_id_t N = self->tree.virtual_root;
     int16_t *restrict genotypes = self->variant.genotypes.i16;
     tsk_id_t root, sample_index;
 
-    for (root = self->tree.left_root; root != TSK_NULL; root = right_sib[root]) {
+    for (root = left_child[N]; root != TSK_NULL; root = right_sib[root]) {
         if (left_child[root] == TSK_NULL) {
             sample_index = sample_index_map[root];
             if (sample_index != TSK_NULL) {
@@ -484,10 +485,11 @@ tsk_vargen_mark_missing_i8(tsk_vargen_t *self)
     const tsk_id_t *restrict left_child = self->tree.left_child;
     const tsk_id_t *restrict right_sib = self->tree.right_sib;
     const tsk_id_t *restrict sample_index_map = self->sample_index_map;
+    const tsk_id_t N = self->tree.virtual_root;
     int8_t *restrict genotypes = self->variant.genotypes.i8;
     tsk_id_t root, sample_index;
 
-    for (root = self->tree.left_root; root != TSK_NULL; root = right_sib[root]) {
+    for (root = left_child[N]; root != TSK_NULL; root = right_sib[root]) {
         if (left_child[root] == TSK_NULL) {
             sample_index = sample_index_map[root];
             if (sample_index != TSK_NULL) {

@@ -115,13 +115,14 @@ typedef struct _tsk_ls_hmm_t {
     double *values;
     tsk_size_t num_values;
     tsk_size_t max_values;
+    tsk_size_t max_parsimony_words;
     /* Number of machine words per node optimal value set. */
     tsk_size_t num_optimal_value_set_words;
     uint64_t *optimal_value_sets;
     /* The parent transition; used during compression */
     tsk_id_t *transition_parent;
     /* The number of samples directly subtended by a transition */
-    tsk_id_t *num_transition_samples;
+    tsk_size_t *num_transition_samples;
     int8_t *allelic_state;
     /* Algorithms set these values before they are run */
     int (*next_probability)(

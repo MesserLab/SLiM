@@ -44,7 +44,7 @@ get_random_bytes(uint8_t *buf)
 {
     /* Based on CPython's code in bootstrap_hash.c */
     int ret = TSK_ERR_GENERATE_UUID;
-    HCRYPTPROV hCryptProv = NULL;
+    HCRYPTPROV hCryptProv = (HCRYPTPROV) NULL;
 
     if (!CryptAcquireContext(
             &hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
@@ -54,13 +54,13 @@ get_random_bytes(uint8_t *buf)
         goto out;
     }
     if (!CryptReleaseContext(hCryptProv, 0)) {
-        hCryptProv = NULL;
+        hCryptProv = (HCRYPTPROV) NULL;
         goto out;
     }
-    hCryptProv = NULL;
+    hCryptProv = (HCRYPTPROV) NULL;
     ret = 0;
 out:
-    if (hCryptProv != NULL) {
+    if (hCryptProv != (HCRYPTPROV) NULL) {
         CryptReleaseContext(hCryptProv, 0);
     }
     return ret;
@@ -216,6 +216,9 @@ tsk_strerror_internal(int err)
         case TSK_ERR_GENOME_COORDS_NONFINITE:
             ret = "Genome coordinates must be finite numbers";
             break;
+        case TSK_ERR_SEEK_OUT_OF_BOUNDS:
+            ret = "Tree seek position out of bounds";
+            break;
 
         /* Edge errors */
         case TSK_ERR_NULL_PARENT:
@@ -368,6 +371,9 @@ tsk_strerror_internal(int err)
         case TSK_ERR_CANNOT_EXTEND_FROM_SELF:
             ret = "Tables can only be extended using rows from a different table";
             break;
+        case TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED:
+            ret = "Silent mutations not supported by this operation";
+            break;
 
         /* Stats errors */
         case TSK_ERR_BAD_NUM_WINDOWS:
@@ -399,6 +405,10 @@ tsk_strerror_internal(int err)
             break;
         case TSK_ERR_UNSUPPORTED_STAT_MODE:
             ret = "Requested statistics mode not supported for this method.";
+            break;
+        case TSK_ERR_TIME_UNCALIBRATED:
+            ret = "Statistics using branch lengths cannot be calculated when time_units "
+                  "is 'uncalibrated'";
             break;
 
         /* Mutation mapping errors */
@@ -477,8 +487,15 @@ tsk_strerror_internal(int err)
             ret = "Both nodes in the sample pair are the same";
             break;
 
-        case TSK_ERR_DUPLICATE_SAMPLE_PAIRS:
-            ret = "There are duplicate sample pairs.";
+        case TSK_ERR_IBD_PAIRS_NOT_STORED:
+            ret = "The sample pairs are not stored by default in ibd_segments. Please "
+                  "add the TSK_IBD_STORE_PAIRS option flag if per-pair statistics are "
+                  "required.";
+            break;
+
+        case TSK_ERR_IBD_SEGMENTS_NOT_STORED:
+            ret = "All segments are not stored by default in ibd_segments. Please "
+                  "add the TSK_IBD_STORE_SEGMENTS option flag if they are required.";
             break;
 
         /* Simplify errors */
@@ -522,12 +539,17 @@ tsk_is_kas_error(int err)
     return !(err & (1 << TSK_KAS_ERR_BIT));
 }
 
+int
+tsk_get_kas_error(int err)
+{
+    return err ^ (1 << TSK_KAS_ERR_BIT);
+}
+
 const char *
 tsk_strerror(int err)
 {
     if (err != 0 && tsk_is_kas_error(err)) {
-        err ^= (1 << TSK_KAS_ERR_BIT);
-        return kas_strerror(err);
+        return kas_strerror(tsk_get_kas_error(err));
     } else {
         return tsk_strerror_internal(err);
     }
@@ -715,6 +737,38 @@ tsk_is_unknown_time(double val)
     return nan_union.i == TSK_UNKNOWN_TIME_HEX;
 }
 
+/* Work around a bug which seems to show up on various mixtures of
+ * compiler and libc versions, where isfinite and isnan result in
+ * spurious warnings about casting down to float. The original issue
+ * is here:
+ * https://github.com/tskit-dev/tskit/issues/721
+ *
+ * The simplest approach seems to be to use the builtins where they
+ * are available (clang and gcc), and to use the library macro
+ * otherwise. There would be no disadvantage to using the builtin
+ * version, so there's no real harm in this approach.
+ */
+
+bool
+tsk_isnan(double val)
+{
+#if defined(__GNUC__)
+    return __builtin_isnan(val);
+#else
+    return isnan(val);
+#endif
+}
+
+bool
+tsk_isfinite(double val)
+{
+#if defined(__GNUC__)
+    return __builtin_isfinite(val);
+#else
+    return isfinite(val);
+#endif
+}
+
 void *
 tsk_malloc(tsk_size_t size)
 {
@@ -780,6 +834,28 @@ int
 tsk_memcmp(const void *s1, const void *s2, tsk_size_t size)
 {
     return memcmp(s1, s2, (size_t) size);
+}
+
+/* We can't initialise the stream to its real default value because
+ * of limitations on static initialisers. To work around this, we initialise
+ * it to NULL and then set the value to the required standard stream
+ * when called. */
+
+FILE *_tsk_debug_stream = NULL;
+
+void
+tsk_set_debug_stream(FILE *f)
+{
+    _tsk_debug_stream = f;
+}
+
+FILE *
+tsk_get_debug_stream(void)
+{
+    if (_tsk_debug_stream == NULL) {
+        _tsk_debug_stream = stdout;
+    }
+    return _tsk_debug_stream;
 }
 
 /* AVL Tree implementation. This is based directly on Knuth's implementation

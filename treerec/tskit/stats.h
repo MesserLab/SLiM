@@ -33,11 +33,16 @@ extern "C" {
 #include <tskit/trees.h>
 
 typedef struct {
-    tsk_tree_t *outer_tree;
-    tsk_tree_t *inner_tree;
-    tsk_size_t num_sites;
-    int tree_changed;
     const tsk_treeseq_t *tree_sequence;
+    tsk_site_t focal_site;
+    tsk_size_t total_samples;
+    tsk_size_t focal_samples;
+    double max_distance;
+    tsk_size_t max_sites;
+    tsk_tree_t tree;
+    tsk_id_t *sample_buffer;
+    double *result;
+    tsk_size_t result_length;
 } tsk_ld_calc_t;
 
 int tsk_ld_calc_init(tsk_ld_calc_t *self, const tsk_treeseq_t *tree_sequence);

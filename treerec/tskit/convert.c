@@ -57,12 +57,15 @@ tsk_newick_converter_run(
     const tsk_tree_t *tree = self->tree;
     tsk_id_t *stack = self->traversal_stack;
     const double *time = self->tree->tree_sequence->tables->nodes.time;
+    const tsk_flags_t *flags = self->tree->tree_sequence->tables->nodes.flags;
     int stack_top = 0;
     int label;
     size_t s = 0;
     int r;
     tsk_id_t u, v, w, root_parent;
     double branch_length;
+    bool ms_labels = self->options & TSK_NEWICK_LEGACY_MS_LABELS;
+    const char *label_format = ms_labels ? "%d" : "n%d";
 
     if (root < 0 || root >= (tsk_id_t) self->tree->num_nodes) {
         ret = TSK_ERR_NODE_OUT_OF_BOUNDS;
@@ -91,15 +94,20 @@ tsk_newick_converter_run(
         } else {
             u = tree->parent[v];
             stack_top--;
-            if (tree->left_child[v] == TSK_NULL) {
+            label = -1;
+            if (ms_labels) {
+                if (tree->left_child[v] == TSK_NULL) {
+                    label = (int) v + 1;
+                }
+            } else if (flags[v] & TSK_NODE_IS_SAMPLE) {
+                label = (int) v;
+            }
+            if (label != -1) {
                 if (s >= buffer_size) {
                     ret = TSK_ERR_BUFFER_OVERFLOW;
                     goto out;
                 }
-                /* We do this for ms-compatability. This should be a configurable option
-                 * via the flags attribute */
-                label = (int) v + 1;
-                r = snprintf(buffer + s, buffer_size - s, "%d", label);
+                r = snprintf(buffer + s, buffer_size - s, label_format, label);
                 if (r < 0) {
                     ret = TSK_ERR_IO;
                     goto out;
@@ -154,8 +162,7 @@ tsk_newick_converter_init(tsk_newick_converter_t *self, const tsk_tree_t *tree,
     self->options = options;
     self->tree = tree;
     self->traversal_stack
-        = tsk_malloc(tsk_treeseq_get_num_nodes(self->tree->tree_sequence)
-                     * sizeof(*self->traversal_stack));
+        = tsk_malloc(tsk_tree_get_size_bound(tree) * sizeof(*self->traversal_stack));
     if (self->traversal_stack == NULL) {
         ret = TSK_ERR_NO_MEMORY;
         goto out;

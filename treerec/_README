@@ -19,9 +19,9 @@ Simplification interval:
 - `CheckAutoSimplification` :
 
 
-The code in `tskit/` is from [tskit/lib](https://github.com/tskit-dev/msprime/tree/master/lib), release `0.3.6`.
+The code in `tskit/` is from [tskit/tree/main/c/tskit](https://github.com/tskit-dev/tskit/tree/main/c/tskit), commit `763e8db4471cdaf45f99b6d8f8400acbf174db97` dated 26 Nov. 2021.
 
-The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kastore/tree/master/c), release `0.3.1`.
+The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kastore/tree/master/c), release `C 2.0.1`.
 
 **Changelog:**
 
@@ -30,3 +30,4 @@ The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kas
 - *12 August 2020*: updated to tskit C_0.99.4 and kastore 0.3.0.
 - *10 June 2021*: updated to tskit 0.3.6 and kastore 0.3.1.
 - *7 Sept 2021*: updated to tskit C_0.99.14
+- *27 Nov 2021*: updated to tskit 763e8db4471cdaf45f99b6d8f8400acbf174db97 and kastore C 2.0.1
