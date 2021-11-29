@@ -5517,8 +5517,6 @@ void SLiMSim::SimplifyTreeSequence(void)
 
 void SLiMSim::CheckCoalescenceAfterSimplification(void)
 {
-#warning FIXME uncomment all of this; commented out so it compiles for now!
-	/*
 #if DEBUG
 	if (!recording_tree_ || !running_coalescence_checks_)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::CheckCoalescenceAfterSimplification): (internal error) coalescence check called with recording or checking off." << EidosTerminate();
@@ -5582,7 +5580,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	{
 #if 0
 		// If we didn't keep first-generation lineages, or remember genomes, >1 root would mean not coalesced
-		if (t.right_sib[t.left_root] != TSK_NULL)
+		if (tsk_tree_get_num_roots(&t) > 1)
 		{
 			fully_coalesced = false;
 			break;
@@ -5593,7 +5591,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 		// remembered individuals may mean that more than one root node has children, too, even when we have
 		// coalesced.  What we need to know is: how many roots are there that have >0 *extant* children?  This
 		// is what we use the tracked samples for; they are extant individuals.
-		for (tsk_id_t root = t.left_root; root != TSK_NULL; root = t.right_sib[root])
+		for (tsk_id_t root = tsk_tree_get_left_root(&t); root != TSK_NULL; root = t.right_sib[root])
 		{
 			int64_t num_tracked = t.num_tracked_samples[root];
 			
@@ -5620,7 +5618,7 @@ void SLiMSim::CheckCoalescenceAfterSimplification(void)
 	}
 	
 	//std::cout << generation_ << ": fully_coalesced == " << (fully_coalesced ? "TRUE" : "false") << std::endl;
-	last_coalescence_state_ = fully_coalesced;*/
+	last_coalescence_state_ = fully_coalesced;
 }
 
 bool SLiMSim::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
