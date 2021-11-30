@@ -7378,7 +7378,7 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	// is a bit misleading in nonWF models where individuals can live for many "generations", and partly in anticipation
 	// of planned changes for multispecies, where the time unit will in fact be called a "tick" in the general case,
 	// and "generations" for a given species might not occur in every "tick" the way they do now.
-	const char *time_unit_str = "tick";
+	const char *time_unit_str = "ticks";
 	
 	ret = tsk_table_collection_set_time_units(&output_tables, time_unit_str, strlen(time_unit_str));
 	if (ret < 0) handle_error("tsk_table_collection_set_time_units", ret);
