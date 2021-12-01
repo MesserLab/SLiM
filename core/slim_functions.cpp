@@ -66,7 +66,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		
 		// Other built-in SLiM functions
-		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddString_S("gather")->AddLogicalEquiv_OS("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 	}
 	
 	return &sim_func_signatures_;
@@ -1164,25 +1164,6 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 #pragma mark Other functions
 #pragma mark -
 
-enum SummarizeOperation {
-	kOne,
-	kAge,
-	kFitnessScaling,
-	kMigrant,
-	kReproductiveOutput,
-	kTag,
-	kTagF,
-	kLambda
-};
-
-enum SummarizeGather {
-	kSum,
-	kMean,
-	kProduct,
-	kMin,
-	kMax
-};
-
 static inline int SummarizeGridIndex_1D(Individual *individual, int component0, double *spatialBounds, int64_t *dims, __attribute__((unused)) int64_t result_count)
 {
 	double coord0 = (&(individual->spatial_x_))[component0];
@@ -1264,102 +1245,7 @@ static inline int SummarizeGridIndex_3D(Individual *individual, int component0, 
 	return grid_index;
 }
 
-static inline double DoSummarizeOperation(Individual *individual, SummarizeOperation operation)
-{
-	switch (operation)
-	{
-		case SummarizeOperation::kOne:					return 1;
-		case SummarizeOperation::kAge:					return individual->age_;
-		case SummarizeOperation::kFitnessScaling:		return individual->fitness_scaling_;
-		case SummarizeOperation::kMigrant:				return individual->migrant_;
-		case SummarizeOperation::kReproductiveOutput:	return individual->ReproductiveOutput();
-		case SummarizeOperation::kTag:
-		{
-			slim_usertag_t tag_value = individual->tag_value_;
-			
-			if (tag_value == SLIM_TAG_UNSET_VALUE)
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tag accessed on individual before being set." << EidosTerminate();
-			
-			return tag_value;
-		}
-		case SummarizeOperation::kTagF:
-		{
-			double tagF_value = individual->tagF_value_;
-			
-			if (tagF_value == SLIM_TAGF_UNSET_VALUE)
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagF accessed on individual before being set." << EidosTerminate();
-			
-			return tagF_value;
-		}
-		case SummarizeOperation::kLambda:
-			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) SummarizeOperation::kLambda mishandled." << EidosTerminate();
-	}
-	
-	// eliminate a spurious "control reaches end" warning
-	EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) unexpected SummarizeOperation value." << EidosTerminate();
-}
-
-static void DoSummarizeGather(const std::vector<std::vector<double>> &tallies, double *result_data, int64_t result_count, SummarizeGather gather, double empty)
-{
-	for (int grid_index = 0; grid_index < result_count; ++grid_index)
-	{
-		const std::vector<double> &cell_values = tallies[grid_index];
-		int value_count = (int)cell_values.size();
-		double gathered;
-		
-		if (value_count == 0)
-		{
-			// With no tallies in a cell, use the special empty value
-			result_data[grid_index] = empty;
-		}
-		else
-		{
-			switch (gather)
-			{
-				case SummarizeGather::kSum:			// sum of all values
-				{
-					gathered = 0.0;
-					for (int value_index = 0; value_index < value_count; ++value_index)
-						gathered += cell_values[value_index];
-					break;
-				}
-				case SummarizeGather::kMean:		// mean of all values
-				{
-					gathered = 0.0;
-					for (int value_index = 0; value_index < value_count; ++value_index)
-						gathered += cell_values[value_index];
-					gathered /= value_count;
-					break;
-				}
-				case SummarizeGather::kProduct:		// product of all values
-				{
-					gathered = 1.0;
-					for (int value_index = 0; value_index < value_count; ++value_index)
-						gathered *= cell_values[value_index];
-					break;
-				}
-				case SummarizeGather::kMin:			// minimum of all values
-				{
-					gathered = std::numeric_limits<double>::infinity();
-					for (int value_index = 0; value_index < value_count; ++value_index)
-						gathered = std::min(gathered, cell_values[value_index]);
-					break;
-				}
-				case SummarizeGather::kMax:			// maximum of all values
-				{
-					gathered = -std::numeric_limits<double>::infinity();
-					for (int value_index = 0; value_index < value_count; ++value_index)
-						gathered = std::max(gathered, cell_values[value_index]);
-					break;
-				}
-			}
-			
-			result_data[grid_index] = gathered;
-		}
-	}
-}
-
-// (float)summarizeIndividuals(o<Individual> individuals, integer dim, numeric spatialBounds, s$ operation, s$ gather, [lif$ empty = 0.0], [l$ perUnitArea = F], [Ns$ spatiality = NULL])
+// (float)summarizeIndividuals(o<Individual> individuals, integer dim, numeric spatialBounds, s$ operation, [Nlif$ empty = 0.0], [l$ perUnitArea = F], [Ns$ spatiality = NULL])
 EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	static bool beenHere = false;
@@ -1381,10 +1267,9 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	EidosValue *dim_value = p_arguments[1].get();
 	EidosValue *spatialBounds_value = p_arguments[2].get();
 	EidosValue *operation_value = p_arguments[3].get();
-	EidosValue *gather_value = p_arguments[4].get();
-	EidosValue *empty_value = p_arguments[5].get();
-	EidosValue *perUnitArea_value = p_arguments[6].get();
-	EidosValue *spatiality_value = p_arguments[7].get();
+	EidosValue *empty_value = p_arguments[4].get();
+	EidosValue *perUnitArea_value = p_arguments[5].get();
+	EidosValue *spatiality_value = p_arguments[6].get();
 	
 	// Get individuals vector; complicated as usual by singleton vs. vector
 	int individuals_count = individuals_value->Count();
@@ -1478,65 +1363,10 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	if (invalid_bounds)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() spatialBounds are invalid; it is required that x0 < x1, y0 < y1, and z0 < z1." << EidosTerminate();
 	
-	// Get the operation, and look for some standard operations that we optimize
+	// Get the operation lambda string and the empty-cell value (NULL to execute the lambda for empty cells too)
 	std::string operation_string = operation_value->StringAtIndex(0, nullptr);
-	SummarizeOperation operation;
-	
-	if ((operation_string == "1;") || (operation_string == "return 1;"))
-	{
-		operation = SummarizeOperation::kOne;
-	}
-	else if ((operation_string == "individual.age;") || (operation_string == "return individual.age;"))
-	{
-		if (sim.ModelType() == SLiMModelType::kModelTypeWF)
-			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
-		operation = SummarizeOperation::kAge;
-	}
-	else if ((operation_string == "individual.fitnessScaling;") || (operation_string == "return individual.fitnessScaling;"))
-	{
-		operation = SummarizeOperation::kFitnessScaling;
-	}
-	else if ((operation_string == "individual.migrant;") || (operation_string == "return individual.migrant;"))
-	{
-		operation = SummarizeOperation::kMigrant;
-	}
-	else if ((operation_string == "individual.reproductiveOutput;") || (operation_string == "return individual.reproductiveOutput;"))
-	{
-		if (!sim.PedigreesEnabledByUser())
-			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
-		operation = SummarizeOperation::kReproductiveOutput;
-	}
-	else if ((operation_string == "individual.tag;") || (operation_string == "return individual.tag;"))
-	{
-		operation = SummarizeOperation::kTag;
-	}
-	else if ((operation_string == "individual.tagF;") || (operation_string == "return individual.tagF;"))
-	{
-		operation = SummarizeOperation::kTagF;
-	}
-	else
-	{
-		operation = SummarizeOperation::kLambda;
-	}
-	
-	// Get the gather, which must be one of a set of gathers we support
-	std::string gather_string = gather_value->StringAtIndex(0, nullptr);
-	SummarizeGather gather;
-	
-	if (gather_string == "sum")
-		gather = SummarizeGather::kSum;
-	else if (gather_string == "mean")
-		gather = SummarizeGather::kMean;
-	else if (gather_string == "product")
-		gather = SummarizeGather::kProduct;
-	else if (gather_string == "min")
-		gather = SummarizeGather::kMin;
-	else if (gather_string == "max")
-		gather = SummarizeGather::kMax;
-	else
-		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() unrecognized gather string '" << gather_string << "'." << EidosTerminate();
-	
-	double empty = empty_value->FloatAtIndex(0, nullptr);	// handles logical, integer, and float
+	bool uses_empty = (empty_value->Type() != EidosValueType::kValueNULL);
+	double empty = uses_empty ? empty_value->FloatAtIndex(0, nullptr) : 0.0;	// handles logical, integer, and float
 	
 	// Get the edgeScale value, which is used to postprocess vaues at the very end
 	bool perUnitArea = perUnitArea_value->LogicalAtIndex(0, nullptr);
@@ -1573,14 +1403,70 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	if (dim_count > 1)
 		result_vec->SetDimensions(dim_count, dims);
 	
-	// Handle the lambda case separately; it has so much shared code between the different spatiality levels that is doesn't make sense to split it
-	if (operation == SummarizeOperation::kLambda)
+	// Collect individuals into bins, then execute the operation on each bin
+	std::vector<std::vector<Individual *>> binned_individuals;
+	binned_individuals.resize(result_count);
+	
+	if (spatiality == 1)
 	{
-		// allocate our vector of std::vectors where we keep all our results
-		std::vector<std::vector<double>> tallies;
-		tallies.resize(result_count);
-		
-		// LAMBDA OPERATION: handled separately here since it is so different from the base case
+		for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+		{
+			Individual *individual = individuals_buffer[individual_index];
+			int grid_index = SummarizeGridIndex_1D(individual, component0, spatialBounds, dims, result_count);
+			if (grid_index >= 0)
+				binned_individuals[grid_index].emplace_back(individual);
+		}
+	}
+	else if (spatiality == 2)
+	{
+		for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+		{
+			Individual *individual = individuals_buffer[individual_index];
+			int grid_index = SummarizeGridIndex_2D(individual, component0, component1, spatialBounds, dims, result_count);
+			if (grid_index >= 0)
+				binned_individuals[grid_index].emplace_back(individual);
+		}
+	}
+	else // (spatiality == 3)
+	{
+		for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+		{
+			Individual *individual = individuals_buffer[individual_index];
+			int grid_index = SummarizeGridIndex_3D(individual, component0, component1, component2, spatialBounds, dims, result_count);
+			if (grid_index >= 0)
+				binned_individuals[grid_index].emplace_back(individual);
+		}
+	}
+	
+	// Now we handle some special-case situations that we anticipate being common.  We have to have an *exact* match to use one of these.
+	// I haven't implemented many of these for now, because actually this function is quite fast anyway; since the lambda gets called
+	// only once per grid square, and then typically uses vectorized calls to do its work, it is actually quite an efficient design.
+	// Even the optimizations here probably only pay off when the number of grid cells is very large and the number of individuals is small.
+	// A better optimization would avoid building the binned_individuals vector at all, for simple cases like these where the result
+	// could be accumulated directly into the result_data vector; but I'll wait until I see a model where this is a real hotspot.
+	if (((operation_string == "individuals.size();") || (operation_string == "individuals.length();") || (operation_string == "size(individuals);") || (operation_string == "length(individuals);") || (operation_string == "return individuals.size();") || (operation_string == "return individuals.length();") || (operation_string == "return size(individuals);") || (operation_string == "return length(individuals);")) && (!uses_empty || (empty == 0.0)))
+	{
+		// simple abundance: a count of the individuals in each cell
+		for (int64_t bin_index = 0; bin_index < result_count; ++bin_index)
+		{
+			std::vector<Individual *> &individuals = binned_individuals[bin_index];
+			
+			result_data[bin_index] = individuals.size();
+		}
+	}
+	else if ((((operation_string == "1.0;") || (operation_string == "1;") || (operation_string == "T;")) && uses_empty && (empty == 0.0)))
+	{
+		// simple presence/absence: 1.0 if individuals are present, 0.0 otherwise
+		for (int64_t bin_index = 0; bin_index < result_count; ++bin_index)
+		{
+			std::vector<Individual *> &individuals = binned_individuals[bin_index];
+			
+			result_data[bin_index] = ((individuals.size() == 0) ? 0.0 : 1.0);
+		}
+	}
+	else
+	{
+		// run the lambda on each bin, which does not depend upon the spatiality
 		EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(operation_value);
 		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);
 		
@@ -1620,33 +1506,45 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		// Execute inside try/catch so we can handle errors well
 		gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, script, true};
 		
+		EidosValue_Object_vector individuals_vec(gSLiM_Individual_Class);
+		individuals_vec.StackAllocated();
+		
 		try
 		{
 			EidosSymbolTable &interpreter_symbols = p_interpreter.SymbolTable();						// use our own symbol table
-			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &interpreter_symbols);	// add a variables symbol table on top, shared across all invocations
+			EidosSymbolTable constants(EidosSymbolTableType::kContextConstantsTable, &interpreter_symbols);
+			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &constants);	// add a variables symbol table on top, shared across all invocations
 			EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
 			EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
 			
+			// We set up a "constant" value for `individuals` that refers to the stack-allocated object vector made above
+			// For each grid cell we will munge the contents of that vector, without having to touch the symbol table again
+			constants.InitializeConstantSymbolEntry(gID_individuals, EidosValue_SP(&individuals_vec));
+			
 			// go through the individuals and tally them
-			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+			for (int64_t bin_index = 0; bin_index < result_count; ++bin_index)
 			{
-				Individual *individual = individuals_buffer[individual_index];
-				int grid_index;
+				std::vector<Individual *> &bin_individuals = binned_individuals[bin_index];
+				size_t bin_individuals_count = bin_individuals.size();
 				
-				if (spatiality == 1)
-					grid_index = SummarizeGridIndex_1D(individuals_buffer[individual_index], component0, spatialBounds, dims, result_count);
-				else if (spatiality == 2)
-					grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
-				else // (spatiality == 3)
-					grid_index = SummarizeGridIndex_3D(individuals_buffer[individual_index], component0, component1, component2, spatialBounds, dims, result_count);
-				
-				if (grid_index >= 0)
+				if (uses_empty && (bin_individuals_count == 0))
 				{
-					// calculate the value for it based on execution of the lambda
-					double individual_value;
-				
-					// Set the variable "individual" to the focal individual
-					symbols.SetValueForSymbol(gID_individual, individual->CachedEidosValue());
+					result_data[bin_index] = empty;
+				}
+				else
+				{
+					// Set the variable "individuals" to the focal individuals.  We want to do this as efficiently as possible.
+					// Best would be to swap() bin_individuals into individuals_vec, which maybe we will do eventually.  In the
+					// meantime, we use clear() to release the old values in the vector, resize_no_initialize() to expand to the
+					// needed capacity without initializing, and set_object_element_no_check_NORR() to put values into their
+					// slots without any checks.  Note that Individual is not under retain/release, which simplifies things.
+					Individual **bin_individuals_data = bin_individuals.data();
+					
+					individuals_vec.clear();
+					individuals_vec.resize_no_initialize(bin_individuals_count);
+					
+					for (size_t index = 0; index < bin_individuals_count; ++index)
+						individuals_vec.set_object_element_no_check_NORR(bin_individuals_data[index], index);
 					
 					// Get the result.  BEWARE!  This calls causes re-entry into the Eidos interpreter, which is not usually
 					// possible since Eidos does not support multithreaded usage.  This is therefore a key failure point for
@@ -1655,19 +1553,12 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 					
 					if ((return_value_SP->Count() == 1) && ((return_value_SP->Type() == EidosValueType::kValueFloat) || (return_value_SP->Type() == EidosValueType::kValueInt) || (return_value_SP->Type() == EidosValueType::kValueLogical)))
 					{
-						individual_value = return_value_SP->FloatAtIndex(0, nullptr);
-					}
-					else if (return_value_SP->Type() == EidosValueType::kValueNULL)
-					{
-						continue;
+						result_data[bin_index] = return_value_SP->FloatAtIndex(0, nullptr);
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): the lambda operation must return a singleton float, integer, or logical, or NULL to indicate that the individual should not be counted in the operation." << EidosTerminate();
+						EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): the lambda operation must return a singleton float, integer, or logical." << EidosTerminate();
 					}
-				
-					// append that value to a std::vector kept for that grid cell
-					tallies[grid_index].emplace_back(individual_value);
 				}
 			}
 		}
@@ -1691,115 +1582,6 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		
 		if (!lambda_value_singleton)
 			delete script;
-		
-		// do the gather operation into the return value vector/matrix/array
-		DoSummarizeGather(tallies, result_data, result_count, gather, empty);
-	}
-	else
-	{
-		// Otherwise, split into three cases based on the spatiality, to keep the logic simpler
-		if (spatiality == 1)
-		{
-			// allocate our vector of std::vectors where we keep all our results
-			std::vector<std::vector<double>> tallies;
-			tallies.resize(result_count);
-			
-			// BASE CASE: this handles everything except SummarizeOperation::kLambda
-			// go through the individuals and tally them
-			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-			{
-				Individual *individual = individuals_buffer[individual_index];
-				int grid_index = SummarizeGridIndex_1D(individual, component0, spatialBounds, dims, result_count);
-				if (grid_index >= 0)
-					tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
-			}
-			
-			// do the gather operation into the return value vector/matrix/array
-			DoSummarizeGather(tallies, result_data, result_count, gather, empty);
-		}
-		else if (spatiality == 2)
-		{
-			if ((operation == SummarizeOperation::kOne) && (gather == SummarizeGather::kSum))
-			{
-				// optimize kOne / kSum specially; we avoid keeping a vector of values for each grid square
-				std::vector<int32_t> tallies;
-				tallies.resize(result_count);
-				
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-				{
-					int grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
-					if (grid_index >= 0)
-						tallies[grid_index]++;
-				}
-				
-				// move int32_t tallies into result_data, treating empty separately if necessary
-				if (empty == 0.0)
-					for (int gather_index = 0; gather_index < result_count; ++gather_index)
-						result_data[gather_index] = tallies[gather_index];
-				else
-					for (int gather_index = 0; gather_index < result_count; ++gather_index)
-						result_data[gather_index] = tallies[gather_index] ? tallies[gather_index] : empty;		// use empty for a tally of 0
-			}
-			else if ((operation == SummarizeOperation::kOne) && ((gather == SummarizeGather::kMean) || (gather == SummarizeGather::kProduct) || (gather == SummarizeGather::kMin) || (gather == SummarizeGather::kMax)))
-			{
-				// optimize kOne with other gathers specially; this is presence/absence, for all of the gathers, since mean/product/min/max
-				// of a vector containing nothing but 1s would be 1 in all cases; we avoid keeping a vector of values for each grid square
-				std::vector<uint8_t> tallies;
-				tallies.resize(result_count);
-				
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-				{
-					int grid_index = SummarizeGridIndex_2D(individuals_buffer[individual_index], component0, component1, spatialBounds, dims, result_count);
-					if (grid_index >= 0)
-						tallies[grid_index] = 1;
-				}
-				
-				// move uint8_t tallies into result_data, treating empty separately if necessary
-				if (empty == 0.0)
-					for (int gather_index = 0; gather_index < result_count; ++gather_index)
-						result_data[gather_index] = tallies[gather_index];
-				else
-					for (int gather_index = 0; gather_index < result_count; ++gather_index)
-						result_data[gather_index] = tallies[gather_index] ? tallies[gather_index] : empty;		// use empty for a tally of 0
-			}
-			else
-			{
-				// allocate our vector of std::vectors where we keep all our results
-				std::vector<std::vector<double>> tallies;
-				tallies.resize(result_count);
-				
-				// BASE CASE: this handles everything except special-cased combinations above (which would work fine here too), and SummarizeOperation::kLambda
-				// go through the individuals and tally them
-				for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-				{
-					Individual *individual = individuals_buffer[individual_index];
-					int grid_index = SummarizeGridIndex_2D(individual, component0, component1, spatialBounds, dims, result_count);
-					if (grid_index >= 0)
-						tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
-				}
-				
-				// do the gather operation into the return value vector/matrix/array
-				DoSummarizeGather(tallies, result_data, result_count, gather, empty);
-			}
-		}
-		else // (spatiality == 3)
-		{
-			std::vector<std::vector<double>> tallies;
-			tallies.resize(result_count);
-			
-			// BASE CASE: this handles everything except SummarizeOperation::kLambda
-			// go through the individuals and tally them
-			for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
-			{
-				Individual *individual = individuals_buffer[individual_index];
-				int grid_index = SummarizeGridIndex_3D(individual, component0, component1, component2, spatialBounds, dims, result_count);
-				if (grid_index >= 0)
-					tallies[grid_index].emplace_back(DoSummarizeOperation(individual, operation));
-			}
-			
-			// do the gather operation into the return value vector/matrix/array
-			DoSummarizeGather(tallies, result_data, result_count, gather, empty);
-		}
 	}
 	
 	// rescale values if requested with perUnitArea; this post-processing code is shared with the lambda case

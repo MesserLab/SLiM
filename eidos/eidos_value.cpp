@@ -3139,6 +3139,22 @@ EidosValue_SP EidosValue_Object_vector::ExecuteMethodCall(EidosGlobalStringID p_
 	}
 }
 
+void EidosValue_Object_vector::clear(void)
+{
+	if (class_uses_retain_release_)
+	{
+		for (size_t index = 0; index < count_; ++index)
+		{
+			EidosObject *value = values_[index];
+			
+			if (value)
+				static_cast<EidosDictionaryRetained *>(value)->Release();		// unsafe cast to avoid virtual function overhead
+		}
+	}
+	
+	count_ = 0;
+}
+
 EidosValue_Object_vector *EidosValue_Object_vector::reserve(size_t p_reserved_size)
 {
 	if (p_reserved_size > capacity_)
