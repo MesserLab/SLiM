@@ -1091,6 +1091,7 @@ public:
 	virtual void PatchPointersBySubtracting(std::uintptr_t p_pointer_difference) override;
 	
 	// vector lookalike methods; not virtual, only for clients with a EidosValue_Int_vector*
+	void clear(void);													// as in std::vector
 	EidosValue_Object_vector *reserve(size_t p_reserved_size);			// as in std::vector
 	EidosValue_Object_vector *resize_no_initialize(size_t p_new_size);	// does not zero-initialize, unlike std::vector!
 	EidosValue_Object_vector *resize_no_initialize_RR(size_t p_new_size);	// doesn't zero-initialize even for the RR case (set_object_element_no_check_RR may not be used, use set_object_element_no_check_no_previous_RR)

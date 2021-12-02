@@ -18,7 +18,7 @@ late() {
 	
 	// make a density map: 0 is empty, 1 is maximum density
 	density = summarizeIndividuals(inds, c(10, 10), bounds,
-		operation="1;", gather="sum", empty=0.0, perUnitArea=T);
+		operation="individuals.size();", empty=0.0, perUnitArea=T);
 	density = density / max(density);
 	p1.defineSpatialMap("density", "xy", density, F,
 		range(density), c("black", "orange", "red"));

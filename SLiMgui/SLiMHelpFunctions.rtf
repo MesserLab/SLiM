@@ -1815,7 +1815,7 @@ This function assumes that mutations of type
 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)summarizeIndividuals(object<Individual>\'a0individuals, integer\'a0dim, numeric\'a0spatialBounds, string$\'a0operation, string$\'a0gather, [lif$\'a0empty\'a0=\'a00.0], [logical$\'a0perUnitArea\'a0=\'a0F], [Ns$\'a0spatiality\'a0=\'a0NULL])\
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (float)summarizeIndividuals(object<Individual>\'a0individuals, integer\'a0dim, numeric\'a0spatialBounds, string$\'a0operation, [Nlif$\'a0empty\'a0=\'a00.0], [logical$\'a0perUnitArea\'a0=\'a0F], [Ns$\'a0spatiality\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Returns a vector, matrix, or array that summarizes spatial patterns of information related to the individuals in 
@@ -1892,35 +1892,45 @@ The
 \f2\fs20  defines its maps; see section 15.11 for illustration.\
 The particular summary produced depends upon the parameters 
 \f1\fs18 operation
-\f2\fs20 , 
-\f1\fs18 gather
-\f2\fs20 , and 
+\f2\fs20  and 
 \f1\fs18 empty
 \f2\fs20 .  Consider a single grid square represented by a single element in the result.  That grid square contains zero or more of the individuals in 
 \f1\fs18 individuals
-\f2\fs20 .  If it contains zero individuals, the 
+\f2\fs20 .  If it contains zero individuals 
+\f3\i and
+\f2\i0  
 \f1\fs18 empty
-\f2\fs20  value is used in the result, regardless of 
+\f2\fs20  is not 
+\f1\fs18 NULL
+\f2\fs20 , the 
+\f1\fs18 empty
+\f2\fs20  value is used for the result, regardless of 
 \f1\fs18 operation
-\f2\fs20  and 
-\f1\fs18 gather
-\f2\fs20 , providing complete control over the treatment of empty grid squares.  Otherwise, two steps occur.  First, for every individual in the grid square, 
+\f2\fs20 , providing specific, separate control over the treatment of empty grid squares.  If 
+\f1\fs18 empty
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20 , this separate control over the treatment of empty grid squares is declined; empty grid squares will be handled through the standard mechanism described next.  In all other cases for the given grid square \'96 when it contains more than zero individuals, or when 
+\f1\fs18 empty
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  \'96 
 \f1\fs18 operation
 \f2\fs20  is executed as an Eidos 
 \f3\i lambda
-\f2\i0  \'96 a small snippet of code, supplied as a singleton 
+\f2\i0 , a small snippet of code, supplied as a singleton 
 \f1\fs18 string
 \f2\fs20 , that is executed in a manner similar to a function call.  Within the execution of the 
 \f1\fs18 operation
-\f2\fs20  lambda, a variable named 
-\f1\fs18 individual
-\f2\fs20  is defined to be the focal individual being evaluated.  This lambda should evaluate to a 
+\f2\fs20  lambda, a constant named 
+\f1\fs18 individuals
+\f2\fs20  is defined to be the focal individuals being evaluated \'96 all of the individuals within that grid square.  This lambda should evaluate to a singleton 
 \f1\fs18 logical
 \f2\fs20 , 
 \f1\fs18 integer
 \f2\fs20 , or 
 \f1\fs18 float
-\f2\fs20  value; these types will all be coerced to 
+\f2\fs20  value, comprising the result value for the grid square; these types will all be coerced to 
 \f1\fs18 float
 \f2\fs20  (
 \f1\fs18 T
@@ -1930,62 +1940,69 @@ The particular summary produced depends upon the parameters
 \f1\fs18 F
 \f2\fs20  being 
 \f1\fs18 0
-\f2\fs20 ), or it should evaluate to 
-\f1\fs18 NULL
-\f2\fs20 , which excludes the focal individual from the results as if it had never been in 
-\f1\fs18 individuals
-\f2\fs20  at all.  A common value for 
+\f2\fs20 ).\
+Two examples may illustrate the use of 
+\f1\fs18 empty
+\f2\fs20  and 
 \f1\fs18 operation
-\f2\fs20 , 
+\f2\fs20 .  To produce a summary indicating presence/absence, simply use the default of 
+\f1\fs18 0.0
+\f2\fs20  for 
+\f1\fs18 empty
+\f2\fs20 , and 
+\f1\fs18 "1.0;
+\f2\fs20  
+\f1\fs18 "
+\f2\fs20  (or 
 \f1\fs18 "1;"
-\f2\fs20 , simply evaluates to 
-\f1\fs18 1
-\f2\fs20  for each individual in a given grid square; another common 
+\f2\fs20 , or 
+\f1\fs18 "T;"
+\f2\fs20 ) for 
 \f1\fs18 operation
-\f2\fs20  value would be 
-\f1\fs18 "individual.tag;"
-\f2\fs20 , evaluating to the 
-\f1\fs18 tag
-\f2\fs20  value of each individual.  Lambdas are not limited in their complexity; they can use 
+\f2\fs20 .  This will produce 
+\f1\fs18 0.0
+\f2\fs20  for empty grid squares, and 
+\f1\fs18 1.0
+\f2\fs20  for those that contain at least one individual.  Note that the use of 
+\f1\fs18 empty
+\f2\fs20  is essential here, because 
+\f1\fs18 operation
+\f2\fs20  doesn\'92t even check whether individuals are present or not.  To produce a summary with a count of the number of individuals in each grid square, again use the default of 
+\f1\fs18 0.0
+\f2\fs20  for 
+\f1\fs18 empty
+\f2\fs20 , but now use an 
+\f1\fs18 operation
+\f2\fs20  of 
+\f1\fs18 "individuals.size();"
+\f2\fs20 , counting the number of individuals in each grid square.  In this case, 
+\f1\fs18 empty
+\f2\fs20  could be 
+\f1\fs18 NULL
+\f2\fs20  instead and 
+\f1\fs18 operation
+\f2\fs20  would still produce the correct result; but using 
+\f1\fs18 empty
+\f2\fs20  makes 
+\f1\fs18 summarizeIndividuals()
+\f2\fs20  more efficient since it allows the execution of 
+\f1\fs18 operation
+\f2\fs20  to be skipped for those squares.\
+Lambdas are not limited in their complexity; they can use 
 \f1\fs18 if
 \f2\fs20 , 
 \f1\fs18 for
-\f2\fs20 , etc., and can call methods and functions.  However, keep in mind that the lambda will be evaluated for every individual, so efficiency can be a concern, and you may wish to pre-calculate and cache values shared by all of the lambda calls.\
-Finally, given values returned by 
+\f2\fs20 , etc., and can call methods and functions.  A typical 
 \f1\fs18 operation
-\f2\fs20  for every individual in a given grid square, 
-\f1\fs18 gather
-\f2\fs20  specifies a calculation that condenses these values down to the single 
-\f1\fs18 float
-\f2\fs20  value used for the corresponding element of the returned vector/matrix/array.  The 
-\f1\fs18 gather
-\f2\fs20  parameter is 
-\f3\i not
-\f2\i0  a lambda; it must have one of a specific set of values described here.  For 
-\f1\fs18 gather="sum"
-\f2\fs20 , the final value is the 
-\f3\i sum
-\f2\i0  of all of the gathered values (adding them together).  For 
-\f1\fs18 gather="mean"
-\f2\fs20 , the final value is the 
-\f3\i mean
-\f2\i0  of all of the gathered values (the sum of the values divided by the number of values).  For 
-\f1\fs18 gather="product"
-\f2\fs20 , the final value is the 
-\f3\i product
-\f2\i0  of all of the gathered values (multiplying them together).  For 
-\f1\fs18 gather="min"
-\f2\fs20 , the final value is the 
-\f3\i smallest
-\f2\i0  of all of the gathered values (the closest to 
-\f1\fs18 -INF
-\f2\fs20 ).  For 
-\f1\fs18 gather="max"
-\f2\fs20 , the final value is the 
-\f3\i largest
-\f2\i0  of all of the gathered values (the closest to 
-\f1\fs18 INF
-\f2\fs20 ).\
+\f2\fs20  to compute the mean phenotype in a quantitative genetic model that stores phenotype values in 
+\f1\fs18 tagF
+\f2\fs20 , for example, would be 
+\f1\fs18 "mean(individuals.tagF);"
+\f2\fs20 , and this is still quite simple compared to what is possible.  However, keep in mind that the lambda will be evaluated for every grid cell (or at least those that are non-empty), so efficiency can be a concern, and you may wish to pre-calculate values shared by all of the lambda calls, making them available to your lambda code using 
+\f1\fs18 defineGlobal()
+\f2\fs20  or 
+\f1\fs18 defineConstant()
+\f2\fs20 .\
 There is one last twist, if 
 \f1\fs18 perUnitArea
 \f2\fs20  is 
@@ -2016,5 +2033,17 @@ There is one last twist, if
 \f1\fs18 T
 \f2\fs20  depends upon whether the summary you are producing is, conceptually, \'93per unit area\'94, such as density (individuals per unit area) or local competition strength (total interaction strength per unit area), or is not, such as \'93mean individual age\'94, or \'93maximum 
 \f1\fs18 tag
-\f2\fs20  value\'94.\
+\f2\fs20  value\'94.  For the previous example of counting individuals with an operation of 
+\f1\fs18 "individuals.size();"
+\f2\fs20 , a value of 
+\f1\fs18 F
+\f2\fs20  for 
+\f1\fs18 perUnitArea
+\f2\fs20  (the default) will produce a simple 
+\f3\i count
+\f2\i0  of individuals in each grid square, whereas with 
+\f1\fs18 T
+\f2\fs20  it would produce the 
+\f3\i density
+\f2\i0  of individuals in each grid square.\
 }
