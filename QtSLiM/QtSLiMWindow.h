@@ -122,10 +122,6 @@ public:
     // display-related variables
     //double fitnessColorScale, selectionColorScale;
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
-    bool zoomedChromosomeShowsRateMaps = false;
-    bool zoomedChromosomeShowsGenomicElements = false;
-    bool zoomedChromosomeShowsMutations = true;
-    bool zoomedChromosomeShowsFixedSubstitutions = false;
     bool reloadingSubpopTableview = false;
 
 public:
@@ -236,12 +232,8 @@ public slots:
     void recycleClicked(void);
     void playSpeedChanged(void);
 
-    void showMutationsToggled(void);
-    void showFixedSubstitutionsToggled(void);
-    void showChromosomeMapsToggled(void);
-    void showGenomicElementsToggled(void);
-
     void showDrawerClicked(void);
+    void chromosomeActionRunMenu(void);
     void showConsoleClicked(void);
     void showBrowserClicked(void);
     void jumpToPopupButtonRunMenu(void);
@@ -279,14 +271,8 @@ private slots:
 
     void toggleDrawerPressed(void);
     void toggleDrawerReleased(void);
-    void showMutationsPressed(void);
-    void showMutationsReleased(void);
-    void showFixedSubstitutionsPressed(void);
-    void showFixedSubstitutionsReleased(void);
-    void showChromosomeMapsPressed(void);
-    void showChromosomeMapsReleased(void);
-    void showGenomicElementsPressed(void);
-    void showGenomicElementsReleased(void);
+    void chromosomeActionPressed(void);
+    void chromosomeActionReleased(void);
 
     void clearDebugPressed(void);
     void clearDebugReleased(void);

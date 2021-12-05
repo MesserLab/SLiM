@@ -44,10 +44,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 
     connect(ui->toggleDrawerButton, &QPushButton::clicked, this, &QtSLiMWindow::showDrawerClicked);
-    connect(ui->showMutationsButton, &QPushButton::clicked, this, &QtSLiMWindow::showMutationsToggled);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::clicked, this, &QtSLiMWindow::showFixedSubstitutionsToggled);
-    connect(ui->showChromosomeMapsButton, &QPushButton::clicked, this, &QtSLiMWindow::showChromosomeMapsToggled);
-    connect(ui->showGenomicElementsButton, &QPushButton::clicked, this, &QtSLiMWindow::showGenomicElementsToggled);
+    //connect(ui->chromosomeActionButton, &QPushButton::clicked, this, &QtSLiMWindow::chromosomeActionClicked); // this button runs when it is pressed
 
     connect(ui->clearDebugButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMScriptTextEdit::clearDebugPoints);
     connect(ui->checkScriptButton, &QPushButton::clicked, ui->scriptTextEdit, &QtSLiMTextEdit::checkScript);
@@ -69,10 +66,7 @@ void QtSLiMWindow::glueUI(void)
     ui->profileButton->qtslimSetBaseName("profile");
     ui->recycleButton->qtslimSetBaseName("recycle");
     ui->toggleDrawerButton->qtslimSetBaseName("open_type_drawer");
-    ui->showMutationsButton->qtslimSetBaseName("show_mutations");
-    ui->showFixedSubstitutionsButton->qtslimSetBaseName("show_fixed");
-    ui->showChromosomeMapsButton->qtslimSetBaseName("show_recombination");
-    ui->showGenomicElementsButton->qtslimSetBaseName("show_genomicelements");
+    ui->chromosomeActionButton->qtslimSetBaseName("action");
     ui->clearDebugButton->qtslimSetBaseName("clear_debug");
     ui->checkScriptButton->qtslimSetBaseName("check");
     ui->prettyprintButton->qtslimSetBaseName("prettyprint");
@@ -103,14 +97,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->recycleButton, &QPushButton::released, this, &QtSLiMWindow::recycleReleased);
     connect(ui->toggleDrawerButton, &QPushButton::pressed, this, &QtSLiMWindow::toggleDrawerPressed);
     connect(ui->toggleDrawerButton, &QPushButton::released, this, &QtSLiMWindow::toggleDrawerReleased);
-    connect(ui->showMutationsButton, &QPushButton::pressed, this, &QtSLiMWindow::showMutationsPressed);
-    connect(ui->showMutationsButton, &QPushButton::released, this, &QtSLiMWindow::showMutationsReleased);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::pressed, this, &QtSLiMWindow::showFixedSubstitutionsPressed);
-    connect(ui->showFixedSubstitutionsButton, &QPushButton::released, this, &QtSLiMWindow::showFixedSubstitutionsReleased);
-    connect(ui->showChromosomeMapsButton, &QPushButton::pressed, this, &QtSLiMWindow::showChromosomeMapsPressed);
-    connect(ui->showChromosomeMapsButton, &QPushButton::released, this, &QtSLiMWindow::showChromosomeMapsReleased);
-    connect(ui->showGenomicElementsButton, &QPushButton::pressed, this, &QtSLiMWindow::showGenomicElementsPressed);
-    connect(ui->showGenomicElementsButton, &QPushButton::released, this, &QtSLiMWindow::showGenomicElementsReleased);
+    connect(ui->chromosomeActionButton, &QPushButton::pressed, this, &QtSLiMWindow::chromosomeActionPressed);
+    connect(ui->chromosomeActionButton, &QPushButton::released, this, &QtSLiMWindow::chromosomeActionReleased);
     connect(ui->clearDebugButton, &QPushButton::pressed, this, &QtSLiMWindow::clearDebugPressed);
     connect(ui->clearDebugButton, &QPushButton::released, this, &QtSLiMWindow::clearDebugReleased);
     connect(ui->checkScriptButton, &QPushButton::pressed, this, &QtSLiMWindow::checkScriptPressed);
@@ -265,37 +253,14 @@ void QtSLiMWindow::toggleDrawerReleased(void)
 {
     ui->toggleDrawerButton->qtslimSetHighlight(false);
 }
-void QtSLiMWindow::showMutationsPressed(void)
+void QtSLiMWindow::chromosomeActionPressed(void)
 {
-    ui->showMutationsButton->qtslimSetHighlight(!ui->showMutationsButton->isChecked());
+    ui->chromosomeActionButton->qtslimSetHighlight(true);
+    chromosomeActionRunMenu();  // this button runs its menu when it is pressed, so make that call here
 }
-void QtSLiMWindow::showMutationsReleased(void)
+void QtSLiMWindow::chromosomeActionReleased(void)
 {
-    ui->showMutationsButton->qtslimSetHighlight(ui->showMutationsButton->isChecked());
-}
-void QtSLiMWindow::showFixedSubstitutionsPressed(void)
-{
-    ui->showFixedSubstitutionsButton->qtslimSetHighlight(!ui->showFixedSubstitutionsButton->isChecked());
-}
-void QtSLiMWindow::showFixedSubstitutionsReleased(void)
-{
-    ui->showFixedSubstitutionsButton->qtslimSetHighlight(ui->showFixedSubstitutionsButton->isChecked());
-}
-void QtSLiMWindow::showChromosomeMapsPressed(void)
-{
-    ui->showChromosomeMapsButton->qtslimSetHighlight(!ui->showChromosomeMapsButton->isChecked());
-}
-void QtSLiMWindow::showChromosomeMapsReleased(void)
-{
-    ui->showChromosomeMapsButton->qtslimSetHighlight(ui->showChromosomeMapsButton->isChecked());
-}
-void QtSLiMWindow::showGenomicElementsPressed(void)
-{
-    ui->showGenomicElementsButton->qtslimSetHighlight(!ui->showGenomicElementsButton->isChecked());
-}
-void QtSLiMWindow::showGenomicElementsReleased(void)
-{
-    ui->showGenomicElementsButton->qtslimSetHighlight(ui->showGenomicElementsButton->isChecked());
+    ui->chromosomeActionButton->qtslimSetHighlight(false);
 }
 void QtSLiMWindow::clearDebugPressed(void)
 {

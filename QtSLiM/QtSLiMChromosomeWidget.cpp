@@ -1410,12 +1410,47 @@ void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
 	isTracking_ = false;
 }
 
-void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
+void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     
     if (!controller->invalidSimulation())// && !isSelectable() && enabled())
 	{
+        QMenu contextMenu("chromosome_menu", this);
+        
+        QAction *displayMutations = contextMenu.addAction("Display Mutations");
+        displayMutations->setCheckable(true);
+        displayMutations->setChecked(shouldDrawMutations_);
+        
+        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
+        displaySubstitutions->setCheckable(true);
+        displaySubstitutions->setChecked(shouldDrawFixedSubstitutions_);
+        
+        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
+        displayGenomicElements->setCheckable(true);
+        displayGenomicElements->setChecked(shouldDrawGenomicElements_);
+        
+        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
+        displayRateMaps->setCheckable(true);
+        displayRateMaps->setChecked(shouldDrawRateMaps_);
+        
+        contextMenu.addSeparator();
+        
+        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
+        displayFrequencies->setCheckable(true);
+        displayFrequencies->setChecked(!display_haplotypes_);
+        
+        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
+        displayHaplotypes->setCheckable(true);
+        displayHaplotypes->setChecked(display_haplotypes_);
+        
+        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+        displayGroup->addAction(displayFrequencies);
+        displayGroup->addAction(displayHaplotypes);
+        
+        QAction *displayAllMutations = nullptr;
+        QAction *selectNonneutralMutations = nullptr;
+        
 		SLiMSim *sim = controller->sim;
 		
 		if (sim)
@@ -1424,23 +1459,9 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
 			
 			if (muttypes.size() > 0)
 			{
-                QMenu contextMenu("chromosome_menu", this);
-                
-                QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
-                displayFrequencies->setCheckable(true);
-                displayFrequencies->setChecked(!display_haplotypes_);
-                
-                QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
-                displayHaplotypes->setCheckable(true);
-                displayHaplotypes->setChecked(display_haplotypes_);
-                
-                QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
-                displayGroup->addAction(displayFrequencies);
-                displayGroup->addAction(displayHaplotypes);
-                
                 contextMenu.addSeparator();
                 
-                QAction *displayAllMutations = contextMenu.addAction("Display All Mutations");
+                displayAllMutations = contextMenu.addAction("Display All Mutations");
                 displayAllMutations->setCheckable(true);
                 displayAllMutations->setChecked(display_muttypes_.size() == 0);
                 
@@ -1479,57 +1500,75 @@ void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
                 
                 contextMenu.addSeparator();
                 
-                QAction *selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
+                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
+            }
+        }
+        
+        // Run the context menu synchronously
+        QAction *action = contextMenu.exec(p_globalPoint);
+        
+        // Act upon the chosen action; we just do it right here instead of dealing with slots
+        if (action)
+        {
+            if (action == displayMutations)
+                shouldDrawMutations_ = !shouldDrawMutations_;
+            else if (action == displaySubstitutions)
+                shouldDrawFixedSubstitutions_ = !shouldDrawFixedSubstitutions_;
+            else if (action == displayGenomicElements)
+                shouldDrawGenomicElements_ = !shouldDrawGenomicElements_;
+            else if (action == displayRateMaps)
+                shouldDrawRateMaps_ = !shouldDrawRateMaps_;
+            else if (action == displayFrequencies)
+                display_haplotypes_ = false;
+            else if (action == displayHaplotypes)
+                display_haplotypes_ = true;
+            else if (sim)
+            {
+                std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
                 
-                // Run the context menu synchronously
-                QAction *action = contextMenu.exec(p_event->globalPos());
-                
-                // Act upon the chosen action; we just do it right here instead of dealing with slots
-                if (action)
+                if (action == displayAllMutations)
+                    display_muttypes_.clear();
+                else if (action == selectNonneutralMutations)
                 {
-                    if (action == displayFrequencies)
-                        display_haplotypes_ = false;
-                    else if (action == displayHaplotypes)
-                        display_haplotypes_ = true;
-                    else if (action == displayAllMutations)
-                        display_muttypes_.clear();
-                    else if (action == selectNonneutralMutations)
+                    // - (IBAction)filterNonNeutral:(id)sender
+                    display_muttypes_.clear();
+                    
+                    for (auto muttype_iter : muttypes)
                     {
-                        // - (IBAction)filterNonNeutral:(id)sender
-                        display_muttypes_.clear();
+                        MutationType *muttype = muttype_iter.second;
+                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
                         
-                        for (auto muttype_iter : muttypes)
-                        {
-                            MutationType *muttype = muttype_iter.second;
-                            slim_objectid_t muttype_id = muttype->mutation_type_id_;
-                            
-                            if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
-                                display_muttypes_.emplace_back(muttype_id);
-                        }
+                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                            display_muttypes_.emplace_back(muttype_id);
+                    }
+                }
+                else
+                {
+                    // - (IBAction)filterMutations:(id)sender
+                    slim_objectid_t muttype_id = action->data().toInt();
+                    auto present_iter = std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id);
+                    
+                    if (present_iter == display_muttypes_.end())
+                    {
+                        // this mut-type is not being displayed, so add it to our display list
+                        display_muttypes_.emplace_back(muttype_id);
                     }
                     else
                     {
-                        // - (IBAction)filterMutations:(id)sender
-                        slim_objectid_t muttype_id = action->data().toInt();
-                        auto present_iter = std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id);
-                        
-                        if (present_iter == display_muttypes_.end())
-                        {
-                            // this mut-type is not being displayed, so add it to our display list
-                            display_muttypes_.emplace_back(muttype_id);
-                        }
-                        else
-                        {
-                            // this mut-type is being displayed, so remove it from our display list
-                            display_muttypes_.erase(present_iter);
-                        }
+                        // this mut-type is being displayed, so remove it from our display list
+                        display_muttypes_.erase(present_iter);
                     }
-                    
-                    update();
                 }
             }
+            
+            update();
         }
     }
+}
+
+void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
+{
+    runContextMenuAtPoint(p_event->globalPos());
 }
 
 
