@@ -85,54 +85,77 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #endif
 }
 
+static inline bool _InPedigree(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4, slim_pedigreeid_t B)
+{
+	if (B == -1)
+		return false;
+	
+	if ((A == B) || (A_P1 == B) || (A_P2 == B) || (A_G1 == B) || (A_G2 == B) || (A_G3 == B) || (A_G4 == B))
+		return true;
+	
+	return false;
+}
+
+static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+						   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4)
+{
+	if ((A == -1) || (B == -1))
+	{
+		// Unknown pedigree IDs do not match anybody
+		return 0.0;
+	}
+	else if (A == B)
+	{
+		// An individual matches itself with relatedness 1.0
+		return 1.0;
+	}
+	else {
+		double out = 0.0;
+		
+		if (_InPedigree(B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, A))		// if A is in B...
+		{
+			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P1, B_G1, B_G2, -1, -1, -1, -1) / 2.0;
+			out += _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B_P2, B_G3, B_G4, -1, -1, -1, -1) / 2.0;
+		}
+		else
+		{
+			out += _Relatedness(A_P1, A_G1, A_G2, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
+			out += _Relatedness(A_P2, A_G3, A_G4, -1, -1, -1, -1, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4) / 2.0;
+		}
+		
+		return out;
+	}
+}
+
 double Individual::RelatednessToIndividual(Individual &p_ind)
 {
-	// If we're being asked about ourselves, return 1.0, even if pedigree tracking is off
-	if (this == &p_ind)
-		return 1.0;
+	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
+	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given generation, information should either be
+	// available for everybody, or for nobody (the latter occurs when that generation is prior to the start of forward simulation).
+	// So we have these ancestry trees:
+	//
+	//         G1  G2 G3  G4     G5  G6 G7  G8
+	//          \  /   \  /       \  /   \  /
+	//           P1     P2         P3     P4
+	//            \     /           \     /
+	//             \   /             \   /
+	//              \ /               \ /
+	//               A                 B
+	//
+	// If A and B are same individual, the relatedness is 1.0.  Otherwise, we need to determine the amount of consanguinity between
+	// A and B.  If A is a parent of B (P3 or P4), their relatedness is 0.5; if A is a grandparent of B (G5/G6/G7/G8), then their
+	// relatedness is 0.25.  A could also appear in B's tree more than once, but A cannot be its own parent.  So if A==P3, then A
+	// cannot also be G5 or G6, and indeed, we do not need to look at G5 or G6 at all; the fact that A==P3 tells us everything we
+	// we need to know about that half of B's tree, with a contribution of 0.5.  But it could *additionally* be true that A==P4,
+	// giving another 0.5 for 1.0 total; or that A==G7, for 0.25; or that A==G8, for 0.25; for that A==G7 *and* A==G8, for 0.5,
+	// making 1.0 total.  Basically, whenever you see A at a given position you do not need to look further upward from that node,
+	// but you must still look at other nodes.  To do this properly, recursion is the simplest approach; this algorithm is thanks
+	// to Peter Ralph.
+	//
+	Individual &A = *this, &B = p_ind;
 	
-	// Otherwise, if our own pedigree information is not initialized, then we have nothing to go on
-	if (pedigree_id_ == -1)
-		return 0.0;
-	
-	// Start with 0.0 and add in factors for shared ancestors
-	double relatedness = 0.0;
-	
-	if ((pedigree_g1_ != -1) && (p_ind.pedigree_g1_ != -1))
-	{
-		// We have grandparental information, so use that; that will be the most accurate
-		double g1 = pedigree_g1_;
-		double g2 = pedigree_g2_;
-		double g3 = pedigree_g3_;
-		double g4 = pedigree_g4_;
-		
-		double ind_g1 = p_ind.pedigree_g1_;
-		double ind_g2 = p_ind.pedigree_g2_;
-		double ind_g3 = p_ind.pedigree_g3_;
-		double ind_g4 = p_ind.pedigree_g4_;
-		
-		// Each shared grandparent adds 0.125, for a maximum of 0.5
-		if ((g1 == ind_g1) || (g1 == ind_g2) || (g1 == ind_g3) || (g1 == ind_g4))	relatedness += 0.125;
-		if ((g2 == ind_g1) || (g2 == ind_g2) || (g2 == ind_g3) || (g2 == ind_g4))	relatedness += 0.125;
-		if ((g3 == ind_g1) || (g3 == ind_g2) || (g3 == ind_g3) || (g3 == ind_g4))	relatedness += 0.125;
-		if ((g4 == ind_g1) || (g4 == ind_g2) || (g4 == ind_g3) || (g4 == ind_g4))	relatedness += 0.125;
-	}
-	else if ((pedigree_p1_ != -1) && (p_ind.pedigree_p1_ != -1))
-	{
-		// We have parental information; that's second-best
-		double p1 = pedigree_p1_;
-		double p2 = pedigree_p2_;
-		
-		double ind_p1 = p_ind.pedigree_p1_;
-		double ind_p2 = p_ind.pedigree_p2_;
-		
-		// Each shared parent adds 0.25, for a maximum of 0.5
-		if ((p1 == ind_p1) || (p1 == ind_p2))	relatedness += 0.25;
-		if ((p2 == ind_p1) || (p2 == ind_p2))	relatedness += 0.25;
-	}
-	
-	// With no information, we assume we are not related
-	return relatedness;
+	return _Relatedness(A.pedigree_id_, A.pedigree_p1_, A.pedigree_p2_, A.pedigree_g1_, A.pedigree_g2_, A.pedigree_g3_, A.pedigree_g4_,
+						B.pedigree_id_, B.pedigree_p1_, B.pedigree_p2_, B.pedigree_g1_, B.pedigree_g2_, B.pedigree_g3_, B.pedigree_g4_);
 }
 
 
