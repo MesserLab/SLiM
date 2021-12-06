@@ -182,25 +182,33 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	{
 		if (indA.sex_ == IndividualSex::kMale)
 		{
+			// If A is male, its second parent (male) gave it a Y, not an X
 			A_P2 = -1;
 			A_G3 = -1;
 		}
-		A_G2 = -1;
+		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
 		A_G4 = -1;
 		
 		if (indB.sex_ == IndividualSex::kMale)
 		{
+			// If B is male, its second parent (male) gave it a Y, not an X
 			B_P2 = -1;
 			B_G3 = -1;
 		}
-		B_G2 = -1;
+		// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
 		B_G4 = -1;
 	}
 	else if (chrtype == GenomeType::kYChromosome)
 	{
+		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
 		if ((indA.sex_ == IndividualSex::kFemale) || (indB.sex_ == IndividualSex::kFemale))
+		{
+			if (A == B)
+				return 1.0;
 			return 0.0;
+		}
 		
+		// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
 		A_P1 = -1;
 		A_G1 = -1;
 		A_G2 = -1;
