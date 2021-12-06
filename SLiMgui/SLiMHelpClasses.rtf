@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
-\f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\froman\fcharset0 TimesNewRomanPS-BoldMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
 \f9\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;\red150\green150\blue150;
 }
@@ -2371,13 +2371,41 @@ More specifically, this method uses all available pedigree information from the 
 \f3\fs18 0.0
 \f4\fs20  to 
 \f3\fs18 1.0
-\f4\fs20 .  There is another commonly used metric, called the \'93kinship coefficient\'94, that ranges from 
-\f3\fs18 0.0
-\f4\fs20  to 
-\f3\fs18 0.5
-\f4\fs20  and is equal to one-half of the coefficient of relationship; if that is what you want, divide 
+\f4\fs20 .\
+There is another commonly used metric of relatedness, called the \'93kinship coefficient\'94, that reflects the probability of identity by descent between two individuals 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20 .  In general, it is approximately equal to one-half of the coefficient of relationship; if an approximate estimate of the kinship coefficient is acceptable, especially in models in which individuals are expected to be outbred, you can simply divide 
 \f3\fs18 relatedness()
-\f4\fs20  by two.\
+\f4\fs20  by two.  However, it should be noted that Wright\'92s coefficient of relationship is 
+\f1\i not
+\f4\i0  a measure of the probability of identity by descent, and so it is not exactly double the kinship coefficient; they actually measure different things.  More precisely, the relationship between them is 
+\f6\i r
+\f5\i0 \'a0=\'a02
+\f6\i \uc0\u966 
+\f5\i0 /sqrt((1+
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub A
+\fs20 \nosupersub )(1+
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub B
+\fs20 \nosupersub ))
+\f4 , where 
+\f6\i r
+\f4\i0  is Wright\'92s coefficient of relatedness, 
+\f6\i \uc0\u966 
+\f4\i0  is the kinship coefficient, and 
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub A
+\f4\fs20 \nosupersub  and 
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub B
+\f4\fs20 \nosupersub  are the inbreeding coefficients of 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20  respectively.\
 Note that this relatedness is simply pedigree-based relatedness, and does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.  If a metric of actual genetic relatedness is desired, tree-sequence recording can be used after simulation is complete, to compute the exact genetic relatedness between individuals based upon the complete ancestry tree (a topic which is beyond the scope of this manual).  Actual genetic relatedness cannot presently be calculated during a simulation run; the information is implicitly contained in the recorded tree-sequence tables, but calculating it is too computationally expensive to be reasonable.\
 This method makes a couple of assumptions.  One assumption is that the grandparents (or the parents, if grandparental information is not available) are themselves unrelated and that they are not inbred; this assumption is necessary because we have no information about their parentage, since SLiM\'92s pedigree tracking information only goes back two generations.  Be aware that in a model where inbreeding or selfing occurs at all (including \'93incidental selfing\'94, where a hermaphroditic individual happens to choose itself as a mate), some level of \'93background relatedness\'94 will be present and this assumption will be violated.  In such circumstances, 
 \f3\fs18 relatedness()
@@ -2486,12 +2514,12 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 17
-\f6 .
+\f7 .
 \f0 7  Class InteractionType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 17
-\f7 .
+\f6 .
 \f1 7.1  
 \f2\fs18 InteractionType
 \f1\fs22  properties\
@@ -2591,7 +2619,7 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 17
-\f7 .
+\f6 .
 \f1 7.2  
 \f2\fs18 InteractionType
 \f1\fs22  methods\
@@ -3784,9 +3812,9 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b g
 \f4\b0 amma-distributed fitness effect.  This DFE type is specified by two parameters, a shape parameter and a mean value.  The gamma distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u945 
 \f5\i0 ,
@@ -3797,7 +3825,7 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f5\i0 )
 \f8\i \uc0\u946 \u945 
 \f5\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u946 
 \f5\i0 )
@@ -3813,15 +3841,15 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 An 
 \f0\b e
 \f4\b0 xponentially-distributed fitness effect.  This DFE type is specified by a single parameter, the mean of the distribution.  The exponential distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u946 
 \f5\i0 )\'a0= 
 \f8\i \uc0\u946 
 \f5\i0 \super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u946 
 \f5\i0 )
@@ -3835,9 +3863,9 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b n
 \f4\b0 ormally-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a standard deviation.  The normal distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u956 
 \f5\i0 ,
@@ -3846,7 +3874,7 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f9 \uc0\u960 
 \f8\i \uc0\u963 
 \f5\i0 \super 2\nosupersub )\super \uc0\u8722 1/2\nosupersub exp(\uc0\u8722 (
-\f7\i s
+\f6\i s
 \f5\i0 \uc0\u8722 
 \f8\i \uc0\u956 
 \f5\i0 )\super 2\nosupersub /2
@@ -3864,31 +3892,31 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b W
 \f4\b0 eibull-distributed fitness effect.  This DFE type is specified by a scale parameter and a shape parameter.  The Weibull distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u955 
 \f5\i0 ,
-\f7\i k
+\f6\i k
 \f5\i0 )\'a0= (
-\f7\i k
+\f6\i k
 \f5\i0 /
 \f8\i \uc0\u955 
-\f7 \super k
+\f6 \super k
 \f5\i0 \nosupersub )
-\f7\i s\super k
+\f6\i s\super k
 \f5\i0 \uc0\u8722 1\nosupersub exp(\uc0\u8722 (
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u955 
 \f5\i0 )
-\f7\i \super k
+\f6\i \super k
 \f5\i0 \nosupersub )
 \f4 , where 
 \f8\i \uc0\u955 
 \f4\i0  is the scale parameter and 
-\f7\i k
+\f6\i k
 \f4\i0  is the shape parameter.  This parameterization is the same as for the Eidos function 
 \f3\fs18 rweibull()
 \f4\fs22 .  A Weibull distribution is often used to model mutations following extreme-value theory.\
