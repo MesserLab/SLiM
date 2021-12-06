@@ -152,10 +152,66 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	// but you must still look at other nodes.  To do this properly, recursion is the simplest approach; this algorithm is thanks
 	// to Peter Ralph.
 	//
-	Individual &A = *this, &B = p_ind;
+	Individual &indA = *this, &indB = p_ind;
 	
-	return _Relatedness(A.pedigree_id_, A.pedigree_p1_, A.pedigree_p2_, A.pedigree_g1_, A.pedigree_g2_, A.pedigree_g3_, A.pedigree_g4_,
-						B.pedigree_id_, B.pedigree_p1_, B.pedigree_p2_, B.pedigree_g1_, B.pedigree_g2_, B.pedigree_g3_, B.pedigree_g4_);
+	slim_pedigreeid_t A = indA.pedigree_id_;
+	slim_pedigreeid_t A_P1 = indA.pedigree_p1_;
+	slim_pedigreeid_t A_P2 = indA.pedigree_p2_;
+	slim_pedigreeid_t A_G1 = indA.pedigree_g1_;
+	slim_pedigreeid_t A_G2 = indA.pedigree_g2_;
+	slim_pedigreeid_t A_G3 = indA.pedigree_g3_;
+	slim_pedigreeid_t A_G4 = indA.pedigree_g4_;
+	slim_pedigreeid_t B = indB.pedigree_id_;
+	slim_pedigreeid_t B_P1 = indB.pedigree_p1_;
+	slim_pedigreeid_t B_P2 = indB.pedigree_p2_;
+	slim_pedigreeid_t B_G1 = indB.pedigree_g1_;
+	slim_pedigreeid_t B_G2 = indB.pedigree_g2_;
+	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
+	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
+	
+	// Correct for sex-chromosome simulations; the only individuals that count are those that pass on the sex chromosome to the
+	// child.  We can do that here since we know that the first parent of a given individual is female and the second is male.
+	// If individuals are cloning, then both parents will be the same sex as the offspring, in fact, but we still want to
+	// treat if the same I think (?).  For example, a male offspring from biparental mating inherits an X from its female
+	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
+	// seems appropriate still.
+	SLiMSim &sim = subpopulation_->population_.sim_;
+	GenomeType chrtype = sim.ModeledChromosomeType();
+	
+	if (chrtype == GenomeType::kXChromosome)
+	{
+		if (indA.sex_ == IndividualSex::kMale)
+		{
+			A_P2 = -1;
+			A_G3 = -1;
+		}
+		A_G2 = -1;
+		A_G4 = -1;
+		
+		if (indB.sex_ == IndividualSex::kMale)
+		{
+			B_P2 = -1;
+			B_G3 = -1;
+		}
+		B_G2 = -1;
+		B_G4 = -1;
+	}
+	else if (chrtype == GenomeType::kYChromosome)
+	{
+		if ((indA.sex_ == IndividualSex::kFemale) || (indB.sex_ == IndividualSex::kFemale))
+			return 0.0;
+		
+		A_P1 = -1;
+		A_G1 = -1;
+		A_G2 = -1;
+		A_G3 = -1;
+		B_P1 = -1;
+		B_G1 = -1;
+		B_G2 = -1;
+		B_G3 = -1;
+	}
+	
+	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
 }
 
 
