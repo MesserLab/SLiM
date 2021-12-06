@@ -1784,10 +1784,10 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i.uniqueMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 { i = p1.individuals; i[0:1].uniqueMutationsOfType(1); stop(); }", __LINE__);
 	
-	// Test optional pedigree stuff; note that without preventIncidentalSelfing=T relatedness could be higher than 0.5
+	// Test optional pedigree stuff; note that relatedness can be higher than 0.5 due to inbreeding, even if preventIncidentalSelfing=T were set
 	// see the model test_relatedness.slim (not in the GitHub repo) for more precise tests that relatedness() does the right calculations
-	std::string gen1_setup_norel("initialize() { initializeSLiMOptions(keepPedigrees=F, preventIncidentalSelfing=T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
-	std::string gen1_setup_rel("initialize() { initializeSLiMOptions(keepPedigrees=T, preventIncidentalSelfing=T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_norel("initialize() { initializeSLiMOptions(keepPedigrees=F); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_rel("initialize() { initializeSLiMOptions(keepPedigrees=T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 { sim.addSubpop('p1', 10); } ");
 	
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeID == -1)) stop(); }", 1, 338, "is not available", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 { if (all(p1.individuals.pedigreeParentIDs == -1)) stop(); }", 1, 338, "has not been enabled", __LINE__);
@@ -1802,8 +1802,8 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeGrandparentIDs != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.genomes.genomePedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) <= 0.5) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) <= 0.5)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) < 1.0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) < 1.0)) stop(); }", __LINE__);
 	
 	// Test Individual EidosDictionaryUnretained functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals[0]; i.setValue('foo', 7:9); i.setValue('bar', 'baz'); if (identical(i.getValue('foo'), 7:9) & identical(i.getValue('bar'), 'baz')) stop(); }", __LINE__);
