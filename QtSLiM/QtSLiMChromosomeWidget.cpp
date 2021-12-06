@@ -1568,7 +1568,8 @@ void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
 
 void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
 {
-    runContextMenuAtPoint(p_event->globalPos());
+    if (!selectable_)
+        runContextMenuAtPoint(p_event->globalPos());
 }
 
 
