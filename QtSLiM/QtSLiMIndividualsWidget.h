@@ -37,7 +37,7 @@ class QContextMenuEvent;
 typedef struct {
 	int backgroundType;				// 0 == black, 1 == gray, 2 == white, 3 == named spatial map; if no preference has been set, no entry will exist
 	std::string spatialMapName;		// the name of the spatial map chosen, for backgroundType == 3
-} PopulationViewBackgroundSettings;
+} PopulationViewSettings;
 
 
 class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -47,12 +47,15 @@ class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
     // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial, separate), 2 == individual (spatial, overplotted)
 	int displayMode = 0;
 	
-	// display background preferences, kept indexed by subpopulation id
-	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
+	// per-subview display preferences, kept indexed by subpopulation id
+	std::map<slim_objectid_t, PopulationViewSettings> subviewSettings;
 	
 	// subview tiling, kept indexed by subpopulation id
 	std::map<slim_objectid_t, QRect> subpopTiles;
     bool canDisplayAllIndividuals = false;
+    
+    // action button tracking support
+    slim_objectid_t actionButtonHighlightSubpopID_ = -1;
     
     // OpenGL buffers
 	float *glArrayVertices = nullptr;
@@ -63,6 +66,7 @@ public:
     virtual ~QtSLiMIndividualsWidget() override;
     
     void tileSubpopulations(std::vector<Subpopulation*> &selectedSubpopulations);
+    void runContextMenuAtPoint(QPoint globalPoint, Subpopulation *subpopForEvent);
     
 protected:
     virtual void initializeGL() override;
@@ -78,11 +82,13 @@ protected:
     void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
     void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop);
     void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop);
-    void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewBackgroundSettings *background, SpatialMap **returnMap, Subpopulation *subpop);
+    void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *settings, SpatialMap **returnMap, Subpopulation *subpop);
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
     void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
     
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
+    
+    virtual void mousePressEvent(QMouseEvent *p_event) override;
 };
 
 #endif // QTSLIMINDIVIDUALSWIDGET_H
