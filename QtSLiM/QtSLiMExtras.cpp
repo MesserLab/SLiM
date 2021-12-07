@@ -733,21 +733,21 @@ void QtSLiMPushButton::qtslimFreeCachedIcons(void)
     if (qtslimIcon_H_DARK) { delete qtslimIcon_H_DARK; qtslimIcon_H_DARK = nullptr; }
 }
 
-bool QtSLiMPushButton::hitButton(const QPoint &pos) const
+bool QtSLiMPushButton::hitButton(const QPoint &mousePosition) const
 {
     // I noticed that mouse tracking in QtSLiMPushButton was off; it seemed like the bounds were
     // kind of inset, and Qt doesn't know the buttons are circular, and so forth.  Therefore this.
     
-    // pos is in the same coordinate system as rect(); we want to consider pos to be a hit if it is
-    // inside the circle or oval bounded by rect(), so let's bust out with a little Pythagoras
+    // mousePosition is in the same coordinate system as rect(); we want to consider mousePosition
+    // to be a hit if it is inside the circle or oval bounded by rect(), so let's bust out Pythagoras
     QRect bounds = rect();
-    double x = (pos.x() - bounds.left()) / (double)bounds.width();
-    double y = (pos.y() - bounds.top()) / (double)bounds.height();
-    double d = std::sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+    double xd = (mousePosition.x() - bounds.left()) / (double)bounds.width() - 0.5;
+    double yd = (mousePosition.y() - bounds.top()) / (double)bounds.height() - 0.5;
+    double distance = std::sqrt(xd * xd + yd * yd);
     
     //qDebug() << "x ==" << x << ", y ==" << y << "; d ==" << d;
     
-    return (d <= 0.51);  // a little more than 0.5 to provide a little slop
+    return (distance <= 0.51);  // a little more than 0.5 to provide a little slop
 }
 
 void QtSLiMPushButton::paintEvent(QPaintEvent *p_paintEvent)

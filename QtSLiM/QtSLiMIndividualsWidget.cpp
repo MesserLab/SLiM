@@ -143,7 +143,7 @@ void QtSLiMIndividualsWidget::paintGL()
             
 #ifdef __linux__
             // font sizes are calibrated for macOS; on Linux they need to be a little smaller
-            tickFont->setPointSize(tickFont->size * 0.75);
+            titleFont->setPointSize(tickFont->size * 0.75);
 #endif
             
             actionIcon_LIGHT.addFile(":/buttons/action.png", QSize(), QIcon::Normal, QIcon::Off);
@@ -1709,11 +1709,11 @@ void QtSLiMIndividualsWidget::mousePressEvent(QMouseEvent *p_event)
         {
             QRect tileBounds = tileIter->second;
             QRect buttonBounds(tileBounds.left(), tileBounds.top(), 20, 20);
-            double x = (mousePos.x() - buttonBounds.left()) / (double)buttonBounds.width();
-            double y = (mousePos.y() - buttonBounds.top()) / (double)buttonBounds.height();
-            double d = std::sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+            double xd = (mousePos.x() - buttonBounds.left()) / (double)buttonBounds.width() - 0.5;
+            double yd = (mousePos.y() - buttonBounds.top()) / (double)buttonBounds.height() - 0.5;
+            double distance = std::sqrt(xd * xd + yd * yd);
             
-            if (buttonBounds.contains(mousePos) && (d <= 0.51))
+            if (buttonBounds.contains(mousePos) && (distance <= 0.51))
             {
                 actionButtonHighlightSubpopID_ = subpop->subpopulation_id_;
                 update();
