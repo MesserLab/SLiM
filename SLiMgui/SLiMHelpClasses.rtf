@@ -1,10 +1,12 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
-\f6\froman\fcharset0 TimesNewRomanPS-BoldMT;\f7\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\froman\fcharset0 TimesNewRomanPS-BoldMT;\f8\fswiss\fcharset0 Helvetica-Oblique;
 \f9\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
-{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;\red150\green150\blue150;
+}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;\cssrgb\c65500\c65500\c65500;
+}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
 \deftab720
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
@@ -2326,7 +2328,7 @@ See the description of the
 \f5 \'a0
 \f3 individuals)
 \f5 \
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns a vector containing the degrees of relatedness between the receiver and each of the individuals in 
 \f3\fs18 individuals
@@ -2344,33 +2346,85 @@ See the description of the
 \f3\fs18 0.0
 \f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
-\f4\fs20 , this method will use the pedigree information to construct a relatedness estimate.  More specifically, if information about the grandparental generation is available, then each grandparent shared by 
+\f4\fs20 , this method will use the pedigree information described in section 24.6.1 to construct a relatedness estimate.\
+More specifically, this method uses all available pedigree information from the grandparental and parental pedigree records of 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  contributes 
+\f4\fs20  to compute an estimate of the degree of consanguinity between 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20 .  Siblings have a relatedness of 
+\f3\fs18 0.5
+\f4\fs20 , as do parents to their children and vice versa; cousins have a relatedness of 
 \f3\fs18 0.125
-\f4\fs20  towards the total relatedness, for a maximum value of 
-\f3\fs18 0.5
-\f4\fs20  with four shared grandparents.  If grandparental information is unavailable, then if parental information is available it is used, with each parent shared by 
+\f4\fs20 ; and so forth.  If, according to the pedigree information available, 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  contributing 
-\f3\fs18 0.25
-\f4\fs20 , again for a maximum of 
-\f3\fs18 0.5
-\f4\fs20 .  If even parental information is unavailable, then the relatedness is assumed to be 
+\f4\fs20  have no blood relationship, the value returned is 
 \f3\fs18 0.0
-\f4\fs20 .  Again, however, if 
+\f4\fs20 .  Note that the value returned by 
+\f3\fs18 relatedness()
+\f4\fs20  is what is called the \'93coefficient of relationship\'94 between the two individuals (Wright, 1922; {\field{\*\fldinst{HYPERLINK "https://doi.org/10.1086/279872"}}{\fldrslt \cf3 \ul \ulc3 https://doi.org/10.1086/279872}}), and ranges from 
+\f3\fs18 0.0
+\f4\fs20  to 
+\f3\fs18 1.0
+\f4\fs20 .\
+There is another commonly used metric of relatedness, called the \'93kinship coefficient\'94, that reflects the probability of identity by descent between two individuals 
 \f3\fs18 A
 \f4\fs20  and 
 \f3\fs18 B
-\f4\fs20  are the same individual, the relatedness will be 
-\f3\fs18 1.0
-\f4\fs20  in all cases.\cf0 \
-Note that this relatedness is simply pedigree-based relatedness.  This does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.
-\f5 \
+\f4\fs20 .  In general, it is approximately equal to one-half of the coefficient of relationship; if an approximate estimate of the kinship coefficient is acceptable, especially in models in which individuals are expected to be outbred, you can simply divide 
+\f3\fs18 relatedness()
+\f4\fs20  by two.  However, it should be noted that Wright\'92s coefficient of relationship is 
+\f1\i not
+\f4\i0  a measure of the probability of identity by descent, and so it is not exactly double the kinship coefficient; they actually measure different things.  More precisely, the relationship between them is 
+\f6\i r
+\f5\i0 \'a0=\'a02
+\f6\i \uc0\u966 
+\f5\i0 /sqrt((1+
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub A
+\fs20 \nosupersub )(1+
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub B
+\fs20 \nosupersub ))
+\f4 , where 
+\f6\i r
+\f4\i0  is Wright\'92s coefficient of relatedness, 
+\f6\i \uc0\u966 
+\f4\i0  is the kinship coefficient, and 
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub A
+\f4\fs20 \nosupersub  and 
+\f6\i f
+\f5\i0\fs13\fsmilli6667 \sub B
+\f4\fs20 \nosupersub  are the inbreeding coefficients of 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20  respectively.\
+Note that this relatedness is simply pedigree-based relatedness, and does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.  If a metric of actual genetic relatedness is desired, tree-sequence recording can be used after simulation is complete, to compute the exact genetic relatedness between individuals based upon the complete ancestry tree (a topic which is beyond the scope of this manual).  Actual genetic relatedness cannot presently be calculated during a simulation run; the information is implicitly contained in the recorded tree-sequence tables, but calculating it is too computationally expensive to be reasonable.\
+This method makes a couple of assumptions.  One assumption is that the grandparents (or the parents, if grandparental information is not available) are themselves unrelated and that they are not inbred; this assumption is necessary because we have no information about their parentage, since SLiM\'92s pedigree tracking information only goes back two generations.  Be aware that in a model where inbreeding or selfing occurs at all (including \'93incidental selfing\'94, where a hermaphroditic individual happens to choose itself as a mate), some level of \'93background relatedness\'94 will be present and this assumption will be violated.  In such circumstances, 
+\f3\fs18 relatedness()
+\f4\fs20  will therefore tend to underestimate the degree of relatedness between individuals, and the greater the degree of inbreeding, the greater the underestimation will be.  If inbreeding is allowed in a model \'96 and particularly if it is common \'96 the results of 
+\f3\fs18 relatedness()
+\f4\fs20  should therefore not be taken as an estimate of 
+\f1\i absolute
+\f4\i0  relatedness, but can still be useful as an estimate of 
+\f1\i relative
+\f4\i0  relatedness (indicating that, say, A appears from the information available to be more closely related to B than it is to C).\
+A second assumption is that, in nonWF models, 
+\f3\fs18 addRecombinant()
+\f4\fs20  is not being used, since the pedigree relationships involved are then too complex to trace.  Indeed, 
+\f3\fs18 addRecombinant()
+\f4\fs20  does not record pedigree information at all, for this reason, and so the relatedness of individuals produced by 
+\f3\fs18 addRecombinant()
+\f4\fs20  will be 
+\f3\fs18 0.0
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -2460,12 +2514,12 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 17
-\f6 .
+\f7 .
 \f0 7  Class InteractionType\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\b0 \cf0 17
-\f7 .
+\f6 .
 \f1 7.1  
 \f2\fs18 InteractionType
 \f1\fs22  properties\
@@ -2565,7 +2619,7 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 17
-\f7 .
+\f6 .
 \f1 7.2  
 \f2\fs18 InteractionType
 \f1\fs22  methods\
@@ -3758,9 +3812,9 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b g
 \f4\b0 amma-distributed fitness effect.  This DFE type is specified by two parameters, a shape parameter and a mean value.  The gamma distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u945 
 \f5\i0 ,
@@ -3771,7 +3825,7 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f5\i0 )
 \f8\i \uc0\u946 \u945 
 \f5\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u946 
 \f5\i0 )
@@ -3787,15 +3841,15 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 An 
 \f0\b e
 \f4\b0 xponentially-distributed fitness effect.  This DFE type is specified by a single parameter, the mean of the distribution.  The exponential distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u946 
 \f5\i0 )\'a0= 
 \f8\i \uc0\u946 
 \f5\i0 \super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u946 
 \f5\i0 )
@@ -3809,9 +3863,9 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b n
 \f4\b0 ormally-distributed fitness effect.  This DFE type is specified by two parameters, a mean and a standard deviation.  The normal distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u956 
 \f5\i0 ,
@@ -3820,7 +3874,7 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f9 \uc0\u960 
 \f8\i \uc0\u963 
 \f5\i0 \super 2\nosupersub )\super \uc0\u8722 1/2\nosupersub exp(\uc0\u8722 (
-\f7\i s
+\f6\i s
 \f5\i0 \uc0\u8722 
 \f8\i \uc0\u956 
 \f5\i0 )\super 2\nosupersub /2
@@ -3838,31 +3892,31 @@ SLiM consults this flag at the end of each generation when deciding whether to s
 \f4\fs22  \'96 A 
 \f0\b W
 \f4\b0 eibull-distributed fitness effect.  This DFE type is specified by a scale parameter and a shape parameter.  The Weibull distribution from which mutations are drawn is given by the probability density function 
-\f7\i P
+\f6\i P
 \f5\i0 (
-\f7\i s
+\f6\i s
 \f5\i0 \'a0|\'a0
 \f8\i \uc0\u955 
 \f5\i0 ,
-\f7\i k
+\f6\i k
 \f5\i0 )\'a0= (
-\f7\i k
+\f6\i k
 \f5\i0 /
 \f8\i \uc0\u955 
-\f7 \super k
+\f6 \super k
 \f5\i0 \nosupersub )
-\f7\i s\super k
+\f6\i s\super k
 \f5\i0 \uc0\u8722 1\nosupersub exp(\uc0\u8722 (
-\f7\i s
+\f6\i s
 \f5\i0 /
 \f8\i \uc0\u955 
 \f5\i0 )
-\f7\i \super k
+\f6\i \super k
 \f5\i0 \nosupersub )
 \f4 , where 
 \f8\i \uc0\u955 
 \f4\i0  is the scale parameter and 
-\f7\i k
+\f6\i k
 \f4\i0  is the shape parameter.  This parameterization is the same as for the Eidos function 
 \f3\fs18 rweibull()
 \f4\fs22 .  A Weibull distribution is often used to model mutations following extreme-value theory.\
@@ -4328,7 +4382,7 @@ If the model is being profiled, or is executing forward to a generation number e
 \f3\fs18 MutationType
 \f4\fs20  instead.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf3 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM documentation for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
+\cf4 The dominance coefficient value used to modify the selection coefficients of mutations present on the single X chromosome of an XY male (see the SLiM documentation for details).  Used only when simulating an X chromosome; setting a value for this property in other circumstances is an error.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call 
 \f3\fs18 SLiMSim
 \f4\fs20 \'92s method 
 \f3\fs18 recalculateFitness()
@@ -4410,7 +4464,7 @@ This property has been deprecated, and may be removed in a future release of SLi
 \f3\fs18 exists("slimgui")
 \f4\fs20  instead.\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf3 \kerning1\expnd0\expndtw0 If 
+\cf4 \kerning1\expnd0\expndtw0 If 
 \f3\fs18 T
 \f4\fs20 , the simulation is presently running inside SLiMgui; if 
 \f3\fs18 F

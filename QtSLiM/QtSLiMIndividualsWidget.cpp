@@ -118,7 +118,7 @@ void QtSLiMIndividualsWidget::paintGL()
             painter.endNativePainting();
             
             painter.setPen(Qt::darkGray);
-            painter.drawText(bounds, Qt::AlignCenter, "too many subpops\nor individuals\nto display –\ncontrol-click to\nselect a different\ndisplay mode");
+            painter.drawText(bounds, Qt::AlignCenter, "too many subpops\nor individuals\nto display – try\nresizing to make\nmore space");
             
             painter.beginNativePainting();
         }
@@ -130,10 +130,69 @@ void QtSLiMIndividualsWidget::paintGL()
 	}
 	else
 	{
-        // Clear to background gray if any background will show through
-		if (selectedSubpopulations.size() > 1)
-            painter.fillRect(rect(), palette().color(QPalette::Window));
+        // Clear to background gray; we always do this now, because the tile title bars are on the window background
+		painter.fillRect(rect(), palette().color(QPalette::Window));
 		
+        // Show title bars above each subpop tile
+        static QFont *titleFont = nullptr;
+        static QIcon actionIcon_LIGHT, actionIcon_DARK;
+        
+        if (!titleFont)
+        {
+            titleFont = new QFont();
+            
+#ifdef __linux__
+            // font sizes are calibrated for macOS; on Linux they need to be a little smaller
+            titleFont->setPointSize(titleFont->pointSize() * 0.75);
+#endif
+            
+            actionIcon_LIGHT.addFile(":/buttons/action.png", QSize(), QIcon::Normal, QIcon::Off);
+            actionIcon_LIGHT.addFile(":/buttons/action_H.png", QSize(), QIcon::Normal, QIcon::On);
+            actionIcon_DARK.addFile(":/buttons_DARK/action_DARK.png", QSize(), QIcon::Normal, QIcon::Off);
+            actionIcon_DARK.addFile(":/buttons_DARK/action_H_DARK.png", QSize(), QIcon::Normal, QIcon::On);
+        }
+        
+        QIcon *actionIcon = (inDarkMode ? &actionIcon_DARK : &actionIcon_LIGHT);
+        
+        painter.save();
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+        painter.setPen(inDarkMode ? Qt::white : Qt::black);
+        painter.setFont(*titleFont);
+        
+        for (Subpopulation *subpop : selectedSubpopulations)
+		{
+			auto tileIter = subpopTiles.find(subpop->subpopulation_id_);
+			
+			if (tileIter != subpopTiles.end())
+			{
+				QRect tileBounds = tileIter->second;
+				QRect buttonBounds(tileBounds.left(), tileBounds.top(), 20, 20);
+                
+                if (subpop->subpopulation_id_ == actionButtonHighlightSubpopID_)
+                    actionIcon->paint(&painter, buttonBounds, Qt::AlignCenter, QIcon::Normal, QIcon::On);
+                else
+                    actionIcon->paint(&painter, buttonBounds, Qt::AlignCenter, QIcon::Normal, QIcon::Off);
+                
+                int titleX = tileBounds.left() + 23;
+                int titleY = tileBounds.top() + 17;
+                int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom | Qt::AlignLeft);
+                QString title;
+                
+                if (displayMode == 2)
+                    title = "Unified (all subpopulations)";
+                else
+                    title = QString("p%1").arg(subpop->subpopulation_id_);
+                
+                painter.drawText(QRect(titleX, titleY, 0, 0), textFlags, title);
+            }
+            
+            if (displayMode == 2)
+                break;
+        }
+        
+        painter.restore();
+        
+        // And now draw the tiles themselves
         painter.beginNativePainting();
         
         bool clearBackground = true;    // used for display mode 2 to prevent repeated clearing
@@ -145,6 +204,9 @@ void QtSLiMIndividualsWidget::paintGL()
 			if (tileIter != subpopTiles.end())
 			{
 				QRect tileBounds = tileIter->second;
+                
+                // remove a margin at the top for the title bar
+                tileBounds.setTop(tileBounds.top() + 22);
 				
                 if ((displayMode == 1) || (displayMode == 2))
 				{
@@ -174,10 +236,21 @@ void QtSLiMIndividualsWidget::paintGL()
 				}
 				else	// displayMode == 0
 				{
-					// Clear to white
-                    if (inDarkMode)
+                    auto backgroundIter = subviewSettings.find(subpop->subpopulation_id_);
+                    PopulationViewSettings background;
+                    
+                    chooseDefaultBackgroundSettingsForSubpopulation(&background, nullptr, subpop);
+                    
+                    if ((backgroundIter != subviewSettings.end()) && (backgroundIter->second.backgroundType <= 2))
+                        background = backgroundIter->second;
+                    
+                    int backgroundColor = background.backgroundType;
+                    
+                    if (backgroundColor == 0)
                         glColor3f(0.0, 0.0, 0.0);
-                    else
+                    else if (backgroundColor == 1)
+                        glColor3f(0.3f, 0.3f, 0.3f);
+                    else if (backgroundColor == 2)
                         glColor3f(1.0, 1.0, 1.0);
                     
 					glRecti(tileBounds.left(), tileBounds.top(), (tileBounds.left() + tileBounds.width()), (tileBounds.top() + tileBounds.height()));
@@ -291,18 +364,18 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
         }
         else
         {
+            bounds.setTop(bounds.top() + 22);     // take out title bar space
+            
             canDisplayAllIndividuals = canDisplayIndividualsFromSubpopulationInArea(selectedSubpop, bounds);
         }
     }
-	else if (selectedSubpopCount > 10)
+    else // (displayMode == 1) || (displayMode == 0)
 	{
-		canDisplayAllIndividuals = false;
-	}
-    else if (displayMode == 1)
-	{
-		// spatial display adaptively finds the layout the maximizes the pixel area covered, and cannot fail
+		// adaptively finds the layout that maximizes the pixel area covered; fails if no layout is satisfactory
 		int64_t bestTotalExtent = 0;
 		
+        canDisplayAllIndividuals = false;
+        
 		for (int rowCount = 1; rowCount <= selectedSubpopCount; ++rowCount)
 		{
 			int columnCount = static_cast<int>(ceil(selectedSubpopCount / static_cast<double>(rowCount)));
@@ -313,13 +386,25 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 			double boxHeight = (bounds.height() - totalInterboxHeight) / static_cast<double>(rowCount);
 			std::map<slim_objectid_t, QRect> candidateTiles;
 			int64_t totalExtent = 0;
+            
+            // Round the box width down, for consistency, and calculate an offset to center the tiles
+            // So the visual width of the individuals view is quantized in such a way as to evenly subdivide
+            // We don't do this with the height since the effect of height variation is less visible, and
+            // having the visual height of the view not match the neighboring views would look weird
+            boxWidth = floor(boxWidth);
+            
+            int leftOffset = floor(bounds.width() - (boxWidth * columnCount + totalInterboxWidth)) / 2;
 			
+            // Too narrow or short a box size (figuring in 22 pixels for the title bar) is not allowed
+            if ((boxWidth < 50) || (boxHeight < ((displayMode == 1) ? 72 : 42)))
+                continue;
+            
 			for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
 			{
 				int columnIndex = subpopIndex % columnCount;
 				int rowIndex = subpopIndex / columnCount;
-				int boxLeft = qRound(bounds.x() + columnIndex * (interBoxSpace + boxWidth));
-				int boxRight = qRound(bounds.x() + columnIndex * (interBoxSpace + boxWidth) + boxWidth);
+				int boxLeft = qRound(bounds.x() + leftOffset + columnIndex * (interBoxSpace + boxWidth));
+				int boxRight = qRound(bounds.x() + leftOffset + columnIndex * (interBoxSpace + boxWidth) + boxWidth);
 				int boxTop = qRound(bounds.y() + rowIndex * (interBoxSpace + boxHeight));
 				int boxBottom = qRound(bounds.y() + rowIndex * (interBoxSpace + boxHeight) + boxHeight);
 				QRect boxBounds(boxLeft, boxTop, boxRight - boxLeft, boxBottom - boxTop);
@@ -328,8 +413,24 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 				candidateTiles.emplace(subpop->subpopulation_id_, boxBounds);
 				
 				// find out what pixel area actually gets used by this box, and use that to choose the optimal layout
-				QRect spatialDisplayBounds = spatialDisplayBoundsForSubpopulation(subpop, boxBounds);
-				int64_t extent = static_cast<int64_t>(spatialDisplayBounds.width()) * static_cast<int64_t>(spatialDisplayBounds.height());
+                boxBounds.setTop(boxBounds.top() + 22);     // take out title bar space
+                
+                if (displayMode == 1)
+                {
+                    // for spatial display, squeeze to the spatial aspect ratio
+                    boxBounds = spatialDisplayBoundsForSubpopulation(subpop, boxBounds);
+                }
+                else
+                {
+                    // for non-spatial display, check that the individuals will fit in the allotted area
+                    if (!canDisplayIndividualsFromSubpopulationInArea(subpop, boxBounds))
+                    {
+                        totalExtent = 0;
+                        break;
+                    }
+                }
+                
+				int64_t extent = static_cast<int64_t>(boxBounds.width()) * static_cast<int64_t>(boxBounds.height());
 				
 				totalExtent += extent;
 			}
@@ -338,34 +439,7 @@ void QtSLiMIndividualsWidget::tileSubpopulations(std::vector<Subpopulation*> &se
 			{
 				bestTotalExtent = totalExtent;
 				std::swap(subpopTiles, candidateTiles);
-			}
-		}
-		
-		canDisplayAllIndividuals = true;
-	}
-	else	// displayMode == 0
-	{
-		// non-spatial display always uses vertically stacked maximum-width tiles, but can fail if they are too small
-		int interBoxSpace = 5;
-		int totalInterbox = interBoxSpace * (selectedSubpopCount - 1);
-		double boxHeight = (bounds.height() - totalInterbox) / static_cast<double>(selectedSubpopCount);
-		
-        canDisplayAllIndividuals = true;
-        
-		for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
-		{
-			int boxTop = qRound(bounds.top() + subpopIndex * (interBoxSpace + boxHeight));
-			int boxBottom = qRound(bounds.top() + subpopIndex * (interBoxSpace + boxHeight) + boxHeight);
-			QRect boxBounds(bounds.left(), boxTop, bounds.width(), boxBottom - boxTop);
-			Subpopulation *subpop = selectedSubpopulations[static_cast<size_t>(subpopIndex)];
-			
-			subpopTiles.emplace(subpop->subpopulation_id_, boxBounds);
-			
-			if (!canDisplayIndividualsFromSubpopulationInArea(subpop, boxBounds))
-			{
-				subpopTiles.clear();
-				canDisplayAllIndividuals = false;
-                break;
+                canDisplayAllIndividuals = true;
 			}
 		}
 	}
@@ -1075,48 +1149,61 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-void QtSLiMIndividualsWidget::chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewBackgroundSettings *background, SpatialMap **returnMap, Subpopulation *subpop)
+void QtSLiMIndividualsWidget::chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *background, SpatialMap **returnMap, Subpopulation *subpop)
 {
-	// black by default
-	background->backgroundType = 0;
-	
-	// if there are spatial maps defined, we try to choose one, requiring "x" or "y" or "xy", and requiring
-	// a color map to be defined, and preferring 2D over 1D, providing the same default behavior as SLiM 2.x
-	SpatialMapMap &spatial_maps = subpop->spatial_maps_;
-	SpatialMap *background_map = nullptr;
-	std::string background_map_name;
-	
-	for (const auto &map_pair : spatial_maps)
-	{
-		SpatialMap *map = map_pair.second;
-		
-		// a map must be "x", "y", or "xy", and must have a defined color map, for us to choose it as a default at all
-		if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && (map->n_colors_ > 0))
-		{
-			// the map is usable, so now we check whether it's better than the map we previously found, if any
-			if ((!background_map) || (map->spatiality_ > background_map->spatiality_))
-			{
-				background_map = map;
-				background_map_name = map_pair.first;
-			}
-		}
-	}
-	
-	if (background_map)
-	{
-		background->backgroundType = 3;
-		background->spatialMapName = background_map_name;
-		*returnMap = background_map;
-	}
+    bool inDarkMode = QtSLiMInDarkMode();
+    
+    if (displayMode == 0)
+    {
+        // black or white following the dark mode setting, by default
+        if (inDarkMode)
+            background->backgroundType = 0;
+        else
+            background->backgroundType = 2;
+    }
+    else
+    {
+        // black by default
+        background->backgroundType = 0;
+        
+        // if there are spatial maps defined, we try to choose one, requiring "x" or "y" or "xy", and requiring
+        // a color map to be defined, and preferring 2D over 1D, providing the same default behavior as SLiM 2.x
+        SpatialMapMap &spatial_maps = subpop->spatial_maps_;
+        SpatialMap *background_map = nullptr;
+        std::string background_map_name;
+        
+        for (const auto &map_pair : spatial_maps)
+        {
+            SpatialMap *map = map_pair.second;
+            
+            // a map must be "x", "y", or "xy", and must have a defined color map, for us to choose it as a default at all
+            if (((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy")) && (map->n_colors_ > 0))
+            {
+                // the map is usable, so now we check whether it's better than the map we previously found, if any
+                if ((!background_map) || (map->spatiality_ > background_map->spatiality_))
+                {
+                    background_map = map;
+                    background_map_name = map_pair.first;
+                }
+            }
+        }
+        
+        if (background_map)
+        {
+            background->backgroundType = 3;
+            background->spatialMapName = background_map_name;
+            *returnMap = background_map;
+        }
+    }
 }
 
 void QtSLiMIndividualsWidget::drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int /* dimensionality */)
 {
-    auto backgroundIter = backgroundSettings.find(subpop->subpopulation_id_);
-	PopulationViewBackgroundSettings background;
+    auto backgroundIter = subviewSettings.find(subpop->subpopulation_id_);
+	PopulationViewSettings background;
 	SpatialMap *background_map = nullptr;
 	
-	if (backgroundIter == backgroundSettings.end())
+	if (backgroundIter == subviewSettings.end())
 	{
 		// The user has not made a choice, so choose a temporary default.  We don't want this choice to "stick",
 		// so that we can, e.g., begin as black and then change to a spatial map if one is defined.
@@ -1369,7 +1456,7 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 	glDisableClientState(GL_COLOR_ARRAY);
 }
 
-void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
+void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopulation *subpopForEvent)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
 	SLiMSim *sim = controller->sim;
@@ -1380,6 +1467,13 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
 		disableAll = true;
 	
     QMenu contextMenu("population_menu", this);
+    
+    QAction *titleAction1 = contextMenu.addAction("For all subviews:");
+    QFont titleFont = titleAction1->font();
+    titleFont.setBold(true);
+    titleFont.setItalic(true);
+    titleAction1->setFont(titleFont);
+    titleAction1->setEnabled(false);
     
     QAction *displayNonSpatial = contextMenu.addAction("Display Non-spatial");
     displayNonSpatial->setData(0);
@@ -1415,48 +1509,22 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
     displayGroup->addAction(displaySpatial);
     displayGroup->addAction(displayUnified);
     
-	// If we're displaying spatially, find the subpop that was clicked in
-    // in "unified" display mode, we always show the context menu for the first selected subpop
-    Subpopulation *subpopForEvent = nullptr;
-    
-	if (!disableAll && (sim->spatial_dimensionality_ > 0) && ((displayMode == 1) || (displayMode == 2)))
-	{
-		std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
-        QPoint viewPoint = p_event->pos();
-		
-		// our tile coordinates are in the OpenGL coordinate system, which has the origin at top left
-		//viewPoint.y = [self bounds].size.height - viewPoint.y;
-		
-		for (Subpopulation *subpop : selectedSubpopulations)
-		{
-			slim_objectid_t subpop_id = subpop->subpopulation_id_;
-			auto tileIter = subpopTiles.find(subpop_id);
-			
-			if (tileIter != subpopTiles.end())
-			{
-				QRect tileRect = tileIter->second;
-				
-                if (tileRect.contains(viewPoint))
-				{
-					subpopForEvent = subpop;
-					break;
-				}
-			}
-		}
-    }
-    
-    // If a spatial subpop was clicked in, provide background options (colors, spatial maps)
-    if (subpopForEvent)
+    // Provide background options (colors, spatial maps for spatial subpops)
+    if (subpopForEvent && !disableAll)
     {
         contextMenu.addSeparator();
+        
+        QAction *titleAction2 = contextMenu.addAction("For this subview:");
+        titleAction2->setFont(titleFont);
+        titleAction2->setEnabled(false);
         
         QAction *headerAction = contextMenu.addAction(QString("Background for p%1:").arg(subpopForEvent->subpopulation_id_));
         headerAction->setData(-1);
         headerAction->setEnabled(false);
         
         // check the menu item for the preferred display option; if we're in auto mode, don't check anything (could put a dash by the currently chosen style?)
-        auto backgroundIter = backgroundSettings.find(subpopForEvent->subpopulation_id_);
-        PopulationViewBackgroundSettings *background = ((backgroundIter == backgroundSettings.end()) ? nullptr : &backgroundIter->second);
+        auto backgroundIter = subviewSettings.find(subpopForEvent->subpopulation_id_);
+        PopulationViewSettings *background = ((backgroundIter == subviewSettings.end()) ? nullptr : &backgroundIter->second);
         int backgroundType = (background ? background->backgroundType : -1);
         
         QAction *blackAction = contextMenu.addAction("Black Background");
@@ -1482,40 +1550,43 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
         backgroundGroup->addAction(grayAction);
         backgroundGroup->addAction(whiteAction);
         
-        // look for spatial maps to offer as choices; need to scan the defined maps for the ones we can use
-        SpatialMapMap &spatial_maps = subpopForEvent->spatial_maps_;
-        
-        for (const auto &map_pair : spatial_maps)
+        if (displayMode > 0)
         {
-            SpatialMap *map = map_pair.second;
+            // look for spatial maps to offer as choices; need to scan the defined maps for the ones we can use
+            SpatialMapMap &spatial_maps = subpopForEvent->spatial_maps_;
             
-            // We used to display only maps with a color scale; now we just make up a color scale if none is given.  Only
-            // "x", "y", and "xy" maps are considered displayable; We can't display a z coordinate, and we can't display
-            // even the x or y portion of "xz", "yz", and "xyz" maps since we don't know which z-slice to use.
-            bool displayable = ((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy"));
-            QString mapName = QString::fromStdString(map_pair.first);
-            QString spatialityName = QString::fromStdString(map->spatiality_string_);
-            QString menuItemTitle;
-            
-            if (map->spatiality_ == 1)
-                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]);
-            else if (map->spatiality_ == 2)
-                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]);
-            else // (map->spatiality_ == 3)
-                menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4×%5)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]).arg(map->grid_size_[2]);
-            
-            QAction *mapAction = contextMenu.addAction(menuItemTitle);
-            mapAction->setData(mapName);
-            mapAction->setCheckable(true);
-            mapAction->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName)));
-            mapAction->setEnabled(!disableAll && displayable);
-            
-            backgroundGroup->addAction(mapAction);
+            for (const auto &map_pair : spatial_maps)
+            {
+                SpatialMap *map = map_pair.second;
+                
+                // We used to display only maps with a color scale; now we just make up a color scale if none is given.  Only
+                // "x", "y", and "xy" maps are considered displayable; We can't display a z coordinate, and we can't display
+                // even the x or y portion of "xz", "yz", and "xyz" maps since we don't know which z-slice to use.
+                bool displayable = ((map->spatiality_string_ == "x") || (map->spatiality_string_ == "y") || (map->spatiality_string_ == "xy"));
+                QString mapName = QString::fromStdString(map_pair.first);
+                QString spatialityName = QString::fromStdString(map->spatiality_string_);
+                QString menuItemTitle;
+                
+                if (map->spatiality_ == 1)
+                    menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]);
+                else if (map->spatiality_ == 2)
+                    menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]);
+                else // (map->spatiality_ == 3)
+                    menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4×%5)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]).arg(map->grid_size_[2]);
+                
+                QAction *mapAction = contextMenu.addAction(menuItemTitle);
+                mapAction->setData(mapName);
+                mapAction->setCheckable(true);
+                mapAction->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName)));
+                mapAction->setEnabled(!disableAll && displayable);
+                
+                backgroundGroup->addAction(mapAction);
+            }
         }
     }
 	
     // Run the context menu synchronously
-    QAction *action = contextMenu.exec(p_event->globalPos());
+    QAction *action = contextMenu.exec(globalPoint);
     
     // Act upon the chosen action; we just do it right here instead of dealing with slots
     if (action)
@@ -1535,8 +1606,8 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
         {
             // - (IBAction)setDisplayBackground:(id)sender
             int newDisplayBackground;
-            auto backgroundIter = backgroundSettings.find(subpopForEvent->subpopulation_id_);
-            PopulationViewBackgroundSettings *background = ((backgroundIter == backgroundSettings.end()) ? nullptr : &backgroundIter->second);
+            auto backgroundIter = subviewSettings.find(subpopForEvent->subpopulation_id_);
+            PopulationViewSettings *background = ((backgroundIter == subviewSettings.end()) ? nullptr : &backgroundIter->second);
             std::string mapName;
             
             // If the user has selected a spatial map, extract its name
@@ -1563,12 +1634,105 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
             }
             else
             {
-                backgroundSettings.emplace(subpopForEvent->subpopulation_id_, PopulationViewBackgroundSettings{newDisplayBackground, mapName});
+                subviewSettings.emplace(subpopForEvent->subpopulation_id_, PopulationViewSettings{newDisplayBackground, mapName});
                 update();
             }
         }
     }
 }
+
+void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+    bool disableAll = false;
+	
+	// When the simulation is not valid and initialized, the context menu is disabled
+	if (controller->invalidSimulation() || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+		disableAll = true;
+    
+    // Find the subpop that was clicked in; in "unified" display mode, this is the first selected subpop
+    Subpopulation *subpopForEvent = nullptr;
+    
+	if (!disableAll)
+	{
+		std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
+        QPoint viewPoint = p_event->pos();
+		
+		// our tile coordinates are in the OpenGL coordinate system, which has the origin at top left
+		//viewPoint.y = [self bounds].size.height - viewPoint.y;
+		
+		for (Subpopulation *subpop : selectedSubpopulations)
+		{
+			slim_objectid_t subpop_id = subpop->subpopulation_id_;
+			auto tileIter = subpopTiles.find(subpop_id);
+			
+			if (tileIter != subpopTiles.end())
+			{
+				QRect tileRect = tileIter->second;
+				
+                if (tileRect.contains(viewPoint))
+				{
+					subpopForEvent = subpop;
+					break;
+				}
+			}
+		}
+    }
+    
+    runContextMenuAtPoint(p_event->globalPos(), subpopForEvent);
+}
+
+void QtSLiMIndividualsWidget::mousePressEvent(QMouseEvent *p_event)
+{
+    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
+	SLiMSim *sim = controller->sim;
+	
+	// When the simulation is not valid and initialized, the context menu is disabled
+	if (controller->invalidSimulation() || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+		return;
+    
+    std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
+	int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
+	
+    if ((selectedSubpopCount == 0) || !canDisplayAllIndividuals)
+        return;
+    
+    QPoint mousePos = p_event->pos();
+    Subpopulation *subpopForEvent = nullptr;
+    
+    for (Subpopulation *subpop : selectedSubpopulations)
+    {
+        auto tileIter = subpopTiles.find(subpop->subpopulation_id_);
+        
+        if (tileIter != subpopTiles.end())
+        {
+            QRect tileBounds = tileIter->second;
+            QRect buttonBounds(tileBounds.left(), tileBounds.top(), 20, 20);
+            double xd = (mousePos.x() - buttonBounds.left()) / (double)buttonBounds.width() - 0.5;
+            double yd = (mousePos.y() - buttonBounds.top()) / (double)buttonBounds.height() - 0.5;
+            double distance = std::sqrt(xd * xd + yd * yd);
+            
+            if (buttonBounds.contains(mousePos) && (distance <= 0.51))
+            {
+                actionButtonHighlightSubpopID_ = subpop->subpopulation_id_;
+                update();
+                
+                subpopForEvent = subpop;
+                break;
+            }
+        }
+    }
+    
+    if (subpopForEvent)
+        runContextMenuAtPoint(p_event->globalPos(), subpopForEvent);
+    
+    // redraw to get rid of action button highlight
+    actionButtonHighlightSubpopID_ = -1;
+    update();
+}
+
+
 
 
 

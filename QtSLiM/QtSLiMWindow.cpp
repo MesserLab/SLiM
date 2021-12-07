@@ -553,15 +553,6 @@ void QtSLiMWindow::initializeUI(void)
     
     // set button states
     ui->toggleDrawerButton->setChecked(false);
-    ui->showChromosomeMapsButton->setChecked(zoomedChromosomeShowsRateMaps);
-    ui->showGenomicElementsButton->setChecked(zoomedChromosomeShowsGenomicElements);
-    ui->showMutationsButton->setChecked(zoomedChromosomeShowsMutations);
-    ui->showFixedSubstitutionsButton->setChecked(zoomedChromosomeShowsFixedSubstitutions);
-    
-    showChromosomeMapsToggled();
-    showGenomicElementsToggled();
-    showMutationsToggled();
-    showFixedSubstitutionsToggled();
     
     // Set up the population table view
     populationTableModel_ = new QtSLiMPopulationTableModel(this);
@@ -614,10 +605,10 @@ void QtSLiMWindow::initializeUI(void)
 	
 	ui->chromosomeZoomed->setReferenceChromosomeView(ui->chromosomeOverview);
 	ui->chromosomeZoomed->setSelectable(false);
-	ui->chromosomeZoomed->setShouldDrawGenomicElements(ui->showGenomicElementsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawMutations(ui->showMutationsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(ui->showFixedSubstitutionsButton->isChecked());
-	ui->chromosomeZoomed->setShouldDrawRateMaps(ui->showChromosomeMapsButton->isChecked());
+	ui->chromosomeZoomed->setShouldDrawGenomicElements(false);
+	ui->chromosomeZoomed->setShouldDrawMutations(true);
+	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(false);
+	ui->chromosomeZoomed->setShouldDrawRateMaps(false);
     
     // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -1758,10 +1749,6 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
 
     ui->toggleDrawerButton->setEnabled(true);
-    ui->showMutationsButton->setEnabled(!invalidSimulation_);
-    ui->showChromosomeMapsButton->setEnabled(!invalidSimulation_);
-    ui->showGenomicElementsButton->setEnabled(!invalidSimulation_);
-    ui->showFixedSubstitutionsButton->setEnabled(!invalidSimulation_);
     
     ui->clearDebugButton->setEnabled(true);
     ui->checkScriptButton->setEnabled(!continuousPlayOn_);
@@ -1771,6 +1758,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->browserButton->setEnabled(true);
     ui->jumpToPopupButton->setEnabled(true);
     
+    ui->chromosomeActionButton->setEnabled(!invalidSimulation_);
     ui->clearOutputButton->setEnabled(!invalidSimulation_);
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->debugOutputButton->setEnabled(true);
@@ -3740,70 +3728,6 @@ void QtSLiMWindow::showDrawerClicked(void)
     tablesDrawerController->activateWindow();
 }
 
-void QtSLiMWindow::showMutationsToggled(void)
-{
-    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
-    
-    bool newValue = ui->showMutationsButton->isChecked();
-    
-    ui->showMutationsButton->qtslimSetHighlight(newValue);
-
-    if (newValue != zoomedChromosomeShowsMutations)
-	{
-		zoomedChromosomeShowsMutations = newValue;
-		ui->chromosomeZoomed->setShouldDrawMutations(newValue);
-        ui->chromosomeZoomed->update();
-	}
-}
-
-void QtSLiMWindow::showFixedSubstitutionsToggled(void)
-{
-    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
-    
-    bool newValue = ui->showFixedSubstitutionsButton->isChecked();
-    
-    ui->showFixedSubstitutionsButton->qtslimSetHighlight(newValue);
-
-    if (newValue != zoomedChromosomeShowsFixedSubstitutions)
-	{
-		zoomedChromosomeShowsFixedSubstitutions = newValue;
-        ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(newValue);
-        ui->chromosomeZoomed->update();
-    }
-}
-
-void QtSLiMWindow::showChromosomeMapsToggled(void)
-{
-    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
-    
-    bool newValue = ui->showChromosomeMapsButton->isChecked();
-    
-    ui->showChromosomeMapsButton->qtslimSetHighlight(newValue);
-
-    if (newValue != zoomedChromosomeShowsRateMaps)
-	{
-		zoomedChromosomeShowsRateMaps = newValue;
-		ui->chromosomeZoomed->setShouldDrawRateMaps(newValue);
-        ui->chromosomeZoomed->update();
-	}
-}
-
-void QtSLiMWindow::showGenomicElementsToggled(void)
-{
-    isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
-    
-    bool newValue = ui->showGenomicElementsButton->isChecked();
-    
-    ui->showGenomicElementsButton->qtslimSetHighlight(newValue);
-
-    if (newValue != zoomedChromosomeShowsGenomicElements)
-	{
-		zoomedChromosomeShowsGenomicElements = newValue;
-		ui->chromosomeZoomed->setShouldDrawGenomicElements(newValue);
-        ui->chromosomeZoomed->update();
-	}
-}
-
 void QtSLiMWindow::showConsoleClicked(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
@@ -3847,6 +3771,16 @@ void QtSLiMWindow::debugOutputClicked(void)
     debugOutputWindow_->show();
     debugOutputWindow_->raise();
     debugOutputWindow_->activateWindow();
+}
+
+void QtSLiMWindow::chromosomeActionRunMenu(void)
+{
+    QPoint mousePos = QCursor::pos();
+    
+    ui->chromosomeZoomed->runContextMenuAtPoint(mousePos);
+    
+    // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
+    chromosomeActionReleased();
 }
 
 void QtSLiMWindow::jumpToPopupButtonRunMenu(void)

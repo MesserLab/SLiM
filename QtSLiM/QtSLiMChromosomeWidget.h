@@ -49,10 +49,10 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
     bool selectable_ = false;
     QtSLiMChromosomeWidget *referenceChromosomeView_ = nullptr;
     
+    bool shouldDrawMutations_ = true;
+    bool shouldDrawFixedSubstitutions_ = false;
     bool shouldDrawGenomicElements_ = false;
     bool shouldDrawRateMaps_ = false;
-    bool shouldDrawMutations_ = false;
-    bool shouldDrawFixedSubstitutions_ = false;
     
     // Selection
 	bool hasSelection_ = false;
@@ -99,6 +99,8 @@ public:
     QtSLiMRange getDisplayedRange(void);
     
     void stateChanged(void);    // update when the SLiM model state changes; tosses any cached display info
+    
+    void runContextMenuAtPoint(QPoint p_globalPoint);
     
 signals:
     void selectedRangeChanged(void);

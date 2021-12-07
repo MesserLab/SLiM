@@ -211,7 +211,7 @@ void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineEl
     }
     else
     {
-        QLayout *layout = this->layout();
+        QLayout *windowLayout = this->layout();
         
         table = new QTableWidget();
         table->setSortingEnabled(false);
@@ -224,7 +224,7 @@ void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineEl
         table->horizontalHeader()->setMinimumSectionSize(100);          // wide enough to fit most floating-point output
         table->horizontalHeader()->setMaximumSectionSize(400);          // don't let super-wide output push the table width too far
         table->setVisible(false);
-        layout->addWidget(table);
+        windowLayout->addWidget(table);
         
         // Make a new tab and insert it at the correct position in the tab bar
         QString filename = QString::fromStdString(Eidos_LastPathComponent(path));
@@ -314,7 +314,7 @@ void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bo
     }
     else
     {
-        QLayout *layout = this->layout();
+        QLayout *windowLayout = this->layout();
         
         fileview = new QtSLiMTextEdit();
         fileview->setUndoRedoEnabled(false);
@@ -324,7 +324,7 @@ void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bo
         fileview->setSyntaxHighlightType(QtSLiMTextEdit::NoHighlighting);
         fileview->setReadOnly(true);
         fileview->setVisible(false);
-        layout->addWidget(fileview);
+        windowLayout->addWidget(fileview);
         
         // Make a new tab and add it at the end of the tab bar
         QString filename = QString::fromStdString(Eidos_LastPathComponent(path));

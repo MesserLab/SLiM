@@ -84,8 +84,10 @@ development head:
 	policy change: the same subpop identifier, such as p1, may not be reused in a model; this was already true for tree-seq, now it is enforced for all models for consistency (breaks backward compatibility)
 	add name and description properties to Subpopulation; persist them in treeseq metadata in the population table; switch the population table metadata schema from binary to JSON so we can add `name` and `description` in a way tskit and others can read
 	upgrade the debugging output window: now with tabs for every output stream including LogFile and writeFile()
+	fix relatedness() to handle overlapping generations, multiple parentage, etc, correctly; the version of relatedness() in SLiM 3.6 should not be used
+	redesign the UI for the chromosome view and individuals view, to provide "action buttons" for more user-visible configurability
 	add treeSeqMetadata() function to get the metadata from a .trees file, as a Dictionary, without reading in the tree sequence
-	
+
 
 version 3.6 (build 2784; Eidos version 2.6):
 	update to JSON for Modern C++ version 3.9.1

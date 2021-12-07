@@ -9036,7 +9036,7 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 		if (row_count > 0)
 		{
 			std::string new_metadata;
-			tsk_size_t *new_metadata_offsets = (tsk_size_t *)malloc((row_count + 1) * sizeof(tsk_size_t));
+			tsk_size_t *new_metadata_offsets = (tsk_size_t *)malloc((tables_.populations.max_rows + 1) * sizeof(tsk_size_t));
 			
 			if (!new_metadata_offsets)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);

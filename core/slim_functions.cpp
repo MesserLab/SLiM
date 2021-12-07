@@ -1250,21 +1250,6 @@ static inline int SummarizeGridIndex_3D(Individual *individual, int component0, 
 // (float)summarizeIndividuals(o<Individual> individuals, integer dim, numeric spatialBounds, s$ operation, [Nlif$ empty = 0.0], [l$ perUnitArea = F], [Ns$ spatiality = NULL])
 EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	static bool beenHere = false;
-	
-	if (!beenHere)
-	{
-		// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
-		// We can use nullptr here because we don't read or write to the pointer, we're just doing address calculations
-		Individual *test_ind_layout = nullptr;
-	
-		if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||
-			((&(test_ind_layout->spatial_x_)) + 2 != (&(test_ind_layout->spatial_z_))))
-			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) Individual ivar layout unexpected." << EidosTerminate();
-		
-		beenHere = true;
-	}
-	
 	EidosValue *individuals_value = p_arguments[0].get();
 	EidosValue *dim_value = p_arguments[1].get();
 	EidosValue *spatialBounds_value = p_arguments[2].get();
@@ -1286,6 +1271,24 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	else
 	{
 		individuals_buffer = (Individual **)((EidosValue_Object_vector *)individuals_value)->data();
+	}
+	
+	if (individuals_count > 0)
+	{
+		static bool beenHere = false;
+		
+		if (!beenHere)
+		{
+			// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
+			// We use the first individual in the buffer as a test subject, rather than nullptr, to make UBSan happy
+			Individual *test_ind_layout = individuals_buffer[0];
+		
+			if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||
+				((&(test_ind_layout->spatial_x_)) + 2 != (&(test_ind_layout->spatial_z_))))
+				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) Individual ivar layout unexpected." << EidosTerminate();
+			
+			beenHere = true;
+		}
 	}
 	
 	// Get the model's dimensionality, which will be context for everything we do below
