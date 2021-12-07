@@ -1676,7 +1676,7 @@ EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_
 	
 	tsk_table_collection_t temp_tables;
 	
-	int ret = tsk_table_collection_load(&temp_tables, file_path.c_str(), TSK_LOAD_SKIP_TABLES);
+	int ret = tsk_table_collection_load(&temp_tables, file_path.c_str(), TSK_LOAD_SKIP_TABLES | TSK_LOAD_SKIP_REFERENCE_SEQUENCE);
 	if (ret != 0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): tree-sequence file at " << file_path << " could not be read; error " << ret << " from tsk_table_collection_load()." << EidosTerminate();
 	
