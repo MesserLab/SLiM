@@ -7400,10 +7400,12 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 			
 			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
-			tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
+			ret = tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
+			if (ret < 0) handle_error("tsk_reference_sequence_takeset_data", ret);
 		}
 		
-		tsk_table_collection_dump(&output_tables, path.c_str(), 0);
+		ret = tsk_table_collection_dump(&output_tables, path.c_str(), 0);
+		if (ret < 0) handle_error("tsk_table_collection_dump", ret);
 	}
 	else
 	{
@@ -7468,8 +7470,9 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	}
 	
 	// Done with our tables copy
-	tsk_table_collection_free(&output_tables);
-}	
+	ret = tsk_table_collection_free(&output_tables);
+	if (ret < 0) handle_error("tsk_table_collection_free", ret);
+}
 
 
 void SLiMSim::FreeTreeSequence()
@@ -9381,7 +9384,13 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 			handle_error("kastore_open", ret);
 		}
 		
-		ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
+		ret = kastore_gets_uint8(&store, "reference_sequence/data", (uint8_t **)&buffer, &buffer_length);
+		
+		// SLiM 3.6 and earlier wrote out int8_t data, but now tskit writes uint8_t data; to be tolerant of the old type, if
+		// we get a type mismatch, try again with int8_t.  Note that buffer points into kastore's data and need not be freed.
+		if (ret == KAS_ERR_TYPE_MISMATCH)
+			ret = kastore_gets_int8(&store, "reference_sequence/data", (int8_t **)&buffer, &buffer_length);
+		
 		if (ret != 0)
 			buffer = NULL;
 		
