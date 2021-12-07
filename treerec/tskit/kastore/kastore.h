@@ -153,7 +153,7 @@ to the API or ABI are introduced, i.e., the addition of a new function.
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define KAS_VERSION_PATCH   1
+#define KAS_VERSION_PATCH   2
 /** @} */
 
 #define KAS_HEADER_SIZE             64

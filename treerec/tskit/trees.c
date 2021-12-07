@@ -704,6 +704,12 @@ tsk_treeseq_get_discrete_time(const tsk_treeseq_t *self)
     return self->discrete_time;
 }
 
+bool
+tsk_treeseq_has_reference_sequence(const tsk_treeseq_t *self)
+{
+    return tsk_table_collection_has_reference_sequence(self->tables);
+}
+
 /* Stats functions */
 
 #define GET_2D_ROW(array, row_len, row) (array + (((size_t)(row_len)) * (size_t) row))

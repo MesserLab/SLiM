@@ -178,7 +178,7 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define TSK_FILE_FORMAT_NAME          "tskit.trees"
 #define TSK_FILE_FORMAT_NAME_LENGTH   11
 #define TSK_FILE_FORMAT_VERSION_MAJOR 12
-#define TSK_FILE_FORMAT_VERSION_MINOR 6
+#define TSK_FILE_FORMAT_VERSION_MINOR 7
 
 /**
 @defgroup GENERAL_ERROR_GROUP General errors.

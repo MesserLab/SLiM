@@ -243,6 +243,8 @@ void tsk_treeseq_print_state(const tsk_treeseq_t *self, FILE *out);
 
 /** @} */
 
+bool tsk_treeseq_has_reference_sequence(const tsk_treeseq_t *self);
+
 tsk_size_t tsk_treeseq_get_num_nodes(const tsk_treeseq_t *self);
 tsk_size_t tsk_treeseq_get_num_edges(const tsk_treeseq_t *self);
 tsk_size_t tsk_treeseq_get_num_migrations(const tsk_treeseq_t *self);
