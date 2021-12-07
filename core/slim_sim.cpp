@@ -7389,31 +7389,21 @@ void SLiMSim::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		// derived state data must be in ASCII (or unicode) on disk, according to tskit policy
 		DerivedStatesToAscii(&output_tables);
 		
-		tsk_table_collection_dump(&output_tables, path.c_str(), 0);
-		
-		// In nucleotide-based models, write out the ancestral sequence, re-opening the kastore to append
+		// In nucleotide-based models, put an ASCII representation of the reference sequence into the tables
 		if (nucleotide_based_)
 		{
 			std::size_t buflen = chromosome_->AncestralSequence()->size();
 			char *buffer = (char *)malloc(buflen);
-			kastore_t store;
 			
 			if (!buffer)
 				EIDOS_TERMINATION << "ERROR (SLiMSim::WriteTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
 			
 			chromosome_->AncestralSequence()->WriteNucleotidesToBuffer(buffer);
 			
-			ret = kastore_open(&store, path.c_str(), "a", 0);
-			if (ret < 0) handle_error("kastore_open", ret);
-			
-			kastore_oputs_int8(&store, "reference_sequence/data", (int8_t *)buffer, buflen, 0);
-			if (ret < 0) handle_error("kastore_oputs_int8", ret);
-			
-			ret = kastore_close(&store);
-			if (ret < 0) handle_error("kastore_close", ret);
-			
-			// kastore owns buffer now, so we do not free it
+			tsk_reference_sequence_takeset_data(&output_tables.reference_sequence, buffer, buflen);		// tskit now owns buffer
 		}
+		
+		tsk_table_collection_dump(&output_tables, path.c_str(), 0);
 	}
 	else
 	{
@@ -9356,7 +9346,7 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 		recording_mutations_ = true;
 	}
 	
-	ret = tsk_table_collection_load(&tables_, p_file, 0);
+	ret = tsk_table_collection_load(&tables_, p_file, TSK_LOAD_SKIP_REFERENCE_SEQUENCE);	// we load the ref seq ourselves; see below
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
 	
 	// BCH 4/25/2019: if indexes are present on tables_ we want to drop them; they are synced up
@@ -9377,7 +9367,8 @@ slim_generation_t SLiMSim::_InitializePopulationFromTskitBinaryFile(const char *
 	
 	ReadTreeSequenceMetadata(&tables_, &metadata_gen, &file_model_type, &file_version);
 	
-	// in nucleotide-based models, read the ancestral sequence
+	// in nucleotide-based models, read the ancestral sequence; we do this ourselves, directly from kastore, to avoid having
+	// tskit make a full ASCII copy of the reference sequences from kastore into tables_; see tsk_table_collection_load() above
 	if (nucleotide_based_)
 	{
 		char *buffer;				// kastore needs to provide us with a memory location from which to read the data
