@@ -143,7 +143,7 @@ void QtSLiMIndividualsWidget::paintGL()
             
 #ifdef __linux__
             // font sizes are calibrated for macOS; on Linux they need to be a little smaller
-            titleFont->setPointSize(titleFont->size * 0.75);
+            titleFont->setPointSize(titleFont->pointSize() * 0.75);
 #endif
             
             actionIcon_LIGHT.addFile(":/buttons/action.png", QSize(), QIcon::Normal, QIcon::Off);
