@@ -1415,6 +1415,10 @@ tsk_individual_table_dump_text(const tsk_individual_table_t *self, FILE *out)
                 }
             }
         }
+		err = fprintf(out, "\t");
+		if (err < 0) {
+			goto out;
+		}
         for (k = self->parents_offset[j]; k < self->parents_offset[j + 1]; k++) {
             err = fprintf(out, "%lld", (long long) self->parents[k]);
             if (err < 0) {
