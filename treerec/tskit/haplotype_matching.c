@@ -31,6 +31,8 @@
 
 #include <tskit/haplotype_matching.h>
 
+#define MAX_PARSIMONY_WORDS 256
+
 const char *_zero_one_alleles[] = { "0", "1", NULL };
 const char *_acgt_alleles[] = { "A", "C", "G", "T", NULL };
 
@@ -187,6 +189,10 @@ tsk_ls_hmm_init(tsk_ls_hmm_t *self, tsk_treeseq_t *tree_sequence,
     }
     self->num_values = 0;
     self->max_values = 0;
+    /* Keep this as a struct variable so that we can test overflow, but this
+     * should never be set to more than MAX_PARSIMONY_WORDS as we're doing
+     * a bunch of stack allocations based on this. */
+    self->max_parsimony_words = MAX_PARSIMONY_WORDS;
     ret = 0;
 out:
     return ret;
@@ -268,7 +274,7 @@ tsk_ls_hmm_remove_dead_roots(tsk_ls_hmm_t *self)
     tsk_id_t *restrict T_index = self->transition_index;
     tsk_value_transition_t *restrict T = self->transitions;
     const tsk_id_t *restrict right_sib = self->tree.right_sib;
-    const tsk_id_t left_root = self->tree.left_root;
+    const tsk_id_t left_root = tsk_tree_get_left_root(&self->tree);
     const tsk_id_t *restrict parent = self->parent;
     tsk_id_t root, u;
     tsk_size_t j;
@@ -398,6 +404,7 @@ tsk_ls_hmm_update_probabilities(
     tsk_id_t *restrict T_index = self->transition_index;
     tsk_value_transition_t *restrict T = self->transitions;
     int8_t *restrict allelic_state = self->allelic_state;
+    const tsk_id_t left_root = tsk_tree_get_left_root(tree);
     tsk_mutation_t mut;
     tsk_id_t j, u, v;
     double x;
@@ -409,7 +416,7 @@ tsk_ls_hmm_update_probabilities(
     if (ret < 0) {
         goto out;
     }
-    for (root = tree->left_root; root != TSK_NULL; root = tree->right_sib[root]) {
+    for (root = left_root; root != TSK_NULL; root = tree->right_sib[root]) {
         allelic_state[root] = (int8_t) ret;
     }
 
@@ -454,7 +461,7 @@ tsk_ls_hmm_update_probabilities(
     }
 
     /* Unset the allelic states */
-    for (root = tree->left_root; root != TSK_NULL; root = tree->right_sib[root]) {
+    for (root = left_root; root != TSK_NULL; root = tree->right_sib[root]) {
         allelic_state[root] = TSK_MISSING_DATA;
     }
     for (j = 0; j < (tsk_id_t) site->mutations_length; j++) {
@@ -555,7 +562,6 @@ get_smallest_element(const uint64_t *restrict A, tsk_size_t u, tsk_size_t num_wo
     return j * 64 + get_smallest_set_bit(a[j]);
 }
 
-#define MAX_PARSIMONY_WORDS 256
 /* static variables are zero-initialised by default. */
 static const uint64_t zero_block[MAX_PARSIMONY_WORDS];
 
@@ -714,7 +720,7 @@ tsk_ls_hmm_setup_optimal_value_sets(tsk_ls_hmm_t *self)
      * could in principle release back the memory as well, but it doesn't seem
      * worth the bother. */
     self->num_optimal_value_set_words = (self->num_values / 64) + 1;
-    if (self->num_optimal_value_set_words > MAX_PARSIMONY_WORDS) {
+    if (self->num_optimal_value_set_words > self->max_parsimony_words) {
         ret = TSK_ERR_TOO_MANY_VALUES;
         goto out;
     }
@@ -814,7 +820,11 @@ tsk_ls_hmm_redistribute_transitions(tsk_ls_hmm_t *self)
     old_num_transitions = self->num_transitions;
     self->num_transitions = 0;
 
-    for (root = self->tree.left_root; root != TSK_NULL; root = right_sib[root]) {
+    /* TODO refactor this to push the virtual root onto the stack rather then
+     * iterating over the roots. See the existing parsimony implementations
+     * for an example. */
+    for (root = tsk_tree_get_left_root(&self->tree); root != TSK_NULL;
+         root = right_sib[root]) {
         stack[0].tree_node = root;
         stack[0].old_state = T_old[T_index[root]].value_index;
         stack[0].new_state
@@ -1004,10 +1014,10 @@ out:
 static double
 tsk_ls_hmm_compute_normalisation_factor_forward(tsk_ls_hmm_t *self)
 {
-    tsk_id_t *restrict N = self->num_transition_samples;
+    tsk_size_t *restrict N = self->num_transition_samples;
     tsk_value_transition_t *restrict T = self->transitions;
     const tsk_id_t *restrict T_parent = self->transition_parent;
-    const tsk_id_t *restrict num_samples = self->tree.num_samples;
+    const tsk_size_t *restrict num_samples = self->tree.num_samples;
     const tsk_id_t num_transitions = (tsk_id_t) self->num_transitions;
     double normalisation_factor;
     tsk_id_t j;
@@ -1560,14 +1570,14 @@ tsk_viterbi_matrix_traceback(
         if (ret != 0) {
             goto out;
         }
-        while (tree.left > site.position) {
+        while (tree.interval.left > site.position) {
             ret = tsk_tree_prev(&tree);
             if (ret < 0) {
                 goto out;
             }
         }
-        tsk_bug_assert(tree.left <= site.position);
-        tsk_bug_assert(site.position < tree.right);
+        tsk_bug_assert(tree.interval.left <= site.position);
+        tsk_bug_assert(site.position < tree.interval.right);
 
         /* Fill in the recombination tree */
         rr_record_tmp = rr_record;

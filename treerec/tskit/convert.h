@@ -32,6 +32,8 @@ extern "C" {
 
 #include <tskit/trees.h>
 
+#define TSK_NEWICK_LEGACY_MS_LABELS (1 << 0)
+
 int tsk_convert_newick(const tsk_tree_t *tree, tsk_id_t root, unsigned int precision,
     tsk_flags_t options, size_t buffer_size, char *buffer);
 

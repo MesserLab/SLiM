@@ -538,6 +538,17 @@ typedef struct {
     tsk_size_t *record_offset;
 } tsk_provenance_table_t;
 
+typedef struct {
+    char *data;
+    tsk_size_t data_length;
+    char *url;
+    tsk_size_t url_length;
+    char *metadata;
+    tsk_size_t metadata_length;
+    char *metadata_schema;
+    tsk_size_t metadata_schema_length;
+} tsk_reference_sequence_t;
+
 /**
 @brief A collection of tables defining the data for a tree sequence.
 */
@@ -545,12 +556,16 @@ typedef struct {
     /** @brief The sequence length defining the tree sequence's coordinate space */
     double sequence_length;
     char *file_uuid;
+    /** @brief The units of the time dimension */
+    char *time_units;
+    tsk_size_t time_units_length;
     /** @brief The tree-sequence metadata */
     char *metadata;
     tsk_size_t metadata_length;
     /** @brief The metadata schema */
     char *metadata_schema;
     tsk_size_t metadata_schema_length;
+    tsk_reference_sequence_t reference_sequence;
     /** @brief The individual table */
     tsk_individual_table_t individuals;
     /** @brief The node table */
@@ -618,26 +633,35 @@ typedef struct _tsk_table_sorter_t {
  * TODO: document properly
  * */
 
-typedef struct _tsk_segment_t {
+/* Note for tskit developers: it's perhaps a bit confusing/pointless to
+ * have the tsk_identity_segment_t struct as well as the internal tsk_segment_t
+ * struct (which is identical). However, we may want to implement either
+ * segment type differently in future, and since the tsk_identity_segment_t
+ * is part of the public API we want to allow the freedom for the different
+ * structures to evolve over time */
+typedef struct _tsk_identity_segment_t {
     double left;
     double right;
-    struct _tsk_segment_t *next;
+    struct _tsk_identity_segment_t *next;
     tsk_id_t node;
-} tsk_segment_t;
+} tsk_identity_segment_t;
 
 typedef struct {
     tsk_size_t num_segments;
     double total_span;
-    tsk_segment_t *head;
-    tsk_segment_t *tail;
-} tsk_segment_list_t;
+    tsk_identity_segment_t *head;
+    tsk_identity_segment_t *tail;
+} tsk_identity_segment_list_t;
 
 typedef struct {
     tsk_size_t num_nodes;
     tsk_avl_tree_int_t pair_map;
-    tsk_size_t total_segments;
+    tsk_size_t num_segments;
+    double total_span;
     tsk_blkalloc_t heap;
-} tsk_ibd_result_t;
+    bool store_segments;
+    bool store_pairs;
+} tsk_identity_segments_t;
 
 /****************************************************************************/
 /* Common function options */
@@ -700,6 +724,12 @@ typedef struct {
 /* Flags for table collection init */
 #define TSK_NO_EDGE_METADATA (1 << 0)
 
+/* Flags for table collection load */
+/* This shares an interface with table collection init.
+   TODO: review as part of #1720 */
+#define TSK_LOAD_SKIP_TABLES (1 << 1)
+#define TSK_LOAD_SKIP_REFERENCE_SEQUENCE (1 << 2)
+
 /* Flags for table init. */
 #define TSK_NO_METADATA (1 << 0)
 
@@ -712,14 +742,13 @@ typedef struct {
 #define TSK_CMP_IGNORE_PROVENANCE (1 << 1)
 #define TSK_CMP_IGNORE_METADATA (1 << 2)
 #define TSK_CMP_IGNORE_TIMESTAMPS (1 << 3)
+#define TSK_CMP_IGNORE_TABLES (1 << 4)
+#define TSK_CMP_IGNORE_REFERENCE_SEQUENCE (1 << 5)
 
 /* Flags for table collection clear */
 #define TSK_CLEAR_METADATA_SCHEMAS (1 << 0)
 #define TSK_CLEAR_TS_METADATA_AND_SCHEMA (1 << 1)
 #define TSK_CLEAR_PROVENANCE (1 << 2)
-
-/* Separator used in text table output */
-#define TSK_TABLE_SEP "-----------------------------------------\n"
 
 /****************************************************************************/
 /* Function signatures */
@@ -863,7 +892,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_individual_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -965,29 +994,130 @@ on and may change arbitrarily between versions.
 */
 void tsk_individual_table_print_state(const tsk_individual_table_t *self, FILE *out);
 
-/** @} */
+/**
+@brief Replace this table's data by copying from a set of column arrays
 
-/* Undocumented methods */
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
 
+@param self A pointer to a tsk_individual_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param flags The array of tsk_flag_t flag values to be copied.
+@param location The array of double location values to be copied.
+@param location_offset The array of tsk_size_t location offset values to be copied.
+@param parents The array of tsk_id_t parent values to be copied.
+@param parents_offset The array of tsk_size_t parent offset values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_set_columns(tsk_individual_table_t *self, tsk_size_t num_rows,
     const tsk_flags_t *flags, const double *location, const tsk_size_t *location_offset,
     const tsk_id_t *parents, const tsk_size_t *parents_offset, const char *metadata,
     const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_individual_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays
+@param flags The array of tsk_flag_t flag values to be copied.
+@param location The array of double location values to be copied.
+@param location_offset The array of tsk_size_t location offset values to be copied.
+@param parents The array of tsk_id_t parent values to be copied.
+@param parents_offset The array of tsk_size_t parent offset values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_append_columns(tsk_individual_table_t *self,
     tsk_size_t num_rows, const tsk_flags_t *flags, const double *location,
     const tsk_size_t *location_offset, const tsk_id_t *parents,
     const tsk_size_t *parents_offset, const char *metadata,
     const tsk_size_t *metadata_offset);
-int tsk_individual_table_dump_text(const tsk_individual_table_t *self, FILE *out);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_individual_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_set_max_rows_increment(
     tsk_individual_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_individual_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_set_max_metadata_length_increment(
     tsk_individual_table_t *self, tsk_size_t max_metadata_length_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the location column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_individual_table_t object.
+@param max_location_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_set_max_location_length_increment(
     tsk_individual_table_t *self, tsk_size_t max_location_length_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the parents column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_individual_table_t object.
+@param max_parents_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_individual_table_set_max_parents_length_increment(
     tsk_individual_table_t *self, tsk_size_t max_parents_length_increment);
 
+/** @} */
+
+/* Undocumented methods */
+
+int tsk_individual_table_dump_text(const tsk_individual_table_t *self, FILE *out);
 /**
 @defgroup NODE_TABLE_API_GROUP Node table API.
 @{
@@ -1111,7 +1241,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_node_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -1208,20 +1338,91 @@ on and may change arbitrarily between versions.
 */
 void tsk_node_table_print_state(const tsk_node_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_node_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param flags The array of tsk_flag_t values to be copied.
+@param time The array of double time values to be copied.
+@param population The array of tsk_id_t population values to be copied.
+@param individual The array of tsk_id_t individual values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_node_table_set_columns(tsk_node_table_t *self, tsk_size_t num_rows,
+    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
+    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_node_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays
+@param flags The array of tsk_flag_t values to be copied.
+@param time The array of double time values to be copied.
+@param population The array of tsk_id_t population values to be copied.
+@param individual The array of tsk_id_t individual values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_node_table_append_columns(tsk_node_table_t *self, tsk_size_t num_rows,
+    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
+    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_node_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+
+int tsk_node_table_set_max_rows_increment(
+    tsk_node_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_node_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_node_table_set_max_metadata_length_increment(
+    tsk_node_table_t *self, tsk_size_t max_metadata_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_node_table_set_max_rows_increment(
-    tsk_node_table_t *self, tsk_size_t max_rows_increment);
-int tsk_node_table_set_max_metadata_length_increment(
-    tsk_node_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_node_table_set_columns(tsk_node_table_t *self, tsk_size_t num_rows,
-    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
-    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_length);
-int tsk_node_table_append_columns(tsk_node_table_t *self, tsk_size_t num_rows,
-    const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
-    const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_length);
 int tsk_node_table_dump_text(const tsk_node_table_t *self, FILE *out);
 
 /**
@@ -1356,7 +1557,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_edge_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -1453,20 +1654,89 @@ on and may change arbitrarily between versions.
 */
 void tsk_edge_table_print_state(const tsk_edge_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_edge_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param left The array of double left values to be copied.
+@param right The array of double right values to be copied.
+@param parent The array of tsk_id_t parent values to be copied.
+@param child The array of tsk_id_t child values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_edge_table_set_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
+    const double *left, const double *right, const tsk_id_t *parent,
+    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_edge_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param left The array of double left values to be copied.
+@param right The array of double right values to be copied.
+@param parent The array of tsk_id_t parent values to be copied.
+@param child The array of tsk_id_t child values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+*/
+int tsk_edge_table_append_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
+    const double *left, const double *right, const tsk_id_t *parent,
+    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_edge_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_edge_table_set_max_rows_increment(
+    tsk_edge_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_edge_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_edge_table_set_max_metadata_length_increment(
+    tsk_edge_table_t *self, tsk_size_t max_metadata_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_edge_table_set_max_rows_increment(
-    tsk_edge_table_t *self, tsk_size_t max_rows_increment);
-int tsk_edge_table_set_max_metadata_length_increment(
-    tsk_edge_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_edge_table_set_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
-    const double *left, const double *right, const tsk_id_t *parent,
-    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_length);
-int tsk_edge_table_append_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
-    const double *left, const double *right, const tsk_id_t *parent,
-    const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_length);
 int tsk_edge_table_dump_text(const tsk_edge_table_t *self, FILE *out);
 
 int tsk_edge_table_squash(tsk_edge_table_t *self);
@@ -1599,7 +1869,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_migration_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -1698,22 +1968,96 @@ on and may change arbitrarily between versions.
 */
 void tsk_migration_table_print_state(const tsk_migration_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_migration_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param left The array of double left values to be copied.
+@param right The array of double right values to be copied.
+@param node The array of tsk_id_t node values to be copied.
+@param source The array of tsk_id_t source values to be copied.
+@param dest The array of tsk_id_t dest values to be copied.
+@param time The array of double time values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_migration_table_set_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
+    const double *left, const double *right, const tsk_id_t *node,
+    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
+    const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_migration_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays
+@param left The array of double left values to be copied.
+@param right The array of double right values to be copied.
+@param node The array of tsk_id_t node values to be copied.
+@param source The array of tsk_id_t source values to be copied.
+@param dest The array of tsk_id_t dest values to be copied.
+@param time The array of double time values to be copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_migration_table_append_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
+    const double *left, const double *right, const tsk_id_t *node,
+    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
+    const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_migration_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_migration_table_set_max_rows_increment(
+    tsk_migration_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_migration_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_migration_table_set_max_metadata_length_increment(
+    tsk_migration_table_t *self, tsk_size_t max_metadata_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_migration_table_set_max_rows_increment(
-    tsk_migration_table_t *self, tsk_size_t max_rows_increment);
-int tsk_migration_table_set_max_metadata_length_increment(
-    tsk_migration_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_migration_table_set_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
-    const double *left, const double *right, const tsk_id_t *node,
-    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
-    const char *metadata, const tsk_size_t *metadata_length);
-int tsk_migration_table_append_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
-    const double *left, const double *right, const tsk_id_t *node,
-    const tsk_id_t *source, const tsk_id_t *dest, const double *time,
-    const char *metadata, const tsk_size_t *metadata_length);
 int tsk_migration_table_dump_text(const tsk_migration_table_t *self, FILE *out);
 
 /**
@@ -1837,7 +2181,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_site_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -1934,24 +2278,110 @@ on and may change arbitrarily between versions.
 */
 void tsk_site_table_print_state(const tsk_site_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_site_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param position The array of double position values to be copied.
+@param ancestral_state The array of char ancestral state values to be copied.
+@param ancestral_state_offset The array of tsk_size_t ancestral state offset values to be
+        copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_site_table_set_columns(tsk_site_table_t *self, tsk_size_t num_rows,
+    const double *position, const char *ancestral_state,
+    const tsk_size_t *ancestral_state_offset, const char *metadata,
+    const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_site_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param position The array of double position values to be copied.
+@param ancestral_state The array of char ancestral state values to be copied.
+@param ancestral_state_offset The array of tsk_size_t ancestral state offset values to be
+    copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_site_table_append_columns(tsk_site_table_t *self, tsk_size_t num_rows,
+    const double *position, const char *ancestral_state,
+    const tsk_size_t *ancestral_state_offset, const char *metadata,
+    const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_site_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_site_table_set_max_rows_increment(
+    tsk_site_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_site_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+
+int tsk_site_table_set_max_metadata_length_increment(
+    tsk_site_table_t *self, tsk_size_t max_metadata_length_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the ancestral_state column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_site_table_t object.
+@param max_ancestral_state_length_increment The number of bytes to pre-allocate, or zero
+for the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_site_table_set_max_ancestral_state_length_increment(
+    tsk_site_table_t *self, tsk_size_t max_ancestral_state_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_site_table_set_max_rows_increment(
-    tsk_site_table_t *self, tsk_size_t max_rows_increment);
-int tsk_site_table_set_max_metadata_length_increment(
-    tsk_site_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_site_table_set_max_ancestral_state_length_increment(
-    tsk_site_table_t *self, tsk_size_t max_ancestral_state_length_increment);
-int tsk_site_table_set_columns(tsk_site_table_t *self, tsk_size_t num_rows,
-    const double *position, const char *ancestral_state,
-    const tsk_size_t *ancestral_state_length, const char *metadata,
-    const tsk_size_t *metadata_length);
-int tsk_site_table_append_columns(tsk_site_table_t *self, tsk_size_t num_rows,
-    const double *position, const char *ancestral_state,
-    const tsk_size_t *ancestral_state_length, const char *metadata,
-    const tsk_size_t *metadata_length);
 int tsk_site_table_dump_text(const tsk_site_table_t *self, FILE *out);
 
 /**
@@ -2082,7 +2512,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_mutation_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -2180,26 +2610,117 @@ on and may change arbitrarily between versions.
 */
 void tsk_mutation_table_print_state(const tsk_mutation_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_mutation_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param site The array of tsk_id_t site values to be copied.
+@param node The array of tsk_id_t node values to be copied.
+@param parent The array of tsk_id_t parent values to be copied.
+@param time The array of double time values to be copied.
+@param derived_state The array of char derived_state values to be copied.
+@param derived_state_offset The array of tsk_size_t derived state offset values to be
+copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_mutation_table_set_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
+    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
+    const double *time, const char *derived_state,
+    const tsk_size_t *derived_state_offset, const char *metadata,
+    const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_mutation_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param site The array of tsk_id_t site values to be copied.
+@param node The array of tsk_id_t node values to be copied.
+@param parent The array of tsk_id_t parent values to be copied.
+@param time The array of double time values to be copied.
+@param derived_state The array of char derived_state values to be copied.
+@param derived_state_offset The array of tsk_size_t derived state offset values to be
+    copied.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_mutation_table_append_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
+    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
+    const double *time, const char *derived_state,
+    const tsk_size_t *derived_state_offset, const char *metadata,
+    const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_mutation_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_mutation_table_set_max_rows_increment(
+    tsk_mutation_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_mutation_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_mutation_table_set_max_metadata_length_increment(
+    tsk_mutation_table_t *self, tsk_size_t max_metadata_length_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the derived_state column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_mutation_table_t object.
+@param max_derived_state_length_increment The number of bytes to pre-allocate, or zero
+for the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_mutation_table_set_max_derived_state_length_increment(
+    tsk_mutation_table_t *self, tsk_size_t max_derived_state_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_mutation_table_set_max_rows_increment(
-    tsk_mutation_table_t *self, tsk_size_t max_rows_increment);
-int tsk_mutation_table_set_max_metadata_length_increment(
-    tsk_mutation_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_mutation_table_set_max_derived_state_length_increment(
-    tsk_mutation_table_t *self, tsk_size_t max_derived_state_length_increment);
-int tsk_mutation_table_set_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
-    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
-    const double *time, const char *derived_state,
-    const tsk_size_t *derived_state_length, const char *metadata,
-    const tsk_size_t *metadata_length);
-int tsk_mutation_table_append_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
-    const tsk_id_t *site, const tsk_id_t *node, const tsk_id_t *parent,
-    const double *time, const char *derived_state,
-    const tsk_size_t *derived_state_length, const char *metadata,
-    const tsk_size_t *metadata_length);
 int tsk_mutation_table_dump_text(const tsk_mutation_table_t *self, FILE *out);
 
 /**
@@ -2314,7 +2835,7 @@ and is not checked for compatibility with any existing schema on this table.
 @param other A pointer to a tsk_population_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -2414,18 +2935,80 @@ on and may change arbitrarily between versions.
 */
 void tsk_population_table_print_state(const tsk_population_table_t *self, FILE *out);
 
+/**
+@brief Replace this table's data by copying from a set of column arrays
+
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_population_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_population_table_set_columns(tsk_population_table_t *self, tsk_size_t num_rows,
+    const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_population_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param metadata The array of char metadata values to be copied.
+@param metadata_offset The array of tsk_size_t metadata offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_population_table_append_columns(tsk_population_table_t *self,
+    tsk_size_t num_rows, const char *metadata, const tsk_size_t *metadata_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_population_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_population_table_set_max_rows_increment(
+    tsk_population_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the metadata column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_population_table_t object.
+@param max_metadata_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_population_table_set_max_metadata_length_increment(
+    tsk_population_table_t *self, tsk_size_t max_metadata_length_increment);
+
 /** @} */
 
 /* Undocumented methods */
 
-int tsk_population_table_set_max_rows_increment(
-    tsk_population_table_t *self, tsk_size_t max_rows_increment);
-int tsk_population_table_set_max_metadata_length_increment(
-    tsk_population_table_t *self, tsk_size_t max_metadata_length_increment);
-int tsk_population_table_set_columns(tsk_population_table_t *self, tsk_size_t num_rows,
-    const char *metadata, const tsk_size_t *metadata_offset);
-int tsk_population_table_append_columns(tsk_population_table_t *self,
-    tsk_size_t num_rows, const char *metadata, const tsk_size_t *metadata_offset);
 int tsk_population_table_dump_text(const tsk_population_table_t *self, FILE *out);
 
 /**
@@ -2547,7 +3130,7 @@ the first ``num_rows`` from ``other`` to this table.
 @param other A pointer to a tsk_provenance_table_t object where rows are copied from.
 @param num_rows The number of rows from ``other`` to append to this table.
 @param row_indexes Array of row indexes in ``other``. If ``NULL`` is passed then the
-first ``num_rows`` of ``other`` are used.
+    first ``num_rows`` of ``other`` are used.
 @param options Bitwise option flags. Currently unused; should be
     set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
@@ -2632,22 +3215,102 @@ on and may change arbitrarily between versions.
 */
 void tsk_provenance_table_print_state(const tsk_provenance_table_t *self, FILE *out);
 
-/** @} */
+/**
+@brief Replace this table's data by copying from a set of column arrays
 
-/* Undocumented methods */
+@rst
+Clears the data columns of this table and then copies column data from the specified
+set of arrays. The supplied arrays should all contain data on the same number of rows.
+The metadata schema is not affected.
+@endrst
 
-int tsk_provenance_table_set_max_rows_increment(
-    tsk_provenance_table_t *self, tsk_size_t max_rows_increment);
-int tsk_provenance_table_set_max_timestamp_length_increment(
-    tsk_provenance_table_t *self, tsk_size_t max_timestamp_length_increment);
-int tsk_provenance_table_set_max_record_length_increment(
-    tsk_provenance_table_t *self, tsk_size_t max_record_length_increment);
+@param self A pointer to a tsk_provenance_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param timestamp The array of char timestamp values to be copied.
+@param timestamp_offset The array of tsk_size_t timestamp offset values to be copied.
+@param record The array of char record values to be copied.
+@param record_offset The array of tsk_size_t record offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_provenance_table_set_columns(tsk_provenance_table_t *self, tsk_size_t num_rows,
     const char *timestamp, const tsk_size_t *timestamp_offset, const char *record,
     const tsk_size_t *record_offset);
+
+/**
+@brief Extends this table by copying from a set of column arrays
+
+@rst
+Copies column data from the specified set of arrays to create new rows at the end of the
+table. The supplied arrays should all contain data on the same number of rows. The
+metadata schema is not affected.
+@endrst
+
+@param self A pointer to a tsk_provenance_table_t object.
+@param num_rows The number of rows to copy from the specifed arrays.
+@param timestamp The array of char timestamp values to be copied.
+@param timestamp_offset The array of tsk_size_t timestamp offset values to be copied.
+@param record The array of char record values to be copied.
+@param record_offset The array of tsk_size_t record offset values to be copied.
+@return Return 0 on success or a negative value on failure.
+*/
 int tsk_provenance_table_append_columns(tsk_provenance_table_t *self,
     tsk_size_t num_rows, const char *timestamp, const tsk_size_t *timestamp_offset,
     const char *record, const tsk_size_t *record_offset);
+
+/**
+@brief Controls the pre-allocation strategy for this table
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_provenance_table_t object.
+@param max_rows_increment The number of rows to pre-allocate, or zero for the default
+    doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_provenance_table_set_max_rows_increment(
+    tsk_provenance_table_t *self, tsk_size_t max_rows_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the timestamp column
+
+@rst
+Set a fixed pre-allocation size, or use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_provenance_table_t object.
+@param max_timestamp_length_increment The number of bytes to pre-allocate, or zero for
+the default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_provenance_table_set_max_timestamp_length_increment(
+    tsk_provenance_table_t *self, tsk_size_t max_timestamp_length_increment);
+
+/**
+@brief Controls the pre-allocation strategy for the record column
+
+@rst
+Set a fixed pre-allocation size, use the default doubling strategy.
+See :ref:`sec_c_api_memory_allocation_strategy` for details on the default
+pre-allocation strategy,
+@endrst
+
+@param self A pointer to a tsk_provenance_table_t object.
+@param max_record_length_increment The number of bytes to pre-allocate, or zero for the
+default doubling strategy.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_provenance_table_set_max_record_length_increment(
+    tsk_provenance_table_t *self, tsk_size_t max_record_length_increment);
+
+/** @} */
+
+/* Undocumented methods */
 int tsk_provenance_table_dump_text(const tsk_provenance_table_t *self, FILE *out);
 
 /****************************************************************************/
@@ -2757,6 +3420,11 @@ TSK_CMP_IGNORE_TS_METADATA
 TSK_CMP_IGNORE_TIMESTAMPS
     Do not include the timestamp information when comparing the provenance
     tables. This has no effect if TSK_CMP_IGNORE_PROVENANCE is specified.
+TSK_CMP_IGNORE_TABLES
+    Do not include any tables in the comparison, thus comparing only the
+    top-level information of the table collections being compared.
+TSK_CMP_IGNORE_REFERENCE_SEQUENCE
+    Do not include the reference sequence in the comparison.
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -2815,6 +3483,12 @@ If the file contains multiple table collections, this function will load
 the first. Please see the :c:func:`tsk_table_collection_loadf` for details
 on how to sequentially load table collections from a stream.
 
+If the TSK_LOAD_SKIP_TABLES option is set, only the non-table information from
+the table collection will be read, leaving all tables with zero rows and no
+metadata or schema.
+If the TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set, the table collection is
+read without loading the reference sequence.
+
 **Options**
 
 Options can be specified by providing one or more of the following bitwise
@@ -2822,6 +3496,10 @@ flags:
 
 TSK_NO_INIT
     Do not initialise this :c:type:`tsk_table_collection_t` before loading.
+TSK_LOAD_SKIP_TABLES
+    Skip reading tables, and only load top-level information.
+TSK_LOAD_SKIP_REFERENCE_SEQUENCE
+    Do not load reference sequence.
 
 **Examples**
 
@@ -2869,6 +3547,18 @@ different error conditions. Please see the
 :ref:`sec_c_api_examples_file_streaming` section for an example of how to
 sequentially load tree sequences from a stream.
 
+Please note that this streaming behaviour is not supported if the
+TSK_LOAD_SKIP_TABLES or TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set.
+If the TSK_LOAD_SKIP_TABLES option is set, only the non-table information from
+the table collection will be read, leaving all tables with zero rows and no
+metadata or schema.
+If the TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set, the table collection is
+read without loading the reference sequence.
+When attempting to read from a stream with multiple table collection definitions
+and either of these two options set, the requested information from the first
+table collection will be read on the first call to
+:c:func:`tsk_table_collection_loadf`, with subsequent calls leading to errors.
+
 **Options**
 
 Options can be specified by providing one or more of the following bitwise
@@ -2876,6 +3566,10 @@ flags:
 
 TSK_NO_INIT
     Do not initialise this :c:type:`tsk_table_collection_t` before loading.
+TSK_LOAD_SKIP_TABLES
+    Skip reading tables, and only load top-level information.
+TSK_LOAD_SKIP_REFERENCE_SEQUENCE
+    Do not load reference sequence.
 
 @endrst
 
@@ -3009,9 +3703,8 @@ and ``provenance``) are ignored and can be set to arbitrary values.
 
 The table collection will always be unindexed after sort successfully completes.
 
-See the :ref:`table sorting <sec_table_sorting>` section for more details.
-For more control over the sorting process, see the
-:ref:`sec_c_api_low_level_sorting` section.
+For more control over the sorting process, see the :ref:`sec_c_api_low_level_sorting`
+section.
 
 **Options**
 
@@ -3029,16 +3722,32 @@ TSK_NO_CHECK_INTEGRITY
 
 @endrst
 
-@param self A pointer to a tsk_individual_table_t object.
+@param self A pointer to a tsk_table_collection_t object.
 @param start The position to begin sorting in each table; all rows less than this
     position must fulfill the tree sequence sortedness requirements. If this is
     NULL, sort all rows.
-@param options Sort options. Currently unused; should be
-    set to zero to ensure compatibility with later versions of tskit.
+@param options Sort options.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_sort(
     tsk_table_collection_t *self, const tsk_bookmark_t *start, tsk_flags_t options);
+
+/**
+@brief Sorts the individual table in this collection.
+
+@rst
+Sorts the individual table in place, so that parents come before children,
+and the parent column is remapped as required. Node references to individuals
+are also updated.
+@endrst
+
+@param self A pointer to a tsk_table_collection_t object.
+@param options Sort options. Currently unused; should be
+    set to zero to ensure compatibility with later versions of tskit.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_table_collection_individual_topological_sort(
+    tsk_table_collection_t *self, tsk_flags_t options);
 
 /**
 @brief Puts the tables into canonical form.
@@ -3071,7 +3780,7 @@ int tsk_table_collection_canonicalise(tsk_table_collection_t *self, tsk_flags_t 
 
 @rst
 Simplification transforms the tables to remove redundancy and canonicalise
-tree sequence data. See the :ref:`simplification <sec_table_simplification>` section for
+tree sequence data. See the :ref:`simplification <sec_simplification>` tutorial for
 more details.
 
 A mapping from the node IDs in the table before simplification to their equivalent
@@ -3249,6 +3958,19 @@ int tsk_table_collection_union(tsk_table_collection_t *self,
     tsk_flags_t options);
 
 /**
+@brief Set the time_units
+@rst
+Copies the time_units string to this table collection, replacing any existing.
+@endrst
+@param self A pointer to a tsk_table_collection_t object.
+@param time_units A pointer to a char array
+@param time_units_length The size of the time units string in bytes.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_table_collection_set_time_units(
+    tsk_table_collection_t *self, const char *time_units, tsk_size_t time_units_length);
+
+/**
 @brief Set the metadata
 @rst
 Copies the metadata string to this table collection, replacing any existing.
@@ -3296,6 +4018,8 @@ life-cycle.
 bool tsk_table_collection_has_index(
     const tsk_table_collection_t *self, tsk_flags_t options);
 
+bool tsk_table_collection_has_reference_sequence(const tsk_table_collection_t *self);
+
 /**
 @brief Deletes the indexes for this table collection.
 
@@ -3340,9 +4064,12 @@ int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
 
 Checks the integrity of this table collection. The default checks (i.e., with
 options = 0) guarantee the integrity of memory and entity references within the
-table collection. All spatial values (along the genome) are checked
+table collection. All positions along the genome are checked
 to see if they are finite values and within the required bounds. Time values
 are checked to see if they are finite or marked as unknown.
+Consistency of the direction of inheritance is also checked: whether
+parents are more recent than children, mutations are not more recent
+than their nodes or their mutation parents, etcetera.
 
 To check if a set of tables fulfills the :ref:`requirements
 <sec_valid_tree_sequence_requirements>` needed for a valid tree sequence, use
@@ -3371,6 +4098,8 @@ TSK_CHECK_MUTATION_ORDERING
     constraints.
 TSK_CHECK_INDIVIDUAL_ORDERING
     Check individual parents are before children, where specified.
+TSK_CHECK_MIGRATION_ORDERING
+    Check migrations are ordered by time.
 TSK_CHECK_INDEXES
     Check that the table indexes exist, and contain valid edge
     references.
@@ -3400,11 +4129,22 @@ tsk_id_t tsk_table_collection_check_integrity(
 
 /* Undocumented methods */
 
+/* Flags for ibd_segments */
+#define TSK_IBD_STORE_PAIRS (1 << 0)
+#define TSK_IBD_STORE_SEGMENTS (1 << 1)
+
 /* TODO be systematic about where "result" should be in the params
  * list, different here and in link_ancestors. */
-int tsk_table_collection_find_ibd(const tsk_table_collection_t *self,
-    tsk_ibd_result_t *result, const tsk_id_t *samples, tsk_size_t num_samples,
+/* FIXME the order of num_samples and samples needs to be reversed in within.
+ * This should be done as part of documenting, I guess. */
+int tsk_table_collection_ibd_within(const tsk_table_collection_t *self,
+    tsk_identity_segments_t *result, const tsk_id_t *samples, tsk_size_t num_samples,
     double min_length, double max_time, tsk_flags_t options);
+
+int tsk_table_collection_ibd_between(const tsk_table_collection_t *self,
+    tsk_identity_segments_t *result, tsk_size_t num_sample_sets,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets, double min_length,
+    double max_time, tsk_flags_t options);
 
 int tsk_table_collection_link_ancestors(tsk_table_collection_t *self, tsk_id_t *samples,
     tsk_size_t num_samples, tsk_id_t *ancestors, tsk_size_t num_ancestors,
@@ -3415,6 +4155,30 @@ int tsk_table_collection_compute_mutation_parents(
     tsk_table_collection_t *self, tsk_flags_t options);
 int tsk_table_collection_compute_mutation_times(
     tsk_table_collection_t *self, double *random, tsk_flags_t TSK_UNUSED(options));
+
+int tsk_reference_sequence_init(tsk_reference_sequence_t *self, tsk_flags_t options);
+int tsk_reference_sequence_free(tsk_reference_sequence_t *self);
+bool tsk_reference_sequence_is_null(const tsk_reference_sequence_t *self);
+bool tsk_reference_sequence_equals(const tsk_reference_sequence_t *self,
+    const tsk_reference_sequence_t *other, tsk_flags_t options);
+int tsk_reference_sequence_copy(const tsk_reference_sequence_t *self,
+    tsk_reference_sequence_t *dest, tsk_flags_t options);
+int tsk_reference_sequence_set_data(
+    tsk_reference_sequence_t *self, const char *data, tsk_size_t data_length);
+int tsk_reference_sequence_set_url(
+    tsk_reference_sequence_t *self, const char *url, tsk_size_t url_length);
+int tsk_reference_sequence_set_metadata(
+    tsk_reference_sequence_t *self, const char *metadata, tsk_size_t metadata_length);
+int tsk_reference_sequence_set_metadata_schema(tsk_reference_sequence_t *self,
+    const char *metadata_schema, tsk_size_t metadata_schema_length);
+int tsk_reference_sequence_takeset_data(
+    tsk_reference_sequence_t *self, char *data, tsk_size_t data_length);
+int tsk_reference_sequence_takeset_url(
+    tsk_reference_sequence_t *self, char *url, tsk_size_t url_length);
+int tsk_reference_sequence_takeset_metadata(
+    tsk_reference_sequence_t *self, char *metadata, tsk_size_t metadata_length);
+int tsk_reference_sequence_takeset_metadata_schema(tsk_reference_sequence_t *self,
+    char *metadata_schema, tsk_size_t metadata_schema_length);
 
 /**
 @defgroup TABLE_SORTER_API_GROUP Low-level table sorter API.
@@ -3495,17 +4259,19 @@ int tsk_table_sorter_free(struct _tsk_table_sorter_t *self);
 int tsk_squash_edges(
     tsk_edge_t *edges, tsk_size_t num_edges, tsk_size_t *num_output_edges);
 
-/* IBD finder API. This is experimental and the interface may change. */
+/* IBD segments API. This is experimental and the interface may change. */
 
-tsk_size_t tsk_ibd_result_get_total_segments(const tsk_ibd_result_t *self);
-tsk_size_t tsk_ibd_result_get_num_pairs(const tsk_ibd_result_t *self);
-int tsk_ibd_result_get_keys(const tsk_ibd_result_t *result, tsk_id_t *pairs);
-int tsk_ibd_result_get_items(
-    const tsk_ibd_result_t *self, tsk_id_t *pairs, tsk_segment_list_t **lists);
-void tsk_ibd_result_print_state(tsk_ibd_result_t *self, FILE *out);
-int tsk_ibd_result_free(tsk_ibd_result_t *self);
-int tsk_ibd_result_get(
-    const tsk_ibd_result_t *self, tsk_id_t a, tsk_id_t b, tsk_segment_list_t **ret_list);
+tsk_size_t tsk_identity_segments_get_num_segments(const tsk_identity_segments_t *self);
+double tsk_identity_segments_get_total_span(const tsk_identity_segments_t *self);
+tsk_size_t tsk_identity_segments_get_num_pairs(const tsk_identity_segments_t *self);
+int tsk_identity_segments_get_keys(
+    const tsk_identity_segments_t *result, tsk_id_t *pairs);
+int tsk_identity_segments_get_items(const tsk_identity_segments_t *self, tsk_id_t *pairs,
+    tsk_identity_segment_list_t **lists);
+int tsk_identity_segments_get(const tsk_identity_segments_t *self, tsk_id_t a,
+    tsk_id_t b, tsk_identity_segment_list_t **ret_list);
+void tsk_identity_segments_print_state(tsk_identity_segments_t *self, FILE *out);
+int tsk_identity_segments_free(tsk_identity_segments_t *self);
 
 #ifdef __cplusplus
 }

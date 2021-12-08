@@ -93,6 +93,10 @@ get_sep_atoa(char **start, char **out, int sep)
 // getline(linep, linecapp, stream), but also eats any metadata header
 // present, returning the first line of it (which should be all of it,
 // if the metadata is compactified as expected) to the caller if requested
+
+// copied from tables.c:
+#define TABLE_SEP "-----------------------------------------\n"
+
 static ssize_t
 read_text_headers(char **linep, size_t *linecapp, FILE *file, char **metadata_schema)
 {
@@ -133,7 +137,7 @@ read_text_headers(char **linep, size_t *linecapp, FILE *file, char **metadata_sc
 			return err;
 		}
 		
-		if (strcmp(*linep, TSK_TABLE_SEP) == 0)
+		if (strcmp(*linep, TABLE_SEP) == 0)
 			err = getline(linep, linecapp, file);
 		if (err < 0)
 		{

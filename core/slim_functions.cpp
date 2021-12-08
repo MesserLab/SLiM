@@ -26,6 +26,7 @@
 #include "mutation_type.h"
 #include "individual.h"
 #include "eidos_rng.h"
+#include "json.hpp"
 
 #include <string>
 #include <vector>
@@ -67,6 +68,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 		
 		// Other built-in SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
 	}
 	
 	return &sim_func_signatures_;
@@ -1664,6 +1666,87 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	}
 
 	return EidosValue_SP(result_vec);
+}
+
+// (object<Dictionary>$)treeSeqMetadata(string$ filePath, [logical$ userData=T])
+EidosValue_SP SLiM_ExecuteFunction_treeSeqMetadata(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *filePath_value = p_arguments[0].get();
+	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
+	
+	tsk_table_collection_t temp_tables;
+	
+	int ret = tsk_table_collection_load(&temp_tables, file_path.c_str(), TSK_LOAD_SKIP_TABLES | TSK_LOAD_SKIP_REFERENCE_SEQUENCE);
+	if (ret != 0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): tree-sequence file at " << file_path << " could not be read; error " << ret << " from tsk_table_collection_load()." << EidosTerminate();
+	
+	if (temp_tables.metadata_schema_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no schema, error out
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): no metadata schema present in file " << file_path << "; a JSON schema is required." << EidosTerminate();
+	}
+	
+	if (temp_tables.metadata_length == 0)
+	{
+		tsk_table_collection_free(&temp_tables);
+		
+		// With no metadata, return an empty dictionary
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gEidosDictionaryRetained_Class));
+	}
+	
+	std::string metadata_schema_string(temp_tables.metadata_schema, temp_tables.metadata_schema_length);
+	nlohmann::json metadata_schema;
+	
+	try {
+		metadata_schema = nlohmann::json::parse(metadata_schema_string);
+	} catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata schema must be a JSON string." << EidosTerminate();
+	}
+	
+	std::string codec = metadata_schema["codec"];
+	
+	if (codec != "json")
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata codec must be 'json'." << EidosTerminate();
+	
+	std::string metadata_string(temp_tables.metadata, temp_tables.metadata_length);
+	nlohmann::json metadata;
+	
+	tsk_table_collection_free(&temp_tables);
+	
+	try {
+		metadata = nlohmann::json::parse(metadata_string);
+	} catch (...) {
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the metadata must be a JSON string." << EidosTerminate();
+	}
+	
+	EidosValue *userData_value = p_arguments[1].get();
+	bool userData = userData_value->LogicalAtIndex(0, nullptr);
+	
+	if (userData)
+	{
+		if (!metadata.contains("SLiM"))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the user metadata was requested, but the top-level metadata does not contain a 'SLiM' key." << EidosTerminate();
+		
+		metadata = metadata["SLiM"];
+		if (metadata.type() != nlohmann::json::value_t::object)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the user metadata was requested, but the 'SLiM' key is not of type object." << EidosTerminate();
+		
+		if (!metadata.contains("user_metadata"))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the user metadata was requested, but the 'SLiM' dictionary does not contain a 'user_metadata' key." << EidosTerminate();
+		
+		metadata = metadata["user_metadata"];
+		if (metadata.type() != nlohmann::json::value_t::object)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_treeSeqMetadata): the user metadata was requested, but the 'user_metadata' key is not of type object." << EidosTerminate();
+	}
+	
+	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	
+	objectElement->AddJSONFrom(metadata);
+	objectElement->ContentsChanged("treeSeqMetadata()");
+	return result_SP;
 }
 
 
