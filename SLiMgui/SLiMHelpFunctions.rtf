@@ -2046,4 +2046,45 @@ There is one last twist, if
 \f2\fs20  it would produce the 
 \f3\i density
 \f2\i0  of individuals in each grid square.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (object<Dictionary>$)treeSeqMetadata(string$\'a0filePath, [logical$\'a0userData\'a0=\'a0T])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Returns a 
+\f1\fs18 Dictionary
+\f2\fs20  containing top-level metadata from the 
+\f1\fs18 .trees
+\f2\fs20  (tree-sequence) file at 
+\f1\fs18 filePath
+\f2\fs20 .  If 
+\f1\fs18 userData
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), the top-level metadata under the 
+\f1\fs18 SLiM/user_metadata
+\f2\fs20  key is returned; this is the same metadata that can optionally be supplied to 
+\f1\fs18 treeSeqOutput()
+\f2\fs20  in its 
+\f1\fs18 metadata
+\f2\fs20  parameter, so it makes it easy to recover metadata that you attached to the tree sequence when it was saved.  If 
+\f1\fs18 userData
+\f2\fs20  is 
+\f1\fs18 F
+\f2\fs20 , the entire top-level metadata 
+\f1\fs18 Dictionary
+\f2\fs20  object is returned; this can be useful for examining the values of other keys under the 
+\f1\fs18 SLiM
+\f2\fs20  key, or values inside the top-level dictionary itself that might have been placed there by 
+\f1\fs18 msprime
+\f2\fs20  or other software.\
+This function can be used to read in parameter values or other saved state (
+\f1\fs18 tag
+\f2\fs20  property values, for example), in order to resuscitate the complete state of a simulation that was written to a 
+\f1\fs18 .trees
+\f2\fs20  file.  It could be used for more esoteric purposes too, such as to search through 
+\f1\fs18 .trees
+\f2\fs20  files in a directory (with the help of the Eidos function 
+\f1\fs18 filesAtPath()
+\f2\fs20 ) to find those files that satisfy some metadata criterion.\
 }
