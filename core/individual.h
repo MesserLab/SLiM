@@ -188,7 +188,11 @@ public:
 		// just for parallel design, no parentage to revoke
 	}
 	
+	// Relatedness using pedigree data.  Most clients will use RelatednessToIndividual(); _Relatedness() is internal API made public for unit testing.
 	double RelatednessToIndividual(Individual &p_ind);
+	static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+							   slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
+							   IndividualSex A_sex, IndividualSex B_sex, GenomeType modeledChromosomeType);
 	
 	inline __attribute__((always_inline)) slim_pedigreeid_t PedigreeID()			{ return pedigree_id_; }
 	inline __attribute__((always_inline)) void SetPedigreeID(slim_pedigreeid_t p_new_id)		{ pedigree_id_ = p_new_id; }	// should basically never be called

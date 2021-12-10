@@ -127,6 +127,82 @@ static double _Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_ped
 	}
 }
 
+double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, slim_pedigreeid_t A_P2, slim_pedigreeid_t A_G1, slim_pedigreeid_t A_G2, slim_pedigreeid_t A_G3, slim_pedigreeid_t A_G4,
+								slim_pedigreeid_t B, slim_pedigreeid_t B_P1, slim_pedigreeid_t B_P2, slim_pedigreeid_t B_G1, slim_pedigreeid_t B_G2, slim_pedigreeid_t B_G3, slim_pedigreeid_t B_G4,
+								IndividualSex A_sex, IndividualSex B_sex, GenomeType modeledChromosomeType)
+{
+	// This version of _Relatedness() corrects for the sex chromosome case.  It should be regarded as the top-level internal API here.
+	// This is separate from RelatednessToIndividual(), and implemented as a static member function, for unit testing; we want an
+	// API that unit tests can call without needing to actually have a constructed Individual object.
+	
+	// Correct for sex-chromosome simulations; the only individuals that count are those that pass on the sex chromosome to the
+	// child.  We can do that here since we know that the first parent of a given individual is female and the second is male.
+	// If individuals are cloning, then both parents will be the same sex as the offspring, in fact, but we still want to
+	// treat it the same I think (?).  For example, a male offspring from biparental mating inherits an X from its female
+	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
+	// seems appropriate still.
+	
+#if DEBUG
+	if ((modeledChromosomeType != GenomeType::kAutosome) && ((A_sex == IndividualSex::kHermaphrodite) || (B_sex == IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot exist when modeling a sex chromosome" << EidosTerminate();
+	if (((A_sex == IndividualSex::kHermaphrodite) && (B_sex != IndividualSex::kHermaphrodite)) || ((A_sex != IndividualSex::kHermaphrodite) && (B_sex == IndividualSex::kHermaphrodite)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) hermaphrodites cannot coexist with males and females" << EidosTerminate();
+	if (((A_sex == IndividualSex::kMale) && (B_P1 == A) && (B_P1 != B_P2)) ||
+		((B_sex == IndividualSex::kMale) && (A_P1 == B) && (A_P1 != A_P2)) ||
+		((A_sex == IndividualSex::kFemale) && (B_P2 == A) && (B_P2 != B_P1)) ||
+		((B_sex == IndividualSex::kFemale) && (A_P2 == B) && (A_P2 != A_P1)))
+		EIDOS_TERMINATION << "ERROR (Individual::_Relatedness): (internal error) a male was indicated as a first parent, or a female as second parent, without clonality" << EidosTerminate();
+#endif
+	
+	if (modeledChromosomeType == GenomeType::kXChromosome)
+	{
+		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
+		A_G4 = A_G3;
+		
+		if (A_sex == IndividualSex::kMale)
+		{
+			// If A is male, its second parent (male) gave it a Y, not an X
+			A_P2 = A_P1;
+			A_G3 = A_G1;
+			A_G4 = A_G2;
+		}
+		
+		// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
+		B_G4 = B_G3;
+		
+		if (B_sex == IndividualSex::kMale)
+		{
+			// If B is male, its second parent (male) gave it a Y, not an X
+			B_P2 = B_P1;
+			B_G3 = B_G1;
+			B_G4 = B_G2;
+		}
+	}
+	else if (modeledChromosomeType == GenomeType::kYChromosome)
+	{
+		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
+		if ((A_sex == IndividualSex::kFemale) || (B_sex == IndividualSex::kFemale))
+		{
+			if (A == B)
+				return 1.0;
+			return 0.0;
+		}
+		
+		// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
+		A_G3 = A_G4;
+		A_P1 = A_P2;
+		A_G1 = A_G3;
+		A_G2 = A_G4;
+		
+		B_G3 = B_G4;
+		B_P1 = B_P2;
+		B_G1 = B_G3;
+		B_G2 = B_G4;
+	}
+	
+	return ::_Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
+}
+
 double Individual::RelatednessToIndividual(Individual &p_ind)
 {
 	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
@@ -169,57 +245,9 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
 	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
 	
-	// Correct for sex-chromosome simulations; the only individuals that count are those that pass on the sex chromosome to the
-	// child.  We can do that here since we know that the first parent of a given individual is female and the second is male.
-	// If individuals are cloning, then both parents will be the same sex as the offspring, in fact, but we still want to
-	// treat if the same I think (?).  For example, a male offspring from biparental mating inherits an X from its female
-	// parent only; a male offspring from cloning still inherits only one sex chromosome from its parent, so the same correction
-	// seems appropriate still.
-	SLiMSim &sim = subpopulation_->population_.sim_;
-	GenomeType chrtype = sim.ModeledChromosomeType();
+	GenomeType chrtype = subpopulation_->population_.sim_.ModeledChromosomeType();
 	
-	if (chrtype == GenomeType::kXChromosome)
-	{
-		if (indA.sex_ == IndividualSex::kMale)
-		{
-			// If A is male, its second parent (male) gave it a Y, not an X
-			A_P2 = -1;
-			A_G3 = -1;
-		}
-		// Whichever sex A is, its second parent (A_P2) is male and so its male parent (A_G4) gave A_P2 a Y, not an X
-		A_G4 = -1;
-		
-		if (indB.sex_ == IndividualSex::kMale)
-		{
-			// If B is male, its second parent (male) gave it a Y, not an X
-			B_P2 = -1;
-			B_G3 = -1;
-		}
-		// Whichever sex B is, its second parent (B_P2) is male and so its male parent (B_G4) gave B_P2 a Y, not an X
-		B_G4 = -1;
-	}
-	else if (chrtype == GenomeType::kYChromosome)
-	{
-		// When modeling the Y, females have no relatedness to anybody else except themselves, defined as 1.0 for consistency
-		if ((indA.sex_ == IndividualSex::kFemale) || (indB.sex_ == IndividualSex::kFemale))
-		{
-			if (A == B)
-				return 1.0;
-			return 0.0;
-		}
-		
-		// The female parents (A_P1 and B_P1) and their parents, and female grandparents (A_G3 and B_G3), do not contribute
-		A_P1 = -1;
-		A_G1 = -1;
-		A_G2 = -1;
-		A_G3 = -1;
-		B_P1 = -1;
-		B_G1 = -1;
-		B_G2 = -1;
-		B_G3 = -1;
-	}
-	
-	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4);
+	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
 }
 
 

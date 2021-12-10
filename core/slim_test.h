@@ -48,6 +48,7 @@ extern void _RunMutationTests(void);
 extern void _RunGenomeTests(std::string temp_path);
 extern void _RunSubpopulationTests(void);
 extern void _RunIndividualTests(void);
+extern void _RunRelatednessTests(void);
 extern void _RunInteractionTypeTests(void);
 extern void _RunSubstitutionTests(void);
 extern void _RunSLiMEidosBlockTests(void);
