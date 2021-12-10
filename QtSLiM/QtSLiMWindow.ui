@@ -601,7 +601,7 @@ QSlider::handle:horizontal:disabled {
              <enum>Qt::NoFocus</enum>
             </property>
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;toggle fixed substitution visibility&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;chromosome view actions&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
             <property name="icon">
              <iconset resource="buttons.qrc">
