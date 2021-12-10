@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2016/02/slimgui_screenshot.jpg?w=600"/>
+	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2021/12/slimgui_screenshot.jpg"/>
 </p>
 
 
