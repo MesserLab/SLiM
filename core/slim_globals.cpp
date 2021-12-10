@@ -40,6 +40,8 @@
 #include <string>
 #include <vector>
 
+#include "json.hpp"
+
 
 // Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
 static_assert(sizeof(char *) == 8, "SLiM must be built for 64-bit, not 32-bit.");
@@ -357,6 +359,58 @@ void SLiM_WarmUp(void)
 		//std::cout << "sizeof(int) == " << sizeof(int) << std::endl;
 		//std::cout << "sizeof(long) == " << sizeof(long) << std::endl;
 		//std::cout << "sizeof(size_t) == " << sizeof(size_t) << std::endl;
+		
+		// Test that our tskit metadata schemas are valid JSON, and print them out formatted for debugging purposes if desired
+		nlohmann::json top_level_schema, edge_schema, site_schema, mutation_schema, node_schema, individual_schema, population_schema;
+		
+		try {
+			top_level_schema = nlohmann::json::parse(gSLiM_tsk_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			if (gSLiM_tsk_edge_metadata_schema.length())
+				edge_schema = nlohmann::json::parse(gSLiM_tsk_edge_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_edge_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			if (gSLiM_tsk_site_metadata_schema.length())
+				site_schema = nlohmann::json::parse(gSLiM_tsk_site_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_site_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			mutation_schema = nlohmann::json::parse(gSLiM_tsk_mutation_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_mutation_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			node_schema = nlohmann::json::parse(gSLiM_tsk_node_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_node_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			individual_schema = nlohmann::json::parse(gSLiM_tsk_individual_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_individual_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		try {
+			population_schema = nlohmann::json::parse(gSLiM_tsk_population_metadata_schema);
+		}  catch (...) {
+			EIDOS_TERMINATION << "ERROR (SLiM_WarmUp): (internal error) gSLiM_tsk_population_metadata_schema must be a JSON string." << EidosTerminate();
+		}
+		
+#if 0
+#warning printing of JSON schemas should be disabled in a production build
+		std::cout << "gSLiM_tsk_metadata_schema == " << std::endl << top_level_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_edge_metadata_schema == " << std::endl << edge_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_site_metadata_schema == " << std::endl << site_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_mutation_metadata_schema == " << std::endl << mutation_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_node_metadata_schema == " << std::endl << node_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_individual_metadata_schema == " << std::endl << individual_schema.dump(4) << std::endl << std::endl;
+		std::cout << "gSLiM_tsk_population_metadata_schema == " << std::endl << population_schema.dump(4) << std::endl << std::endl;
+#endif
 	}
 }
 
@@ -1408,6 +1462,7 @@ void SLiM_ConfigureContext(void)
 // For more info on schemas in tskit, see: https://tskit.dev/tskit/docs/stable/metadata.html#sec-metadata
  
 // BCH 11/7/2021: Since I have been needing to modify these here by hand, I have changed them into C++ raw string literals.
+// I have also added some code in SLiM_WarmUp() that checks that the metadata schemas are all valid JSON, and optionally prints them.
 // see https://stackoverflow.com/a/5460235/2752221
 
 const std::string gSLiM_tsk_metadata_schema =
@@ -1430,7 +1485,7 @@ const std::string gSLiM_tsk_population_metadata_schema_PREJSON =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"bounds_z0":0.0,"bounds_z1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2}],"properties":{"bounds_x0":{"binaryFormat":"d","description":"The minimum x-coordinate in this subpopulation.","index":6,"type":"number"},"bounds_x1":{"binaryFormat":"d","description":"The maximum x-coordinate in this subpopulation.","index":7,"type":"number"},"bounds_y0":{"binaryFormat":"d","description":"The minimum y-coordinate in this subpopulation.","index":8,"type":"number"},"bounds_y1":{"binaryFormat":"d","description":"The maximum y-coordinate in this subpopulation.","index":9,"type":"number"},"bounds_z0":{"binaryFormat":"d","description":"The minimum z-coordinate in this subpopulation.","index":10,"type":"number"},"bounds_z1":{"binaryFormat":"d","description":"The maximum z-coordinate in this subpopulation.","index":11,"type":"number"},"female_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","index":3,"type":"number"},"male_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","index":4,"type":"number"},"migration_records":{"arrayLengthFormat":"I","index":13,"items":{"additionalProperties":false,"properties":{"migration_rate":{"binaryFormat":"d","description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","index":2,"type":"number"},"source_subpop":{"binaryFormat":"i","description":"The ID of the subpopulation migrants come from (in WF models).","index":1,"type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"selfing_fraction":{"binaryFormat":"d","description":"The frequency with which individuals in this subpopulation self (for WF models).","index":2,"type":"number"},"sex_ratio":{"binaryFormat":"d","description":"This subpopulation's sex ratio (for WF models).","index":5,"type":"number"},"slim_id":{"binaryFormat":"i","description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","index":1,"type":"integer"}},"required":["slim_id","selfing_fraction","female_cloning_fraction","male_cloning_fraction","sex_ratio","bounds_x0","bounds_x1","bounds_y0","bounds_y1","bounds_z0","bounds_z1","migration_records"],"type":["object","null"]})V0G0N";
 
 const std::string gSLiM_tsk_population_metadata_schema = 
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2,"name":"p2"}],"properties":{"bounds_x0":{"description":"The minimum x-coordinate in this subpopulation.","type":"number"},"bounds_x1":{"description":"The maximum x-coordinate in this subpopulation.","type":"number"},"bounds_y0":{"description":"The minimum y-coordinate in this subpopulation.","type":"number"},"bounds_y1":{"description":"The maximum y-coordinate in this subpopulation.","type":"number"},"bounds_z0":{"description":"The minimum z-coordinate in this subpopulation.","type":"number"},"bounds_z1":{"description":"The maximum z-coordinate in this subpopulation.","type":"number"},"description":{"description":"A description of this subpopulation.","type":"string"}},"female_cloning_fraction":{"description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","type":"number"},"male_cloning_fraction":{"description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","type":"number"},"migration_records":{"items":{"properties":{"migration_rate":{"description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","type":"number"},"source_subpop":{"description":"The ID of the subpopulation migrants come from (in WF models).","type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"name":{"description":"A human-readable name for this subpopulation.","type":"string"},"selfing_fraction":{"description":"The frequency with which individuals in this subpopulation self (for WF models).","type":"number"},"sex_ratio":{"description":"This subpopulation's sex ratio (for WF models).","type":"number"},"slim_id":{"description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","type":"integer"},"required":["slim_id"],"type":["object","null"]})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":true,"codec":"json","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2,"name":"p2"}],"properties":{"bounds_x0":{"description":"The minimum x-coordinate in this subpopulation.","type":"number"},"bounds_x1":{"description":"The maximum x-coordinate in this subpopulation.","type":"number"},"bounds_y0":{"description":"The minimum y-coordinate in this subpopulation.","type":"number"},"bounds_y1":{"description":"The maximum y-coordinate in this subpopulation.","type":"number"},"bounds_z0":{"description":"The minimum z-coordinate in this subpopulation.","type":"number"},"bounds_z1":{"description":"The maximum z-coordinate in this subpopulation.","type":"number"},"description":{"description":"A description of this subpopulation.","type":"string"},"female_cloning_fraction":{"description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","type":"number"},"male_cloning_fraction":{"description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","type":"number"},"migration_records":{"items":{"properties":{"migration_rate":{"description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","type":"number"},"source_subpop":{"description":"The ID of the subpopulation migrants come from (in WF models).","type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"name":{"description":"A human-readable name for this subpopulation.","type":"string"},"selfing_fraction":{"description":"The frequency with which individuals in this subpopulation self (for WF models).","type":"number"},"sex_ratio":{"description":"This subpopulation's sex ratio (for WF models).","type":"number"},"slim_id":{"description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","type":"integer"}},"required":["slim_id"],"type":["object","null"]})V0G0N";
 
 
 
