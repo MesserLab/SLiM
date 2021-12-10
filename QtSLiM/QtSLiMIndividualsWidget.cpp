@@ -196,6 +196,28 @@ void QtSLiMIndividualsWidget::paintGL()
         painter.beginNativePainting();
         
         bool clearBackground = true;    // used for display mode 2 to prevent repeated clearing
+        int squareSize = 20;            // for non-spatial display we want to find a consensus square size for consistency
+        
+        if (displayMode == 0)
+        {
+            for (Subpopulation *subpop : selectedSubpopulations)
+            {
+                auto tileIter = subpopTiles.find(subpop->subpopulation_id_);
+                
+                if (tileIter != subpopTiles.end())
+                {
+                    QRect tileBounds = tileIter->second;
+                    
+                    // remove a margin at the top for the title bar
+                    tileBounds.setTop(tileBounds.top() + 22);
+                    
+                    int thisSquareSize = squareSizeForSubpopulationInArea(subpop, tileBounds);
+                    
+                    if ((thisSquareSize < squareSize) && (thisSquareSize >= 1))
+                        squareSize = thisSquareSize;
+                }
+            }
+        }
         
 		for (Subpopulation *subpop : selectedSubpopulations)
 		{
@@ -256,7 +278,7 @@ void QtSLiMIndividualsWidget::paintGL()
 					glRecti(tileBounds.left(), tileBounds.top(), (tileBounds.left() + tileBounds.width()), (tileBounds.top() + tileBounds.height()));
 					
                     drawViewFrameInBounds(tileBounds);
-					drawIndividualsFromSubpopulationInArea(subpop, tileBounds);
+					drawIndividualsFromSubpopulationInArea(subpop, tileBounds, squareSize);
 				}
 			}
 		}
@@ -531,159 +553,174 @@ void QtSLiMIndividualsWidget::drawViewFrameInBounds(QRect bounds)
     glRecti(ox + 1, oy + bounds.height() - 1, ox + bounds.width() - 1, oy + bounds.height());
 }
 
-void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds)
+int QtSLiMIndividualsWidget::squareSizeForSubpopulationInArea(Subpopulation *subpop, QRect bounds)
 {
-	//
-	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
-	//
-	
+    slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+    int squareSize, viewColumns = 0, viewRows = 0;
+    
+    // first figure out the biggest square size that will allow us to display the whole subpopulation
+    for (squareSize = 20; squareSize > 1; --squareSize)
+    {
+        viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
+        viewRows = static_cast<int>(floor((bounds.height() - 3) / squareSize));
+        
+        if (viewColumns * viewRows > subpopSize)
+        {
+            // If we have an empty row at the bottom, then break for sure; this allows us to look nice and symmetrical
+            if ((subpopSize - 1) / viewColumns < viewRows - 1)
+                break;
+            
+            // Otherwise, break only if we are getting uncomfortably small; otherwise, let's drop down one square size to allow symmetry
+            if (squareSize <= 5)
+                break;
+        }
+    }
+    
+    return squareSize;
+}
+
+void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize)
+{
+    //
+    //	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
+    //
+    
     //QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	double scalingFactor = 0.8; // controller->fitnessColorScale;
-	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-	int squareSize, viewColumns = 0, viewRows = 0;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
-	
-	// first figure out the biggest square size that will allow us to display the whole subpopulation
-	for (squareSize = 20; squareSize > 1; --squareSize)
-	{
-		viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
-		viewRows = static_cast<int>(floor((bounds.height() - 3) / squareSize));
-		
-		if (viewColumns * viewRows > subpopSize)
-		{
-			// If we have an empty row at the bottom, then break for sure; this allows us to look nice and symmetrical
-			if ((subpopSize - 1) / viewColumns < viewRows - 1)
-				break;
-			
-			// Otherwise, break only if we are getting uncomfortably small; otherwise, let's drop down one square size to allow symmetry
-			if (squareSize <= 5)
-				break;
-		}
-	}
-	
-	if (squareSize > 1)
-	{
-		int squareSpacing = 0;
-		
-		// Convert square area to space between squares if possible
-		if (squareSize > 2)
-		{
-			--squareSize;
-			++squareSpacing;
-		}
-		if (squareSize > 5)
-		{
-			--squareSize;
-			++squareSpacing;
-		}
-		
-		double excessSpaceX = bounds.width() - ((squareSize + squareSpacing) * viewColumns - squareSpacing);
-		double excessSpaceY = bounds.height() - ((squareSize + squareSpacing) * viewRows - squareSpacing);
-		int offsetX = static_cast<int>(floor(excessSpaceX / 2.0));
-		int offsetY = static_cast<int>(floor(excessSpaceY / 2.0));
-		
-		// If we have an empty row at the bottom, then we can use the same value for offsetY as for offsetX, for symmetry
-		if ((subpopSize - 1) / viewColumns < viewRows - 1)
-			offsetY = offsetX;
-		
-		QRect individualArea(bounds.left() + offsetX, bounds.top() + offsetY, bounds.width() - offsetX, bounds.height() - offsetY);
-		
-		int individualArrayIndex, displayListIndex;
-		float *vertices = nullptr, *colors = nullptr;
-		
-		// Set up to draw rects
-		displayListIndex = 0;
-		
-		vertices = glArrayVertices;
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-		
-		colors = glArrayColors;
-		glEnableClientState(GL_COLOR_ARRAY);
-		glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-		
-		for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
-		{
-			// Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
-			float left = static_cast<float>(individualArea.left() + (individualArrayIndex % viewColumns) * (squareSize + squareSpacing));
-			float top = static_cast<float>(individualArea.top() + (individualArrayIndex / viewColumns) * (squareSize + squareSpacing));
-			float right = left + squareSize;
-			float bottom = top + squareSize;
-			
-			*(vertices++) = left;
-			*(vertices++) = top;
-			*(vertices++) = left;
-			*(vertices++) = bottom;
-			*(vertices++) = right;
-			*(vertices++) = bottom;
-			*(vertices++) = right;
-			*(vertices++) = top;
-			
-			// dark gray default, for a fitness of NaN; should never happen
-			float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
-			Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
-			
-			if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
-			{
-				colorRed = individual.color_red_;
-				colorGreen = individual.color_green_;
-				colorBlue = individual.color_blue_;
-			}
-			else
-			{
-				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-				double fitness = individual.cached_fitness_UNSAFE_;
-				
-				if (!std::isnan(fitness))
-					RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-			}
-			
-			for (int j = 0; j < 4; ++j)
-			{
-				*(colors++) = colorRed;
-				*(colors++) = colorGreen;
-				*(colors++) = colorBlue;
-				*(colors++) = colorAlpha;
-			}
-			
-			displayListIndex++;
-			
-			// If we've filled our buffers, get ready to draw more
-			if (displayListIndex == kMaxGLRects)
-			{
-				// Draw our arrays
-				glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-				
-				// And get ready to draw more
-				vertices = glArrayVertices;
-				colors = glArrayColors;
-				displayListIndex = 0;
-			}
-		}
-		
-		// Draw any leftovers
-		if (displayListIndex)
-		{
-			// Draw our arrays
-			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-		}
-		
-		glDisableClientState(GL_VERTEX_ARRAY);
-		glDisableClientState(GL_COLOR_ARRAY);
-	}
-	else
-	{
-		// This is what we do if we cannot display a subpopulation because there are too many individuals in it to display
-		glColor3f(0.9f, 0.9f, 1.0f);
-		
-		int ox = bounds.left(), oy = bounds.top();
-		
-		glRecti(ox + 1, oy + 1, ox + bounds.width() - 1, oy + bounds.height() - 1);
-	}
+    double scalingFactor = 0.8; // controller->fitnessColorScale;
+    slim_popsize_t subpopSize = subpop->parent_subpop_size_;
+    int viewColumns = 0, viewRows = 0;
+    double subpopFitnessScaling = subpop->last_fitness_scaling_;
+    
+    if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
+        subpopFitnessScaling = 1.0;
+    
+    // our square size is given from above (a consensus based on squareSizeForSubpopulationInArea(); calculate metrics from it
+    viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
+    viewRows = static_cast<int>(floor((bounds.height() - 3) / squareSize));
+    
+    if (viewColumns * viewRows < subpopSize)
+        squareSize = 1;
+    
+    if (squareSize > 1)
+    {
+        int squareSpacing = 0;
+        
+        // Convert square area to space between squares if possible
+        if (squareSize > 2)
+        {
+            --squareSize;
+            ++squareSpacing;
+        }
+        if (squareSize > 5)
+        {
+            --squareSize;
+            ++squareSpacing;
+        }
+        
+        double excessSpaceX = bounds.width() - ((squareSize + squareSpacing) * viewColumns - squareSpacing);
+        double excessSpaceY = bounds.height() - ((squareSize + squareSpacing) * viewRows - squareSpacing);
+        int offsetX = static_cast<int>(floor(excessSpaceX / 2.0));
+        int offsetY = static_cast<int>(floor(excessSpaceY / 2.0));
+        
+        // If we have an empty row at the bottom, then we can use the same value for offsetY as for offsetX, for symmetry
+        if ((subpopSize - 1) / viewColumns < viewRows - 1)
+            offsetY = offsetX;
+        
+        QRect individualArea(bounds.left() + offsetX, bounds.top() + offsetY, bounds.width() - offsetX, bounds.height() - offsetY);
+        
+        int individualArrayIndex, displayListIndex;
+        float *vertices = nullptr, *colors = nullptr;
+        
+        // Set up to draw rects
+        displayListIndex = 0;
+        
+        vertices = glArrayVertices;
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+        
+        colors = glArrayColors;
+        glEnableClientState(GL_COLOR_ARRAY);
+        glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+        
+        for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
+        {
+            // Figure out the rect to draw in; note we now use individualArrayIndex here, because the hit-testing code doesn't have an easy way to calculate the displayed individual index...
+            float left = static_cast<float>(individualArea.left() + (individualArrayIndex % viewColumns) * (squareSize + squareSpacing));
+            float top = static_cast<float>(individualArea.top() + (individualArrayIndex / viewColumns) * (squareSize + squareSpacing));
+            float right = left + squareSize;
+            float bottom = top + squareSize;
+            
+            *(vertices++) = left;
+            *(vertices++) = top;
+            *(vertices++) = left;
+            *(vertices++) = bottom;
+            *(vertices++) = right;
+            *(vertices++) = bottom;
+            *(vertices++) = right;
+            *(vertices++) = top;
+            
+            // dark gray default, for a fitness of NaN; should never happen
+            float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
+            Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
+            
+            if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
+            {
+                colorRed = individual.color_red_;
+                colorGreen = individual.color_green_;
+                colorBlue = individual.color_blue_;
+            }
+            else
+            {
+                // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+                // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+                double fitness = individual.cached_fitness_UNSAFE_;
+                
+                if (!std::isnan(fitness))
+                    RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+            }
+            
+            for (int j = 0; j < 4; ++j)
+            {
+                *(colors++) = colorRed;
+                *(colors++) = colorGreen;
+                *(colors++) = colorBlue;
+                *(colors++) = colorAlpha;
+            }
+            
+            displayListIndex++;
+            
+            // If we've filled our buffers, get ready to draw more
+            if (displayListIndex == kMaxGLRects)
+            {
+                // Draw our arrays
+                glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+                
+                // And get ready to draw more
+                vertices = glArrayVertices;
+                colors = glArrayColors;
+                displayListIndex = 0;
+            }
+        }
+        
+        // Draw any leftovers
+        if (displayListIndex)
+        {
+            // Draw our arrays
+            glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+        }
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+    }
+    else
+    {
+        // This is what we do if we cannot display a subpopulation because there are too many individuals in it to display
+        glColor3f(0.9f, 0.9f, 1.0f);
+        
+        int ox = bounds.left(), oy = bounds.top();
+        
+        glRecti(ox + 1, oy + 1, ox + bounds.width() - 1, oy + bounds.height() - 1);
+    }
 }
 
 void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop)

@@ -79,7 +79,10 @@ protected:
     QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
     
     void drawViewFrameInBounds(QRect bounds);
-    void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
+    
+    int squareSizeForSubpopulationInArea(Subpopulation *subpop, QRect bounds);
+    void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize);
+    
     void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop);
     void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop);
     void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *settings, SpatialMap **returnMap, Subpopulation *subpop);
