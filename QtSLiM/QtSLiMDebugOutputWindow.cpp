@@ -374,6 +374,7 @@ void QtSLiMDebugOutputWindow::clearAllOutput(void)
     
     logfilePaths.clear();
     logfileViews.clear();
+    logfileLineNumbers.clear();
     filePaths.clear();
     fileViews.clear();
 }
