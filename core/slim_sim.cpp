@@ -6623,7 +6623,7 @@ void SLiMSim::WritePopulationTable(tsk_table_collection_t *p_tables)
 			} else {
 				tsk_population_id = tsk_population_table_add_row(
 						&p_tables->populations,
-						NULL, 0);
+						"null", 4);
 				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 			}
 			assert(tsk_population_id == last_id_written);
@@ -8270,6 +8270,8 @@ void SLiMSim::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->SetPedigreeID(pedigree_id);
 				pedigree_id_check.emplace_back(pedigree_id);	// we will test for collisions below
 				gSLiM_next_pedigree_id = std::max(gSLiM_next_pedigree_id, pedigree_id + 1);
+
+				individual->SetParentPedigreeID(subpop_info.pedigreeP1_[tabulation_index], subpop_info.pedigreeP2_[tabulation_index]);
 				
 				uint32_t flags = subpop_info.flags_[tabulation_index];
 				if (flags & SLIM_INDIVIDUAL_METADATA_MIGRATED)
@@ -8345,12 +8347,6 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		// validate and parse metadata; get metadata values or fall back to default values
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
 		
-		if (metadata_length == 0)
-		{
-			// empty rows in the population table correspond to unused subpop IDs; ignore them
-			continue;
-		}
-		
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
 		std::string metadata_string(metadata_char, metadata_length);
 		nlohmann::json subpop_metadata;
@@ -8360,6 +8356,11 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		} catch (...) {
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
 		}
+
+        if (subpop_metadata.is_null()) {
+			// 'null' rows in the population table correspond to unused subpop IDs; ignore them
+			continue;
+        }
 		
 		if (!subpop_metadata.is_object())
 			EIDOS_TERMINATION << "ERROR (SLiMSim::__ConfigureSubpopulationsFromTables): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
