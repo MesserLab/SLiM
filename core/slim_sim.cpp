@@ -8359,6 +8359,7 @@ void SLiMSim::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 
         if (subpop_metadata.is_null()) {
 			// 'null' rows in the population table correspond to unused subpop IDs; ignore them
+			// note that 'null' is required by tskit, it cannot just be empty; see _InstantiateSLiMObjectsFromTables(), WritePopulationTable()
 			continue;
         }
 		
@@ -9108,7 +9109,10 @@ void SLiMSim::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 				}
 				else
 				{
-					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index];
+					// The tskit JSON metadata parser expects a 4-byte "null" value for empty metadata; it can't just be empty.
+					// See also WritePopulationTable(), __ConfigureSubpopulationsFromTables() for interacting code.
+					new_metadata.append("null");
+					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + 4;
 				}
 			}
 			
