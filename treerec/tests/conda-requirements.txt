@@ -1,2 +1,2 @@
-tskit
+tskit >= 0.4.0
 msprime
