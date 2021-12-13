@@ -499,6 +499,7 @@ private:
 												// BCH 5/13/2021: We now increment this after first() events in nonWF models, too
 	double tree_seq_generation_offset_ = 0;		// this is a fractional offset added to tree_seq_generation_; this is needed to make successive calls
 												// to addSubpopSplit() arrive at successively later times; see Population::AddSubpopulationSplit()
+	std::string treeseq_time_unit_;				// set in initializeTreeSeq(), written out to .trees; has no effect on the simulation, just user data
 	
 public:
 	

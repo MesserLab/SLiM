@@ -977,7 +977,8 @@ If
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
 (void)initializeTreeSeq([logical$\'a0recordMutations\'a0=\'a0T], [Nif$\'a0simplificationRatio\'a0=\'a0NULL], [Ni$\'a0simplificationInterval\'a0=\'a0NULL], [logical$\'a0checkCoalescence\'a0=\'a0F], [logical$\'a0runCrosschecks\'a0=\'a0F], [logical$\'a0\kerning1\expnd0\expndtw0 retainCoalescentOnly\expnd0\expndtw0\kerning0
-\'a0=\'a0T])
+\'a0=\'a0T]\kerning1\expnd0\expndtw0 , [Ns$\'a0timeUnit\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)
 \f4 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -1081,6 +1082,27 @@ The
 \f2\fs20  may dramatically increase memory usage and runtime, in a similar way to permanently remembering all the individuals.  See the documentation of 
 \f1\fs18 treeSeqRememberIndividuals()
 \f2\fs20  for further discussion.\
+The 
+\f1\fs18 timeUnit
+\f2\fs20  parameter controls the time unit stated in the tree sequence when it is saved (which can be accessed through 
+\f1\fs18 tskit
+\f2\fs20  APIs); it has no effect on the running simulation whatsoever.  The default value, 
+\f1\fs18 NULL
+\f2\fs20 , indicates that a time unit of 
+\f1\fs18 "generations"
+\f2\fs20  should be used for WF models in which one simulation tick represents one biological generation, whereas 
+\f1\fs18 "ticks"
+\f2\fs20  should be used otherwise (e.g., for all nonWF models).  It may be helpful to set 
+\f1\fs18 timeUnit
+\f2\fs20  to 
+\f1\fs18 "generations"
+\f2\fs20  explicitly when modeling non-overlapping generations in a nonWF model, to tell 
+\f1\fs18 tskit
+\f2\fs20  that the time unit does in fact represent biological generations; doing so may avoid warnings from 
+\f1\fs18 tskit
+\f2\fs20  or 
+\f1\fs18 msprime
+\f2\fs20  regarding the time unit, in cases such as recapitation where the simulation timescale is important.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 3.2.  Nucleotide utilities\

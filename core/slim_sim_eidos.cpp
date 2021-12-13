@@ -1308,7 +1308,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeSLiMOptions(const std::s
 }
 
 // TREE SEQUENCE RECORDING
-//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T])
+//	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T], [Ns$ timeUnit = NULL])
 //
 EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1319,6 +1319,7 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	EidosValue *arg_checkCoalescence_value = p_arguments[3].get();
 	EidosValue *arg_runCrosschecks_value = p_arguments[4].get();
 	EidosValue *arg_retainCoalescentOnly_value = p_arguments[5].get();
+	EidosValue *arg_timeUnit_value = p_arguments[6].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_treeseq_declarations_ > 0)
@@ -1383,6 +1384,26 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 	pedigrees_enabled_ = true;
 	pedigrees_enabled_by_SLiM_ = true;
 	
+	// Get the time units if set, or set the default time unit as appropriate
+	if (arg_timeUnit_value->Type() == EidosValueType::kValueNULL)
+	{
+		// By default, we want WF models (with non-overlapping generations) to state a time unit of "generations",
+		// for convenience/clarity, whereas nonWF models (which, as far as we know here, have non-overlapping
+		// generations) need to state a time unit of "ticks".  FIXME this will need to be refined for the multispecies
+		// case, or really if the multispecies time-scaling features are used at all, even in a single-species model.
+		if (model_type_ == SLiMModelType::kModelTypeWF)
+			treeseq_time_unit_ = "generations";
+		else
+			treeseq_time_unit_ = "ticks";
+	}
+	else
+	{
+		treeseq_time_unit_ = arg_timeUnit_value->StringAtIndex(0, nullptr);
+		
+		if ((treeseq_time_unit_.length() == 0) || (treeseq_time_unit_.find('"') != std::string::npos) || (treeseq_time_unit_.find('\'') != std::string::npos))
+			EIDOS_TERMINATION << "ERROR (SLiMSim::ExecuteContextFunction_initializeTreeSeq): initializeTreeSeq() requires the timeUnit to be non-zero length, and it may not contain a quote character." << EidosTerminate();
+	}
+	
 	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeTreeSeq(";
@@ -1428,6 +1449,13 @@ EidosValue_SP SLiMSim::ExecuteContextFunction_initializeTreeSeq(const std::strin
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "retainCoalescentOnly = " << (retain_coalescent_only_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (arg_timeUnit_value->Type() != EidosValueType::kValueNULL)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "timeUnit = '" << treeseq_time_unit_ << "'";	// assumes a simple string with no quotes
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
@@ -1517,7 +1545,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::ZeroGenerationFunctionSi
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
-									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddNumeric_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF)->AddLogical_OS("retainCoalescentOnly", gStaticEidosValue_LogicalT));
+									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddNumeric_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF)->AddLogical_OS("retainCoalescentOnly", gStaticEidosValue_LogicalT)->AddString_OSN("timeUnit", gStaticEidosValueNULL));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddString_S("modelType"));
 	}
