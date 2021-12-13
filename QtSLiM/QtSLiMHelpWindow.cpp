@@ -625,7 +625,9 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         // https://stackoverflow.com/questions/65779196/how-to-remove-all-text-color-attributes-from-a-qtextdocument).  So instead, here we scan
         // the HTML source code for color attributes and remove them, with a regex.  (What could possibly go wrong???)
         // BCH 5/7/2021: This regex worked well, but a better solution appears to be the code below.  We'll see whether it causes any problems.
-        //topicFileData.replace(QRegularExpression("(;? ?color: ?#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])"), "");
+        // BCH 12/12/2021: Well, that code below did cause problems: it caused the formatting to be lost from "SLiM Events and Callbacks" and
+        // "Eidos Statements" for no apparent reason.  So, reverting to this regex, which has had no observed problems thus far.
+        topicFileData.replace(QRegularExpression("(;? ?color: ?#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])"), "");
         
         // FIXME while on the topic of dark mode, there is a subtle bug in the help window's handling of it.  We call ColorizeCallSignature() and
         // ColorizePropertySignature() below to colorize property/function/method signatures.  Those produce colorized strings tailored to the
@@ -638,13 +640,14 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         
         // Get rid of foreground and background colors set on the text; the original solution was the regex commented out above, but this seems
         // to work just as well, and is less icky/scary.  This solution is from https://stackoverflow.com/a/67384128/2752221.
-        QTextCharFormat defaultFormat = QTextCharFormat();
+        // BCH 12/12/2021: This solution caused loss of text formatting in some cases; reverting to the regex solution above.  Oh well.
+        /*QTextCharFormat defaultFormat = QTextCharFormat();
         QTextCursor tc(&topicFileTextDocument);
         tc.select(QTextCursor::Document);
         QTextCharFormat docFormat = tc.charFormat();
         docFormat.setBackground(defaultFormat.background());
         docFormat.setForeground(defaultFormat.foreground());
-        tc.mergeCharFormat(docFormat);
+        tc.mergeCharFormat(docFormat);*/
     }
     
     // Create the topic map for the section being parsed; this keeps track of numbered sections so we can find where children go
