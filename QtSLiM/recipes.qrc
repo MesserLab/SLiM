@@ -183,5 +183,6 @@
         <file>recipes/Recipe 16.24 - Modeling haplodiploidy with addRecombinant().txt</file>
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model I.txt</file>
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model II.txt</file>
+        <file>recipes/Recipe 9.11 - Effective population size versus census population size.txt</file>
     </qresource>
 </RCC>

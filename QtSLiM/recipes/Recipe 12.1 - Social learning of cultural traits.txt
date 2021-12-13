@@ -1,4 +1,4 @@
-// Keywords: fitness()
+// Keywords: fitness(), non-genetic inheritance
 
 initialize() {
 	initializeMutationRate(1e-7);

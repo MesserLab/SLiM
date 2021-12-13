@@ -1,0 +1,68 @@
+// Keywords: Ne, parameter estimation
+
+initialize() {
+	defineGlobal("N", 1000);
+	defineGlobal("L", 1e7);
+	defineGlobal("MU", 1e-7);
+	defineGlobal("R", 1e-8);
+	defineGlobal("S", 2.0);
+	initializeSLiMOptions(keepPedigrees=T);
+	initializeMutationRate(MU);
+	initializeMutationType("m1", 0.5, "f", 0.0);		// neutral
+	initializeMutationType("m2", 0.5, "f", S);		// sweep
+	m2.convertToSubstitution = F;
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, L-1);
+	initializeRecombinationRate(R);
+}
+1 late() {
+	sim.addSubpop("p1", N);
+	p1.setValue("previous_N", p1.individualCount);
+	
+	defineConstant("LOG", sim.createLogFile("Ne_log.csv"));
+	LOG.addGeneration();
+	LOG.addCustomColumn("N(t-1)", "p1.getValue('previous_N');");
+	LOG.addCustomColumn("N(t)", "p1.individualCount;");
+	LOG.addCustomColumn("freq", "mutTypeFrequency(m2);");
+	LOG.addCustomColumn("Ne_heterozygosity", "estimateNe_Heterozygosity(p1);");
+	LOG.addCustomColumn("Ne_inbreeding", "estimateNe_Inbreeding(p1);");
+}
+2: late() {
+	LOG.logRow();
+	p1.setValue("previous_N", p1.individualCount);
+}
+10000 late() {
+	target = sample(p1.genomes, 1);
+	target.addNewDrawnMutation(m2, integerDiv(L, 2));
+}
+20000 late() {
+	sim.simulationFinished();
+}
+
+function (float)mutTypeFrequency(o<MutationType>$ mutType)
+{
+	muts = sim.mutationsOfType(mutType);
+	if (muts.size() > 0)
+		return sim.mutationFrequencies(NULL, muts);
+	return NULL;
+}
+
+function (float)estimateNe_Heterozygosity(o<Subpopulation>$ subpop)
+{
+	pi = calcHeterozygosity(p1.genomes);
+	return pi / (4 * MU);
+}
+
+function (integer)tabulateFecundity(o<Subpopulation>$ subpop, i$ previous_N)
+{
+	parentIDs = subpop.individuals.pedigreeParentIDs;
+	rescaledParentIDs = parentIDs - min(parentIDs);
+	return tabulate(rescaledParentIDs, previous_N - 1);
+}
+
+function (float)estimateNe_Inbreeding(o<Subpopulation>$ subpop)
+{
+	previous_N = subpop.getValue("previous_N");
+	k = tabulateFecundity(subpop, previous_N);
+	return (previous_N * mean(k) - 2) / (mean(k) - 1 + var(k) / mean(k));
+}

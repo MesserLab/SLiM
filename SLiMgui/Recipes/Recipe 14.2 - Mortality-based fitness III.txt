@@ -1,4 +1,4 @@
-// Keywords: 
+// Keywords: fitness, death, survival
 
 initialize() {
 	initializeMutationRate(1e-7);

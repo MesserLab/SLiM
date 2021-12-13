@@ -515,6 +515,7 @@ version 3.3 (build 2062; Eidos version 2.3):
 	add tree-seq recipes to SLiMgui
 	add a "migrant" property to Individual that is true if the individual has migrated in this generation, add "migrant" argument to sampleIndividuals() & subsetIndividuals()
 	add a timeUnit parameter to initializeTreeSeq() to allow the time unit to be set by the user; make it "generations" for WF and "ticks" for nonWF, by default
+	add recipe 9.11, effective population size versus census population size
 
 2.6 (build 1292; Eidos version 1.6):
 	make addNewMutation() and addNewDrawnMutation() vectorized, for much higher performance when adding many mutations in bulk; note policy change that requested mutations are returned whether added or not

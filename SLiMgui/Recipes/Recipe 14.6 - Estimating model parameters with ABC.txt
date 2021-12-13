@@ -1,4 +1,4 @@
-// Keywords: 
+// Keywords: Approximate Bayesian computation, MCMC, parameter estimation
 
 initialize() {
 	initializeMutationRate(mu);
