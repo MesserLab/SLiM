@@ -88,6 +88,7 @@ development head:
 	redesign the UI for the chromosome view and individuals view, to provide "action buttons" for more user-visible configurability
 	add treeSeqMetadata() function to get the metadata from a .trees file, as a Dictionary, without reading in the tree sequence
 	updated to tskit 0.99.15 to try out C API 1.0 prerelease stuff
+	add [Ns$ timeUnit=NULL] parameter to initializeTreeSeq() to set the name of the tree-sequence recording time unit
 
 
 version 3.6 (build 2784; Eidos version 2.6):

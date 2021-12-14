@@ -424,7 +424,7 @@ void _RunRelatednessTests(void)
 	// in a SLiM model is kind of a pain, and we want to test a bunch of different pedigrees here; it would just be too complex.  So we test
 	// the internal API of the Individual class here instead, and verify that it produces the correct values; relatedness() uses that.
 	
-	typedef struct pedigree_test_info {
+	typedef struct pedigree_test_info_ {
 		slim_pedigreeid_t A;
 		slim_pedigreeid_t A_P1;
 		slim_pedigreeid_t A_P2;
