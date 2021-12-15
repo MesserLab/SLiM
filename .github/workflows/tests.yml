@@ -296,8 +296,8 @@ jobs:
       shell: pwsh
       run: |
         C:\Miniconda\condabin\conda.bat activate anaconda-client-env
-        set PATH=%PATH%;$PWD/Release
-        echo $PATH
+        set PATH=%PATH%;%CD%
+        echo %PATH%
         cd treerec/tests 
         pytest -xv
 
