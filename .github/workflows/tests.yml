@@ -204,8 +204,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - { sys: mingw64, env: x86_64 }
-        - { sys: ucrt64, env: ucrt-x86_64 }
+        - { sys: mingw64, env: x86_64, python: 3.8 }
+        - { sys: ucrt64, env: ucrt-x86_64, python: 3.8 }
     name: Windows CLI (${{ matrix.sys }}, ${{ matrix.env }})
     defaults:
       run:
@@ -229,6 +229,45 @@ jobs:
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
 
+    - name: Cache conda and dependancies
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            c:\Miniconda\envs\anaconda-client-env
+            /usr/share/miniconda/envs/anaconda-client-env
+            ~/osx-conda
+            ~/.profile
+          key: ${{ runner.os }}-${{ matrix.python}}-conda-v11-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
+
+    - name: Install Conda
+      uses: conda-incubator/setup-miniconda@v2
+      if: steps.cache.outputs.cache-hit != 'true'
+      with:
+        activate-environment: anaconda-client-env
+        python-version: ${{ matrix.python }}
+        channels: conda-forge
+        channel-priority: strict
+        auto-update-conda: true
+        use-only-tar-bz2: true
+
+    - name: Install conda deps
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        C:\Miniconda\condabin\conda.bat conda install --yes --file=treerec/tests/conda-requirements.txt
+        C:\Miniconda\condabin\conda.bat init powershell
+
+    - name: Install pip deps
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        pip3 install -r treerec/tests/pip-requirements.txt
+
+    - name: Install pyslim
+      run: |
+        C:\Miniconda\condabin\conda.bat conda activate anaconda-client-env
+        git clone https://github.com/tskit-dev/pyslim.git
+        cd pyslim && pip install .
+
     - name: Debug
       run: |
         mkdir Debug
@@ -249,6 +288,14 @@ jobs:
         ./eidos -testEidos
         ./slim -testEidos
         ./slim -testSLiM
+    
+    - name: Treesequence tests
+      run: |
+        C:\Miniconda\condabin\conda.bat conda activate anaconda-client-env
+        set PATH=%PATH%;$PWD/Release
+        echo $PATH
+        cd treerec/tests 
+        pytest -xv
 
   tests-windows-latest-GUI:
     runs-on: windows-latest
