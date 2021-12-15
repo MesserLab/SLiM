@@ -230,15 +230,15 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
 
     - name: Cache conda and dependancies
-        id: cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            c:\Miniconda\envs\anaconda-client-env
-            /usr/share/miniconda/envs/anaconda-client-env
-            ~/osx-conda
-            ~/.profile
-          key: ${{ runner.os }}-${{ matrix.python}}-conda-v11-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
+      id: cache
+      uses: actions/cache@v2
+      with:
+        path: |
+          c:\Miniconda\envs\anaconda-client-env
+          /usr/share/miniconda/envs/anaconda-client-env
+          ~/osx-conda
+          ~/.profile
+        key: ${{ runner.os }}-${{ matrix.python}}-conda-v11-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v2
