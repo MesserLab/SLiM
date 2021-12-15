@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.7 (Eidos version 2.7)
 	change to allow .trees files to contain unreferenced empty subpops, to allow ancestral use of subpops that are now empty (see #168)
 	disallow reuse of subpopulation ids if they have gone into the tree-sequence tables, to prevent collisions
 	change so that entries for unused subpops are not modified in population tables loaded from a tree sequence (PR #172)
@@ -89,7 +92,6 @@ development head:
 	add treeSeqMetadata() function to get the metadata from a .trees file, as a Dictionary, without reading in the tree sequence
 	updated to tskit 0.99.15 to try out C API 1.0 prerelease stuff
 	add [Ns$ timeUnit=NULL] parameter to initializeTreeSeq() to set the name of the tree-sequence recording time unit
-
 
 version 3.6 (build 2784; Eidos version 2.6):
 	update to JSON for Modern C++ version 3.9.1
