@@ -253,18 +253,21 @@ jobs:
 
     - name: Install conda deps
       if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
       run: |
-        conda install --yes --file=treerec/tests/conda-requirements.txt
+        C:\Miniconda\condabin\conda.bat conda install --yes --file=treerec/tests/conda-requirements.txt
+        C:\Miniconda\condabin\conda.bat init powershell
 
     - name: Install pip deps
       if: steps.cache.outputs.cache-hit != 'true'
+      shell: pwsh
       run: |
         pip3 install -r treerec/tests/pip-requirements.txt
 
     - name: Install pyslim
+      shell: pwsh
       run: |
-        source ~/.profile
-        conda activate anaconda-client-env
+        C:\Miniconda\condabin\conda.bat conda activate anaconda-client-env
         git clone https://github.com/tskit-dev/pyslim.git
         cd pyslim && pip install .
 
@@ -290,10 +293,10 @@ jobs:
         ./slim -testSLiM
     
     - name: Treesequence tests
+      shell: pwsh
       run: |
-        source ~/.profile
-        conda activate anaconda-client-env
-        export PATH=$PATH:$PWD/Release
+        C:\Miniconda\condabin\conda.bat conda activate anaconda-client-env
+        set PATH=%PATH%;$PWD/Release
         echo $PATH
         cd treerec/tests 
         pytest -xv
