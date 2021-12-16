@@ -169,6 +169,8 @@ def run_slim(recipe, run_dir, recipe_dir="test_recipes"):
     script_dir = os.path.dirname(os.path.realpath(__file__))  # Path to this file
     full_recipe = os.path.abspath(os.path.join(script_dir, recipe_dir, recipe))
     assert os.path.isdir(run_dir)  # should have been created by caller
+    if os.name == "nt":
+        run_dir = str(run_dir).replace("\\", "/")
     cmd = ["slim", "-s", "22", "-d", f"RUN_DIR=\"{run_dir}\"", full_recipe]
     print(f"Running {cmd} in dir '{run_dir}', errors etc to 'SLiM_run_output.log'")
     with open(os.path.join(run_dir, "SLiM_run_output.log"), "w") as out:
