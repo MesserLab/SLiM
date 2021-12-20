@@ -11,7 +11,7 @@ for mut in ts.mutations():
     k = np.argmax([u["slim_time"] for u in mut_list])
     derived_nuc = mut_list[k]["nucleotide"]
     if mut.parent == -1:
-        acgt = ts.reference_sequence[int(mut.position)]
+        acgt = ts.reference_sequence.data[int(ts.site(mut.site).position)]
         parent_nuc = pyslim.NUCLEOTIDES.index(acgt)
     else:
         parent_mut = ts.mutation(mut.parent)
