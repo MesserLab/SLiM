@@ -19,7 +19,7 @@ for mut in ts.mutations():
         right_nuc = ts.nucleotide_at(mut.node, pos + 1,
                 time = slim_gen - mut_list[k]["slim_time"] - 1.0)
         if mut.parent == -1:
-            acgt = ts.reference_sequence[int(mut.position)]
+            acgt = ts.reference_sequence.data[int(ts.site(mut.site).position)]
             parent_nuc = pyslim.NUCLEOTIDES.index(acgt)
         else:
             parent_mut = ts.mutation(mut.parent)
