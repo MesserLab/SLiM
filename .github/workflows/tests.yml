@@ -222,6 +222,7 @@ jobs:
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
           automake1.16
+          autoconf
 
     - name: Cache conda and dependancies
       id: cache
@@ -326,6 +327,7 @@ jobs:
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-qt5-base
           automake1.16
+          autoconf
 
     - name: Build (cmake)
       run: |
