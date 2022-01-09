@@ -334,6 +334,14 @@ void Eidos_WarmUp(void)
 			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!";
 			exit(0);
 		}
+
+#if (defined(_MSC_VER) && _MSC_VER <= 1900) || (defined(__MINGW32__) && !defined(_UCRT))
+		// Work around non-conformance of Microsoft's printf %e format specifier,
+		// which uses 3 digits for the exponent instead of 2.
+		// Until Visual Studio 2015, the _set_output_format() function can be used to obtain standards compliant behaviour.
+		// More recent Visual Studio compilers are standards compliant, and Mingw provides _set_output_format() since 2008.
+		_set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
 	}
 }
 

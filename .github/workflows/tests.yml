@@ -190,13 +190,6 @@ jobs:
           qmake ..
           make -j 2
 
-  # Just test that the repository can be cloned on windows.
-  tests-windows-clone:
-    runs-on: windows-2019
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        
   # test windows-latest compilation
   tests-windows-latest-CLI:
     runs-on: windows-latest
@@ -228,6 +221,8 @@ jobs:
           msys2-devel
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
+          automake1.16
+          autoconf
 
     - name: Cache conda and dependancies
       id: cache
@@ -331,6 +326,8 @@ jobs:
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-qt5-base
+          automake1.16
+          autoconf
 
     - name: Build (cmake)
       run: |
