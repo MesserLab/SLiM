@@ -93,8 +93,7 @@ jobs:
         run: |
           source ~/.profile
           conda activate anaconda-client-env
-          git clone https://github.com/tskit-dev/pyslim.git
-          cd pyslim && pip install .
+          pip install pyslim
 
       - name: Build (Debug)
         run: |
@@ -130,7 +129,7 @@ jobs:
           conda activate anaconda-client-env
           export PATH=$PATH:$PWD/Release
           echo $PATH
-          cd treerec/tests && pytest -xv
+          cd treerec/tests && python -m pytest -xv
 
   GUI:
     runs-on: ${{ matrix.os }}
@@ -233,7 +232,7 @@ jobs:
           /usr/share/miniconda/envs/anaconda-client-env
           ~/osx-conda
           ~/.profile
-        key: ${{ runner.os }}-${{ matrix.python}}-conda-v11-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
+        key: ${{ runner.os }}-${{ matrix.python}}-conda-v14-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v2
@@ -251,20 +250,20 @@ jobs:
       shell: pwsh
       run: |
         C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/conda-requirements.txt
+        C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/pip-requirements.txt
         C:\Miniconda\condabin\conda.bat init powershell
 
     - name: Install pip deps
       if: steps.cache.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
-        pip3 install -r treerec/tests/pip-requirements.txt
+        pip install -r treerec/tests/pip-requirements.txt
 
     - name: Install pyslim
       shell: pwsh
       run: |
         C:\Miniconda\condabin\conda.bat activate anaconda-client-env
-        git clone https://github.com/tskit-dev/pyslim.git
-        cd pyslim && pip install .
+        C:\Miniconda\condabin\conda.bat install -c conda-forge pyslim
 
     - name: Debug
       run: |
@@ -293,7 +292,7 @@ jobs:
         C:\Miniconda\condabin\conda.bat activate anaconda-client-env
         $env:path += ";$(pwd)\Release"
         cd treerec\tests 
-        pytest -xv
+        python -m pytest -xv
 
   tests-windows-latest-GUI:
     runs-on: windows-latest
