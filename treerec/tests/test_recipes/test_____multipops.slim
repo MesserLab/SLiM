@@ -1,0 +1,45 @@
+// A test script to check that adding and removing populations at various times
+// doesn't run into issues.
+
+initialize() {
+	initializeSLiMOptions(keepPedigrees=T, dimensionality="xy");
+	source("init_marked_mutations.slim");
+    initializeTreeSeq(simplificationInterval=20);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 9);
+	initializeMutationRate(0.0);
+	initializeRecombinationRate(0.2);
+}
+1 {
+	sim.addSubpop("p1", 500);
+	// TREE SEQUENCE TEST OUTPUT
+	initializeMarks(n_marks);
+}
+
+50 late() {
+    sim.addSubpop("p0", 100);
+	// permanently remember the first 5 individuals
+    for (p in sim.subpopulations) {
+      sim.treeSeqRememberIndividuals(p.individuals[1:5], permanent=T);
+      addIndividuals(p.individuals[1:5]);
+    }
+}
+
+100 late() {
+    sim.addSubpop("p3", 20);
+    p1.setSubpopulationSize(0);
+}
+
+150 late() {
+    sim.addSubpopSplit("p2", 20, p0);
+    for (p in sim.subpopulations) {
+      sim.treeSeqRememberIndividuals(p.individuals[1:5], permanent=T);
+      addIndividuals(p.individuals[1:5]);
+    }
+}
+
+200 late() {
+	outputIndividuals();
+	outputMutationResult();
+	sim.simulationFinished();
+}

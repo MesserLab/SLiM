@@ -5627,10 +5627,26 @@ bool SLiMSim::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	if (subpop_ids_.count(p_subpop_id))
 		return true;
 	
-	// Then check the tree-sequence population table, if there is one; we assume that every valid index is "in use"
-	if (RecordingTreeSequence())
-		if (p_subpop_id < (int)tables_.populations.num_rows)
-			return true;
+	// Then check the tree-sequence population table, if there is one. We'll
+	// assume that *any* metadata means we can't use the subpop, which means we
+	// won't clobber any existing metadata, although there might be subpops
+	// with metadata not put in by SLiM.
+	if (RecordingTreeSequence()) {
+		if (p_subpop_id < (int)tables_.populations.num_rows) {
+			int ret;
+			tsk_population_t row;
+
+			ret = tsk_population_table_get_row(&tables_.populations, p_subpop_id, &row);
+			if (ret != 0) handle_error("tsk_population_table_get_row", ret);
+			if (row.metadata_length > 0) {
+				// Check the metadata is not "null". It would maybe be better
+				// to parse the metadata, though.
+				if ((row.metadata_length != 4) || (strncmp(row.metadata, "null", 4) != 0)) {
+					return true;
+				}
+			}
+		}
+	}
 	
 	return false;
 }

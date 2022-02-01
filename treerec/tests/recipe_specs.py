@@ -15,6 +15,7 @@ recipe_specs = {
     "test_____sexual_nonwf.slim":		      {"mutations": True},
     "test_____simple_nonwf.slim":		      {"mutations": True},
     "test_____withdraw_indivs.slim":	      {"mutations": True},
+    "test_____multipops.slim":	              {"marked_mutations": True, "individuals": True},
     "test_002_quick_neutral.slim":	          {"marked_mutations": True},
     "test_004 simple sexual A.slim":	      {"mutations": True},
     "test_005 simple sexual X.slim":	      {"mutations": True},
