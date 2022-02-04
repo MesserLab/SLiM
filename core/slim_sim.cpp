@@ -5262,7 +5262,7 @@ void SLiMSim::AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVI
 	size_t num_rows = p_tables->individuals.num_rows;
 	size_t parents_buffer_size = num_rows * 2 * sizeof(tsk_id_t);
 	tsk_id_t *parents_buffer = (tsk_id_t *)malloc(parents_buffer_size);
-	tsk_size_t *parents_offset_buffer = (tsk_size_t *)malloc(p_tables->individuals.max_rows * sizeof(tsk_size_t));
+	tsk_size_t *parents_offset_buffer = (tsk_size_t *)malloc((p_tables->individuals.max_rows + 1) * sizeof(tsk_size_t));	// +1 for the trailing length entry
 	
 	if (!parents_buffer || !parents_offset_buffer)
 		EIDOS_TERMINATION << "ERROR (SLiMSim::AddParentsColumnForOutput): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
