@@ -1802,8 +1802,9 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.pedigreeGrandparentIDs != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals.genomes.genomePedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) < 1.0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) < 1.0)) stop(); }", __LINE__);
+	// In certain inbreeding scenarios, which can happen by chance, relatedness of individuals can be 1.0 (maybe even higher?) so these tests are no good
+	//SLiMAssertScriptStop(gen1_setup_rel + "5 { if (p1.individuals[0].relatedness(p1.individuals[1]) < 1.0) stop(); }", __LINE__);
+	//SLiMAssertScriptStop(gen1_setup_rel + "5 { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) < 1.0)) stop(); }", __LINE__);
 	
 	// Test Individual EidosDictionaryUnretained functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 { i = p1.individuals[0]; i.setValue('foo', 7:9); i.setValue('bar', 'baz'); if (identical(i.getValue('foo'), 7:9) & identical(i.getValue('bar'), 'baz')) stop(); }", __LINE__);
