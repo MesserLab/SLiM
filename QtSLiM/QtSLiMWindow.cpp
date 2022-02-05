@@ -2138,6 +2138,13 @@ void QtSLiMWindow::displayProfileResults(void)
     textEdit->setFrameStyle(QFrame::NoFrame);
     textEdit->setReadOnly(true);
     
+    // Change the background color for the palette to white (rather than letting it be black when in dark mode)
+    QPalette p = textEdit->palette();
+    p.setColor(QPalette::Active, QPalette::Base, Qt::white);
+    textEdit->setPalette(p);
+    textEdit->setBackgroundVisible(false);
+    
+    // Make the text document that will hold the profile results
     QTextDocument *doc = textEdit->document();
     QTextCursor tc = textEdit->textCursor();
     
@@ -2182,7 +2189,10 @@ void QtSLiMWindow::displayProfileResults(void)
     optima8.setPointSizeF(scaleFactor * 8);
     optima3.setPointSizeF(scaleFactor * 3);
     
-    // Make the QTextCharFormat objects we will use
+    // Make the QTextCharFormat objects we will use.  Note that we override the usual foreground/background colors
+    // that come from light/dark mode; because we change the background color of text, we want to use a balck-on-white
+    // base palette whether we are in light or dark mode, otherwise things get complicated, especially since the user
+    // might switch between light/dark after the profile is displayed
     QTextCharFormat optima18b_d, optima14b_d, optima13_d, optima13i_d, optima8_d, optima3_d, menlo11_d;
     
     optima18b_d.setFont(optima18b);
@@ -2192,6 +2202,22 @@ void QtSLiMWindow::displayProfileResults(void)
     optima8_d.setFont(optima8);
     optima3_d.setFont(optima3);
     menlo11_d.setFont(menlo11);
+    
+    optima18b_d.setBackground(Qt::white);
+    optima14b_d.setBackground(Qt::white);
+    optima13_d.setBackground(Qt::white);
+    optima13i_d.setBackground(Qt::white);
+    optima8_d.setBackground(Qt::white);
+    optima3_d.setBackground(Qt::white);
+    menlo11_d.setBackground(Qt::white);
+    
+    optima18b_d.setForeground(Qt::black);
+    optima14b_d.setForeground(Qt::black);
+    optima13_d.setForeground(Qt::black);
+    optima13i_d.setForeground(Qt::black);
+    optima8_d.setForeground(Qt::black);
+    optima3_d.setForeground(Qt::black);
+    menlo11_d.setForeground(Qt::black);
     
     // Adjust the tab width to the monospace font we have chosen
     double tabWidth = 0;
