@@ -1,5 +1,5 @@
 <p align="center">
-	<img alt="Screenshot of SLiMgui running on OS X." height="45%" width="45%" src="https://messerlab.files.wordpress.com/2021/12/slimgui_screenshot.jpg"/>
+	<img alt="Screenshot of SLiMgui running on OS X." height="75%" width="75%" src="https://messerlab.files.wordpress.com/2021/12/slimgui_screenshot.jpg"/>
 </p>
 
 
@@ -41,10 +41,65 @@ SLiM is under active development, and our goal is to make it as broadly useful a
 Installation
 ------------
 <em>Looking for Binary Packages / Installers?</em>
-OS X | Red Hat Enterprise, CentOS, and Fedora | Debian and Ubuntu | Arch | Windows 10 (WSL & GWSL)
----|---|---|---|---
-[http://messerlab.org/slim/](http://messerlab.org/slim/) | [Copr Repository](https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh) | [Arch User Repository](https://aur.archlinux.org/packages/slim-simulator/) | [SLiM-Extras Repository](https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md)
+<table>
+<thead>
+<tr>
+<th>macOS</th>
+<th>Windows 10</th>
+<th>Fedora, Red Hat Enterprise, CentOS, and openSUSE</th>
+<th>Debian & Ubuntu</th>
+<th>Ubuntu 20.04 LTS (Focal Fossa)</th>
+<th>Arch Linux</th>
+</tr>
+</thead>
+<tbody>
+<!-- Icon-only Row -->
+<tr>
+<!-- macOS -->
+<td align="center"><a href="http://benhaller.com/slim/SLiM_OSX_Installer.pkg" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/apple.svg" width="64" height="64"></a></td>
 
+<!-- Windows 10 -->
+<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/win10.svg" alt="Windows 10" width="64" height="64"></a></td>
+
+<!-- Fedora -->
+<!-- Fedora copr Logo SVG tag upstream: https://pagure.io/copr/copr/blob/main/f/doc/img/copr-logo.svg-->
+<td align="center"><a href="https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/fedora.svg" alt="Fedora" width="64" height="64"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/opensuse.svg" alt="openSUSE" width="64" height="64"></a></td>
+
+<!-- Debian & Ubuntu Shell Script -->
+<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/debian.svg" alt="Debian" width="64" height="64"></a></td>
+
+<!-- Ubuntu PPA -->
+<td align="center"><a href="https://launchpad.net/~bryce-a-carson/+archive/ubuntu/slim-sim" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/ubuntu.svg" alt="Ubuntu" width="64" height="64"></a></td>
+
+<!-- Arch Linux -->
+<td align="center"><a href="https://aur.archlinux.org/packages/slim-simulator/" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/archlinux.svg" alt="Arch" width="64" height="64"></a></td>
+
+</tr>
+
+<!-- Text-only Row -->
+<tr>
+
+<!-- macOS -->
+<td align="center"><a href="http://benhaller.com/slim/SLiM_OSX_Installer.pkg" target="_blank" rel="noopener noreferrer">Messer Lab Website</a></td>
+
+<!-- Windows 10 -->
+<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md" target="_blank" rel="noopener noreferrer">SLiM-Extras MD Document</a></td>
+
+<!-- Fedora -->
+<td align="center"><a href="https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/" target="_blank" rel="noopener noreferrer">Copper Repository</a></td>
+
+<!-- Debian & Ubuntu Shell Script -->
+<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh" target="_blank" rel="noopener noreferrer">SLiM-Extras MD Document</a></td>
+
+<!-- Ubuntu PPA -->
+<td align="center"><a href="https://launchpad.net/~bryce-a-carson/+archive/ubuntu/slim-sim" target="_blank" rel="noopener noreferrer">Launchpad (PPA)</a></td>
+
+<!-- Arch Linux -->
+<td align="center"><a href="https://aur.archlinux.org/packages/slim-simulator/" target="_blank" rel="noopener noreferrer">Arch User Repository</a></td>
+
+</tr>
+</tbody>
+</table>
 
 Compilation of SLiM from source
 ----------------------------------
