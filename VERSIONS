@@ -14,6 +14,7 @@ development head:
 	fix a crashing bug with treeSeqOutput() due to an incorrectly sized malloc buffer
 	get rid of a spurious self-test error that happened occasionally due to changed to relatedness(); the test itself was wrong (#269)
 	fix the appearance of SLiMgui profile output when in dark mode (#270)
+	advance copyrights to 2022
 	
 
 version 3.7 (Eidos version 2.7)
