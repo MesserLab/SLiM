@@ -220,8 +220,6 @@ jobs:
           msys2-devel
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
-          automake1.16
-          autoconf
 
     - name: Cache conda and dependancies
       id: cache
@@ -232,7 +230,7 @@ jobs:
           /usr/share/miniconda/envs/anaconda-client-env
           ~/osx-conda
           ~/.profile
-        key: ${{ runner.os }}-${{ matrix.python}}-conda-v14-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
+        key: ${{ runner.os }}-${{ matrix.python}}-conda-v15-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
 
     - name: Install Conda
       uses: conda-incubator/setup-miniconda@v2
@@ -250,13 +248,13 @@ jobs:
       shell: pwsh
       run: |
         C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/conda-requirements.txt
-        C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/pip-requirements.txt
         C:\Miniconda\condabin\conda.bat init powershell
 
     - name: Install pip deps
       if: steps.cache.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
+        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
         pip install -r treerec/tests/pip-requirements.txt
 
     - name: Install pyslim
@@ -325,8 +323,6 @@ jobs:
           mingw-w64-${{matrix.env}}-toolchain
           mingw-w64-${{matrix.env}}-cmake
           mingw-w64-${{matrix.env}}-qt5-base
-          automake1.16
-          autoconf
 
     - name: Build (cmake)
       run: |
