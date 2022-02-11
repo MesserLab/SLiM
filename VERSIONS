@@ -8,7 +8,13 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-
+	fix a problem with the python recipe for recipe 18.13
+	fix printf format specifier on Windows that was causing issues with old compilers on conda
+	fix spurious "subpopulation p0 has already been used" errors in certain circumstances (#274), which was biting stdpopsim
+	fix a crashing bug with treeSeqOutput() due to an incorrectly sized malloc buffer
+	get rid of a spurious self-test error that happened occasionally due to changed to relatedness(); the test itself was wrong (#269)
+	fix the appearance of SLiMgui profile output when in dark mode (#270)
+	
 
 version 3.7 (Eidos version 2.7)
 	change to allow .trees files to contain unreferenced empty subpops, to allow ancestral use of subpops that are now empty (see #168)
