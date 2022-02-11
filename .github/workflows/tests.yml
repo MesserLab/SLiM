@@ -266,7 +266,7 @@ jobs:
     - name: Debug
       run: |
         cd windows_compat/gnulib
-        touch aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
+        touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
         cd ../..
         mkdir Debug
         cd Debug
@@ -276,7 +276,7 @@ jobs:
     - name: Build (Release)
       run: |
         cd windows_compat/gnulib
-        touch aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
+        touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
         cd ../..
         mkdir Release
         cd Release
@@ -333,7 +333,7 @@ jobs:
     - name: Build (cmake)
       run: |
         cd windows_compat/gnulib
-        touch aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
+        touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
         cd ../..
         # Just do a release build.
         mkdir Release
