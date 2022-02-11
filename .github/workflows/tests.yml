@@ -265,6 +265,9 @@ jobs:
 
     - name: Debug
       run: |
+        cd windows_compat/gnulib
+        touch aclocal.m4 Makefile.am configure Makefile.in
+        cd ../..
         mkdir Debug
         cd Debug
         cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Debug ..
@@ -272,6 +275,9 @@ jobs:
 
     - name: Build (Release)
       run: |
+        cd windows_compat/gnulib
+        touch aclocal.m4 Makefile.am configure Makefile.in
+        cd ../..
         mkdir Release
         cd Release
         cmake -G"MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release ..
@@ -326,6 +332,9 @@ jobs:
 
     - name: Build (cmake)
       run: |
+        cd windows_compat/gnulib
+        touch aclocal.m4 Makefile.am configure Makefile.in
+        cd ../..
         # Just do a release build.
         mkdir Release
         cd Release
