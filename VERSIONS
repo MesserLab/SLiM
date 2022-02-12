@@ -8,6 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
+
+
+version 3.7.1 (Eidos version 2.7.1):
 	fix a problem with the python recipe for recipe 18.13
 	fix printf format specifier on Windows that was causing issues with old compilers on conda
 	fix spurious "subpopulation p0 has already been used" errors in certain circumstances (#274), which was biting stdpopsim
@@ -16,7 +19,6 @@ development head:
 	fix the appearance of SLiMgui profile output when in dark mode (#270)
 	advance copyrights to 2022
 	fix recipes 17.8 and 17.9 to use sim_ancestry() instead of simulate()
-	
 
 version 3.7 (Eidos version 2.7)
 	change to allow .trees files to contain unreferenced empty subpops, to allow ancestral use of subpops that are now empty (see #168)

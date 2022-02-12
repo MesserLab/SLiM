@@ -41,8 +41,8 @@ class Subpopulation;
 class SLiMEidosBlock;
 
 
-#define SLIM_VERSION_STRING	("3.7")
-#define SLIM_VERSION_FLOAT	(3.7)
+#define SLIM_VERSION_STRING	("3.7.1")
+#define SLIM_VERSION_FLOAT	(3.71)
 
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state
