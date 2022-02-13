@@ -296,7 +296,7 @@ jobs:
         C:\Miniconda\condabin\conda.bat activate anaconda-client-env
         $env:path += ";$(pwd)\Release"
         cd treerec\tests 
-        python -m pytest -xv
+        python3 -m pytest -xv
 
   tests-windows-latest-GUI:
     runs-on: windows-latest
