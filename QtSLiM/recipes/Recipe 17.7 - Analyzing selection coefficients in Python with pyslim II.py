@@ -1,8 +1,8 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-import msprime, pyslim
+import msprime, tskit
 
-ts = pyslim.load("recipe_17.7.trees")
+ts = tskit.load("recipe_17.7.trees")
 
 # selection coefficients of all selected mutations
 coeffs = []

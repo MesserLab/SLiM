@@ -1,8 +1,8 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-import msprime, pyslim
+import msprime, tskit
 
-ts = pyslim.load("recipe_17.8_II.trees").simplify()
+ts = tskit.load("recipe_17.8_II.trees").simplify()
 
 for tree in ts.trees():
     for root in tree.roots:
