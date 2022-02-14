@@ -8,7 +8,9 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head:
-
+	fix deprecated pyslim API issues in recipes 17.2, 17.4, 17.5, 17.7, 17.8, 17.10, 18.13:
+		use tskit.load() instead of pyslim.load(), pyslim.recapitate() instead of ts.recapitate(), ts.metadata['SLiM']['generation'] instead of ts.slim_generation
+	
 
 version 3.7.1 (Eidos version 2.7.1):
 	fix a problem with the python recipe for recipe 18.13
