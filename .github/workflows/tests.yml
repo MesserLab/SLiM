@@ -247,6 +247,7 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
+        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
         C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/conda-requirements.txt
         C:\Miniconda\condabin\conda.bat init powershell
 
@@ -261,6 +262,7 @@ jobs:
       shell: pwsh
       run: |
         C:\Miniconda\condabin\conda.bat activate anaconda-client-env
+        C:\Miniconda\condabin\conda.bat init powershell
         C:\Miniconda\condabin\conda.bat install -c conda-forge pyslim
 
     - name: Debug
