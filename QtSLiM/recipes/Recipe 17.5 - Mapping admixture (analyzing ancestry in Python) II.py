@@ -2,13 +2,13 @@
 
 # This is a Python recipe; note that it runs the SLiM model internally, below
 
-import subprocess, msprime, pyslim
+import subprocess, msprime, tskit
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Run the SLiM model and load the resulting .trees file
 subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_17.5.slim"])
-ts = pyslim.load("./recipe_17.5.trees")
+ts = tskit.load("./recipe_17.5.trees")
 
 # Load the .trees file and assess true local ancestry
 breaks = np.zeros(ts.num_trees + 1)
