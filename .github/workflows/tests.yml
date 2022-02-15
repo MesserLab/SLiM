@@ -245,25 +245,20 @@ jobs:
 
     - name: Install conda deps
       if: steps.cache.outputs.cache-hit != 'true'
-      shell: pwsh
+      shell: bash -l {0}
       run: |
-        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
-        C:\Miniconda\condabin\conda.bat install --yes --file=treerec/tests/conda-requirements.txt
-        C:\Miniconda\condabin\conda.bat init powershell
+        conda install --yes --file=treerec/tests/conda-requirements.txt
 
     - name: Install pip deps
       if: steps.cache.outputs.cache-hit != 'true'
-      shell: pwsh
+      shell: bash -l {0}
       run: |
-        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
         pip install -r treerec/tests/pip-requirements.txt
 
     - name: Install pyslim
-      shell: pwsh
+      shell: bash -l {0}
       run: |
-        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
-        C:\Miniconda\condabin\conda.bat init powershell
-        C:\Miniconda\condabin\conda.bat install -c conda-forge pyslim
+        conda install -c conda-forge pyslim
 
     - name: Debug
       run: |
@@ -293,10 +288,9 @@ jobs:
         ./slim -testSLiM
     
     - name: Treesequence tests
-      shell: pwsh
+      shell: bash -l {0}
       run: |
-        C:\Miniconda\condabin\conda.bat activate anaconda-client-env
-        $env:path += ";$(pwd)\Release"
+        export PATH=$PATH:$(pwd)\Release
         cd treerec\tests 
         python -m pytest -xv
 
