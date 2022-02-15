@@ -1,9 +1,9 @@
 # Keywords: Python, nucleotide-based, nucleotide sequence, sequence-based mutation rate
 
-import pyslim
+import tskit, pyslim
 import numpy as np
 
-ts = pyslim.load("recipe_nucleotides.trees")
+ts = tskit.load("recipe_nucleotides.trees")
 
 M = [[0 for _ in pyslim.NUCLEOTIDES] for _ in pyslim.NUCLEOTIDES]
 for mut in ts.mutations():

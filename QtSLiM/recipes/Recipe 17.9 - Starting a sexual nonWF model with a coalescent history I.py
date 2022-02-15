@@ -3,8 +3,8 @@
 import msprime, pyslim, random
 import numpy as np
 
-ts = msprime.simulate(sample_size=10000, Ne=5000, length=1e8,
-    mutation_rate=0.0, recombination_rate=1e-8)
+ts = msprime.sim_ancestry(samples=5000, population_size=5000,
+    sequence_length=1e8, recombination_rate=1e-8)
 
 tables = ts.dump_tables()
 pyslim.annotate_defaults_tables(tables, model_type="nonWF", slim_generation=1)

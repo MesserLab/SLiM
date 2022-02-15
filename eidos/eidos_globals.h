@@ -3,7 +3,7 @@
 //  Eidos
 //
 //  Created by Ben Haller on 6/28/15.
-//  Copyright (c) 2015-2021 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2015-2022 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
@@ -53,8 +53,8 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("2.7")
-#define EIDOS_VERSION_FLOAT		(2.7)
+#define EIDOS_VERSION_STRING	("2.7.1")
+#define EIDOS_VERSION_FLOAT		(2.71)
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state

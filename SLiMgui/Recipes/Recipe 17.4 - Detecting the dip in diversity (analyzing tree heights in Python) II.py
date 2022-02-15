@@ -2,13 +2,13 @@
 
 # This is a Python recipe; note that it runs the SLiM model internally, below
 
-import subprocess, msprime, pyslim
+import subprocess, msprime, tskit, pyslim
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Run the SLiM model and load the resulting .trees
 subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_17.4.slim"])
-ts = pyslim.load("./recipe_17.4.trees")
+ts = tskit.load("./recipe_17.4.trees")
 ts = ts.simplify()
 
 # Measure the tree height at each base position

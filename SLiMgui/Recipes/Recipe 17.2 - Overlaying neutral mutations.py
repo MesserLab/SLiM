@@ -2,9 +2,9 @@
 
 # This is a Python recipe, to be run after the section 17.1 recipe
 
-import msprime, pyslim
+import msprime, tskit
 
-ts = pyslim.load("./recipe_17.1.trees")
+ts = tskit.load("./recipe_17.1.trees")
 ts = ts.simplify()
 
 for t in ts.trees():
