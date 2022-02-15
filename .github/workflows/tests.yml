@@ -227,8 +227,7 @@ jobs:
       with:
         path: |
           c:\Miniconda\envs\anaconda-client-env
-          /usr/share/miniconda/envs/anaconda-client-env
-          ~/osx-conda
+          ~/.bash_profile
           ~/.profile
         key: ${{ runner.os }}-${{ matrix.python}}-conda-v16-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
 
@@ -290,8 +289,8 @@ jobs:
     - name: Treesequence tests
       shell: bash -l {0}
       run: |
-        export PATH=$PATH:$(pwd)\Release
-        cd treerec\tests 
+        export PATH=$PATH:$(pwd)/Release
+        cd treerec/tests 
         python -m pytest -xv
 
   tests-windows-latest-GUI:
