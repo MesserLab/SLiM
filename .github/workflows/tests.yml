@@ -327,6 +327,7 @@ jobs:
 
     - name: Build (cmake)
       run: |
+        cd .
         cd windows_compat/gnulib
         touch --date="`date`" aclocal.m4 Makefile.am configure configure.ac config.h.in Makefile.in
         cd ../..
