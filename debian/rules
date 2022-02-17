@@ -1,7 +1,0 @@
-#!/usr/bin/make -f
-%:
-	dh $@
-
-override_dh_auto_configure:
-	dh_auto_configure -- \
-	-DBUILD_SLIMGUI=ON
