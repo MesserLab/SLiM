@@ -1,0 +1,51 @@
+This file briefly describes the top-level contents of this repository, for reference.
+If new files/directories are added to the top level, please add a description of them here.
+
+
+EIDOS SOURCE FILES
+------------------
+eidos/ : the Eidos language interpreter
+eidostool/ : the `eidos` command-line tool
+eidos_zlib/ : a modified copy of the open-source `zlib` library, used by Eidos
+gsl/ :  a modified copy of the open-source Gnu Scientific Library, used by Eidos
+windows_compat/ : gnulib sources providing APIs (POSIX etc.) needed to build on Windows
+EidosScribe/ : a macOS-only app based on Cocoa, for interactive Eidos programming
+
+
+SLiM SOURCE FILES
+-----------------
+core/ : the SLiM core; main.cpp is for the `slim` command-line tool
+treerec/ : a copy of the open-source tskit and kastore libraries, used by SLiM, with tests
+QtSLiM/ : the modern cross-platform SLiMgui app based on Qt
+SLiMgui/ : the old macOS-only SLiMgui app based on Cocoa, now called SLiMguiLegacy
+
+
+PROJECT FILES
+-------------
+SLiM.xcodeproj/ : Xcode project files, used for development on macOS
+CMakeLists.txt : CMake build configuration, for building at the command line
+SLiM.pro : qmake / Qt Creator build configuration, for making QtSLiM; see other .pro files also
+
+
+GIT AND GITHUB FILES
+--------------------
+.github/ : GitHub issue templaces, GitHub Actions workflows
+.gitattributes : git configuration file
+.gitignore : git configuration file
+README.md : the README information visible on SLiM GitHub home page
+
+
+DISTRIBUTION FILES
+------------------
+org.messerlab.* : files used by the Linux installer script for desktop configuration
+
+
+MISCELLANEOUS FILES
+-------------------
+.travis.yml : configuration for Travis-CI; not currently used, kept for posterity
+sonar-project.properties : configuration for a code linting tool called Sonar
+EidosSLiMTests/ : a test harness used inside Xcode; not used much, not maintained
+LICENSE : the legal licence document for Eidos and SLiM (GNU General Public License 3.0)
+TO_DO : misnamed; actually a list of command-line stuff that I have found useful when developing
+VERSIONS : a log of significant changes made in each version of SLiM, back to 2.0
+
