@@ -1,0 +1,7 @@
+#!/usr/bin/dh-exec
+QtSLiM/icons/AppIcon64.svg => usr/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
+QtSLiM/icons/AppIcon16.svg => usr/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
+QtSLiM/icons/DocIcon.svg => usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg
+org.messerlab.slimgui-mime.xml => usr/share/mime/packages/org.messerlab.slimgui-mime.xml
+org.messerlab.slimgui.desktop => usr/share/applications/org.messerlab.slimgui.desktop
+org.messerlab.slimgui.appdata.xml => usr/share/metainfo/org.messerlab.slimgui.appdata.xml
