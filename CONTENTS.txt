@@ -39,9 +39,6 @@ DISTRIBUTION FILES
 ------------------
 org.messerlab.* : files used by Linux packages for desktop configuration; see
                   freedesktop.org for more information about these files.
-
-LINUX PACKAGING
----------------
 debian/ : files used by Debian and Debian-derived Linux distributions for
           creating deb source and binary packages. See the "Guide for Debian Maintainers"
           and "Debian Developer's Reference" for more information:
