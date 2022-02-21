@@ -37,8 +37,18 @@ README.md : the README information visible on SLiM GitHub home page
 
 DISTRIBUTION FILES
 ------------------
-org.messerlab.* : files used by the Linux installer script for desktop configuration
+org.messerlab.* : files used by Linux packages for desktop configuration; see
+                  freedesktop.org for more information about these files.
 
+LINUX PACKAGING
+---------------
+debian/ : files used by Debian and Debian-derived Linux distributions for
+          creating deb source and binary packages. See the "Guide for Debian Maintainers"
+          and "Debian Developer's Reference" for more information:
+          https://www.debian.org/doc/devel-manuals.
+SLiM-3.7.1.spec : "a recipe that the rpmbuild utility uses to build an RPM," as
+                  described by the Red Hat documentation in the
+                  "PACKAGING AND DISTRIBUTING SOFTWARE" section of the RHEL 8 manual.
 
 MISCELLANEOUS FILES
 -------------------
