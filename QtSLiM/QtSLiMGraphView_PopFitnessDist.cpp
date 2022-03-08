@@ -20,7 +20,7 @@
 #include "QtSLiMGraphView_PopFitnessDist.h"
 
 #include "QtSLiMWindow.h"
-#include "slim_sim.h"
+#include "species.h"
 #include "population.h"
 #include "subpopulation.h"
 #include "individual.h"
@@ -81,8 +81,8 @@ double *QtSLiMGraphView_PopFitnessDist::populationFitnessData(void)
 		bins[i] = 0.0;
 	
     // bin fitness values from across the population
-    SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+    Population &pop = species->population_;
     
     for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : pop.subpops_)
     {

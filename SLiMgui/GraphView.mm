@@ -531,7 +531,7 @@
 	// Get our controller and test for validity, so subclasses don't have to worry about this
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation] && (controller->sim->generation_ > 0))
+	if (![controller invalidSimulation] && (controller->community->Tick() > 0))
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
 		
@@ -994,7 +994,7 @@
 {
 }
 
-- (void)controllerGenerationFinished
+- (void)controllerTickFinished
 {
 }
 
@@ -1008,20 +1008,20 @@
 
 @implementation GraphView (PrefabAdditions)
 
-- (void)setXAxisRangeFromGeneration
+- (void)setXAxisRangeFromTick
 {
 	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	slim_generation_t lastGen = sim->EstimatedLastGeneration();
+	Community &community = *controller->community;
+	slim_tick_t lastTick = community.EstimatedLastTick();
 	
-	// The last generation could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
-	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= last_gen, (2) have the axis
-	// max be == last_gen if last_gen is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
+	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= lastTick, (2) have the axis
+	// max be == lastTick if lastTick is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
 	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
 	// the majors.  Labels that are single-digit multiples of powers of 10 are to be strongly preferred.
-	double lower10power = pow(10.0, floor(log10(lastGen)));		// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
+	double lower10power = pow(10.0, floor(log10(lastTick)));	// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
 	double lower5mult = lower10power / 2.0;						// 8000 gives 500, 1000 gives 500, 10000 gives 5000
-	double axisMax = ceil(lastGen / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
+	double axisMax = ceil(lastTick / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
 	double contained5mults = axisMax / lower5mult;				// 8000 gives 16, 7500 gives 15, 1100 gives 3, 1000 gives 2
 	
 	if (contained5mults <= 3)
@@ -1047,8 +1047,8 @@
 - (NSArray *)mutationTypeLegendKey
 {
 	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
+	Species &species = *controller->community->single_species_;
+	int mutationTypeCount = (int)species.mutation_types_.size();
 	
 	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
@@ -1057,11 +1057,11 @@
 	NSMutableArray *legendKey = [NSMutableArray array];
 	
 	// first we put in placeholders
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
 		[legendKey addObject:@"placeholder"];
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

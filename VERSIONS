@@ -12,6 +12,24 @@ development head:
 		use tskit.load() instead of pyslim.load(), pyslim.recapitate() instead of ts.recapitate(), ts.metadata['SLiM']['generation'] instead of ts.slim_generation
 	add a second recipe to section 16.19 (range expansion in a stepping-stone model), showing how to solve the same migration problem with a survival() callback
 	
+	MULTISPECIES SLiM WORK:
+		split SLiMSim into two new classes: Species and Community
+		moved to Community: properties logFiles, scriptBlocks, generationStage, verbosity; it also has properties tick and tag
+		moved to Community: methods createLogFile(), register[X]Event(), register[X]Callback(), deregisterScriptBlock(), rescheduleScriptBlock(), simulationFinished(), outputUsage()
+		change generations to ticks across almost all APIs; the basic unit of time is now called a tick, "generation" is a species-specific concept
+		remove the inSLiMgui property of SLiMSim (deprecated since SLiM 3.2.1)
+		remove vestiges of the xDominanceCoeff parameter to initializeSex() and the dominanceCoeffX property of SLiMSim (removed originally in SLiM 3.7)
+		change GO (generation of origin) to TO (tick of origin) in VCF output (should be able to read both annotations)
+		addNewMutation() and addNewDrawnMutation() have had their originGeneration parameter removed (first made redundant in SLiM 3.5)
+		originGeneration property of Mutation and Substitution renamed to originTick; fixationGeneration property of Substitution renamed to fixationTick
+		generation parameter to recalculateFitness() renamed to tick
+		generations parameter to rescheduleScriptBlock() renamed to ticks
+		new addTick() method added to LogFile
+		new output formats include both the tick and generation, for outputFull(), outputMutations(), outputFixedMutations()
+		top-level tree-sequence metadata produced by outputTreeSeq() now includes both the tick ("tick") and generation ("generation")
+		tree-sequence metadata for mutations has changed the sense of "slim_time" to be in ticks, not generations
+		tree-sequence metadata for individuals has changed the sense of "SLIM_INDIVIDUAL_METADATA_MIGRATED" to indicate migration in the last tick, not the last generation
+		
 
 version 3.7.1 (Eidos version 2.7.1):
 	fix a problem with the python recipe for recipe 18.13

@@ -101,7 +101,7 @@ public:
 #endif  // SLIM_NONWF_ONLY
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
-	Subpopulation *subpopulation_;		// the subpop to which we belong
+	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
 	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
 	uint8_t scratch_;					// available for use by algorithms
 	

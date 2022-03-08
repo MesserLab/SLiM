@@ -41,7 +41,7 @@
 #include "sparse_array.h"
 
 
-class SLiMSim;
+class Species;
 class Subpopulation;
 class Individual;
 
@@ -128,7 +128,8 @@ public:
 private:
 #endif
 	
-	SLiMSim &sim_;								// We have a reference back to our simulation, for flipping changed flags and such
+	Community &community_;
+	Species &species_;
 	
 	EidosSymbolTableEntry self_symbol_;			// for fast setup of the symbol table
 	
@@ -145,7 +146,7 @@ private:
 	IFType if_type_;							// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
 	
-	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from SLiMSim
+	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from Species
 	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
 	bool periodic_z_ = false;
 	
@@ -217,7 +218,7 @@ public:
 	InteractionType(const InteractionType&) = delete;					// no copying
 	InteractionType& operator=(const InteractionType&) = delete;		// no copying
 	InteractionType(void) = delete;										// no null construction
-	InteractionType(SLiMSim &p_sim, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
+	InteractionType(Species &p_species, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
 	~InteractionType(void);
 	
 	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);

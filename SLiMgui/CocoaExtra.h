@@ -107,7 +107,15 @@ void RGBForSelectionCoeff(double selectionCoeff, float *colorRed, float *colorGr
 - (void)slimSetTintColor:(NSColor *)tintColor;
 @end
 
-// A subclass to make an NSTextView that selects its content when clicked, for the generation textfield
+// This is a vestigial tail left over from the old ScriptMod class of SLiMguiLegacy; I ripped out that class completely,
+// but a few other places in the code used its validation logic for their own purposes, so I've moved that to CocoaExtra.
+@interface ScriptMod : NSObject
++ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue;
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue;
++ (NSColor *)backgroundColorForValidationState:(BOOL)valid;
+@end
+
+// A subclass to make an NSTextView that selects its content when clicked, for the tick textfield
 @interface SLiMAutoselectTextField : NSTextField
 @end
 

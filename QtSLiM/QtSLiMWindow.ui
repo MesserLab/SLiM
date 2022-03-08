@@ -136,7 +136,7 @@
                <enum>Qt::NoFocus</enum>
               </property>
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;step one generation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;step one tick&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="icon">
                <iconset resource="buttons.qrc">
@@ -347,7 +347,7 @@ QSlider::handle:horizontal:disabled {
            </spacer>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="generationLayout">
+           <layout class="QHBoxLayout" name="tickLayout">
             <property name="sizeConstraint">
              <enum>QLayout::SetDefaultConstraint</enum>
             </property>
@@ -368,7 +368,7 @@ QSlider::handle:horizontal:disabled {
              </spacer>
             </item>
             <item>
-             <widget class="QLabel" name="generationLabel">
+             <widget class="QLabel" name="tickLabel">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                 <horstretch>0</horstretch>
@@ -388,12 +388,12 @@ QSlider::handle:horizontal:disabled {
                </size>
               </property>
               <property name="text">
-               <string>Generation:</string>
+               <string>Tick:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QtSLiMGenerationLineEdit" name="generationLineEdit">
+             <widget class="QtSLiMGenerationLineEdit" name="tickLineEdit">
               <property name="maximumSize">
                <size>
                 <width>100</width>
@@ -401,7 +401,7 @@ QSlider::handle:horizontal:disabled {
                </size>
               </property>
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;the generation that is about to execute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;the tick that is about to execute&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="text">
                <string>initialize()</string>

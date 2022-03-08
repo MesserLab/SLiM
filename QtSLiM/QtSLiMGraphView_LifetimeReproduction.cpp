@@ -120,7 +120,7 @@ QString QtSLiMGraphView_LifetimeReproduction::graphTitle(void)
 QString QtSLiMGraphView_LifetimeReproduction::aboutString(void)
 {
     return "The Lifetime Reproductive Output graph shows the distribution of lifetime reproductive output within "
-           "a chosen subpopulation, for individuals that died in the last generation.  The x axis is individual "
+           "a chosen subpopulation, for individuals that died in the last tick.  The x axis is individual "
            "lifetime reproductive output; the y axis is the frequency of a given lifetime reproductive output "
            "in the population, normalized to a total of 1.0.";
 }
@@ -139,7 +139,7 @@ QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 {
     if (controller_ && !controller_->invalidSimulation())
     {
-        if (controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        if (controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -149,7 +149,7 @@ QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -191,7 +191,7 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
 
 QtSLiMLegendSpec QtSLiMGraphView_LifetimeReproduction::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -219,7 +219,7 @@ bool QtSLiMGraphView_LifetimeReproduction::providesStringForData(void)
 void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
 	
     if (reproductionDist)
@@ -249,8 +249,8 @@ void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 double *QtSLiMGraphView_LifetimeReproduction::reproductionDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    SLiMSim *sim = controller_->sim;
-    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *species = controller_->community->single_species_;
+    Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

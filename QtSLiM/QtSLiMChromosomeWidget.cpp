@@ -241,7 +241,7 @@ QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(void)
 	else
 	{
         QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-		Chromosome &chromosome = controller->sim->TheChromosome();
+		Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -321,7 +321,7 @@ QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
 	else
 	{
         QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-		Chromosome &chromosome = controller->sim->TheChromosome();
+		Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return QtSLiMRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -343,9 +343,9 @@ void QtSLiMChromosomeWidget::paintGL()
     QRect contentRect = getContentRect();
 	QRect interiorRect = getInteriorRect();
     
-    // if the simulation is at generation 0, it is not ready
+    // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->sim->generation_ == 0)
+		if (controller->community->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -460,9 +460,9 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
     bool ready = isEnabled() && !controller->invalidSimulation();
 	QRect interiorRect = getInteriorRect();
     
-    // if the simulation is at generation 0, it is not ready
+    // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->sim->generation_ == 0)
+		if (controller->community->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -532,7 +532,7 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 
 void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-    Chromosome &chromosome = controller->sim->TheChromosome();
+    Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 	int previousIntervalLeftEdge = -10000;
 	
 	SLIM_GL_PREPARE();
@@ -595,11 +595,11 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
 	
 	if (controller)
 	{
-		SLiMSim *sim = controller->sim;
+		Species *species = controller->community->single_species_;
 		
-		if (sim)
+		if (species)
 		{
-			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
 			
 			for (auto muttype_iter : muttypes)
 			{
@@ -623,8 +623,8 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
 void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
 	double scalingFactor = 0.8; // controller->selectionColorScale;
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species *species = controller->community->single_species_;
+	Population &pop = species->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
     int registry_size;
     const MutationIndex *registry = pop.MutationRegistry(&registry_size);
@@ -688,7 +688,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
 		
 		// Then loop through the declared mutation types
-		std::map<slim_objectid_t,MutationType*> &mut_types = controller->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mut_types = controller->community->single_species_->mutation_types_;
 		bool draw_muttypes_sequentially = (mut_types.size() <= 20);	// with a lot of mutation types, the algorithm below becomes very inefficient
 		
 		for (auto mutationTypeIter : mut_types)
@@ -883,9 +883,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
     double scalingFactor = 0.8; // controller->selectionColorScale;
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
-    Chromosome &chromosome = sim->TheChromosome();
+	Species *species = controller->community->single_species_;
+	Population &pop = species->population_;
+    Chromosome &chromosome = species->TheChromosome();
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
@@ -1097,7 +1097,7 @@ void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attr
 
 void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->TheChromosome();
+	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -1120,7 +1120,7 @@ void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, Q
 
 void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->TheChromosome();
+	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -1143,7 +1143,7 @@ void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiM
 
 void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	Chromosome &chromosome = controller->sim->TheChromosome();
+	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 	bool recombinationWorthShowing = false;
 	bool mutationWorthShowing = false;
 	
@@ -1237,9 +1237,9 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
 	bool ready = (selectable_ && isEnabled() && !controller->invalidSimulation());
 	
-	// if the simulation is at generation 0, it is not ready
+	// if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->sim->generation_ == 0)
+		if (controller->community->Tick() == 0)
 			ready = false;
 	
 	if (ready)
@@ -1256,7 +1256,7 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 			{
 				slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
 				QtSLiMRange selectionRange = QtSLiMRange(0, 0);
-				Chromosome &chromosome = controller->sim->TheChromosome();
+				Chromosome &chromosome = controller->community->single_species_->TheChromosome();
 				
 				for (GenomicElement *genomicElement : chromosome.GenomicElements())
 				{
@@ -1451,11 +1451,11 @@ void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
         QAction *displayAllMutations = nullptr;
         QAction *selectNonneutralMutations = nullptr;
         
-		SLiMSim *sim = controller->sim;
+		Species *species = controller->community->single_species_;
 		
-		if (sim)
+		if (species)
 		{
-			std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
 			
 			if (muttypes.size() > 0)
 			{
@@ -1522,9 +1522,9 @@ void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
                 display_haplotypes_ = false;
             else if (action == displayHaplotypes)
                 display_haplotypes_ = true;
-            else if (sim)
+            else if (species)
             {
-                std::map<slim_objectid_t,MutationType*> &muttypes = sim->mutation_types_;
+                std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
                 
                 if (action == displayAllMutations)
                     display_muttypes_.clear();

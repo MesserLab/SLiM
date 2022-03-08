@@ -33,7 +33,7 @@
 
 QtSLiMGraphView_AgeDistribution::QtSLiMGraphView_AgeDistribution(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    histogramBinCount_ = 10;        // max age (no age 0 since we display after generation increment); this rescales automatically
+    histogramBinCount_ = 10;        // max age (no age 0 since we display after tick increment); this rescales automatically
     allowBinCountRescale_ = false;
     
     xAxisMin_ = 0;
@@ -140,10 +140,10 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 {
     if (controller_ && !controller_->invalidSimulation())
     {
-        if (controller_->sim->ModelType() == SLiMModelType::kModelTypeWF)
+        if (controller_->community->ModelType() == SLiMModelType::kModelTypeWF)
             return "requires a\nnonWF model";
         
-        if (controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        if (controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -153,7 +153,7 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -195,7 +195,7 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
 
 QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -223,7 +223,7 @@ bool QtSLiMGraphView_AgeDistribution::providesStringForData(void)
 void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
 	
     if (ageDist)
@@ -253,8 +253,8 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    SLiMSim *sim = controller_->sim;
-    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *species = controller_->community->single_species_;
+    Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

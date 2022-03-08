@@ -20,7 +20,8 @@
 
 #include "slim_functions.h"
 #include "slim_globals.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "genome.h"
 #include "mutation.h"
 #include "mutation_type.h"
@@ -41,7 +42,7 @@ extern const char *gSLiMSourceCode_calcHeterozygosity;
 extern const char *gSLiMSourceCode_calcWattersonsTheta;
 
 
-const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(void)
+const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
 {
 	// Allocate our own EidosFunctionSignature objects
 	static std::vector<EidosFunctionSignature_CSP> sim_func_signatures_;
@@ -84,7 +85,7 @@ const std::vector<EidosFunctionSignature_CSP> *SLiMSim::SLiMFunctionSignatures(v
 #pragma mark -
 
 // These are implemented in Eidos, for transparency/modifiability.  These strings are globals mostly so the
-// formatting of the code looks nice in Xcode; they are used only by SLiMSim::SLiMFunctionSignatures().
+// formatting of the code looks nice in Xcode; they are used only by Community::SLiMFunctionSignatures().
 
 // (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
@@ -1292,8 +1293,8 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	}
 	
 	// Get the model's dimensionality, which will be context for everything we do below
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	int spatial_dimensionality = sim.SpatialDimensionality();
+	Community &community = SLiM_GetCommunityFromInterpreter(p_interpreter);
+	int spatial_dimensionality = community.single_species_->SpatialDimensionality();
 	
 	if (spatial_dimensionality <= 0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() can only be called in spatial models, since it summarizes spatially-partitioned information." << EidosTerminate();
@@ -1520,7 +1521,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 			EidosSymbolTable constants(EidosSymbolTableType::kContextConstantsTable, &interpreter_symbols);
 			EidosSymbolTable symbols(EidosSymbolTableType::kLocalVariablesTable, &constants);	// add a variables symbol table on top, shared across all invocations
 			EidosFunctionMap &function_map = p_interpreter.FunctionMap();								// use our own function map
-			EidosInterpreter interpreter(*script, symbols, function_map, p_interpreter.Context(), p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
+			EidosInterpreter interpreter(*script, symbols, function_map, &community, p_interpreter.ExecutionOutputStream(), p_interpreter.ErrorOutputStream());
 			
 			// We set up a "constant" value for `individuals` that refers to the stack-allocated object vector made above
 			// For each grid cell we will munge the contents of that vector, without having to touch the symbol table again

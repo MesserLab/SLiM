@@ -63,7 +63,7 @@ QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : 
     
     connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
     connect(controller, &QtSLiMWindow::controllerSelectionChanged, this, &QtSLiMGraphView::controllerSelectionChanged);
-    connect(controller, &QtSLiMWindow::controllerGenerationFinished, this, &QtSLiMGraphView::controllerGenerationFinished);
+    connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMGraphView::controllerTickFinished);
     connect(controller, &QtSLiMWindow::controllerRecycled, this, &QtSLiMGraphView::controllerRecycled);
     
     showXAxis_ = true;
@@ -701,7 +701,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
     {
         drawMessage(painter, "invalid\nsimulation", bounds);
     }
-    else if (controller_->sim->generation_ == 0)
+    else if (controller_->community->Tick() == 0)
     {
         drawMessage(painter, "no\ndata", bounds);
     }
@@ -798,14 +798,14 @@ void QtSLiMGraphView::controllerRecycled(void)
     update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->sim->generation_ > 0));
+    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->community->Tick() > 0));
 }
 
 void QtSLiMGraphView::controllerSelectionChanged(void)
 {
 }
 
-void QtSLiMGraphView::controllerGenerationFinished(void)
+void QtSLiMGraphView::controllerTickFinished(void)
 {
 }
 
@@ -814,7 +814,7 @@ void QtSLiMGraphView::updateAfterTick(void)
 	update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->sim->generation_ > 0));
+    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->community->Tick() > 0));
 }
 
 bool QtSLiMGraphView::providesStringForData(void)
@@ -868,7 +868,7 @@ QString QtSLiMGraphView::disableMessage(void)
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 {
-    if (!controller_->invalidSimulation() && (controller_->sim->generation_ > 0)) // && ![[controller window] attachedSheet])
+    if (!controller_->invalidSimulation() && (controller_->community->Tick() > 0)) // && ![[controller window] attachedSheet])
 	{
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
@@ -1193,19 +1193,19 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 	}
 }
 
-void QtSLiMGraphView::setXAxisRangeFromGeneration(void)
+void QtSLiMGraphView::setXAxisRangeFromTick(void)
 {
-	SLiMSim *sim = controller_->sim;
-	slim_generation_t lastGen = sim->EstimatedLastGeneration();
+	Community *community = controller_->community;
+	slim_tick_t lastTick = community->EstimatedLastTick();
 	
-	// The last generation could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
-	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= last_gen, (2) have the axis
-	// max be == last_gen if last_gen is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
+	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= lastTick, (2) have the axis
+	// max be == lastTick if lastTick is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
 	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
 	// the majors.  Labels that are single-digit multiples of powers of 10 are to be strongly preferred.
-	double lower10power = pow(10.0, floor(log10(lastGen)));		// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
+	double lower10power = pow(10.0, floor(log10(lastTick)));    // 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
 	double lower5mult = lower10power / 2.0;						// 8000 gives 500, 1000 gives 500, 10000 gives 5000
-	double axisMax = ceil(lastGen / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
+	double axisMax = ceil(lastTick / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
 	double contained5mults = axisMax / lower5mult;				// 8000 gives 16, 7500 gives 15, 1100 gives 3, 1000 gives 2
 	
 	if (contained5mults <= 3)
@@ -1258,8 +1258,8 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
 
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 {
-	SLiMSim *sim = controller_->sim;
-	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
+	Species *species = controller_->community->single_species_;
+	int mutationTypeCount = static_cast<int>(species->mutation_types_.size());
 	
 	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
@@ -1268,10 +1268,10 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 	QtSLiMLegendSpec legend_key;
 	
 	// first we put in placeholders
-    legend_key.resize(sim->mutation_types_.size());
+    legend_key.resize(species->mutation_types_.size());
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter : sim->mutation_types_)
+	for (auto mutationTypeIter : species->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
@@ -1434,7 +1434,7 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 
 	if (!controller_->invalidSimulation())
 	{
-		Population &population = controller_->sim->population_;
+		Population &population = controller_->community->single_species_->population_;
 		
 		for (auto popIter : population.subpops_)
 		{
@@ -1496,7 +1496,7 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	
 	if (!controller_-> invalidSimulation())
 	{
-		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->sim->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->community->single_species_->mutation_types_;
 		
 		for (auto mutTypeIter : mutationTypes)
 		{
@@ -1548,8 +1548,8 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    SLiMSim *sim = controller_->sim;
-	Population &population = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &population = species->population_;
 	size_t subpop_total_genome_count = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1563,7 +1563,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-    Subpopulation *subpop = sim->SubpopulationWithID(subpop_id);
+    Subpopulation *subpop = species->SubpopulationWithID(subpop_id);
     
     if (subpop)	// tally only within our chosen subpop
     {
@@ -1607,8 +1607,8 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    SLiMSim *sim = controller_->sim;
-	Population &population = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &population = species->population_;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     

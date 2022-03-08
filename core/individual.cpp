@@ -20,7 +20,8 @@
 
 #include "individual.h"
 #include "subpopulation.h"
-#include "slim_sim.h"
+#include "species.h"
+#include "community.h"
 #include "eidos_property_signature.h"
 #include "eidos_call_signature.h"
 
@@ -245,7 +246,7 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	slim_pedigreeid_t B_G3 = indB.pedigree_g3_;
 	slim_pedigreeid_t B_G4 = indB.pedigree_g4_;
 	
-	GenomeType chrtype = subpopulation_->population_.sim_.ModeledChromosomeType();
+	GenomeType chrtype = subpopulation_->species_.ModeledChromosomeType();
 	
 	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
 }
@@ -366,14 +367,14 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 #endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
-			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(pedigree_id_));
 		}
 		case gID_pedigreeParentIDs:
 		{
-			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeParentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(2);
@@ -385,7 +386,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_pedigreeGrandparentIDs:
 		{
-			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeGrandparentIDs is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			EidosValue_Int_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(4);
@@ -399,16 +400,16 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_reproductiveOutput:				// ACCELERATED
 		{
-			if (!subpopulation_->population_.sim_.PedigreesEnabledByUser())
+			if (!subpopulation_->species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(reproductive_output_));
 		}
 		case gID_spatialPosition:
 		{
-			SLiMSim &sim = subpopulation_->population_.sim_;
+			Species &species = subpopulation_->species_;
 			
-			switch (sim.SpatialDimensionality())
+			switch (species.SpatialDimensionality())
 			{
 				case 0:
 					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << EidosTerminate();
@@ -645,7 +646,7 @@ EidosValue *Individual::GetProperty_Accelerated_pedigreeID(EidosObject **p_value
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
 		
-		if (!value->subpopulation_->population_.sim_.PedigreesEnabledByUser())
+		if (!value->subpopulation_->species_.PedigreesEnabledByUser())
 			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property pedigreeID is not available because pedigree recording has not been enabled." << EidosTerminate();
 		
 		int_result->set_int_no_check(value->pedigree_id_, value_index);
@@ -683,7 +684,7 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size
 #ifdef SLIM_NONWF_ONLY
 EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size)
 {
-	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->population_.sim_.ModelType() == SLiMModelType::kModelTypeWF))
+	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->community_.ModelType() == SLiMModelType::kModelTypeWF))
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property age is not available in WF models." << EidosTerminate();
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
@@ -701,7 +702,7 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
 {
-	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->population_.sim_.PedigreesEnabledByUser())
+	if ((p_values_size > 0) && !((Individual *)(p_values[0]))->subpopulation_->species_.PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property reproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
@@ -1176,8 +1177,8 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = subpopulation_->population_.sim_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "countOfMutationsOfType()");
+	Species &species = subpopulation_->species_;
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "countOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1225,7 +1226,7 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 	EidosValue *individuals_value = p_arguments[0].get();
 	
 	int individuals_count = individuals_value->Count();
-	bool pedigree_tracking_enabled = subpopulation_->population_.sim_.PedigreesEnabledByUser();
+	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
 	{
@@ -1279,9 +1280,9 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 		return gStaticEidosValue_Float_ZeroVec;
 	
 	Individual *element0 = (Individual *)(p_elements[0]);
-	SLiMSim &sim = element0->subpopulation_->population_.sim_;
+	Species &species = element0->subpopulation_->species_;
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "sumOfMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "sumOfMutationsOfType()");
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1346,8 +1347,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
-	SLiMSim &sim = subpopulation_->population_.sim_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "uniqueMutationsOfType()");
+	Species &species = subpopulation_->species_;
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "uniqueMutationsOfType()");
 	
 	// This code is adapted from uniqueMutations and follows its logic closely
 	
@@ -1634,12 +1635,34 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *position_value = p_arguments[0].get();
-	SLiMSim &sim = SLiM_GetSimFromInterpreter(p_interpreter);
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = 0;
 	int value_count = position_value->Count();
 	int target_size = p_target->Count();
 	
-	if (dimensionality == 0)
+	// Determine the spatiality of the individuals involved, and make sure it is the same for all
+	if (target_size == 1)
+	{
+		Individual *target = (Individual *)p_target->ObjectElementAtIndex(0, nullptr);
+		
+		dimensionality = target->subpopulation_->species_.SpatialDimensionality();
+	}
+	else if (target_size > 1)
+	{
+		const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();
+		Individual * const *targets = (Individual * const *)(target_vec->data());
+		
+		dimensionality = targets[0]->subpopulation_->species_.SpatialDimensionality();
+		
+		for (int target_index = 1; target_index < target_size; ++target_index)
+		{
+			Individual *target = targets[target_index];
+			
+			if (target->subpopulation_->species_.SpatialDimensionality() != dimensionality)
+				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires that all individuals in the target vector have the same spatial dimensionality." << EidosTerminate();
+		}
+	}
+	
+	if ((target_size > 0) && (dimensionality == 0))
 		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
 	if ((dimensionality < 0) || (dimensionality > 3))
 		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
@@ -1671,7 +1694,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					break;
 			}
 		}
-		else
+		else if (target_size > 1)
 		{
 			// Vector target case, one point
 			const EidosValue_Object_vector *target_vec = p_target->ObjectElementVector();

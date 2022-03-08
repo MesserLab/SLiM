@@ -31,9 +31,9 @@
 
 QtSLiMGraphView_FrequencyTrajectory::QtSLiMGraphView_FrequencyTrajectory(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromGeneration();
+    setXAxisRangeFromTick();
     
-    xAxisLabel_ = "Generation";
+    xAxisLabel_ = "Tick";
     yAxisLabel_ = "Frequency";
     
     allowXAxisUserRescale_ = true;
@@ -94,10 +94,11 @@ void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
     frequencyHistoryColdStorageFixed_.clear();
 }
 
-void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
+void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
 {
-    SLiMSim *sim = controller_->sim;
-    Population &population = sim->population_;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+    Population &population = species->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
@@ -105,7 +106,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
 #ifdef SLIM_WF_ONLY
     if (population.child_generation_valid_)
     {
-        qDebug() << "child_generation_valid_ set in fetchDataForFinishedGeneration";
+        qDebug() << "child_generation_valid_ set in fetchDataForFinishedTick";
         return;
     }
 #endif	// SLIM_WF_ONLY
@@ -113,9 +114,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
     
-    if (!sim->SubpopulationWithID(selectedSubpopulationID_))
+    if (!species->SubpopulationWithID(selectedSubpopulationID_))
         hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-    if (!sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
+    if (!species->MutationTypeWithIndex(selectedMutationTypeIndex_))
         hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     if (!hasSubpop || !hasMuttype)
         return;
@@ -155,9 +156,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
             }
             else
             {
-                // No history, so we make one starting at this generation; this also sets the updated flag
-                // Note we use sim->generation_ - 1, because the generation counter has already been advanced to the next generation
-                MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, sim->generation_ - 1);
+                // No history, so we make one starting at this tick; this also sets the updated flag
+                // Note we use community->Tick() - 1, because the tick counter has already been advanced to the next tick
+                MutationFrequencyHistory *history = new MutationFrequencyHistory(value, mutation, community->Tick() - 1);
                 
                 frequencyHistoryDict_.emplace(mutationID, history);
             }
@@ -241,7 +242,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedGeneration(void)
     
     //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
     
-    lastGeneration_ = sim->generation_;
+    lastTick_ = community->Tick();
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index */)
@@ -253,7 +254,7 @@ void QtSLiMGraphView_FrequencyTrajectory::subpopulationPopupChanged(int /* index
     {
         selectedSubpopulationID_ = newSubpopID;
         invalidateCachedData();
-        fetchDataForFinishedGeneration();
+        fetchDataForFinishedTick();
         update();
     }
 }
@@ -267,7 +268,7 @@ void QtSLiMGraphView_FrequencyTrajectory::mutationTypePopupChanged(int /* index 
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
         invalidateCachedData();
-        fetchDataForFinishedGeneration();
+        fetchDataForFinishedTick();
         update();
     }
 }
@@ -277,7 +278,7 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
 	if (!controller_->invalidSimulation())
 	{
 		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromGeneration();
+			setXAxisRangeFromTick();
 		
 		update();
 	}
@@ -290,21 +291,21 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-void QtSLiMGraphView_FrequencyTrajectory::controllerGenerationFinished(void)
+void QtSLiMGraphView_FrequencyTrajectory::controllerTickFinished(void)
 {
-    QtSLiMGraphView::controllerGenerationFinished();
+    QtSLiMGraphView::controllerTickFinished();
     
-    // Check for an unexpected change in generation_, in which case we invalidate all our histories and start over
-	SLiMSim *sim = controller_->sim;
+    // Check for an unexpected change in Tick(), in which case we invalidate all our histories and start over
+    Community *community = controller_->community;
 	
-	if (lastGeneration_ != sim->generation_ - 1)
+	if (lastTick_ != community->Tick() - 1)
 	{
         invalidateDrawingCache();
         update();
     }
 	
 	// Fetch and store the frequencies for all mutations of the selected mutation type(s), within the subpopulation selected
-	fetchDataForFinishedGeneration();
+	fetchDataForFinishedTick();
 }
 
 QString QtSLiMGraphView_FrequencyTrajectory::graphTitle(void)
@@ -342,9 +343,9 @@ QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
     {
         bool hasSubpop = true, hasMuttype = true;
         
-        if (!controller_->sim->SubpopulationWithID(selectedSubpopulationID_))
+        if (!controller_->community->single_species_->SubpopulationWithID(selectedSubpopulationID_))
             hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-        if (!controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_))
+        if (!controller_->community->single_species_->MutationTypeWithIndex(selectedMutationTypeIndex_))
             hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         if (!hasSubpop || !hasMuttype)
             return "no\ndata";
@@ -363,8 +364,8 @@ void QtSLiMGraphView_FrequencyTrajectory::drawHistory(QPainter &painter, Mutatio
         QPainterPath linePath;
 		uint16_t firstValue = *entries;
 		double firstFrequency = static_cast<double>(firstValue) / UINT16_MAX;
-		slim_generation_t generation = history->baseGeneration;
-		QPointF firstPoint(plotToDeviceX(generation, interiorRect), plotToDeviceY(firstFrequency, interiorRect));
+		slim_tick_t tick = history->baseTick;
+		QPointF firstPoint(plotToDeviceX(tick, interiorRect), plotToDeviceY(firstFrequency, interiorRect));
 		
         linePath.moveTo(firstPoint);
 		
@@ -372,7 +373,7 @@ void QtSLiMGraphView_FrequencyTrajectory::drawHistory(QPainter &painter, Mutatio
 		{
 			uint16_t value = entries[entryIndex];
 			double frequency = static_cast<double>(value) / UINT16_MAX;
-			QPointF nextPoint(plotToDeviceX(++generation, interiorRect), plotToDeviceY(frequency, interiorRect));
+			QPointF nextPoint(plotToDeviceX(++tick, interiorRect), plotToDeviceY(frequency, interiorRect));
 			
             linePath.lineTo(nextPoint);
 		}
@@ -472,19 +473,19 @@ bool QtSLiMGraphView_FrequencyTrajectory::providesStringForData(void)
     return true;
 }
 
-void QtSLiMGraphView_FrequencyTrajectory::appendEntriesToString(std::vector<MutationFrequencyHistory *> &array, QString &string, slim_generation_t completedGenerations)
+void QtSLiMGraphView_FrequencyTrajectory::appendEntriesToString(std::vector<MutationFrequencyHistory *> &array, QString &string, slim_tick_t completedTicks)
 {
     for (MutationFrequencyHistory *history : array)
     {
         int entryCount = static_cast<int>(history->entryCount);
-		slim_generation_t baseGeneration = history->baseGeneration;
+		slim_tick_t baseTick = history->baseTick;
 		
-		for (slim_generation_t gen = 1; gen <= completedGenerations; ++gen)
+		for (slim_tick_t tick = 1; tick <= completedTicks; ++tick)
 		{
-			if (gen < baseGeneration)
+			if (tick < baseTick)
                 string.append("NA, ");
-			else if (gen - baseGeneration < entryCount)
-                string.append(QString("%1, ").arg(static_cast<double>(history->entries[gen - baseGeneration]) / UINT16_MAX, 0, 'f', 4));
+			else if (tick - baseTick < entryCount)
+                string.append(QString("%1, ").arg(static_cast<double>(history->entries[tick - baseTick]) / UINT16_MAX, 0, 'f', 4));
 			else
                 string.append("NA, ");
 		}
@@ -495,20 +496,20 @@ void QtSLiMGraphView_FrequencyTrajectory::appendEntriesToString(std::vector<Muta
 
 void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
 {
-	SLiMSim *sim = controller_->sim;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
     if (plotLostMutations_)
 	{
 		string.append("# Lost mutations:\n");
-		appendEntriesToString(frequencyHistoryColdStorageLost_, string, completedGenerations);
+		appendEntriesToString(frequencyHistoryColdStorageLost_, string, completedTicks);
         string.append("\n\n");
 	}
 	
 	if (plotFixedMutations_)
 	{
 		string.append("# Fixed mutations:\n");
-		appendEntriesToString(frequencyHistoryColdStorageFixed_, string, completedGenerations);
+		appendEntriesToString(frequencyHistoryColdStorageFixed_, string, completedTicks);
         string.append("\n\n");
 	}
 	
@@ -521,7 +522,7 @@ void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
         for (auto &pair_ref : frequencyHistoryDict_)
             allActive.emplace_back(pair_ref.second);
         
-		appendEntriesToString(allActive, string, completedGenerations);
+		appendEntriesToString(allActive, string, completedTicks);
         string.append("\n\n");
 	}
 }
@@ -531,11 +532,11 @@ void QtSLiMGraphView_FrequencyTrajectory::appendStringForData(QString &string)
 //  MutationFrequencyHistory
 //
 
-MutationFrequencyHistory::MutationFrequencyHistory(uint16_t value, const Mutation *mutation, slim_generation_t generation)
+MutationFrequencyHistory::MutationFrequencyHistory(uint16_t value, const Mutation *mutation, slim_tick_t tick)
 {
     mutationID = mutation->mutation_id_;
     mutationType = mutation->mutation_type_ptr_;
-    baseGeneration = generation;
+    baseTick = tick;
     
     bufferSize = 0;
     entryCount = 0;

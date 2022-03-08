@@ -26,7 +26,6 @@
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_beep.h"
-#import "TipsWindowController.h"
 #import <WebKit/WebKit.h>
 
 #include <stdio.h>
@@ -287,7 +286,8 @@ typedef enum SLiMLaunchAction
 			break;
 	}
 	
-	[TipsWindowController showTipsWindowOnLaunch];
+	// The tips window has been removed so I don't have to maintain it, but the sources remain in the repository.  BCH 3/3/2022
+	//[TipsWindowController showTipsWindowOnLaunch];
 }
 
 - (void)openNewDocumentIfNeeded:(id)sender
@@ -328,8 +328,9 @@ typedef enum SLiMLaunchAction
 	
 	[defaults removeObjectForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
 	
-	[defaults removeObjectForKey:SLiMDefaultsShowTipsPanelKey];
-	[defaults removeObjectForKey:SLiMDefaultsTipsIndexKey];
+	// The tips window has been removed so I don't have to maintain it, but the sources remain in the repository.  BCH 3/3/2022
+	//[defaults removeObjectForKey:SLiMDefaultsShowTipsPanelKey];
+	//[defaults removeObjectForKey:SLiMDefaultsTipsIndexKey];
 }
 
 

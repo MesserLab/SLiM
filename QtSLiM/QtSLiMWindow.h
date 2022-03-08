@@ -33,7 +33,8 @@
 #include "eidos_globals.h"
 #include "slim_globals.h"
 #include "eidos_rng.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMPopulationTable.h"
 
@@ -75,14 +76,14 @@ private:
     std::string sim_working_dir;			// the current working dir that we will return to when executing SLiM/Eidos code
     std::string sim_requested_working_dir;	// the last working dir set by the user with the SLiMgui button/menu; we return to it on recycle
 
-    // play-related variables; note that continuousPlayOn covers profiling play, generation play, and normal play, whereas profilePlayOn,
-    // generationPlayOn_, and nonProfilePlayOn_ cover those cases individually; this is for simplicity in enable bindings in the nib
+    // play-related variables; note that continuousPlayOn covers profiling play, tick play, and normal play, whereas profilePlayOn,
+    // tickPlayOn_, and nonProfilePlayOn_ cover those cases individually; this is for simplicity in enable bindings in the nib
     bool invalidSimulation_ = true, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
-    bool generationPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
-    slim_generation_t targetGeneration_ = 0;
+    bool tickPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
+    slim_tick_t targetTick_ = 0;
     QElapsedTimer continuousPlayElapsedTimer_;
     QTimer continuousPlayInvocationTimer_;
-    uint64_t continuousPlayGenerationsCompleted_ = 0;
+    uint64_t continuousPlayTicksCompleted_ = 0;
     QTimer continuousProfileInvocationTimer_;
     QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
@@ -94,7 +95,7 @@ private:
     QDateTime profileEndDate_;
     std::clock_t profileElapsedCPUClock = 0;
     eidos_profile_t profileElapsedWallClock = 0;
-    slim_generation_t profileStartGeneration = 0;
+    slim_tick_t profileStartTick = 0;
 #endif
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
@@ -116,7 +117,7 @@ public:
     QString currentFile;
     
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
-    SLiMSim *sim = nullptr;		// the simulation instance for this window
+    Community *community = nullptr;		// the simulation instance for this window
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
@@ -155,7 +156,7 @@ public:
     void setReachedSimulationEnd(bool p_reachedEnd);
     inline bool isPlaying(void) { return continuousPlayOn_; }
     void setContinuousPlayOn(bool p_flag);
-    void setGenerationPlayOn(bool p_flag);
+    void setTickPlayOn(bool p_flag);
     void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     QtSLiMScriptTextEdit *scriptTextEdit(void);
@@ -172,7 +173,7 @@ public:
     void setScriptStringAndInitializeSimulation(std::string string);
     
     void updateOutputViews(void);
-    void updateGenerationCounter(void);
+    void updateTickCounter(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
     void updateProfileButtonIcon(bool pressed);
@@ -190,7 +191,7 @@ public:
     
     void willExecuteScript(void);
     void didExecuteScript(void);
-    bool runSimOneGeneration(void);
+    bool runSimOneTick(void);
     void _continuousPlay(void);
     void _continuousProfile(void);
     void _playOneStep(void);
@@ -198,7 +199,7 @@ public:
     enum PlayType {
         kNormalPlay = 0,
         kProfilePlay,
-        kGenerationPlay,
+        kTickPlay,
     };
     void playOrProfile(PlayType playType);
     
@@ -221,14 +222,14 @@ signals:
     
     void controllerUpdatedAfterTick(void);
     void controllerSelectionChanged(void);
-    void controllerGenerationFinished(void);
+    void controllerTickFinished(void);
     void controllerRecycled(void);
     
 public slots:
     void showTerminationMessage(QString terminationMessage);
     
     void playOneStepClicked(void);
-    void generationChanged(void);
+    void tickChanged(void);
     void recycleClicked(void);
     void playSpeedChanged(void);
 

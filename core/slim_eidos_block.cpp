@@ -13,7 +13,8 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "interaction_type.h"
 #include "subpopulation.h"
 
@@ -73,7 +74,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 	try
 	{
 		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
-		// Parsing of the optional generation range is done in Parse_SLiMEidosBlock() since it ends up as children of that node.
+		// Parsing of the optional tick range is done in Parse_SLiMEidosBlock() since it ends up as children of that node.
 		while (current_token_type_ != EidosTokenType::kTokenEOF)
 			node->AddChild(Parse_SLiMEidosBlock());
 		
@@ -135,13 +136,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				Match(EidosTokenType::kTokenIdentifier, "SLiM script block");
 			}
 			
-			// Next comes an optional generation X, or a generation range X:Y, X:, or :Y (a lone : is not legal).
+			// Next comes an optional tick X, or a tick range X:Y, X:, or :Y (a lone : is not legal).
 			// We don't parse this as if the : were an operator, since we have to allow for a missing start or end;
 			// for this reason, we make the : into a node of its own, with no children, so X:Y, X:, and :Y are distinct.
 			// SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) handles this anomalous tree structure.
 			if (current_token_type_ == EidosTokenType::kTokenNumber)
 			{
-				// A start generation is present; add it
+				// A start tick is present; add it
 				slim_script_block_node->AddChild(Parse_Constant());
 				
 				// If a colon is present, we have a range, although it could be just X:
@@ -150,24 +151,24 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					Match(EidosTokenType::kTokenColon, "SLiM script block");
 					
-					// If an end generation is present, add it
+					// If an end tick is present, add it
 					if (current_token_type_ == EidosTokenType::kTokenNumber)
 						slim_script_block_node->AddChild(Parse_Constant());
 				}
 			}
 			else if (current_token_type_ == EidosTokenType::kTokenColon)
 			{
-				// The generation range starts with a colon; first eat that
+				// The tick range starts with a colon; first eat that
 				slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 				Match(EidosTokenType::kTokenColon, "SLiM script block");
 				
-				// In this situation, we must have an end generation; a lone colon is not a legal generation specifier
+				// In this situation, we must have an end tick; a lone colon is not a legal tick specifier
 				if (current_token_type_ == EidosTokenType::kTokenNumber)
 					slim_script_block_node->AddChild(Parse_Constant());
 				else
 				{
 					if (!parse_make_bad_nodes_)
-						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the generation range end." << EidosTerminate(current_token_);
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an integer for the tick range end." << EidosTerminate(current_token_);
 					
 					// Introduce a bad node, since we're being error-tolerant
 					slim_script_block_node->AddChild(Parse_Constant());
@@ -651,22 +652,22 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 			}
 		}
 		
-		// eat the optional generation range, which could be X, X:Y, X:, or :Y
+		// eat the optional tick range, which could be X, X:Y, X:, or :Y
 		// we don't need to syntax-check here since the parse already did
 		if (child_index < n_children)
 		{
-			EidosToken *start_gen_token = block_children[child_index]->token_;
+			EidosToken *start_tick_token = block_children[child_index]->token_;
 			
-			if (start_gen_token->token_type_ == EidosTokenType::kTokenNumber)
+			if (start_tick_token->token_type_ == EidosTokenType::kTokenNumber)
 			{
-				int64_t long_start = EidosInterpreter::NonnegativeIntegerForString(start_gen_token->token_string_, start_gen_token);
+				int64_t long_start = EidosInterpreter::NonnegativeIntegerForString(start_tick_token->token_string_, start_tick_token);
 				
 				// We do our own range checking here so that we can highlight the bad token
-				if ((long_start < 1) || (long_start > SLIM_MAX_GENERATION))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start generation " << start_gen_token->token_string_ << " is out of range." << EidosTerminate(start_gen_token);
+				if ((long_start < 1) || (long_start > SLIM_MAX_TICK))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the start tick " << start_tick_token->token_string_ << " is out of range." << EidosTerminate(start_tick_token);
 				
-				start_generation_ = SLiMCastToGenerationTypeOrRaise(long_start);
-				end_generation_ = start_generation_;			// if a start is given, the default end is the same as the start
+				start_tick_ = SLiMCastToTickTypeOrRaise(long_start);
+				end_tick_ = start_tick_;			// if a start is given, the default end is the same as the start
 				child_index++;
 			}
 		}
@@ -675,29 +676,29 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 		{
 			EidosToken *colon_token = block_children[child_index]->token_;
 			
-			// we don't need to do much here except fix the end generation in case none is supplied, as in X:
+			// we don't need to do much here except fix the end tick in case none is supplied, as in X:
 			if (colon_token->token_type_ == EidosTokenType::kTokenColon)
 			{
-				end_generation_ = SLIM_MAX_GENERATION + 1;	// marker value for "no endpoint specified"; illegal for the user to specify this as a literal
+				end_tick_ = SLIM_MAX_TICK + 1;	// marker value for "no endpoint specified"; illegal for the user to specify this as a literal
 				child_index++;
 			}
 		}
 		
 		if (child_index < n_children)
 		{
-			EidosToken *end_gen_token = block_children[child_index]->token_;
+			EidosToken *end_tick_token = block_children[child_index]->token_;
 			
-			if (end_gen_token->token_type_ == EidosTokenType::kTokenNumber)
+			if (end_tick_token->token_type_ == EidosTokenType::kTokenNumber)
 			{
-				int64_t long_end = EidosInterpreter::NonnegativeIntegerForString(end_gen_token->token_string_, end_gen_token);
+				int64_t long_end = EidosInterpreter::NonnegativeIntegerForString(end_tick_token->token_string_, end_tick_token);
 				
 				// We do our own range checking here so that we can highlight the bad token
-				if ((long_end < 1) || (long_end > SLIM_MAX_GENERATION))
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_gen_token->token_string_ << " is out of range." << EidosTerminate(end_gen_token);
-				if (long_end < start_generation_)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end generation " << end_gen_token->token_string_ << " is less than the start generation." << EidosTerminate(end_gen_token);
+				if ((long_end < 1) || (long_end > SLIM_MAX_TICK))
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is out of range." << EidosTerminate(end_tick_token);
+				if (long_end < start_tick_)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): the end tick " << end_tick_token->token_string_ << " is less than the start tick." << EidosTerminate(end_tick_token);
 				
-				end_generation_ = SLiMCastToGenerationTypeOrRaise(long_end);
+				end_tick_ = SLiMCastToTickTypeOrRaise(long_end);
 				child_index++;
 			}
 		}
@@ -741,11 +742,11 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 					if (n_callback_children != 0)
 						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): initialize() callback needs 0 parameters." << EidosTerminate(callback_token);
 					
-					if ((start_generation_ != -1) || (end_generation_ != SLIM_MAX_GENERATION + 1))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a generation range cannot be specified for an initialize() callback." << EidosTerminate(callback_token);
+					if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): a tick range cannot be specified for an initialize() callback." << EidosTerminate(callback_token);
 					
-					start_generation_ = 0;
-					end_generation_ = 0;
+					start_tick_ = 0;
+					end_tick_ = 0;
 					type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
@@ -928,10 +929,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), start_generation_(p_start), end_generation_(p_end), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), user_script_line_offset_(p_user_script_line_offset)
 {
 	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization
@@ -1082,12 +1083,12 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 {
 	p_ostream << Class()->ClassName() << "<";
 	
-	if (start_generation_ > 0)
+	if (start_tick_ > 0)
 	{
-		p_ostream << start_generation_;
+		p_ostream << start_tick_;
 		
-		if (end_generation_ != start_generation_)
-			p_ostream << ":" << end_generation_;
+		if (end_tick_ != start_tick_)
+			p_ostream << ":" << end_tick_;
 		
 		p_ostream << " : ";
 	}
@@ -1127,9 +1128,9 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			return cached_value_block_id_;
 		}
 		case gEidosID_start:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(start_tick_));
 		case gEidosID_end:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_generation_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(end_tick_));
 		case gEidosID_type:
 		{
 			switch (type_)
@@ -1437,7 +1438,18 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 	// in EidosInterpreter.  _SetTypeForISArgumentOfClass() is safe to call with nullptr.
 	if (p_method_signature)
 	{
-		if (p_target == gSLiM_SLiMSim_Class)
+		if (p_target == gSLiM_Community_Class)
+		{
+			int argument_count = (int)p_arguments.size();
+			
+			const std::string &function_name = p_method_signature->call_name_;
+			
+			if (((function_name == "registerFirstEvent") || (function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "registerMutationCallback") || (function_name == "registerSurvivalCallback") || (function_name == "registerReproductionCallback") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
+			{
+				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
+			}
+		}
+		else if (p_target == gSLiM_Species_Class)
 		{
 			int argument_count = (int)p_arguments.size();
 			
@@ -1446,10 +1458,6 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
-			}
-			else if (((function_name == "registerFirstEvent") || (function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "registerMutationCallback") || (function_name == "registerSurvivalCallback") || (function_name == "registerReproductionCallback") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
-			{
-				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}
 		}
 	}

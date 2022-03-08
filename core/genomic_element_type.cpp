@@ -20,7 +20,8 @@
 
 #include "genomic_element_type.h"
 #include "slim_globals.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "mutation_type.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
@@ -33,9 +34,9 @@
 #pragma mark GenomicElementType
 #pragma mark -
 
-GenomicElementType::GenomicElementType(SLiMSim &p_sim, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
+GenomicElementType::GenomicElementType(Species &p_species, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class))),
-	sim_(p_sim), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions), mutation_matrix_(nullptr)
+	species_(p_species), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions), mutation_matrix_(nullptr)
 {
 	InitializeDraws();
 }
@@ -334,7 +335,7 @@ void GenomicElementType::SetProperty(EidosGlobalStringID p_property_id, const Ei
 				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 			
 			// tweak a flag to make SLiMgui update
-			sim_.genomic_element_types_changed_ = true;
+			species_.community_.genomic_element_types_changed_ = true;
 			
 			return;
 		}
@@ -382,7 +383,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{ 
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, sim_, "setMutationFractions()");
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, species_, "setMutationFractions()");
 		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
@@ -396,7 +397,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 		
 		// check whether we are now using a mutation type that is non-neutral; check and set pure_neutral_
 		if ((mutation_type_ptr->dfe_type_ != DFEType::kFixed) || (mutation_type_ptr->dfe_parameters_[0] != 0.0))
-			sim_.pure_neutral_ = false;
+			species_.pure_neutral_ = false;
 	}
 	
 	// Everything seems to be in order, so replace our mutation info with the new info
@@ -407,7 +408,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 	InitializeDraws();
 	
 	// Notify interested parties of the change
-	sim_.genomic_element_types_changed_ = true;
+	species_.community_.genomic_element_types_changed_ = true;
 	
 	return gStaticEidosValueVOID;
 }
@@ -417,9 +418,7 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationFractions(EidosGlobal
 EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim *sim = (SLiMSim *)p_interpreter.Context();
-	
-	if (!sim->IsNucleotideBased())
+	if (!species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::ExecuteMethod_setMutationMatrix): setMutationMatrix() may only be called in nucleotide-based models." << EidosTerminate();
 	
 	EidosValue *mutationMatrix_value = p_arguments[0].get();
@@ -427,9 +426,9 @@ EidosValue_SP GenomicElementType::ExecuteMethod_setMutationMatrix(EidosGlobalStr
 	SetNucleotideMutationMatrix(EidosValue_Float_vector_SP((EidosValue_Float_vector *)(mutationMatrix_value)));
 	
 	// the change to the mutation matrix means everything downstream has to be recached
-	sim_.CacheNucleotideMatrices();
-	sim_.CreateNucleotideMutationRateMap();
-	sim_.TheChromosome().InitializeDraws();
+	species_.CacheNucleotideMatrices();
+	species_.CreateNucleotideMutationRateMap();
+	species_.TheChromosome().InitializeDraws();
 	
 	return gStaticEidosValueVOID;
 }

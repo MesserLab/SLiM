@@ -69,7 +69,7 @@ public slots:
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);
     virtual void controllerSelectionChanged(void);
-    virtual void controllerGenerationFinished(void);
+    virtual void controllerTickFinished(void);
     virtual void updateAfterTick(void);
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
@@ -114,7 +114,7 @@ protected:
     
     // Prefab additions
     QString dateline(void);
-    void setXAxisRangeFromGeneration(void);
+    void setXAxisRangeFromTick(void);
     QtSLiMLegendSpec subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray);
     QtSLiMLegendSpec mutationTypeLegendKey(void);
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);

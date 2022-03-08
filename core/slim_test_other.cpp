@@ -931,7 +931,7 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { p1.setMigrationRates(2, 0.1); } ", 1, 301, "not available in nonWF models", __LINE__);
 	
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 mateChoice() { return T; } ", 1, 296, "may not be defined in nonWF models", __LINE__);
-	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 302, "not available in nonWF models", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ return T; } '); } ", 1, 308, "not available in nonWF models", __LINE__);
 	
 	// Test properties and methods that should be disabled in WF mode
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; } ", 1, 310, "not available in WF models", __LINE__);
@@ -945,9 +945,9 @@ void _RunNonWFTests(void)
 	
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 reproduction() { return; } ", 1, 293, "may not be defined in WF models", __LINE__);
 	
-	// SLiMSim.modelType
-	SLiMAssertScriptStop(nonWF_prefix + gen1_setup + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_sex + "1 { if (sim.modelType == 'nonWF') stop(); } ", __LINE__);
+	// Community.modelType
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup + "1 { if (community.modelType == 'nonWF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_sex + "1 { if (community.modelType == 'nonWF') stop(); } ", __LINE__);
 	
 	// Individual.age
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 { p1.individuals.age; stop(); } ", __LINE__);
@@ -1555,7 +1555,7 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptStop(nuc_model_init + "1 { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=c('A','C','G','T')); stop(); }", __LINE__);
 	SLiMAssertScriptStop(nuc_model_init + "1 { sim.addSubpop(1, 10); p1.genomes[0:3].addNewMutation(m1, 0.5, 10, nucleotide=0:3); stop(); }", __LINE__);
 	
-	// SLiMSim.nucleotideBased
+	// Species.nucleotideBased
 	SLiMAssertScriptStop(nuc_model_init + "1 { if (sim.nucleotideBased == T) stop(); }", __LINE__);
 	
 	// MutationType.nucleotideBased

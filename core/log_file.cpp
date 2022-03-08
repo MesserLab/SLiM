@@ -26,7 +26,8 @@
 #include <iomanip>
 
 #include "slim_globals.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "subpopulation.h"
 
 
@@ -37,7 +38,7 @@
 #pragma mark LogFile
 #pragma mark -
 
-LogFile::LogFile(SLiMSim &p_sim) : sim_(p_sim)
+LogFile::LogFile(Community &p_community) : community_(p_community)
 {
 }
 
@@ -90,7 +91,7 @@ void LogFile::SetLogInterval(bool p_autologging_enabled, int64_t p_logInterval)
 	
 	autologging_enabled_ = p_autologging_enabled;
 	log_interval_ = p_autologging_enabled ? p_logInterval : 0;
-	autolog_start_ = sim_.Generation();
+	autolog_start_ = community_.Tick();
 }
 
 void LogFile::SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval)
@@ -105,7 +106,7 @@ void LogFile::SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval
 EidosValue_SP LogFile::_GeneratedValue_Generation(const LogFileGeneratorInfo &p_generator_info)
 {
 #pragma unused(p_generator_info)
-	slim_generation_t generation = sim_.Generation();
+	slim_tick_t generation = community_.single_species_->Generation();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation));
 }
@@ -113,7 +114,7 @@ EidosValue_SP LogFile::_GeneratedValue_Generation(const LogFileGeneratorInfo &p_
 EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInfo &p_generator_info)
 {
 #pragma unused(p_generator_info)
-	SLiMGenerationStage generation_stage = sim_.GenerationStage();
+	SLiMGenerationStage generation_stage = community_.GenerationStage();
 	std::string stage_string = StringForSLiMGenerationStage(generation_stage);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
@@ -122,11 +123,11 @@ EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInf
 EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
 {
 #pragma unused(p_generator_info)
-	if (sim_.SexEnabled())
+	if (community_.single_species_->SexEnabled())
 	{
 		slim_popsize_t total_individuals = 0, total_males = 0;
 		
-		for (auto &subpop_iter : sim_.ThePopulation().subpops_)
+		for (auto &subpop_iter : community_.single_species_->population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
 			slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
@@ -151,7 +152,7 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 #pragma unused(p_generator_info)
 	slim_popsize_t total_individuals = 0;
 	
-	for (auto &subpop_iter : sim_.ThePopulation().subpops_)
+	for (auto &subpop_iter : community_.single_species_->population_.subpops_)
 		total_individuals += (subpop_iter.second)->CurrentSubpopSize();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(total_individuals));
@@ -159,9 +160,9 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
 {
-	Subpopulation *subpop = sim_.SubpopulationWithID(p_generator_info.objectid_);
+	Subpopulation *subpop = community_.single_species_->SubpopulationWithID(p_generator_info.objectid_);
 	
-	if (sim_.SexEnabled() && subpop)
+	if (community_.single_species_->SexEnabled() && subpop)
 	{
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
@@ -177,7 +178,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGenera
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorInfo &p_generator_info)
 {
-	Subpopulation *subpop = sim_.SubpopulationWithID(p_generator_info.objectid_);
+	Subpopulation *subpop = community_.single_species_->SubpopulationWithID(p_generator_info.objectid_);
 	
 	if (subpop)
 	{
@@ -191,6 +192,14 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorI
 	}
 }
 
+EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_generator_info)
+{
+#pragma unused(p_generator_info)
+	slim_tick_t tick = community_.Tick();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick));
+}
+
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
 {
 	// See, e.g., Subpopulation::ApplyGlobalFitnessCallbacks() for comments on running scripts
@@ -202,10 +211,10 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 	
 	try
 	{
-		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-		EidosFunctionMap &function_map = sim_.FunctionMap();
-		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+		EidosFunctionMap &function_map = community_.FunctionMap();
+		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
 		
@@ -239,9 +248,9 @@ void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_gen
 	
 	try
 	{
-		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+		EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 		EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-		EidosFunctionMap &function_map = sim_.FunctionMap();
+		EidosFunctionMap &function_map = community_.FunctionMap();
 		EidosInterpreter interpreter(*generator_script, client_symbols, function_map, nullptr, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 		
 		callback_symbols.InitializeConstantSymbolEntry(gID_context, p_generator_info.context_);
@@ -386,6 +395,9 @@ void LogFile::AppendNewRow(void)
 				case LogFileGeneratorType::kGenerator_SubpopulationSize:
 					generated_value = _GeneratedValue_SubpopulationSize(generator);
 					break;
+				case LogFileGeneratorType::kGenerator_Tick:
+					generated_value = _GeneratedValue_Tick(generator);
+					break;
 				case LogFileGeneratorType::kGenerator_CustomScript:
 					generated_value = _GeneratedValue_CustomScript(generator);
 					break;
@@ -469,13 +481,13 @@ void LogFile::AppendNewRow(void)
 	Eidos_WriteToFile(resolved_file_path_, line_vec, true, compress_, flush);
 }
 
-void LogFile::GenerationEndCallout(void)
+void LogFile::TickEndCallout(void)
 {
 	if (autologging_enabled_)
 	{
-		slim_generation_t generation = sim_.Generation();
+		slim_tick_t tick = community_.Tick();
 		
-		if ((generation - autolog_start_) % log_interval_ == 0)
+		if ((tick - autolog_start_) % log_interval_ == 0)
 			AppendNewRow();
 	}
 }
@@ -581,6 +593,7 @@ EidosValue_SP LogFile::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_addPopulationSize:				return ExecuteMethod_addPopulationSize(p_method_id, p_arguments, p_interpreter);
 		case gID_addSubpopulationSexRatio:		return ExecuteMethod_addSubpopulationSexRatio(p_method_id, p_arguments, p_interpreter);
 		case gID_addSubpopulationSize:			return ExecuteMethod_addSubpopulationSize(p_method_id, p_arguments, p_interpreter);
+		case gID_addTick:						return ExecuteMethod_addTick(p_method_id, p_arguments, p_interpreter);
 		case gID_flush:							return ExecuteMethod_flush(p_method_id, p_arguments, p_interpreter);
 		case gID_logRow:						return ExecuteMethod_logRow(p_method_id, p_arguments, p_interpreter);
 		case gID_setLogInterval:				return ExecuteMethod_setLogInterval(p_method_id, p_arguments, p_interpreter);
@@ -807,6 +820,20 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)addTick()
+EidosValue_SP LogFile::ExecuteMethod_addTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (header_logged_)
+		RaiseForLockedHeader("LogFile::ExecuteMethod_addTick");
+	
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Tick, nullptr, -1, EidosValue_SP()});
+	
+	column_names_.emplace_back("tick");
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	- (void)flush(void)
 EidosValue_SP LogFile::ExecuteMethod_flush(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -861,7 +888,7 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	EidosValue *compress_value = p_arguments[3].get();
 	EidosValue_String *sep_value = (EidosValue_String *)p_arguments[4].get();
 	
-	// Note that the parameters and their interpretation is different from SLiMSim::ExecuteMethod_createLogFile();
+	// Note that the parameters and their interpretation is different from Community::ExecuteMethod_createLogFile();
 	// in particular, NULL here means "keep the existing value"
 	const std::string &filePath = filePath_value->StringRefAtIndex(0, nullptr);
 	std::vector<const std::string *> initialContents;
@@ -960,6 +987,7 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSize, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSexRatio, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSize, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addTick, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_flush, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logRow, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setLogInterval, kEidosValueMaskVOID))->AddInt_OSN("logInterval", gStaticEidosValueNULL));

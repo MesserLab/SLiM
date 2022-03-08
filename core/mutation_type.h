@@ -40,7 +40,7 @@
 #include "eidos_symbol_table.h"
 #include "slim_globals.h"
 
-class SLiMSim;
+class Species;
 
 
 extern EidosClass *gSLiM_MutationType_Class;
@@ -79,7 +79,7 @@ public:
 	//
 	// examples: synonymous, nonsynonymous, adaptive, etc.
 	
-	SLiMSim &sim_;								// We have a reference back to our simulation, for running type "s" DFE scripts and other purposes
+	Species &species_;
 	
 	slim_objectid_t mutation_type_id_;			// the id by which this mutation type is indexed in the chromosome
 	EidosValue_SP cached_value_muttype_id_;		// a cached value for mutation_type_id_; reset() if that changes
@@ -108,11 +108,11 @@ public:
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	// MutationType now has the ability to (optionally) keep a registry of all extant mutations of its type in the simulation,
-	// separate from the main registry kept by Population.  This allows much faster response to SLiMSim::mutationsOfType()
-	// and SLiMSim::countOfMutationsOfType(), because the muttype's registry can be consulted rather than doing a full scan of
+	// separate from the main registry kept by Population.  This allows much faster response to Species::mutationsOfType()
+	// and Species::countOfMutationsOfType(), because the muttype's registry can be consulted rather than doing a full scan of
 	// main registry.  However, there is obviously overhead associated with adding/removing mutations from another registry, so
-	// this feature is only turned on if there is demand: when more than one call per generation is made to SLiMSim::mutationsOfType()
-	// or SLiMSim::countOfMutationsOfType() for a given muttype.  From then on, that muttype will track its own registry.  Obviously
+	// this feature is only turned on if there is demand: when more than one call per tick is made to Species::mutationsOfType()
+	// or Species::countOfMutationsOfType() for a given muttype.  From then on, that muttype will track its own registry.  Obviously
 	// this heuristic could be refined, perhaps with a way to stop tracking if it no longer seems to be used.
 	mutable int muttype_registry_call_count_;
 	mutable bool keeping_muttype_registry_;
@@ -126,16 +126,16 @@ public:
 	
 	// all_pure_neutral_DFE_ is true if the DFE is "f" 0.0.  It is cleared if any mutation of this type has its selection coefficient
 	// changed, so it can be used as a reliable indicator that mutations of a given mutation type are actually neutral – except for
-	// the effects of fitness callbacks, which might make them non-neutral in a given generation / subpopulation.
+	// the effects of fitness callbacks, which might make them non-neutral in a given tick / subpopulation.
 	mutable bool all_pure_neutral_DFE_;
 	
 	// is_pure_neutral_now_ is set up by Subpopulation::UpdateFitness(), and is valid only inside a given UpdateFitness() call.
 	// If set, it indicates that the mutation type is currently pure neutral – either because all_pure_neutral_DFE_ is set and the
-	// mutation type cannot be influenced by any callbacks in the current subpopulation / generation, or because an active callback
-	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / generation.  Mutations for which this
+	// mutation type cannot be influenced by any callbacks in the current subpopulation / tick, or because an active callback
+	// actually sets the mutation type to be a constant value of 1.0 in this subpopulation / tick.  Mutations for which this
 	// flag is set can be safely elided from fitness calculations altogether; the flag will not be set if other active callbacks
 	// could mess things up for the mutation type by, e.g., deactivating the neutral-making callback.  If this flag is set for all
-	// muttypes, chromosome-based fitness calculations will be skipped altogether for this generation.
+	// muttypes, chromosome-based fitness calculations will be skipped altogether for this tick.
 	mutable bool is_pure_neutral_now_;
 	
 	// set_neutral_by_global_active_callback_ is set by RecalculateFitness() if the muttype is made neutral by a constant callback
@@ -162,9 +162,9 @@ public:
 	MutationType& operator=(const MutationType&) = delete;		// no copying
 	MutationType(void) = delete;								// no null construction
 #ifdef SLIMGUI
-	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings, int p_mutation_type_index);
 #else
-	MutationType(SLiMSim &p_sim, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
+	MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings);
 #endif
 	~MutationType(void);
 	

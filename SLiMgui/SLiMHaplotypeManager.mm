@@ -41,8 +41,8 @@
 {
 	if (self = [super init])
 	{
-		SLiMSim *sim = controller->sim;
-		Population &population = sim->population_;
+		Species *species = controller->community->single_species_;
+		Population &population = species->population_;
 		
 		clusterMethod = clusteringMethod;
 		clusterOptimization = optimizationMethod;
@@ -97,7 +97,7 @@
 		if (usingSubrange)
 			title = [title stringByAppendingFormat:@", positions %lld:%lld", (int64_t)subrangeFirstBase, (int64_t)subrangeLastBase];
 		
-		title = [title stringByAppendingFormat:@", generation %d", (int)sim->generation_];
+		title = [title stringByAppendingFormat:@", tick %d", (int)controller->community->Tick()];
 		
 		[self setTitleString:title];
 		[self setSubpopCount:(int)selected_subpops.size()];
@@ -215,8 +215,8 @@
 
 - (void)configureMutationInfoBufferForController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &population = sim->population_;
+	Species *species = controller->community->single_species_;
+	Population &population = species->population_;
 	double scalingFactor = controller->selectionColorScale;
 	int registry_size;
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
@@ -268,7 +268,7 @@
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_->last_position_;
+	mutationLastPosition = species->TheChromosome().last_position_;
 }
 
 // Delegate the genome sorting to the appropriate method based on our configuration

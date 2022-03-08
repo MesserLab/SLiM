@@ -51,7 +51,7 @@
  the objects needed to be patched with the new pointers, including inside Eidos objects.  This was slow, and very prone to
  difficult-to-find bugs.  On balance, it was a bad idea, and is being ripped out now.  Instead, Population will keep the object
  pools for the whole species.  For both efficiency and ease of implementation, Subpopulation will keep its own pointers to the
- object pools and junkyard vectors, but these really belong to SLiMSim and are shared now.
+ object pools and junkyard vectors, but these really belong to Species and are shared now.
  
  */
 
@@ -67,7 +67,7 @@
 #include "slim_eidos_block.h"
 #include "individual.h"
 #include "population.h"
-#include "slim_sim.h"
+#include "species.h"
 
 #include <vector>
 #include <map>
@@ -144,7 +144,10 @@ private:
 	
 public:
 	
-	Population &population_;						// we need to know our Population so we can remove ourselves, etc.
+	Community &community_;
+	Species &species_;
+	Population &population_;
+	SLiMModelType model_type_;
 	
 	slim_objectid_t subpopulation_id_;				// the id by which this subpopulation is indexed in the Population
 	EidosValue_SP cached_value_subpop_id_;			// a cached value for subpopulation_id_; reset() if changed
@@ -247,7 +250,7 @@ public:
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
-	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match SLiMSim
+	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;	// ...and needs to know what type of chromosomes its individuals are modeling; this should match Species
 	
 	// continuous-space info
 	double bounds_x0_ = 0.0, bounds_x1_ = 1.0;
@@ -430,10 +433,8 @@ public:
 			individual_pool_.DisposeChunk(const_cast<Individual *>(p_individual));
 			
 			// TREE SEQUENCE RECORDING
-			SLiMSim &sim = population_.sim_;
-			
-			if (sim.RecordingTreeSequence())
-				sim.RetractNewIndividual();
+			if (species_.RecordingTreeSequence())
+				species_.RetractNewIndividual();
 		}
 		
 		return gStaticEidosValueNULL;

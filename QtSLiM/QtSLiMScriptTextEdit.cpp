@@ -280,7 +280,7 @@ QtSLiMEidosConsole *QtSLiMTextEdit::slimEidosConsoleForWindow(void)
 
 bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResponse)
 {
-	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
+	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
 	QString currentScriptString = toPlainText();
     QByteArray utf8bytes = currentScriptString.toUtf8();
@@ -712,14 +712,14 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &scr
     // This lower-level function takes a tokenized script object and works from there, allowing reuse of work
     // in the case of attributedSignatureForScriptString:...
     QtSLiMWindow *windowSLiMController = slimControllerForWindow();
-    SLiMSim *sim = (windowSLiMController ? windowSLiMController->sim : nullptr);
+    Community *community = (windowSLiMController ? windowSLiMController->community : nullptr);
     bool invalidSimulation = (windowSLiMController ? windowSLiMController->invalidSimulation() : true);
     
     // start with all the functions that are available in the current simulation context
     EidosFunctionMap *functionMapPtr = nullptr;
     
-    if (sim && !invalidSimulation)
-        functionMapPtr = new EidosFunctionMap(sim->FunctionMap());
+    if (community && !invalidSimulation)
+        functionMapPtr = new EidosFunctionMap(community->FunctionMap());
     else
         functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
     
@@ -730,8 +730,8 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &scr
     if (includingOptionalFunctions)
     {
         // add SLiM functions that are context-dependent
-        SLiMSim::AddZeroGenerationFunctionsToMap(*functionMapPtr);
-        SLiMSim::AddSLiMFunctionsToMap(*functionMapPtr);
+        Community::AddZeroTickFunctionsToMap(*functionMapPtr);
+        Community::AddSLiMFunctionsToMap(*functionMapPtr);
     }
     
     // OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
@@ -1871,7 +1871,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // all functions that are defined, even if below the completion point, end up in the function map.
     *functionMap = functionMapForScriptString(toPlainText(), false);
     
-    SLiMSim::AddSLiMFunctionsToMap(**functionMap);
+    Community::AddSLiMFunctionsToMap(**functionMap);
     
     // Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
     // script block is the one we are actually completing inside, but we also want to do a quick scan of any other
@@ -1896,7 +1896,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
         {
             for (EidosASTNode *script_block_node : script_root->children_)
             {
-                // script_block_node can have various children, such as an sX identifier, start and end generations, a block type
+                // script_block_node can have various children, such as an sX identifier, start and end ticks, a block type
                 // identifier like late(), and then the root node of the compound statement for the script block.  We want to
                 // decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
                 EidosASTNode *block_statement_root = nullptr;
@@ -1964,22 +1964,28 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                     // dynamically so that each block has it defined or not defined as necessary.  Since the completion block
                     // is last, the sim symbol will be correctly defined at the end of this process.
                     if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+                    {
                         (*typeTable)->RemoveTypeForSymbol(gID_sim);
+                        (*typeTable)->RemoveTypeForSymbol(gID_community);
+                    }
                     else
-                        (*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+                    {
+                        (*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+                        (*typeTable)->SetTypeForSymbol(gID_community, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Community_Class});
+                    }
                     
                     // The slimgui symbol is always available within a block, but not at the top level
                     (*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
                     
-                    // Do the same for the zero-generation functions, which should be defined in initialization() blocks and
+                    // Do the same for the zero-tick functions, which should be defined in initialization() blocks and
                     // not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
                     // to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
                     // Note that we consider the zero-gen functions to always be defined inside function blocks, since the
                     // function might be called from the zero gen (we have no way of knowing definitively).
                     if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
-                        SLiMSim::AddZeroGenerationFunctionsToMap(**functionMap);
+                        Community::AddZeroTickFunctionsToMap(**functionMap);
                     else
-                        SLiMSim::RemoveZeroGenerationFunctionsFromMap(**functionMap);
+                        Community::RemoveZeroTickFunctionsFromMap(**functionMap);
                     
                     if (script_block_node == completion_block)
                     {

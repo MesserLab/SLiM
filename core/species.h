@@ -1,5 +1,5 @@
 //
-//  slim_sim.h
+//  species.h
 //  SLiM
 //
 //  Created by Ben Haller on 12/26/14.
@@ -19,30 +19,21 @@
 
 /*
  
- SLiM encapsulates a simulation run as a SLiMSim object.  This allows a simulation to be stepped and controlled by a GUI.
+ SLiM encapsulates a simulation run as a Species object.  This allows a simulation to be stepped and controlled by a GUI.
  
  */
 
-#ifndef __SLiM__slim_sim__
-#define __SLiM__slim_sim__
+#ifndef __SLiM__species__
+#define __SLiM__species__
 
 
-#include <stdio.h>
-#include <map>
 #include <vector>
-#include <iostream>
-#include <ctime>
-#include <unordered_set>
+#include <map>
 
 #include "slim_globals.h"
-#include "mutation.h"
-#include "mutation_type.h"
 #include "population.h"
 #include "chromosome.h"
-#include "eidos_script.h"
 #include "eidos_value.h"
-#include "eidos_functions.h"
-#include "slim_eidos_block.h"
 #include "interaction_type.h"
 
 //TREE SEQUENCE
@@ -58,55 +49,13 @@ extern "C" {
 #endif
 
 
+class Community;
 class EidosInterpreter;
 class Individual;
-class LogFile;
 struct ts_subpop_info;
 struct ts_mut_info;
 
-#ifdef SLIMGUI
-// Forward declaration of EidosInterpreterDebugPointsSet; see eidos_interpreter.cpp
-struct EidosInterpreterDebugPointsSet_struct;
-typedef EidosInterpreterDebugPointsSet_struct EidosInterpreterDebugPointsSet;
-#endif
-
-extern EidosClass *gSLiM_SLiMSim_Class;
-
-enum class SLiMModelType
-{
-	kModelTypeWF = 0,	// a Wright-Fisher model: the original model type supported by SLiM
-	kModelTypeNonWF		// a non-Wright-Fisher model: a new model type that is more general
-};
-
-enum class SLiMGenerationStage
-{
-	kStagePreGeneration = 0,
-	
-	// stages for WF models
-	kWFStage0ExecuteFirstScripts = 1,
-	kWFStage1ExecuteEarlyScripts,
-	kWFStage2GenerateOffspring,
-	kWFStage3RemoveFixedMutations,
-	kWFStage4SwapGenerations,
-	kWFStage5ExecuteLateScripts,
-	kWFStage6CalculateFitness,
-	kWFStage7AdvanceGenerationCounter,
-	
-	// stages for nonWF models
-	kNonWFStage0ExecuteFirstScripts = 101,
-	kNonWFStage1GenerateOffspring,
-	kNonWFStage2ExecuteEarlyScripts,
-	kNonWFStage3CalculateFitness,
-	kNonWFStage4SurvivalSelection,
-	kNonWFStage5RemoveFixedMutations,
-	kNonWFStage6ExecuteLateScripts,
-	kNonWFStage7AdvanceGenerationCounter,
-	
-	// end stage between generations; things in the Eidos console happen here
-	kStagePostGeneration = 201,
-};
-
-std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage);
+extern EidosClass *gSLiM_Species_Class;
 
 enum class SLiMFileFormat
 {
@@ -135,14 +84,14 @@ typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
-	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
+	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
 	int8_t nucleotide_;						// 1 byte (int8_t): the nucleotide for the mutation (0='A', 1='C', 2='G', 3='T'), or -1
 } MutationMetadataRec;
 typedef struct __attribute__((__packed__)) {
 	slim_objectid_t mutation_type_id_;		// 4 bytes (int32_t): the id of the mutation type the mutation belongs to
 	slim_selcoeff_t selection_coeff_;		// 4 bytes (float): the selection coefficient
 	slim_objectid_t subpop_index_;			// 4 bytes (int32_t): the id of the subpopulation in which the mutation arose
-	slim_generation_t origin_generation_;	// 4 bytes (int32_t): the generation in which the mutation arose
+	slim_tick_t origin_tick_;				// 4 bytes (int32_t): the tick in which the mutation arose
 } MutationMetadataRec_PRENUC;	// used to read .trees file version 0.2, before nucleotides were added
 
 typedef struct __attribute__((__packed__)) {
@@ -207,133 +156,22 @@ static_assert(sizeof(SubpopulationMigrationMetadataRec_PREJSON) == 12, "Subpopul
 #endif
 
 
-// Memory usage assessment as done by SLiMSim::TabulateMemoryUsage() is placed into this struct
-typedef struct
-{
-	int64_t chromosomeObjects_count;
-	size_t chromosomeObjects;
-	size_t chromosomeMutationRateMaps;
-	size_t chromosomeRecombinationRateMaps;
-	size_t chromosomeAncestralSequence;
-	
-	int64_t genomeObjects_count;
-	size_t genomeObjects;
-	size_t genomeExternalBuffers;
-	size_t genomeUnusedPoolSpace;
-	size_t genomeUnusedPoolBuffers;
-	
-	int64_t genomicElementObjects_count;
-	size_t genomicElementObjects;
-	
-	int64_t genomicElementTypeObjects_count;
-	size_t genomicElementTypeObjects;
-	
-	int64_t individualObjects_count;
-	size_t individualObjects;
-	size_t individualUnusedPoolSpace;
-	
-	int64_t interactionTypeObjects_count;
-	size_t interactionTypeObjects;
-	size_t interactionTypeKDTrees;
-	size_t interactionTypePositionCaches;
-	size_t interactionTypeSparseArrays;
-	
-	int64_t mutationObjects_count;
-	size_t mutationObjects;
-	size_t mutationRefcountBuffer;
-	size_t mutationUnusedPoolSpace;
-	
-	int64_t mutationRunObjects_count;
-	size_t mutationRunObjects;
-	size_t mutationRunExternalBuffers;
-	size_t mutationRunNonneutralCaches;
-	size_t mutationRunUnusedPoolSpace;
-	size_t mutationRunUnusedPoolBuffers;
-	
-	int64_t mutationTypeObjects_count;
-	size_t mutationTypeObjects;
-	
-	int64_t slimsimObjects_count;
-	size_t slimsimObjects;
-	size_t slimsimTreeSeqTables;
-	
-	int64_t subpopulationObjects_count;
-	size_t subpopulationObjects;
-	size_t subpopulationFitnessCaches;
-	size_t subpopulationParentTables;
-	size_t subpopulationSpatialMaps;
-	size_t subpopulationSpatialMapsDisplay;
-	
-	int64_t substitutionObjects_count;
-	size_t substitutionObjects;
-	
-	size_t eidosASTNodePool;
-	size_t eidosSymbolTablePool;
-	size_t eidosValuePool;
-	
-	size_t totalMemoryUsage;
-} SLiM_MemoryUsage;
-
-
 #pragma mark -
-#pragma mark SLiMSim
+#pragma mark Species
 #pragma mark -
 
-class SLiMSim : public EidosDictionaryUnretained
+class Species : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 private:
 	typedef EidosDictionaryUnretained super;
 
-private:
-	// the way we handle script blocks is complicated and is private even against SLiMgui
-	
-	SLiMEidosScript *script_;														// OWNED POINTER: the whole input file script
-	std::vector<SLiMEidosBlock*> script_blocks_;									// OWNED POINTERS: script blocks, both from the input file script and programmatic
-	std::vector<SLiMEidosBlock*> scheduled_deregistrations_;						// NOT OWNED: blocks in script_blocks_ that are scheduled for deregistration
-	std::vector<SLiMEidosBlock*> scheduled_interaction_deregs_;						// NOT OWNED: interaction() callbacks in script_blocks_ that are scheduled for deregistration
-	
-	// a cache of the last generation for the simulation, for speed
-	bool last_script_block_gen_cached_ = false;
-	slim_generation_t last_script_block_gen_;										// the last generation in which a bounded script block is scheduled to run
-	
-	// scripts blocks prearranged for fast lookup; these are all stored in script_blocks_ as well
-	bool script_block_types_cached_ = false;
-	std::vector<SLiMEidosBlock*> cached_first_events_;
-	std::vector<SLiMEidosBlock*> cached_early_events_;
-	std::vector<SLiMEidosBlock*> cached_late_events_;
-	std::vector<SLiMEidosBlock*> cached_initialize_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_fitness_callbacks_;
-	std::unordered_multimap<slim_generation_t, SLiMEidosBlock*> cached_fitnessglobal_callbacks_onegen_;	// see ValidateScriptBlockCaches() for details
-	std::vector<SLiMEidosBlock*> cached_fitnessglobal_callbacks_multigen_;
-	std::vector<SLiMEidosBlock*> cached_interaction_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_matechoice_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_recombination_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_mutation_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_survival_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_reproduction_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_userdef_functions_;
-	
-#ifdef SLIMGUI
-	EidosInterpreterDebugPointsSet *debug_points_ = nullptr;						// NOT OWNED; line numbers for all lines with debugging points set
-#endif
-	
 #ifdef SLIMGUI
 public:
 	
-	bool simulation_valid_ = true;													// set to false if a terminating condition is encountered while running in SLiMgui
-
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
-	// PROFILING
-	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
-	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
-	
-	SLiM_MemoryUsage profile_last_memory_usage_;
-	SLiM_MemoryUsage profile_total_memory_usage_;
-	int64_t total_memory_tallies_;
-	
+	// PROFILING : Community keeps track of its mutation-related profile info
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
@@ -345,26 +183,14 @@ public:
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 #endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
-	
+
 #else
 private:
 #endif
 	
-	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
-	
-	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
-	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
-	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
-	
-	// these ivars track the generation, generation stage, and related state
-	slim_generation_t time_start_ = 0;												// the first generation number for which the simulation will run
-	slim_generation_t generation_ = 0;												// the current generation reached in simulation
-	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStagePreGeneration;		// the within-generation stage currently being executed
-	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current generation
-	EidosValue_SP cached_value_generation_;											// a cached value for generation_; reset() if changed
-	
-	Chromosome *chromosome_;														// the chromosome, which defines genomic elements
-	Population population_;															// the population, which contains sub-populations
+	// Species simulation state
+	slim_tick_t generation_ = 0;													// the current generation reached in simulation
+	EidosValue_SP cached_value_generation_;											// a cached value for generation_; invalidates automatically when used
 	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
@@ -379,10 +205,9 @@ private:
 	
 	// private initialization methods
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
-	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
-	slim_generation_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
-	slim_generation_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM text file
-	slim_generation_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
+	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
+	slim_tick_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);				// initialize the population from a SLiM text file
+	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
 	int num_interaction_types_;
@@ -426,38 +251,35 @@ private:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;								// a user-defined tag value
 	
-	// LogFile registry, for logging data out to a file
-	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
-	
-	// Mutation run optimization.  The ivars here are used only internally by SLiMSim; the canonical reference regarding the
+	// Mutation run optimization.  The ivars here are used only internally by Species; the canonical reference regarding the
 	// number and length of mutation runs is kept by Chromosome (for the simulation) and by Genome (for each genome object).
-	// If SLiMSim decides to change the number of mutation runs, it will update those canonical repositories accordingly.
+	// If Species decides to change the number of mutation runs, it will update those canonical repositories accordingly.
 	// A prefix of x_ is used on all mutation run experiment ivars, to avoid confusion.
 #define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
 #define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
 	
-	bool x_experiments_enabled_;		// if false, no experiments are run and no generation runtimes are recorded
+	bool x_experiments_enabled_;				// if false, no experiments are run and no generation runtimes are recorded
 	
-	int32_t x_current_mutcount_;		// the number of mutation runs we're currently using
-	double *x_current_runtimes_;		// generation runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_current_buflen_;				// the number of runtimes in the current_mutcount_runtimes_ buffer
+	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
+	double *x_current_runtimes_;				// generation runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_current_buflen_;						// the number of runtimes in the current_mutcount_runtimes_ buffer
 	
-	int32_t x_previous_mutcount_;		// the number of mutation runs we previously used
-	double *x_previous_runtimes_;		// generation runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
-	int x_previous_buflen_;				// the number of runtimes in the previous_mutcount_runtimes_ buffer
+	int32_t x_previous_mutcount_;				// the number of mutation runs we previously used
+	double *x_previous_runtimes_;				// generation runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	int x_previous_buflen_;						// the number of runtimes in the previous_mutcount_runtimes_ buffer
 	
-	bool x_continuing_trend_;			// if true, the current experiment continues a trend, such that the opposite trend can be excluded
+	bool x_continuing_trend_;					// if true, the current experiment continues a trend, such that the opposite trend can be excluded
 	
-	int64_t x_stasis_limit_;			// how many stasis experiments we're running between change experiments; gets longer over time
-	double x_stasis_alpha_;				// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
-	int64_t x_stasis_counter_;			// how many stasis experiments we have run so far
-	int32_t x_prev1_stasis_mutcount_;	// the number of mutation runs we settled on when we reached stasis last time
-	int32_t x_prev2_stasis_mutcount_;	// the number of mutation runs we settled on when we reached stasis the time before last
+	int64_t x_stasis_limit_;					// how many stasis experiments we're running between change experiments; gets longer over time
+	double x_stasis_alpha_;						// the alpha threshold at which we decide that stasis has been broken; gets smaller over time
+	int64_t x_stasis_counter_;					// how many stasis experiments we have run so far
+	int32_t x_prev1_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis last time
+	int32_t x_prev2_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis the time before last
 	
 	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
 	
-	std::clock_t x_excluded_clocks_;	// a counter of clocks to be excluded from the generation runtime; FIXME not clear that this is a very good
-										// design, because any kind of "if (sim.generation % X == 0)" type code will skew the counts anyway...
+	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current generation's runtime (across measured code blocks)
+												// look at MUTRUNEXP_START_TIMING() / MUTRUNEXP_END_TIMING() usage to see which blocks are measured
 	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
@@ -493,15 +315,12 @@ private:
 	int64_t simplify_elapsed_ = 0;				// the number of generations elapsed since a simplification was done (automatic or otherwise)
 	double simplify_interval_;					// the current number of generations between automatic simplifications when using simplification_ratio_
 	
-	slim_generation_t tree_seq_generation_ = 0;	// the generation for the tree sequence code, incremented after offspring generation
-												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
-												// arrive in the same generation according to SLiM, which confuses the tree-seq code
-												// BCH 5/13/2021: We now increment this after first() events in nonWF models, too
-	double tree_seq_generation_offset_ = 0;		// this is a fractional offset added to tree_seq_generation_; this is needed to make successive calls
-												// to addSubpopSplit() arrive at successively later times; see Population::AddSubpopulationSplit()
-	std::string treeseq_time_unit_;				// set in initializeTreeSeq(), written out to .trees; has no effect on the simulation, just user data
-	
 public:
+	
+	SLiMModelType model_type_;
+	Community &community_;						// the community that this species belongs to
+	Chromosome *chromosome_;					// the chromosome, which defines genomic elements
+	Population population_;						// the population, which contains sub-populations
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
 	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
@@ -519,67 +338,39 @@ public:
 	// this flag is set if the dominance coeff (regular or haploid) changes on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
 	bool any_dominance_coeff_changed_ = false;
 	
-	// warning flags; used to issue warnings only once per run of the simulation
-	bool warned_early_mutation_add_ = false;
-	bool warned_early_mutation_remove_ = false;
-	bool warned_early_output_ = false;
-	bool warned_early_read_ = false;
-	bool warned_no_max_distance_ = false;
-	bool warned_inSLiMgui_deprecated_ = false;
-	bool warned_readFromVCF_mutIDs_unused_ = false;
+	Species(const Species&) = delete;											// no copying
+	Species& operator=(const Species&) = delete;								// no copying
+	explicit Species(Community &p_community);									// construct a Species from a community
+	~Species(void);																// destructor
 	
-	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
-	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now
-	Individual *focal_modification_child_;					// set during a modifyChild() callback to indicate the child being modified
-	
-	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display
-	bool interaction_types_changed_ = true;
-	bool mutation_types_changed_ = true;
-	bool genomic_element_types_changed_ = true;
-	bool chromosome_changed_ = true;
-	bool scripts_changed_ = true;
-	
-	// provenance-related stuff: remembering the seed and command-line args
-	unsigned long int original_seed_;												// the initial seed value, from the user via the -s CLI option, or auto-generated
-	std::vector<std::string> cli_params_;											// CLI parameters; an empty vector when run in SLiMgui, at least for now
-	
-	// global state about what symbols/names/identifiers have been used or are being used
-	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
-	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
-	
-	SLiMSim(const SLiMSim&) = delete;												// no copying
-	SLiMSim& operator=(const SLiMSim&) = delete;									// no copying
-	explicit SLiMSim(std::istream &p_infile);										// construct a SLiMSim from an input stream
-	~SLiMSim(void);																	// destructor
-	
-	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally
-	void TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p_current_symbols);	// used by outputUsage() and SLiMgui profiling
-	
-	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
-	void ValidateScriptBlockCaches(void);
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_generation_t p_generation, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
-	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
-	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);
-	void AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p_interpreter, const EidosToken *p_error_token);
-	void DeregisterScheduledScriptBlocks(void);
-	void DeregisterScheduledInteractionBlocks(void);
-	void ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block);			// execute a SLiMEidosBlock that defines a function
-	void CheckScheduling(slim_generation_t p_target_gen, SLiMGenerationStage p_target_stage);
+	void TabulateMemoryUsage(SLiM_MemoryUsage *p_usage);	// used by outputUsage() and SLiMgui profiling
 	
 	// Running generations
-	void RunInitializeCallbacks(void);												// run initialize() callbacks and check for complete initialization
-	bool RunOneGeneration(void);													// run one generation and advance the generation count; returns false if finished
-	bool _RunOneGeneration(void);													// does the work of RunOneGeneration(), with no try/catch
-#ifdef SLIM_WF_ONLY
-	bool _RunOneGenerationWF(void);													// called by _RunOneGeneration() to run a generation (WF models)
-#endif
-#ifdef SLIM_NONWF_ONLY
-	bool _RunOneGenerationNonWF(void);												// called by _RunOneGeneration() to run a generation (nonWF models)
-#endif
+	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
+	void RunInitializeCallbacks(void);
+	void PrepareForGenerationCycle(void);
+	void MaintainMutationRegistry(void);
+	void InvalidateAllInteractions(void);
+	void RecalculateFitness(void);
+	void MaintainTreeSequence(void);
+	void FinishMutationRunExperimentTiming(void);
 	
-	slim_generation_t FirstGeneration(void);										// derived from the first gen in which an Eidos block is registered
-	slim_generation_t EstimatedLastGeneration(void);								// derived from the last generation in which an Eidos block is registered
-	void SimulationFinished(void);
+	void WF_GenerateOffspring(void);
+	void WF_SwitchToChildGeneration(void);
+	void WF_SwapGenerations(void);
+	
+	void nonWF_GenerateOffspring(void);
+	void nonWF_ViabilitySurvival(void);
+	
+	void AdvanceGenerationCounter(void);
+	void SimulationHasFinished(void);
+	
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+	// PROFILING
+#if SLIM_USE_NONNEUTRAL_CACHES
+	void CollectSLiMguiMutationProfileInfo(void);
+#endif
+#endif
 	
 	// Mutation run experiments
 	void InitiateMutationRunExperiments(void);
@@ -587,14 +378,6 @@ public:
 	void TransitionToNewExperimentAgainstPreviousExperiment(int32_t p_new_mutrun_count);
 	void EnterStasisForMutationRunExperiments(void);
 	void MaintainMutationRunExperiments(double p_last_gen_runtime);
-	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
-	// PROFILING
-	void CollectSLiMguiMemoryUsageProfileInfo(void);
-#if SLIM_USE_NONNEUTRAL_CACHES
-	void CollectSLiMguiMutationProfileInfo(void);
-#endif
-#endif
 	
 	// Mutation stack policy checking
 	inline __attribute__((always_inline)) void MutationStackPolicyChanged(void)												{ mutation_stack_policy_changed_ = true; }
@@ -606,15 +389,9 @@ public:
 	void CreateNucleotideMutationRateMap(void);
 	
 	// accessors
-	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) const											{ return *simulation_constants_; }
-	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void)												{ return simulation_functions_; }
-	
-	inline __attribute__((always_inline)) SLiMModelType ModelType(void) const												{ return model_type_; }
-	inline __attribute__((always_inline)) slim_generation_t Generation(void) const											{ return generation_; }
-	void SetGeneration(slim_generation_t p_new_generation);
-	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
+	inline __attribute__((always_inline)) slim_tick_t Generation(void) const												{ return generation_; }
+	void SetGeneration(slim_tick_t p_new_generation);
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
-	inline __attribute__((always_inline)) Population &ThePopulation(void)													{ return population_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void)			{ return interaction_types_; }
@@ -660,31 +437,13 @@ public:
 	inline __attribute__((always_inline)) bool IsNucleotideBased(void) const												{ return nucleotide_based_; }
 	
 	
-	// ***********************************  Support for debugging points in SLiMgui
-#ifdef SLIMGUI
-	// Set the debug points to be used; note that a copy is *not* made, the caller guarantees the lifetime of the passed object
-	inline void SetDebugPoints(EidosInterpreterDebugPointsSet *p_debug_points) { debug_points_ = p_debug_points; }
-	virtual EidosInterpreterDebugPointsSet *DebugPoints(void) override { return debug_points_; }
-	virtual std::string DebugPointInfo(void) override { return std::string(", gen ") + std::to_string(generation_); };
-#endif
-	
-	// ***********************************  Support for file observing notifications in SLiMgui
-#ifdef SLIMGUI
-	virtual void FileWriteNotification(const std::string &p_file_path, std::vector<std::string> &&p_lines, bool p_append) override;
-	
-	std::vector<std::string> file_write_paths_;						// full file paths for the file writes we have seen, in order of occurrence
-    std::vector<std::vector<std::string>> file_write_buffers_;		// remembered file write lines, keyed by the full file path; read by SLiMgui
-    std::vector<uint8_t> file_write_appends_;						// a parallel map just keeping a bool flag: true == append, false == overwrite
-#endif
-
-	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording methods
 #pragma mark -
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
-	inline __attribute__((always_inline)) void AboutToSplitSubpop(void)														{ tree_seq_generation_offset_ += 0.00001; }	// see Population::AddSubpopulationSplit()
+	void AboutToSplitSubpop(void);	// see Population::AddSubpopulationSplit()
 	
 	static void handle_error(std::string msg, int error);
 	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
@@ -695,7 +454,7 @@ public:
 	static void DerivedStatesFromAscii(tsk_table_collection_t *p_tables);
 	static void DerivedStatesToAscii(tsk_table_collection_t *p_tables);
 	
-	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);
+	bool _SubpopulationIDInUse(slim_objectid_t p_subpop_id);
 	void RecordTablePosition(void);
 	void AllocateTreeSequenceTables(void);
 	void SetCurrentNewIndividual(Individual *p_individual);
@@ -703,14 +462,14 @@ public:
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
 	void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags);
-	void AddCurrentGenerationToIndividuals(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
+	void AddCurrentGenerationToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
-	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_generation_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
+	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
@@ -726,8 +485,6 @@ public:
 	void DumpMutationTable(void);
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
-	void TSXC_Enable(void);                 // forces tree-seq with crosschecks on; called by the undocumented -TSXC option
-    void TSF_Enable(void);                  // forces tree-seq without crosschecks on; called by the undocumented -TSF option
 	
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);
@@ -736,10 +493,13 @@ public:
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
 	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_generation_t p_metadata_gen, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
-	slim_generation_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
-	slim_generation_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_generation, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
+	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
+	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
+	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
+	void TSXC_Enable(void);
+	void TSF_Enable(void);
 	
 	//
 	// Eidos support
@@ -749,7 +509,6 @@ public:
 #pragma mark -
 	inline EidosSymbolTableEntry &SymbolTableEntry(void) { return self_symbol_; };
 	
-	virtual EidosValue_SP ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -764,15 +523,6 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
-	EidosSymbolTable *SymbolsFromBaseSymbols(EidosSymbolTable *p_base_symbols);				// derive a symbol table, adding our own symbols if needed
-	
-	static const std::vector<EidosFunctionSignature_CSP> *ZeroGenerationFunctionSignatures(void);		// all zero-gen functions
-	static void AddZeroGenerationFunctionsToMap(EidosFunctionMap &p_map);
-	static void RemoveZeroGenerationFunctionsFromMap(EidosFunctionMap &p_map);
-	
-	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-gen functions
-	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
-	
 	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
@@ -786,8 +536,6 @@ public:
 #endif	// SLIM_WF_ONLY
 	
 	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_createLogFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -795,17 +543,8 @@ public:
 	EidosValue_SP ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputFull(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -813,22 +552,22 @@ public:
 	EidosValue_SP ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
-class SLiMSim_Class : public EidosDictionaryUnretained_Class
+class Species_Class : public EidosDictionaryUnretained_Class
 {
 private:
 	typedef EidosDictionaryUnretained_Class super;
 
 public:
-	SLiMSim_Class(const SLiMSim_Class &p_original) = delete;	// no copy-construct
-	SLiMSim_Class& operator=(const SLiMSim_Class&) = delete;	// no copying
-	inline SLiMSim_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	Species_Class(const Species_Class &p_original) = delete;	// no copy-construct
+	Species_Class& operator=(const Species_Class&) = delete;	// no copying
+	inline Species_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 };
 
 
-#endif /* defined(__SLiM__slim_sim__) */
+#endif /* defined(__SLiM__species__) */
 
 
 

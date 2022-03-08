@@ -46,9 +46,9 @@ tab issues:
 finding out the generation number of a running simulation in lldb:
 	lldb /usr/local/bin/slim
 	process attach --pid X (from ps -ax | grep slim)
-	breakpoint set --method _RunOneGeneration
+	breakpoint set --method _RunOneTick
 	c
-	(lldb breaks at _RunOneGeneration...)
+	(lldb breaks at _RunOneTick...)
 	
 	if you have symbols, just p generation_; if not:
 	

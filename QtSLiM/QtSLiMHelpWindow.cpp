@@ -35,7 +35,8 @@
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "chromosome.h"
 #include "genome.h"
 #include "genomic_element.h"
@@ -310,8 +311,8 @@ QtSLiMHelpWindow::QtSLiMHelpWindow(QWidget *p_parent) : QWidget(p_parent, Qt::Wi
     // Add SLiM topics
     std::vector<EidosPropertySignature_CSP> context_properties = EidosClass::RegisteredClassProperties(false, true);
     std::vector<EidosMethodSignature_CSP> context_methods = EidosClass::RegisteredClassMethods(false, true);
-    const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
-    const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
+    const std::vector<EidosFunctionSignature_CSP> *zg_functions = Community::ZeroTickFunctionSignatures();
+    const std::vector<EidosFunctionSignature_CSP> *slim_functions = Community::SLiMFunctionSignatures();
     std::vector<EidosFunctionSignature_CSP> all_slim_functions;
     
     all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());

@@ -80,10 +80,10 @@
 	slim_position_t selectionLastBase = chromosome->selectionLastBase;
 	
 	// tally into our bins
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species &species = *controller->community->single_species_;
+	Population &pop = species.population_;
 	
-	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
+	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
@@ -142,7 +142,7 @@
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
+	int mutationTypeCount = (int)controller->community->single_species_->mutation_types_.size();
 	double *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
 	// plot our histogram bars
@@ -198,11 +198,11 @@
 	[string appendString:@"\n\n"];
 	
 	int binCount = [self histogramBinCount];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
+	Species &species = *controller->community->single_species_;
+	int mutationTypeCount = (int)species.mutation_types_.size();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

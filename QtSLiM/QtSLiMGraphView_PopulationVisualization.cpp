@@ -46,7 +46,7 @@ QString QtSLiMGraphView_PopulationVisualization::graphTitle(void)
 QString QtSLiMGraphView_PopulationVisualization::aboutString(void)
 {
     return "The Population Visualization graph shows a visual depiction of the population structure of "
-           "the model, at the current generation.  Each subpopulation is shown as a circle, with size "
+           "the model, at the current tick.  Each subpopulation is shown as a circle, with size "
            "proportional to the number of individuals in the subpopulation, and color representing the "
            "mean fitness of the subpopulation.  Arrows show migration between subpopulations, with "
            "the thickness of arrows representing the magnitude of migration.";
@@ -353,8 +353,8 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 // there are better algorithms out there, but this one is simple...
 void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &pop = species->population_;
 	size_t subpopCount = pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -557,8 +557,9 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 
 void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
 	int subpopCount = static_cast<int>(pop.subpops_.size());
 	
 	if (subpopCount == 0)
@@ -630,7 +631,7 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
 #ifdef SLIM_WF_ONLY
-		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
+		if ((community->ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
 			optimizePositions();
 #endif	// SLIM_WF_ONLY
 		
@@ -685,19 +686,19 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 			for (auto destSubpopIter : pop.subpops_)
 			{
 				Subpopulation *destSubpop = destSubpopIter.second;
-				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
+				std::map<slim_objectid_t,double> &destMigrants = (community->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter : destMigrants)
 				{
 					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
-                    Subpopulation *sourceSubpop = sim->SubpopulationWithID(sourceSubpopID);
+                    Subpopulation *sourceSubpop = species->SubpopulationWithID(sourceSubpopID);
 					
 					if (sourceSubpop)
 					{
 						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
-						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+						if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
 						{
 							if (sourceSubpop->gui_premigration_size_ <= 0)
 								continue;
@@ -734,8 +735,8 @@ void QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions(void)
 void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
 {
     QAction *menuItem = contextMenu.addAction(optimizePositions_ ? "Standard Positions" : "Optimized Positions", this, &QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions);
-    SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+    Population &pop = species->population_;
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to
     // handle those, and there's no way to revert back after it messes things up, and so forth

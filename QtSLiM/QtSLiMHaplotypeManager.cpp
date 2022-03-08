@@ -143,8 +143,9 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
 {
     controller_ = controller;
     
-    SLiMSim *sim = controller_->sim;
-    Population &population = sim->population_;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+    Population &population = species->population_;
     
     clusterMethod = clusteringMethod;
     clusterOptimization = optimizationMethod;
@@ -193,7 +194,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     if (usingSubrange)
         title.append(QString(", positions %1:%2").arg(subrangeFirstBase).arg(subrangeLastBase));
     
-    title.append(QString(", generation %1").arg(sim->generation_));
+    title.append(QString(", tick %1").arg(community->Tick()));
     
     titleString = title;
     subpopCount = static_cast<int>(selected_subpops.size());
@@ -294,8 +295,8 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 {
-    SLiMSim *sim = controller_->sim;
-	Population &population = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &population = species->population_;
 	double scalingFactor = 0.8; //controller_->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
@@ -347,7 +348,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_->last_position_;
+	mutationLastPosition = species->chromosome_->last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortGenomes(void)

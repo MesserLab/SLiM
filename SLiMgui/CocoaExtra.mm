@@ -1136,6 +1136,99 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 @end
 
+// This is a vestigial tail left over from the old ScriptMod class of SLiMguiLegacy; I ripped out that class completely,
+// but a few other places in the code used its validation logic for their own purposes, so I've moved that to CocoaExtra.
+
+@implementation ScriptMod
+
++ (NSColor *)validationErrorColor
+{
+	static NSColor *color = nil;
+	
+	if (!color)
+		color = [[NSColor colorWithCalibratedHue:0.0 saturation:0.15 brightness:1.0 alpha:1.0] retain];
+	
+	return color;
+}
+
++ (NSRegularExpression *)regexForInt
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^[0-9]+$" options:0 error:NULL];
+	
+	return regex;
+}
+
++ (NSRegularExpression *)regexForFloat
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^\\-?[0-9]+(\\.[0-9]*)?$" options:0 error:NULL];
+	
+	return regex;
+}
+
++ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue
+{
+	NSString *stringValue = [textfield stringValue];
+	int64_t intValue = [[textfield stringValue] longLongValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForInt] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (intValue < minValue)
+		return NO;
+	
+	if (intValue > maxValue)
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue
+{
+	return [self validFloatValueInTextField:textfield withMin:minValue max:maxValue excludingMin:NO excludingMax:NO];
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax
+{
+	NSString *stringValue = [textfield stringValue];
+	double doubleValue = [textfield doubleValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForFloat] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (doubleValue < minValue)
+		return NO;
+	
+	if (excludeMin && (doubleValue == minValue))
+		return NO;
+	
+	if (doubleValue > maxValue)
+		return NO;
+	
+	if (excludeMax && (doubleValue == maxValue))
+		return NO;
+	
+	return YES;
+}
+
++ (NSColor *)backgroundColorForValidationState:(BOOL)valid
+{
+	return (valid ? [NSColor whiteColor] : [ScriptMod validationErrorColor]);
+}
+
+@end
+
 @implementation SLiMAutoselectTextField
 
 - (void)mouseDown:(NSEvent *)theEvent

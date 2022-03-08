@@ -228,7 +228,7 @@ void QtSLiMWindow::init(void)
     // with everything built, mark ourselves as transient (recipes and files will mark this false after us)
     isTransient = true;
     
-    // wire up our continuous play and generation play timers
+    // wire up our continuous play and tick play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
     connect(&continuousProfileInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousProfile);
     connect(&playOneStepInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_playOneStep);
@@ -282,9 +282,9 @@ void QtSLiMWindow::init(void)
     // Watch for changes to our change count, for the recycle button color
     connect(this, &QtSLiMWindow::controllerChangeCountChanged, this, [this]() { updateRecycleButtonIcon(false); });
     
-    // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
-    ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
-    QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    // Ensure that the tick lineedit does not have the initial keyboard focus and has no selection; hard to do!
+    ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+    QTimer::singleShot(0, [this]() { ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
     
     // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMWindow::applicationPaletteChanged);
@@ -745,10 +745,10 @@ QtSLiMWindow::~QtSLiMWindow()
         consoleController->parentSLiMWindow = nullptr;
     
     // Free resources
-    if (sim)
+    if (community)
     {
-        delete sim;
-        sim = nullptr;
+        delete community;
+        community = nullptr;
     }
     if (slimgui)
 	{
@@ -794,7 +794,7 @@ void QtSLiMWindow::invalidateUI(void)
     continuousPlayOn_ = false;
     profilePlayOn_ = false;
     nonProfilePlayOn_ = false;
-    generationPlayOn_ = false;
+    tickPlayOn_ = false;
     
     // Recycle to throw away any bulky simulation state; set the default script first to avoid errors
     ui->scriptTextEdit->setPlainText(QString::fromStdString(defaultWFScriptString()));
@@ -1177,9 +1177,9 @@ std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 {
     std::vector<Subpopulation*> selectedSubpops;
 	
-	if (!invalidSimulation() && sim)
+	if (!invalidSimulation() && community && community->single_species_)
 	{
-		Population &population = sim->population_;
+		Population &population = community->single_species_->population_;
         
         for (auto popIter : population.subpops_)
 		{
@@ -1243,11 +1243,11 @@ void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
     }
 }
 
-void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
+void QtSLiMWindow::setTickPlayOn(bool p_flag)
 {
-    if (generationPlayOn_ != p_flag)
+    if (tickPlayOn_ != p_flag)
     {
-        generationPlayOn_ = p_flag;
+        tickPlayOn_ = p_flag;
         updateUIEnabling();
     }
 }
@@ -1310,7 +1310,7 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.
-        sim = nullptr;
+        community = nullptr;
         slimgui = nullptr;
 
         Eidos_FreeRNG(sim_RNG);
@@ -1322,10 +1322,10 @@ void QtSLiMWindow::checkForSimulationTermination(void)
 
 void QtSLiMWindow::startNewSimulationFromScript(void)
 {
-    if (sim)
+    if (community)
     {
-        delete sim;
-        sim = nullptr;
+        delete community;
+        community = nullptr;
     }
     if (slimgui)
     {
@@ -1343,11 +1343,11 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
     try
     {
-        sim = new SLiMSim(infile);
-        sim->InitializeRNGFromSeed(nullptr);
-        sim->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
+        community = new Community(infile);
+        community->InitializeRNGFromSeed(nullptr);
+        community->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
-        // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
+        // We take over the RNG instance that Community just made, since each SLiMgui window has its own RNG
         sim_RNG = gEidos_RNG;
         gEidos_RNG = Eidos_RNG_State();     // zero it out
 
@@ -1366,19 +1366,19 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     }
     catch (...)
     {
-        if (sim)
-            sim->simulation_valid_ = false;
+        if (community)
+            community->simulation_valid_ = false;
         setReachedSimulationEnd(true);
         checkForSimulationTermination();
     }
 
-    if (sim)
+    if (community)
     {
         // make a new SLiMgui instance to represent SLiMgui in Eidos
-        slimgui = new SLiMgui(*sim, this);
+        slimgui = new SLiMgui(*community, this);
 
         // set up the "slimgui" symbol for it immediately
-        sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+        community->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
     }
 }
 
@@ -1470,9 +1470,9 @@ void QtSLiMWindow::updateOutputViews(void)
     }
     
     // Scan through LogFile instances kept by the sim and flush them to the debug window
-    if (debugWindow && !invalidSimulation_ && sim)
+    if (debugWindow && !invalidSimulation_ && community)
     {
-        for (LogFile *logfile : sim->log_file_registry_)
+        for (LogFile *logfile : community->log_file_registry_)
         {
             for (auto &lineElements : logfile->emitted_lines_)
             {
@@ -1485,17 +1485,17 @@ void QtSLiMWindow::updateOutputViews(void)
     }
     
     // Scan through file output kept by the sim and flush it to the debug window
-    if (debugWindow && !invalidSimulation_ && sim)
+    if (debugWindow && !invalidSimulation_ && community)
     {
-        for (size_t index = 0; index < sim->file_write_paths_.size(); ++index)
+        for (size_t index = 0; index < community->file_write_paths_.size(); ++index)
         {
             // This call takes a vector of lines comprising all the output for one file
-            debugWindow->takeFileOutput(sim->file_write_buffers_[index], sim->file_write_appends_[index], sim->file_write_paths_[index]);
+            debugWindow->takeFileOutput(community->file_write_buffers_[index], community->file_write_appends_[index], community->file_write_paths_[index]);
         }
         
-        sim->file_write_paths_.clear();
-        sim->file_write_buffers_.clear();
-        sim->file_write_appends_.clear();
+        community->file_write_paths_.clear();
+        community->file_write_buffers_.clear();
+        community->file_write_appends_.clear();
     }
 }
 
@@ -1548,17 +1548,17 @@ void QtSLiMWindow::handleDebugButtonFlash(void)
     }
 }
 
-void QtSLiMWindow::updateGenerationCounter(void)
+void QtSLiMWindow::updateTickCounter(void)
 {
     if (!invalidSimulation_)
 	{
-		if (sim->generation_ == 0)
-            ui->generationLineEdit->setText("initialize()");
+		if (community->Tick() == 0)
+            ui->tickLineEdit->setText("initialize()");
 		else
-            ui->generationLineEdit->setText(QString::number(sim->generation_));
+            ui->tickLineEdit->setText(QString::number(community->Tick()));
 	}
 	else
-        ui->generationLineEdit->setText("");
+        ui->tickLineEdit->setText("");
 }
 
 void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
@@ -1595,7 +1595,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		reloadingSubpopTableview = true;
         populationTableModel_->reloadTable();
 		
-		if (invalid || !sim)
+		if (invalid || !community || !community->single_species_)
 		{
             ui->subpopTableView->selectionModel()->clear();
 		}
@@ -1603,7 +1603,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		{
             ui->subpopTableView->selectionModel()->reset();
             
-			Population &population = sim->population_;
+			Population &population = community->single_species_->population_;
 			int subpopCount = static_cast<int>(population.subpops_.size());
 			auto popIter = population.subpops_.begin();
 			
@@ -1628,7 +1628,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
     ui->chromosomeZoomed->stateChanged();
 	
 	if (fullUpdate)
-		updateGenerationCounter();
+		updateTickCounter();
     
     if (fullUpdate)
     {
@@ -1642,19 +1642,19 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>"
                                        : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>");
             
-            if (sim)
+            if (community && community->single_species_)
             {
                 int registry_size;
-                sim->population_.MutationRegistry(&registry_size);
+                community->single_species_->population_.MutationRegistry(&registry_size);
                 
                 SLiM_MemoryUsage current_memory_usage;
-                sim->TabulateMemoryUsage(&current_memory_usage, nullptr);
+                community->AllSpecies_TabulateMemoryUsage(&current_memory_usage, nullptr);
                 double current_memory_MB = current_memory_usage.totalMemoryUsage / (1024.0 * 1024.0);
                 
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
                                            .arg(current_memory_MB, 0, 'f', 1)
                                            .arg(registry_size)
-                                           .arg(sim->population_.substitutions_.size()));
+                                           .arg(community->single_species_->population_.substitutions_.size()));
             }
             else
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6));
@@ -1662,49 +1662,49 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
     
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	if (invalid || sim->mutation_types_changed_)
+	if (invalid || community->mutation_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->mutTypeTableModel_)
             tablesDrawerController->mutTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->mutation_types_changed_ = false;
+		if (community)
+			community->mutation_types_changed_ = false;
 	}
 	
-	if (invalid || sim->genomic_element_types_changed_)
+	if (invalid || community->genomic_element_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->geTypeTableModel_)
             tablesDrawerController->geTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->genomic_element_types_changed_ = false;
+		if (community)
+			community->genomic_element_types_changed_ = false;
 	}
 	
-	if (invalid || sim->interaction_types_changed_)
+	if (invalid || community->interaction_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->interactionTypeTableModel_)
             tablesDrawerController->interactionTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->interaction_types_changed_ = false;
+		if (community)
+			community->interaction_types_changed_ = false;
 	}
 	
-	if (invalid || sim->scripts_changed_)
+	if (invalid || community->scripts_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->eidosBlockTableModel_)
             tablesDrawerController->eidosBlockTableModel_->reloadTable();
 		
-		if (sim)
-			sim->scripts_changed_ = false;
+		if (community)
+			community->scripts_changed_ = false;
 	}
 	
-	if (invalid || sim->chromosome_changed_)
+	if (invalid || community->chromosome_changed_)
 	{
 		ui->chromosomeOverview->restoreLastSelection();
 		ui->chromosomeOverview->update();
 		
-		if (sim)
-			sim->chromosome_changed_ = false;
+		if (community)
+			community->chromosome_changed_ = false;
 	}
 	
 	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
@@ -1742,11 +1742,11 @@ void QtSLiMWindow::updateUIEnabling(void)
     // First we update all the UI that belongs exclusively to ourselves: buttons, labels, etc.
     ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
     ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
-    ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !tickPlayOn_);
     ui->recycleButton->setEnabled(!continuousPlayOn_);
     
     ui->playSpeedSlider->setEnabled(!invalidSimulation_);
-    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
+    ui->tickLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
 
     ui->toggleDrawerButton->setEnabled(true);
     
@@ -1768,7 +1768,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->scriptTextEdit->setReadOnly(continuousPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
     
-    ui->generationLabel->setEnabled(!invalidSimulation_);
+    ui->tickLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
     // Tell the console controller to enable/disable its buttons
@@ -1802,7 +1802,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
     ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
     ui->actionPlay->setText(nonProfilePlayOn_ ? "Stop" : "Play");
-    ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !tickPlayOn_);
     ui->actionProfile->setText(profilePlayOn_ ? "Stop" : "Profile");
     ui->actionRecycle->setEnabled(!continuousPlayOn_);
     
@@ -1824,7 +1824,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     
     // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
     bool graphItemsEnabled = !invalidSimulation_;
-    bool haplotypePlotEnabled = !invalidSimulation_ && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size();
+    bool haplotypePlotEnabled = !invalidSimulation_ && !continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size();
     
     //ui->menuGraph->setEnabled(graphItemsEnabled);
     ui->actionGraph_1D_Population_SFS->setEnabled(graphItemsEnabled);
@@ -2104,6 +2104,17 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
         colorScriptWithProfileCountsFromNode(child, elapsedTime, baseIndex, doc, baseFormat);
 }
 
+static int DisplayDigitsForIntegerPart(double x)
+{
+	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
+	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
+	double digits = ceil(log10(floor(x)));
+	
+	if (std::isfinite(digits))
+		return (int)digits;
+	return 1;
+}
+
 void QtSLiMWindow::displayProfileResults(void)
 {
     // Make a new window to show the profile results
@@ -2255,31 +2266,31 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
-    tc.insertText(QString("Elapsed generations: %1%2\n").arg(continuousPlayGenerationsCompleted_).arg((profileStartGeneration == 0) ? " (including initialize)" : ""), optima13_d);
+    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(continuousPlayTicksCompleted_).arg((profileStartTick == 0) ? " (including initialize)" : ""), optima13_d);
     tc.insertText(" \n", optima8_d);
     
     tc.insertText(QString("Profile block external overhead: %1 ticks (%2 s)\n").arg(gEidos_ProfileOverheadTicks, 0, 'f', 2).arg(gEidos_ProfileOverheadSeconds, 0, 'g', 4), optima13_d);
     tc.insertText(QString("Profile block internal lag: %1 ticks (%2 s)\n").arg(gEidos_ProfileLagTicks, 0, 'f', 2).arg(gEidos_ProfileLagSeconds, 0, 'g', 4), optima13_d);
     tc.insertText(" \n", optima8_d);
     
-    tc.insertText(QString("Average generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_total_memory_usage_.totalMemoryUsage / static_cast<size_t>(sim->total_memory_tallies_))), optima13_d);
-    tc.insertText(QString("Final generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_last_memory_usage_.totalMemoryUsage)), optima13_d);
+    tc.insertText(QString("Average tick SLiM memory use: %1\n").arg(stringForByteCount(community->profile_total_memory_usage_.totalMemoryUsage / static_cast<size_t>(community->total_memory_tallies_))), optima13_d);
+    tc.insertText(QString("Final tick SLiM memory use: %1\n").arg(stringForByteCount(community->profile_last_memory_usage_.totalMemoryUsage)), optima13_d);
     
 	//
 	//	Generation stage breakdown
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		bool isWF = (sim->ModelType() == SLiMModelType::kModelTypeWF);
-		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
-		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
-		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
-		double elapsedStage3Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[3]);
-		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
-		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
-		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
-        double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
-        double elapsedStage8Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[8]);
+		bool isWF = (community->ModelType() == SLiMModelType::kModelTypeWF);
+		double elapsedStage0Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[0]);
+		double elapsedStage1Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[1]);
+		double elapsedStage2Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[2]);
+		double elapsedStage3Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[3]);
+		double elapsedStage4Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[4]);
+		double elapsedStage5Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[5]);
+		double elapsedStage6Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[6]);
+        double elapsedStage7Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[7]);
+        double elapsedStage8Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[8]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -2291,15 +2302,15 @@ void QtSLiMWindow::displayProfileResults(void)
         double percentStage8 = (elapsedStage8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage0Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage1Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage2Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage3Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage4Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage5Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage6Time)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage7Time)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage8Time)))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage0Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage1Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage2Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage3Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage4Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage5Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage6Time));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage7Time));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage8Time));
 		
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("Generation stage breakdown\n", optima14b_d);
@@ -2338,19 +2349,19 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-        double elapsedTime_first = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
-		double elapsedTime_early = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
-		double elapsedTime_late = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
-		double elapsedTime_initialize = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
-		double elapsedTime_fitness = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
-		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
-		double elapsedTime_interaction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
-		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
-		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
-		double elapsedTime_recombination = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
-		double elapsedTime_mutation = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
-		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
-        double elapsedTime_survival = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
+        double elapsedTime_first = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
+		double elapsedTime_early = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
+		double elapsedTime_late = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
+		double elapsedTime_initialize = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
+		double elapsedTime_fitness = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
+		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
+		double elapsedTime_interaction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
+		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
+		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
+		double elapsedTime_recombination = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
+		double elapsedTime_mutation = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
+		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
+        double elapsedTime_survival = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
 		double percent_first = (elapsedTime_first / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
@@ -2366,40 +2377,40 @@ void QtSLiMWindow::displayProfileResults(void)
         double percent_survival = (elapsedTime_survival / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_first)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_early)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_late)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_initialize)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitness)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitnessglobal)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_interaction)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_matechoice)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_modifychild)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_recombination)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_mutation)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_reproduction)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_survival)))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_first));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_early));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_late));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_initialize));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitness));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessglobal));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_interaction));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_matechoice));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_modifychild));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_recombination));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutation));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_reproduction));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_survival));
 		
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_first)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_early)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_late)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_initialize)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitness)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitnessglobal)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_interaction)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_matechoice)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_modifychild)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_recombination)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_mutation)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_reproduction)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_survival)))));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_first));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_early));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_late));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_initialize));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitness));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitnessglobal));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_interaction));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_matechoice));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_modifychild));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_recombination));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_mutation));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_reproduction));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_survival));
 		
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("Callback type breakdown\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
 		// Note these are out of numeric order, but in generation-cycle order
-		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
+		if (community->ModelType() == SLiMModelType::kModelTypeWF)
 		{
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_initialize, fw, 'f', 2).arg(percent_initialize, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : initialize() callbacks\n", optima13_d);
@@ -2480,7 +2491,7 @@ void QtSLiMWindow::displayProfileResults(void)
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
 		{
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			
 			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2492,7 +2503,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText("Script block profiles (as a fraction of corrected wall clock time)\n", optima14b_d);
 			tc.insertText(" \n", optima3_d);
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2537,7 +2548,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText("Script block profiles (as a fraction of within-block wall clock time)\n", optima14b_d);
 			tc.insertText(" \n", optima3_d);
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2584,7 +2595,7 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		EidosFunctionMap &function_map = sim->FunctionMap();
+		EidosFunctionMap &function_map = community->FunctionMap();
 		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
 		
 		for (auto functionPairIter : function_map)
@@ -2693,16 +2704,18 @@ void QtSLiMWindow::displayProfileResults(void)
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	//
-	//	MutationRun metrics
+	//	MutationRun metrics, presented per Species
 	//
 	{
+        Species *focal_species = community->single_species_;
+        
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = static_cast<int>(sim->profile_mutcount_history_.size());
+		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
 		
 		for (int power = 0; power < 20; ++power)
 			power_tallies[power] = 0;
 		
-		for (int32_t count : sim->profile_mutcount_history_)
+		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
 			int power = static_cast<int>(round(log2(count)));
 			
@@ -2719,18 +2732,18 @@ void QtSLiMWindow::displayProfileResults(void)
 			if (power_tallies[power] > 0)
 			{
 				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-				tc.insertText(QString(" of generations : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+				tc.insertText(QString(" of ticks : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
 			}
 		}
 		
 		
 		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = static_cast<int>(sim->profile_nonneutral_regime_history_.size());
+		int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
 		
 		for (int regime = 0; regime < 3; ++regime)
 			regime_tallies[regime] = 0;
 		
-		for (int32_t regime : sim->profile_nonneutral_regime_history_)
+		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
 			if ((regime >= 1) && (regime <= 3))
 				regime_tallies[regime - 1]++;
 			else
@@ -2741,37 +2754,37 @@ void QtSLiMWindow::displayProfileResults(void)
 		for (int regime = 0; regime < 3; ++regime)
 		{
 			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-			tc.insertText(QString(" of generations : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no fitness callbacks" : (regime == 1 ? "constant neutral fitness callbacks only" : "unpredictable fitness callbacks present")), optima13_d);
+			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no fitness callbacks" : (regime == 1 ? "constant neutral fitness callbacks only" : "unpredictable fitness callbacks present")), optima13_d);
 		}
 		
 		
 		tc.insertText(" \n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_mutation_total_usage_), menlo11_d);
-		tc.insertText(" mutations referenced, summed across all generations\n", optima13_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_mutation_total_usage_), menlo11_d);
+		tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_nonneutral_mutation_total_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_nonneutral_mutation_total_), menlo11_d);
 		tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg(((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / static_cast<double>(sim->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
+		tc.insertText(QString("%1%").arg(((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / static_cast<double>(focal_species->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
 		tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_max_mutation_index_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
 		
 		
 		tc.insertText(" \n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_mutrun_total_usage_), menlo11_d);
-		tc.insertText(" mutation runs referenced, summed across all generations\n", optima13_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_mutrun_total_usage_), menlo11_d);
+		tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_unique_mutrun_total_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_unique_mutrun_total_), menlo11_d);
 		tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg((sim->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(sim->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation run nonneutral caches rebuilt per generation\n", optima13_d);
+		tc.insertText(QString("%1%").arg((focal_species->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_species->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg(((sim->profile_mutrun_total_usage_ - sim->profile_unique_mutrun_total_) / static_cast<double>(sim->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(QString("%1%").arg(((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / static_cast<double>(focal_species->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
 		tc.insertText(" of mutation runs shared among genomes", optima13_d);
 	}
 #endif
@@ -2780,16 +2793,16 @@ void QtSLiMWindow::displayProfileResults(void)
 		//
 		//	Memory usage metrics
 		//
-		SLiM_MemoryUsage &mem_tot = sim->profile_total_memory_usage_;
-		SLiM_MemoryUsage &mem_last = sim->profile_last_memory_usage_;
-		uint64_t div = static_cast<uint64_t>(sim->total_memory_tallies_);
-		double ddiv = sim->total_memory_tallies_;
+		SLiM_MemoryUsage &mem_tot = community->profile_total_memory_usage_;
+		SLiM_MemoryUsage &mem_last = community->profile_last_memory_usage_;
+		uint64_t div = static_cast<uint64_t>(community->total_memory_tallies_);
+		double ddiv = community->total_memory_tallies_;
 		double average_total = mem_tot.totalMemoryUsage / ddiv;
 		double final_total = mem_last.totalMemoryUsage;
 		
 		tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
-		tc.insertText("SLiM memory usage (average / final generation)\n", optima14b_d);
+		tc.insertText("SLiM memory usage (average / final tick)\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
         QTextCharFormat colored_menlo = menlo11_d;
@@ -2955,17 +2968,17 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(attributedStringForByteCount(mem_last.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
 		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationTypeObjects_count), optima13_d);
 		
-		// SLiMSim
+		// Species
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.slimsimObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot.speciesObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.slimsimObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : SLiMSim object\n", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last.speciesObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : Species object\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.slimsimTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot.speciesTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.slimsimTreeSeqTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last.speciesTreeSeqTables, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : tree-sequence tables\n", optima13_d);
 		
 		// Subpopulation
@@ -3046,39 +3059,40 @@ void QtSLiMWindow::startProfiling(void)
 	// initialize counters
 	profileElapsedCPUClock = 0;
 	profileElapsedWallClock = 0;
-	profileStartGeneration = sim->Generation();
+	profileStartTick = community->Tick();
 	
-	// call this first, which has the side effect of emptying out any pending profile counts
-	sim->CollectSLiMguiMutationProfileInfo();
+    // call this first, purely for its side effect of emptying out any pending profile counts
+	// note that the accumulators governed by this method get zeroed out down below
+	community->single_species_->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
     for (int i = 0; i < 9; ++i)
-		sim->profile_stage_totals_[i] = 0;
+		community->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
-	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+	std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 	
 	for (SLiMEidosBlock *script_block : script_blocks)
 		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
 			script_block->root_node_->ZeroProfileTotals();
 	
 	// zero out profile counts for all user-defined functions
-	EidosFunctionMap &function_map = sim->FunctionMap();
+	EidosFunctionMap &function_map = community->FunctionMap();
 	
 	for (auto functionPairIter : function_map)
 	{
@@ -3089,21 +3103,25 @@ void QtSLiMWindow::startProfiling(void)
 	}
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	// zero out mutation run metrics
-	sim->profile_mutcount_history_.clear();
-	sim->profile_nonneutral_regime_history_.clear();
-	sim->profile_mutation_total_usage_ = 0;
-	sim->profile_nonneutral_mutation_total_ = 0;
-	sim->profile_mutrun_total_usage_ = 0;
-	sim->profile_unique_mutrun_total_ = 0;
-	sim->profile_mutrun_nonneutral_recache_total_ = 0;
-	sim->profile_max_mutation_index_ = 0;
+    // zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
+    {
+        Species *focal_species = community->single_species_;
+        
+        focal_species->profile_mutcount_history_.clear();
+        focal_species->profile_nonneutral_regime_history_.clear();
+        focal_species->profile_mutation_total_usage_ = 0;
+        focal_species->profile_nonneutral_mutation_total_ = 0;
+        focal_species->profile_mutrun_total_usage_ = 0;
+        focal_species->profile_unique_mutrun_total_ = 0;
+        focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
+        focal_species->profile_max_mutation_index_ = 0;
+    }
 #endif
 	
 	// zero out memory usage metrics
-	EIDOS_BZERO(&sim->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
-	EIDOS_BZERO(&sim->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
-	sim->total_memory_tallies_ = 0;
+	EIDOS_BZERO(&community->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
+	EIDOS_BZERO(&community->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
+	community->total_memory_tallies_ = 0;
 }
 
 void QtSLiMWindow::endProfiling(void)
@@ -3169,12 +3187,12 @@ void QtSLiMWindow::didExecuteScript(void)
         qDebug() << "didExecuteScript: Unable to set the working directory to " << app_cwd.c_str() << " (error " << errno << ")";
 }
 
-bool QtSLiMWindow::runSimOneGeneration(void)
+bool QtSLiMWindow::runSimOneTick(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     // This method should always be used when calling out to run the simulation, because it swaps the correct random number
-    // generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
+    // generator stuff in and out bracketing the call to RunOneTick().  This bracketing would need to be done around
     // any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
     bool stillRunning = true;
 
@@ -3190,14 +3208,14 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 		// as profile report percentages are fractions of the total elapsed wall clock time.
 		SLIM_PROFILE_BLOCK_START();
 
-		stillRunning = sim->RunOneGeneration();
+		stillRunning = community->RunOneTick();
 
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
 	}
     else
 #endif
     {
-        stillRunning = sim->RunOneGeneration();
+        stillRunning = community->RunOneTick();
     }
     
     // Take an end clock time to tally elapsed time spent running the model
@@ -3212,9 +3230,9 @@ bool QtSLiMWindow::runSimOneGeneration(void)
     
     didExecuteScript();
 
-    // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
-    // happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-    emit controllerGenerationFinished();
+    // We also want to let graphViews know when each tick has finished, in case they need to pull data from the sim.  Note this
+    // happens after every tick, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
+    emit controllerTickFinished();
 
     return stillRunning;
 }
@@ -3231,35 +3249,35 @@ void QtSLiMWindow::_continuousPlay(void)
 		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
-		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
+		double maxTicksPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
 		
 		if (speedSliderValue < 0.99999)
-			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+			maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 		
-		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxGenerationsPerSecond == " << maxGenerationsPerSecond;
+		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxTicksPerSecond == " << maxTicksPerSecond;
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		bool reachedEnd = reachedSimulationEnd_;
 		
 		do
 		{
-			if (continuousPlayGenerationsCompleted_ / intervalSinceStarting >= maxGenerationsPerSecond)
+			if (continuousPlayTicksCompleted_ / intervalSinceStarting >= maxTicksPerSecond)
 				break;
 			
-            if (generationPlayOn_ && (sim->generation_ >= targetGeneration_))
+            if (tickPlayOn_ && (community->Tick() >= targetTick_))
                 break;
             
-            reachedEnd = !runSimOneGeneration();
+            reachedEnd = !runSimOneTick();
 			
-			continuousPlayGenerationsCompleted_++;
+			continuousPlayTicksCompleted_++;
 		}
 		while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 		
 		setReachedSimulationEnd(reachedEnd);
 		
-		if (!reachedSimulationEnd_ && (!generationPlayOn_ || !(sim->generation_ >= targetGeneration_)))
+		if (!reachedSimulationEnd_ && (!tickPlayOn_ || !(community->Tick() >= targetTick_)))
 		{
             updateAfterTickFull((playStartTimer.nsecsElapsed() / 1000000000.0) > 0.04);
 			continuousPlayInvocationTimer_.start(0);
@@ -3271,8 +3289,8 @@ void QtSLiMWindow::_continuousPlay(void)
             
             if (nonProfilePlayOn_)
                 playOrProfile(PlayType::kNormalPlay);       // click the Play button
-            else if (generationPlayOn_)
-                playOrProfile(PlayType::kGenerationPlay);   // click the Play button
+            else if (tickPlayOn_)
+                playOrProfile(PlayType::kTickPlay);   // click the Play button
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			//[NSApp requestUserAttention:NSInformationalRequest];
@@ -3288,7 +3306,7 @@ void QtSLiMWindow::_continuousProfile(void)
         QElapsedTimer playStartTimer;
         playStartTimer.start();
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		bool reachedEnd = reachedSimulationEnd_;
@@ -3297,9 +3315,9 @@ void QtSLiMWindow::_continuousProfile(void)
 		{
 			do
 			{
-                reachedEnd = !runSimOneGeneration();
+                reachedEnd = !runSimOneTick();
 				
-				continuousPlayGenerationsCompleted_++;
+				continuousPlayTicksCompleted_++;
 			}
             while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 			
@@ -3363,15 +3381,15 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 	{
         // log information needed to track our play speed
         continuousPlayElapsedTimer_.restart();
-		continuousPlayGenerationsCompleted_ = 0;
+		continuousPlayTicksCompleted_ = 0;
         
 		setContinuousPlayOn(true);
 		if (playType == PlayType::kProfilePlay)
             setProfilePlayOn(true);
         else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(true);
-        else if (playType == PlayType::kGenerationPlay)
-            setGenerationPlayOn(true);
+        else if (playType == PlayType::kTickPlay)
+            setTickPlayOn(true);
 		
 		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (playType == PlayType::kProfilePlay)
@@ -3379,7 +3397,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             ui->profileButton->setChecked(true);
             updateProfileButtonIcon(false);
 		}
-		else    // kNormalPlay and kGenerationPlay
+		else    // kNormalPlay and kTickPlay
 		{
             ui->playButton->setChecked(true);
             updatePlayButtonIcon(false);
@@ -3403,14 +3421,14 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 		// start playing/profiling
 		if (playType == PlayType::kProfilePlay)
             continuousProfileInvocationTimer_.start(0);
-        else    // kNormalPlay and kGenerationPlay
+        else    // kNormalPlay and kTickPlay
             continuousPlayInvocationTimer_.start(0);
 	}
 	else
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// close out profiling information if necessary
-		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 		{
 			endProfiling();
 			gEidosProfilingClientCount--;
@@ -3428,8 +3446,8 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             setProfilePlayOn(false);
         else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(false);
-        else if (playType == PlayType::kGenerationPlay)
-            setGenerationPlayOn(false);
+        else if (playType == PlayType::kTickPlay)
+            setTickPlayOn(false);
 		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (playType == PlayType::kProfilePlay)
@@ -3437,7 +3455,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             ui->profileButton->setChecked(false);
             updateProfileButtonIcon(false);
 		}
-		else    // kNormalPlay and kGenerationPlay
+		else    // kNormalPlay and kTickPlay
 		{
             ui->playButton->setChecked(false);
             updatePlayButtonIcon(false);
@@ -3452,7 +3470,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
-		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 			displayProfileResults();
 #endif
 	}
@@ -3466,7 +3484,7 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 {
 	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
 	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
-	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !tickPlayOn_)
 	{
 		playOrProfile(PlayType::kNormalPlay);	// this will simulate a press of the play button to stop continuous play
 		
@@ -3488,9 +3506,9 @@ void QtSLiMWindow::eidos_openDocument(QString path)
 
 void QtSLiMWindow::eidos_pauseExecution(void)
 {
-    if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+    if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !tickPlayOn_)
 	{
-		continuousPlayGenerationsCompleted_ = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this generation
+		continuousPlayTicksCompleted_ = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this tick
         
         QMetaObject::invokeMethod(this, "finish_eidos_pauseExecution", Qt::QueuedConnection);   // this will actually stop continuous play
 	}
@@ -3554,14 +3572,14 @@ void QtSLiMWindow::playOneStepClicked(void)
         if (consoleController)
             consoleController->invalidateSymbolTableAndFunctionMap();
         
-        setReachedSimulationEnd(!runSimOneGeneration());
+        setReachedSimulationEnd(!runSimOneTick());
         
         // BCH 5/7/2021: moved these two lines up here, above validateSymbolTableAndFunctionMap(), so that
         // updateAfterTickFull() calls checkForSimulationTermination() for us before we re-validate the
         // symbol table; this way if the simulation has hit an error the symbol table no longer contains
         // SLiM stuff in it.  I *think* this mirrors what happens when play, rather than step, is used.
         // Nevertheless, it might be a fragile change, so I'm leaving this comment to document the change.
-        ui->generationLineEdit->clearFocus();
+        ui->tickLineEdit->clearFocus();
         updateAfterTickFull(true);
         
         if (consoleController)
@@ -3596,51 +3614,51 @@ void QtSLiMWindow::playOneStepReleased(void)
     playOneStepInvocationTimer_.stop();
 }
 
-void QtSLiMWindow::generationChanged(void)
+void QtSLiMWindow::tickChanged(void)
 {
-	if (!generationPlayOn_)
+	if (!tickPlayOn_)
 	{
-		QString generationString = ui->generationLineEdit->text();
+		QString tickString = ui->tickLineEdit->text();
 		
 		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
-		if (generationString == "initialize()")
+		if (tickString == "initialize()")
 		{
-			if (sim->generation_ != 0)
+			if (community->Tick() != 0)
 			{
 				qApp->beep();
-				updateGenerationCounter();
-                ui->generationLineEdit->selectAll();
+				updateTickCounter();
+                ui->tickLineEdit->selectAll();
 			}
 			
 			return;
 		}
 		
 		// Get the integer value from the textfield, since it is not "initialize()"
-		targetGeneration_ = SLiMClampToGenerationType(static_cast<int64_t>(generationString.toLongLong()));
+		targetTick_ = SLiMClampToTickType(static_cast<int64_t>(tickString.toLongLong()));
 		
-		// make sure the requested generation is in range
-		if (sim->generation_ >= targetGeneration_)
+		// make sure the requested tick is in range
+		if (community->Tick() >= targetTick_)
 		{
-			if (sim->generation_ > targetGeneration_)
+			if (community->Tick() > targetTick_)
             {
                 qApp->beep();
-                updateGenerationCounter();
-                ui->generationLineEdit->selectAll();
+                updateTickCounter();
+                ui->tickLineEdit->selectAll();
 			}
             
 			return;
 		}
 		
-		// get the first responder out of the generation textfield
-        ui->generationLineEdit->clearFocus();
+		// get the first responder out of the tick textfield
+        ui->tickLineEdit->clearFocus();
 		
 		// start playing
-        playOrProfile(PlayType::kGenerationPlay);
+        playOrProfile(PlayType::kTickPlay);
 	}
 	else
 	{
 		// stop our recurring perform request; I don't think this is hit any more
-        playOrProfile(PlayType::kGenerationPlay);
+        playOrProfile(PlayType::kTickPlay);
 	}
 }
 
@@ -3680,7 +3698,7 @@ void QtSLiMWindow::recycleClicked(void)
     if (consoleController)
         consoleController->validateSymbolTableAndFunctionMap();
     
-    ui->generationLineEdit->clearFocus();
+    ui->tickLineEdit->clearFocus();
     elapsedCPUClock_ = 0;
     
     updateAfterTickFull(true);
@@ -3702,28 +3720,28 @@ void QtSLiMWindow::playSpeedChanged(void)
     
 	// We want our speed to be from the point when the slider changed, not from when play started
     continuousPlayElapsedTimer_.restart();
-	continuousPlayGenerationsCompleted_ = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	continuousPlayTicksCompleted_ = 1;		// this prevents a new tick from executing every time the slider moves a pixel
 	
 	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
     double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
 	
 	// Calculate frames per second; this equation must match the equation in _continuousPlay:
-	double maxGenerationsPerSecond = static_cast<double>(INFINITY);
+	double maxTicksPerSecond = static_cast<double>(INFINITY);
 	
 	if (speedSliderValue < 0.99999)
-		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+		maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 	
 	// Make a tooltip label string
 	QString fpsString("∞ fps");
 	
-	if (!std::isinf(maxGenerationsPerSecond))
+	if (!std::isinf(maxTicksPerSecond))
 	{
-		if (maxGenerationsPerSecond < 1.0)
-			fpsString = QString::asprintf("%.2f fps", maxGenerationsPerSecond);
-		else if (maxGenerationsPerSecond < 10.0)
-			fpsString = QString::asprintf("%.1f fps", maxGenerationsPerSecond);
+		if (maxTicksPerSecond < 1.0)
+			fpsString = QString::asprintf("%.2f fps", maxTicksPerSecond);
+		else if (maxTicksPerSecond < 10.0)
+			fpsString = QString::asprintf("%.1f fps", maxTicksPerSecond);
 		else
-			fpsString = QString::asprintf("%.0f fps", maxGenerationsPerSecond);
+			fpsString = QString::asprintf("%.0f fps", maxTicksPerSecond);
 		
 		//qDebug() << "fps string: " << fpsString;
 	}
@@ -4127,19 +4145,22 @@ void QtSLiMWindow::dumpPopulationClicked(void)
     
     try
 	{
+        // BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
+		slim_tick_t species_generation = community->single_species_->Generation();
+        
 		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " A" << std::endl;
+		community->single_species_->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
+		for (unsigned int i = 0; i < community->single_species_->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			sim->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			community->single_species_->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -4190,7 +4211,7 @@ void QtSLiMWindow::displayGraphClicked(void)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == ui->actionCreate_Haplotype_Plot)
         {
-            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            if (!continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4515,7 +4536,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->qtslimSetHighlight(true); graphView->actionButtonRunMenu(actionButton); });
         connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
         
-        actionButton->setEnabled(!invalidSimulation() && (sim->generation_ > 0));
+        actionButton->setEnabled(!invalidSimulation() && (community->Tick() > 0));
     }
     
     // Give the graph view a chance to do something with the window it's now in
@@ -4559,7 +4580,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
 	bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (invalidSimulation_) // || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+	if (invalidSimulation_) // || !community || !community->simulation_valid_ || (community->Tick() < 1) || !community->single_species_)
 		disableAll = true;
     
     QMenu contextMenu("graph_menu", this);
@@ -4617,7 +4638,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size());
+    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -4657,7 +4678,7 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == createHaplotypePlot)
         {
-            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            if (!continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4715,7 +4736,7 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
     {
         QItemSelectionModel *selectionModel = ui->subpopTableView->selectionModel();
         QModelIndexList selectedRows = selectionModel->selectedRows();
-        Population &population = sim->population_;
+        Population &population = community->single_species_->population_;
         std::map<slim_objectid_t,Subpopulation*> &subpops = population.subpops_;
         size_t subpopCount = subpops.size();
         

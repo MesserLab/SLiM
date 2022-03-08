@@ -19,8 +19,8 @@
 
 /*
  
- The class SLiMEidosBlock represents one script block defined in SLiM's input file, or programmatically via the methods on SLiMSim.
- A SLiMEidosBlock knows the generation range in which it is to run, has a reference to its AST so it can be executed, and various
+ The class SLiMEidosBlock represents one script block defined in SLiM's input file, or programmatically via the methods on Species.
+ A SLiMEidosBlock knows the tick range in which it is to run, has a reference to its AST so it can be executed, and various
  other state.
  
  */
@@ -127,14 +127,14 @@ public:
 	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
-	slim_generation_t start_generation_ = -1, end_generation_ = SLIM_MAX_GENERATION + 1;		// the generation range to which the block is limited
+	slim_tick_t start_tick_ = -1, end_tick_ = SLIM_MAX_TICK + 1;		// the tick range to which the block is limited
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
 	
 	EidosScript *script_ = nullptr;								// OWNED: nullptr indicates that we are derived from the input file script
-	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its generation range and type nodes
+	const EidosASTNode *root_node_ = nullptr;					// NOT OWNED: the root node for the whole block, including its tick range and type nodes
 	const EidosASTNode *compound_statement_node_ = nullptr;		// NOT OWNED: the node for the compound statement that constitutes the body of the block
 	const EidosToken *identifier_token_ = nullptr;
 	int32_t user_script_line_offset_;							// the initial position (lines) in the user's script; -1 if it is not in the user's script
@@ -195,7 +195,7 @@ public:
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
 	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file
-	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_generation_t p_start, slim_generation_t p_end);		// initialize from a programmatic script
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.

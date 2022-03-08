@@ -111,7 +111,7 @@ private:
 	//
 	//	1. No fitness callbacks defined.  Here caches depend solely upon mutation selection coefficients, and can
 	//		be carried forward through generations with impunity.  If any mutation's selcoeff is changed between
-	//		zero and non-zero, a global flag in SLiMSim (nonneutral_change_counter_) marks all caches as invalid.
+	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
 	//		mutation types and callbacks, and figures this state out and sets a flag in each mutation type as to

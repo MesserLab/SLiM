@@ -61,9 +61,9 @@ QString QtSLiMGraphView_LossTimeHistogram::aboutString(void)
 double *QtSLiMGraphView_LossTimeHistogram::lossTimeData(void)
 {
     int binCount = histogramBinCount_;
-	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
-	slim_generation_t *histogram = controller_->sim->population_.mutation_loss_times_;
-	int64_t histogramBins = static_cast<int64_t>(controller_->sim->population_.mutation_loss_gen_slots_);	// fewer than binCount * mutationTypeCount may exist
+	int mutationTypeCount = static_cast<int>(controller_->community->single_species_->mutation_types_.size());
+	slim_tick_t *histogram = controller_->community->single_species_->population_.mutation_loss_times_;
+	int64_t histogramBins = static_cast<int64_t>(controller_->community->single_species_->population_.mutation_loss_tick_slots_);	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = nullptr;
 	static size_t rebinBins = 0;
 	size_t usedRebinBins = static_cast<size_t>(binCount * mutationTypeCount);
@@ -116,7 +116,7 @@ void QtSLiMGraphView_LossTimeHistogram::drawGraph(QPainter &painter, QRect inter
 {
     double *plotData = lossTimeData();
 	int binCount = histogramBinCount_;
-    int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
+    int mutationTypeCount = static_cast<int>(controller_->community->single_species_->mutation_types_.size());
 	
 	// plot our histogram bars
 	drawGroupedBarplot(painter, interiorRect, plotData, mutationTypeCount, binCount, 0.0, 10.0);
@@ -136,10 +136,10 @@ void QtSLiMGraphView_LossTimeHistogram::appendStringForData(QString &string)
 {
 	double *plotData = lossTimeData();
 	int binCount = histogramBinCount_;
-	SLiMSim *sim = controller_->sim;
-    int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
+	Species *species = controller_->community->single_species_;
+    int mutationTypeCount = static_cast<int>(species->mutation_types_.size());
 	
-	for (auto mutationTypeIter : sim->mutation_types_)
+	for (auto mutationTypeIter : species->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

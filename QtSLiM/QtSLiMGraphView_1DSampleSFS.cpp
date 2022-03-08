@@ -166,8 +166,8 @@ QString QtSLiMGraphView_1DSampleSFS::disableMessage(void)
 {
     if (controller_ && !controller_->invalidSimulation())
     {
-        Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_);
+        MutationType *muttype = controller_->community->single_species_->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
         
@@ -248,12 +248,12 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
 {
     if (!sfs1dbuf_)
     {
-        SLiMSim *sim = controller_->sim;
-        Population &population = sim->population_;
+        Species *species = controller_->community->single_species_;
+        Population &population = species->population_;
         
         // Find our subpops and mutation type
-        Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
+        MutationType *muttype = species->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !muttype)
             return nullptr;

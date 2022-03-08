@@ -43,7 +43,7 @@
 	NSPopUpButton *subpopulationButton;
 	NSPopUpButton *mutationTypeButton;
 	
-	slim_generation_t lastGeneration;						// the last generation data was gathered for; used to detect a backward move in time
+	slim_tick_t lastTick;									// the last tick data was gathered for; used to detect a backward move in time
 }
 
 // The subpop and mutation type selected; -1 indicates no current selection (which will be fixed as soon as the menu is populated)
@@ -69,7 +69,7 @@
 // chosen subpopulation.  The history of a mutation should persist after it has vanished, and if a
 // new mutation object gets allocated at the same memory location, it should be treated as a distinct
 // mutation; so we can't use pointers to identify mutations.  Instead, we keep data on them using a
-// unique 64-bit ID generated only when SLiM is running under SLiMgui.  At the end of a generation,
+// unique 64-bit ID generated only when SLiM is running under SLiMgui.  At the end of a tick,
 // we loop through all mutations in the registry, and add an entry for that mutation in our data store.
 // This is probably O(n^2), but so it goes.  It should only be used for mutation types that generate
 // few mutations; if somebody tries to plot every mutation in a common mutation-type, they will suffer.
@@ -83,9 +83,9 @@
 	// Mostly we are just a malloced array of uint16s.  The data we're storing is doubles, conceptually, but to minimize our memory footprint
 	// (which might be very large!) we convert the doubles, which are guaranteed to be in the range [0.0, 1.0], to uint16s in the range
 	// [0, UINT16_MAX] (65535).  The buffer size is the number of entries allocated, the entry count is the number used so far, and the
-	// base generation is the first generation recorded; the assumption is that entries are then sequential without gaps.
+	// base tick is the first tick recorded; the assumption is that entries are then sequential without gaps.
 	int bufferSize, entryCount;
-	slim_generation_t baseGeneration;
+	slim_tick_t baseTick;
 	uint16_t *entries;
 	
 	// Remember our mutation type so we can set our line color, etc., if we wish
@@ -95,7 +95,7 @@
 	BOOL updated;
 }
 
-- (instancetype)initWithEntry:(uint16_t)value forMutation:(const Mutation *)mutation atBaseGeneration:(slim_generation_t)generation;
+- (instancetype)initWithEntry:(uint16_t)value forMutation:(const Mutation *)mutation atBaseTick:(slim_tick_t)tick;
 - (void)addEntry:(uint16_t)value;
 
 @end

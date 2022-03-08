@@ -51,7 +51,7 @@ public slots:
     virtual void addedToWindow(void) override;
     void invalidateCachedData(void);
     virtual void controllerRecycled(void) override;
-    virtual void controllerGenerationFinished(void) override;
+    virtual void controllerTickFinished(void) override;
     virtual void updateAfterTick(void) override;
     void toggleShowLostMutations(void);
     void toggleShowFixedMutations(void);
@@ -68,7 +68,7 @@ private:
     std::unordered_map<slim_mutationid_t, MutationFrequencyHistory *> frequencyHistoryDict_;    // unordered_map of active MutationFrequencyHistory objects, with slim_mutationid_t keys
     std::vector<MutationFrequencyHistory *> frequencyHistoryColdStorageLost_;                   // vector of MutationFrequencyHistory objects that have been lost
     std::vector<MutationFrequencyHistory *> frequencyHistoryColdStorageFixed_;                  // vector of MutationFrequencyHistory objects that have been fixed
-    slim_generation_t lastGeneration_ = 0;                                                      // the last generation data was gathered for; used to detect a backward move in time
+    slim_tick_t lastTick_ = 0;                                                                  // the last tick data was gathered for; used to detect a backward move in time
     
     // pop-up menu buttons
     QComboBox *subpopulationButton_ = nullptr;
@@ -84,9 +84,9 @@ private:
     bool plotActiveMutations_ = false;
     bool useColorsForPlotting_ = false;
     
-    void fetchDataForFinishedGeneration(void);
+    void fetchDataForFinishedTick(void);
     void drawHistory(QPainter &painter, MutationFrequencyHistory *history, QRect interiorRect);
-    void appendEntriesToString(std::vector<MutationFrequencyHistory *> &array, QString &string, slim_generation_t completedGenerations);
+    void appendEntriesToString(std::vector<MutationFrequencyHistory *> &array, QString &string, slim_tick_t completedTicks);
 };
 
 
@@ -94,7 +94,7 @@ private:
 // chosen subpopulation.  The history of a mutation should persist after it has vanished, and if a
 // new mutation object gets allocated at the same memory location, it should be treated as a distinct
 // mutation; so we can't use pointers to identify mutations.  Instead, we keep data on them using a
-// unique 64-bit ID generated only when SLiM is running under SLiMgui.  At the end of a generation,
+// unique 64-bit ID generated only when SLiM is running under SLiMgui.  At the end of a tick,
 // we loop through all mutations in the registry, and add an entry for that mutation in our data store.
 // This is probably O(n^2), but so it goes.  It should only be used for mutation types that generate
 // few mutations; if somebody tries to plot every mutation in a common mutation-type, they will suffer.
@@ -111,16 +111,16 @@ public:
 	// Mostly we are just a malloced array of uint16s.  The data we're storing is doubles, conceptually, but to minimize our memory footprint
 	// (which might be very large!) we convert the doubles, which are guaranteed to be in the range [0.0, 1.0], to uint16s in the range
 	// [0, UINT16_MAX] (65535).  The buffer size is the number of entries allocated, the entry count is the number used so far, and the
-	// base generation is the first generation recorded; the assumption is that entries are then sequential without gaps.
+	// base tick is the first tick recorded; the assumption is that entries are then sequential without gaps.
 	uint32_t bufferSize, entryCount;
-	slim_generation_t baseGeneration;
+	slim_tick_t baseTick;
 	uint16_t *entries;
 	
 	// Remember our mutation type so we can set our line color, etc., if we wish
 	const MutationType *mutationType;
 	
 public:
-    MutationFrequencyHistory(uint16_t value, const Mutation *mutation, slim_generation_t generation);
+    MutationFrequencyHistory(uint16_t value, const Mutation *mutation, slim_tick_t tick);
     ~MutationFrequencyHistory();
     
     inline void addEntry(uint16_t value)

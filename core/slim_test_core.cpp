@@ -179,19 +179,12 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeMutationRate(0.0); initializeGenomicElement(g1, 0, 2000); initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), 'M'); initializeRecombinationRate(0.0, 2000, '*'); } 1 {}", 1, 307, "single map versus separate maps", __LINE__);
 	SLiMAssertScriptRaise("initialize() {" + define_g1 + "initializeMutationRate(0.0); initializeGenomicElement(g1, 0, 2000); initializeSex('A'); initializeRecombinationRate(c(0.0, 0.1), c(1000, 2000), '*'); initializeRecombinationRate(0.0, 2000, 'F'); } 1 {}", 1, 307, "single map versus separate maps", __LINE__);
 	
-	// Test (void)initializeSex(string$ chromosomeType, [numeric$ xDominanceCoeff])
+	// Test (void)initializeSex(string$ chromosomeType)
 	SLiMAssertScriptStop("initialize() { initializeSex('A'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSex('X'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSex('Y'); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex('Z'); stop(); }", 1, 15, "requires a chromosomeType of", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSex(); stop(); }", 1, 15, "missing required argument", __LINE__);
-	// BCH 9/24/2021: dominanceCoeffX has been deprecated and removed from initializeSex() for SLiM 3.7
-	//SLiMAssertScriptRaise("initialize() { initializeSex('A', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
-	//SLiMAssertScriptStop("initialize() { initializeSex('X', 0.0); stop(); }", __LINE__);
-	//SLiMAssertScriptRaise("initialize() { initializeSex('Y', 0.0); stop(); }", 1, 15, "may be supplied only for", __LINE__);
-	//SLiMAssertScriptRaise("initialize() { initializeSex('Z', 0.0); stop(); }", 1, 15, "requires a chromosomeType of", __LINE__);
-	//SLiMAssertScriptStop("initialize() { initializeSex('X', -10000); stop(); }", __LINE__);															// legal: no minimum value for dominance coeff
-	//SLiMAssertScriptStop("initialize() { initializeSex('X', 10000); stop(); }", __LINE__);															// legal: no maximum value for dominance coeff
 	SLiMAssertScriptRaise("initialize() { initializeSex('A'); initializeSex('A'); stop(); }", 1, 35, "may be called only once", __LINE__);
 	
 	// Test (void)initializeSLiMModelType(string$ modelType)
@@ -310,12 +303,12 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'zyx'); stop(); }", 1, 60, "spatiality \"zyx\" must be", __LINE__);
 }
 
-#pragma mark SLiMSim tests
-void _RunSLiMSimTests(std::string temp_path)
+#pragma mark Species tests
+void _RunSpeciesTests(std::string temp_path)
 {
 	// ************************************************************************************
 	//
-	//	Gen 1+ tests: SLiMSim
+	//	Gen 1+ tests: Species & Community
 	//
 	
 	// Test sim properties
@@ -326,32 +319,28 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.chromosomeType = 'A'; } " + gen2_stop, 1, 235, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.chromosomeType == 'X') stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 { sim.chromosomeType = 'X'; } " + gen2_stop, 1, 255, "read-only property", __LINE__);
-	// BCH 9/24/2021: dominanceCoeffX has been deprecated and removed from initializeSex() for SLiM 3.7
-	//SLiMAssertScriptStop(gen1_setup + "1 { sim.dominanceCoeffX; } " + gen2_stop);															// legal: the property is meaningless but may be accessed
-	//SLiMAssertScriptRaise(gen1_setup + "1 { sim.dominanceCoeffX = 0.2; } ", 1, 236, "when not simulating an X chromosome", __LINE__);
-	//SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX; } " + gen2_stop, __LINE__);
-	//SLiMAssertScriptStop(gen1_setup_sex + "1 { sim.dominanceCoeffX = 0.2; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation; } ", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop, __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.generationStage == 'early') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.generationStage == 'early') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 late() { if (sim.generationStage == 'late') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (sim.generationStage == 'reproduction') stop(); } 2 {}", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (sim.generationStage == 'fitness') stop(); } 100 {}", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.generationStage = 'early'; } ", 1, 236, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { sim.generation = 7; } " + gen2_stop, __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { community.tick = 7; } " + gen2_stop, __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (community.generationStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.generationStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 late() { if (community.generationStage == 'late') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (community.generationStage == 'reproduction') stop(); } 2 {}", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (community.generationStage == 'fitness') stop(); } 100 {}", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { community.generationStage = 'early'; } ", 1, 242, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.genomicElementTypes == g1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.genomicElementTypes = g1; } ", 1, 240, "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(WF_prefix + gen1_setup + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(WF_prefix + gen1_setup_sex + "1 { if (sim.modelType == 'WF') stop(); } ", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.modelType = 'foo'; } ", 1, 230, "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { if (community.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (community.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(WF_prefix + gen1_setup + "1 { if (community.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(WF_prefix + gen1_setup_sex + "1 { if (community.modelType == 'WF') stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { community.modelType = 'foo'; } ", 1, 236, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.mutationTypes == m1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutationTypes = m1; } ", 1, 234, "read-only property", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.mutations; } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 { sim.mutations = _Test(7); } ", 1, 230, "cannot be object element type", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.scriptBlocks; } ", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.scriptBlocks = sim.scriptBlocks[0]; } ", 1, 233, "read-only property", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { community.scriptBlocks; } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 { community.scriptBlocks = community.scriptBlocks[0]; } ", 1, 239, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.sexEnabled == F) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 { if (sim.sexEnabled == T) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (size(sim.subpopulations) == 0) stop(); } ", __LINE__);
@@ -362,9 +351,9 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 { c(sim,sim).tag; } ", 1, 227, "before being set", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.tag = -17; } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.tag = -17; } 2 { if (sim.tag == -17) stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.verbosity; } ", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 { sim.verbosity = -17; } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 { sim.verbosity = -17; } 2 { if (sim.verbosity == -17) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { community.verbosity; } ", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 { community.verbosity = -17; } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 { community.verbosity = -17; } 2 { if (community.verbosity == -17) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.dimensionality == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 { if (sim.dimensionality == '') stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.dimensionality = 'x'; }", 1, 366, "read-only property", __LINE__);
@@ -378,13 +367,6 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.periodicity = 'x'; }", 1, 363, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 { if (sim.periodicity == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz + "1 { if (sim.periodicity == 'xz') stop(); }", __LINE__);
-	
-#ifdef SLIMGUI
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.inSLiMgui == T) stop(); } ", __LINE__);
-#else
-	SLiMAssertScriptStop(gen1_setup + "1 { if (sim.inSLiMgui == F) stop(); } ", __LINE__);
-#endif
-	SLiMAssertScriptRaise(gen1_setup + "1 { sim.inSLiMgui = T; }", 1, 230, "read-only property", __LINE__);
 	
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 	SLiMAssertScriptStop(gen1_setup + "1 { sim.addSubpop('p1', 10); } " + gen2_stop, __LINE__);
@@ -418,15 +400,15 @@ void _RunSLiMSimTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.addSubpopSplit('p7', 10, p1); sim.addSubpopSplit(7, 10, p1); stop(); }", 1, 285, "used already", __LINE__);
 	
 	// Test sim - (void)deregisterScriptBlock(io<SLiMEidosBlock> scriptBlocks)
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); } s1 2 { stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); } s1 2 { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(object()); } s1 2 { stop(); }", __LINE__);									// legal: deregister nothing
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s1)); } s1 2 { stop(); }", 1, 251, "same script block", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 1)); } s1 2 { stop(); }", 1, 251, "same script block", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(s1); sim.deregisterScriptBlock(s1); } s1 2 { stop(); }", 1, 282, "same script block", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(1); sim.deregisterScriptBlock(1); } s1 2 { stop(); }", 1, 281, "same script block", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { sim.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { community.deregisterScriptBlock(s1); } s1 2 { stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { community.deregisterScriptBlock(1); } s1 2 { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.deregisterScriptBlock(object()); } s1 2 { stop(); }", __LINE__);									// legal: deregister nothing
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.deregisterScriptBlock(c(s1, s1)); } s1 2 { stop(); }", 1, 257, "same script block", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.deregisterScriptBlock(c(1, 1)); } s1 2 { stop(); }", 1, 257, "same script block", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.deregisterScriptBlock(s1); community.deregisterScriptBlock(s1); } s1 2 { stop(); }", 1, 294, "same script block", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.deregisterScriptBlock(1); community.deregisterScriptBlock(1); } s1 2 { stop(); }", 1, 293, "same script block", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { community.deregisterScriptBlock(c(s1, s2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "1 { community.deregisterScriptBlock(c(1, 2)); } s1 2 { stop(); } s2 3 { stop(); }", __LINE__);
 	
 	// Test sim - (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [Nio<Subpopulation> subpops = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.individualsWithPedigreeIDs(1); }", 1, 251, "when pedigree recording", __LINE__);
@@ -539,154 +521,154 @@ void _RunSLiMSimTests(std::string temp_path)
 	}
 	
 	// Test sim - (object<SLiMEidosBlock>)registerFirstEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerFirstEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerFirstEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 2, 2); sim.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 299, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerFirstEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerFirstEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerFirstEvent('s1', '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent(1, '{ stop(); }', 2, 2); community.registerFirstEvent(1, '{ stop(); }', 2, 2); }", 1, 311, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent(1, '{ stop(); }', 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent(1, '{ stop(); }', -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent(1, '{ stop(); }', 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerFirstEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerEarlyEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerEarlyEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEarlyEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); sim.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 299, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerEarlyEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerEarlyEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerEarlyEvent('s1', '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent(1, '{ stop(); }', 2, 2); community.registerEarlyEvent(1, '{ stop(); }', 2, 2); }", 1, 311, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent(1, '{ stop(); }', 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent(1, '{ stop(); }', -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent(1, '{ stop(); }', 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerEarlyEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerLateEvent(Nis$ id, string$ source, [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerLateEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerLateEvent('s1', '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 2, 2); sim.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 298, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ stop(); }', 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerLateEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerLateEvent(NULL, '{ stop(); }', 2, 2); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent('s1', '{ stop(); }', 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerLateEvent('s1', '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent(1, '{ stop(); }', 2, 2); community.registerLateEvent(1, '{ stop(); }', 2, 2); }", 1, 310, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent(1, '{ stop(); }', 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent(1, '{ stop(); }', -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent(1, '{ stop(); }', 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerLateEvent(1, '{ $; }', 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, Nio<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL); } 10 { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(NULL, '{ stop(); }'); }", 1, 251, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 314, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', NULL, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', NULL, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', 1); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', m1); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }', NULL); } 10 { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(NULL, '{ stop(); }'); }", 1, 257, "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; community.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { s1 = 7; community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", 1, 326, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 { community.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(NULL, '{ stop(); }'); }", 1, 351, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 { }", 1, 351, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { s1 = 7; sim.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", 1, 359, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { s1 = 7; sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", 1, 359, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", 1, 418, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", 1, 351, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", 1, 351, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", 1, 351, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { sim.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(NULL, '{ stop(); }'); }", 1, 357, "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 { }", 1, 357, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { s1 = 7; community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", 1, 365, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { s1 = 7; community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", 1, 365, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", 1, 430, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", 1, 357, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", 1, 357, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", 1, 357, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 { community.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL, '{ stop(); }'); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(NULL); }", 1, 251, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 313, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }', 1, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }', p1, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }'); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL, '{ stop(); }'); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(NULL); }", 1, 257, "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerMateChoiceCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); community.registerMateChoiceCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 325, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerMateChoiceCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerModifyChildCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL, '{ stop(); }'); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(NULL); }", 1, 251, "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 251, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 259, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 314, "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 251, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 251, "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }', 1, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }', p1, 2, 2); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }'); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL, '{ stop(); }'); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(NULL); }", 1, 257, "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 { }", 1, 257, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerModifyChildCallback('s1', '{ stop(); }', NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { s1 = 7; community.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 265, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); community.registerModifyChildCallback(1, '{ stop(); }', NULL, 2, 2); }", 1, 326, "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(1, '{ stop(); }', NULL, 3, 2); }", 1, 257, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(1, '{ stop(); }', NULL, -1, -1); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", 1, 257, "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { community.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", 1, 2, "unexpected token '$'", __LINE__);
 	
 	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 { }", 1, 255, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=integer(0)); stop(); } s1 10 { }", 1, 255, "requires at least one generation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(25, 25)); stop(); } s1 10 { }", 1, 255, "same generation cannot be used twice", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=NULL, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(s1, generations=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 { }", 1, 261, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=integer(0)); stop(); } s1 10 { }", 1, 261, "requires at least one tick", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=c(25, 25)); stop(); } s1 10 { }", 1, 261, "same tick cannot be used twice", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25, end=25, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25, end=NULL, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=NULL, end=25, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = community.rescheduleScriptBlock(s1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "scheduled for a past tick", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = community.rescheduleScriptBlock(s1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "scheduled for a past tick", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(s1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(2, start=10, end=9); stop(); } s1 10 { }", 1, 255, "s2 not defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=10, end=9); stop(); } s1 10 { }", 1, 255, "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=integer(0)); stop(); } s1 10 { }", 1, 255, "requires at least one generation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(25, 25)); stop(); } s1 10 { }", 1, 255, "same generation cannot be used twice", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=NULL, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=NULL, end=25, generations=25); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1); stop(); } s1 10 { }", 1, 255, "either start/end or generations", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "for the currently executing", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = sim.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 255, "scheduled for a past generation", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = sim.rescheduleScriptBlock(1, generations=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(2, start=10, end=9); stop(); } s1 10 { }", 1, 261, "s2 not defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=10, end=9); stop(); } s1 10 { }", 1, 261, "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=integer(0)); stop(); } s1 10 { }", 1, 261, "requires at least one tick", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=c(25, 25)); stop(); } s1 10 { }", 1, 261, "same tick cannot be used twice", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25, end=25, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25, end=NULL, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=NULL, end=25, ticks=25); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1); stop(); } s1 10 { }", 1, 261, "either start/end or ticks", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25, end=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:29)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "for the currently executing", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = community.rescheduleScriptBlock(1, start=NULL, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "scheduled for a past tick", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 { b = community.rescheduleScriptBlock(1, end=29); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 1:29)) stop(); } s1 10 { }", 1, 261, "scheduled for a past tick", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25, end=NULL); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, start=25); if (b.start == 25 & b.end == 1000000001) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=25); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 { }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 { b = community.rescheduleScriptBlock(1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 { }", __LINE__);
 	
-	// Test sim - (void)simulationFinished(void)
+	// Test Community - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 { stop(); }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { sim.simulationFinished(); } 11 { stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 { community.simulationFinished(); } 11 { stop(); }", __LINE__);
 	
 	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
 	// unusually, we do this with custom SLiM scripts that check the API stochastically, since it would be difficult

@@ -377,8 +377,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 // there are better algorithms out there, but this one is simple...
 - (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species &species = *controller->community->single_species_;
+	Population &pop = species.population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -581,8 +581,9 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Community &community = *controller->community;
+	Species &species = *community.single_species_;
+	Population &pop = species.population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -645,7 +646,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
 #ifdef SLIM_WF_ONLY
-		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
+		if ((community.ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
 			[self optimizeSubpopPositionsWithController:controller];
 #endif	// SLIM_WF_ONLY
 		
@@ -700,7 +701,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
 			{
 				Subpopulation *destSubpop = (*destSubpopIter).second;
-				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
+				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 				{
@@ -713,7 +714,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 						double migrantFraction = (*sourceSubpopIter).second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
-						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)
 						{
 							if (sourceSubpop->gui_premigration_size_ <= 0)
 								continue;
@@ -762,8 +763,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	if (!controller)
 		return NO;
 	
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species &species = *controller->community->single_species_;
+	Population &pop = species.population_;
 	
 	if (sel == @selector(toggleOptimizedPositions:))
 	{

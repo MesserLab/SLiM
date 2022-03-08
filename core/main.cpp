@@ -34,7 +34,8 @@
 #include <chrono>
 #include <sys/stat.h>
 
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "slim_globals.h"
 #include "eidos_test.h"
 #include "slim_test.h"
@@ -388,13 +389,13 @@ int main(int argc, char *argv[])
 	Eidos_WarmUp();
 	SLiM_WarmUp();
 	
-	SLiMSim *sim = nullptr;
+	Community *community = nullptr;
 	
 	if (!input_file)
 	{
 		// no input file supplied; either the user forgot (if stdin is a tty) or they're piping a script into stdin
 		// we checked for the tty case above, so here we assume stdin will supply the script
-		sim = new SLiMSim(std::cin);
+		community = new Community(std::cin);
 	}
 	else
 	{
@@ -426,37 +427,37 @@ int main(int argc, char *argv[])
 		if (!infile.is_open())
 			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
 		
-		sim = new SLiMSim(infile);
+		community = new Community(infile);
 	}
 	
 	if (keep_mem_hist)
 		mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);
 	
-	if (sim)
+	if (community)
 	{
-		sim->InitializeRNGFromSeed(override_seed_ptr);
+		community->InitializeRNGFromSeed(override_seed_ptr);
 		
 		Eidos_DefineConstantsFromCommandLine(defined_constants);	// do this after the RNG has been set up
 		
 		for (int arg_index = 0; arg_index < argc; ++arg_index)
-			sim->cli_params_.emplace_back(argv[arg_index]);
+		community->cli_params_.emplace_back(argv[arg_index]);
 		
 		if (tree_seq_checks)
-			sim->TSXC_Enable();
+			community->AllSpecies_TSXC_Enable();
         if (tree_seq_force && !tree_seq_checks)
-            sim->TSF_Enable();
+			community->AllSpecies_TSF_Enable();
 		
 #if DO_MEMORY_CHECKS
-		// We check memory usage at the end of every 10 generations, to be able to provide the user with a decent error message
-		// if the maximum memory limit is exceeded.  Every 10 generations is a compromise; these checks do take a little time.
-		// Even with a model that runs through generations very quickly, though, checking every 10 makes little difference.
-		// Models in which the generations take longer will see no measurable difference in runtime at all.  Note that these
+		// We check memory usage at the end of every 10 ticks, to be able to provide the user with a decent error message
+		// if the maximum memory limit is exceeded.  Every 10 ticks is a compromise; these checks do take a little time.
+		// Even with a model that runs through ticks very quickly, though, checking every 10 makes little difference.
+		// Models in which the ticks take longer will see no measurable difference in runtime at all.  Note that these
 		// checks can be disabled with the -x command-line option.
 		int mem_check_counter = 0, mem_check_mod = 10;
 #endif
 		
 		// Run the simulation to its natural end
-		while (sim->RunOneGeneration())
+		while (community->RunOneTick())
 		{
 			if (keep_mem_hist)
 			{
@@ -478,10 +479,10 @@ int main(int argc, char *argv[])
 				
 				if (mem_check_counter % mem_check_mod == 0)
 				{
-					// Check memory usage at the end of the generation, so we can print a decent error message
+					// Check memory usage at the end of the ticks, so we can print a decent error message
 					std::ostringstream message;
 					
-					message << "(Limit exceeded at end of generation " << sim->Generation() << ".)" << std::endl;
+					message << "(Limit exceeded at end of tick " << community->Tick() << ".)" << std::endl;
 					
 					Eidos_CheckRSSAgainstMax("main()", message.str());
 				}
@@ -542,7 +543,7 @@ int main(int argc, char *argv[])
 		SLIM_ERRSTREAM << "#scale <- 1024; scale_tag <- \"K\"" << std::endl;
 		SLIM_ERRSTREAM << "scale <- 1024 * 1024; scale_tag <- \"MB\"" << std::endl;
 		SLIM_ERRSTREAM << "#scale <- 1024 * 1024 * 1024; scale_tag <- \"GB\"" << std::endl;
-		SLIM_ERRSTREAM << "plot(memhist / scale, type=\"l\", ylab=paste0(\"Memory usage (\", scale_tag, \")\"), xlab=\"Generation (start)\", ylim=c(0,peak_mem/scale), lwd=4)" << std::endl;
+		SLIM_ERRSTREAM << "plot(memhist / scale, type=\"l\", ylab=paste0(\"Memory usage (\", scale_tag, \")\"), xlab=\"Tick (start)\", ylim=c(0,peak_mem/scale), lwd=4)" << std::endl;
 		SLIM_ERRSTREAM << "abline(h=peak_mem/scale, col=\"red\")" << std::endl;
 		SLIM_ERRSTREAM << "abline(h=initial_mem/scale, col=\"blue\")" << std::endl;
 		

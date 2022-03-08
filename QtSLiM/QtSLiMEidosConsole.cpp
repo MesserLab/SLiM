@@ -353,8 +353,8 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 		global_symbols = gEidosConstantsSymbolTable;
 		
         // in SLiMgui this comes from the delegate method eidosConsoleWindowController:symbolsFromBaseSymbols:
-        if (parentSLiMWindow->sim && !parentSLiMWindow->invalidSimulation())
-            global_symbols = parentSLiMWindow->sim->SymbolsFromBaseSymbols(global_symbols);
+        if (parentSLiMWindow->community && !parentSLiMWindow->invalidSimulation())
+            global_symbols = parentSLiMWindow->community->SymbolsFromBaseSymbols(global_symbols);
 		
         // With the advant of global versus local symbol tables, the semantics here have gotten a little tricky.  In EidosScribe
 		// we want the console to work in the global variables table directly, which we need to create; that will be our symbol
@@ -385,8 +385,8 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	{
         global_function_map_owned = false;
 		
-        if (parentSLiMWindow->sim && !parentSLiMWindow->invalidSimulation())
-			global_function_map = &parentSLiMWindow->sim->FunctionMap();
+        if (parentSLiMWindow->community && !parentSLiMWindow->invalidSimulation())
+			global_function_map = &parentSLiMWindow->community->FunctionMap();
 		
 		if (!global_function_map)
 		{
@@ -396,7 +396,7 @@ QString QtSLiMEidosConsole::_executeScriptString(QString scriptString, QString *
 	}
 	
 	// Get the EidosContext, if any, from SLiM
-	EidosContext *eidos_context = parentSLiMWindow->sim;
+	EidosContext *eidos_context = parentSLiMWindow->community;
 	
 	// Interpret the parsed block
     parentSLiMWindow->willExecuteScript();

@@ -31,10 +31,10 @@
 
 QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromGeneration();
+    setXAxisRangeFromTick();
     setDefaultYAxisRange();
     
-    xAxisLabel_ = "Generation";
+    xAxisLabel_ = "Tick";
     yAxisLabel_ = "Fitness (rescaled)";
     
     allowXAxisUserRescale_ = true;
@@ -67,7 +67,7 @@ void QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache(void)
 {
     delete drawingCache_;
 	drawingCache_ = nullptr;
-	drawingCacheGeneration_ = 0;
+	drawingCacheTick_ = 0;
 }
 
 void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
@@ -77,7 +77,7 @@ void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
 		if (!yAxisIsUserRescaled_)
 			setDefaultYAxisRange();
 		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromGeneration();
+			setXAxisRangeFromTick();
 		
 		update();
 	}
@@ -103,7 +103,7 @@ QString QtSLiMGraphView_FitnessOverTime::aboutString(void)
     return "The Fitness ~ Time graph shows mean fitness as a function of time.  The mean fitness "
            "of the population is shown with a thick black line, while those of subpopulations "
            "are shown with thinner colored lines.  Fixation events during the model run are "
-           "shown with light blue vertical lines at the generation in which they occurred.  The "
+           "shown with light blue vertical lines at the tick in which they occurred.  The "
            "fitness shown is 'rescaled', meaning that when non-neutral mutations fix and are 'substituted' by "
            "SLiM they are no longer included in fitness calculations, so the y axis is 'rescaled'; "
            "this is mainly relevant to WF models.  It is also 'rescaled' in the sense that it "
@@ -115,8 +115,8 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 {
 	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
 	{
-		SLiMSim *sim = controller_->sim;
-		Population &pop = sim->population_;
+		Species *species = controller_->community->single_species_;
+		Population &pop = species->population_;
 		double minHistory = std::numeric_limits<double>::infinity();
 		double maxHistory = -std::numeric_limits<double>::infinity();
 		bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
@@ -127,7 +127,7 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 			{
 				FitnessHistory &history_record = history_record_iter.second;
 				double *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
 				for (int i = 0; i < historyLength; ++i)
@@ -176,24 +176,25 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 
 void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
-	// The generation counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
+	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
 	// future that may no longer happen.  So we need to detect that case and invalidate our cache.
-	if (!cachingNow_ && drawingCache_ && (drawingCacheGeneration_ > completedGenerations))
+	if (!cachingNow_ && drawingCache_ && (drawingCacheTick_ > completedTicks))
 	{
-		//qDebug() << "backward generation change detected, invalidating drawing cache";
+		//qDebug() << "backward tick change detected, invalidating drawing cache";
 		invalidateDrawingCache();
 	}
 	
-	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
-	if (!cachingNow_ && (!drawingCache_ || ((completedGenerations / 1000) > (drawingCacheGeneration_ / 1000))))
+	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-tick boundary since we last cached, cache an image
+	if (!cachingNow_ && (!drawingCache_ || ((completedTicks / 1000) > (drawingCacheTick_ / 1000))))
 	{
         invalidateDrawingCache();
 		
-        //qDebug() << "making new cache at generation " << sim->generation_;
+        //qDebug() << "making new cache at tick " << community->Tick();
 		cachingNow_ = true;
         
 		QPixmap *cache = new QPixmap(interiorRect.size());
@@ -203,14 +204,14 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
         drawGraph(cachePainter, cache->rect());
         
         drawingCache_ = cache;
-		drawingCacheGeneration_ = completedGenerations;
+		drawingCacheTick_ = completedTicks;
 		cachingNow_ = false;
 	}
 	
 	// Now draw our cache, if we have one
 	if (drawingCache_)
     {
-        //qDebug() << "drawing cache:" << drawingCache_->rect() << ", drawingCacheGeneration_ == " << drawingCacheGeneration_;
+        //qDebug() << "drawing cache:" << drawingCache_->rect() << ", drawingCacheTick_ == " << drawingCacheTick_;
         painter.drawPixmap(interiorRect, *drawingCache_, drawingCache_->rect());
     }
     
@@ -219,13 +220,13 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
 		
 		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow_ && (fixation_gen < drawingCacheGeneration_))
+		if (!cachingNow_ && (fixation_tick < drawingCacheTick_))
 			continue;
 		
-        double substitutionX = plotToDeviceX(fixation_gen, interiorRect);
+        double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
 		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
 		
         painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
@@ -246,12 +247,12 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
             {
                 FitnessHistory &history_record = history_record_iter.second;
                 double *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-                slim_generation_t firstHistoryEntryToDraw = (cachingNow_ ? 0 : (drawingCache_ ? drawingCacheGeneration_ : 0));
+                slim_tick_t firstHistoryEntryToDraw = (cachingNow_ ? 0 : (drawingCache_ ? drawingCacheTick_ : 0));
                 
-                for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
                 {
                     double historyEntry = history[i];
                     
@@ -272,17 +273,18 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 
 void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
 	// Draw fixation events
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
-        double substitutionX = plotToDeviceX(fixation_gen, interiorRect);
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
+        double substitutionX = plotToDeviceX(fixation_tick, interiorRect);
 		QRectF substitutionRect(substitutionX - 0.5, interiorRect.x(), 1.0, interiorRect.height());
 		
         painter.fillRect(substitutionRect, QtSLiMColorWithRGB(0.2, 0.2, 1.0, 0.2));
@@ -304,11 +306,11 @@ void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect int
             {
                 FitnessHistory &history_record = history_record_iter.second;
                 double *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
                 
-                for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                 {
                     double historyEntry = history[i];
                     
@@ -351,20 +353,21 @@ bool QtSLiMGraphView_FitnessOverTime::providesStringForData(void)
 
 void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
 {
-	SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+	Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
 	// Fixation events
-	string.append("# Fixation generations:\n");
+	string.append("# Fixation ticks:\n");
 	
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
 		
-		string.append(QString("%1, ").arg(fixation_gen));
+		string.append(QString("%1, ").arg(fixation_tick));
 	}
 	
 	// Fitness history
@@ -380,12 +383,12 @@ void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
             {
                 FitnessHistory &history_record = history_record_iter.second;
                 double *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
                     string.append(QString("\n\n# Fitness history (subpopulation p%1):\n").arg(history_record_iter.first));
                 
-                for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                     string.append(QString("%1, ").arg(history[i], 0, 'f', 4));
                 
                 string.append("\n");
@@ -401,7 +404,7 @@ QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)
     
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : controller_->sim->population_.fitness_histories_)
+    for (auto history_record_iter : controller_->community->single_species_->population_.fitness_histories_)
         subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);

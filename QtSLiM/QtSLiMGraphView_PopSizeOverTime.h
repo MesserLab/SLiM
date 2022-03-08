@@ -58,7 +58,7 @@ private:
     bool drawLines_ = false;
     
     QPixmap *drawingCache_ = nullptr;
-	slim_generation_t drawingCacheGeneration_ = 0;
+	slim_tick_t drawingCacheTick_ = 0;
     
     void setDefaultYAxisRange(void);
     

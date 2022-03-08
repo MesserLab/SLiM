@@ -23,7 +23,8 @@
 #include "eidos_property_signature.h"
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "slim_globals.h"
 
 #include <utility>
@@ -51,8 +52,9 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 #pragma mark InteractionType
 #pragma mark -
 
-InteractionType::InteractionType(SLiMSim &p_sim, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
-	sim_(p_sim),
+InteractionType::InteractionType(Species &p_species, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
+	community_(p_species.community_),
+	species_(p_species),
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 			 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class))),
 	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0), interaction_type_id_(p_interaction_type_id)
@@ -81,7 +83,7 @@ InteractionType::~InteractionType(void)
 
 void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate)
 {
-	SLiMSim &sim = p_subpop->population_.sim_;
+	Species &species = p_subpop->species_;
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
 	Individual **subpop_individuals = p_subpop->parent_individuals_.data();
@@ -158,7 +160,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		
 		if (spatiality_string_ == "x")
 		{
-			sim.SpatialPeriodicity(&periodic_x_, nullptr, nullptr);
+			species.SpatialPeriodicity(&periodic_x_, nullptr, nullptr);
 			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
 			
 			if (!periodic_x_)
@@ -189,7 +191,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "y")
 		{
-			sim.SpatialPeriodicity(nullptr, &periodic_x_, nullptr);
+			species.SpatialPeriodicity(nullptr, &periodic_x_, nullptr);
 			subpop_data->bounds_x1_ = p_subpop->bounds_y1_;
 			
 			if (!periodic_x_)
@@ -220,7 +222,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "z")
 		{
-			sim.SpatialPeriodicity(nullptr, nullptr, &periodic_x_);
+			species.SpatialPeriodicity(nullptr, nullptr, &periodic_x_);
 			subpop_data->bounds_x1_ = p_subpop->bounds_z1_;
 			
 			if (!periodic_x_)
@@ -251,7 +253,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "xy")
 		{
-			sim.SpatialPeriodicity(&periodic_x_, &periodic_y_, nullptr);
+			species.SpatialPeriodicity(&periodic_x_, &periodic_y_, nullptr);
 			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
 			subpop_data->bounds_y1_ = p_subpop->bounds_y1_;
 			
@@ -288,7 +290,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "xz")
 		{
-			sim.SpatialPeriodicity(&periodic_x_, nullptr, &periodic_y_);
+			species.SpatialPeriodicity(&periodic_x_, nullptr, &periodic_y_);
 			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
 			subpop_data->bounds_y1_ = p_subpop->bounds_z1_;
 			
@@ -325,7 +327,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "yz")
 		{
-			sim.SpatialPeriodicity(nullptr, &periodic_x_, &periodic_y_);
+			species.SpatialPeriodicity(nullptr, &periodic_x_, &periodic_y_);
 			subpop_data->bounds_x1_ = p_subpop->bounds_y1_;
 			subpop_data->bounds_y1_ = p_subpop->bounds_z1_;
 			
@@ -362,7 +364,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		}
 		else if (spatiality_string_ == "xyz")
 		{
-			sim.SpatialPeriodicity(&periodic_x_, &periodic_y_, &periodic_z_);
+			species.SpatialPeriodicity(&periodic_x_, &periodic_y_, &periodic_z_);
 			subpop_data->bounds_x1_ = p_subpop->bounds_x1_;
 			subpop_data->bounds_y1_ = p_subpop->bounds_y1_;
 			subpop_data->bounds_z1_ = p_subpop->bounds_z1_;
@@ -420,9 +422,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop, bool p_imme
 		EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): maximum interaction distance is greater than or equal to half of the spatial extent of a periodic spatial dimension, which would allow an individual to participate in more than one interaction with a single individual.  When periodic boundaries are used, the maximum interaction distance of interaction types involving periodic dimensions must be less than half of the spatial extent of those dimensions." << EidosTerminate();
 	
 	// Cache the interaction() callbacks applicable at this moment, for this subpopulation and this interaction type
-	slim_generation_t generation = sim.Generation();
-	
-	subpop_data->evaluation_interaction_callbacks_ = sim.ScriptBlocksMatching(generation, SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
+	subpop_data->evaluation_interaction_callbacks_ = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id);
 	
 	// We have an "immediate" flag that defaults to F; interactions are evaluated lazily by default.  Since the
 	// dist_str_ sparse array needs to be set up in a sequential fashion, we have to evaluate all interactions
@@ -1361,10 +1361,8 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	SLiMSim &sim = p_subpop->population_.sim_;
-
-	SLiMEidosBlockType old_executing_block_type = sim.executing_block_type_;
-	sim.executing_block_type_ = SLiMEidosBlockType::SLiMEidosInteractionCallback;
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosInteractionCallback;
 	
 	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
 	{
@@ -1378,7 +1376,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 				EidosToken *decl_token = interaction_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -1392,7 +1390,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 					if (interaction_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << interaction_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
@@ -1423,10 +1421,10 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-					EidosFunctionMap &function_map = sim.FunctionMap();
-					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosFunctionMap &function_map = community_.FunctionMap();
+					EidosInterpreter interpreter(interaction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 					
 					if (interaction_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(interaction_callback->SelfSymbolTableEntry());		// define "self"
@@ -1475,11 +1473,11 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 		}
 	}
 	
-	sim.executing_block_type_ = old_executing_block_type;
+	community_.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(sim.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);
 #endif
 	
 	return p_strength;
@@ -3070,7 +3068,7 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << EidosTerminate();
 			
 			// tweak a flag to make SLiMgui update
-			sim_.interaction_types_changed_ = true;
+			community_.interaction_types_changed_ = true;
 			
 			// changing max_distance_ invalidates the cached clipped_integral_ buffer; we don't deallocate it, just invalidate it
 			clipped_integral_valid_ = false;
@@ -3674,15 +3672,15 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	EidosValue *subpops_value = p_arguments[0].get();
 	EidosValue *immediate_value = p_arguments[1].get();
 	
-	if ((sim_.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
-		(sim_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring))
+	if ((community_.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
+		(community_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring))
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during offspring generation." << EidosTerminate();
 	
 	bool immediate = immediate_value->LogicalAtIndex(0, nullptr);
 	
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : sim_.ThePopulation().subpops_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species_.population_.subpops_)
 			EvaluateSubpopulation(subpop_pair.second, immediate);
 	}
 	else
@@ -3691,7 +3689,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 		int requested_subpop_count = subpops_value->Count();
 		
 		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, sim_, "evaluate()"), immediate);
+			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, species_, "evaluate()"), immediate);
 	}
 	
 	return gStaticEidosValueVOID;
@@ -4163,7 +4161,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
-	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, sim_, "nearestNeighborsOfPoint()");
+	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, species_, "nearestNeighborsOfPoint()");
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	auto subpop_data_iter = data_.find(subpop_id);
@@ -4298,7 +4296,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
 	
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
-	sim_.interaction_types_changed_ = true;
+	community_.interaction_types_changed_ = true;
 	
 	// changing the interaction function invalidates the cached clipped_integral_ buffer; we don't deallocate it, just invalidate it
 	clipped_integral_valid_ = false;

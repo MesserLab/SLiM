@@ -54,7 +54,7 @@ typedef std::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
 #endif
 
 
-class SLiMSim;
+class Species;
 class Population;
 class Subpopulation;
 class Individual;
@@ -360,7 +360,7 @@ public:
 		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
 	}
 	
-	void record_derived_states(SLiMSim *p_sim) const;
+	void record_derived_states(Species *p_species) const;
 	
 	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);
 	
@@ -414,7 +414,7 @@ public:
 	// runs, etc., transparently and pretends that a genome is just a single bag of mutations.
 	// FIXME well, now we do in fact have the GenomeWalker iterator class below, which works nicely, so some
 	// of the code that messes around inside Genome's internals can probably be switched over to using it...
-	friend SLiMSim;
+	friend Species;
 	friend Population;
 	friend Subpopulation;
 	friend Individual;

@@ -39,7 +39,7 @@ extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineN
 
 // Defined in various slim_test_X.cpp files
 extern void _RunInitTests(void);
-extern void _RunSLiMSimTests(std::string temp_path);
+extern void _RunSpeciesTests(std::string temp_path);
 extern void _RunMutationTypeTests(void);
 extern void _RunGenomicElementTypeTests(void);
 extern void _RunGenomicElementTests(void);

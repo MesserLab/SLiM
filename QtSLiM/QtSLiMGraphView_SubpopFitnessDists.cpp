@@ -20,7 +20,7 @@
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
 
 #include "QtSLiMWindow.h"
-#include "slim_sim.h"
+#include "species.h"
 #include "population.h"
 #include "subpopulation.h"
 #include "individual.h"
@@ -83,8 +83,8 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 		bins[i] = 0.0;
 	
     // bin fitness values from one subpop or from across the population
-    SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+    Population &pop = species->population_;
     
     for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : pop.subpops_)
     {
@@ -126,8 +126,8 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 
 void QtSLiMGraphView_SubpopFitnessDists::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &pop = species->population_;
     bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop
     int binCount = histogramBinCount_;
@@ -184,8 +184,8 @@ bool QtSLiMGraphView_SubpopFitnessDists::providesStringForData(void)
 
 void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *species = controller_->community->single_species_;
+	Population &pop = species->population_;
     bool showSubpops = true;
     int binCount = histogramBinCount_;
 	
@@ -219,8 +219,8 @@ void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 
 QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)
 {
-	SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+	Species *species = controller_->community->single_species_;
+    Population &pop = species->population_;
 	bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop
 	

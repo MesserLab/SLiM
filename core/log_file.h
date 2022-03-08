@@ -26,7 +26,7 @@
 #include <string>
 #include <sstream>
 
-class SLiMSim;
+class Community;
 
 
 extern EidosClass *gSLiM_LogFile_Class;
@@ -41,6 +41,7 @@ enum class LogFileGeneratorType
 	kGenerator_PopulationSize,
 	kGenerator_SubpopulationSexRatio,
 	kGenerator_SubpopulationSize,
+	kGenerator_Tick,
 	kGenerator_CustomScript,
 	kGenerator_CustomMeanAndSD			// results in two columns!
 };
@@ -64,7 +65,7 @@ public:
 #else
 private:
 #endif
-	SLiMSim &sim_;												// UNOWNED POINTER: the simulation object we're working with
+	Community &community_;										// UNOWNED POINTER: the community we're working with
 	
 	std::string user_file_path_;								// the one given by the user to us
 	std::string resolved_file_path_;							// the path we use internally, which must be an absolute path
@@ -76,8 +77,8 @@ private:
 	int float_precision_ = 6;									// the precision of output of float values
 	
 	bool autologging_enabled_ = false;							// an overall flag to enable/disable automatic logging
-	int64_t log_interval_ = 0;									// generation interval for automatic logging
-	slim_generation_t autolog_start_ = 0;						// the first generation in which autologging occurred
+	int64_t log_interval_ = 0;									// tick interval for automatic logging
+	slim_tick_t autolog_start_ = 0;								// the first tick in which autologging occurred
 	
 	bool explicit_flushing_ = false;							// an overall flag to enable/disable flushing by number of rows
 	int64_t flush_interval_ = 0;								// the maximum number of logged rows before we flush
@@ -104,6 +105,7 @@ private:
 	EidosValue_SP _GeneratedValue_PopulationSize(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_SubpopulationSize(const LogFileGeneratorInfo &p_generator_info);
+	EidosValue_SP _GeneratedValue_Tick(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info);
 	void _GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_generator_info, EidosValue_SP *p_generated_value_1, EidosValue_SP *p_generated_value_2);
 	
@@ -113,7 +115,7 @@ public:
 	LogFile(const LogFile &p_original) = delete;	// no copy-construct
 	LogFile& operator=(const LogFile&) = delete;	// no copying
 	
-	explicit LogFile(SLiMSim &p_sim);
+	explicit LogFile(Community &p_community);
 	virtual ~LogFile(void) override;
 	
 	void ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_compress, const std::string &p_sep);
@@ -121,7 +123,7 @@ public:
 	void SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval);
 	
 	void AppendNewRow(void);
-	void GenerationEndCallout(void);
+	void TickEndCallout(void);
 	
 	virtual EidosValue_SP AllKeys(void) const override;	// provide keys in column order
 	
@@ -144,6 +146,7 @@ public:
 	EidosValue_SP ExecuteMethod_addPopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_flush(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_logRow(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setLogInterval(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

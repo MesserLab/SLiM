@@ -87,8 +87,8 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
     controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	// tally into our bins
-	SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+	Species *species = controller_->community->single_species_;
+	Population &pop = species->population_;
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
 	
@@ -149,7 +149,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 void QtSLiMGraphView_1DPopulationSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
 	int binCount = histogramBinCount_;
-	int mutationTypeCount = static_cast<int>(controller_->sim->mutation_types_.size());
+	int mutationTypeCount = static_cast<int>(controller_->community->single_species_->mutation_types_.size());
 	double *spectrum = populationSFS(mutationTypeCount);
 	
 	// plot our histogram bars
@@ -207,11 +207,11 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
         string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
 	
 	int binCount = histogramBinCount_;
-	SLiMSim *sim = controller_->sim;
-	int mutationTypeCount = static_cast<int>(sim->mutation_types_.size());
+	Species *species = controller_->community->single_species_;
+	int mutationTypeCount = static_cast<int>(species->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	
-	for (auto mutationTypeIter : sim->mutation_types_)
+	for (auto mutationTypeIter : species->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

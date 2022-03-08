@@ -31,10 +31,10 @@
 
 QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    setXAxisRangeFromGeneration();
+    setXAxisRangeFromTick();
     setDefaultYAxisRange();
     
-    xAxisLabel_ = "Generation";
+    xAxisLabel_ = "Tick";
     yAxisLabel_ = "Number of individuals";
     
     allowXAxisUserRescale_ = true;
@@ -67,7 +67,7 @@ void QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache(void)
 {
     delete drawingCache_;
 	drawingCache_ = nullptr;
-	drawingCacheGeneration_ = 0;
+	drawingCacheTick_ = 0;
 }
 
 void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
@@ -77,7 +77,7 @@ void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
 		if (!yAxisIsUserRescaled_)
 			setDefaultYAxisRange();
 		if (!xAxisIsUserRescaled_)
-			setXAxisRangeFromGeneration();
+			setXAxisRangeFromTick();
 		
 		update();
 	}
@@ -109,8 +109,8 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 {
 	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
 	{
-		SLiMSim *sim = controller_->sim;
-		Population &pop = sim->population_;
+		Species *species = controller_->community->single_species_;
+		Population &pop = species->population_;
 		slim_popsize_t maxHistory = 0;
 		bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
 		
@@ -120,7 +120,7 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 			{
 				SubpopSizeHistory &history_record = history_record_iter.second;
 				slim_popsize_t *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
 				for (int i = 0; i < historyLength; ++i)
@@ -173,24 +173,25 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 
 void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
-	// The generation counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
+	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
 	// future that may no longer happen.  So we need to detect that case and invalidate our cache.
-	if (!cachingNow_ && drawingCache_ && (drawingCacheGeneration_ > completedGenerations))
+	if (!cachingNow_ && drawingCache_ && (drawingCacheTick_ > completedTicks))
 	{
-		//qDebug() << "backward generation change detected, invalidating drawing cache";
+		//qDebug() << "backward tick change detected, invalidating drawing cache";
 		invalidateDrawingCache();
 	}
 	
-	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
-	if (!cachingNow_ && (!drawingCache_ || ((completedGenerations / 1000) > (drawingCacheGeneration_ / 1000))))
+	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-tick boundary since we last cached, cache an image
+	if (!cachingNow_ && (!drawingCache_ || ((completedTicks / 1000) > (drawingCacheTick_ / 1000))))
 	{
         invalidateDrawingCache();
 		
-        //qDebug() << "making new cache at generation " << sim->generation_;
+        //qDebug() << "making new cache at tick " << community->Tick();
 		cachingNow_ = true;
         
 		QPixmap *cache = new QPixmap(interiorRect.size());
@@ -200,14 +201,14 @@ void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect in
         drawGraph(cachePainter, cache->rect());
         
         drawingCache_ = cache;
-		drawingCacheGeneration_ = completedGenerations;
+		drawingCacheTick_ = completedTicks;
 		cachingNow_ = false;
 	}
 	
 	// Now draw our cache, if we have one
 	if (drawingCache_)
     {
-        //qDebug() << "drawing cache:" << drawingCache_->rect() << ", drawingCacheGeneration_ == " << drawingCacheGeneration_;
+        //qDebug() << "drawing cache:" << drawingCache_->rect() << ", drawingCacheTick_ == " << drawingCacheTick_;
         painter.drawPixmap(interiorRect, *drawingCache_, drawingCache_->rect());
     }
     
@@ -226,15 +227,15 @@ void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect in
             {
                 SubpopSizeHistory &history_record = history_record_iter.second;
                 slim_popsize_t *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 
                 if ((iter == 0) && !drawSubpopsGray)
                     pointColor = controller_->whiteContrastingColorForIndex(history_record_iter.first);
                 
                 // If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-                slim_generation_t firstHistoryEntryToDraw = (cachingNow_ ? 0 : (drawingCache_ ? drawingCacheGeneration_ : 0));
+                slim_tick_t firstHistoryEntryToDraw = (cachingNow_ ? 0 : (drawingCache_ ? drawingCacheTick_ : 0));
                 
-                for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
                 {
                     slim_popsize_t historyEntry = history[i];
                     
@@ -252,9 +253,10 @@ void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect in
 
 void QtSLiMGraphView_PopSizeOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
 	// Draw the size history as a line plot
 	bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
@@ -272,11 +274,11 @@ void QtSLiMGraphView_PopSizeOverTime::drawLineGraph(QPainter &painter, QRect int
             {
                 SubpopSizeHistory &history_record = history_record_iter.second;
                 slim_popsize_t *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 QPainterPath linePath;
                 bool startedLine = false;
                 
-                for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                 {
                     slim_popsize_t historyEntry = history[i];
                     
@@ -319,9 +321,10 @@ bool QtSLiMGraphView_PopSizeOverTime::providesStringForData(void)
 
 void QtSLiMGraphView_PopSizeOverTime::appendStringForData(QString &string)
 {
-	SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+    Community *community = controller_->community;
+    Species *species = community->single_species_;
+	Population &pop = species->population_;
+	slim_tick_t completedTicks = community->Tick() - 1;
 	
     // Size history
     bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
@@ -336,12 +339,12 @@ void QtSLiMGraphView_PopSizeOverTime::appendStringForData(QString &string)
             {
                 SubpopSizeHistory &history_record = history_record_iter.second;
                 slim_popsize_t *history = history_record.history_;
-                slim_generation_t historyLength = history_record.history_length_;
+                slim_tick_t historyLength = history_record.history_length_;
                 
                 if (iter == 1)
                     string.append(QString("\n\n# Size history (subpopulation p%1):\n").arg(history_record_iter.first));
                 
-                for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+                for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
                     string.append(QString("%1, ").arg(history[i]));
                 
                 string.append("\n");
@@ -357,7 +360,7 @@ QtSLiMLegendSpec QtSLiMGraphView_PopSizeOverTime::legendKey(void)
     
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : controller_->sim->population_.subpop_size_histories_)
+    for (auto history_record_iter : controller_->community->single_species_->population_.subpop_size_histories_)
         subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);

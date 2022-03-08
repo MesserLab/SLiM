@@ -19,7 +19,8 @@
 
 
 #include "slim_test.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "eidos_test.h"
 #include "individual.h"
 
@@ -43,19 +44,19 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 {
 	gSLiMTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
-	SLiMSim *sim = nullptr;
+	Community *community = nullptr;
 	std::istringstream infile(p_script_string);
 	
 	try {
-		sim = new SLiMSim(infile);
-		sim->InitializeRNGFromSeed(nullptr);
+		community = new Community(infile);
+		community->InitializeRNGFromSeed(nullptr);
 	}
 	catch (...)
 	{
 		if (p_lineNumber != -1)
 			std::cerr << "[" << p_lineNumber << "] ";
 		
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new SLiMSim(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during new Community(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosErrorContext.currentScript = nullptr;
 		gEidosErrorContext.executingRuntimeScript = false;
@@ -63,24 +64,24 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	}
 	
 	try {
-		while (sim->_RunOneGeneration());
+		while (community->_RunOneTick());
 	}
 	catch (...)
 	{
-		delete sim;
+		delete community;
 		MutationRun::DeleteMutationRunFreeList();
 		
 		if (p_lineNumber != -1)
 			std::cerr << "[" << p_lineNumber << "] ";
 		
-		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneGeneration(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
+		std::cerr << p_script_string << " : " << EIDOS_OUTPUT_FAILURE_TAG << " : raise during RunOneTick(): " << Eidos_GetTrimmedRaiseMessage() << std::endl;
 		
 		gEidosErrorContext.currentScript = nullptr;
 		gEidosErrorContext.executingRuntimeScript = false;
 		return;
 	}
 	
-	delete sim;
+	delete community;
 	MutationRun::DeleteMutationRunFreeList();
 	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
@@ -94,15 +95,15 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 
 void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int p_lineNumber)
 {
-	SLiMSim *sim = nullptr;
+	Community *community = nullptr;
 	
 	try {
 		std::istringstream infile(p_script_string);
 		
-		sim = new SLiMSim(infile);
-		sim->InitializeRNGFromSeed(nullptr);
+		community = new Community(infile);
+		community->InitializeRNGFromSeed(nullptr);
 		
-		while (sim->_RunOneGeneration());
+		while (community->_RunOneTick());
 		
 		gSLiMTestFailureCount++;
 		
@@ -197,7 +198,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 		}
 	}
 	
-	delete sim;
+	delete community;
 	MutationRun::DeleteMutationRunFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;
@@ -206,15 +207,15 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_l
 
 void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 {
-	SLiMSim *sim = nullptr;
+	Community *community = nullptr;
 	
 	try {
 		std::istringstream infile(p_script_string);
 		
-		sim = new SLiMSim(infile);
-		sim->InitializeRNGFromSeed(nullptr);
+		community = new Community(infile);
+		community->InitializeRNGFromSeed(nullptr);
 		
-		while (sim->_RunOneGeneration());
+		while (community->_RunOneTick());
 		
 		gSLiMTestFailureCount++;
 		
@@ -256,7 +257,7 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 		}
 	}
 	
-	delete sim;
+	delete community;
 	MutationRun::DeleteMutationRunFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;
@@ -324,7 +325,7 @@ int RunSLiMTests(void)
 	_RunBasicTests();
 	_RunRelatednessTests();
 	_RunInitTests();
-	_RunSLiMSimTests(temp_path);
+	_RunSpeciesTests(temp_path);
 	_RunMutationTypeTests();
 	_RunGenomicElementTypeTests();
 	_RunGenomicElementTests();

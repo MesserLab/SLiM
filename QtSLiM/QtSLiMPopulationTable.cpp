@@ -42,7 +42,7 @@ int QtSLiMPopulationTableModel::rowCount(const QModelIndex & /* parent */) const
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
     
     if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->sim->population_.subpops_.size());
+        return static_cast<int>(controller->community->single_species_->population_.subpops_.size());
     
     return 0;
 }
@@ -64,8 +64,9 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
     
     if (role == Qt::DisplayRole)
     {
-        SLiMSim *sim = controller->sim;
-        Population &population = sim->population_;
+        Community *community = controller->community;
+        Species *species = community->single_species_;
+        Population &population = species->population_;
         int subpopCount = static_cast<int>(population.subpops_.size());
         
         if (p_index.row() < subpopCount)
@@ -84,7 +85,7 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
             {
                 return QVariant(QString("%1").arg(subpop->parent_subpop_size_));
             }
-            else if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+            else if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
             {
                 // in nonWF models selfing/cloning/sex rates/ratios are emergent, calculated from collected metrics
                 double total_offspring = subpop->gui_offspring_cloned_M_ + subpop->gui_offspring_crossed_ + subpop->gui_offspring_empty_ + subpop->gui_offspring_selfed_;

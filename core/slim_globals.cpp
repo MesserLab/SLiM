@@ -30,7 +30,8 @@
 #include "mutation.h"
 #include "mutation_type.h"
 #include "slim_eidos_block.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "substitution.h"
 #include "subpopulation.h"
 
@@ -325,7 +326,8 @@ void SLiM_WarmUp(void)
 		gSLiM_Mutation_Class =				new Mutation_Class(				gEidosStr_Mutation,			gEidosDictionaryRetained_Class);
 		gSLiM_MutationType_Class =			new MutationType_Class(			gStr_MutationType,			gEidosDictionaryUnretained_Class);
 		gSLiM_SLiMEidosBlock_Class =		new SLiMEidosBlock_Class(		gStr_SLiMEidosBlock,		gEidosDictionaryUnretained_Class);
-		gSLiM_SLiMSim_Class =				new SLiMSim_Class(				gStr_SLiMSim,				gEidosDictionaryUnretained_Class);
+		gSLiM_Community_Class =				new Community_Class(			gStr_Community,				gEidosDictionaryUnretained_Class);
+		gSLiM_Species_Class =				new Species_Class(				gStr_Species,				gEidosDictionaryUnretained_Class);
 		gSLiM_Substitution_Class =			new Substitution_Class(			gStr_Substitution,			gEidosDictionaryRetained_Class);
 		gSLiM_Subpopulation_Class =			new Subpopulation_Class(		gStr_Subpopulation,			gEidosDictionaryUnretained_Class);
 		
@@ -425,9 +427,9 @@ std::ostringstream gSLiMError;
 #pragma mark -
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
-void SLiM_RaiseGenerationRangeError(int64_t p_long_value)
+void SLiM_RaiseTickRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiM_RaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseTickRangeError): value " << p_long_value << " for a tick index or duration is out of range." << EidosTerminate();
 }
 
 void SLiM_RaiseAgeRangeError(int64_t p_long_value)
@@ -465,19 +467,19 @@ void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiM_RaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << EidosTerminate();
 }
 
-SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter)
+Community &SLiM_GetCommunityFromInterpreter(EidosInterpreter &p_interpreter)
 {
 #if DEBUG
 	// Use dynamic_cast<> only in DEBUG since it is hella slow
-	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+	Community *community = dynamic_cast<Community *>(p_interpreter.Context());
 #else
-	SLiMSim *sim = (SLiMSim *)(p_interpreter.Context());
+	Community *community = (Community *)(p_interpreter.Context());
 #endif
 	
-	if (!sim)
-		EIDOS_TERMINATION << "ERROR (SLiM_GetSimFromInterpreter): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
+	if (!community)
+		EIDOS_TERMINATION << "ERROR (SLiM_GetCommunityFromInterpreter): (internal error) the community is not registered as the context pointer." << EidosTerminate();
 	
-	return *sim;
+	return *community;
 }
 
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char)
@@ -485,12 +487,12 @@ slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p
 	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);
 }
 
-MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
 {
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        MutationType *found_muttype = p_sim.MutationTypeWithID(mutation_type_id);
+        MutationType *found_muttype = p_species.MutationTypeWithID(mutation_type_id);
 		
 		if (!found_muttype)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
@@ -509,12 +511,12 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 	}
 }
 
-GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
 {
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        GenomicElementType *found_getype = p_sim.GenomicElementTypeTypeWithID(getype_id);
+        GenomicElementType *found_getype = p_species.GenomicElementTypeTypeWithID(getype_id);
 		
 		if (!found_getype)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
@@ -533,12 +535,12 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 	}
 }
 
-Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
 {
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        Subpopulation *found_subpop = p_sim.SubpopulationWithID(source_subpop_id);
+        Subpopulation *found_subpop = p_species.SubpopulationWithID(source_subpop_id);
 		
 		if (!found_subpop)
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
@@ -557,12 +559,12 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 	}
 }
 
-SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community &p_community, const char *p_method_name)
 {
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		std::vector<SLiMEidosBlock*> &script_blocks = p_sim.AllScriptBlocks();
+		std::vector<SLiMEidosBlock*> &script_blocks = p_community.AllScriptBlocks();
 		
 		for (SLiMEidosBlock *found_block : script_blocks)
 			if (found_block->block_id_ == block_id)
@@ -590,6 +592,34 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 int64_t SLiM_verbosity_level = 1;
 
+// stream output for generation stages
+std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage)
+{
+	switch (p_stage)
+	{
+		// some of these are not user-visible
+		case SLiMGenerationStage::kStagePreGeneration: return "begin";
+		case SLiMGenerationStage::kWFStage0ExecuteFirstScripts: return "first";
+		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: return "early";
+		case SLiMGenerationStage::kWFStage2GenerateOffspring: return "reproduction";
+		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: return "tally";
+		case SLiMGenerationStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: return "late";
+		case SLiMGenerationStage::kWFStage6CalculateFitness: return "fitness";
+		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: return "end";
+		case SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts: return "first";
+		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: return "reproduction";
+		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: return "early";
+		case SLiMGenerationStage::kNonWFStage3CalculateFitness: return "fitness";
+		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: return "survival";
+		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: return "tally";
+		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: return "late";
+		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: return "end";
+		case SLiMGenerationStage::kStagePostGeneration: return "console";
+	}
+	
+	EIDOS_TERMINATION << "ERROR (StringForSLiMGenerationStage): (internal) unrecognized generation stage." << EidosTerminate();
+}
 
 // stream output for enumerations
 std::string StringForGenomeType(GenomeType p_genome_type)
@@ -1064,7 +1094,7 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 #pragma mark Global strings and IDs
 #pragma mark -
 
-// initialize...() functions defined by SLiMSim
+// initialize...() functions defined by Species
 const std::string &gStr_initializeAncestralNucleotides = EidosRegisteredString("initializeAncestralNucleotides", gID_initializeAncestralNucleotides);
 const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initializeGenomicElement", gID_initializeGenomicElement);
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
@@ -1128,7 +1158,7 @@ const std::string &gStr_isSegregating = EidosRegisteredString("isSegregating", g
 const std::string &gStr_mutationType = EidosRegisteredString("mutationType", gID_mutationType);
 const std::string &gStr_nucleotide = EidosRegisteredString("nucleotide", gID_nucleotide);
 const std::string &gStr_nucleotideValue = EidosRegisteredString("nucleotideValue", gID_nucleotideValue);
-const std::string &gStr_originGeneration = EidosRegisteredString("originGeneration", gID_originGeneration);
+const std::string &gStr_originTick = EidosRegisteredString("originTick", gID_originTick);
 const std::string &gStr_position = EidosRegisteredString("position", gID_position);
 const std::string &gStr_selectionCoeff = EidosRegisteredString("selectionCoeff", gID_selectionCoeff);
 const std::string &gStr_subpopID = EidosRegisteredString("subpopID", gID_subpopID);
@@ -1147,7 +1177,6 @@ const std::string &gStr_active = EidosRegisteredString("active", gID_active);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomeType = EidosRegisteredString("chromosomeType", gID_chromosomeType);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
-const std::string &gStr_inSLiMgui = EidosRegisteredString("inSLiMgui", gID_inSLiMgui);
 const std::string &gStr_interactionTypes = EidosRegisteredString("interactionTypes", gID_interactionTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
@@ -1158,7 +1187,7 @@ const std::string &gStr_scriptBlocks = EidosRegisteredString("scriptBlocks", gID
 const std::string &gStr_sexEnabled = EidosRegisteredString("sexEnabled", gID_sexEnabled);
 const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations", gID_subpopulations);
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
-const std::string &gStr_dominanceCoeffX = EidosRegisteredString("dominanceCoeffX", gID_dominanceCoeffX);
+const std::string &gStr_tick = EidosRegisteredString("tick", gID_tick);
 const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
 const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
@@ -1183,7 +1212,7 @@ const std::string &gStr_cloningRate = EidosRegisteredString("cloningRate", gID_c
 const std::string &gStr_sexRatio = EidosRegisteredString("sexRatio", gID_sexRatio);
 const std::string &gStr_spatialBounds = EidosRegisteredString("spatialBounds", gID_spatialBounds);
 const std::string &gStr_individualCount = EidosRegisteredString("individualCount", gID_individualCount);
-const std::string &gStr_fixationGeneration = EidosRegisteredString("fixationGeneration", gID_fixationGeneration);
+const std::string &gStr_fixationTick = EidosRegisteredString("fixationTick", gID_fixationTick);
 const std::string &gStr_age = EidosRegisteredString("age", gID_age);
 const std::string &gStr_pedigreeID = EidosRegisteredString("pedigreeID", gID_pedigreeID);
 const std::string &gStr_pedigreeParentIDs = EidosRegisteredString("pedigreeParentIDs", gID_pedigreeParentIDs);
@@ -1311,6 +1340,7 @@ const std::string &gStr_unevaluate = EidosRegisteredString("unevaluate", gID_une
 const std::string &gStr_drawByStrength = EidosRegisteredString("drawByStrength", gID_drawByStrength);
 
 // mostly SLiM variable names used in callbacks and such
+const std::string &gStr_community = EidosRegisteredString("community", gID_community);
 const std::string &gStr_sim = EidosRegisteredString("sim", gID_sim);
 const std::string &gStr_self = EidosRegisteredString("self", gID_self);
 const std::string &gStr_individual = EidosRegisteredString("individual", gID_individual);
@@ -1359,7 +1389,8 @@ const std::string &gStr_GenomicElementType = EidosRegisteredString("GenomicEleme
 //const std::string &gStr_Mutation = EidosRegisteredString("Mutation", gID_Mutation);			// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_MutationType = EidosRegisteredString("MutationType", gID_MutationType);
 const std::string &gStr_SLiMEidosBlock = EidosRegisteredString("SLiMEidosBlock", gID_SLiMEidosBlock);
-const std::string &gStr_SLiMSim = EidosRegisteredString("SLiMSim", gID_SLiMSim);
+const std::string &gStr_Community = EidosRegisteredString("Community", gID_Community);
+const std::string &gStr_Species = EidosRegisteredString("Species", gID_Species);
 const std::string &gStr_Subpopulation = EidosRegisteredString("Subpopulation", gID_Subpopulation);
 //const std::string &gStr_Individual = EidosRegisteredString("Individual", gID_Individual);		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_Substitution = EidosRegisteredString("Substitution", gID_Substitution);
@@ -1380,6 +1411,7 @@ const std::string &gStr_addPopulationSexRatio = EidosRegisteredString("addPopula
 const std::string &gStr_addPopulationSize = EidosRegisteredString("addPopulationSize", gID_addPopulationSize);
 const std::string &gStr_addSubpopulationSexRatio = EidosRegisteredString("addSubpopulationSexRatio", gID_addSubpopulationSexRatio);
 const std::string &gStr_addSubpopulationSize = EidosRegisteredString("addSubpopulationSize", gID_addSubpopulationSize);
+const std::string &gStr_addTick = EidosRegisteredString("addTick", gID_addTick);
 const std::string &gStr_flush = EidosRegisteredString("flush", gID_flush);
 const std::string &gStr_logRow = EidosRegisteredString("logRow", gID_logRow);
 const std::string &gStr_setLogInterval = EidosRegisteredString("setLogInterval", gID_setLogInterval);
@@ -1466,19 +1498,19 @@ void SLiM_ConfigureContext(void)
 // see https://stackoverflow.com/a/5460235/2752221
 
 const std::string gSLiM_tsk_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.7","generation":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.7","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"generation":{"description":"The 'SLiM generation' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","generation","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.7","generation":123,"tick":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.7","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"generation":{"description":"The 'SLiM generation' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_edge_metadata_schema = "";
 const std::string gSLiM_tsk_site_metadata_schema = "";
 
 const std::string gSLiM_tsk_mutation_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM generation counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_node_metadata_schema =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"genome_type":0,"is_null":false,"slim_id":123}],"properties":{"genome_type":{"binaryFormat":"B","description":"The 'type' of this genome (0 for autosome, 1 for X, 2 for Y).","index":2,"type":"integer"},"is_null":{"binaryFormat":"?","description":"Whether this node describes a 'null' (non-existant) chromosome.","index":1,"type":"boolean"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this chromosome in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_null","genome_type"],"type":["object","null"]})V0G0N";
 
 const std::string gSLiM_tsk_individual_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the generation when the tree sequence was written out (if the individual was alive then), or in the generation of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
 
 // This schema was obsoleted in SLiM 3.7; we now use a JSON schema for the population metadata (see below)
 const std::string gSLiM_tsk_population_metadata_schema_PREJSON = 

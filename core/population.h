@@ -40,7 +40,8 @@
 #include "mutation_run.h"
 
 
-class SLiMSim;
+class Community;
+class Species;
 class Subpopulation;
 class Individual;
 class Genome;
@@ -51,14 +52,14 @@ class Genome;
 // The Population keeps the fitness histories for all the subpopulations, because subpops can come and go, but
 // we want to remember their histories and display them even after they're gone.
 typedef struct FitnessHistory {
-	double *history_ = nullptr;						// mean fitness, recorded per generation; generation 1 goes at index 0
-	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
+	double *history_ = nullptr;						// mean fitness, recorded per tick; tick 1 goes at index 0
+	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
 } FitnessHistory;
 
 // This struct similarly holds observed subpopulation sizes observed during a run, for QtSLiMGraphView_PopSizeOverTime
 typedef struct SubpopSizeHistory {
-    slim_popsize_t *history_ = nullptr;             // subpop size, recorded per generation; generation 1 goes at index 0
-	slim_generation_t history_length_ = 0;			// the number of entries in the history_ buffer
+    slim_popsize_t *history_ = nullptr;             // subpop size, recorded per tick; tick 1 goes at index 0
+	slim_tick_t history_length_ = 0;				// the number of entries in the history_ buffer
 } SubpopSizeHistory;
 #endif
 
@@ -74,7 +75,9 @@ public:
 	
 	std::map<slim_objectid_t,Subpopulation*> subpops_;		// OWNED POINTERS
 	
-	SLiMSim &sim_;											// We have a reference back to our simulation
+	SLiMModelType model_type_;
+	Community &community_;
+	Species &species_;
 	
 	// Object pools for individuals and genomes, kept population-wide
 	EidosObjectPool species_genome_pool_;					// a pool out of which genomes are allocated, for within-species locality of memory usage across genomes
@@ -107,11 +110,11 @@ public:
 	
 #ifdef SLIMGUI
 	// information-gathering for various graphs in SLiMgui
-	slim_generation_t *mutation_loss_times_ = nullptr;		// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
-	uint32_t mutation_loss_gen_slots_ = 0;					// the number of generation-sized slots (with bins per mutation-type) presently allocated
+	slim_tick_t *mutation_loss_times_ = nullptr;			// histogram bins: {1 bin per mutation-type} for 10 ticks, realloced outward to add new tick bins as needed
+	uint32_t mutation_loss_tick_slots_ = 0;					// the number of tick-sized slots (with bins per mutation-type) presently allocated
 	
-	slim_generation_t *mutation_fixation_times_ = nullptr;	// histogram bins: {1 bin per mutation-type} for 10 generations, realloced outward to add new generation bins as needed
-	uint32_t mutation_fixation_gen_slots_ = 0;				// the number of generation-sized slots (with bins per mutation-type) presently allocated
+	slim_tick_t *mutation_fixation_times_ = nullptr;		// histogram bins: {1 bin per mutation-type} for 10 ticks, realloced outward to add new tick bins as needed
+	uint32_t mutation_fixation_tick_slots_ = 0;				// the number of tick-sized slots (with bins per mutation-type) presently allocated
 	
 	std::map<slim_objectid_t,FitnessHistory> fitness_histories_;	// fitness histories indexed by subpopulation id (or by -1, for the Population history)
     std::map<slim_objectid_t,SubpopSizeHistory> subpop_size_histories_;	// size histories indexed by subpopulation id (or by -1, for the Population history)
@@ -123,7 +126,7 @@ public:
 	Population(const Population&) = delete;					// no copying
 	Population& operator=(const Population&) = delete;		// no copying
 	Population(void) = delete;								// no default constructor
-	explicit Population(SLiMSim &p_sim);					// our constructor: we must have a reference to our simulation
+	explicit Population(Species &p_species);			// our constructor: we must have a reference to our species, from which we get our community
 	~Population(void);										// destructor
 	
 	// add new empty subpopulation p_subpop_id of size p_subpop_size
@@ -169,9 +172,6 @@ public:
 #endif
 	}
 	
-	// execute a script event in the population; the script is assumed to be due to trigger
-	void ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome);
-	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 	bool ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
@@ -192,7 +192,7 @@ public:
 	void ValidateMutationFitnessCaches(void);
 	
 	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
-	void RecalculateFitness(slim_generation_t p_generation);
+	void RecalculateFitness(slim_tick_t p_tick);
 	
 	// Scan through all mutation runs in the simulation and unique them
 	void UniqueMutationRuns(void);
@@ -202,7 +202,7 @@ public:
 	void JoinMutationRuns(int32_t p_new_mutrun_count);
 	
 	// Tally mutations and remove fixed/lost mutations
-	void MaintainRegistry(void);
+	void MaintainMutationRegistry(void);
 	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
 	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
@@ -275,10 +275,10 @@ public:
 	
 	// additional methods for SLiMgui, for information-gathering support
 #ifdef SLIMGUI
-	void RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
-    void RecordSubpopSize(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
+	void RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value);
+    void RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size);
 	void SurveyPopulation(void);
-	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins);
+	void AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_tick_t p_bin_number, slim_tick_t **p_buffer, uint32_t *p_bufferBins);
 #endif
 };
 

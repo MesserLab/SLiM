@@ -85,7 +85,7 @@ void EidosTypeTable::SetTypeForSymbol(EidosGlobalStringID p_symbol_name, EidosTy
 	// kEidosValueMaskNone, providing the user with the option of completing the statement as "z = z", which is dumb.
 	// Note that we do this whether the variable has been previously defined or not, so that we don't replace useful
 	// type information with useless garbage information; for example, in "x = sim; x = " we want to know that x is
-	// of type SLiMSim, not replace that knowledge with junk.  This means that variables will retain their previous
+	// of type Species, not replace that knowledge with junk.  This means that variables will retain their previous
 	// type whenever they are set to kEidosValueMaskNone, even when that might be legitimate; that's OK, I think,
 	// particularly since there presently really aren't any "legitimate" uses of kEidosValueMaskNone – it always
 	// represents some kind of parse error, misuse of operators, unknown functions/methods, etc.

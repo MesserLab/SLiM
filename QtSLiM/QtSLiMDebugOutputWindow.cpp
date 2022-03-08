@@ -293,7 +293,7 @@ void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineEl
     }
     
     // adjust to fit the headers and the initial rows; this is probably rather expensive,
-    // but LogFile usually only fires once per generation or less, so hopefully not a big deal
+    // but LogFile usually only fires once per tick or less, so hopefully not a big deal
     table->resizeColumnsToContents();
     
     tabReceivedInput(tableIndex + 2);
