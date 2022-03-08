@@ -42,6 +42,7 @@
 #include <iterator>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <ctime>
 
 
 @implementation SLiMWindowController

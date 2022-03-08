@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 
 #include "eidos_globals.h"
 #include "slim_globals.h"

@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/sysctl.h>
+#include <ctime>
 
 // From Apple tech note #1361, https://developer.apple.com/library/archive/qa/qa1361/_index.html
 // see https://stackoverflow.com/a/2200786/2752221

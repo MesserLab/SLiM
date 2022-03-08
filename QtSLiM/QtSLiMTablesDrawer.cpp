@@ -39,6 +39,8 @@
 #include "interaction_type.h"
 #include "eidos_rng.h"
 
+#include <ctime>
+
 
 // a helper function for making the tooltip images in the mutation and interaction type tables
 // this corresponds to SLiMgui's -[SLiMFunctionGraphToolTipView drawRect:]

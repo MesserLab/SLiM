@@ -34,6 +34,8 @@
 #import "EidosConsoleWindowController.h"
 #import "EidosConsoleWindowControllerDelegate.h"
 
+#include <ctime>
+
 
 @class SLiMHaplotypeGraphView;
 
