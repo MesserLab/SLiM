@@ -30,6 +30,8 @@ development head:
 		tree-sequence metadata for mutations has changed the sense of "slim_time" to be in ticks, not generations
 		tree-sequence metadata for individuals has changed the sense of "SLIM_INDIVIDUAL_METADATA_MIGRATED" to indicate migration in the last tick, not the last generation
 		add Generation textfield below the Tick textfield in SLiMgui & SLiMguiLegecy
+		add name and description properties to Species; these are the species name as declared in script and a user-controlled description string; they get persisted in tree-seq top-level metadata
+		increment the tree-seq file version from 0.7 to 0.8
 		
 
 version 3.7.1 (Eidos version 2.7.1):

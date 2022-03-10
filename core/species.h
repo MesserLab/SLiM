@@ -322,6 +322,9 @@ public:
 	Community &community_;						// the community that this species belongs to
 	Chromosome *chromosome_;					// the chromosome, which defines genomic elements
 	Population population_;						// the population, which contains sub-populations
+
+	std::string name_;							// the `name` property; "sim" by default, configurable in script (not by setting the property)
+	std::string description_;					// the `description` property; the empty string by default
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
 	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is

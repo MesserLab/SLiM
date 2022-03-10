@@ -1598,6 +1598,10 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return result_SP;
 		}
+		case gID_name:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(name_));
+		}
 		case gID_nucleotideBased:
 		{
 			return (nucleotide_based_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -1628,6 +1632,10 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		}
 			
 			// variables
+		case gID_description:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(description_));
+		}
 		case gID_generation:
 		{
 			if (cached_value_generation_ && (((EidosValue_Int_singleton *)cached_value_generation_.get())->IntValue() != generation_))
@@ -1657,6 +1665,15 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 	// All of our strings are in the global registry, so we can require a successful lookup
 	switch (p_property_id)
 	{
+		case gID_description:
+		{
+			std::string description = p_value.StringAtIndex(0, nullptr);
+			
+			// there are no restrictions on descriptions at all
+			
+			description_ = description;
+			return;
+		}
 		case gID_generation:
 		{
 			int64_t value = p_value.IntAtIndex(0, nullptr);
@@ -2784,12 +2801,14 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_periodicity,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_interactionTypes,		true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutations,				true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,			true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_name,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideBased,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
