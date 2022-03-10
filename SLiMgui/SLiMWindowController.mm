@@ -584,12 +584,21 @@
 	if (!invalidSimulation)
 	{
 		if (community->tick_ == 0)
+		{
 			[tickTextField setStringValue:@"initialize()"];
+			[generationTextField setStringValue:@"initialize()"];
+		}
 		else
+		{
 			[tickTextField setIntegerValue:community->tick_];
+			[generationTextField setIntegerValue:community->single_species_->generation_];
+		}
 	}
 	else
+	{
 		[tickTextField setStringValue:@""];
+		[generationTextField setStringValue:@""];
+	}
 }
 
 - (void)updatePopulationViewHiding
@@ -836,19 +845,6 @@
 	[self replaceHeaderForColumn:subpopFemaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kFemale];
 	[self replaceHeaderForColumn:subpopMaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kMale];
 	[self replaceHeaderForColumn:subpopSexRatioColumn withImageNamed:@"change_sex_ratio" scaledToSize:15 withSexSymbol:IndividualSex::kUnspecified];
-	
-	// Set up our color stripes and sliders
-	fitnessColorScale = [fitnessColorSlider doubleValue];
-	fitnessColorScale *= fitnessColorScale;
-	
-	[fitnessColorStripe setMetricToPlot:1];
-	[fitnessColorStripe setScalingFactor:fitnessColorScale];
-	
-	selectionColorScale = [selectionColorSlider doubleValue];
-	selectionColorScale *= selectionColorScale;
-	
-	[selectionColorStripe setMetricToPlot:2];
-	[selectionColorStripe setScalingFactor:selectionColorScale];
 	
 	// Set up syntax coloring based on the user's defaults
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
@@ -2720,32 +2716,6 @@ static int DisplayDigitsForIntegerPart(double x)
 	// Schedule a hide of the tooltip; this runs only once we're out of the tracking loop, conveniently
 	[NSObject cancelPreviousPerformRequestsWithTarget:playSpeedToolTipWindow selector:@selector(orderOut:) object:nil];
 	[playSpeedToolTipWindow performSelector:@selector(orderOut:) withObject:nil afterDelay:0.01];
-}
-
-- (IBAction)fitnessColorSliderChanged:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	fitnessColorScale = [fitnessColorSlider doubleValue];
-	fitnessColorScale *= fitnessColorScale;
-	
-	[fitnessColorStripe setScalingFactor:fitnessColorScale];
-	[fitnessColorStripe setNeedsDisplay:YES];
-	
-	[populationView setNeedsDisplay:YES];
-}
-
-- (IBAction)selectionColorSliderChanged:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	selectionColorScale = [selectionColorSlider doubleValue];
-	selectionColorScale *= selectionColorScale;
-	
-	[selectionColorStripe setScalingFactor:selectionColorScale];
-	[selectionColorStripe setNeedsDisplay:YES];
-	
-	[chromosomeZoomed setNeedsDisplayInInterior];
 }
 
 - (BOOL)checkScriptSuppressSuccessResponse:(BOOL)suppressSuccessResponse
@@ -4931,41 +4901,12 @@ static int DisplayDigitsForIntegerPart(double x)
 	return YES;
 }
 
-// NSSplitView doesn't like delegates to implement these methods any more; it logs if you do.  We can achieve the same
-// effect using constraints in the nib, which is the new way to do things, so that's what we do now.
-
-/*
-- (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
-{
-	if (splitView == bottomSplitView)
-		return proposedMax - 240;
-	else if (splitView == overallSplitView)
-		return proposedMax - 150;
-	
-	return proposedMax;
-}
-
-- (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
-{
-	if (splitView == bottomSplitView)
-		return proposedMin + 240;
-	else if (splitView == overallSplitView)
-		return proposedMin + 262;
-	
-	return proposedMin;
-}
-*/
-
 - (CGFloat)splitView:(NSSplitView *)splitView constrainSplitPosition:(CGFloat)proposedPosition ofSubviewAt:(NSInteger)dividerIndex
 {
 	if (splitView == overallSplitView)
 	{
-		if (fabs(proposedPosition - 262) < 20)
-			proposedPosition = 262;
-		if (fabs(proposedPosition - 329) < 20)
-			proposedPosition = 329;
-		if (fabs(proposedPosition - 394) < 20)
-			proposedPosition = 394;
+		if (fabs(proposedPosition - 294) < 20)
+			proposedPosition = 294;
 	}
 	
 	//NSLog(@"pos in constrainSplitPosition: %f", proposedPosition);
@@ -4973,59 +4914,9 @@ static int DisplayDigitsForIntegerPart(double x)
 	return proposedPosition;
 }
 
-- (void)respondToSizeChangeForSplitView:(NSSplitView *)splitView
-{
-	if (splitView == overallSplitView)
-	{
-		NSArray *subviews;
-		
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma deploymate push "ignored-api-availability"	// arrangedSubviews: is available on 10.11 and later
-		if ([splitView respondsToSelector:@selector(arrangedSubviews)])
-			subviews = [splitView arrangedSubviews];
-		else
-			subviews = [splitView subviews];		// on 10.10 and before, all subviews are arranged
-#pragma deploymate pop
-#pragma GCC diagnostic pop
-		
-		if ([subviews count] == 2)
-		{
-			NSView *firstSubview = [subviews objectAtIndex:0];
-			CGFloat height = [firstSubview frame].size.height;
-			
-			// heights here are the same as positions in constrainSplitPosition:, as it turns out
-			//NSLog(@"height in splitViewDidResizeSubviews: %f", height);
-			//NSLog(@"other height in splitViewDidResizeSubviews: %f", [[subviews objectAtIndex:1] frame].size.height);
-			
-			{
-				bool hideFitnessColorStrip = (height < 329);
-				
-				[fitnessTitleTextField setHidden:hideFitnessColorStrip];
-				[fitnessColorStripe setHidden:hideFitnessColorStrip];
-				[fitnessColorSlider setHidden:hideFitnessColorStrip];
-			}
-			
-			{
-				bool hideSelCoeffColorStrip = (height < 394);
-				
-				[selectionTitleTextField setHidden:hideSelCoeffColorStrip];
-				[selectionColorStripe setHidden:hideSelCoeffColorStrip];
-				[selectionColorSlider setHidden:hideSelCoeffColorStrip];
-			}
-		}
-		
-		[self updatePopulationViewHiding];
-	}
-}
-
 - (void)splitViewDidResizeSubviews:(NSNotification *)notification
 {
-	NSSplitView *splitView = [notification object];
-	
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	[self respondToSizeChangeForSplitView:splitView];
 }
 
 

@@ -217,7 +217,7 @@
 {
 	Species *species = controller->community->single_species_;
 	Population &population = species->population_;
-	double scalingFactor = controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	int registry_size;
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_ptr, *reg_end_ptr = registry + registry_size;

@@ -297,7 +297,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 {
     Species *species = controller_->community->single_species_;
 	Population &population = species->population_;
-	double scalingFactor = 0.8; //controller_->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_end_ptr = registry + registry_size;

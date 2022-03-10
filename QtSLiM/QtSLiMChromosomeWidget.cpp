@@ -622,7 +622,7 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
 
 void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-	double scalingFactor = 0.8; // controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
@@ -882,7 +882,7 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 
 void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
 {
-    double scalingFactor = 0.8; // controller->selectionColorScale;
+    double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
     Chromosome &chromosome = species->TheChromosome();

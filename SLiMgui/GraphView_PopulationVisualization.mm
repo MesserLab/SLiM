@@ -99,7 +99,7 @@
 	else
 	{
 		// calculate the color from the mean fitness of the population
-		double scalingFactor = controller->fitnessColorScale;
+		double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
 		double totalFitness = subpop->parental_total_fitness_;
 		double subpopFitnessScaling = subpop->last_fitness_scaling_;
 		
@@ -107,8 +107,8 @@
 			subpopFitnessScaling = 1.0;
 		
 		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		double fitness = (totalFitness / subpopFitnessScaling) / subpopSize;
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+		double fitness = ((subpopSize == 0) ? -10000.0 : (totalFitness / subpopFitnessScaling) / subpopSize);
+		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
 	}
 	
 	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL

@@ -101,7 +101,7 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
 	else
 	{
 		// calculate the color from the mean fitness of the population
-		double fitnessScalingFactor = 0.8; // controller->fitnessColorScale;
+		double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
 		double totalFitness = subpop->parental_total_fitness_;
 		double subpopFitnessScaling = subpop->last_fitness_scaling_;
 		

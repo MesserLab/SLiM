@@ -15,9 +15,7 @@
                 <outlet property="chromosomeZoomed" destination="nQF-Rr-G8N" id="5Ui-I9-Vky"/>
                 <outlet property="consoleButton" destination="aPl-XV-6R5" id="tR9-uy-AYS"/>
                 <outlet property="drawer" destination="Sdd-Vl-XmH" id="so7-Og-cHF"/>
-                <outlet property="fitnessColorSlider" destination="4kM-3W-gya" id="Sch-ZE-hTA"/>
-                <outlet property="fitnessColorStripe" destination="34c-xZ-32c" id="2By-jv-Igg"/>
-                <outlet property="fitnessTitleTextField" destination="2Li-Tb-lf1" id="U5B-2u-CJu"/>
+                <outlet property="generationTextField" destination="SK3-fM-QuU" id="YJK-94-MGP"/>
                 <outlet property="genomicElementTypeColorColumn" destination="hiN-OA-WpD" id="mFt-in-zk9"/>
                 <outlet property="genomicElementTypeIDColumn" destination="mYu-Tp-AnJ" id="JiS-2G-IkK"/>
                 <outlet property="genomicElementTypeMutationTypesColumn" destination="HQN-n3-bmZ" id="H2y-BR-Tbk"/>
@@ -55,9 +53,6 @@
                 <outlet property="scriptBlocksTypeColumn" destination="Ar2-sx-Oqi" id="XHg-tm-cjR"/>
                 <outlet property="scriptStatusTextField" destination="qCd-b9-dko" id="5iT-h5-7dy"/>
                 <outlet property="scriptTextView" destination="N45-af-9rm" id="6Xj-6h-le2"/>
-                <outlet property="selectionColorSlider" destination="mYQ-CE-Kge" id="kIl-FB-9eS"/>
-                <outlet property="selectionColorStripe" destination="SGz-ny-AvE" id="Zn9-ih-kLN"/>
-                <outlet property="selectionTitleTextField" destination="MEL-RZ-Op6" id="M7T-DF-FsS"/>
                 <outlet property="showFixedSubstitutionsButton" destination="sC1-aa-1AY" id="5Fj-Kv-Omt"/>
                 <outlet property="showGenomicElementsButton" destination="57G-Tr-aOB" id="p7J-Vg-Y1W"/>
                 <outlet property="showMutationsButton" destination="MPC-lP-uVU" id="Qm6-Js-ooL"/>
@@ -264,17 +259,17 @@
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
+                                                    <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="ft9-At-7Dj">
+                                                        <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
                                                     <binding destination="-2" name="enabled3" keyPath="tickPlayOn" previousBinding="0aX-af-Yss" id="M9v-LL-oxr">
                                                         <dictionary key="options">
                                                             <integer key="NSMultipleValuesPlaceholder" value="-1"/>
                                                             <integer key="NSNoSelectionPlaceholder" value="-1"/>
                                                             <integer key="NSNotApplicablePlaceholder" value="-1"/>
                                                             <integer key="NSNullPlaceholder" value="-1"/>
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
-                                                    <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="ft9-At-7Dj">
-                                                        <dictionary key="options">
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
@@ -292,15 +287,6 @@
                                                 </buttonCell>
                                                 <connections>
                                                     <action selector="play:" target="-2" id="VCD-6t-QM8"/>
-                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="LTa-Hh-WOu" id="yrO-xY-7SO">
-                                                        <dictionary key="options">
-                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                            <integer key="NSNullPlaceholder" value="-1"/>
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
                                                     <binding destination="-2" name="enabled3" keyPath="profilePlayOn" previousBinding="yrO-xY-7SO" id="7kJ-07-A2N">
                                                         <dictionary key="options">
                                                             <integer key="NSMultipleValuesPlaceholder" value="-1"/>
@@ -312,6 +298,15 @@
                                                     </binding>
                                                     <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="LTa-Hh-WOu">
                                                         <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="LTa-Hh-WOu" id="yrO-xY-7SO">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
@@ -329,15 +324,6 @@
                                                 </buttonCell>
                                                 <connections>
                                                     <action selector="profile:" target="-2" id="j7F-r8-HWX"/>
-                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="WOD-xX-ttM" id="Q14-og-oZd">
-                                                        <dictionary key="options">
-                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                            <integer key="NSNullPlaceholder" value="-1"/>
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
                                                     <binding destination="-2" name="enabled3" keyPath="nonProfilePlayOn" previousBinding="Q14-og-oZd" id="XDu-nT-A9O">
                                                         <dictionary key="options">
                                                             <integer key="NSMultipleValuesPlaceholder" value="-1"/>
@@ -349,6 +335,15 @@
                                                     </binding>
                                                     <binding destination="-2" name="enabled" keyPath="reachedSimulationEnd" id="WOD-xX-ttM">
                                                         <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="WOD-xX-ttM" id="Q14-og-oZd">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
@@ -393,56 +388,16 @@
                                                     <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="K0I-2S-JQz"/>
                                                 </connections>
                                             </textField>
-                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2Li-Tb-lf1">
-                                                <rect key="frame" x="967" y="240" width="101" height="16"/>
-                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Fitness values:" id="ud2-EE-3Fg">
-                                                    <font key="font" metaFont="systemBold"/>
-                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                </textFieldCell>
-                                                <connections>
-                                                    <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="dib-ph-3zt"/>
-                                                </connections>
-                                            </textField>
-                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MEL-RZ-Op6">
-                                                <rect key="frame" x="967" y="176" width="150" height="16"/>
-                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Selection coefficients:" id="i3E-i5-VhN">
-                                                    <font key="font" metaFont="systemBold"/>
-                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                                </textFieldCell>
-                                                <connections>
-                                                    <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="WHb-o1-P3j"/>
-                                                </connections>
-                                            </textField>
                                             <textField toolTip="the tick that is about to execute" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
-                                                <rect key="frame" x="1032" y="270" width="133" height="21"/>
+                                                <rect key="frame" x="1057" y="270" width="108" height="21"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1" drawsBackground="YES" id="bq2-MX-jxa">
-                                                    <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
+                                                    <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
                                                     <font key="font" metaFont="system"/>
                                                     <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                 </textFieldCell>
                                                 <connections>
                                                     <action selector="tickChanged:" target="-2" id="K1Y-aZ-2cJ"/>
-                                                    <binding destination="-2" name="editable2" keyPath="continuousPlayOn" previousBinding="ujI-gv-nt7" id="ma4-Jn-SxF">
-                                                        <dictionary key="options">
-                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                            <integer key="NSNullPlaceholder" value="-1"/>
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
-                                                    <binding destination="-2" name="editable3" keyPath="tickPlayOn" previousBinding="ma4-Jn-SxF" id="uVp-iR-DOG">
-                                                        <dictionary key="options">
-                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                            <integer key="NSNullPlaceholder" value="-1"/>
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
                                                     <binding destination="-2" name="enabled2" keyPath="continuousPlayOn" previousBinding="R3R-Ti-8Uv" id="5Uy-xn-4YD">
                                                         <dictionary key="options">
                                                             <integer key="NSMultipleValuesPlaceholder" value="-1"/>
@@ -452,7 +407,7 @@
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
-                                                    <binding destination="-2" name="enabled3" keyPath="tickPlayOn" previousBinding="5Uy-xn-4YD" id="Ecc-Z5-RXh">
+                                                    <binding destination="-2" name="editable2" keyPath="continuousPlayOn" previousBinding="ujI-gv-nt7" id="ma4-Jn-SxF">
                                                         <dictionary key="options">
                                                             <integer key="NSMultipleValuesPlaceholder" value="-1"/>
                                                             <integer key="NSNoSelectionPlaceholder" value="-1"/>
@@ -468,6 +423,24 @@
                                                     </binding>
                                                     <binding destination="-2" name="editable" keyPath="reachedSimulationEnd" id="ujI-gv-nt7">
                                                         <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="enabled3" keyPath="tickPlayOn" previousBinding="5Uy-xn-4YD" id="Ecc-Z5-RXh">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="editable3" keyPath="tickPlayOn" previousBinding="ma4-Jn-SxF" id="uVp-iR-DOG">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
@@ -497,44 +470,6 @@
                                             <progressIndicator wantsLayer="YES" horizontalHuggingPriority="750" verticalHuggingPriority="750" maxValue="100" displayedWhenStopped="NO" bezeled="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="VWw-o4-Pjo">
                                                 <rect key="frame" x="1010" y="272" width="16" height="16"/>
                                             </progressIndicator>
-                                            <customView translatesAutoresizingMaskIntoConstraints="NO" id="34c-xZ-32c" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
-                                                <rect key="frame" x="971" y="205" width="182" height="27"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="27" id="3F2-1a-Am5"/>
-                                                    <constraint firstAttribute="width" constant="182" id="DvR-yi-fiy"/>
-                                                </constraints>
-                                            </customView>
-                                            <customView translatesAutoresizingMaskIntoConstraints="NO" id="SGz-ny-AvE" userLabel="SLiM Color Stripe View" customClass="SLiMColorStripeView">
-                                                <rect key="frame" x="971" y="141" width="182" height="27"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="width" constant="182" id="F6U-Qr-9aI"/>
-                                                    <constraint firstAttribute="height" constant="27" id="z5A-Wl-aoP"/>
-                                                </constraints>
-                                            </customView>
-                                            <slider toolTip="fitness coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="4kM-3W-gya">
-                                                <rect key="frame" x="1151" y="204" width="13" height="52"/>
-                                                <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="3" doubleValue="1.5" tickMarkPosition="right" sliderType="linear" id="5GY-Bd-ALg"/>
-                                                <connections>
-                                                    <action selector="fitnessColorSliderChanged:" target="-2" id="CaX-3v-mmq"/>
-                                                    <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="4M1-Gg-eF8">
-                                                        <dictionary key="options">
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
-                                                </connections>
-                                            </slider>
-                                            <slider toolTip="selection coefficient coloring scale factor" horizontalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mYQ-CE-Kge">
-                                                <rect key="frame" x="1151" y="140" width="13" height="52"/>
-                                                <sliderCell key="cell" controlSize="mini" continuous="YES" alignment="left" minValue="0.80000000000000004" maxValue="10" doubleValue="3.5" tickMarkPosition="right" sliderType="linear" id="Sts-DM-74l"/>
-                                                <connections>
-                                                    <action selector="selectionColorSliderChanged:" target="-2" id="xTV-BA-jvz"/>
-                                                    <binding destination="-2" name="enabled" keyPath="invalidSimulation" id="BFP-iz-N5E">
-                                                        <dictionary key="options">
-                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
-                                                        </dictionary>
-                                                    </binding>
-                                                </connections>
-                                            </slider>
                                             <button toolTip="open/close object tables drawer" translatesAutoresizingMaskIntoConstraints="NO" id="3fa-Za-QvL">
                                                 <rect key="frame" x="1135" y="88" width="30" height="32"/>
                                                 <constraints>
@@ -628,17 +563,60 @@
                                             <customView hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1i8-ZT-cwT" customClass="PopulationErrorView">
                                                 <rect key="frame" x="292" y="140" width="657" height="238"/>
                                             </customView>
+                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8pr-59-g4r">
+                                                <rect key="frame" x="967" y="243" width="80" height="16"/>
+                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation:" id="iJF-fn-UC7">
+                                                    <font key="font" metaFont="systemBold"/>
+                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                </textFieldCell>
+                                                <connections>
+                                                    <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="Qi9-TV-fJu"/>
+                                                </connections>
+                                            </textField>
+                                            <textField toolTip="the generation that will execute next" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SK3-fM-QuU">
+                                                <rect key="frame" x="1057" y="241" width="108" height="21"/>
+                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="right" drawsBackground="YES" id="6Dx-Ud-xy8">
+                                                    <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" formatWidth="-1" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="qL7-n7-QG8"/>
+                                                    <font key="font" usesAppearanceFont="YES"/>
+                                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                </textFieldCell>
+                                                <connections>
+                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="jJn-V4-PjH" id="Sfs-Ra-e08">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="enabled3" keyPath="reachedSimulationEnd" previousBinding="Sfs-Ra-e08" id="62K-du-SBa">
+                                                        <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                    <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="jJn-V4-PjH">
+                                                        <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                                        </dictionary>
+                                                    </binding>
+                                                </connections>
+                                            </textField>
                                         </subviews>
                                         <constraints>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="8pr-59-g4r" secondAttribute="trailing" constant="12" id="0pH-Uz-gPw"/>
                                             <constraint firstItem="MPC-lP-uVU" firstAttribute="top" secondItem="LwJ-mt-MjQ" secondAttribute="bottom" constant="2" id="1UM-lb-Fey"/>
                                             <constraint firstItem="Yfj-bi-uzJ" firstAttribute="top" secondItem="kRU-NC-9qC" secondAttribute="bottom" constant="8" id="1eG-Ec-HKM"/>
-                                            <constraint firstItem="2Li-Tb-lf1" firstAttribute="leading" secondItem="34c-xZ-32c" secondAttribute="leading" constant="-2" id="1uF-dd-qXw"/>
                                             <constraint firstAttribute="trailing" secondItem="eXF-cI-cZK" secondAttribute="trailing" constant="15" id="3F8-Yv-UIR"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="kRU-NC-9qC" secondAttribute="leading" constant="2" id="3qI-rE-8al"/>
-                                            <constraint firstItem="2Li-Tb-lf1" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="4k7-b6-Vhz"/>
                                             <constraint firstItem="57G-Tr-aOB" firstAttribute="leading" secondItem="LwJ-mt-MjQ" secondAttribute="trailing" constant="4" id="5O2-8m-7lT"/>
                                             <constraint firstAttribute="bottom" secondItem="nQF-Rr-G8N" secondAttribute="bottom" constant="10" id="6I6-UZ-CRE"/>
-                                            <constraint firstItem="34c-xZ-32c" firstAttribute="top" secondItem="2Li-Tb-lf1" secondAttribute="bottom" constant="8" id="6RT-ZO-47y"/>
                                             <constraint firstItem="nQF-Rr-G8N" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="bottom" constant="15" id="809-sA-R79"/>
                                             <constraint firstItem="KIv-hd-PKz" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="8vQ-GM-6Oy"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="trailing" secondItem="kRU-NC-9qC" secondAttribute="trailing" constant="-2" id="9fC-VY-d0v"/>
@@ -650,44 +628,35 @@
                                             <constraint firstAttribute="trailing" secondItem="57G-Tr-aOB" secondAttribute="trailing" constant="15" id="EaR-pw-uZm"/>
                                             <constraint firstItem="sjX-UH-cdK" firstAttribute="leading" secondItem="gYT-79-LuL" secondAttribute="trailing" constant="20" id="GER-9e-c56"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="KIv-hd-PKz" secondAttribute="trailing" constant="8" id="IRk-z7-f7T"/>
-                                            <constraint firstItem="MEL-RZ-Op6" firstAttribute="top" secondItem="34c-xZ-32c" secondAttribute="bottom" constant="13" id="K1K-Il-Pmm"/>
-                                            <constraint firstItem="Yfj-bi-uzJ" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="trailing" constant="31" id="K8s-QR-IvC"/>
                                             <constraint firstItem="3fa-Za-QvL" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="top" id="KtX-Ea-Cw0"/>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="trailing" secondItem="Yfj-bi-uzJ" secondAttribute="trailing" id="LSL-e2-CxJ"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="mKg-N7-deE" secondAttribute="bottom" constant="-26" id="MXR-dr-7JN"/>
                                             <constraint firstItem="sC1-aa-1AY" firstAttribute="leading" secondItem="MPC-lP-uVU" secondAttribute="trailing" constant="4" id="NGC-0B-DiO"/>
                                             <constraint firstItem="LwJ-mt-MjQ" firstAttribute="top" secondItem="57G-Tr-aOB" secondAttribute="top" id="NPM-o4-6dB"/>
-                                            <constraint firstItem="4kM-3W-gya" firstAttribute="leading" secondItem="34c-xZ-32c" secondAttribute="trailing" constant="-2" id="OU3-OW-2qp"/>
                                             <constraint firstItem="KIv-hd-PKz" firstAttribute="leading" secondItem="sjX-UH-cdK" secondAttribute="trailing" constant="20" id="Php-jl-KQR"/>
                                             <constraint firstItem="1i8-ZT-cwT" firstAttribute="bottom" secondItem="sjX-UH-cdK" secondAttribute="bottom" id="QMg-Lf-Lup"/>
                                             <constraint firstItem="gYT-79-LuL" firstAttribute="leading" secondItem="SJ3-be-U3c" secondAttribute="leading" constant="15" id="RaN-xq-QIZ"/>
                                             <constraint firstItem="KIv-hd-PKz" firstAttribute="top" secondItem="SJ3-be-U3c" secondAttribute="top" constant="14" id="ReT-5u-JuH"/>
                                             <constraint firstItem="1i8-ZT-cwT" firstAttribute="trailing" secondItem="sjX-UH-cdK" secondAttribute="trailing" id="SOl-il-mic"/>
-                                            <constraint firstItem="MEL-RZ-Op6" firstAttribute="leading" secondItem="SGz-ny-AvE" secondAttribute="leading" constant="-2" id="Srr-w3-Jj5"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="trailing" secondItem="Yfj-bi-uzJ" secondAttribute="trailing" id="TwT-bI-bNb"/>
                                             <constraint firstItem="1i8-ZT-cwT" firstAttribute="top" secondItem="sjX-UH-cdK" secondAttribute="top" id="Tyk-kF-vMa"/>
                                             <constraint firstItem="nQF-Rr-G8N" firstAttribute="leading" secondItem="SJ3-be-U3c" secondAttribute="leading" constant="13" id="VCu-pV-Ew0"/>
                                             <constraint firstItem="sC1-aa-1AY" firstAttribute="top" secondItem="57G-Tr-aOB" secondAttribute="bottom" constant="2" id="X3F-kO-Fr0"/>
-                                            <constraint firstItem="SGz-ny-AvE" firstAttribute="top" secondItem="MEL-RZ-Op6" secondAttribute="bottom" constant="8" id="Yqh-lp-yi0"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="8" id="Zhw-Fa-4p6"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="leading" secondItem="SJ3-be-U3c" secondAttribute="leading" constant="13" id="aJb-cQ-YWD"/>
                                             <constraint firstItem="gYT-79-LuL" firstAttribute="height" secondItem="sjX-UH-cdK" secondAttribute="height" id="c31-Bq-c4y"/>
-                                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="2Li-Tb-lf1" secondAttribute="trailing" constant="1" id="c9i-Wz-j89"/>
-                                            <constraint firstItem="MEL-RZ-Op6" firstAttribute="top" secondItem="mYQ-CE-Kge" secondAttribute="top" id="cZe-mE-mlL"/>
-                                            <constraint firstItem="2Li-Tb-lf1" firstAttribute="top" secondItem="4kM-3W-gya" secondAttribute="top" id="dg7-So-wf8"/>
-                                            <constraint firstItem="mYQ-CE-Kge" firstAttribute="bottom" secondItem="SGz-ny-AvE" secondAttribute="bottom" id="edF-Pl-b0Q"/>
-                                            <constraint firstItem="mYQ-CE-Kge" firstAttribute="leading" secondItem="SGz-ny-AvE" secondAttribute="trailing" constant="-2" id="fSY-pf-hs0"/>
                                             <constraint firstItem="kRU-NC-9qC" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="bottom" constant="6" id="gab-YI-p0S"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="width" secondItem="nQF-Rr-G8N" secondAttribute="width" id="hzb-ik-LI8"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="top" id="ibK-E9-puS"/>
-                                            <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="MEL-RZ-Op6" secondAttribute="trailing" constant="1" id="jdu-ez-UUY"/>
-                                            <constraint firstItem="34c-xZ-32c" firstAttribute="bottom" secondItem="4kM-3W-gya" secondAttribute="bottom" id="k5P-bf-HyL"/>
-                                            <constraint firstItem="2Li-Tb-lf1" firstAttribute="top" secondItem="Bdq-3V-iQ8" secondAttribute="bottom" constant="17" id="l21-Um-lxt"/>
                                             <constraint firstItem="Bdq-3V-iQ8" firstAttribute="bottom" secondItem="VWw-o4-Pjo" secondAttribute="bottom" constant="-1" id="llL-Va-nnn"/>
                                             <constraint firstItem="LwJ-mt-MjQ" firstAttribute="top" secondItem="nQF-Rr-G8N" secondAttribute="top" constant="-1" id="mBg-MN-5to"/>
-                                            <constraint firstItem="2Li-Tb-lf1" firstAttribute="leading" secondItem="MEL-RZ-Op6" secondAttribute="leading" id="owW-mN-ep0"/>
                                             <constraint firstItem="VWw-o4-Pjo" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="trailing" constant="9" id="pCu-QP-RtD"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="KIv-hd-PKz" secondAttribute="top" id="pnS-73-RN0"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="top" secondItem="sjX-UH-cdK" secondAttribute="bottom" constant="20" id="uQe-Eb-jXh"/>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="Yfj-bi-uzJ" secondAttribute="leading" id="vDE-O3-YUj"/>
+                                            <constraint firstItem="8pr-59-g4r" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="wq4-z5-OJb"/>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="firstBaseline" secondItem="8pr-59-g4r" secondAttribute="firstBaseline" id="xHx-GQ-9gs"/>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="top" secondItem="Yfj-bi-uzJ" secondAttribute="bottom" constant="8" id="xUG-V6-nFJ"/>
                                             <constraint firstItem="Bdq-3V-iQ8" firstAttribute="baseline" secondItem="Yfj-bi-uzJ" secondAttribute="baseline" id="xUd-e3-o5G"/>
                                             <constraint firstItem="gYT-79-LuL" firstAttribute="top" secondItem="SJ3-be-U3c" secondAttribute="top" constant="15" id="y66-cs-ZQV"/>
                                             <constraint firstItem="mKg-N7-deE" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="-20" id="yBh-ld-fov"/>
@@ -698,7 +667,7 @@
                                     <constraint firstAttribute="trailing" secondItem="SJ3-be-U3c" secondAttribute="trailing" id="Bhr-F3-Lg8"/>
                                     <constraint firstItem="SJ3-be-U3c" firstAttribute="leading" secondItem="cof-JC-B5l" secondAttribute="leading" id="O8k-wp-S9X"/>
                                     <constraint firstItem="SJ3-be-U3c" firstAttribute="top" secondItem="cof-JC-B5l" secondAttribute="top" id="gr9-E8-Mqg"/>
-                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="262" id="k64-6X-mEB"/>
+                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="294" id="k64-6X-mEB"/>
                                     <constraint firstAttribute="bottom" secondItem="SJ3-be-U3c" secondAttribute="bottom" id="kpd-fj-71C"/>
                                 </constraints>
                             </customView>

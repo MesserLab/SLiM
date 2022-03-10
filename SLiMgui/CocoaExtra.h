@@ -32,13 +32,6 @@ bool SLiM_AmIBeingDebugged(void);
 @interface SLiMTableView : NSTableView
 @end
 
-// A view to show a color stripe for the range of values of a metric such as fitness or selection coefficient
-@interface SLiMColorStripeView : NSView
-@property (nonatomic) int metricToPlot;		// 1 == fitness, 2 == selection coefficient; this changes which function below gets called
-@property (nonatomic) double scalingFactor;
-@property (nonatomic) BOOL enabled;
-@end
-
 // A button that runs a pop-up menu when clicked
 @interface SLiMMenuButton : NSButton
 @property (nonatomic, retain) NSMenu *slimMenu;

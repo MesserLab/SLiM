@@ -40,6 +40,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(tickPlayOn_ ? PlayType::kTickPlay : PlayType::kNormalPlay); });
     connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(PlayType::kProfilePlay); });
     connect(ui->tickLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::tickChanged);
+    //connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);   // not editable at the moment
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 

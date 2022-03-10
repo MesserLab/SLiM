@@ -122,7 +122,6 @@ public:
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
-    //double fitnessColorScale, selectionColorScale;
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
 

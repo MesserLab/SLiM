@@ -590,7 +590,7 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
     //
     
     //QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    double scalingFactor = 0.8; // controller->fitnessColorScale;
+    double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
     slim_popsize_t subpopSize = subpop->parent_subpop_size_;
     int viewColumns = 0, viewRows = 0;
     double subpopFitnessScaling = subpop->last_fitness_scaling_;
@@ -1300,7 +1300,7 @@ void QtSLiMIndividualsWidget::drawSpatialBackgroundInBoundsForSubpopulation(QRec
 void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	double scalingFactor = 0.8; // controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;

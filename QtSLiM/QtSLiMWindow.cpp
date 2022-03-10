@@ -1553,12 +1553,21 @@ void QtSLiMWindow::updateTickCounter(void)
     if (!invalidSimulation_)
 	{
 		if (community->Tick() == 0)
+        {
             ui->tickLineEdit->setText("initialize()");
+            ui->generationLineEdit->setText("initialize()");
+        }
 		else
+        {
             ui->tickLineEdit->setText(QString::number(community->Tick()));
+            ui->generationLineEdit->setText(QString::number(community->single_species_->Generation()));
+        }
 	}
 	else
+    {
         ui->tickLineEdit->setText("");
+        ui->generationLineEdit->setText("");
+    }
 }
 
 void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
@@ -1747,6 +1756,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->playSpeedSlider->setEnabled(!invalidSimulation_);
     ui->tickLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
+    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
 
     ui->toggleDrawerButton->setEnabled(true);
     
@@ -1769,6 +1779,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->outputTextEdit->setReadOnly(true);
     
     ui->tickLabel->setEnabled(!invalidSimulation_);
+    ui->generationLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
     // Tell the console controller to enable/disable its buttons

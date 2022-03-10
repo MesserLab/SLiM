@@ -103,7 +103,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	//
 	
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
 	double subpopFitnessScaling = subpop->last_fitness_scaling_;
@@ -433,7 +433,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawFitnessLinePlotForSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double subpopFitnessScaling = subpop->last_fitness_scaling_;
 	
@@ -527,7 +527,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawFitnessBarPlotForSubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations inArea:(NSRect)bounds
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	int selectedSubpopCount = (int)(selectedSubpopulations.size());
 	
 	// first tabulate fitness values
@@ -1224,7 +1224,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;

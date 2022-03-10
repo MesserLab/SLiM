@@ -73,7 +73,6 @@
 #endif
 	
 	// display-related variables
-	double fitnessColorScale, selectionColorScale;
 	NSMutableDictionary *genomicElementColorRegistry;
 	BOOL zoomedChromosomeShowsRateMaps;
 	BOOL zoomedChromosomeShowsGenomicElements;
@@ -115,13 +114,6 @@
 	IBOutlet NSLayoutConstraint *overallTopViewConstraint3;
 	IBOutlet NSLayoutConstraint *overallTopViewConstraint4;
 	
-	IBOutlet NSTextField *fitnessTitleTextField;
-	IBOutlet SLiMColorStripeView *fitnessColorStripe;
-	IBOutlet NSSlider *fitnessColorSlider;
-	IBOutlet NSTextField *selectionTitleTextField;
-	IBOutlet SLiMColorStripeView *selectionColorStripe;
-	IBOutlet NSSlider *selectionColorSlider;
-	
 	IBOutlet NSButton *playOneStepButton;
 	IBOutlet NSButton *playButton;
 	IBOutlet NSButton *profileButton;
@@ -129,6 +121,7 @@
 	IBOutlet NSSlider *playSpeedSlider;
 	IBOutlet NSTextField *tickTextField;
 	IBOutlet NSProgressIndicator *tickProgressIndicator;
+	IBOutlet NSTextField *generationTextField;
 	
 	IBOutlet NSSplitView *bottomSplitView;
 	IBOutlet EidosTextView *scriptTextView;
@@ -249,9 +242,6 @@
 - (IBAction)recycle:(id)sender;
 - (IBAction)playSpeedChanged:(id)sender;
 - (IBAction)tickChanged:(id)sender;
-
-- (IBAction)fitnessColorSliderChanged:(id)sender;
-- (IBAction)selectionColorSliderChanged:(id)sender;
 
 - (IBAction)checkScript:(id)sender;
 - (IBAction)prettyprintScript:(id)sender;

@@ -858,7 +858,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
 	Chromosome &chromosome = species->TheChromosome();
@@ -987,7 +987,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
 	Chromosome &chromosome = species->TheChromosome();
@@ -1164,7 +1164,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
@@ -1386,7 +1386,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	double scalingFactor = controller->selectionColorScale;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	Species *species = controller->community->single_species_;
 	Population &pop = species->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
