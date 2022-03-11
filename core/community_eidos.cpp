@@ -38,20 +38,22 @@
 #include <unordered_map>
 
 
-static void PrintBytes(std::ostream &p_out, size_t p_bytes)
+static std::string PrintBytes(size_t p_bytes)
 {
-	p_out << p_bytes << " bytes";
+	std::ostringstream sstream;
+	
+	sstream << p_bytes << " bytes";
 	
 	if (p_bytes > 1024.0 * 1024.0 * 1024.0 * 1024.0)
-		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)) << " TB" << ")";
+		sstream << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)) << " TB" << ")";
 	else if (p_bytes > 1024.0 * 1024.0 * 1024.0)
-		p_out << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0)) << " GB" << ")";
+		sstream << " (" << (p_bytes / (1024.0 * 1024.0 * 1024.0)) << " GB" << ")";
 	else if (p_bytes > 1024.0 * 1024.0)
-		p_out << " (" << (p_bytes / (1024.0 * 1024.0)) << " MB" << ")";
+		sstream << " (" << (p_bytes / (1024.0 * 1024.0)) << " MB" << ")";
 	else if (p_bytes > 1024)
-		p_out << " (" << (p_bytes / 1024.0) << " K" << ")";
+		sstream << " (" << (p_bytes / 1024.0) << " K" << ")";
 	
-	p_out << std::endl;
+	return sstream.str();
 }
 
 
@@ -515,173 +517,94 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	std::streamsize oldprecision = out.precision();
 	out << std::fixed << std::setprecision(1);
 	
-	// Print header
-	SLiM_MemoryUsage usage;
+	// Tally up usage across the simulation
+	SLiMMemoryUsage_Community usage_community;
+	SLiMMemoryUsage_Species usage_all_species;
 	
-	AllSpecies_TabulateMemoryUsage(&usage, &p_interpreter.SymbolTable());
+	EIDOS_BZERO(&usage_all_species, sizeof(SLiMMemoryUsage_Species));
+	
+	TabulateSLiMMemoryUsage_Community(&usage_community, &p_interpreter.SymbolTable());
+	
+	{
+		SLiMMemoryUsage_Species usage_one_species;
+		
+		single_species_->TabulateSLiMMemoryUsage_Species(&usage_one_species);
+		AccumulateMemoryUsageIntoTotal_Species(usage_one_species, usage_all_species);
+	}
+	
+	// Print header
 	out << "Memory usage summary:" << std::endl;
 	
 	// Chromosome
-	{
-		assert(usage.chromosomeObjects_count == 1);
-		
-		out << "   Chromosome object: ";
-		PrintBytes(out, usage.chromosomeObjects);
-		
-		out << "      Mutation rate maps: ";
-		PrintBytes(out, usage.chromosomeMutationRateMaps);
-		
-		out << "      Recombination rate maps: ";
-		PrintBytes(out, usage.chromosomeRecombinationRateMaps);
-		
-		out << "      Ancestral nucleotides: ";
-		PrintBytes(out, usage.chromosomeAncestralSequence);
-	}
+	out << "   Chromosome objects(" << usage_all_species.chromosomeObjects_count << "): " << PrintBytes(usage_all_species.chromosomeObjects) << std::endl;
+	out << "      Mutation rate maps: " << PrintBytes(usage_all_species.chromosomeMutationRateMaps) << std::endl;
+	out << "      Recombination rate maps: " << PrintBytes(usage_all_species.chromosomeRecombinationRateMaps) << std::endl;
+	out << "      Ancestral nucleotides: " << PrintBytes(usage_all_species.chromosomeAncestralSequence) << std::endl;
 	
 	// Genome
-	{
-		out << "   Genome objects (" << usage.genomeObjects_count << "): ";
-		PrintBytes(out, usage.genomeObjects);
-		
-		out << "      External MutationRun* buffers: ";
-		PrintBytes(out, usage.genomeExternalBuffers);
-		
-		out << "      Unused pool space: ";
-		PrintBytes(out, usage.genomeUnusedPoolSpace);
-		
-		out << "      Unused pool buffers: ";
-		PrintBytes(out, usage.genomeUnusedPoolBuffers);
-	}
+	out << "   Genome objects (" << usage_all_species.genomeObjects_count << "): " << PrintBytes(usage_all_species.genomeObjects) << std::endl;
+	out << "      External MutationRun* buffers: " << PrintBytes(usage_all_species.genomeExternalBuffers) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_all_species.genomeUnusedPoolSpace) << std::endl;
+	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.genomeUnusedPoolBuffers) << std::endl;
 	
 	// GenomicElement
-	{
-		out << "   GenomicElement objects (" << usage.genomicElementObjects_count << "): ";
-		PrintBytes(out, usage.genomicElementObjects);
-	}
+	out << "   GenomicElement objects (" << usage_all_species.genomicElementObjects_count << "): " << PrintBytes(usage_all_species.genomicElementObjects) << std::endl;
 	
 	// GenomicElementType
-	{
-		out << "   GenomicElementType objects (" << usage.genomicElementTypeObjects_count << "): ";
-		PrintBytes(out, usage.genomicElementTypeObjects);
-	}
+	out << "   GenomicElementType objects (" << usage_all_species.genomicElementTypeObjects_count << "): " << PrintBytes(usage_all_species.genomicElementTypeObjects) << std::endl;
 	
 	// Individual
-	{
-		out << "   Individual objects (" << usage.individualObjects_count << "): ";
-		PrintBytes(out, usage.individualObjects);
-		
-		out << "      Unused pool space: ";
-		PrintBytes(out, usage.individualUnusedPoolSpace);
-	}
+	out << "   Individual objects (" << usage_all_species.individualObjects_count << "): " << PrintBytes(usage_all_species.individualObjects) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_all_species.individualUnusedPoolSpace) << std::endl;
 	
 	// InteractionType
+	out << "   InteractionType objects (" << usage_all_species.interactionTypeObjects_count << "): " << PrintBytes(usage_all_species.interactionTypeObjects) << std::endl;
+	
+	if (usage_all_species.interactionTypeObjects_count)
 	{
-		out << "   InteractionType objects (" << usage.interactionTypeObjects_count << "): ";
-		PrintBytes(out, usage.interactionTypeObjects);
-		
-		if (usage.interactionTypeObjects_count)
-		{
-			out << "      k-d trees: ";
-			PrintBytes(out, usage.interactionTypeKDTrees);
-			
-			out << "      Position caches: ";
-			PrintBytes(out, usage.interactionTypePositionCaches);
-			
-			out << "      Sparse arrays: ";
-			PrintBytes(out, usage.interactionTypeSparseArrays);
-		}
+		out << "      k-d trees: " << PrintBytes(usage_all_species.interactionTypeKDTrees) << std::endl;
+		out << "      Position caches: " << PrintBytes(usage_all_species.interactionTypePositionCaches) << std::endl;
+		out << "      Sparse arrays: " << PrintBytes(usage_all_species.interactionTypeSparseArrays) << std::endl;
 	}
 	
 	// Mutation
-	{
-		out << "   Mutation objects (" << usage.mutationObjects_count << "): ";
-		PrintBytes(out, usage.mutationObjects);
-		
-		out << "      Refcount buffer: ";
-		PrintBytes(out, usage.mutationRefcountBuffer);
-		
-		out << "      Unused pool space: ";
-		PrintBytes(out, usage.mutationUnusedPoolSpace);
-	}
+	out << "   Mutation objects (" << usage_all_species.mutationObjects_count << "): " << PrintBytes(usage_all_species.mutationObjects) << std::endl;
+	out << "      Refcount buffer: " << PrintBytes(usage_community.mutationRefcountBuffer) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_community.mutationUnusedPoolSpace) << std::endl;
 	
 	// MutationRun
-	{
-		out << "   MutationRun objects (" << usage.mutationRunObjects_count << "): ";
-		PrintBytes(out, usage.mutationRunObjects);
-		
-		out << "      External MutationIndex buffers: ";
-		PrintBytes(out, usage.mutationRunExternalBuffers);
-		
-		out << "      Nonneutral mutation caches: ";
-		PrintBytes(out, usage.mutationRunNonneutralCaches);
-		
-		out << "      Unused pool space: ";
-		PrintBytes(out, usage.mutationRunUnusedPoolSpace);
-		
-		out << "      Unused pool buffers: ";
-		PrintBytes(out, usage.mutationRunUnusedPoolBuffers);
-	}
+	out << "   MutationRun objects (" << usage_all_species.mutationRunObjects_count << "): " << PrintBytes(usage_all_species.mutationRunObjects) << std::endl;
+	out << "      External MutationIndex buffers: " << PrintBytes(usage_all_species.mutationRunExternalBuffers) << std::endl;
+	out << "      Nonneutral mutation caches: " << PrintBytes(usage_all_species.mutationRunNonneutralCaches) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_community.mutationRunUnusedPoolSpace) << std::endl;
+	out << "      Unused pool buffers: " << PrintBytes(usage_community.mutationRunUnusedPoolBuffers) << std::endl;
 	
 	// MutationType
-	{
-		out << "   MutationType objects (" << usage.mutationTypeObjects_count << "): ";
-		PrintBytes(out, usage.mutationTypeObjects);
-	}
+	out << "   MutationType objects (" << usage_all_species.mutationTypeObjects_count << "): " << PrintBytes(usage_all_species.mutationTypeObjects) << std::endl;
 	
 	// Species (including the Population object)
-	{
-		assert(usage.speciesObjects_count == 1);
-		
-		out << "   Species object: ";
-		PrintBytes(out, usage.speciesObjects);
-		
-		out << "      Tree-sequence tables: ";
-		PrintBytes(out, usage.speciesTreeSeqTables);
-	}
+	out << "   Species object: " << PrintBytes(usage_all_species.speciesObjects) << std::endl;
+	out << "      Tree-sequence tables: " << PrintBytes(usage_all_species.speciesTreeSeqTables) << std::endl;
 	
 	// Subpopulation
-	{
-		out << "   Subpopulation objects (" << usage.subpopulationObjects_count << "): ";
-		PrintBytes(out, usage.subpopulationObjects);
-		
-		out << "      Fitness caches: ";
-		PrintBytes(out, usage.subpopulationFitnessCaches);
-		
-		out << "      Parent tables: ";
-		PrintBytes(out, usage.subpopulationParentTables);
-		
-		out << "      Spatial maps: ";
-		PrintBytes(out, usage.subpopulationSpatialMaps);
-		
-		if (usage.subpopulationSpatialMapsDisplay)
-		{
-			out << "      Spatial map display (SLiMgui): ";
-			PrintBytes(out, usage.subpopulationSpatialMapsDisplay);
-		}
-	}
+	out << "   Subpopulation objects (" << usage_all_species.subpopulationObjects_count << "): " << PrintBytes(usage_all_species.subpopulationObjects) << std::endl;
+	out << "      Fitness caches: " << PrintBytes(usage_all_species.subpopulationFitnessCaches) << std::endl;
+	out << "      Parent tables: " << PrintBytes(usage_all_species.subpopulationParentTables) << std::endl;
+	out << "      Spatial maps: " << PrintBytes(usage_all_species.subpopulationSpatialMaps) << std::endl;
+	
+	if (usage_all_species.subpopulationSpatialMapsDisplay)
+		out << "      Spatial map display (SLiMgui): " << PrintBytes(usage_all_species.subpopulationSpatialMapsDisplay) << std::endl;
 	
 	// Substitution
-	{
-		out << "   Substitution objects (" << usage.substitutionObjects_count << "): ";
-		PrintBytes(out, usage.substitutionObjects);
-	}
+	out << "   Substitution objects (" << usage_all_species.substitutionObjects_count << "): " << PrintBytes(usage_all_species.substitutionObjects) << std::endl;
 	
 	// Eidos usage
-	{
-		out << "   Eidos: " << std::endl;
-		
-		out << "      EidosASTNode pool: ";
-		PrintBytes(out, usage.eidosASTNodePool);
-		
-		out << "      EidosSymbolTable pool: ";
-		PrintBytes(out, usage.eidosSymbolTablePool);
-		
-		out << "      EidosValue pool: ";
-		PrintBytes(out, usage.eidosValuePool);
-	}
+	out << "   Eidos: " << std::endl;
+	out << "      EidosASTNode pool: " << PrintBytes(usage_community.eidosASTNodePool) << std::endl;
+	out << "      EidosSymbolTable pool: " << PrintBytes(usage_community.eidosSymbolTablePool) << std::endl;
+	out << "      EidosValue pool: " << PrintBytes(usage_community.eidosValuePool) << std::endl;
 	
-	out << "   # Total accounted for: ";
-	PrintBytes(out, usage.totalMemoryUsage);
+	out << "   # Total accounted for: " << PrintBytes(usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage) << std::endl;
 	out << std::endl;
 	
 	// Restore flags/precision

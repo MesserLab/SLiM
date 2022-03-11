@@ -172,7 +172,10 @@ private:
 public:
 	
 #if (defined(SLIMGUI) && (SLIMPROFILING == 1))
-	// PROFILING : Community keeps track of its mutation-related profile info
+	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
+	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
+	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
+	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
 	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
@@ -347,7 +350,7 @@ public:
 	explicit Species(Community &p_community);									// construct a Species from a community
 	~Species(void);																// destructor
 	
-	void TabulateMemoryUsage(SLiM_MemoryUsage *p_usage);	// used by outputUsage() and SLiMgui profiling
+	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);		// used by outputUsage() and SLiMgui profiling
 	
 	// Running generations
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);

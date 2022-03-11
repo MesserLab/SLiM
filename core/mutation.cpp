@@ -169,12 +169,26 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 #endif
 }
 
-size_t SLiM_MemoryUsageForMutationBlock(void)
+size_t SLiMMemoryUsageForMutationBlock(void)
 {
 	return gSLiM_Mutation_Block_Capacity * sizeof(Mutation);
 }
 
-size_t SLiM_MemoryUsageForMutationRefcounts(void)
+size_t SLiMMemoryUsageForFreeMutations(void)
+{
+	size_t mut_count = 0;
+	MutationIndex nextFreeBlock = gSLiM_Mutation_FreeIndex;
+	
+	while (nextFreeBlock != -1)
+	{
+		mut_count++;
+		nextFreeBlock = *(MutationIndex *)(gSLiM_Mutation_Block + nextFreeBlock);
+	}
+	
+	return mut_count * sizeof(Mutation);
+}
+
+size_t SLiMMemoryUsageForMutationRefcounts(void)
 {
 	return gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t);
 }

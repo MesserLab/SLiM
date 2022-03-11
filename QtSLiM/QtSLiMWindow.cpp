@@ -1656,9 +1656,22 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                 int registry_size;
                 community->single_species_->population_.MutationRegistry(&registry_size);
                 
-                SLiM_MemoryUsage current_memory_usage;
-                community->AllSpecies_TabulateMemoryUsage(&current_memory_usage, nullptr);
-                double current_memory_MB = current_memory_usage.totalMemoryUsage / (1024.0 * 1024.0);
+                // Tally up usage across the simulation
+                SLiMMemoryUsage_Community usage_community;
+                SLiMMemoryUsage_Species usage_all_species;
+                
+                EIDOS_BZERO(&usage_all_species, sizeof(SLiMMemoryUsage_Species));
+                
+                community-> TabulateSLiMMemoryUsage_Community(&usage_community, nullptr);
+                
+                {
+                    SLiMMemoryUsage_Species usage_one_species;
+                    
+                    community->single_species_->TabulateSLiMMemoryUsage_Species(&usage_one_species);
+                    AccumulateMemoryUsageIntoTotal_Species(usage_one_species, usage_all_species);
+                }
+                
+                double current_memory_MB = (usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage) / (1024.0 * 1024.0);
                 
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
                                            .arg(current_memory_MB, 0, 'f', 1)
@@ -2284,8 +2297,12 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Profile block internal lag: %1 ticks (%2 s)\n").arg(gEidos_ProfileLagTicks, 0, 'f', 2).arg(gEidos_ProfileLagSeconds, 0, 'g', 4), optima13_d);
     tc.insertText(" \n", optima8_d);
     
-    tc.insertText(QString("Average tick SLiM memory use: %1\n").arg(stringForByteCount(community->profile_total_memory_usage_.totalMemoryUsage / static_cast<size_t>(community->total_memory_tallies_))), optima13_d);
-    tc.insertText(QString("Final tick SLiM memory use: %1\n").arg(stringForByteCount(community->profile_last_memory_usage_.totalMemoryUsage)), optima13_d);
+    size_t total_usage = community->profile_total_memory_usage_Community.totalMemoryUsage + community->profile_total_memory_usage_AllSpecies.totalMemoryUsage;
+	size_t average_usage = total_usage / community->total_memory_tallies_;
+	size_t last_usage = community->profile_last_memory_usage_Community.totalMemoryUsage + community->profile_last_memory_usage_AllSpecies.totalMemoryUsage;
+	
+    tc.insertText(QString("Average tick SLiM memory use: %1\n").arg(stringForByteCount(average_usage)), optima13_d);
+    tc.insertText(QString("Final tick SLiM memory use: %1\n").arg(stringForByteCount(last_usage)), optima13_d);
     
 	//
 	//	Generation stage breakdown
@@ -2804,12 +2821,14 @@ void QtSLiMWindow::displayProfileResults(void)
 		//
 		//	Memory usage metrics
 		//
-		SLiM_MemoryUsage &mem_tot = community->profile_total_memory_usage_;
-		SLiM_MemoryUsage &mem_last = community->profile_last_memory_usage_;
+        SLiMMemoryUsage_Community &mem_tot_C = community->profile_total_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_tot_S = community->profile_total_memory_usage_AllSpecies;
+		SLiMMemoryUsage_Community &mem_last_C = community->profile_last_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_last_S = community->profile_last_memory_usage_AllSpecies;
 		uint64_t div = static_cast<uint64_t>(community->total_memory_tallies_);
 		double ddiv = community->total_memory_tallies_;
-		double average_total = mem_tot.totalMemoryUsage / ddiv;
-		double final_total = mem_last.totalMemoryUsage;
+        double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
+		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
 		tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
@@ -2819,240 +2838,247 @@ void QtSLiMWindow::displayProfileResults(void)
         QTextCharFormat colored_menlo = menlo11_d;
         
 		// Chromosome
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : Chromosome object\n", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeObjects, final_total, colored_menlo), colored_menlo);
+        tc.insertText(QString(" : Chromosome objects (%1 / %2)\n").arg(mem_tot_S.chromosomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.chromosomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeMutationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeMutationRateMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeMutationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeMutationRateMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : mutation rate maps\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeRecombinationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeRecombinationRateMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeRecombinationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeRecombinationRateMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : recombination rate maps\n", optima13_d);
 
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeAncestralSequence / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeAncestralSequence / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeAncestralSequence, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeAncestralSequence, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : ancestral nucleotides\n", optima13_d);
+		
+        // Community
+        tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.communityObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.communityObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : Community object\n", optima13_d);
 		
 		// Genome
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot_S.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationRun* buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// GenomicElement
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomicElementObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomicElementObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : GenomicElement objects (%1 / %2)\n").arg(mem_tot.genomicElementObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomicElementObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElement objects (%1 / %2)\n").arg(mem_tot_S.genomicElementObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomicElementObjects_count), optima13_d);
 		
 		// GenomicElementType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomicElementTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomicElementTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : GenomicElementType objects (%1 / %2)\n").arg(mem_tot.genomicElementTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomicElementTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElementType objects (%1 / %2)\n").arg(mem_tot_S.genomicElementTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomicElementTypeObjects_count), optima13_d);
 		
 		// Individual
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.individualObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.individualObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last.individualObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot_S.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.individualObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		// InteractionType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.interactionTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot_S.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.interactionTypeObjects_count), optima13_d);
 		
-		if (mem_tot.interactionTypeObjects_count || mem_last.interactionTypeObjects_count)
+		if (mem_tot_S.interactionTypeObjects_count || mem_last_S.interactionTypeObjects_count)
 		{
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : k-d trees\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : position caches\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeSparseArrays / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeSparseArrays / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeSparseArrays, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeSparseArrays, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : sparse arrays\n", optima13_d);
 		}
 		
 		// Mutation
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Mutation objects (%1 / %2)\n").arg(mem_tot.mutationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Mutation objects (%1 / %2)\n").arg(mem_tot_S.mutationObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRefcountBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : refcount buffer\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		// MutationRun
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : MutationRun objects (%1 / %2)\n").arg(mem_tot.mutationRunObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationRunObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationRun objects (%1 / %2)\n").arg(mem_tot_S.mutationRunObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationRunObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationIndex buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunNonneutralCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunNonneutralCaches / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunNonneutralCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunNonneutralCaches, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : nonneutral mutation caches\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// MutationType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot_S.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationTypeObjects_count), optima13_d);
 		
 		// Species
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.speciesObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.speciesObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.speciesObjects, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : Species object\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.speciesTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.speciesTreeSeqTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.speciesTreeSeqTables, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : tree-sequence tables\n", optima13_d);
 		
 		// Subpopulation
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Subpopulation objects (%1 / %2)\n").arg(mem_tot.subpopulationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.subpopulationObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Subpopulation objects (%1 / %2)\n").arg(mem_tot_S.subpopulationObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.subpopulationObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationFitnessCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationFitnessCaches / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationFitnessCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationFitnessCaches, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : fitness caches\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationParentTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationParentTables / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationParentTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationParentTables, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : parent tables\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationSpatialMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationSpatialMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : spatial maps\n", optima13_d);
 		
-		if (mem_tot.subpopulationSpatialMapsDisplay || mem_last.subpopulationSpatialMapsDisplay)
+		if (mem_tot_S.subpopulationSpatialMapsDisplay || mem_last_S.subpopulationSpatialMapsDisplay)
 		{
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : spatial map display (SLiMgui only)\n", optima13_d);
 		}
 		
 		// Substitution
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.substitutionObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.substitutionObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.substitutionObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Substitution objects (%1 / %2)\n").arg(mem_tot.substitutionObjects_count / ddiv, 0, 'f', 2).arg(mem_last.substitutionObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.substitutionObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Substitution objects (%1 / %2)\n").arg(mem_tot_S.substitutionObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.substitutionObjects_count), optima13_d);
 		
 		// Eidos
 		tc.insertText(" \n", optima8_d);
 		tc.insertText("Eidos:\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosASTNodePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosASTNodePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosASTNodePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosASTNodePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosASTNode pool\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosSymbolTablePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosSymbolTablePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosSymbolTablePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosSymbolTablePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosSymbolTable pool\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosValuePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosValuePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosValue pool", optima13_d);
 	}
     
@@ -3130,8 +3156,10 @@ void QtSLiMWindow::startProfiling(void)
 #endif
 	
 	// zero out memory usage metrics
-	EIDOS_BZERO(&community->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
-	EIDOS_BZERO(&community->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
+    EIDOS_BZERO(&community->profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	EIDOS_BZERO(&community->profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
 	community->total_memory_tallies_ = 0;
 }
 

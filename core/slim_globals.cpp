@@ -586,6 +586,139 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 
 
 #pragma mark -
+#pragma mark Memory management
+#pragma mark -
+
+void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
+{
+	p_usage.totalMemoryUsage =
+		p_usage.chromosomeObjects +
+		p_usage.chromosomeMutationRateMaps +
+		p_usage.chromosomeRecombinationRateMaps +
+		p_usage.chromosomeAncestralSequence +
+		p_usage.genomeObjects +
+		p_usage.genomeExternalBuffers +
+		p_usage.genomeUnusedPoolSpace +
+		p_usage.genomeUnusedPoolBuffers +
+		p_usage.genomicElementObjects +
+		p_usage.genomicElementTypeObjects +
+		p_usage.individualObjects +
+		p_usage.individualUnusedPoolSpace +
+		p_usage.interactionTypeObjects +
+		p_usage.interactionTypeKDTrees +
+		p_usage.interactionTypePositionCaches +
+		p_usage.interactionTypeSparseArrays +
+		p_usage.mutationObjects +
+		p_usage.mutationRunObjects +
+		p_usage.mutationRunExternalBuffers +
+		p_usage.mutationRunNonneutralCaches +
+		p_usage.mutationTypeObjects +
+		p_usage.speciesObjects +
+		p_usage.speciesTreeSeqTables +
+		p_usage.subpopulationObjects +
+		p_usage.subpopulationFitnessCaches +
+		p_usage.subpopulationParentTables +
+		p_usage.subpopulationSpatialMaps +
+		p_usage.subpopulationSpatialMapsDisplay +
+		p_usage.substitutionObjects;
+}
+
+void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
+{
+	p_usage.totalMemoryUsage =
+		p_usage.communityObjects +
+		p_usage.mutationRefcountBuffer +
+		p_usage.mutationUnusedPoolSpace +
+		p_usage.mutationRunUnusedPoolSpace +
+		p_usage.mutationRunUnusedPoolBuffers +
+		p_usage.eidosASTNodePool +
+		p_usage.eidosSymbolTablePool +
+		p_usage.eidosValuePool;
+}
+
+void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SLiMMemoryUsage_Species &p_total)
+{
+	// p_total += p_usage;
+	
+	p_total.chromosomeObjects_count += p_usage.chromosomeObjects_count;
+	p_total.chromosomeObjects += p_usage.chromosomeObjects;
+	p_total.chromosomeMutationRateMaps += p_usage.chromosomeMutationRateMaps;
+	p_total.chromosomeRecombinationRateMaps += p_usage.chromosomeRecombinationRateMaps;
+	p_total.chromosomeAncestralSequence += p_usage.chromosomeAncestralSequence;
+	
+	p_total.genomeObjects_count += p_usage.genomeObjects_count;
+	p_total.genomeObjects += p_usage.genomeObjects;
+	p_total.genomeExternalBuffers += p_usage.genomeExternalBuffers;
+	p_total.genomeUnusedPoolSpace += p_usage.genomeUnusedPoolSpace;
+	p_total.genomeUnusedPoolBuffers += p_usage.genomeUnusedPoolBuffers;
+	
+	p_total.genomicElementObjects_count += p_usage.genomicElementObjects_count;
+	p_total.genomicElementObjects += p_usage.genomicElementObjects;
+	
+	p_total.genomicElementTypeObjects_count += p_usage.genomicElementTypeObjects_count;
+	p_total.genomicElementTypeObjects += p_usage.genomicElementTypeObjects;
+	
+	p_total.individualObjects_count += p_usage.individualObjects_count;
+	p_total.individualObjects += p_usage.individualObjects;
+	p_total.individualUnusedPoolSpace += p_usage.individualUnusedPoolSpace;
+	
+	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
+	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;
+	p_total.interactionTypeKDTrees += p_usage.interactionTypeKDTrees;
+	p_total.interactionTypePositionCaches += p_usage.interactionTypePositionCaches;
+	p_total.interactionTypeSparseArrays += p_usage.interactionTypeSparseArrays;
+	
+	p_total.mutationObjects_count += p_usage.mutationObjects_count;
+	p_total.mutationObjects += p_usage.mutationObjects;
+	
+	p_total.mutationRunObjects_count += p_usage.mutationRunObjects_count;
+	p_total.mutationRunObjects += p_usage.mutationRunObjects;
+	p_total.mutationRunExternalBuffers += p_usage.mutationRunExternalBuffers;
+	p_total.mutationRunNonneutralCaches += p_usage.mutationRunNonneutralCaches;
+	
+	p_total.mutationTypeObjects_count += p_usage.mutationTypeObjects_count;
+	p_total.mutationTypeObjects += p_usage.mutationTypeObjects;
+	
+	p_total.speciesObjects_count += p_usage.speciesObjects_count;
+	p_total.speciesObjects += p_usage.speciesObjects;
+	p_total.speciesTreeSeqTables += p_usage.speciesTreeSeqTables;
+	
+	p_total.subpopulationObjects_count += p_usage.subpopulationObjects_count;
+	p_total.subpopulationObjects += p_usage.subpopulationObjects;
+	p_total.subpopulationFitnessCaches += p_usage.subpopulationFitnessCaches;
+	p_total.subpopulationParentTables += p_usage.subpopulationParentTables;
+	p_total.subpopulationSpatialMaps += p_usage.subpopulationSpatialMaps;
+	p_total.subpopulationSpatialMapsDisplay += p_usage.subpopulationSpatialMapsDisplay;
+	
+	p_total.substitutionObjects_count += p_usage.substitutionObjects_count;
+	p_total.substitutionObjects += p_usage.substitutionObjects;
+	
+	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
+}
+
+void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage, SLiMMemoryUsage_Community &p_total)
+{
+	// p_total += p_usage;
+	
+	p_total.communityObjects_count += p_usage.communityObjects_count;
+	p_total.communityObjects += p_usage.communityObjects;
+	
+	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
+	
+	p_total.mutationRunUnusedPoolSpace += p_usage.mutationRunUnusedPoolSpace;
+	p_total.mutationRunUnusedPoolBuffers += p_usage.mutationRunUnusedPoolBuffers;
+	
+	p_total.eidosASTNodePool += p_usage.eidosASTNodePool;
+	p_total.eidosSymbolTablePool += p_usage.eidosSymbolTablePool;
+	p_total.eidosValuePool += p_usage.eidosValuePool;
+	
+	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
+}
+
+
+
+#pragma mark -
 #pragma mark Shared SLiM types and enumerations
 #pragma mark -
 

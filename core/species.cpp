@@ -2570,10 +2570,12 @@ void Species::CreateNucleotideMutationRateMap(void)
 	community_.chromosome_changed_ = true;
 }
 
-void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
+void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 {
 #warning this is surely still wrong; test by calling twice in a row to see that everything doubles
-	// Gather genomes
+	EIDOS_BZERO(p_usage, sizeof(SLiMMemoryUsage_Species));
+	
+	// Gather genomes in preparation for the work below
 	std::vector<Genome *> all_genomes_in_use, all_genomes_not_in_use;
 	size_t genome_pool_usage = 0, individual_pool_usage = 0;
 	
@@ -2589,36 +2591,28 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_nonnull.begin(), population_.species_genome_junkyard_nonnull.end());
 	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_null.begin(), population_.species_genome_junkyard_null.end());
 	
-	genome_pool_usage += population_.species_genome_pool_.MemoryUsageForAllNodes();
-	individual_pool_usage += population_.species_individual_pool_.MemoryUsageForAllNodes();
+	genome_pool_usage = population_.species_genome_pool_.MemoryUsageForAllNodes();
+	individual_pool_usage = population_.species_individual_pool_.MemoryUsageForAllNodes();
 	
 	// Chromosome
 	{
-		int64_t objectCount = 1;
+		p_usage->chromosomeObjects_count = 1;
+		p_usage->chromosomeObjects = sizeof(Chromosome) * p_usage->chromosomeObjects_count;
 		
-		p_usage->chromosomeObjects_count += objectCount;
-		
-		p_usage->chromosomeObjects += sizeof(Chromosome) * objectCount;
-		
-		p_usage->chromosomeMutationRateMaps += chromosome_->MemoryUsageForMutationMaps();
-		
-		p_usage->chromosomeRecombinationRateMaps += chromosome_->MemoryUsageForRecombinationMaps();
-		
-		p_usage->chromosomeAncestralSequence += chromosome_->MemoryUsageForAncestralSequence();
+		p_usage->chromosomeMutationRateMaps = chromosome_->MemoryUsageForMutationMaps();
+		p_usage->chromosomeRecombinationRateMaps = chromosome_->MemoryUsageForRecombinationMaps();
+		p_usage->chromosomeAncestralSequence = chromosome_->MemoryUsageForAncestralSequence();
 	}
 	
 	// Genome
 	{
-		int64_t objectCount = (int64_t)all_genomes_in_use.size();
-		
-		p_usage->genomeObjects_count += objectCount;
-		
-		p_usage->genomeObjects += sizeof(Genome) * objectCount;
+		p_usage->genomeObjects_count = all_genomes_in_use.size();
+		p_usage->genomeObjects = sizeof(Genome) * p_usage->genomeObjects_count;
 		
 		for (Genome *genome : all_genomes_in_use)
 			p_usage->genomeExternalBuffers += genome->MemoryUsageForMutrunBuffers();
 		
-		p_usage->genomeUnusedPoolSpace += genome_pool_usage - p_usage->genomeObjects;	// includes junkyard objects and unused space
+		p_usage->genomeUnusedPoolSpace = genome_pool_usage - p_usage->genomeObjects;	// includes junkyard objects and unused space
 		
 		for (Genome *genome : all_genomes_not_in_use)
 			p_usage->genomeUnusedPoolBuffers += genome->MemoryUsageForMutrunBuffers();
@@ -2626,20 +2620,14 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 	
 	// GenomicElement
 	{
-		int64_t objectCount = (int64_t)chromosome_->GenomicElementCount();
-		
-		p_usage->genomicElementObjects_count += objectCount;
-		
-		p_usage->genomicElementObjects += sizeof(GenomicElement) * objectCount;
+		p_usage->genomicElementObjects_count = chromosome_->GenomicElementCount();
+		p_usage->genomicElementObjects = sizeof(GenomicElement) * p_usage->genomicElementObjects_count;
 	}
 	
 	// GenomicElementType
 	{
-		int64_t objectCount = (int64_t)genomic_element_types_.size();
-		
-		p_usage->genomicElementTypeObjects_count += objectCount;
-		
-		p_usage->genomicElementTypeObjects += sizeof(GenomicElementType) * objectCount;
+		p_usage->genomicElementTypeObjects_count = genomic_element_types_.size();
+		p_usage->genomicElementTypeObjects = sizeof(GenomicElementType) * p_usage->genomicElementTypeObjects_count;
 	}
 	
 	// Individual
@@ -2655,29 +2643,22 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 			objectCount += subpop.nonWF_offspring_individuals_.size();
 		}
 		
-		p_usage->individualObjects_count += objectCount;
-		
-		p_usage->individualObjects += sizeof(Individual) * objectCount;
-		
+		p_usage->individualObjects_count = objectCount;
+		p_usage->individualObjects = sizeof(Individual) * p_usage->individualObjects_count;
 		p_usage->individualUnusedPoolSpace = individual_pool_usage - p_usage->individualObjects;
 	}
 	
 	// InteractionType
 	{
-		int64_t objectCount = (int64_t)interaction_types_.size();
-		
-		p_usage->interactionTypeObjects_count += objectCount;
-		
-		p_usage->interactionTypeObjects += sizeof(InteractionType) * objectCount;
+		p_usage->interactionTypeObjects_count = interaction_types_.size();
+		p_usage->interactionTypeObjects = sizeof(InteractionType) * p_usage->interactionTypeObjects_count;
 		
 		for (auto iter : interaction_types_)
+		{
 			p_usage->interactionTypeKDTrees += iter.second->MemoryUsageForKDTrees();
-		
-		for (auto iter : interaction_types_)
 			p_usage->interactionTypePositionCaches += iter.second->MemoryUsageForPositions();
-		
-		for (auto iter : interaction_types_)
 			p_usage->interactionTypeSparseArrays += iter.second->MemoryUsageForSparseArrays();
+		}
 	}
 	
 	// Mutation
@@ -2685,13 +2666,8 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 		int registry_size;
 		
 		population_.MutationRegistry(&registry_size);
-		p_usage->mutationObjects_count += (int64_t)registry_size;
-		
-		p_usage->mutationObjects += sizeof(Mutation) * registry_size;
-		
-		p_usage->mutationRefcountBuffer += SLiM_MemoryUsageForMutationRefcounts();
-		
-		p_usage->mutationUnusedPoolSpace += SLiM_MemoryUsageForMutationBlock() - p_usage->mutationObjects;
+		p_usage->mutationObjects_count = (int64_t)registry_size;
+		p_usage->mutationObjects = sizeof(Mutation) * registry_size;
 	}
 	
 	// MutationRun
@@ -2723,48 +2699,31 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 			}
 		}
 		
-		p_usage->mutationRunObjects_count += mutrun_objectCount;
-		p_usage->mutationRunExternalBuffers += mutrun_externalBuffers;
-		p_usage->mutationRunNonneutralCaches += mutrun_nonneutralCaches;
+		p_usage->mutationRunObjects_count = mutrun_objectCount;
+		p_usage->mutationRunObjects = sizeof(MutationRun) * p_usage->mutationRunObjects_count;
 		
-		p_usage->mutationRunObjects += sizeof(MutationRun) * mutrun_objectCount;
-		
-		p_usage->mutationRunUnusedPoolSpace += sizeof(MutationRun) * MutationRun::s_freed_mutation_runs_.size();
-		
-		for (MutationRun *mutrun : MutationRun::s_freed_mutation_runs_)
-		{
-			p_usage->mutationRunUnusedPoolBuffers += mutrun->MemoryUsageForMutationIndexBuffers();
-			p_usage->mutationRunUnusedPoolBuffers += mutrun->MemoryUsageForNonneutralCaches();
-		}
+		p_usage->mutationRunExternalBuffers = mutrun_externalBuffers;
+		p_usage->mutationRunNonneutralCaches = mutrun_nonneutralCaches;
 	}
 	
 	// MutationType
 	{
-		int64_t objectCount = (int64_t)mutation_types_.size();
-		
-		p_usage->mutationTypeObjects_count += objectCount;
-		
-		p_usage->mutationTypeObjects += sizeof(MutationType) * objectCount;
+		p_usage->mutationTypeObjects_count = mutation_types_.size();
+		p_usage->mutationTypeObjects = sizeof(MutationType) * p_usage->mutationTypeObjects_count;
 	}
 	
 	// Species (including the Population object)
 	{
-		int64_t objectCount = 1;
+		p_usage->speciesObjects_count = 1;
+		p_usage->speciesObjects = (sizeof(Species) - sizeof(Chromosome)) * p_usage->speciesObjects_count;	// Chromosome is handled separately above
 		
-		p_usage->speciesObjects_count += objectCount;
-		
-		p_usage->speciesObjects += (sizeof(Species) - sizeof(Chromosome)) * objectCount;	// Chromosome is handled separately above
-		
-		p_usage->speciesTreeSeqTables += recording_tree_ ? MemoryUsageForTables(tables_) : 0;
+		p_usage->speciesTreeSeqTables = recording_tree_ ? MemoryUsageForTables(tables_) : 0;
 	}
 	
 	// Subpopulation
 	{
-		int64_t objectCount = (int64_t)population_.subpops_.size();
-		
-		p_usage->subpopulationObjects_count += objectCount;
-		
-		p_usage->subpopulationObjects = sizeof(Subpopulation) * objectCount;
+		p_usage->subpopulationObjects_count = population_.subpops_.size();
+		p_usage->subpopulationObjects = sizeof(Subpopulation) * p_usage->subpopulationObjects_count;
 		
 		for (auto iter : population_.subpops_)
 		{
@@ -2774,18 +2733,8 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
 			if (subpop.cached_male_fitness_)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
-		}
-		
-		for (auto iter : population_.subpops_)
-		{
-			Subpopulation &subpop = *iter.second;
 			
 			p_usage->subpopulationParentTables += subpop.MemoryUsageForParentTables();
-		}
-		
-		for (auto iter : population_.subpops_)
-		{
-			Subpopulation &subpop = *iter.second;
 			
 			for (auto iter_map : subpop.spatial_maps_)
 			{
@@ -2819,17 +2768,16 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 	
 	// Substitution
 	{
-		int64_t objectCount = (int64_t)population_.substitutions_.size();
-		
-		p_usage->substitutionObjects_count = objectCount;
-		
-		p_usage->substitutionObjects = sizeof(Substitution) * objectCount;
+		p_usage->substitutionObjects_count = population_.substitutions_.size();
+		p_usage->substitutionObjects = sizeof(Substitution) * p_usage->substitutionObjects_count;
 	}
 	
 	// missing: EidosCallSignature, EidosPropertySignature, EidosScript, EidosToken, function map, global strings and ids and maps, std::strings in various objects
 	// that sort of overhead should be fairly constant, though, and should be dwarfed by the overhead of the objects above in bigger models
 	
 	// also missing: LogFile
+	
+	SumUpMemoryUsage_Species(*p_usage);
 }
 
 

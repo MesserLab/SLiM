@@ -1770,149 +1770,60 @@ void Community::SimulationHasFinished(void)
 	single_species_->SimulationHasFinished();
 }
 
-void Community::AllSpecies_TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p_current_symbols)
+void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols)
 {
-	EIDOS_BZERO(p_usage, sizeof(SLiM_MemoryUsage));
+	EIDOS_BZERO(p_usage, sizeof(SLiMMemoryUsage_Community));
 	
-	// have each species accumulate its numbers into the usage structure
-	single_species_->TabulateMemoryUsage(p_usage);
+	// Community usage
+	p_usage->communityObjects_count = 1;
+	p_usage->communityObjects = p_usage->communityObjects_count * sizeof(Community);
 	
-	// Eidos usage, which is shared across all species
+	// Mutation global buffers
+	p_usage->mutationRefcountBuffer = SLiMMemoryUsageForMutationRefcounts();
+	p_usage->mutationUnusedPoolSpace = SLiMMemoryUsageForFreeMutations();		// note that in SLiMgui everybody shares this
+	
+	// MutationRun global buffers
+	p_usage->mutationRunUnusedPoolSpace = sizeof(MutationRun) * MutationRun::s_freed_mutation_runs_.size();
+	
+	for (MutationRun *mutrun : MutationRun::s_freed_mutation_runs_)
 	{
-		p_usage->eidosASTNodePool = gEidosASTNodePool->MemoryUsageForAllNodes();
-		
-		p_usage->eidosSymbolTablePool = MemoryUsageForSymbolTables(p_current_symbols);
-		
-		p_usage->eidosValuePool = gEidosValuePool->MemoryUsageForAllNodes();
+		p_usage->mutationRunUnusedPoolBuffers += mutrun->MemoryUsageForMutationIndexBuffers();
+		p_usage->mutationRunUnusedPoolBuffers += mutrun->MemoryUsageForNonneutralCaches();
 	}
 	
-	// missing: EidosCallSignature, EidosPropertySignature, EidosScript, EidosToken, function map, global strings and ids and maps, std::strings in various objects
-	// that sort of overhead should be fairly constant, though, and should be dwarfed by the overhead of the objects above in bigger models
+	// Eidos usage
+	p_usage->eidosASTNodePool = gEidosASTNodePool->MemoryUsageForAllNodes();
+	p_usage->eidosSymbolTablePool = MemoryUsageForSymbolTables(p_current_symbols);
+	p_usage->eidosValuePool = gEidosValuePool->MemoryUsageForAllNodes();
 	
-	// total
-	size_t total_usage = 0;
-	
-	total_usage += p_usage->chromosomeObjects;
-	total_usage += p_usage->chromosomeMutationRateMaps;
-	total_usage += p_usage->chromosomeRecombinationRateMaps;
-	total_usage += p_usage->chromosomeAncestralSequence;
-	
-	total_usage += p_usage->genomeObjects;
-	total_usage += p_usage->genomeExternalBuffers;
-	total_usage += p_usage->genomeUnusedPoolSpace;
-	total_usage += p_usage->genomeUnusedPoolBuffers;
-	
-	total_usage += p_usage->genomicElementObjects;
-	
-	total_usage += p_usage->genomicElementTypeObjects;
-	
-	total_usage += p_usage->individualObjects;
-	total_usage += p_usage->individualUnusedPoolSpace;
-	
-	total_usage += p_usage->interactionTypeObjects;
-	total_usage += p_usage->interactionTypeKDTrees;
-	total_usage += p_usage->interactionTypePositionCaches;
-	total_usage += p_usage->interactionTypeSparseArrays;
-	
-	total_usage += p_usage->mutationObjects;
-	total_usage += p_usage->mutationRefcountBuffer;
-	total_usage += p_usage->mutationUnusedPoolSpace;
-	
-	total_usage += p_usage->mutationRunObjects;
-	total_usage += p_usage->mutationRunExternalBuffers;
-	total_usage += p_usage->mutationRunNonneutralCaches;
-	total_usage += p_usage->mutationRunUnusedPoolSpace;
-	total_usage += p_usage->mutationRunUnusedPoolBuffers;
-	
-	total_usage += p_usage->mutationTypeObjects;
-	
-	total_usage += p_usage->speciesObjects;
-	total_usage += p_usage->speciesTreeSeqTables;
-	
-	total_usage += p_usage->subpopulationObjects;
-	total_usage += p_usage->subpopulationFitnessCaches;
-	total_usage += p_usage->subpopulationParentTables;
-	total_usage += p_usage->subpopulationSpatialMaps;
-	total_usage += p_usage->subpopulationSpatialMapsDisplay;
-	
-	total_usage += p_usage->substitutionObjects;
-	
-	total_usage += p_usage->eidosASTNodePool;
-	total_usage += p_usage->eidosSymbolTablePool;
-	total_usage += p_usage->eidosValuePool;
-	
-	p_usage->totalMemoryUsage = total_usage;
+	// Total
+	SumUpMemoryUsage_Community(*p_usage);
 }
 
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 // PROFILING
 void Community::CollectSLiMguiMemoryUsageProfileInfo(void)
 {
-	AllSpecies_TabulateMemoryUsage(&profile_last_memory_usage_, nullptr);
+	// Gather the data
+	EIDOS_BZERO(&profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
 	
-	profile_total_memory_usage_.chromosomeObjects_count += profile_last_memory_usage_.chromosomeObjects_count;
-	profile_total_memory_usage_.chromosomeObjects += profile_last_memory_usage_.chromosomeObjects;
-	profile_total_memory_usage_.chromosomeMutationRateMaps += profile_last_memory_usage_.chromosomeMutationRateMaps;
-	profile_total_memory_usage_.chromosomeRecombinationRateMaps += profile_last_memory_usage_.chromosomeRecombinationRateMaps;
-	profile_total_memory_usage_.chromosomeAncestralSequence += profile_last_memory_usage_.chromosomeAncestralSequence;
+	TabulateSLiMMemoryUsage_Community(&profile_last_memory_usage_Community, nullptr);
 	
-	profile_total_memory_usage_.genomeObjects_count += profile_last_memory_usage_.genomeObjects_count;
-	profile_total_memory_usage_.genomeObjects += profile_last_memory_usage_.genomeObjects;
-	profile_total_memory_usage_.genomeExternalBuffers += profile_last_memory_usage_.genomeExternalBuffers;
-	profile_total_memory_usage_.genomeUnusedPoolSpace += profile_last_memory_usage_.genomeUnusedPoolSpace;
-	profile_total_memory_usage_.genomeUnusedPoolBuffers += profile_last_memory_usage_.genomeUnusedPoolBuffers;
+	{
+		single_species_->TabulateSLiMMemoryUsage_Species(&single_species_->profile_last_memory_usage_Species);
+		
+		// Add this tick's usage for this species into its single-species accumulator
+		AccumulateMemoryUsageIntoTotal_Species(single_species_->profile_last_memory_usage_Species, single_species_->profile_total_memory_usage_Species);
+		
+		// Add this tick's usage for this species into this tick's overall species accumulator
+		AccumulateMemoryUsageIntoTotal_Species(single_species_->profile_last_memory_usage_Species, profile_last_memory_usage_AllSpecies);
+	}
 	
-	profile_total_memory_usage_.genomicElementObjects_count += profile_last_memory_usage_.genomicElementObjects_count;
-	profile_total_memory_usage_.genomicElementObjects += profile_last_memory_usage_.genomicElementObjects;
+	// Add this tick's data into our top-level accumulators
+	AccumulateMemoryUsageIntoTotal_Community(profile_last_memory_usage_Community, profile_total_memory_usage_Community);
+	AccumulateMemoryUsageIntoTotal_Species(profile_last_memory_usage_AllSpecies, profile_total_memory_usage_AllSpecies);
 	
-	profile_total_memory_usage_.genomicElementTypeObjects_count += profile_last_memory_usage_.genomicElementTypeObjects_count;
-	profile_total_memory_usage_.genomicElementTypeObjects += profile_last_memory_usage_.genomicElementTypeObjects;
-	
-	profile_total_memory_usage_.individualObjects_count += profile_last_memory_usage_.individualObjects_count;
-	profile_total_memory_usage_.individualObjects += profile_last_memory_usage_.individualObjects;
-	profile_total_memory_usage_.individualUnusedPoolSpace += profile_last_memory_usage_.individualUnusedPoolSpace;
-	
-	profile_total_memory_usage_.interactionTypeObjects_count += profile_last_memory_usage_.interactionTypeObjects_count;
-	profile_total_memory_usage_.interactionTypeObjects += profile_last_memory_usage_.interactionTypeObjects;
-	profile_total_memory_usage_.interactionTypeKDTrees += profile_last_memory_usage_.interactionTypeKDTrees;
-	profile_total_memory_usage_.interactionTypePositionCaches += profile_last_memory_usage_.interactionTypePositionCaches;
-	profile_total_memory_usage_.interactionTypeSparseArrays += profile_last_memory_usage_.interactionTypeSparseArrays;
-	
-	profile_total_memory_usage_.mutationObjects_count += profile_last_memory_usage_.mutationObjects_count;
-	profile_total_memory_usage_.mutationObjects += profile_last_memory_usage_.mutationObjects;
-	profile_total_memory_usage_.mutationRefcountBuffer += profile_last_memory_usage_.mutationRefcountBuffer;
-	profile_total_memory_usage_.mutationUnusedPoolSpace += profile_last_memory_usage_.mutationUnusedPoolSpace;
-	
-	profile_total_memory_usage_.mutationRunObjects_count += profile_last_memory_usage_.mutationRunObjects_count;
-	profile_total_memory_usage_.mutationRunObjects += profile_last_memory_usage_.mutationRunObjects;
-	profile_total_memory_usage_.mutationRunExternalBuffers += profile_last_memory_usage_.mutationRunExternalBuffers;
-	profile_total_memory_usage_.mutationRunNonneutralCaches += profile_last_memory_usage_.mutationRunNonneutralCaches;
-	profile_total_memory_usage_.mutationRunUnusedPoolSpace += profile_last_memory_usage_.mutationRunUnusedPoolSpace;
-	profile_total_memory_usage_.mutationRunUnusedPoolBuffers += profile_last_memory_usage_.mutationRunUnusedPoolBuffers;
-	
-	profile_total_memory_usage_.mutationTypeObjects_count += profile_last_memory_usage_.mutationTypeObjects_count;
-	profile_total_memory_usage_.mutationTypeObjects += profile_last_memory_usage_.mutationTypeObjects;
-	
-	profile_total_memory_usage_.speciesObjects_count += profile_last_memory_usage_.speciesObjects_count;
-	profile_total_memory_usage_.speciesObjects += profile_last_memory_usage_.speciesObjects;
-	profile_total_memory_usage_.speciesTreeSeqTables += profile_last_memory_usage_.speciesTreeSeqTables;
-	
-	profile_total_memory_usage_.subpopulationObjects_count += profile_last_memory_usage_.subpopulationObjects_count;
-	profile_total_memory_usage_.subpopulationObjects += profile_last_memory_usage_.subpopulationObjects;
-	profile_total_memory_usage_.subpopulationFitnessCaches += profile_last_memory_usage_.subpopulationFitnessCaches;
-	profile_total_memory_usage_.subpopulationParentTables += profile_last_memory_usage_.subpopulationParentTables;
-	profile_total_memory_usage_.subpopulationSpatialMaps += profile_last_memory_usage_.subpopulationSpatialMaps;
-	profile_total_memory_usage_.subpopulationSpatialMapsDisplay += profile_last_memory_usage_.subpopulationSpatialMapsDisplay;
-	
-	profile_total_memory_usage_.substitutionObjects_count += profile_last_memory_usage_.substitutionObjects_count;
-	profile_total_memory_usage_.substitutionObjects += profile_last_memory_usage_.substitutionObjects;
-	
-	profile_total_memory_usage_.eidosASTNodePool += profile_last_memory_usage_.eidosASTNodePool;
-	profile_total_memory_usage_.eidosSymbolTablePool += profile_last_memory_usage_.eidosSymbolTablePool;
-	profile_total_memory_usage_.eidosValuePool += profile_last_memory_usage_.eidosValuePool;
-	
-	profile_total_memory_usage_.totalMemoryUsage += profile_last_memory_usage_.totalMemoryUsage;
-	
+	// Increment our accumulator count; we divide by this to get averages
 	total_memory_tallies_++;
 }
 #endif

@@ -262,13 +262,13 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 /*
  
  Memory management in SLiM is a complex topic which I'll try to summarize here.  Classes that are visible in Eidos
- descend from EidosObject.  Most of these have their ownership and lifetime managed by the simulation; when
- an Individual dies, for example, the object ceases to exist at that time, and will be disposed of.  A subclass of
- EidosObject, EidosDictionaryRetained, provides retain/release style memory management for objects that are
- visible in Eidos; Chromosome, Mutation, and Substitution take advantage of this optional facility, and can thus be
+ descend from EidosObject.  Most of these have their ownership and lifetime managed by the simulation; whenever an
+ Individual dies, for example, the Individual object ceases to exist at that time, and is disposed of.  A subclass
+ of EidosObject, EidosDictionaryRetained, provides optional retain/release style memory management for all objects
+ visible in Eidos; Chromosome, Mutation, Substitution, and LogFile utilize this facility, and can therefore all be
  held onto long-term in Eidos with defineConstant() or setValue().  In either case, objects might be allocated out
  of several different pools: some objects are allocated with new, some out of EidosObjectPool.  EidosValue objects
- themselves (which can contain pointers to EidosObjects) are always allocated from a global EidosObjectPool
+ themselves (which can contain pointers to EidosObjects) are always allocated from a single global EidosObjectPool
  that is shared across the process, gEidosValuePool, and EidosASTNodes are similarly allocated from another global
  pool, gEidosASTNodePool.  Here are details on the memory management scheme for various SLiM classes (note that by
  "never deleted", this means not deleted within a run of a simulation; in SLiMgui they can be deleted):
@@ -295,7 +295,8 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
  Chromosome : EidosDictionaryRetained subclass, allocated with new/delete
  Substitution : EidosDictionaryRetained subclass, allocated with new/delete
  Mutation : EidosDictionaryRetained subclass, allocated out of a special global pool, gSLiM_Mutation_Block
- 
+ LogFile : EidosDictionaryRetained subclass, allocated with new/delete
+
  The dynamics of Mutation are unusual and require further discussion.  The global shared gSLiM_Mutation_Block pool
  is used instead of EidosObjectPool because all mutations must be allocated out of a single contiguous memory bloc
  in order to be indexable with MutationIndex (whereas EidosObjectPool dynamically creates new blocs).  This allows
@@ -336,7 +337,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
 #define DEBUG_MUTATION_RUNS			0		// turn on stat collection and logging regarding mutation run usage
 
-// Memory usage assessment as done by Community::TabulateMemoryUsage() is placed into this struct
+// Per-species memory usage assessment as done by Species::TabulateSLiMMemoryUsage_Species() is placed into this struct
 typedef struct
 {
 	int64_t chromosomeObjects_count;
@@ -348,7 +349,7 @@ typedef struct
 	int64_t genomeObjects_count;
 	size_t genomeObjects;
 	size_t genomeExternalBuffers;
-	size_t genomeUnusedPoolSpace;
+	size_t genomeUnusedPoolSpace;				// this pool is kept by Population, per-species
 	size_t genomeUnusedPoolBuffers;
 	
 	int64_t genomicElementObjects_count;
@@ -359,7 +360,7 @@ typedef struct
 	
 	int64_t individualObjects_count;
 	size_t individualObjects;
-	size_t individualUnusedPoolSpace;
+	size_t individualUnusedPoolSpace;			// this pool is kept by Population, per-species
 	
 	int64_t interactionTypeObjects_count;
 	size_t interactionTypeObjects;
@@ -369,15 +370,11 @@ typedef struct
 	
 	int64_t mutationObjects_count;
 	size_t mutationObjects;
-	size_t mutationRefcountBuffer;
-	size_t mutationUnusedPoolSpace;
 	
 	int64_t mutationRunObjects_count;
 	size_t mutationRunObjects;
 	size_t mutationRunExternalBuffers;
 	size_t mutationRunNonneutralCaches;
-	size_t mutationRunUnusedPoolSpace;
-	size_t mutationRunUnusedPoolBuffers;
 	
 	int64_t mutationTypeObjects_count;
 	size_t mutationTypeObjects;
@@ -396,12 +393,33 @@ typedef struct
 	int64_t substitutionObjects_count;
 	size_t substitutionObjects;
 	
-	size_t eidosASTNodePool;
-	size_t eidosSymbolTablePool;
-	size_t eidosValuePool;
+	size_t totalMemoryUsage;
+} SLiMMemoryUsage_Species;
+
+// Community-wide memory usage assessment as done by Community::TabulateSLiMMemoryUsage_Community() is placed into this struct
+typedef struct
+{
+	int64_t communityObjects_count;
+	size_t communityObjects;
+	
+	size_t mutationRefcountBuffer;			// this pool is kept globally by Mutation
+	size_t mutationUnusedPoolSpace;			// this pool is kept globally by Mutation
+	
+	size_t mutationRunUnusedPoolSpace;		// this pool is kept globally by MutationRun
+	size_t mutationRunUnusedPoolBuffers;	// this pool is kept globally by MutationRun
+	
+	size_t eidosASTNodePool;				// this pool is kept globally by Eidos
+	size_t eidosSymbolTablePool;			// this pool is kept globally by EidosSymbolTable
+	size_t eidosValuePool;					// this pool is kept globally by Eidos
 	
 	size_t totalMemoryUsage;
-} SLiM_MemoryUsage;
+} SLiMMemoryUsage_Community;
+
+void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage);
+void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage);
+
+void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SLiMMemoryUsage_Species &p_total);
+void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage, SLiMMemoryUsage_Community &p_total);
 
 
 // *******************************************************************************************************************

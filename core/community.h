@@ -107,10 +107,12 @@ public:
 	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
 	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
 	
-	// PROFILING : Community keeps track of its memory usage profile info
-	SLiM_MemoryUsage profile_last_memory_usage_;
-	SLiM_MemoryUsage profile_total_memory_usage_;
-	int64_t total_memory_tallies_;
+	// PROFILING : Community keeps track of its memory usage profile info (as does Species)
+	SLiMMemoryUsage_Community profile_last_memory_usage_Community;
+	SLiMMemoryUsage_Community profile_total_memory_usage_Community;
+	SLiMMemoryUsage_Species profile_last_memory_usage_AllSpecies;
+	SLiMMemoryUsage_Species profile_total_memory_usage_AllSpecies;
+	int64_t total_memory_tallies_;		// this is the total number of accumulations, for both Community and all Species under it
 #endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
 
 #else
@@ -180,7 +182,8 @@ public:
 	~Community(void);																// destructor
 	
 	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally
-	void AllSpecies_TabulateMemoryUsage(SLiM_MemoryUsage *p_usage, EidosSymbolTable *p_current_symbols);	// used by outputUsage() and SLiMgui profiling
+	
+	void TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols);		// used by outputUsage() and SLiMgui profiling
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
 	void ValidateScriptBlockCaches(void);
