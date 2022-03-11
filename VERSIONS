@@ -32,6 +32,7 @@ development head:
 		add Generation textfield below the Tick textfield in SLiMgui & SLiMguiLegecy
 		add name and description properties to Species; these are the species name as declared in script and a user-controlled description string; they get persisted in tree-seq top-level metadata
 		increment the tree-seq file version from 0.7 to 0.8
+		increment version to 4.0 - usually this is not done until it's time to roll the release, but since we're on a branch, it is useful for testing purposes
 		
 
 version 3.7.1 (Eidos version 2.7.1):
