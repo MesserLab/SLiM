@@ -2128,7 +2128,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 #warning this may not be the same for all genomes!
 	Community &community = species.community_;
 	
-#ifdef SLIM_NONWF_ONLY
 	if ((community.ModelType() == SLiMModelType::kModelTypeNonWF) && species.RecordingTreeSequence())
 	{
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -2140,7 +2139,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
-#endif	// SLIM_NONWF_ONLY
 	
 	// check for other semantic issues
 	Population &pop = species.population_;
@@ -2397,7 +2395,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 #warning this may not be the same for all genomes!
 	Community &community = species.community_;
 	
-#ifdef SLIM_NONWF_ONLY
 	if ((community.ModelType() == SLiMModelType::kModelTypeNonWF) && species.RecordingTreeSequence())
 	{
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -2409,7 +2406,6 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << " cannot add mutations to individuals of age > 0 when tree-sequence recording is enabled, to prevent internal inconsistencies." << EidosTerminate();
 		}
 	}
-#endif	// SLIM_NONWF_ONLY
 	
 	// check for other semantic issues
 	Population &pop = species.population_;

@@ -1703,9 +1703,8 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 {
 	switch (p_method_id)
 	{
-#ifdef SLIM_WF_ONLY
+			// WF only:
 		case gID_addSubpopSplit:				return ExecuteMethod_addSubpopSplit(p_method_id, p_arguments, p_interpreter);
-#endif	// SLIM_WF_ONLY
 			
 		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:	return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
@@ -1777,7 +1776,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 	return symbol_entry.second;
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	– (object<Subpopulation>$)addSubpopSplit(is$ subpopID, integer$ size, io<Subpopulation>$ sourceSubpop, [float$ sexRatio = 0.5])
 //
 EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1821,7 +1820,6 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	
 	return symbol_entry.second;
 }
-#endif	// SLIM_WF_ONLY
 
 //	*********************	– (object<Individual>)individualsWithPedigreeIDs(integer pedigreeIDs, [Nio<Subpopulation> subpops = NULL])
 EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)

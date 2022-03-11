@@ -4414,7 +4414,6 @@ static int DisplayDigitsForIntegerPart(double x)
 				{
 					return [NSString stringWithFormat:@"%lld", (int64_t)subpop->parent_subpop_size_];
 				}
-#ifdef SLIM_NONWF_ONLY
 				else if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
 				{
 					// in nonWF models selfing/cloning/sex rates/ratios are emergent, calculated from collected metrics
@@ -4446,8 +4445,6 @@ static int DisplayDigitsForIntegerPart(double x)
 					
 					return @"—";
 				}
-#endif	// SLIM_NONWF_ONLY
-#ifdef SLIM_WF_ONLY
 				else	// community->ModelType() == SLiMModelType::kModelTypeWF
 				{
 					if (aTableColumn == subpopSelfingRateColumn)
@@ -4473,7 +4470,6 @@ static int DisplayDigitsForIntegerPart(double x)
 							return @"—";
 					}
 				}
-#endif	// SLIM_WF_ONLY
 			}
 		}
 		else if (aTableView == mutTypeTableView)

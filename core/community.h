@@ -204,12 +204,8 @@ public:
 	void AllSpecies_RunInitializeCallbacks(void);									// run initialize() callbacks and check for complete initialization
 	void AllSpecies_CheckIndividualIntegrity(void);
 	
-#ifdef SLIM_WF_ONLY
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
-#endif
-#ifdef SLIM_NONWF_ONLY
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
-#endif
 	
 	slim_tick_t FirstTick(void);													// derived from the first tick in which an Eidos block is registered
 	slim_tick_t EstimatedLastTick(void);											// derived from the last tick in which an Eidos block is registered

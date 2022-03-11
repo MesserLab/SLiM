@@ -681,13 +681,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (age_output_count)
 					EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): output file format does not contain age information, which is required." << EidosTerminate();
 			}
-#ifdef SLIM_NONWF_ONLY
 			else if (opt_param_count == age_output_count)
 			{
 				// only age information is present
 				individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[0], nullptr);			// age
 			}
-#endif  // SLIM_NONWF_ONLY
 			else if (opt_param_count == spatial_dimensionality_ + age_output_count)
 			{
 				// age information is present, in addition to the correct number of spatial positions
@@ -698,10 +696,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (spatial_dimensionality_ >= 3)
 					individual.spatial_z_ = EidosInterpreter::FloatForString(opt_params[2], nullptr);							// spatial position z
 				
-#ifdef SLIM_NONWF_ONLY
 				if (age_output_count)
 					individual.age_ = (slim_age_t)EidosInterpreter::NonnegativeIntegerForString(opt_params[spatial_dimensionality_], nullptr);		// age
-#endif  // SLIM_NONWF_ONLY
 			}
 			else
 			{
@@ -1405,7 +1401,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			p += sizeof(slim_pedigreeid_t);
 		}
 		
-#ifdef SLIM_NONWF_ONLY
 		// Read in individual age information.  Added in version 4.
 		if (age_output_count && ((genome_index % 2) == 0))
 		{
@@ -1419,7 +1414,6 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 			memcpy(&individual.age_, p, sizeof(individual.age_));
 			p += sizeof(slim_age_t);
 		}
-#endif  // SLIM_NONWF_ONLY
 		
 		memcpy(&total_mutations, p, sizeof(total_mutations));
 		p += sizeof(total_mutations);
@@ -2588,12 +2582,8 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 		Subpopulation &subpop = *iter.second;
 		
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.parent_genomes_.begin(), subpop.parent_genomes_.end());
-#ifdef SLIM_WF_ONLY
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.child_genomes_.begin(), subpop.child_genomes_.end());
-#endif	// SLIM_WF_ONLY
-#ifdef SLIM_NONWF_ONLY
 		all_genomes_in_use.insert(all_genomes_in_use.end(), subpop.nonWF_offspring_genomes_.begin(), subpop.nonWF_offspring_genomes_.end());
-#endif	// SLIM_NONWF_ONLY
 	}
 	
 	all_genomes_not_in_use.insert(all_genomes_not_in_use.end(), population_.species_genome_junkyard_nonnull.begin(), population_.species_genome_junkyard_nonnull.end());
@@ -2661,12 +2651,8 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 			Subpopulation &subpop = *iter.second;
 			
 			objectCount += subpop.parent_subpop_size_;
-#ifdef SLIM_WF_ONLY
 			objectCount += subpop.child_subpop_size_;
-#endif	// SLIM_WF_ONLY
-#ifdef SLIM_NONWF_ONLY
 			objectCount += subpop.nonWF_offspring_individuals_.size();
-#endif	// SLIM_WF_ONLY
 		}
 		
 		p_usage->individualObjects_count += objectCount;
@@ -2780,7 +2766,6 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 		
 		p_usage->subpopulationObjects = sizeof(Subpopulation) * objectCount;
 		
-#ifdef SLIM_WF_ONLY
 		for (auto iter : population_.subpops_)
 		{
 			Subpopulation &subpop = *iter.second;
@@ -2790,7 +2775,6 @@ void Species::TabulateMemoryUsage(SLiM_MemoryUsage *p_usage)
 			if (subpop.cached_male_fitness_)
 				p_usage->subpopulationFitnessCaches += subpop.cached_fitness_capacity_ * sizeof(double);
 		}
-#endif	// SLIM_WF_ONLY
 		
 		for (auto iter : population_.subpops_)
 		{
@@ -4883,7 +4867,6 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		if (subpop->description_.length())
 			pop_metadata["description"] = subpop->description_;
 		
-#ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			if (subpop->selfing_fraction_ > 0.0)
@@ -4908,7 +4891,6 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 			
 			pop_metadata["migration_records"] = std::move(migration_records);
 		}
-#endif
 		
 		std::string metadata_rec = pop_metadata.dump();
 		
@@ -5845,11 +5827,7 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->pedigree_id_ = p_individual->PedigreeID();
 	p_metadata->pedigree_p1_ = p_individual->Parent1PedigreeID();
 	p_metadata->pedigree_p2_ = p_individual->Parent2PedigreeID();
-#ifdef SLIM_NONWF_ONLY
 	p_metadata->age_ = p_individual->age_;
-#else
-	p_metadata->age_ = -1;
-#endif	// SLIM_NONWF_ONLY
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
 	p_metadata->sex_ = p_individual->sex_;
 	
@@ -6507,9 +6485,7 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				individual->genome1_->genome_id_ = pedigree_id * 2;
 				individual->genome2_->genome_id_ = pedigree_id * 2 + 1;
 				
-#ifdef SLIM_NONWF_ONLY
 				individual->age_ = subpop_info.age_[tabulation_index];
-#endif	// SLIM_NONWF_ONLY
 				individual->spatial_x_ = subpop_info.spatial_x_[tabulation_index];
 				individual->spatial_y_ = subpop_info.spatial_y_[tabulation_index];
 				individual->spatial_z_ = subpop_info.spatial_z_[tabulation_index];
@@ -6741,7 +6717,6 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		subpop->SetName(metadata_name);
 		subpop->description_ = metadata_description;
 		
-#ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop->selfing_fraction_ = metadata_selfing_fraction;
@@ -6760,7 +6735,6 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			if (sex_enabled_ && ((subpop->child_sex_ratio_ < 0.0) || (subpop->child_sex_ratio_ > 1.0)))
 				EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): out-of-range value for sex ratio; this file cannot be read." << EidosTerminate();
 		}
-#endif	// SLIM_WF_ONLY
 		
 		subpop->bounds_x0_ = metadata_bounds_x0;
 		subpop->bounds_x1_ = metadata_bounds_x1;
@@ -6781,7 +6755,6 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 		if ((model_type_ == SLiMModelType::kModelTypeNonWF) && (migration_rec_count > 0))
 			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): migration rates cannot be provided in a nonWF model; this file cannot be read." << EidosTerminate();
 		
-#ifdef SLIM_WF_ONLY
 		for (size_t migration_index = 0; migration_index < migration_rec_count; ++migration_index)
 		{
 			nlohmann::json migration_rec = migration_records[migration_index];
@@ -6801,7 +6774,6 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 			
 			subpop->migrant_fractions_.emplace(source_id, rate);
 		}
-#endif
 	}
 }
 

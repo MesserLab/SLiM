@@ -372,7 +372,6 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	return score;
 }
 
-#ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
 - (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
@@ -577,7 +576,6 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	free(best_x);
 	free(best_y);
 }
-#endif	// SLIM_WF_ONLY
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
@@ -645,10 +643,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
-#ifdef SLIM_WF_ONLY
 		if ((community.ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
 			[self optimizeSubpopPositionsWithController:controller];
-#endif	// SLIM_WF_ONLY
 		
 		if (!allUserConfigured)
 		{
@@ -696,7 +692,6 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-#if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
 			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
 			{
@@ -732,7 +727,6 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 				}
 			}
 		}
-#endif
 	}
 	
 	// We're done with our transformed coordinate system

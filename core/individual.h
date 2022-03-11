@@ -95,10 +95,7 @@ public:
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
-	
-#ifdef SLIM_NONWF_ONLY
-	slim_age_t age_;					// the age of the individual, in generations; -1 in WF models
-#endif  // SLIM_NONWF_ONLY
+	slim_age_t age_;					// nonWF only: the age of the individual, in generations; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
@@ -224,9 +221,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-#ifdef SLIM_NONWF_ONLY
 	static EidosValue *GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size);
-#endif  // SLIM_NONWF_ONLY
 	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size);

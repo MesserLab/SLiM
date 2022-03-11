@@ -255,13 +255,11 @@
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	static BOOL alreadyHere = NO;
 	
-#ifdef SLIM_WF_ONLY
 	if (population.child_generation_valid_)
 	{
 		NSLog(@"child_generation_valid_ set in fetchDataForFinishedTick");
 		return;
 	}
-#endif	// SLIM_WF_ONLY
 	
 	// Check that the subpop we're supposed to be surveying exists; if not, bail.
 	BOOL foundSelectedSubpop = NO;

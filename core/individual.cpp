@@ -47,15 +47,9 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
 	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
-	cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex),
-#ifdef SLIM_NONWF_ONLY
-	age_(p_age),
-#endif  // SLIM_NONWF_ONLY
+	cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age),
 	index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
 {
-#ifndef SLIM_NONWF_ONLY
-#pragma unused(p_age)
-#endif
 #if DEBUG
 	if (!p_genome1 || !p_genome2)
 		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for genome." << EidosTerminate();
@@ -356,7 +350,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				default:							return static_sex_string_O;
 			}
 		}
-#ifdef SLIM_NONWF_ONLY
 		case gID_age:				// ACCELERATED
 		{
 			if (age_ == -1)
@@ -364,7 +357,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(age_));
 		}
-#endif  // SLIM_NONWF_ONLY
 		case gID_pedigreeID:		// ACCELERATED
 		{
 			if (!subpopulation_->species_.PedigreesEnabledByUser())
@@ -681,7 +673,6 @@ EidosValue *Individual::GetProperty_Accelerated_tag(EidosObject **p_values, size
 	return int_result;
 }
 
-#ifdef SLIM_NONWF_ONLY
 EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size)
 {
 	if ((p_values_size > 0) && (((Individual *)(p_values[0]))->subpopulation_->community_.ModelType() == SLiMModelType::kModelTypeWF))
@@ -698,7 +689,6 @@ EidosValue *Individual::GetProperty_Accelerated_age(EidosObject **p_values, size
 	
 	return int_result;
 }
-#endif  // SLIM_NONWF_ONLY
 
 EidosValue *Individual::GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size)
 {
@@ -901,7 +891,6 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			spatial_z_ = p_value.FloatAtIndex(0, nullptr);
 			return;
 		}
-#ifdef SLIM_NONWF_ONLY
 		case gID_age:				// ACCELERATED
 		{
 			slim_age_t value = SLiMCastToAgeTypeOrRaise(p_value.IntAtIndex(0, nullptr));
@@ -909,7 +898,6 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			age_ = value;
 			return;
 		}
-#endif  // SLIM_NONWF_ONLY
 			
 			// all others, including gID_none
 		default:
@@ -1093,7 +1081,6 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 	}
 }
 
-#ifdef SLIM_NONWF_ONLY
 void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	if (p_source_size == 1)
@@ -1112,7 +1099,6 @@ void Individual::SetProperty_Accelerated_age(EidosObject **p_values, size_t p_va
 			((Individual *)(p_values[value_index]))->age_ = SLiMCastToAgeTypeOrRaise(source_data[value_index]);
 	}
 }
-#endif  // SLIM_NONWF_ONLY
 
 EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1582,9 +1568,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z));
-#ifdef SLIM_NONWF_ONLY
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
-#endif  // SLIM_NONWF_ONLY
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));

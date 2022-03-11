@@ -1040,16 +1040,10 @@ bool Community::_RunOneTick(void)
 		single_species_->PrepareForGenerationCycle();
 		
 		// Non-zero ticks are handled by separate functions for WF and nonWF models
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 			return _RunOneTickWF();
 		else
 			return _RunOneTickNonWF();
-#elif defined(SLIM_WF_ONLY)
-		return _RunOneTickWF();
-#elif defined(SLIM_NONWF_ONLY)
-		return _RunOneTickNonWF();
-#endif
 	}
 }
 
@@ -1196,7 +1190,6 @@ void Community::AllSpecies_CheckIndividualIntegrity(void)
 #endif
 }
 
-#ifdef SLIM_WF_ONLY
 //
 //		_RunOneTickWF() : runs all the stages for one generation of a WF model
 //
@@ -1466,9 +1459,7 @@ bool Community::_RunOneTickWF(void)
 		return result;
 	}
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
 //
 //		_RunOneTickNonWF() : runs all the stages for one generation of a nonWF model
 //
@@ -1519,7 +1510,7 @@ bool Community::_RunOneTickNonWF(void)
 		tree_seq_tick_++;
 		tree_seq_tick_offset_ = 0;
 
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		// zero out offspring counts used for SLiMgui's display
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : single_species_->population_.subpops_)
 		{
@@ -1772,7 +1763,6 @@ bool Community::_RunOneTickNonWF(void)
 		return result;
 	}
 }
-#endif  // SLIM_NONWF_ONLY
 
 void Community::SimulationHasFinished(void)
 {

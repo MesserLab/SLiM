@@ -351,7 +351,7 @@ Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mu
 	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear)
 {
 	Chromosome &chromosome = species_.TheChromosome();
@@ -554,7 +554,6 @@ void Subpopulation::GenerateChildrenToFitWF()
 		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, -1, true);	// make hermaphrodites
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
 // sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
@@ -726,9 +725,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	SLiMModelType model_type = model_type_;
-#endif
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
@@ -779,7 +776,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 		}
 		
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 		if (model_type == SLiMModelType::kModelTypeWF)
 		{
 			if (individual->age_ != -1)
@@ -790,7 +786,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (individual->age_ < 0)
 				invalid_age = true;
 		}
-#endif
 		
 		if (invalid_age)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) invalid value for individual->age_." << EidosTerminate();
@@ -832,7 +827,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
 		}
 		
-#ifdef SLIM_WF_ONLY
 		if (child_generation_valid_)
 		{
 			// When the child generation is valid, all parental genomes should have null mutrun pointers, so mutrun refcounts are correct
@@ -845,7 +839,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			// When the parental generation is valid, all parental genomes should have non-null mutrun pointers
 			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
@@ -863,10 +856,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//	Check the child generation; this is only in WF models
 	//
 	
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (model_type == SLiMModelType::kModelTypeWF)
-#endif
-#ifdef SLIM_WF_ONLY
 	{
 		if ((int)child_individuals_.size() != child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between child_subpop_size_ and child_individuals_.size()." << EidosTerminate();
@@ -970,8 +960,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
-	
 	
 	//
 	//	Check the genome junkyards; all genomes should contain nullptr mutruns
@@ -1001,15 +989,11 @@ void Subpopulation::CheckIndividualIntegrity(void)
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
 	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
-	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size)
-#ifdef SLIM_WF_ONLY
-	, child_subpop_size_(p_subpop_size)
-#endif	// SLIM_WF_ONLY
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+#if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
@@ -1019,14 +1003,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	{
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
-#elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-	GenerateChildrenToFitWF();
-#elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-#endif
 	
-#ifdef SLIM_WF_ONLY
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// Set up to draw random individuals, based initially on equal fitnesses
@@ -1044,7 +1021,6 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 	}
-#endif	// SLIM_WF_ONLY
 }
 
 // SEX ONLY
@@ -1053,15 +1029,11 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
 	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
-#ifdef SLIM_WF_ONLY
-	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
-#endif	// SLIM_WF_ONLY
-	sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio), sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
+#if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
@@ -1071,14 +1043,7 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	{
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
-#elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-	GenerateChildrenToFitWF();
-#elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-#endif
 	
-#ifdef SLIM_WF_ONLY
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// Set up to draw random females, based initially on equal fitnesses
@@ -1111,7 +1076,6 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
-#endif	// SLIM_WF_ONLY
 	
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 	{
@@ -1122,10 +1086,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		// non-zero value to the .trees file, and that was confusing Peter's test code.  So now we explicitly set the ivars to 0.0 here,
 		// now that we're done using the value.  This might also occur when a new subpop is created in a nonWF model; the initial sex ratio
 		// value might have been sticking around permanently in the ivar, even though it would not be accurate any more.  BCH 9/7/2020
-#ifdef SLIM_WF_ONLY
 		parent_sex_ratio_ = 0.0;
 		child_sex_ratio_ = 0.0;
-#endif	// SLIM_WF_ONLY
 	}
 }
 
@@ -1134,7 +1096,6 @@ Subpopulation::~Subpopulation(void)
 {
 	//std::cout << "Subpopulation::~Subpopulation" << std::endl;
 	
-#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		gsl_ran_discrete_free(lookup_parent_);
 	
@@ -1149,7 +1110,6 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
-#endif	// SLIM_WF_ONLY
 	
 	{
 		// dispose of genomes and individuals with our object pools
@@ -1164,11 +1124,7 @@ Subpopulation::~Subpopulation(void)
 			individual->~Individual();
 			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
-	}
-	
-#ifdef SLIM_WF_ONLY
-	{
-		// dispose of genomes and individuals with our object pools
+		
 		for (Genome *genome : child_genomes_)
 		{
 			genome->~Genome();
@@ -1181,7 +1137,6 @@ Subpopulation::~Subpopulation(void)
 			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	for (const auto &map_pair : spatial_maps_)
 	{
@@ -1404,7 +1359,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && species_.pure_neutral_);
 	double subpop_fitness_scaling = fitness_scaling_;
 	
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 	// Reset our override of individual cached fitness values; we make this decision afresh with each UpdateFitness() call.  See
 	// the header for further comments on this mechanism.
 	individual_cached_fitness_OVERRIDE_ = false;
@@ -1433,7 +1388,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
 				if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1511,7 +1466,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
 				if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1597,7 +1552,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
 				if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1664,13 +1619,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 	}
 	
-#ifdef SLIM_WF_ONLY
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		UpdateWFFitnessBuffers(pure_neutral && !Individual::s_any_individual_fitness_scaling_set_);
-#endif	// SLIM_WF_ONLY
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 {
 	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in WF models.
@@ -1694,7 +1647,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 	
 	// Set up the fitness buffers with the new information
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 	if (individual_cached_fitness_OVERRIDE_)
 	{
 		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop level
@@ -1790,7 +1743,6 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
 {
@@ -2887,7 +2839,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
 {
 	if (species_.PedigreesEnabled())
@@ -2976,9 +2928,8 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	if (will_need_new_children)
 		GenerateChildrenToFitWF();
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3081,17 +3032,15 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)]);
 #endif
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::ReproduceSubpopulation(void)
 {
 	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 		ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::MergeReproductionOffspring(void)
 {
 	// NOTE: this method is called by Population::ResolveSurvivalPhaseMovement() as well as by reproduction, since the logic is identical!
@@ -3180,9 +3129,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 	nonWF_offspring_genomes_.clear();
 	nonWF_offspring_individuals_.clear();
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3435,22 +3383,19 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 		cached_parent_individuals_value_.reset();
 	}
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::IncrementIndividualAges(void)
 {
 	// Loop through our individuals and increment all their ages by one
 	for (Individual *individual : parent_individuals_)
 		individual->age_++;
 }
-#endif  // SLIM_NONWF_ONLY
 
 size_t Subpopulation::MemoryUsageForParentTables(void)
 {
 	size_t usage = 0;
 	
-#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		usage += lookup_parent_->K * (sizeof(size_t) + sizeof(double));
 	
@@ -3459,7 +3404,6 @@ size_t Subpopulation::MemoryUsageForParentTables(void)
 	
 	if (lookup_male_parent_)
 		usage += lookup_male_parent_->K * (sizeof(size_t) + sizeof(double));
-#endif	// SLIM_WF_ONLY
 	
 	return usage;
 }
@@ -3498,7 +3442,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentFirstMaleIndex()));
 		case gID_genomes:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				if (!cached_child_genomes_value_)
@@ -3531,7 +3474,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_genomes_value_;
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				if (!cached_parent_genomes_value_)
 				{
@@ -3565,7 +3507,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genomesNonNull:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
@@ -3577,7 +3518,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return EidosValue_SP(vec);
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 				
@@ -3590,7 +3530,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_individuals:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				slim_popsize_t subpop_size = child_subpop_size_;
@@ -3612,7 +3551,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_individuals_value_;
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				slim_popsize_t subpop_size = parent_subpop_size_;
 				
@@ -3633,7 +3571,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_parent_individuals_value_;
 			}
 		}
-#ifdef SLIM_WF_ONLY
 		case gID_immigrantSubpopIDs:
 		{
 			if (model_type_ == SLiMModelType::kModelTypeNonWF)
@@ -3742,7 +3679,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		}
-#endif	// SLIM_WF_ONLY
 		case gID_spatialBounds:
 		{
 			int dimensionality = species_.SpatialDimensionality();
@@ -3945,15 +3881,14 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
-#ifdef SLIM_WF_ONLY
+			// WF only:
 		case gID_setMigrationRates:		return ExecuteMethod_setMigrationRates(p_method_id, p_arguments, p_interpreter);
 		case gID_setCloningRate:		return ExecuteMethod_setCloningRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setSelfingRate:		return ExecuteMethod_setSelfingRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setSexRatio:			return ExecuteMethod_setSexRatio(p_method_id, p_arguments, p_interpreter);
 		case gID_setSubpopulationSize:	return ExecuteMethod_setSubpopulationSize(p_method_id, p_arguments, p_interpreter);
-#endif	// SLIM_WF_ONLY
 			
-#ifdef SLIM_NONWF_ONLY
+			// nonWF only:
 		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_interpreter);
 		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_interpreter);
 		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_interpreter);
@@ -3961,7 +3896,6 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_interpreter);
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
-#endif  // SLIM_NONWF_ONLY
 
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_interpreter);
@@ -3985,8 +3919,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 	}
 }
 
-#ifdef SLIM_NONWF_ONLY
-
+// nonWF only:
 IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null)
 {
 	EidosValueType sex_value_type = p_sex_value->Type();
@@ -4127,7 +4060,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 			individual->RevokeParentage_Uniparental(*parent);
 	}
 	
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 	if (proposed_child_accepted)
 	{
 		if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kMale))
@@ -4232,7 +4165,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Biparental(*parent1, *parent2);
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_crossed_++;
@@ -4252,7 +4185,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_crossed_++;
 		
 		// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
@@ -4354,7 +4287,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			individual->RevokeParentage_Parentless();
 	}
 	
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 	if (proposed_child_accepted) gui_offspring_empty_++;
 	
 	gui_premigration_size_++;
@@ -4685,7 +4618,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Parentless();
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_crossed_++;
@@ -4751,7 +4684,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_crossed_++;
 		
 		// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
@@ -4879,7 +4812,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Uniparental(*parent);
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_selfed_++;
@@ -4896,7 +4829,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_selfed_++;
 		
 		// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
@@ -4935,7 +4868,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		if (source_subpop != this)
 		{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 			// before doing anything else, tally this incoming migrant for SLiMgui
 			++gui_migrants_[source_subpop->subpopulation_id_];
 #endif
@@ -5065,9 +4998,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	return gStaticEidosValueVOID;
 }
 
-#endif  // SLIM_NONWF_ONLY
-
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5104,7 +5035,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
 //	*********************	– (logical)pointInBounds(float point)
 //
@@ -5580,7 +5510,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	return result_SP;
 }			
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setCloningRate(numeric rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5627,9 +5557,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueVOID;
 }			
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSelfingRate(numeric$ rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5652,9 +5581,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueVOID;
 }			
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSexRatio(float$ sexRatio)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5685,7 +5613,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
 //	*********************	– (void)setSpatialBounds(numeric position)
 //
@@ -5753,7 +5680,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	return gStaticEidosValueVOID;
 }			
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSubpopulationSize(integer$ size)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5770,9 +5697,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 //	*********************	- (void)removeSubpopulation()
 //
 EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -5787,7 +5713,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalString
 	
 	return gStaticEidosValueVOID;
 }
-#endif  // SLIM_NONWF_ONLY
 
 //	*********************	- (float)cachedFitness(Ni indices)
 //
@@ -5796,10 +5721,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
 	
-#ifdef SLIM_WF_ONLY
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
@@ -5830,7 +5753,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
 #else
 		double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
@@ -5855,7 +5778,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 			}
 			
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
+#if !defined(SLIMGUI)
 			double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
 #else
 			double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
@@ -5930,13 +5853,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	EidosValue *ageMax_value = p_arguments[6].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-#ifdef SLIM_NONWF_ONLY
 	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
 	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
 	
 	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
-#endif  // SLIM_NONWF_ONLY
 	
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[7].get();
@@ -6058,12 +5979,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				continue;
 			if (migrant_specified && (candidate->migrant_ != migrant))
 				continue;
-#ifdef SLIM_NONWF_ONLY
 			if (ageMin_specified && (candidate->age_ < ageMin))
 				continue;
 			if (ageMax_specified && (candidate->age_ > ageMax))
 				continue;
-#endif  // SLIM_NONWF_ONLY
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(parent_individuals_[sample_index], gSLiM_Individual_Class));
 		}
@@ -6100,12 +6019,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 					continue;
 				if (migrant_specified && (candidate->migrant_ != migrant))
 					continue;
-#ifdef SLIM_NONWF_ONLY
 				if (ageMin_specified && (candidate->age_ < ageMin))
 					continue;
 				if (ageMax_specified && (candidate->age_ > ageMax))
 					continue;
-#endif  // SLIM_NONWF_ONLY
 				if (value_index == excluded_index)
 					continue;
 				
@@ -6206,13 +6123,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	EidosValue *ageMax_value = p_arguments[4].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-#ifdef SLIM_NONWF_ONLY
 	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
 	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
 	
 	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
-#endif  // SLIM_NONWF_ONLY
 	
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[5].get();
@@ -6279,12 +6194,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 				continue;
 			if (migrant_specified && (candidate->migrant_ != migrant))
 				continue;
-#ifdef SLIM_NONWF_ONLY
 			if (ageMin_specified && (candidate->age_ < ageMin))
 				continue;
 			if (ageMax_specified && (candidate->age_ > ageMax))
 				continue;
-#endif  // SLIM_NONWF_ONLY
 			if (value_index == excluded_index)
 				continue;
 			

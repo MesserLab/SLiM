@@ -52,25 +52,6 @@ void SLiM_WarmUp(void);
 
 // *******************************************************************************************************************
 //
-//	WF versus nonWF models
-//
-#pragma mark -
-#pragma mark WF versus nonWF
-#pragma mark -
-
-// These preprocessor flags effectively let you build a version of SLiM that supports only WF models (if SLIM_WF_ONLY
-// is defined) or only nonWF models (if SLIM_NONWF_ONLY is defined).  It is not recommended that anybody actually do
-// that; there isn't really any reason to, and such builds have not been tested or debugged.  The reason this is
-// useful is so we can use the compiler to guarantee isolation between the WF and nonWF cases; we can make methods
-// and ivars and such be available in only one case or the other, and test that they are not referenced at all except
-// in the case that is supposed to reference them.  Always nice for peace of mind.  For a normal build of SLiM, both
-// of these should be defined, so that all the code needed for both cases is included.
-#define SLIM_WF_ONLY
-#define SLIM_NONWF_ONLY
-
-
-// *******************************************************************************************************************
-//
 //	Global optimization flags
 //
 #pragma mark -

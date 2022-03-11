@@ -195,9 +195,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_haploid);
 	
-#ifdef SLIM_WF_ONLY
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
-#endif
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
@@ -212,7 +210,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	return new_subpop;
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
@@ -307,9 +305,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	
 	return new_subpop;
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // set size of subpopulation p_subpop_id to p_subpop_size
 void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 {
@@ -346,9 +343,8 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		p_subpop.GenerateChildrenToFitWF();
 	}
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 // remove subpopulation p_subpop_id from the model entirely
 void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 {
@@ -369,6 +365,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	}
 }
 
+// nonWF only:
 // move individuals as requested by survival() callbacks
 void Population::ResolveSurvivalPhaseMovement(void)
 {
@@ -459,7 +456,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome1_);
 			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome2_);
 			
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 			// tally this as an incoming migrant for SLiMgui
 			++subpop->gui_migrants_[individual->subpopulation_->subpopulation_id_];
 #endif
@@ -478,7 +475,6 @@ void Population::ResolveSurvivalPhaseMovement(void)
 	for (auto int_type : interactionTypes)
 		int_type.second->Invalidate();
 }
-#endif  // SLIM_NONWF_ONLY
 
 void Population::PurgeRemovedSubpopulations(void)
 {
@@ -491,7 +487,7 @@ void Population::PurgeRemovedSubpopulations(void)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
@@ -506,9 +502,8 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
 		p_subpop.migrant_fractions_.emplace(p_source_subpop_id, p_migrant_fraction); 
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
@@ -879,7 +874,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
 	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness() : p_source_subpop->DrawParentUsingFitness());
 }
-#endif	// SLIM_WF_ONLY
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
@@ -1026,7 +1020,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 	return true;
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
@@ -2142,7 +2136,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
@@ -4768,7 +4761,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 void Population::ClearParentalGenomes(void)
 {
@@ -4802,7 +4795,6 @@ void Population::ClearParentalGenomes(void)
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // Scan through all mutation runs in the simulation and unique them
 void Population::UniqueMutationRuns(void)
@@ -4916,7 +4908,6 @@ void Population::UniqueMutationRuns(void)
 #ifndef __clang_analyzer__
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 {
-#ifdef SLIM_WF_ONLY
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -4959,7 +4950,6 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs split into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -5115,7 +5105,6 @@ struct slim_pair_hash {
 #ifndef __clang_analyzer__
 void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 {
-#ifdef SLIM_WF_ONLY
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -5158,7 +5147,6 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs join into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -5284,10 +5272,8 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 // Tally mutations and remove fixed/lost mutations
 void Population::MaintainMutationRegistry(void)
 {
-#ifdef SLIM_WF_ONLY
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences(nullptr, true);
@@ -5317,10 +5303,8 @@ void Population::MaintainMutationRegistry(void)
 // assess usage patterns of mutation runs across the simulation
 void Population::AssessMutationRuns(void)
 {
-#ifdef SLIM_WF_ONLY
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::AssessMutationRuns): (internal error) AssessMutationRuns() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	slim_tick_t tick = community_.Tick();
 	
@@ -5389,7 +5373,7 @@ void Population::AssessMutationRuns(void)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // step forward a generation: make the children become the parents
 void Population::SwapGenerations(void)
 {
@@ -5409,7 +5393,6 @@ void Population::SwapGenerations(void)
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
 	child_generation_valid_ = false;
 }
-#endif	// SLIM_WF_ONLY
 
 // count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
@@ -5495,10 +5478,8 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		
 		// To tally using MutationRun, we should be at the point in the generation cycle where the registry is
 		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
-#ifdef SLIM_WF_ONLY
 		if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 			can_tally_runs = false;
-#endif	// SLIM_WF_ONLY
 		
 #ifdef SLIMGUI
 		// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
@@ -6031,10 +6012,8 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 // TallyMutationReferences() must have cached tallies across the whole population before this is called, or it will malfunction!
 void Population::RemoveAllFixedMutations(void)
 {
-#ifdef SLIM_WF_ONLY
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::RemoveAllFixedMutations): (internal error) RemoveAllFixedMutations() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	// We use stack-local MutationRun objects so they get disposed of properly via RAII; non-optimal
 	// from a performance perspective, since they will do reallocs to reach their needed size, but
@@ -6302,10 +6281,8 @@ void Population::RemoveAllFixedMutations(void)
 
 void Population::CheckMutationRegistry(bool p_check_genomes)
 {
-#ifdef SLIM_WF_ONLY
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 #if DEBUG_MUTATION_ZOMBIES
@@ -6418,13 +6395,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		double subpop_sex_ratio;
 		
-#ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
 			if (subpop->parent_subpop_size_ == 0)
@@ -6560,11 +6535,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 				}
 			}
 			
-#ifdef SLIM_NONWF_ONLY
 			// output ages if requested
 			if (age_output_count)
 				p_out << " " << individual.age_;
-#endif  // SLIM_NONWF_ONLY
 			
 			p_out << std::endl;
 			
@@ -6748,13 +6721,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		double subpop_sex_ratio;
 		
-#ifdef SLIM_WF_ONLY
 		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			if (subpop->parent_subpop_size_ == 0)
 				subpop_sex_ratio = 0.0;
@@ -6906,7 +6877,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
 			}
 			
-#ifdef SLIM_NONWF_ONLY
 			// Output individual age information before the mutation list.  Added in version 4.
 			if (age_output_count && ((i % 2) == 0))
 			{
@@ -6915,7 +6885,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				
 				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
-#endif  // SLIM_NONWF_ONLY
 			
 			// Write out the mutation list
 			if (genome.IsNull())
