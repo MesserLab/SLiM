@@ -937,6 +937,7 @@
 		9898172D1A59750300F7417C /* slim_globals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = slim_globals.cpp; sourceTree = "<group>"; };
 		9898172E1A59750300F7417C /* slim_globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = slim_globals.h; sourceTree = "<group>"; };
 		989A5BE82525304100E7192D /* eidos_class_Dictionary.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_class_Dictionary.cpp; sourceTree = "<group>"; };
+		989F495127DBB7D600B07B7D /* QtSLiM */ = {isa = PBXFileReference; lastKnownFileType = folder; path = QtSLiM; sourceTree = "<group>"; };
 		98A02F931BA1E3E1002DDE54 /* EidosTextViewDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosTextViewDelegate.h; sourceTree = "<group>"; };
 		98A02F941BA1E648002DDE54 /* EidosConsoleWindowControllerDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EidosConsoleWindowControllerDelegate.h; sourceTree = "<group>"; };
 		98A240581B8E3295005C9A30 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
@@ -1234,6 +1235,7 @@
 				98D4C1B41A6F537B00FFB083 /* SLiMgui */,
 				98A2FF881D7DF4D7007E3DB8 /* Recipes */,
 				98F65D551DF14DA40058BD29 /* Tips */,
+				989F495127DBB7D600B07B7D /* QtSLiM */,
 				98A2405B1B8E32F4005C9A30 /* Shared Frameworks */,
 				984D5FA91E3AF0D200473719 /* EidosSLiMTests */,
 				982663511A3BABD300A0CBBF /* Products */,
