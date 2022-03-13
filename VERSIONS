@@ -15,7 +15,7 @@ development head:
 	MULTISPECIES SLiM WORK:
 		split SLiMSim into two new classes: Species and Community
 		moved to Community: properties logFiles, scriptBlocks, generationStage, verbosity; it also has properties tick and tag
-		moved to Community: methods createLogFile(), register[X]Event(), deregisterScriptBlock(), rescheduleScriptBlock(), simulationFinished(), outputUsage()
+		moved to Community: methods createLogFile(), register[X]Event(), deregisterScriptBlock(), rescheduleScriptBlock(), outputUsage(); also has its own simulationFinished()
 		change generations to ticks across almost all APIs; the basic unit of time is now called a tick, "generation" is a species-specific concept
 		remove the inSLiMgui property of SLiMSim (deprecated since SLiM 3.2.1)
 		remove vestiges of the xDominanceCoeff parameter to initializeSex() and the dominanceCoeffX property of SLiMSim (removed originally in SLiM 3.7)
@@ -34,6 +34,7 @@ development head:
 		increment the tree-seq file version from 0.7 to 0.8
 		increment version to 4.0 - usually this is not done until it's time to roll the release, but since we're on a branch, it is useful for testing purposes
 		LogFile methods addGeneration(), addPopulationSexRatio(), and addPopulationSize() now take [No<Species>$ species = NULL]; if not supplied, it will default to a singleton species if possible
+		Species now supports simulationFinished(), but only in the single-species case; in multispecies models call community.simulationFinished() instead
 		
 
 version 3.7.1 (Eidos version 2.7.1):

@@ -132,7 +132,7 @@ private:
 	EidosValue_SP cached_value_tick_;												// a cached value for tick_; invalidates automatically when used
 	
 	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStagePreGeneration;		// the within-generation stage currently being executed
-	bool sim_declared_finished_ = false;											// a flag set by simulationFinished() to halt the sim at the end of the current tick
+	bool sim_declared_finished_ = false;											// a flag set by Community.simulationFinished() to halt the sim at the end of the current tick
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
 	

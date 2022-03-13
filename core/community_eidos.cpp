@@ -868,6 +868,9 @@ EidosValue_SP Community::ExecuteMethod_simulationFinished(EidosGlobalStringID p_
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
+	// Note that Species::ExecuteMethod_simulationFinished() calls this method to forward simulationFinished() on to us!
+	// This means that we need to have an identical Eidos method signature, etc., so the forwarding goes smoothly.
+	
 	sim_declared_finished_ = true;
 	
 	return gStaticEidosValueVOID;
