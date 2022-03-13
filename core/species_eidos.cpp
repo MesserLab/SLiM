@@ -281,7 +281,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'g');
 	
-	if (genomic_element_types_.count(map_identifier) > 0) 
+	if (community_.GenomicElementTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGenomicElementType): initializeGenomicElementType() genomic element type g" << map_identifier << " already defined." << EidosTerminate();
 	
 	int mut_type_id_count = mutationTypes_value->Count();
@@ -389,7 +389,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeInteractionType(const st
 	int required_dimensionality;
 	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
 	
-	if (interaction_types_.count(map_identifier) > 0) 
+	if (community_.InteractionTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() interaction type m" << map_identifier << " already defined." << EidosTerminate();
 	
 	if (spatiality_string.length() == 0)					required_dimensionality = 0;
@@ -492,7 +492,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	double dominance_coeff = dominanceCoeff_value->FloatAtIndex(0, nullptr);
 	std::string dfe_type_string = distributionType_value->StringAtIndex(0, nullptr);
 	
-	if (mutation_types_.count(map_identifier) > 0) 
+	if (community_.MutationTypeWithID(map_identifier))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationType): " << p_function_name << "() mutation type m" << map_identifier << " already defined." << EidosTerminate();
 	
 	// Parse the DFE type and parameters, and do various sanity checks
