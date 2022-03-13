@@ -172,6 +172,7 @@ public:
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
     
+    Species *focalDisplaySpecies(void);
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateAfterTickFull(bool p_fullUpdate);

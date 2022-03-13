@@ -1164,7 +1164,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	Species &species = subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "countOfMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "countOfMutationsOfType()");	// checks species match
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1268,7 +1268,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	Individual *element0 = (Individual *)(p_elements[0]);
 	Species &species = element0->subpopulation_->species_;
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "sumOfMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");	// checks species match
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1334,7 +1334,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	Species &species = subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, species, "uniqueMutationsOfType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "uniqueMutationsOfType()");	// checks species match
 	
 	// This code is adapted from uniqueMutations and follows its logic closely
 	

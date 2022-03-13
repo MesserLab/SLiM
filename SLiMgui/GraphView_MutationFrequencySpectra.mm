@@ -80,8 +80,8 @@
 	slim_position_t selectionLastBase = chromosome->selectionLastBase;
 	
 	// tally into our bins
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
@@ -142,7 +142,8 @@
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->community->single_species_->mutation_types_.size();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
 	// plot our histogram bars
@@ -198,11 +199,11 @@
 	[string appendString:@"\n\n"];
 	
 	int binCount = [self histogramBinCount];
-	Species &species = *controller->community->single_species_;
-	int mutationTypeCount = (int)species.mutation_types_.size();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

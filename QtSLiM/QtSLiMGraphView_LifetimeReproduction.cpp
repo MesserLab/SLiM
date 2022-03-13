@@ -137,9 +137,11 @@ void QtSLiMGraphView_LifetimeReproduction::updateAfterTick(void)
 
 QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
-        if (controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        if (graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -149,7 +151,8 @@ QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -191,7 +194,8 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
 
 QtSLiMLegendSpec QtSLiMGraphView_LifetimeReproduction::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -219,7 +223,8 @@ bool QtSLiMGraphView_LifetimeReproduction::providesStringForData(void)
 void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
 	
     if (reproductionDist)
@@ -249,8 +254,8 @@ void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 double *QtSLiMGraphView_LifetimeReproduction::reproductionDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    Species *species = controller_->community->single_species_;
-    Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

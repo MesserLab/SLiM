@@ -105,8 +105,9 @@ void LogFile::SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval
 
 EidosValue_SP LogFile::_GeneratedValue_Generation(const LogFileGeneratorInfo &p_generator_info)
 {
-#pragma unused(p_generator_info)
-	slim_tick_t generation = community_.single_species_->Generation();
+	const std::vector<Species *> &all_species = community_.AllSpecies();
+	Species *species = all_species[p_generator_info.objectid_];
+	slim_tick_t generation = species->Generation();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation));
 }
@@ -122,12 +123,14 @@ EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInf
 
 EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
 {
-#pragma unused(p_generator_info)
-	if (community_.single_species_->SexEnabled())
+	const std::vector<Species *> &all_species = community_.AllSpecies();
+	Species *species = all_species[p_generator_info.objectid_];
+	
+	if (species->SexEnabled())
 	{
 		slim_popsize_t total_individuals = 0, total_males = 0;
 		
-		for (auto &subpop_iter : community_.single_species_->population_.subpops_)
+		for (auto &subpop_iter : species->population_.subpops_)
 		{
 			Subpopulation *subpop = subpop_iter.second;
 			slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
@@ -150,9 +153,11 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSexRatio(const LogFileGenerator
 EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo &p_generator_info)
 {
 #pragma unused(p_generator_info)
+	const std::vector<Species *> &all_species = community_.AllSpecies();
+	Species *species = all_species[p_generator_info.objectid_];
 	slim_popsize_t total_individuals = 0;
 	
-	for (auto &subpop_iter : community_.single_species_->population_.subpops_)
+	for (auto &subpop_iter : species->population_.subpops_)
 		total_individuals += (subpop_iter.second)->CurrentSubpopSize();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(total_individuals));
@@ -160,9 +165,9 @@ EidosValue_SP LogFile::_GeneratedValue_PopulationSize(const LogFileGeneratorInfo
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info)
 {
-	Subpopulation *subpop = community_.single_species_->SubpopulationWithID(p_generator_info.objectid_);
+	Subpopulation *subpop = community_.SubpopulationWithID(p_generator_info.objectid_);
 	
-	if (community_.single_species_->SexEnabled() && subpop)
+	if (subpop && subpop->species_.SexEnabled())
 	{
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		slim_popsize_t first_male_index = subpop->CurrentFirstMaleIndex();
@@ -178,7 +183,7 @@ EidosValue_SP LogFile::_GeneratedValue_SubpopulationSexRatio(const LogFileGenera
 
 EidosValue_SP LogFile::_GeneratedValue_SubpopulationSize(const LogFileGeneratorInfo &p_generator_info)
 {
-	Subpopulation *subpop = community_.single_species_->SubpopulationWithID(p_generator_info.objectid_);
+	Subpopulation *subpop = community_.SubpopulationWithID(p_generator_info.objectid_);
 	
 	if (subpop)
 	{
@@ -656,14 +661,18 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)addGeneration()
+//	*********************	- (void)addGeneration([No<Species>$ species])
 EidosValue_SP LogFile::ExecuteMethod_addGeneration(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addGeneration");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Generation, nullptr, -1, EidosValue_SP()});
+	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	EidosValue_SP species_value = p_arguments[0];
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Generation, nullptr, species->species_id_, EidosValue_SP()});
 	
 	column_names_.emplace_back("generation");
 	
@@ -726,27 +735,35 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)addPopulationSexRatio()
+//	*********************	- (void)addPopulationSexRatio([No<Species>$ species])
 EidosValue_SP LogFile::ExecuteMethod_addPopulationSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSexRatio");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, -1, EidosValue_SP()});
+	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	EidosValue_SP species_value = p_arguments[0];
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, species->species_id_, EidosValue_SP()});
 	column_names_.emplace_back("sex_ratio");
 	
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)addPopulationSize()
+//	*********************	- (void)addPopulationSize([No<Species>$ species])
 EidosValue_SP LogFile::ExecuteMethod_addPopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSize");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSize, nullptr, -1, EidosValue_SP()});
+	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	EidosValue_SP species_value = p_arguments[0];
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSize, nullptr, species->species_id_, EidosValue_SP()});
 	column_names_.emplace_back("num_individuals");
 	
 	return gStaticEidosValueVOID;
@@ -980,11 +997,11 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		
 		// our own methods
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCustomColumn, kEidosValueMaskVOID))->AddString_S("columnName")->AddString_S(gEidosStr_source)->AddAny_O("context", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addGeneration, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addGeneration, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addGenerationStage, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMeanSDColumns, kEidosValueMaskVOID))->AddString_S("columnName")->AddString_S(gEidosStr_source)->AddAny_O("context", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSexRatio, kEidosValueMaskVOID)));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSize, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSexRatio, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSize, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSexRatio, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSize, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addTick, kEidosValueMaskVOID)));

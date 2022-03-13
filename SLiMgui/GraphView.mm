@@ -1047,8 +1047,8 @@
 - (NSArray *)mutationTypeLegendKey
 {
 	SLiMWindowController *controller = [self slimWindowController];
-	Species &species = *controller->community->single_species_;
-	int mutationTypeCount = (int)species.mutation_types_.size();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
 	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
@@ -1057,11 +1057,11 @@
 	NSMutableArray *legendKey = [NSMutableArray array];
 	
 	// first we put in placeholders
-	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 		[legendKey addObject:@"placeholder"];
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

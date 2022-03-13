@@ -3689,7 +3689,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 		int requested_subpop_count = subpops_value->Count();
 		
 		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, species_, "evaluate()"), immediate);
+			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &species_.community_, &species_, "evaluate()"), immediate);	// checks species match
 	}
 	
 	return gStaticEidosValueVOID;
@@ -4161,7 +4161,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
-	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, species_, "nearestNeighborsOfPoint()");
+	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, &species_.community_, &species_, "nearestNeighborsOfPoint()");	// checks species match
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	auto subpop_data_iter = data_.find(subpop_id);

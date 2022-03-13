@@ -114,15 +114,16 @@
 - (BOOL)addSubpopulationsToMenu
 {
 	SLiMWindowController *controller = [self slimWindowController];
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	NSMenuItem *lastItem;
 	slim_objectid_t firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[subpopulationButton removeAllItems];
 
-	if (![controller invalidSimulation])
+	if (displaySpecies)
 	{
-		Population &population = controller->community->single_species_->population_;
+		Population &population = displaySpecies->population_;
 		
 		for (auto popIter = population.subpops_.begin(); popIter != population.subpops_.end(); ++popIter)
 		{
@@ -167,15 +168,16 @@
 - (BOOL)addMutationTypesToMenu
 {
 	SLiMWindowController *controller = [self slimWindowController];
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	NSMenuItem *lastItem;
 	int firstTag = -1;
 	
 	// Depopulate and populate the menu
 	[mutationTypeButton removeAllItems];
 	
-	if (![controller invalidSimulation])
+	if (displaySpecies)
 	{
-		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller->community->single_species_->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
 		
 		for (auto mutTypeIter = mutationTypes.begin(); mutTypeIter != mutationTypes.end(); ++mutTypeIter)
 		{
@@ -249,8 +251,8 @@
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	Community &community = *controller->community;
-	Species &species = *community.single_species_;
-	Population &population = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &population = displaySpecies->population_;
 	int registry_size;
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	static BOOL alreadyHere = NO;
@@ -269,7 +271,7 @@
 		if (subpop_pair.first == _selectedSubpopulationID)	// find our chosen subpop
 			foundSelectedSubpop = YES;
 	
-	for (const std::pair<const slim_objectid_t,MutationType*> &subpop_pair : species.mutation_types_)
+	for (const std::pair<const slim_objectid_t,MutationType*> &subpop_pair : displaySpecies->mutation_types_)
 		if (subpop_pair.second->mutation_type_index_ == _selectedMutationTypeIndex)	// find our chosen muttype
 			foundSelectedMutType = YES;
 	

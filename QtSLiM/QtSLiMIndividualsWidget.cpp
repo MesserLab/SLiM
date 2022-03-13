@@ -89,8 +89,7 @@ void QtSLiMIndividualsWidget::paintGL()
 	
 	QRect bounds = rect();
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
 	std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();
 	int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
 	
@@ -248,10 +247,10 @@ void QtSLiMIndividualsWidget::paintGL()
                             drawViewFrameInBounds(tileBounds);
                         }
                         
-                        drawSpatialBackgroundInBoundsForSubpopulation(spatialDisplayBounds, subpop, species->spatial_dimensionality_);
+                        drawSpatialBackgroundInBoundsForSubpopulation(spatialDisplayBounds, subpop, displaySpecies->spatial_dimensionality_);
                     }
                     
-					drawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, species->spatial_dimensionality_);
+					drawSpatialIndividualsFromSubpopulationInArea(subpop, spatialDisplayBounds, displaySpecies->spatial_dimensionality_);
 					drawViewFrameInBounds(frameBounds); // framed more than once in displayMode 2, which is OK
                     
                     if (displayMode == 2)
@@ -292,12 +291,12 @@ bool QtSLiMIndividualsWidget::canDisplayUnified(std::vector<Subpopulation*> &sel
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
     int selectedSubpopCount = static_cast<int>(selectedSubpopulations.size());
     
-    if (!controller->invalidSimulation() && community && community->simulation_valid_ && (community->Tick() >= 1) && species)
+    if (displaySpecies && (community->Tick() >= 1))
 	{
-        if (species->spatial_dimensionality_ == 0)
+        if (displaySpecies->spatial_dimensionality_ == 0)
             return false;
         if (selectedSubpopCount <= 1)
             return true;                // allow us to stay in unified mode across a recycle, even if subpops are added gradually
@@ -334,15 +333,15 @@ void QtSLiMIndividualsWidget::determineDisplayMode(std::vector<Subpopulation*> &
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (!controller->invalidSimulation() && community && community->simulation_valid_ && (community->Tick() >= 1) && species)
+    if (displaySpecies && (community->Tick() >= 1))
 	{
         if ((displayMode == 2) && !canDisplayUnified(selectedSubpopulations))
             displayMode = 1;
 		if (displayMode == -1)
-			displayMode = ((species->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (species->spatial_dimensionality_ == 0))
+			displayMode = ((displaySpecies->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 0))
 			displayMode = 0;
 	}
 }
@@ -507,10 +506,9 @@ QRect QtSLiMIndividualsWidget::spatialDisplayBoundsForSubpopulation(Subpopulatio
     // If sim->spatial_dimensionality_ is 1, there are no aspect ratio considerations so we just inset.
 	QRect spatialDisplayBounds = tileBounds.adjusted(1, 1, -1, -1);
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+	Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (species && (species->spatial_dimensionality_ > 1))
+    if (displaySpecies && (displaySpecies->spatial_dimensionality_ > 1))
     {
         double displayAspect = spatialDisplayBounds.width() / static_cast<double>(spatialDisplayBounds.height());
         double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
@@ -1501,11 +1499,11 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
 	bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation() || !community || !community->simulation_valid_ || (community->Tick() < 1) || !species)
+	if (!displaySpecies || (community->Tick() < 1))
 		disableAll = true;
 	
     QMenu contextMenu("population_menu", this);
@@ -1525,7 +1523,7 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
     QAction *displaySpatial = contextMenu.addAction("Display Spatial (separate)");
     displaySpatial->setData(1);
     displaySpatial->setCheckable(true);
-    displaySpatial->setEnabled(!disableAll && (species->spatial_dimensionality_ > 0));
+    displaySpatial->setEnabled(!disableAll && (displaySpecies->spatial_dimensionality_ > 0));
     
     QAction *displayUnified = contextMenu.addAction("Display Spatial (unified)");
     displayUnified->setData(2);
@@ -1687,11 +1685,11 @@ void QtSLiMIndividualsWidget::contextMenuEvent(QContextMenuEvent *p_event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
     bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation() || !community || !community->simulation_valid_ || (community->Tick() < 1) || !species)
+	if (!displaySpecies || (community->Tick() < 1))
 		disableAll = true;
     
     // Find the subpop that was clicked in; in "unified" display mode, this is the first selected subpop
@@ -1730,10 +1728,10 @@ void QtSLiMIndividualsWidget::mousePressEvent(QMouseEvent *p_event)
 {
     QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
     Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nullptr);
+    Species *displaySpecies = controller->focalDisplaySpecies();
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation() || !community || !community->simulation_valid_ || (community->Tick() < 1) || !species)
+	if (!displaySpecies || (community->Tick() < 1))
 		return;
     
     std::vector<Subpopulation*> selectedSubpopulations = controller->selectedSubpopulations();

@@ -82,7 +82,7 @@ extern "C" {
 Community::Community(std::istream &p_infile) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
 {
 	// Allocate our species; this will change to be done during/after the file is parsed, I suppose
-	single_species_ = new Species(*this);
+	all_species_.push_back(new Species(*this, 0));
 	
 	// set up the symbol tables we will use for global variables and constants; note that the global variables table
 	// lives *above* the context constants table, which is fine since they cannot define the same symbol anyway
@@ -119,8 +119,8 @@ Community::Community(std::istream &p_infile) : self_symbol_(gID_community, Eidos
 Community::~Community(void)
 {
 	//EIDOS_ERRSTREAM << "Community::~Community" << std::endl;
-	delete single_species_;
-	single_species_ = nullptr;
+	for (Species *species : all_species_)
+		delete species;
 	
 	delete simulation_globals_;
 	simulation_globals_ = nullptr;
@@ -830,15 +830,71 @@ void Community::ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block)
 
 bool Community::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 {
+	// This method returns whether a subpop ID is conceptually "in use": whether it is being used, has ever
+	// been used, or is reserved for use in some way by, by any SLiM species or by any tree sequence.
+	
 	// First check our own data structures; we now do not allow reuse of subpop ids, even disjoint in time
 	if (subpop_ids_.count(p_subpop_id))
 		return true;
 	
 	// Then have each species check for a conflict with its tree-sequence population table
-	if (single_species_->_SubpopulationIDInUse(p_subpop_id))
-		return true;
+	for (Species *species : all_species_)
+		if (species->_SubpopulationIDInUse(p_subpop_id))
+			return true;
 	
 	return false;
+}
+
+Subpopulation *Community::SubpopulationWithID(slim_objectid_t p_subpop_id)
+{
+	for (Species *species : all_species_)
+	{
+		Subpopulation *found_subpop = species->SubpopulationWithID(p_subpop_id);
+		
+		if (found_subpop)
+			return found_subpop;
+	}
+	
+	return nullptr;
+}
+
+MutationType *Community::MutationTypeWithID(slim_objectid_t p_muttype_id)
+{
+	for (Species *species : all_species_)
+	{
+		MutationType *found_muttype = species->MutationTypeWithID(p_muttype_id);
+		
+		if (found_muttype)
+			return found_muttype;
+	}
+	
+	return nullptr;
+}
+
+GenomicElementType *Community::GenomicElementTypeWithID(slim_objectid_t p_getype_id)
+{
+	for (Species *species : all_species_)
+	{
+		GenomicElementType *found_getype = species->GenomicElementTypeWithID(p_getype_id);
+		
+		if (found_getype)
+			return found_getype;
+	}
+	
+	return nullptr;
+}
+
+InteractionType *Community::InteractionTypeWithID(slim_objectid_t p_inttype_id)
+{
+	for (Species *species : all_species_)
+	{
+		InteractionType *found_inttype = species->InteractionTypeWithID(p_inttype_id);
+		
+		if (found_inttype)
+			return found_inttype;
+	}
+	
+	return nullptr;
 }
 
 slim_tick_t Community::FirstTick(void)
@@ -1037,7 +1093,8 @@ bool Community::_RunOneTick(void)
 	}
 	else
 	{
-		single_species_->PrepareForGenerationCycle();
+		for (Species *species : all_species_)
+			species->PrepareForGenerationCycle();
 		
 		// Non-zero ticks are handled by separate functions for WF and nonWF models
 		if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1062,12 +1119,20 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	single_species_->RunInitializeCallbacks();
+	// execute initialize() callbacks for each species, in species declaration order
+	for (Species *species : all_species_)
+	{
+		active_species_ = species;
+		active_species_->RunInitializeCallbacks();
+		active_species_ = nullptr;
+		
+	}
 	
 	DeregisterScheduledScriptBlocks();
 	
 	// set up global symbols for all species, and for ourselves
-	simulation_constants_->InitializeConstantSymbolEntry(single_species_->SymbolTableEntry());
+	for (Species *species : all_species_)
+		simulation_constants_->InitializeConstantSymbolEntry(species->SymbolTableEntry());
 	simulation_constants_->InitializeConstantSymbolEntry(SymbolTableEntry());
 	
 	// we're done with the initialization tick, so remove the zero-tick functions
@@ -1185,8 +1250,9 @@ void Community::AllSpecies_CheckIndividualIntegrity(void)
 {
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
-	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : single_species_->population_.subpops_)
-		subpop_pair.second->CheckIndividualIntegrity();
+	for (Species *species : all_species_)
+		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
+			subpop_pair.second->CheckIndividualIntegrity();
 #endif
 }
 
@@ -1199,7 +1265,8 @@ bool Community::_RunOneTickWF(void)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
-		single_species_->CollectSLiMguiMutationProfileInfo();
+		for (Species *species : all_species_)
+			species->CollectSLiMguiMutationProfileInfo();
 #endif
 #endif
 	
@@ -1268,7 +1335,8 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		single_species_->CheckMutationStackPolicy();
+		for (Species *species : all_species_)
+			species->CheckMutationStackPolicy();
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
 		
@@ -1277,8 +1345,13 @@ bool Community::_RunOneTickWF(void)
 		tree_seq_tick_offset_ = 0;
 		// note that tick_ is incremented later!
 		
-		single_species_->WF_GenerateOffspring();
-		single_species_->WF_SwitchToChildGeneration();
+		// first all species generate offspring
+		for (Species *species : all_species_)
+			species->WF_GenerateOffspring();
+		
+		// then all species switch generations; this prevents access to the child generation of one species while another is still generating offspring
+		for (Species *species : all_species_)
+			species->WF_SwitchToChildGeneration();
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -1304,10 +1377,12 @@ bool Community::_RunOneTickWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
 		
-		single_species_->MaintainMutationRegistry();
+		for (Species *species : all_species_)
+			species->MaintainMutationRegistry();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-		single_species_->InvalidateAllInteractions();
+		for (Species *species : all_species_)
+			species->InvalidateAllInteractions();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -1333,7 +1408,8 @@ bool Community::_RunOneTickWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage4SwapGenerations;
 		
-		single_species_->WF_SwapGenerations();
+		for (Species *species : all_species_)
+			species->WF_SwapGenerations();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -1384,13 +1460,15 @@ bool Community::_RunOneTickWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage6CalculateFitness;
 		
-		single_species_->RecalculateFitness();
+		for (Species *species : all_species_)
+			species->RecalculateFitness();
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
-		single_species_->FinishMutationRunExperimentTiming();
+		for (Species *species : all_species_)
+			species->FinishMutationRunExperimentTiming();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -1400,7 +1478,8 @@ bool Community::_RunOneTickWF(void)
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
 		// We do this outside of profiling and mutation run experiments, since SLiMgui overhead should not affect those
-		single_species_->population_.SurveyPopulation();
+		for (Species *species : all_species_)
+			species->population_.SurveyPopulation();
 #endif
 	}
 	
@@ -1418,10 +1497,12 @@ bool Community::_RunOneTickWF(void)
 		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
 		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
-		single_species_->population_.TallyMutationReferences(nullptr, false);
+		for (Species *species : all_species_)
+			species->population_.TallyMutationReferences(nullptr, false);
 #endif
 		
-		single_species_->MaintainTreeSequence();
+		for (Species *species : all_species_)
+			species->MaintainTreeSequence();
 		
 		// LogFile output
 		for (LogFile *log_file : log_file_registry_)
@@ -1429,7 +1510,8 @@ bool Community::_RunOneTickWF(void)
 		
 		// Advance the tick and generation counters (note that tree_seq_tick_ was incremented earlier!)
 		tick_++;
-		single_species_->AdvanceGenerationCounter();
+		for (Species *species : all_species_)
+			species->AdvanceGenerationCounter();
 		
 		// Use a special generation stage for the interstitial space between ticks, when Eidos console input runs
 		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
@@ -1469,7 +1551,8 @@ bool Community::_RunOneTickNonWF(void)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
-		single_species_->CollectSLiMguiMutationProfileInfo();
+		for (Species *species : all_species_)
+			species->CollectSLiMguiMutationProfileInfo();
 #endif
 #endif
 	
@@ -1512,24 +1595,27 @@ bool Community::_RunOneTickNonWF(void)
 
 #if defined(SLIMGUI)
 		// zero out offspring counts used for SLiMgui's display
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : single_species_->population_.subpops_)
+		for (Species *species : all_species_)
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				subpop->gui_offspring_cloned_M_ = 0;
+				subpop->gui_offspring_cloned_F_ = 0;
+				subpop->gui_offspring_selfed_ = 0;
+				subpop->gui_offspring_crossed_ = 0;
+				subpop->gui_offspring_empty_ = 0;
+			}
 			
-			subpop->gui_offspring_cloned_M_ = 0;
-			subpop->gui_offspring_cloned_F_ = 0;
-			subpop->gui_offspring_selfed_ = 0;
-			subpop->gui_offspring_crossed_ = 0;
-			subpop->gui_offspring_empty_ = 0;
-		}
-		
-		// zero out migration counts used for SLiMgui's display
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : single_species_->population_.subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			
-			subpop->gui_premigration_size_ = subpop->parent_subpop_size_;
-			subpop->gui_migrants_.clear();
+			// zero out migration counts used for SLiMgui's display
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				subpop->gui_premigration_size_ = subpop->parent_subpop_size_;
+				subpop->gui_migrants_.clear();
+			}
 		}
 #endif
 		
@@ -1538,11 +1624,13 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		single_species_->CheckMutationStackPolicy();
+		for (Species *species : all_species_)
+			species->CheckMutationStackPolicy();
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage1GenerateOffspring;
 		
-		single_species_->nonWF_GenerateOffspring();
+		for (Species *species : all_species_)
+			species->nonWF_GenerateOffspring();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -1576,7 +1664,8 @@ bool Community::_RunOneTickNonWF(void)
 			ExecuteEidosEvent(script_block);
 		
 		// dispose of any freed subpops; we do this before fitness calculation so tallies are correct
-		single_species_->population_.PurgeRemovedSubpopulations();
+		for (Species *species : all_species_)
+			species->population_.PurgeRemovedSubpopulations();
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -1602,13 +1691,15 @@ bool Community::_RunOneTickNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage3CalculateFitness;
 		
-		single_species_->RecalculateFitness();
+		for (Species *species : all_species_)
+			species->RecalculateFitness();
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
 		// Invalidate interactions, now that the generation they were valid for is disappearing
-		single_species_->InvalidateAllInteractions();
+		for (Species *species : all_species_)
+			species->InvalidateAllInteractions();
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -1632,7 +1723,8 @@ bool Community::_RunOneTickNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage4SurvivalSelection;
 		
-		single_species_->nonWF_ViabilitySurvival();
+		for (Species *species : all_species_)
+			species->nonWF_ViabilitySurvival();
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -1658,7 +1750,8 @@ bool Community::_RunOneTickNonWF(void)
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage5RemoveFixedMutations;
 		
-		single_species_->MaintainMutationRegistry();
+		for (Species *species : all_species_)
+			species->MaintainMutationRegistry();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -1689,7 +1782,8 @@ bool Community::_RunOneTickNonWF(void)
 		DeregisterScheduledScriptBlocks();
 		
 		// Maintain our mutation run experiments; we want this overhead to appear within the stage 6 profile
-		single_species_->FinishMutationRunExperimentTiming();
+		for (Species *species : all_species_)
+			species->FinishMutationRunExperimentTiming();
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
@@ -1710,7 +1804,8 @@ bool Community::_RunOneTickNonWF(void)
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
 		// We do this outside of profiling and mutation run experiments, since SLiMgui overhead should not affect those
-		single_species_->population_.SurveyPopulation();
+		for (Species *species : all_species_)
+			species->population_.SurveyPopulation();
 #endif
 		
 #ifdef SLIMGUI
@@ -1719,10 +1814,12 @@ bool Community::_RunOneTickNonWF(void)
 		// NOTE that this means tallies may be different in SLiMgui than in slim!  I *think* this will never be visible to the
 		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
-		single_species_->population_.TallyMutationReferences(nullptr, false);
+		for (Species *species : all_species_)
+			species->population_.TallyMutationReferences(nullptr, false);
 #endif
 		
-		single_species_->MaintainTreeSequence();
+		for (Species *species : all_species_)
+			species->MaintainTreeSequence();
 		
 		// LogFile output
 		for (LogFile *log_file : log_file_registry_)
@@ -1730,10 +1827,12 @@ bool Community::_RunOneTickNonWF(void)
 		
 		// Advance the tick counter (note that tree_seq_tick_ is incremented after first() events in the next tick!)
 		tick_++;
-		single_species_->AdvanceGenerationCounter();
+		for (Species *species : all_species_)
+			species->AdvanceGenerationCounter();
 		
-		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : single_species_->population_.subpops_)
-			subpop_pair.second->IncrementIndividualAges();
+		for (Species *species : all_species_)
+			for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
+				subpop_pair.second->IncrementIndividualAges();
 		
 		// Use a special generation stage for the interstitial space between ticks, when Eidos console input runs
 		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
@@ -1767,7 +1866,8 @@ bool Community::_RunOneTickNonWF(void)
 void Community::SimulationHasFinished(void)
 {
 	// This is an opportunity for final calculation/output when a simulation finishes
-	single_species_->SimulationHasFinished();
+	for (Species *species : all_species_)
+		species->SimulationHasFinished();
 }
 
 void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols)
@@ -1809,14 +1909,15 @@ void Community::CollectSLiMguiMemoryUsageProfileInfo(void)
 	
 	TabulateSLiMMemoryUsage_Community(&profile_last_memory_usage_Community, nullptr);
 	
+	for (Species *species : all_species_)
 	{
-		single_species_->TabulateSLiMMemoryUsage_Species(&single_species_->profile_last_memory_usage_Species);
+		species->TabulateSLiMMemoryUsage_Species(&species->profile_last_memory_usage_Species);
 		
 		// Add this tick's usage for this species into its single-species accumulator
-		AccumulateMemoryUsageIntoTotal_Species(single_species_->profile_last_memory_usage_Species, single_species_->profile_total_memory_usage_Species);
+		AccumulateMemoryUsageIntoTotal_Species(species->profile_last_memory_usage_Species, species->profile_total_memory_usage_Species);
 		
 		// Add this tick's usage for this species into this tick's overall species accumulator
-		AccumulateMemoryUsageIntoTotal_Species(single_species_->profile_last_memory_usage_Species, profile_last_memory_usage_AllSpecies);
+		AccumulateMemoryUsageIntoTotal_Species(species->profile_last_memory_usage_Species, profile_last_memory_usage_AllSpecies);
 	}
 	
 	// Add this tick's data into our top-level accumulators
@@ -1863,7 +1964,8 @@ void Community::AllSpecies_TSXC_Enable(void)
 	// This is called by command-line slim if a -TSXC command-line option is supplied; the point of this is to allow
 	// tree-sequence recording to be turned on, with mutation recording and runtime crosschecks, with a simple
 	// command-line flag, so that my existing test suite can be crosschecked easily.  The -TSXC flag is not public.
-	single_species_->TSXC_Enable();
+	for (Species *species : all_species_)
+		species->TSXC_Enable();
 	
 	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
@@ -1873,7 +1975,8 @@ void Community::AllSpecies_TSF_Enable(void)
     // This is called by command-line slim if a -TSF command-line option is supplied; the point of this is to allow
     // tree-sequence recording to be turned on, with mutation recording but without runtime crosschecks, with a simple
     // command-line flag, so that my existing test suite can be tested with tree-seq easily.  -TSF is not public.
-	single_species_->TSF_Enable();
+	for (Species *species : all_species_)
+		species->TSF_Enable();
     
     SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
 }

@@ -376,8 +376,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 // there are better algorithms out there, but this one is simple...
 - (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
 {
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -580,8 +580,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	Community &community = *controller->community;
-	Species &species = *community.single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -757,8 +757,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	if (!controller)
 		return NO;
 	
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	
 	if (sel == @selector(toggleOptimizedPositions:))
 	{

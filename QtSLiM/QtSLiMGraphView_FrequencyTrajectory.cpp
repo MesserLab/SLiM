@@ -97,8 +97,8 @@ void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
 void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
 {
     Community *community = controller_->community;
-    Species *species = community->single_species_;
-    Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Population &population = graphSpecies->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
@@ -114,9 +114,9 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
     
-    if (!species->SubpopulationWithID(selectedSubpopulationID_))
+    if (!graphSpecies->SubpopulationWithID(selectedSubpopulationID_))
         hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-    if (!species->MutationTypeWithIndex(selectedMutationTypeIndex_))
+    if (!graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_))
         hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
     if (!hasSubpop || !hasMuttype)
         return;
@@ -339,13 +339,15 @@ void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 
 QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
         bool hasSubpop = true, hasMuttype = true;
         
-        if (!controller_->community->single_species_->SubpopulationWithID(selectedSubpopulationID_))
+        if (!graphSpecies->SubpopulationWithID(selectedSubpopulationID_))
             hasSubpop = addSubpopulationsToMenu(subpopulationButton_, selectedSubpopulationID_);
-        if (!controller_->community->single_species_->MutationTypeWithIndex(selectedMutationTypeIndex_))
+        if (!graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_))
             hasMuttype = addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
         if (!hasSubpop || !hasMuttype)
             return "no\ndata";

@@ -201,6 +201,7 @@
 
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 
+- (Species *)focalDisplaySpecies;
 - (std::vector<Subpopulation*>)selectedSubpopulations;
 - (void)updatePopulationViewHiding;
 

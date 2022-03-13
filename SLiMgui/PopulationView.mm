@@ -1435,17 +1435,16 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	NSRect bounds = [self bounds];
 	SLiMWindowController *controller = [[self window] windowController];
-	Community *community = controller->community;
-	Species *species = (community ? community->single_species_ : nil);
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];
 	int selectedSubpopCount = (int)(selectedSubpopulations.size());
 	
 	// Decide on our display mode
-	if (!controller->invalidSimulation && community && community->simulation_valid_ && (community->Tick() >= 1) && species)
+	if (displaySpecies && (controller->community->Tick() >= 1))
 	{
 		if (displayMode == -1)
-			displayMode = ((species->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (species->spatial_dimensionality_ == 0))
+			displayMode = ((displaySpecies->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 0))
 			displayMode = 0;
 	}
 	
@@ -1526,13 +1525,13 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			{
 				NSRect tileBounds = tileIter->second;
 				
-				if ((displayMode == 1) && (species->spatial_dimensionality_ == 1))
+				if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 1))
 				{
-					[self drawSpatialBackgroundInBounds:tileBounds forSubpopulation:subpop dimensionality:species->spatial_dimensionality_];
-					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:NSInsetRect(tileBounds, 1, 1) dimensionality:species->spatial_dimensionality_];
+					[self drawSpatialBackgroundInBounds:tileBounds forSubpopulation:subpop dimensionality:displaySpecies->spatial_dimensionality_];
+					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:NSInsetRect(tileBounds, 1, 1) dimensionality:displaySpecies->spatial_dimensionality_];
 					[self drawViewFrameInBounds:tileBounds];
 				}
-				else if ((displayMode == 1) && (species->spatial_dimensionality_ > 1))
+				else if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ > 1))
 				{
 					// clear to a shade of gray
 					glColor3f(0.9f, 0.9f, 0.9f);
@@ -1544,8 +1543,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 					// Now determine a subframe and draw spatial information inside that.
 					NSRect spatialDisplayBounds = [self spatialDisplayBoundsForSubpopulation:subpop tileBounds:tileBounds];
 					
-					[self drawSpatialBackgroundInBounds:spatialDisplayBounds forSubpopulation:subpop dimensionality:species->spatial_dimensionality_];
-					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:species->spatial_dimensionality_];
+					[self drawSpatialBackgroundInBounds:spatialDisplayBounds forSubpopulation:subpop dimensionality:displaySpecies->spatial_dimensionality_];
+					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:displaySpecies->spatial_dimensionality_];
 					[self drawViewFrameInBounds:NSInsetRect(spatialDisplayBounds, -1, -1)];
 				}
 				else	// displayMode == 0
@@ -1581,16 +1580,15 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	NSRect bounds = [self bounds];
 	SLiMWindowController *controller = [[self window] windowController];
-	Community *community = controller->community;
-	Species *species = (community ? controller->community->single_species_ : nil);
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	int selectedSubpopCount = (int)selectedSubpopulations.size();
 	
 	// Decide on our display mode
-	if (!controller->invalidSimulation && community && community->simulation_valid_ && (community->Tick() >= 1) && species)
+	if (displaySpecies && (controller->community->Tick() >= 1))
 	{
 		if (displayMode == -1)
-			displayMode = ((species->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (species->spatial_dimensionality_ == 0))
+			displayMode = ((displaySpecies->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 0))
 			displayMode = 0;
 	}
 	
@@ -1616,11 +1614,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
 		
-		if ((displayMode == 1) && (species->spatial_dimensionality_ == 1))
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 1))
 		{
 			return YES;
 		}
-		else if ((displayMode == 1) && (species->spatial_dimensionality_ > 1))
+		else if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ > 1))
 		{
 			return YES;
 		}
@@ -1831,12 +1829,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	Community *community = controller->community;
-	Species *species = (community ? controller->community->single_species_ : nil);
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation || !species || !community->simulation_valid_ || (community->Tick() < 1))
+	if (!displaySpecies || (controller->community->Tick() < 1))
 		disableAll = true;
 	
 	NSMenu *menu = [[NSMenu alloc] initWithTitle:@"population_menu"];
@@ -1852,7 +1849,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	menuItem = [menu addItemWithTitle:@"Display Individuals (spatial)" action:@selector(setDisplayStyle:) keyEquivalent:@""];
 	[menuItem setTag:1];
 	[menuItem setTarget:self];
-	[menuItem setEnabled:(!disableAll && (species->spatial_dimensionality_ > 0))];
+	[menuItem setEnabled:(!disableAll && (displaySpecies->spatial_dimensionality_ > 0))];
 	
 	menuItem = [menu addItemWithTitle:@"Display Fitness Line Plot (per subpopulation)..." action:@selector(setDisplayStyle:) keyEquivalent:@""];
 	[menuItem setTag:2];
@@ -1872,7 +1869,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	
 	// If we're displaying spatially, provide background options (colors, spatial maps)
-	if (!disableAll && (species->spatial_dimensionality_ > 0) && (displayMode == 1))
+	if (!disableAll && (displaySpecies->spatial_dimensionality_ > 0) && (displayMode == 1))
 	{
 		// determine which subpopulation the click was in
 		std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];

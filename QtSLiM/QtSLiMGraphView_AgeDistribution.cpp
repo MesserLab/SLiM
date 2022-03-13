@@ -143,7 +143,9 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
         if (controller_->community->ModelType() == SLiMModelType::kModelTypeWF)
             return "requires a\nnonWF model";
         
-        if (controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        Species *graphSpecies = controller_->focalDisplaySpecies();
+        
+        if (graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -153,7 +155,8 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -195,7 +198,8 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
 
 QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -223,7 +227,8 @@ bool QtSLiMGraphView_AgeDistribution::providesStringForData(void)
 void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->community->single_species_->sex_enabled_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
 	
     if (ageDist)
@@ -253,8 +258,8 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    Species *species = controller_->community->single_species_;
-    Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

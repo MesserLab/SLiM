@@ -97,8 +97,8 @@ static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, wit
 #pragma mark Species
 #pragma mark -
 
-Species::Species(Community &p_community) : self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Species_Class))),
-    x_experiments_enabled_(false), model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(gStr_sim)
+Species::Species(Community &p_community, slim_objectid_t p_species_id) : self_symbol_(gID_sim, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Species_Class))),
+    x_experiments_enabled_(false), model_type_(p_community.model_type_), community_(p_community), population_(*this), name_(gStr_sim), species_id_(p_species_id)
 {
 #ifdef SLIMGUI
 	// Pedigree recording is always enabled when running under SLiMgui, so that the various graphs all work

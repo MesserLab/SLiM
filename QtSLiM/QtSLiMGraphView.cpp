@@ -1258,8 +1258,8 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
 
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 {
-	Species *species = controller_->community->single_species_;
-	int mutationTypeCount = static_cast<int>(species->mutation_types_.size());
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
@@ -1268,10 +1268,10 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 	QtSLiMLegendSpec legend_key;
 	
 	// first we put in placeholders
-    legend_key.resize(species->mutation_types_.size());
+    legend_key.resize(graphSpecies->mutation_types_.size());
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter : species->mutation_types_)
+	for (auto mutationTypeIter : graphSpecies->mutation_types_)
 	{
 		MutationType *mutationType = mutationTypeIter.second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
@@ -1423,6 +1423,7 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
 
 bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID)
 {
+    Species *graphSpecies = controller_->focalDisplaySpecies();
 	slim_objectid_t firstTag = -1;
     
     // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
@@ -1432,9 +1433,9 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 	// Depopulate and populate the menu
 	subpopButton->clear();
 
-	if (!controller_->invalidSimulation())
+	if (graphSpecies)
 	{
-		Population &population = controller_->community->single_species_->population_;
+		Population &population = graphSpecies->population_;
 		
 		for (auto popIter : population.subpops_)
 		{
@@ -1485,6 +1486,7 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 
 bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex)
 {
+    Species *graphSpecies = controller_->focalDisplaySpecies();
 	int firstTag = -1;
 	
     // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
@@ -1494,9 +1496,9 @@ bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selec
 	// Depopulate and populate the menu
 	mutTypeButton->clear();
 	
-	if (!controller_-> invalidSimulation())
+	if (graphSpecies)
 	{
-		std::map<slim_objectid_t,MutationType*> &mutationTypes = controller_->community->single_species_->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mutationTypes = graphSpecies->mutation_types_;
 		
 		for (auto mutTypeIter : mutationTypes)
 		{
@@ -1548,8 +1550,8 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    Species *species = controller_->community->single_species_;
-	Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &population = graphSpecies->population_;
 	size_t subpop_total_genome_count = 0;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1563,7 +1565,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
             (mut_block_ptr + *registry_iter)->gui_scratch_reference_count_ = 0;
     }
     
-    Subpopulation *subpop = species->SubpopulationWithID(subpop_id);
+    Subpopulation *subpop = graphSpecies->SubpopulationWithID(subpop_id);
     
     if (subpop)	// tally only within our chosen subpop
     {
@@ -1607,8 +1609,8 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    Species *species = controller_->community->single_species_;
-	Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &population = graphSpecies->population_;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     

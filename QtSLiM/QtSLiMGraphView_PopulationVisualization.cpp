@@ -557,9 +557,8 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 
 void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    Community *community = controller_->community;
-    Species *species = community->single_species_;
-	Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	int subpopCount = static_cast<int>(pop.subpops_.size());
 	
 	if (subpopCount == 0)
@@ -735,8 +734,8 @@ void QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions(void)
 void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
 {
     QAction *menuItem = contextMenu.addAction(optimizePositions_ ? "Standard Positions" : "Optimized Positions", this, &QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions);
-    Species *species = controller_->community->single_species_;
-    Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Population &pop = graphSpecies->population_;
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to
     // handle those, and there's no way to revert back after it messes things up, and so forth

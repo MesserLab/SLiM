@@ -109,8 +109,8 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 {
 	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
 	{
-		Species *species = controller_->community->single_species_;
-		Population &pop = species->population_;
+        Species *graphSpecies = controller_->focalDisplaySpecies();
+		Population &pop = graphSpecies->population_;
 		slim_popsize_t maxHistory = 0;
 		bool showSubpops = showSubpopulations_ && (pop.subpop_size_histories_.size() > 2);
 		
@@ -174,8 +174,8 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
 void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
 {
     Community *community = controller_->community;
-    Species *species = community->single_species_;
-	Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
 	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
@@ -254,8 +254,8 @@ void QtSLiMGraphView_PopSizeOverTime::drawPointGraph(QPainter &painter, QRect in
 void QtSLiMGraphView_PopSizeOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
 {
     Community *community = controller_->community;
-    Species *species = community->single_species_;
-	Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
 	// Draw the size history as a line plot
@@ -322,8 +322,8 @@ bool QtSLiMGraphView_PopSizeOverTime::providesStringForData(void)
 void QtSLiMGraphView_PopSizeOverTime::appendStringForData(QString &string)
 {
     Community *community = controller_->community;
-    Species *species = community->single_species_;
-	Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
     // Size history
@@ -358,9 +358,10 @@ QtSLiMLegendSpec QtSLiMGraphView_PopSizeOverTime::legendKey(void)
     if (!showSubpopulations_)
         return QtSLiMLegendSpec();
     
+    Species *graphSpecies = controller_->focalDisplaySpecies();
     std::vector<slim_objectid_t> subpopsToDisplay;
     
-    for (auto history_record_iter : controller_->community->single_species_->population_.subpop_size_histories_)
+    for (auto history_record_iter : graphSpecies->population_.subpop_size_histories_)
         subpopsToDisplay.emplace_back(history_record_iter.first);
 
     return subpopulationLegendKey(subpopsToDisplay, subpopsToDisplay.size() > 8);

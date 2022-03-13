@@ -487,101 +487,228 @@ slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p
 	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);
 }
 
-MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	MutationType *found_muttype = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        MutationType *found_muttype = p_species.MutationTypeWithID(mutation_type_id);
 		
-		if (!found_muttype)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		return found_muttype;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_muttype = p_species->MutationTypeWithID(mutation_type_id);
+			
+			if (!found_muttype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " is not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_muttype = species->MutationTypeWithID(mutation_type_id);
+				
+				if (found_muttype)
+					break;
+			}
+			
+			if (!found_muttype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " is not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_muttype)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a mutation type." << EidosTerminate();
+		
+		if (p_species && (&found_muttype->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << found_muttype->mutation_type_id_ << " is not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_muttype;
 }
 
-GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	GenomicElementType *found_getype = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        GenomicElementType *found_getype = p_species.GenomicElementTypeTypeWithID(getype_id);
 		
-		if (!found_getype)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
-		
-		return found_getype;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_getype = p_species->GenomicElementTypeWithID(getype_id);
+			
+			if (!found_getype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " is not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_getype = species->GenomicElementTypeWithID(getype_id);
+				
+				if (found_getype)
+					break;
+			}
+			
+			if (!found_getype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " is not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_getype)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a genomic element type." << EidosTerminate();
+		
+		if (p_species && (&found_getype->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << found_getype->genomic_element_type_id_ << " is not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_getype;
 }
 
-Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name)
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	Subpopulation *found_subpop = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        Subpopulation *found_subpop = p_species.SubpopulationWithID(source_subpop_id);
 		
-		if (!found_subpop)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
-		
-		return found_subpop;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_subpop = p_species->SubpopulationWithID(source_subpop_id);
+			
+			if (!found_subpop)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " is not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_subpop = species->SubpopulationWithID(source_subpop_id);
+				
+				if (found_subpop)
+					break;
+			}
+			
+			if (!found_subpop)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " is not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_subpop)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a subpopulation." << EidosTerminate();
+		
+		if (p_species && (&found_subpop->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << found_subpop->subpopulation_id_ << " is not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_subpop;
 }
 
-SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community &p_community, const char *p_method_name)
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	SLiMEidosBlock *found_block = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		std::vector<SLiMEidosBlock*> &script_blocks = p_community.AllScriptBlocks();
+		std::vector<SLiMEidosBlock*> &script_blocks = p_community->AllScriptBlocks();
 		
-		for (SLiMEidosBlock *found_block : script_blocks)
-			if (found_block->block_id_ == block_id)
-				return found_block;
+		for (SLiMEidosBlock *temp_found_block : script_blocks)
+			if (temp_found_block->block_id_ == block_id)
+			{
+				found_block = temp_found_block;
+				break;
+			}
 		
-		EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
+		if (!found_block)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_block)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a SLiMEidosBlock." << EidosTerminate();
+		
 	}
+	
+#warning enable this check once script blocks have a designated species
+	//if (p_species && (&found_block->species_ != p_species))
+	//	EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " is not defined in the focal species." << EidosTerminate();
+	
+	return found_block;
+}
+
+Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, Community *p_community, const char *p_method_name)
+{
+	Species *found_species = nullptr;
+	
+	if (p_value->Type() == EidosValueType::kValueNULL)
+	{
+		const std::vector<Species *> &all_species = p_community->AllSpecies();
+		
+		if (all_species.size() == 1)
+			found_species = all_species[0];
+		else
+			EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addPopulationSexRatio): addPopulationSexRatio() requires a species to be supplied in multispecies models." << EidosTerminate();
+	}
+	else
+	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
+		found_species = dynamic_cast<Species *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		found_species = (Species *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
+		
+		if (!found_species)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSpeciesFromEidosValue_No): (internal error) " << p_method_name << " was passed an object that is not a Species." << EidosTerminate();
+	}
+	
+	return found_species;
 }
 
 

@@ -57,9 +57,10 @@
 - (double *)lossTimeDataWithController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->community->single_species_->mutation_types_.size();
-	slim_tick_t *histogram = controller->community->single_species_->population_.mutation_loss_times_;
-	int64_t histogramBins = (int64_t)controller->community->single_species_->population_.mutation_loss_tick_slots_;	// fewer than binCount * mutationTypeCount may exist
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
+	slim_tick_t *histogram = displaySpecies->population_.mutation_loss_times_;
+	int64_t histogramBins = (int64_t)displaySpecies->population_.mutation_loss_tick_slots_;	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = NULL;
 	static uint32_t rebinBins = 0;
 	uint32_t usedRebinBins = binCount * mutationTypeCount;
@@ -110,9 +111,10 @@
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	double *plotData = [self lossTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->community->single_species_->mutation_types_.size();
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
 	// plot our histogram bars
 	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:plotData subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:10.0];
@@ -130,12 +132,12 @@
 	[string appendString:[self dateline]];
 	[string appendString:@"\n\n"];
 	
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	double *plotData = [self lossTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
-	Species &species = *controller->community->single_species_;
-	int mutationTypeCount = (int)species.mutation_types_.size();
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
-	for (auto mutationTypeIter = species.mutation_types_.begin(); mutationTypeIter != species.mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

@@ -40,9 +40,10 @@ QtSLiMPopulationTableModel::~QtSLiMPopulationTableModel()
 int QtSLiMPopulationTableModel::rowCount(const QModelIndex & /* parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->community->single_species_->population_.subpops_.size());
+    if (displaySpecies)
+        return static_cast<int>(displaySpecies->population_.subpops_.size());
     
     return 0;
 }
@@ -58,15 +59,15 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (!controller || controller->invalidSimulation())
+    if (!displaySpecies)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
         Community *community = controller->community;
-        Species *species = community->single_species_;
-        Population &population = species->population_;
+        Population &population = displaySpecies->population_;
         int subpopCount = static_cast<int>(population.subpops_.size());
         
         if (p_index.row() < subpopCount)

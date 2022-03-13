@@ -22,6 +22,7 @@
 #include "slim_globals.h"
 #include "community.h"
 #include "species.h"
+#include "subpopulation.h"
 #include "genome.h"
 #include "mutation.h"
 #include "mutation_type.h"
@@ -1264,6 +1265,9 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	Individual *singleton_ind = nullptr;
 	Individual **individuals_buffer = nullptr;
 	
+	if (individuals_count == 0)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() cannot be called with a zero-length individuals vector, because the focal species, and thus the spatial dimensionality, cannot be determined." << EidosTerminate();
+	
 	if (individuals_count == 1)
 	{
 		singleton_ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
@@ -1274,27 +1278,26 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		individuals_buffer = (Individual **)((EidosValue_Object_vector *)individuals_value)->data();
 	}
 	
-	if (individuals_count > 0)
+	// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
+	// We use the first individual in the buffer as a test subject, rather than nullptr, to make UBSan happy
+	static bool beenHere = false;
+	
+	if (!beenHere)
 	{
-		static bool beenHere = false;
+		Individual *test_ind_layout = individuals_buffer[0];
+	
+		if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||
+			((&(test_ind_layout->spatial_x_)) + 2 != (&(test_ind_layout->spatial_z_))))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) Individual ivar layout unexpected." << EidosTerminate();
 		
-		if (!beenHere)
-		{
-			// This very weird code tests that the layout of ivars inside Individual is what we expect it to be below
-			// We use the first individual in the buffer as a test subject, rather than nullptr, to make UBSan happy
-			Individual *test_ind_layout = individuals_buffer[0];
-		
-			if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||
-				((&(test_ind_layout->spatial_x_)) + 2 != (&(test_ind_layout->spatial_z_))))
-				EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): (internal error) Individual ivar layout unexpected." << EidosTerminate();
-			
-			beenHere = true;
-		}
+		beenHere = true;
 	}
 	
 	// Get the model's dimensionality, which will be context for everything we do below
-	Community &community = SLiM_GetCommunityFromInterpreter(p_interpreter);
-	int spatial_dimensionality = community.single_species_->SpatialDimensionality();
+#warning need to test that individuals are from the same species
+	Species &species = (*individuals_buffer)->subpopulation_->species_;
+	Community &community = species.community_;
+	int spatial_dimensionality = species.SpatialDimensionality();
 	
 	if (spatial_dimensionality <= 0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() can only be called in spatial models, since it summarizes spatially-partitioned information." << EidosTerminate();

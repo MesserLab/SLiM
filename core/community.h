@@ -119,6 +119,9 @@ public:
 private:
 #endif
 	
+	std::vector<Species *>all_species_;												// a vector of the species being simulated, in declaration order
+	Species *active_species_ = nullptr;												// the species presently executing; currently used only for initialize() callback dispatch
+	
 	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
 	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
@@ -145,9 +148,6 @@ public:
 	
 	bool model_type_explicit_ = false;												// true if the model type has been explicitly declared
 	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
-	
-	// TEMPORARILY PUBLIC, TO GET THINGS TO COMPILE
-	Species *single_species_ = nullptr;												// the species being simulated; will become a std::vector or some such
 	
 	// warning flags; used to issue warnings only once per run of the simulation
 	bool warned_early_mutation_add_ = false;
@@ -198,7 +198,12 @@ public:
 	void CheckScheduling(slim_tick_t p_target_tick, SLiMGenerationStage p_target_stage);
 	
 	// Managing resources shared across the community
-	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);
+	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);							// not whether a SLiM subpop with this ID currently exists, but whether the ID is "in use"
+	
+	Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id);
+	MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id);
+	GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id);
+	InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id);
 	
 	// Running ticks
 	bool RunOneTick(void);															// run one tick and advance the tick count; returns false if finished
@@ -220,6 +225,7 @@ public:
 #endif
 	
 	// accessors
+	inline __attribute__((always_inline)) const std::vector<Species *> &AllSpecies(void)									{ return all_species_; }
 	inline __attribute__((always_inline)) EidosSymbolTable &SymbolTable(void) const											{ return *simulation_constants_; }
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void)												{ return simulation_functions_; }
 	
@@ -301,11 +307,6 @@ public:
 	EidosValue_SP ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };

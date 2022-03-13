@@ -581,7 +581,9 @@
 - (void)updateTickCounter
 {
 	//NSLog(@"updating after tick %d, tickTextField %p", community->tick_, tickTextField);
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (community->tick_ == 0)
 		{
@@ -591,7 +593,7 @@
 		else
 		{
 			[tickTextField setIntegerValue:community->tick_];
-			[generationTextField setIntegerValue:community->single_species_->generation_];
+			[generationTextField setIntegerValue:displaySpecies->generation_];
 		}
 	}
 	else
@@ -661,7 +663,7 @@
 	[self checkForSimulationTermination];
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	bool invalid = [self invalidSimulation];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	
 	if (fullUpdate)
 	{
@@ -675,13 +677,13 @@
 		reloadingSubpopTableview = YES;
 		[subpopTableView reloadData];
 		
-		if (invalid || !community)
+		if (!displaySpecies)
 		{
 			[subpopTableView deselectAll:nil];
 		}
 		else
 		{
-			Population &population = community->single_species_->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			auto popIter = population.subpops_.begin();
 			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
@@ -711,7 +713,7 @@
 		[self updateTickCounter];
 	
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	if (invalid || community->mutation_types_changed_)
+	if (!displaySpecies || community->mutation_types_changed_)
 	{
 		[mutTypeTableView reloadData];
 		[mutTypeTableView setNeedsDisplay];
@@ -720,7 +722,7 @@
 			community->mutation_types_changed_ = false;
 	}
 	
-	if (invalid || community->genomic_element_types_changed_)
+	if (!displaySpecies || community->genomic_element_types_changed_)
 	{
 		[genomicElementTypeTableView reloadData];
 		[genomicElementTypeTableView setNeedsDisplay];
@@ -729,7 +731,7 @@
 			community->genomic_element_types_changed_ = false;
 	}
 	
-	if (invalid || community->interaction_types_changed_)
+	if (!displaySpecies || community->interaction_types_changed_)
 	{
 		[interactionTypeTableView reloadData];
 		[interactionTypeTableView setNeedsDisplay];
@@ -738,7 +740,7 @@
 			community->interaction_types_changed_ = false;
 	}
 	
-	if (invalid || community->scripts_changed_)
+	if (!displaySpecies || community->scripts_changed_)
 	{
 		[scriptBlocksTableView reloadData];
 		[scriptBlocksTableView setNeedsDisplay];
@@ -747,7 +749,7 @@
 			community->scripts_changed_ = false;
 	}
 	
-	if (invalid || community->chromosome_changed_)
+	if (!displaySpecies || community->chromosome_changed_)
 	{
 		[chromosomeOverview restoreLastSelection];
 		[chromosomeOverview setNeedsDisplay:YES];
@@ -898,13 +900,29 @@
 	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
 }
 
+- (Species *)focalDisplaySpecies
+{
+	// SLiMguiLegacy does not provides multispecies-aware UI at this time.  Instead, it always presents the first declared species.
+	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
+	if (![self invalidSimulation] && community && community->simulation_valid_)
+	{
+		const std::vector<Species *> &all_species = community->AllSpecies();
+		
+		if (all_species.size() >= 1)
+			return all_species[0];
+	}
+	
+	return nil;
+}
+
 - (std::vector<Subpopulation*>)selectedSubpopulations
 {
+	Species *displaySpecies = [self focalDisplaySpecies];
 	std::vector<Subpopulation*> selectedSubpops;
 	
-	if (![self invalidSimulation] && community)
+	if (displaySpecies)
 	{
-		Population &population = community->single_species_->population_;
+		Population &population = displaySpecies->population_;
 		int subpopCount = (int)population.subpops_.size();
 		auto popIter = population.subpops_.begin();
 		
@@ -980,7 +998,15 @@
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphHaplotypes:))
-		return (!invalidSimulation && community && (community->Tick() > 1) && community->single_species_ && (community->single_species_->population_.subpops_.size() > 0));	// must be past initialize() and have subpops
+	{
+		// must be past initialize() and have subpops
+		if (invalidSimulation || !community || (community->Tick() <= 1))
+			return NO;
+		
+		Species *displaySpecies = [self focalDisplaySpecies];
+		
+		return (displaySpecies && (displaySpecies->population_.subpops_.size() > 0));	
+	}
 	
 	if (sel == @selector(checkScript:))
 		return !(continuousPlayOn || tickPlayOn);
@@ -1738,9 +1764,8 @@ static int DisplayDigitsForIntegerPart(double x)
 	//
 	//	MutationRun metrics, presented per Species
 	//
+	for (Species *focal_species : community->all_species_)
 	{
-		Species *focal_species = community->single_species_;
-		
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
 		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
 		
@@ -2138,7 +2163,8 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 	// call this first, purely for its side effect of emptying out any pending profile counts
 	// note that the accumulators governed by this method get zeroed out down below
-	community->single_species_->CollectSLiMguiMutationProfileInfo();
+	for (Species *focal_species : community->all_species_)
+		focal_species->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
 	for (int i = 0; i < 9; ++i)
@@ -2179,9 +2205,8 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
+	for (Species *focal_species : community->all_species_)
 	{
-		Species *focal_species = community->single_species_;
-		
 		focal_species->profile_mutcount_history_.clear();
 		focal_species->profile_nonneutral_regime_history_.clear();
 		focal_species->profile_mutation_total_usage_ = 0;
@@ -2904,21 +2929,22 @@ static int DisplayDigitsForIntegerPart(double x)
 	try
 	{
 		// BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
-		slim_tick_t species_generation = community->single_species_->Generation();
+		Species *displaySpecies = [self focalDisplaySpecies];
+		slim_tick_t species_generation = displaySpecies->Generation();
 		
 		// dump the population
 		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " A" << std::endl;
-		community->single_species_->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (unsigned int i = 0; i < community->single_species_->population_.substitutions_.size(); i++)
+		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			community->single_species_->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -3098,10 +3124,11 @@ static int DisplayDigitsForIntegerPart(double x)
 //				outstring << input_parameters[i] << std::endl;
 			
 			// BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
-			slim_tick_t species_generation = community->single_species_->Generation();
+			Species *displaySpecies = [self focalDisplaySpecies];
+			slim_tick_t species_generation = displaySpecies->Generation();
 			
 			outstring << "#OUT: " << community->tick_ << " " << species_generation << " A " << std::endl;
-			community->single_species_->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
+			displaySpecies->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
 			
 			std::string &&population_dump = outstring.str();
 			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];
@@ -4332,13 +4359,15 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (void)tableViewSelectionDidChange:(NSNotification *)aNotification
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		NSTableView *aTableView = [aNotification object];
 		
 		if (aTableView == subpopTableView && !reloadingSubpopTableview)		// see comment in -updateAfterTick after reloadingSubpopTableview
 		{
-			Population &population = community->single_species_->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			auto popIter = population.subpops_.begin();
 			bool all_selected = true;
@@ -4377,23 +4406,25 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)aTableView
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == subpopTableView)
 		{
-			return community->single_species_->population_.subpops_.size();
+			return displaySpecies->population_.subpops_.size();
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			return community->single_species_->mutation_types_.size();
+			return displaySpecies->mutation_types_.size();
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			return community->single_species_->genomic_element_types_.size();
+			return displaySpecies->genomic_element_types_.size();
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			return community->single_species_->interaction_types_.size();
+			return displaySpecies->interaction_types_.size();
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
@@ -4406,11 +4437,13 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (id)tableView:(NSTableView *)aTableView objectValueForTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
 {
-	if (!invalidSimulation && community)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == subpopTableView)
 		{
-			Population &population = community->single_species_->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			
 			if (rowIndex < subpopCount)
@@ -4489,7 +4522,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = community->single_species_->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -4568,7 +4601,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = community->single_species_->genomic_element_types_;
+			std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = displaySpecies->genomic_element_types_;
 			int genomicElementTypeCount = (int)genomicElementTypes.size();
 			
 			if (rowIndex < genomicElementTypeCount)
@@ -4608,7 +4641,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->single_species_->interaction_types_;
+			std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)
@@ -4742,7 +4775,9 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (NSString *)tableView:(NSTableView *)aTableView toolTipForCell:(NSCell *)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex mouseLocation:(NSPoint)mouseLocation
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == scriptBlocksTableView)
 		{
@@ -4765,7 +4800,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = community->single_species_->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -4806,7 +4841,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->single_species_->interaction_types_;
+			std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)

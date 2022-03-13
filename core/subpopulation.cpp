@@ -5019,7 +5019,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
-		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, species_, "setMigrationRates()");
+		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");	// checks species match
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)

@@ -495,9 +495,10 @@ QtSLiMMutTypeTableModel::~QtSLiMMutTypeTableModel()
 int QtSLiMMutTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->community->single_species_->mutation_types_.size());
+    if (displaySpecies)
+        return static_cast<int>(displaySpecies->mutation_types_.size());
     
     return 0;
 }
@@ -513,14 +514,14 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (!controller || controller->invalidSimulation())
+    if (!displaySpecies)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
-        Species *species = controller->community->single_species_;
-        std::map<slim_objectid_t,MutationType*> &mutationTypes = species->mutation_types_;
+        std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
         int mutationTypeCount = static_cast<int>(mutationTypes.size());
         
         if (p_index.row() < mutationTypeCount)
@@ -598,8 +599,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
     }
     else if (role == Qt::ToolTipRole)
     {
-        Species *species = controller->community->single_species_;
-        std::map<slim_objectid_t,MutationType*> &mutationTypes = species->mutation_types_;
+        std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
         int mutationTypeCount = static_cast<int>(mutationTypes.size());
         
         if (p_index.row() < mutationTypeCount)
@@ -699,9 +699,10 @@ QtSLiMGETypeTypeTableModel::~QtSLiMGETypeTypeTableModel()
 int QtSLiMGETypeTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->community->single_species_->genomic_element_types_.size());
+    if (!displaySpecies)
+        return static_cast<int>(displaySpecies->genomic_element_types_.size());
     
     return 0;
 }
@@ -717,14 +718,14 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &p_index, int role) 
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (!controller || controller->invalidSimulation())
+    if (!displaySpecies)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
-        Species *species = controller->community->single_species_;
-        std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = species->genomic_element_types_;
+        std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = displaySpecies->genomic_element_types_;
         int genomicElementTypeCount = static_cast<int>(genomicElementTypes.size());
         
         if (p_index.row() < genomicElementTypeCount)
@@ -839,9 +840,10 @@ QtSLiMInteractionTypeTableModel::~QtSLiMInteractionTypeTableModel()
 int QtSLiMInteractionTypeTableModel::rowCount(const QModelIndex & /* p_parent */) const
 {
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->community->single_species_->interaction_types_.size());
+    if (displaySpecies)
+        return static_cast<int>(displaySpecies->interaction_types_.size());
     
     return 0;
 }
@@ -857,14 +859,14 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Species *displaySpecies = controller->focalDisplaySpecies();
     
-    if (!controller || controller->invalidSimulation())
+    if (!displaySpecies)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
-        Species *species = controller->community->single_species_;
-        std::map<slim_objectid_t,InteractionType*> &interactionTypes = species->interaction_types_;
+        std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
         int interactionTypeCount = static_cast<int>(interactionTypes.size());
         
         if (p_index.row() < interactionTypeCount)
@@ -924,8 +926,7 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
     }
     else if (role == Qt::ToolTipRole)
     {
-        Species *species = controller->community->single_species_;
-        std::map<slim_objectid_t,InteractionType*> &interactionTypes = species->interaction_types_;
+        std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
         int interactionTypeCount = static_cast<int>(interactionTypes.size());
         
         if (p_index.row() < interactionTypeCount)

@@ -144,8 +144,8 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     controller_ = controller;
     
     Community *community = controller_->community;
-    Species *species = community->single_species_;
-    Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Population &population = graphSpecies->population_;
     
     clusterMethod = clusteringMethod;
     clusterOptimization = optimizationMethod;
@@ -295,8 +295,8 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 {
-    Species *species = controller_->community->single_species_;
-	Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+	Population &population = graphSpecies->population_;
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
@@ -348,7 +348,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = species->chromosome_->last_position_;
+	mutationLastPosition = graphSpecies->chromosome_->last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortGenomes(void)

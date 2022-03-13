@@ -245,10 +245,16 @@ inline __attribute__((always_inline)) slim_usertag_t SLiMClampToUsertagType(int6
 
 Community &SLiM_GetCommunityFromInterpreter(EidosInterpreter &p_interpreter);
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char);
-MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name);
-GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name);
-Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Species &p_species, const char *p_method_name);
-SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community &p_community, const char *p_method_name);
+
+// These take both a Community and a Species.  If the species is non-nullptr, the lookup is done in that species
+// and the community is not used (and may be nullptr).  If the species is nullptr, the lookup is in the community,
+// and an object in any species will be found.  So: supply a species if you want a species-specific search.
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name);
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name);
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name);
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name);
+
+Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, Community *p_community, const char *p_method_name);		// NULL tries for a single-species default
 
 
 // *******************************************************************************************************************

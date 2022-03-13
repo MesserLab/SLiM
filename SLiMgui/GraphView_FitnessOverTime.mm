@@ -96,11 +96,11 @@
 - (void)updateAfterTick
 {
 	SLiMWindowController *controller = [self slimWindowController];
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	
-	if (![controller invalidSimulation] && ![self yAxisIsUserRescaled])
+	if (displaySpecies && ![self yAxisIsUserRescaled])
 	{
-		Species &species = *controller->community->single_species_;
-		Population &pop = species.population_;
+		Population &pop = displaySpecies->population_;
 		double minHistory = INFINITY;
 		double maxHistory = -INFINITY;
 		BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -160,8 +160,8 @@
 
 - (void)drawPointGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
@@ -280,8 +280,8 @@
 
 - (void)drawLineGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	// Draw fixation events
@@ -392,8 +392,8 @@
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
 {
 	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ tick\n"];
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	[string appendString:[self dateline]];
@@ -460,8 +460,8 @@
 - (NSArray *)legendKey
 {
 	SLiMWindowController *controller = [self slimWindowController];
-	Species &species = *controller->community->single_species_;
-	Population &pop = species.population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
 	

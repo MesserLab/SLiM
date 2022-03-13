@@ -328,6 +328,7 @@ public:
 
 	std::string name_;							// the `name` property; "sim" by default, configurable in script (not by setting the property)
 	std::string description_;					// the `description` property; the empty string by default
+	slim_objectid_t species_id_;				// the identifier for the species, which its index into the Community's species vector
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
 	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
@@ -347,7 +348,7 @@ public:
 	
 	Species(const Species&) = delete;											// no copying
 	Species& operator=(const Species&) = delete;								// no copying
-	explicit Species(Community &p_community);									// construct a Species from a community
+	Species(Community &p_community, slim_objectid_t p_species_id);				// construct a Species from a community
 	~Species(void);																// destructor
 	
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);		// used by outputUsage() and SLiMgui profiling
@@ -419,7 +420,7 @@ public:
 		return nullptr;
 	}
 #endif
-	inline GenomicElementType *GenomicElementTypeTypeWithID(slim_objectid_t p_getype_id) {
+	inline GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id) {
 		auto id_iter = genomic_element_types_.find(p_getype_id);
 		return (id_iter == genomic_element_types_.end()) ? nullptr : id_iter->second;
 	}
@@ -549,6 +550,11 @@ public:
 	EidosValue_SP ExecuteMethod_outputMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

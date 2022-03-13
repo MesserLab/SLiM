@@ -81,8 +81,8 @@ double *QtSLiMGraphView_PopFitnessDist::populationFitnessData(void)
 		bins[i] = 0.0;
 	
     // bin fitness values from across the population
-    Species *species = controller_->community->single_species_;
-    Population &pop = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Population &pop = graphSpecies->population_;
     
     for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : pop.subpops_)
     {

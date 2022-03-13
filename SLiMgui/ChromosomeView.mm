@@ -219,7 +219,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	else
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+		Species *displaySpecies = [controller focalDisplaySpecies];
+		Chromosome &chromosome = displaySpecies->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -294,7 +295,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	else
 	{
 		SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-		Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+		Species *displaySpecies = [controller focalDisplaySpecies];
+		Chromosome &chromosome = displaySpecies->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
 		return NSMakeRange(0, chromosomeLastPosition + 1);	// chromosomeLastPosition + 1 bases are encompassed
@@ -422,7 +424,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	CGFloat previousIntervalLeftEdge = -10000;
 	
 	for (GenomicElement *genomicElement : chromosome.GenomicElements())
@@ -462,7 +465,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawGenomicElementsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	CGFloat previousIntervalLeftEdge = -10000;
 	
 	SLIM_GL_PREPARE();
@@ -679,7 +683,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -702,7 +707,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawRecombinationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
@@ -727,7 +733,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -750,7 +757,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawMutationIntervalsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
@@ -775,7 +783,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)drawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	BOOL recombinationWorthShowing = NO;
 	BOOL mutationWorthShowing = NO;
 	
@@ -815,7 +824,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 
 - (void)glDrawRateMapsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
-	Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
 	BOOL recombinationWorthShowing = NO;
 	BOOL mutationWorthShowing = NO;
 	
@@ -859,9 +869,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)drawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-	Species *species = controller->community->single_species_;
-	Population &pop = species->population_;
-	Chromosome &chromosome = species->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
+	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	
 	float colorRed = 0.2f, colorGreen = 0.2f, colorBlue = 1.0f;
@@ -988,9 +998,9 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)glDrawFixedSubstitutionsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-	Species *species = controller->community->single_species_;
-	Population &pop = species->population_;
-	Chromosome &chromosome = species->TheChromosome();
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Chromosome &chromosome = displaySpecies->TheChromosome();
+	Population &pop = displaySpecies->population_;
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
@@ -1137,11 +1147,11 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (controller)
 	{
-		Species *species = controller->community->single_species_;
+		Species *displaySpecies = [controller focalDisplaySpecies];
 		
-		if (species)
+		if (displaySpecies)
 		{
-			std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
 			
 			for (auto muttype_iter : muttypes)
 			{
@@ -1165,8 +1175,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)drawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-	Species *species = controller->community->single_species_;
-	Population &pop = species->population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
@@ -1221,7 +1231,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
 		
 		// Then loop through the declared mutation types
-		for (auto mutationTypeIter : controller->community->single_species_->mutation_types_)
+		for (auto mutationTypeIter : displaySpecies->mutation_types_)
 		{
 			MutationType *mut_type = mutationTypeIter.second;
 			
@@ -1387,8 +1397,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)glDrawMutationsInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-	Species *species = controller->community->single_species_;
-	Population &pop = species->population_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
 	int registry_size;
 	const MutationIndex *registry = pop.MutationRegistry(&registry_size);
@@ -1450,7 +1460,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		//	mutations[mutIndex]->gui_scratch_reference_count_ = 0;
 		
 		// Then loop through the declared mutation types
-		std::map<slim_objectid_t,MutationType*> &mut_types = controller->community->single_species_->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &mut_types = displaySpecies->mutation_types_;
 		bool draw_muttypes_sequentially = (mut_types.size() <= 20);	// with a lot of mutation types, the algorithm below becomes very inefficient
 		
 		for (auto mutationTypeIter = mut_types.begin(); mutationTypeIter != mut_types.end(); ++mutationTypeIter)
@@ -1846,7 +1856,8 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)mouseDown:(NSEvent *)theEvent
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-	bool ready = ([self isSelectable] && [self enabled] && ![controller invalidSimulation]);
+	Species *displaySpecies = [controller focalDisplaySpecies];
+	bool ready = ([self isSelectable] && [self enabled] && displaySpecies);
 	
 	// if the simulation is at tick 0, it is not ready
 	if (ready)
@@ -1870,7 +1881,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 			{
 				slim_position_t clickedBase = [self baseForPosition:curPoint.x interiorRect:interiorRect displayedRange:displayedRange];
 				NSRange selectionRange = NSMakeRange(0, 0);
-				Chromosome &chromosome = controller->community->single_species_->TheChromosome();
+				Chromosome &chromosome = displaySpecies->TheChromosome();
 				
 				for (GenomicElement *genomicElement : chromosome.GenomicElements())
 				{
@@ -2110,13 +2121,13 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (IBAction)filterNonNeutral:(id)sender
 {
 	SLiMWindowController *controller = (SLiMWindowController *)[[self window] windowController];
-	Species *species = controller->community->single_species_;
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	
-	if (species)
+	if (displaySpecies)
 	{
 		display_muttypes_.clear();
 		
-		std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
+		std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
 		
 		for (auto muttype_iter : muttypes)
 		{
@@ -2137,11 +2148,11 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	
 	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && ![self isSelectable] && [self enabled])
 	{
-		Species *species = controller->community->single_species_;
+		Species *displaySpecies = [controller focalDisplaySpecies];
 		
-		if (species)
+		if (displaySpecies)
 		{
-			std::map<slim_objectid_t,MutationType*> &muttypes = species->mutation_types_;
+			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
 			
 			if (muttypes.size() > 0)
 			{

@@ -165,11 +165,13 @@ void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
 
 QString QtSLiMGraphView_2DPopulationSFS::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
-        Subpopulation *subpop1 = controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation1ID_);
-        Subpopulation *subpop2 = controller_->community->single_species_->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = controller_->community->single_species_->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+        Subpopulation *subpop2 = graphSpecies->SubpopulationWithID(selectedSubpopulation2ID_);
+        MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return "no\ndata";
@@ -211,16 +213,16 @@ void QtSLiMGraphView_2DPopulationSFS::appendStringForData(QString &string)
 
 double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 {
-    Species *species = controller_->community->single_species_;
-    Population &population = species->population_;
+    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Population &population = graphSpecies->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
     
     // Find our subpops and mutation type
-    Subpopulation *subpop1 = species->SubpopulationWithID(selectedSubpopulation1ID_);
-    Subpopulation *subpop2 = species->SubpopulationWithID(selectedSubpopulation2ID_);
-    MutationType *muttype = species->MutationTypeWithIndex(selectedMutationTypeIndex_);
+    Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+    Subpopulation *subpop2 = graphSpecies->SubpopulationWithID(selectedSubpopulation2ID_);
+    MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
     
     if (!subpop1 || !subpop2 || !muttype)
 		return nullptr;

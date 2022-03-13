@@ -1175,11 +1175,12 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
 
 std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 {
+    Species *displaySpecies = focalDisplaySpecies();
     std::vector<Subpopulation*> selectedSubpops;
 	
-	if (!invalidSimulation() && community && community->single_species_)
+	if (displaySpecies)
 	{
-		Population &population = community->single_species_->population_;
+		Population &population = displaySpecies->population_;
         
         for (auto popIter : population.subpops_)
 		{
@@ -1388,6 +1389,21 @@ void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
     startNewSimulationFromScript();
 }
 
+Species *QtSLiMWindow::focalDisplaySpecies(void)
+{
+    // SLiMgui focuses on one species at a time in its main window display; this method should be called to obtain that species.
+	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
+	if (!invalidSimulation_ && community && community->simulation_valid_)
+	{
+		const std::vector<Species *> &all_species = community->AllSpecies();
+		
+		if (all_species.size() >= 1)
+			return all_species[0];
+	}
+	
+	return nullptr;
+}
+
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
 {
     if (p_window)
@@ -1550,7 +1566,9 @@ void QtSLiMWindow::handleDebugButtonFlash(void)
 
 void QtSLiMWindow::updateTickCounter(void)
 {
-    if (!invalidSimulation_)
+    Species *displaySpecies = focalDisplaySpecies();
+    
+    if (displaySpecies)
 	{
 		if (community->Tick() == 0)
         {
@@ -1560,7 +1578,7 @@ void QtSLiMWindow::updateTickCounter(void)
 		else
         {
             ui->tickLineEdit->setText(QString::number(community->Tick()));
-            ui->generationLineEdit->setText(QString::number(community->single_species_->Generation()));
+            ui->generationLineEdit->setText(QString::number(displaySpecies->Generation()));
         }
 	}
 	else
@@ -1590,7 +1608,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	checkForSimulationTermination();
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	bool invalid = invalidSimulation();
+    Species *displaySpecies = focalDisplaySpecies();
 	
 	if (fullUpdate)
 	{
@@ -1604,7 +1622,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		reloadingSubpopTableview = true;
         populationTableModel_->reloadTable();
 		
-		if (invalid || !community || !community->single_species_)
+		if (!displaySpecies)
 		{
             ui->subpopTableView->selectionModel()->clear();
 		}
@@ -1612,7 +1630,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		{
             ui->subpopTableView->selectionModel()->reset();
             
-			Population &population = community->single_species_->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = static_cast<int>(population.subpops_.size());
 			auto popIter = population.subpops_.begin();
 			
@@ -1651,10 +1669,10 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>"
                                        : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>");
             
-            if (community && community->single_species_)
+            if (displaySpecies)
             {
                 int registry_size;
-                community->single_species_->population_.MutationRegistry(&registry_size);
+                displaySpecies->population_.MutationRegistry(&registry_size);
                 
                 // Tally up usage across the simulation
                 SLiMMemoryUsage_Community usage_community;
@@ -1662,12 +1680,12 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                 
                 EIDOS_BZERO(&usage_all_species, sizeof(SLiMMemoryUsage_Species));
                 
-                community-> TabulateSLiMMemoryUsage_Community(&usage_community, nullptr);
+                community->TabulateSLiMMemoryUsage_Community(&usage_community, nullptr);
                 
                 {
                     SLiMMemoryUsage_Species usage_one_species;
                     
-                    community->single_species_->TabulateSLiMMemoryUsage_Species(&usage_one_species);
+                    displaySpecies->TabulateSLiMMemoryUsage_Species(&usage_one_species);
                     AccumulateMemoryUsageIntoTotal_Species(usage_one_species, usage_all_species);
                 }
                 
@@ -1676,7 +1694,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
                                            .arg(current_memory_MB, 0, 'f', 1)
                                            .arg(registry_size)
-                                           .arg(community->single_species_->population_.substitutions_.size()));
+                                           .arg(displaySpecies->population_.substitutions_.size()));
             }
             else
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6));
@@ -1684,7 +1702,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
     
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	if (invalid || community->mutation_types_changed_)
+	if (!displaySpecies || community->mutation_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->mutTypeTableModel_)
             tablesDrawerController->mutTypeTableModel_->reloadTable();
@@ -1693,7 +1711,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			community->mutation_types_changed_ = false;
 	}
 	
-	if (invalid || community->genomic_element_types_changed_)
+	if (!displaySpecies || community->genomic_element_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->geTypeTableModel_)
             tablesDrawerController->geTypeTableModel_->reloadTable();
@@ -1702,7 +1720,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			community->genomic_element_types_changed_ = false;
 	}
 	
-	if (invalid || community->interaction_types_changed_)
+	if (!displaySpecies || community->interaction_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->interactionTypeTableModel_)
             tablesDrawerController->interactionTypeTableModel_->reloadTable();
@@ -1711,7 +1729,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			community->interaction_types_changed_ = false;
 	}
 	
-	if (invalid || community->scripts_changed_)
+	if (!displaySpecies || community->scripts_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->eidosBlockTableModel_)
             tablesDrawerController->eidosBlockTableModel_->reloadTable();
@@ -1720,7 +1738,7 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			community->scripts_changed_ = false;
 	}
 	
-	if (invalid || community->chromosome_changed_)
+	if (!displaySpecies || community->chromosome_changed_)
 	{
 		ui->chromosomeOverview->restoreLastSelection();
 		ui->chromosomeOverview->update();
@@ -1848,7 +1866,9 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     
     // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
     bool graphItemsEnabled = !invalidSimulation_;
-    bool haplotypePlotEnabled = !invalidSimulation_ && !continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size();
+    
+    Species *displaySpecies = focalDisplaySpecies();
+    bool haplotypePlotEnabled = displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size();
     
     //ui->menuGraph->setEnabled(graphItemsEnabled);
     ui->actionGraph_1D_Population_SFS->setEnabled(graphItemsEnabled);
@@ -2734,9 +2754,8 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	//	MutationRun metrics, presented per Species
 	//
+    for (Species *focal_species : community->all_species_)
 	{
-        Species *focal_species = community->single_species_;
-        
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
 		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
 		
@@ -3100,7 +3119,8 @@ void QtSLiMWindow::startProfiling(void)
 	
     // call this first, purely for its side effect of emptying out any pending profile counts
 	// note that the accumulators governed by this method get zeroed out down below
-	community->single_species_->CollectSLiMguiMutationProfileInfo();
+    for (Species *species : community->all_species_)
+        species->CollectSLiMguiMutationProfileInfo();
 	
 	// zero out profile counts for generation stages
     for (int i = 0; i < 9; ++i)
@@ -3141,8 +3161,9 @@ void QtSLiMWindow::startProfiling(void)
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
     // zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
+    for (Species *species : community->all_species_)
     {
-        Species *focal_species = community->single_species_;
+        Species *focal_species = species;
         
         focal_species->profile_mutcount_history_.clear();
         focal_species->profile_nonneutral_regime_history_.clear();
@@ -4185,21 +4206,22 @@ void QtSLiMWindow::dumpPopulationClicked(void)
     try
 	{
         // BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
-		slim_tick_t species_generation = community->single_species_->Generation();
+        Species *displaySpecies = focalDisplaySpecies();
+		slim_tick_t species_generation = displaySpecies->Generation();
         
 		// dump the population
 		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " A" << std::endl;
-		community->single_species_->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (unsigned int i = 0; i < community->single_species_->population_.substitutions_.size(); i++)
+		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			community->single_species_->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -4250,7 +4272,9 @@ void QtSLiMWindow::displayGraphClicked(void)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == ui->actionCreate_Haplotype_Plot)
         {
-            if (!continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size())
+            Species *displaySpecies = focalDisplaySpecies();
+            
+            if (displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4677,7 +4701,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size());
+    Species *displaySpecies = focalDisplaySpecies();
+    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -4717,7 +4742,9 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == createHaplotypePlot)
         {
-            if (!continuousPlayOn_ && community && community->simulation_valid_ && community->single_species_ && community->single_species_->population_.subpops_.size())
+            displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
+            
+            if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4775,7 +4802,8 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
     {
         QItemSelectionModel *selectionModel = ui->subpopTableView->selectionModel();
         QModelIndexList selectedRows = selectionModel->selectedRows();
-        Population &population = community->single_species_->population_;
+        Species *displaySpecies = focalDisplaySpecies();
+        Population &population = displaySpecies->population_;
         std::map<slim_objectid_t,Subpopulation*> &subpops = population.subpops_;
         size_t subpopCount = subpops.size();
         
