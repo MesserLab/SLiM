@@ -501,7 +501,7 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 			found_muttype = p_species->MutationTypeWithID(mutation_type_id);
 			
 			if (!found_muttype)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " is not defined in the focal species." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined in the focal species." << EidosTerminate();
 		}
 		else
 		{
@@ -515,7 +515,7 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 			}
 			
 			if (!found_muttype)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " is not defined." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
 		}
 	}
 	else
@@ -532,7 +532,7 @@ MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a mutation type." << EidosTerminate();
 		
 		if (p_species && (&found_muttype->species_ != p_species))
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << found_muttype->mutation_type_id_ << " is not defined in the focal species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << found_muttype->mutation_type_id_ << " not defined in the focal species." << EidosTerminate();
 	}
 	
 	return found_muttype;
@@ -552,7 +552,7 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 			found_getype = p_species->GenomicElementTypeWithID(getype_id);
 			
 			if (!found_getype)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " is not defined in the focal species." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined in the focal species." << EidosTerminate();
 		}
 		else
 		{
@@ -566,7 +566,7 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 			}
 			
 			if (!found_getype)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " is not defined." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
 		}
 	}
 	else
@@ -583,7 +583,7 @@ GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a genomic element type." << EidosTerminate();
 		
 		if (p_species && (&found_getype->species_ != p_species))
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << found_getype->genomic_element_type_id_ << " is not defined in the focal species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << found_getype->genomic_element_type_id_ << " not defined in the focal species." << EidosTerminate();
 	}
 	
 	return found_getype;
@@ -603,7 +603,7 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 			found_subpop = p_species->SubpopulationWithID(source_subpop_id);
 			
 			if (!found_subpop)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " is not defined in the focal species." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined in the focal species." << EidosTerminate();
 		}
 		else
 		{
@@ -617,7 +617,7 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 			}
 			
 			if (!found_subpop)
-				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " is not defined." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
 		}
 	}
 	else
@@ -634,7 +634,7 @@ Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, i
 			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a subpopulation." << EidosTerminate();
 		
 		if (p_species && (&found_subpop->species_ != p_species))
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << found_subpop->subpopulation_id_ << " is not defined in the focal species." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << found_subpop->subpopulation_id_ << " not defined in the focal species." << EidosTerminate();
 	}
 	
 	return found_subpop;
@@ -676,7 +676,7 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 	
 #warning enable this check once script blocks have a designated species
 	//if (p_species && (&found_block->species_ != p_species))
-	//	EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " is not defined in the focal species." << EidosTerminate();
+	//	EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
 	
 	return found_block;
 }
