@@ -834,13 +834,29 @@ bool Community::SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	// been used, or is reserved for use in some way by, by any SLiM species or by any tree sequence.
 	
 	// First check our own data structures; we now do not allow reuse of subpop ids, even disjoint in time
-	if (subpop_ids_.count(p_subpop_id))
-		return true;
+	for (Species *species : all_species_)
+		if (species->subpop_ids_.count(p_subpop_id))
+			return true;
 	
 	// Then have each species check for a conflict with its tree-sequence population table
 	for (Species *species : all_species_)
 		if (species->_SubpopulationIDInUse(p_subpop_id))
 			return true;
+	
+	return false;
+}
+
+bool Community::SubpopulationNameInUse(const std::string &p_subpop_name)
+{
+	// This method returns whether a subpop name is conceptually "in use": whether it is being used, has ever
+	// been used, or is reserved for use in some way by, by any SLiM species or by any tree sequence.
+	
+	// First check our own data structures; we now do not allow reuse of subpop names, even disjoint in time
+	for (Species *species : all_species_)
+		if (species->subpop_names_.count(p_subpop_name))
+			return true;
+	
+	// The tree-sequence population table does not keep names for populations, so no conflicts can occur
 	
 	return false;
 }

@@ -29,7 +29,6 @@
 
 
 #include <vector>
-#include <unordered_set>
 
 #include "species.h"
 #include "slim_globals.h"
@@ -172,10 +171,6 @@ public:
 	unsigned long int original_seed_;												// the initial seed value, from the user via the -s CLI option, or auto-generated
 	std::vector<std::string> cli_params_;											// CLI parameters; an empty vector when run in SLiMgui, at least for now
 	
-	// global state about what symbols/names/identifiers have been used or are being used
-	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
-	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
-	
 	Community(const Community&) = delete;											// no copying
 	Community& operator=(const Community&) = delete;								// no copying
 	explicit Community(std::istream &p_infile);										// construct a Community from an input stream
@@ -199,6 +194,7 @@ public:
 	
 	// Managing resources shared across the community
 	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);							// not whether a SLiM subpop with this ID currently exists, but whether the ID is "in use"
+	bool SubpopulationNameInUse(const std::string &p_subpop_name);					// not whether a SLiM subpop with this name currently exists, but whether the name is "in use"
 	
 	Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id);
 	MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id);

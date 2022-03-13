@@ -313,9 +313,10 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
     // to arise in practice, and if it does it should produce a downstream error in Python if it
     // matters, due to ambiguity of duplicated ids/names, so we won't worry about it here - we'd
     // have to persist the list of known ids/names in metadata, which isn't worth the effort.
-#warning this needs to adjust to multiple species
-    community_.subpop_ids_.clear();
-	community_.subpop_names_.clear();
+	// BCH 3/13/2022: Note that now in multispecies, we forget only the names/ids that we ourselves
+	// have used; the other species in the community still remember and block their own usages.
+    subpop_ids_.clear();
+	subpop_names_.clear();
 	
 	// Read in the file.  The SLiM file-reading methods are not tree-sequence-aware, so we bracket them
 	// with calls that fix the tree sequence recording state around them.  The treeSeq output methods

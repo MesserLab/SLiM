@@ -30,6 +30,7 @@
 #include <vector>
 #include <map>
 #include <ctime>
+#include <unordered_set>
 
 #include "slim_globals.h"
 #include "population.h"
@@ -345,6 +346,10 @@ public:
 	
 	// this flag is set if the dominance coeff (regular or haploid) changes on any mutation type, as a signal that recaching needs to occur in Subpopulation::UpdateFitness()
 	bool any_dominance_coeff_changed_ = false;
+	
+	// state about what symbols/names/identifiers have been used or are being used
+	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
+	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
 	
 	Species(const Species&) = delete;											// no copying
 	Species& operator=(const Species&) = delete;								// no copying
