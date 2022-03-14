@@ -82,6 +82,8 @@ if(WIN32)
         "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim.cpp"
+        "${PROJECT_SOURCE_DIR}/core/species.cpp"
+        "${PROJECT_SOURCE_DIR}/core/species_eidos.cpp"
         "${PROJECT_SOURCE_DIR}/core/subpopulation.cpp"
         "${PROJECT_SOURCE_DIR}/eidos/eidos_functions.cpp"
         "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp"
