@@ -128,6 +128,7 @@ public:
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
 	slim_tick_t start_tick_ = -1, end_tick_ = SLIM_MAX_TICK + 1;		// the tick range to which the block is limited
+	Species *species_ = nullptr;								// NOT OWNED: the species to which the block is limited; nullptr if not limited by this
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
@@ -194,8 +195,8 @@ public:
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
-	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file
-	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end);		// initialize from a programmatic script
+	explicit SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species);				// initialize from a SLiMEidosBlock root node from the input file
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.

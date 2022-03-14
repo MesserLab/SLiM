@@ -670,7 +670,7 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	
 	CheckScheduling(start_tick, target_stage);
 	
-	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, target_type, start_tick, end_tick);
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, target_type, start_tick, end_tick, nullptr);
 	
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
@@ -836,7 +836,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 				}
 				else
 				{
-					SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->user_script_line_offset_, block->type_, start, end);
+					SLiMEidosBlock *new_script_block = new SLiMEidosBlock(-1, block->compound_statement_node_->token_->token_string_, block->user_script_line_offset_, block->type_, start, end, block->species_);
 					
 					AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 					

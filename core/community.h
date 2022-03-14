@@ -182,9 +182,9 @@ public:
 	
 	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
 	void ValidateScriptBlockCaches(void);
-	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
+	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, Species *p_species);
 	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
-	std::vector<SLiMEidosBlock*> &AllScriptBlocksForSpecies(Species *p_species);
+	std::vector<SLiMEidosBlock*> AllScriptBlocksForSpecies(Species *p_species);
 	void OptimizeScriptBlock(SLiMEidosBlock *p_script_block);
 	void AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter *p_interpreter, const EidosToken *p_error_token);
 	void DeregisterScheduledScriptBlocks(void);

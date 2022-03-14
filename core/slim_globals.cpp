@@ -674,9 +674,10 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 		
 	}
 	
-#warning enable this check once script blocks have a designated species
-	//if (p_species && (&found_block->species_ != p_species))
-	//	EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
+	if (p_species && (found_block->species_ != p_species))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
+	if (!p_species && found_block->species_)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " is defined in a focal species, which is not allowed in this context." << EidosTerminate();
 	
 	return found_block;
 }

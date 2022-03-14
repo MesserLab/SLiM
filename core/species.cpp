@@ -1629,7 +1629,7 @@ std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick,
 {
 	// Callbacks are species-specific; this method calls up to the community, which manages script blocks,
 	// but does a species-specific search.
-	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id);
+	return community_.ScriptBlocksMatching(p_tick, p_event_type, p_mutation_type_id, p_interaction_type_id, p_subpopulation_id, this);
 }
 
 void Species::RunInitializeCallbacks(void)
@@ -1714,7 +1714,7 @@ void Species::RunInitializeCallbacks(void)
 	
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 	{
-		std::vector<SLiMEidosBlock*> &script_blocks = community_.AllScriptBlocksForSpecies(this);
+		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
 		for (auto script_block : script_blocks)
 			if (script_block->type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback)
@@ -1722,7 +1722,7 @@ void Species::RunInitializeCallbacks(void)
 	}
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		std::vector<SLiMEidosBlock*> &script_blocks = community_.AllScriptBlocksForSpecies(this);
+		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
 		for (auto script_block : script_blocks)
 		{
@@ -1734,7 +1734,7 @@ void Species::RunInitializeCallbacks(void)
 	}
 	if (!sex_enabled_)
 	{
-		std::vector<SLiMEidosBlock*> &script_blocks = community_.AllScriptBlocksForSpecies(this);
+		std::vector<SLiMEidosBlock*> script_blocks = community_.AllScriptBlocksForSpecies(this);
 		
 		for (auto script_block : script_blocks)
 			if ((script_block->type_ == SLiMEidosBlockType::SLiMEidosReproductionCallback) && (script_block->sex_specificity_ != IndividualSex::kUnspecified))

@@ -608,10 +608,10 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 #pragma mark SLiMEidosBlock
 #pragma mark -
 
-SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
+SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
+	species_(p_species), root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
 {
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -929,10 +929,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_(p_species), user_script_line_offset_(p_user_script_line_offset)
 {
 	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization

@@ -183,7 +183,8 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	
 	for (EidosASTNode *script_block_node : root_node->children_)
 	{
-		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
+#warning need to fix parsing to know which species to pass here!
+		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node, all_species_[0]);
 		
 		AddScriptBlock(new_script_block, nullptr, new_script_block->root_node_->children_[0]->token_);
 	}
@@ -287,7 +288,7 @@ void Community::ValidateScriptBlockCaches(void)
 	}
 }
 
-std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id)
+std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, Species *p_species)
 {
 	if (!script_block_types_cached_)
 		ValidateScriptBlockCaches();
@@ -363,6 +364,10 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 				continue;
 		}
 		
+		// check that the species matches; this check is always on, nullptr means check that the species is nullptr
+		if (p_species != script_block->species_)
+			continue;
+		
 		// OK, everything matches, so we want to return this script block
 		matches.emplace_back(script_block);
 	}
@@ -387,6 +392,10 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 					continue;
 			}
 			
+			// check that the species matches; this check is always on, nullptr means check that the species is nullptr
+			if (p_species != script_block->species_)
+				continue;
+			
 			// OK, everything matches, so we want to return this script block
 			matches.emplace_back(script_block);
 		}
@@ -400,10 +409,15 @@ std::vector<SLiMEidosBlock*> &Community::AllScriptBlocks()
 	return script_blocks_;
 }
 
-std::vector<SLiMEidosBlock*> &Community::AllScriptBlocksForSpecies(Species *p_species)
+std::vector<SLiMEidosBlock*> Community::AllScriptBlocksForSpecies(Species *p_species)
 {
-#warning needs to filter down to blocks owned by one species
-	return script_blocks_;
+	std::vector<SLiMEidosBlock*> species_blocks;
+	
+	for (SLiMEidosBlock *block : script_blocks_)
+		if (block->species_ == p_species)
+			species_blocks.push_back(block);
+	
+	return species_blocks;
 }
 
 void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
@@ -650,6 +664,11 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	script_blocks_.emplace_back(p_script_block);
 	
 	p_script_block->TokenizeAndParse();	// can raise
+	
+	// Remove the species from the script block if it is an event, which execute without a focal species
+#warning this should be removed once the script block species is set up properly
+	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) || (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+		p_script_block->species_ = nullptr;
 	
 	// The script block passed tokenization and parsing, so it is reasonably well-formed.  Now we check for cases we optimize.
 	OptimizeScriptBlock(p_script_block);
@@ -1125,7 +1144,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// The zero tick is handled here by shared code, since it is the same for WF and nonWF models
 	
 	// execute user-defined function blocks first; no need to profile this, it's just the definitions not the executions
-	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> function_blocks = ScriptBlocksMatching(-1, SLiMEidosBlockType::SLiMEidosUserDefinedFunction, -1, -1, -1, nullptr);
 	
 	for (auto script_block : function_blocks)
 		ExecuteFunctionDefinitionBlock(script_block);
@@ -1297,7 +1316,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -1324,7 +1343,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -1447,7 +1466,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
@@ -1583,7 +1602,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts;
-		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
 			ExecuteEidosEvent(script_block);
@@ -1674,7 +1693,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
-		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
@@ -1789,7 +1808,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 		
 		generation_stage_ = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
-		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1);
+		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
 			ExecuteEidosEvent(script_block);
