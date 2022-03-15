@@ -667,7 +667,10 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	
 	// Remove the species from the script block if it is an event, which execute without a focal species
 #warning this should be removed once the script block species is set up properly
-	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) || (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) || (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
 		p_script_block->species_ = nullptr;
 	
 	// The script block passed tokenization and parsing, so it is reasonably well-formed.  Now we check for cases we optimize.
