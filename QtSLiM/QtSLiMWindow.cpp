@@ -4075,7 +4075,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             for (EidosASTNode *script_block_node : root_node->children_)
             {
                 // Create the block and use it to find the string from the start of its declaration to the start of its code
-                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
+                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node, nullptr);
                 int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
                 int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
                 QString decl = currentScriptString.mid(decl_start, code_start - decl_start);
