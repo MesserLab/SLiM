@@ -29,7 +29,7 @@ int RunSLiMTests(void);
 
 // Helper functions for testing
 extern void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber = -1);
-extern void SLiMAssertScriptRaise(const std::string &p_script_string, const int p_bad_line, const int p_bad_position, const std::string &p_reason_snip, int p_lineNumber = -1);
+extern void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position = true);
 extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber = -1);
 
 
