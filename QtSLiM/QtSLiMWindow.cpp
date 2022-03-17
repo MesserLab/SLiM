@@ -103,7 +103,7 @@ static std::string defaultWFScriptString(void)
                 "}\n"
                 "\n"
                 "// create a population of 500 individuals\n"
-                "1 {\n"
+                "1 early() {\n"
                 "	sim.addSubpop(\"p1\", 500);\n"
                 "}\n"
                 "\n"
@@ -4074,8 +4074,13 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             for (EidosASTNode *script_block_node : root_node->children_)
             {
+                // skip species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+#warning incorporate the species/ticks info into the menu somehow
+                if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+                    continue;
+                
                 // Create the block and use it to find the string from the start of its declaration to the start of its code
-                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node, nullptr);
+                SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
                 int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
                 int32_t code_start = new_script_block->compound_statement_node_->token_->token_UTF16_start_;
                 QString decl = currentScriptString.mid(decl_start, code_start - decl_start);

@@ -674,9 +674,9 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 		
 	}
 	
-	if (p_species && (found_block->species_ != p_species))
+	if (p_species && (found_block->species_spec_ != p_species))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
-	if (!p_species && found_block->species_)
+	if (!p_species && found_block->species_spec_)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " is defined in a focal species, which is not allowed in this context." << EidosTerminate();
 	
 	return found_block;
@@ -1693,6 +1693,8 @@ const std::string &gStr_e = EidosRegisteredString("e", gID_e);
 const std::string &gStr_w = EidosRegisteredString("w", gID_w);
 const std::string &gStr_l = EidosRegisteredString("l", gID_l);
 //const std::string &gStr_s = EidosRegisteredString("s", gID_s);		now gEidosStr_s
+const std::string &gStr_species = EidosRegisteredString("species", gID_species);
+const std::string &gStr_ticks = EidosRegisteredString("ticks", gID_ticks);
 const std::string &gStr_first = EidosRegisteredString("first", gID_first);
 const std::string &gStr_early = EidosRegisteredString("early", gID_early);
 const std::string &gStr_late = EidosRegisteredString("late", gID_late);

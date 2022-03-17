@@ -119,6 +119,7 @@ private:
 #endif
 	
 	std::vector<Species *>all_species_;												// a vector of the species being simulated, in declaration order
+	bool is_multispecies_ = false;													// true if we have explicit species declarations (even if only one, even if named "sim")
 	Species *active_species_ = nullptr;												// the species presently executing; currently used only for initialize() callback dispatch
 	
 	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
@@ -200,6 +201,9 @@ public:
 	MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id);
 	GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id);
 	InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id);
+	Species *SpeciesWithID(slim_objectid_t p_species_id);
+	
+	Species *SpeciesWithName(const std::string &species_name);
 	
 	// Running ticks
 	bool RunOneTick(void);															// run one tick and advance the tick count; returns false if finished

@@ -427,7 +427,7 @@ void Chromosome::_InitializeOneRecombinationMap(gsl_ran_discrete_t *&p_lookup, s
 		   initializeGenomicElement(g1, 0, L);
 		   initializeRecombinationRate(0.5);
 		}
-		1 {
+		1 early() {
 		   sim.addSubpop("p1", N);
 		   sim.tag = 0;
 		}

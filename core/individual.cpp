@@ -544,7 +544,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 				 initializeGenomicElement(g1, 0, 99999);
 				 initializeRecombinationRate(1e-8);
 			 }
-			 1 {
+			 1 early() {
 				sim.addSubpop("p1", 500);
 			 }
 			 1:20000 late() {
@@ -1514,7 +1514,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	 initializeGenomicElement(g1, 0, 99999);
 	 initializeRecombinationRate(1e-8);
 	 }
-	 1 {
+	 1 early() {
 	 sim.addSubpop("p1", 500);
 	 }
 	 1:20000 late() {

@@ -81,8 +81,8 @@ extern "C" {
 
 Community::Community(std::istream &p_infile) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
 {
-	// Allocate our species; this will change to be done during/after the file is parsed, I suppose
-	all_species_.push_back(new Species(*this, 0));
+	// BCH 3/16/2022: We used to allocate the SLiMSim object here, as the first thing we did.  In SLiM 4 there can
+	// be multiple species and they can have names other than "sim", so we delay species creation until parse time.
 	
 	// set up the symbol tables we will use for global variables and constants; note that the global variables table
 	// lives *above* the context constants table, which is fine since they cannot define the same symbol anyway
@@ -178,15 +178,197 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	script_->Tokenize();
 	script_->ParseSLiMFileToAST();
 	
-	// Extract SLiMEidosBlocks from the parse tree
 	const EidosASTNode *root_node = script_->AST();
+	
+	// BCH 3/16/2022: The logic here used to be quite simple: loop over the parsed AST and make script blocks.  In SLiM 4
+	// the top-level file structure is more complicated, because of species and ticks specifiers that can modify the
+	// declared blocks.  Rather than making those part of the EidosASTNodes for the blocks themselves (which already have
+	// a very complex internal structure), I have chosen to make them separate top-level nodes that modify the meaning
+	// of the SLiMEidosBlock node that follows them.  That makes doing the parse, validating the file structure, creating
+	// the species objects, and then creating the script blocks fairly complex.  That complexity is handled here.
+	
+	// Assess the top-level structure and enforce semantics that can be enforced before knowing species names/declarations
+	// Species are declared with initialize() callbacks of the form "species <identifier> initialize()"
+	bool pending_species_spec = false, pending_ticks_spec = false;
+	std::string pending_spec_species_name;
+	std::vector<std::string> explicit_species_decl_names;		// names from "species <name> initialize()" declarations
+	int implied_species_decl_count = 0;							// number of "initialize()" seen without "species <name>"
 	
 	for (EidosASTNode *script_block_node : root_node->children_)
 	{
-#warning need to fix parsing to know which species to pass here!
-		SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node, all_species_[0]);
+		if (script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+		{
+			// If we already have a pending specifier then we now have two specifiers in a row
+			if (pending_species_spec)
+				EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): a species specifier must be followed by a callback declaration." << EidosTerminate(script_block_node->token_);
+			if (pending_ticks_spec)
+				EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): a ticks specifier must be followed by an event declaration." << EidosTerminate(script_block_node->token_);
+			
+			if (script_block_node->children_.size() == 1)
+			{
+				pending_spec_species_name = script_block_node->children_[0]->token_->token_string_;
+				
+				if (script_block_node->token_->token_string_.compare(gStr_species) == 0)
+				{
+					//std::cout << "species specifier seen: " << pending_spec_species_name << std::endl;
+					
+					pending_species_spec = true;
+					continue;
+				}
+				else if (script_block_node->token_->token_string_.compare(gStr_ticks) == 0)
+				{
+					//std::cout << "ticks specifier seen: " << pending_spec_species_name << std::endl;
+					
+					pending_ticks_spec = true;
+					continue;
+				}
+			}
+			
+			EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): unexpected top-level token " << script_block_node->token_->token_string_ << "." << EidosTerminate(script_block_node->token_);
+		}
+		else
+		{
+			SLiMEidosBlockType type = SLiMEidosBlock::BlockTypeForRootNode(script_block_node);
+			
+			if (type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+			{
+				if (pending_species_spec || pending_ticks_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): user-defined functions may not be preceded by a species or ticks specifier." << EidosTerminate(script_block_node->token_);
+			}
+			else if ((type == SLiMEidosBlockType::SLiMEidosEventFirst) || (type == SLiMEidosBlockType::SLiMEidosEventEarly) || (type == SLiMEidosBlockType::SLiMEidosEventLate))
+			{
+				if (pending_species_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): event declarations may not be preceded by a species specifier; use a ticks specifier to designate an event as running only in the ticks when a particular species is active." << EidosTerminate(script_block_node->token_);
+			}
+			else if (type != SLiMEidosBlockType::SLiMEidosNoBlockType)	// callbacks
+			{
+				if (pending_ticks_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): callback declarations may not be preceded by a ticks specifier; use a species specifier to designate a callback as being associated with a particular species." << EidosTerminate(script_block_node->token_);
+				
+				if (type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
+				{
+					if (pending_species_spec)
+					{
+						// We have an explicit species declaration, "species <name> initialize()", so this is a multispecies model
+						if (implied_species_decl_count > 0)
+							EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): an initialize() callback without a species specifier has previously been seen, so this is a single-species script, and therefore species specifiers are illegal." << EidosTerminate(script_block_node->token_);
+						
+						// You can have multiple initialize() callbacks for a given species, but we want to tally the name just once; could use std::set instead but we want ordering
+						if (std::find(explicit_species_decl_names.begin(), explicit_species_decl_names.end(), pending_spec_species_name) == explicit_species_decl_names.end())
+							explicit_species_decl_names.push_back(pending_spec_species_name);
+					}
+					else
+					{
+						// We have an implicit species declaration, "initialize()", so this is a single-species model
+						if (explicit_species_decl_names.size() > 0)
+							EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): an initialize() callback with a species specifier has previously been seen, so this is a multi-species script, and therefore species specifiers are required." << EidosTerminate(script_block_node->token_);
+						
+						implied_species_decl_count++;
+					}
+				}
+			}
+			
+			//std::cout << "script block seen of type " << type << std::endl;
+			
+			pending_species_spec = false;
+			pending_ticks_spec = false;
+		}
+	}
+	
+	// Create species objects for each declared species, or "sim" if there was only an implied species declaration
+	if ((implied_species_decl_count > 0) && (explicit_species_decl_names.size() > 0))
+		EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) all initialize() callbacks must either (1) be preceded by a species specifier, for multi-species models, or (2) not be preceded by a species specifier, for single-species models." << EidosTerminate(nullptr);
+	if ((implied_species_decl_count == 0) && (explicit_species_decl_names.size() == 0))
+		EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no initialize() callback found; at least one initialize() callback is required in all SLiM scripts." << EidosTerminate(nullptr);
+	
+	if (implied_species_decl_count > 0)
+	{
+		// This is the single-species case; create a species named "sim"
+		all_species_.push_back(new Species(*this, 0, "sim"));
 		
-		AddScriptBlock(new_script_block, nullptr, new_script_block->root_node_->children_[0]->token_);
+		is_multispecies_ = false;
+	}
+	else
+	{
+		// This is the multi-species case; create a species for each explicit declaration
+		int species_id = 0;
+		
+		for (std::string &species_name : explicit_species_decl_names)
+			all_species_.push_back(new Species(*this, species_id++, species_name));
+		
+		is_multispecies_ = true;
+	}
+	
+	// Extract SLiMEidosBlocks from the parse tree
+	Species *last_species_spec = nullptr, *last_ticks_spec = nullptr;
+	
+	for (EidosASTNode *script_block_node : root_node->children_)
+	{
+		if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+		{
+			// A "species <identifier>" or "ticks <identifier>" specification is present; remember what it specified
+			EidosASTNode *child = script_block_node->children_[0];
+			const std::string &species_name = child->token_->token_string_;
+			Species *species = SpeciesWithName(species_name);
+			
+			if (!species)
+				EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): undeclared species name " << species_name << "; species must be explicitly declared with a species <name> specifier on an initialize() block." << EidosTerminate(child->token_);
+			
+			if (script_block_node->token_->token_string_.compare(gStr_species) == 0)
+			{
+				if (!is_multispecies_)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no species have been explicitly declared, so species specifiers should not be used." << EidosTerminate(script_block_node->token_);
+				
+				last_species_spec = species;
+			}
+			else if (script_block_node->token_->token_string_.compare(gStr_ticks) == 0)
+			{
+				if (!is_multispecies_)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no species have been explicitly declared, so ticks specifiers should not be used." << EidosTerminate(script_block_node->token_);
+				
+				last_ticks_spec = species;
+			}
+		}
+		else
+		{
+			SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
+			
+			if (new_script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+			{
+				// User-defined functions may not have a species or ticks specifier preceding them; this was already checked above
+				if (last_species_spec || last_ticks_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) user-defined functions may not be preceded by a species or ticks specifier." << EidosTerminate(new_script_block->root_node_->token_);
+			}
+			else if ((new_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
+				(new_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
+				(new_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+			{
+				// Events may have a ticks specifier, but not a species specifier, preceding them; this was already checked above
+				if (last_species_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) event declarations may not be preceded by a species specifier." << EidosTerminate(new_script_block->root_node_->token_);
+				
+				if (last_ticks_spec)
+					new_script_block->ticks_spec_ = last_ticks_spec;
+			}
+			else
+			{
+				// Callbacks may have a ticks specifier, but not a species specifier, preceding them; this was already checked above
+				if (last_ticks_spec)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) callback declarations may not be preceded by a ticks specifier." << EidosTerminate(new_script_block->root_node_->token_);
+				
+				Species *block_species = (is_multispecies_ ? last_species_spec : all_species_[0]);
+				
+				if (!block_species)
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): in multi-species models, every callback must be preceded by a species specifier; callbacks are always species-specific." << EidosTerminate(new_script_block->root_node_->token_);
+				
+				new_script_block->species_spec_ = block_species;
+			}
+			
+			AddScriptBlock(new_script_block, nullptr, new_script_block->root_node_->children_[0]->token_);
+			
+			last_species_spec = nullptr;
+			last_ticks_spec = nullptr;
+		}
 	}
 	
 	// Reset error position indicators used by SLiMgui
@@ -365,7 +547,7 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		}
 		
 		// check that the species matches; this check is always on, nullptr means check that the species is nullptr
-		if (p_species != script_block->species_)
+		if (p_species != script_block->species_spec_)
 			continue;
 		
 		// OK, everything matches, so we want to return this script block
@@ -393,7 +575,7 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 			}
 			
 			// check that the species matches; this check is always on, nullptr means check that the species is nullptr
-			if (p_species != script_block->species_)
+			if (p_species != script_block->species_spec_)
 				continue;
 			
 			// OK, everything matches, so we want to return this script block
@@ -414,7 +596,7 @@ std::vector<SLiMEidosBlock*> Community::AllScriptBlocksForSpecies(Species *p_spe
 	std::vector<SLiMEidosBlock*> species_blocks;
 	
 	for (SLiMEidosBlock *block : script_blocks_)
-		if (block->species_ == p_species)
+		if (block->species_spec_ == p_species)
 			species_blocks.push_back(block);
 	
 	return species_blocks;
@@ -666,12 +848,22 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	p_script_block->TokenizeAndParse();	// can raise
 	
 	// Remove the species from the script block if it is an event, which execute without a focal species
-#warning this should be removed once the script block species is set up properly
-	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
+	if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosNoBlockType)
+	{
+		EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) attempted add of a script block of type SLiMEidosNoBlockType." << EidosTerminate(p_error_token);
+	}
+	else if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
 		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
 		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate) ||
 		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
-		p_script_block->species_ = nullptr;
+	{
+		if (p_script_block->species_spec_)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for an event or user-defined function has a species set." << EidosTerminate(p_error_token);
+	}
+	else if (!p_script_block->species_spec_)
+	{
+		EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a callback has no species set." << EidosTerminate(p_error_token);
+	}
 	
 	// The script block passed tokenization and parsing, so it is reasonably well-formed.  Now we check for cases we optimize.
 	OptimizeScriptBlock(p_script_block);
@@ -930,6 +1122,26 @@ InteractionType *Community::InteractionTypeWithID(slim_objectid_t p_inttype_id)
 		
 		if (found_inttype)
 			return found_inttype;
+	}
+	
+	return nullptr;
+}
+
+Species *Community::SpeciesWithID(slim_objectid_t p_species_id)
+{
+	// Species IDs are just indices into all_species_
+	if ((p_species_id < 0) || (p_species_id >= (slim_objectid_t)all_species_.size()))
+		return nullptr;
+	
+	return all_species_[p_species_id];
+}
+
+Species *Community::SpeciesWithName(const std::string &species_name)
+{
+	for (Species *species : all_species_)
+	{
+		if (species->name_ == species_name)
+			return species;
 	}
 	
 	return nullptr;

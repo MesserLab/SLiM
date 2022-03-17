@@ -40,6 +40,7 @@ enum class SLiMEidosBlockType {
 	SLiMEidosEventFirst = 0,
 	SLiMEidosEventEarly,
 	SLiMEidosEventLate,
+	
 	SLiMEidosInitializeCallback,
 	SLiMEidosFitnessCallback,
 	SLiMEidosFitnessGlobalCallback,
@@ -80,6 +81,8 @@ public:
 	
 	// Top-level parse methods for SLiM input files
 	EidosASTNode *Parse_SLiMFile(void);
+	EidosASTNode *Parse_SpeciesSpecifier(void);
+	EidosASTNode *Parse_TicksSpecifier(void);
 	EidosASTNode *Parse_SLiMEidosBlock(void);
 	
 	// A utility method for extracting the numeric component of an identifier like 'p2', 's3', 'm17', or 'g5'
@@ -122,13 +125,14 @@ private:
 	
 public:
 	
-	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosEventEarly;
+	SLiMEidosBlockType type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// SLiM 4: this no longer defaults to early()
 	
 	slim_objectid_t block_id_ = -1;								// the id of the block; -1 if no id was assigned (anonymous block)
 	EidosValue_SP cached_value_block_id_;						// a cached value for block_id_; reset() if that changes
 	
 	slim_tick_t start_tick_ = -1, end_tick_ = SLIM_MAX_TICK + 1;		// the tick range to which the block is limited
-	Species *species_ = nullptr;								// NOT OWNED: the species to which the block is limited; nullptr if not limited by this
+	Species *species_spec_ = nullptr;							// NOT OWNED: the species to which the block is limited; nullptr if not limited by this
+	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
 	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
@@ -191,12 +195,14 @@ public:
 	double cached_opt_D_ = 0.0;
 	
 	
+	static SLiMEidosBlockType BlockTypeForRootNode(EidosASTNode *p_root_node);		// get the block type for a node without actually constructing the block
+	
 	SLiMEidosBlock(const SLiMEidosBlock&) = delete;					// no copying
 	SLiMEidosBlock& operator=(const SLiMEidosBlock&) = delete;		// no copying
 	SLiMEidosBlock(void) = delete;									// no default constructor
 	
-	explicit SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species);				// initialize from a SLiMEidosBlock root node from the input file
-	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species);		// initialize from a programmatic script
+	explicit SLiMEidosBlock(EidosASTNode *p_root_node);				// initialize from a SLiMEidosBlock root node from the input file; species gets set later
+	SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec);		// initialize from a programmatic script
 	~SLiMEidosBlock(void);												// destructor
 	
 	// Tokenize and parse the script.  This should be called immediately after construction.  Raises on script errors.

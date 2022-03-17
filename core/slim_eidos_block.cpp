@@ -76,13 +76,89 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMFile(void)
 		// We handle the grammar a bit differently than how it is printed in the railroad diagrams in the doc.
 		// Parsing of the optional tick range is done in Parse_SLiMEidosBlock() since it ends up as children of that node.
 		while (current_token_type_ != EidosTokenType::kTokenEOF)
-			node->AddChild(Parse_SLiMEidosBlock());
+		{
+			// For multispecies, we now look at the current token and handle it specially if it is "species" or "ticks".
+			if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_.compare(gStr_species) == 0))
+				node->AddChild(Parse_SpeciesSpecifier());
+			else if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && (current_token_->token_string_.compare(gStr_ticks) == 0))
+				node->AddChild(Parse_TicksSpecifier());
+			else
+				node->AddChild(Parse_SLiMEidosBlock());
+		}
 		
 		Match(EidosTokenType::kTokenEOF, "SLiM file");
 	}
 	catch (...)
 	{
 		// destroy the parse root and return it to the pool; the tree must be allocated out of gEidosASTNodePool!
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *SLiMEidosScript::Parse_SpeciesSpecifier(void)
+{
+	EidosASTNode *node = nullptr, *species_name;
+	
+	try {
+		// This parses "species identifier" specifiers, creating a node with the species name as its child
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenIdentifier, "species specifier");
+		
+		species_name = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		node->AddChild(species_name);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
+		
+		Match(EidosTokenType::kTokenIdentifier, "species specifier");
+	}
+	catch (...)
+	{
+		if (node)
+		{
+			node->~EidosASTNode();
+			gEidosASTNodePool->DisposeChunk(const_cast<EidosASTNode*>(node));
+		}
+		
+		throw;
+	}
+	
+	return node;
+}
+
+EidosASTNode *SLiMEidosScript::Parse_TicksSpecifier(void)
+{
+	EidosASTNode *node = nullptr, *species_name;
+	
+	try {
+		// This parses "ticks identifier" specifiers, creating a node with the species name as its child
+		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		
+		Match(EidosTokenType::kTokenIdentifier, "ticks specifier");
+		
+		species_name = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+		node->AddChild(species_name);
+		
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+		// PROFILING
+		node->full_range_end_token_ = current_token_;
+#endif
+		
+		Match(EidosTokenType::kTokenIdentifier, "ticks specifier");
+	}
+	catch (...)
+	{
 		if (node)
 		{
 			node->~EidosASTNode();
@@ -188,8 +264,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				}
 				else if (current_token_->token_string_.compare(gStr_early) == 0)
 				{
-					// Note that "early()" is optional, and is ignored; no placeholder child is inserted
-					//slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+					slim_script_block_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 					
 					Match(EidosTokenType::kTokenIdentifier, "SLiM early() event");
 					Match(EidosTokenType::kTokenLParen, "SLiM early() event");
@@ -476,11 +551,19 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				else
 				{
 					if (!parse_make_bad_nodes_)
-						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected a callback declaration (initialize, first, early, late, fitness, interaction, mateChoice, modifyChild, recombination, mutation, survival, or reproduction) or a function declaration." << EidosTerminate(current_token_);
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitness, interaction, mateChoice, modifyChild, recombination, mutation, survival, or reproduction), or a function declaration." << EidosTerminate(current_token_);
 					
 					// Consume the stray identifier, to be error-tolerant
 					Consume();
 				}
+			}
+			else
+			{
+				if (!parse_make_bad_nodes_)
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitness, interaction, mateChoice, modifyChild, recombination, mutation, survival, or reproduction), or a function declaration.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
+				
+				// Consume the stray identifier, to be error-tolerant
+				Consume();
 			}
 			
 			// Regardless of what happened above, all Eidos blocks end with a compound statement, which is the last child of the node
@@ -608,11 +691,84 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 #pragma mark SLiMEidosBlock
 #pragma mark -
 
-SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species) :
+SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_node)
+{
+	// Get the block type for a node without actually constructing the block.  This is parallel to the constructor code below,
+	// and the two much be maintained in parallel when new callback types, etc., are added.  Note that we don't do any bounds-
+	// or error-checking here; we just need to know the *intended* block type, if we can figure it out.
+	const std::vector<EidosASTNode *> &block_children = p_root_node->children_;
+	int child_index = 0, n_children = (int)block_children.size();
+	
+	if ((n_children == 1) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenFunction))
+	{
+		return SLiMEidosBlockType::SLiMEidosUserDefinedFunction;
+	}
+	else
+	{
+		// eat a string, for the script id, if present; an identifier token must follow the sX format to be taken as an id here, as in the parse code
+		if (child_index < n_children)
+		{
+			EidosToken *script_id_token = block_children[child_index]->token_;
+			
+			if ((script_id_token->token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(script_id_token->token_string_, 's'))
+				child_index++;
+		}
+		
+		// eat the optional tick range, which could be X, X:Y, X:, or :Y
+		if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
+				child_index++;
+		if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenColon))
+				child_index++;
+		if ((child_index < n_children) && (block_children[child_index]->token_->token_type_ == EidosTokenType::kTokenNumber))
+				child_index++;
+		
+		// eat the callback info node, if present
+		if (child_index < n_children)
+		{
+			const EidosASTNode *callback_node = block_children[child_index];
+			const EidosToken *callback_token = callback_node->token_;
+			
+			if (callback_token->token_type_ == EidosTokenType::kTokenIdentifier)
+			{
+				const std::string &callback_name = callback_token->token_string_;
+				
+				if (callback_name.compare(gStr_first) == 0)
+					return SLiMEidosBlockType::SLiMEidosEventFirst;
+				else if (callback_name.compare(gStr_early) == 0)
+					return SLiMEidosBlockType::SLiMEidosEventEarly;
+				else if (callback_name.compare(gStr_late) == 0)
+					return SLiMEidosBlockType::SLiMEidosEventLate;
+				else if (callback_name.compare(gStr_initialize) == 0)
+					return SLiMEidosBlockType::SLiMEidosInitializeCallback;
+				else if (callback_name.compare(gStr_fitness) == 0)
+					return SLiMEidosBlockType::SLiMEidosFitnessCallback;	// could also be SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback but we gloss over that here
+				else if (callback_name.compare(gStr_mutation) == 0)
+					return SLiMEidosBlockType::SLiMEidosMutationCallback;
+				else if (callback_name.compare(gStr_interaction) == 0)
+					return SLiMEidosBlockType::SLiMEidosInteractionCallback;
+				else if (callback_name.compare(gStr_mateChoice) == 0)
+					return SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+				else if (callback_name.compare(gStr_modifyChild) == 0)
+					return SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+				else if (callback_name.compare(gStr_recombination) == 0)
+					return SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+				else if (callback_name.compare(gStr_survival) == 0)
+					return SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+				else if (callback_name.compare(gStr_reproduction) == 0)
+					return SLiMEidosBlockType::SLiMEidosReproductionCallback;
+			}
+		}
+	}
+	
+	return SLiMEidosBlockType::SLiMEidosNoBlockType;
+}
+
+SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(gEidosID_none, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	species_(p_species), root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
+	root_node_(p_root_node), user_script_line_offset_(p_root_node->token_->token_line_)
 {
+	// NOTE: SLiMEidosBlock::BlockTypeForRootNode() above must be maintained in parallel with this method!
 	const std::vector<EidosASTNode *> &block_children = root_node_->children_;
 	int child_index = 0, n_children = (int)block_children.size();
 	
@@ -727,8 +883,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species) :
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_early) == 0))
 				{
-					// this should never be hit, because "early()" is optional and is eaten without producing a child node; it is the default
-					EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): callback type 'early' unexpected." << EidosTerminate(callback_token);
+					if (n_callback_children != 0)
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): early() event needs 0 parameters." << EidosTerminate(callback_token);
+					
+					type_ = SLiMEidosBlockType::SLiMEidosEventEarly;
 				}
 				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_late) == 0))
 				{
@@ -929,10 +1087,10 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node, Species *p_species) :
 	ScanTreeForIdentifiersUsed();
 }
 
-SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species) :
+SLiMEidosBlock::SLiMEidosBlock(slim_objectid_t p_id, const std::string &p_script_string, int32_t p_user_script_line_offset, SLiMEidosBlockType p_type, slim_tick_t p_start, slim_tick_t p_end, Species *p_species_spec, Species *p_ticks_spec) :
 	self_symbol_(gID_self, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
 	script_block_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('s', p_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SLiMEidosBlock_Class))),
-	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_(p_species), user_script_line_offset_(p_user_script_line_offset)
+	type_(p_type), block_id_(p_id), start_tick_(p_start), end_tick_(p_end), species_spec_(p_species_spec), ticks_spec_(p_ticks_spec), user_script_line_offset_(p_user_script_line_offset)
 {
 	script_ = new EidosScript(p_script_string, p_user_script_line_offset);
 	// the caller should now call TokenizeAndParse() to complete initialization

@@ -351,12 +351,12 @@ public:
 	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
 	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
 	
-	Species(const Species&) = delete;											// no copying
-	Species& operator=(const Species&) = delete;								// no copying
-	Species(Community &p_community, slim_objectid_t p_species_id);				// construct a Species from a community
-	~Species(void);																// destructor
+	Species(const Species&) = delete;																	// no copying
+	Species& operator=(const Species&) = delete;														// no copying
+	Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name);			// construct a Species from a community / id / name
+	~Species(void);																						// destructor
 	
-	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);		// used by outputUsage() and SLiMgui profiling
+	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	
 	// Running generations
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);

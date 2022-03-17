@@ -3847,6 +3847,10 @@ static int DisplayDigitsForIntegerPart(double x)
 			{
 				for (EidosASTNode *script_block_node : script_root->children_)
 				{
+					// skip species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+					if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+						continue;
+					
 					// script_block_node can have various children, such as an sX identifier, start and end ticks, a block type
 					// identifier like late(), and then the root node of the compound statement for the script block.  We want to
 					// decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.

@@ -43,7 +43,7 @@
 	"}\n"
 	"\n"
 	"// create a population of 500 individuals\n"
-	"1 {\n"
+	"1 early() {\n"
 	"	sim.addSubpop(\"p1\", 500);\n"
 	"}\n"
 	"\n"
