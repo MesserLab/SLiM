@@ -96,6 +96,11 @@ private:
 	EidosInterpreterDebugPointsSet *debug_points_ = nullptr;						// NOT OWNED; line numbers for all lines with debugging points set
 #endif
 	
+	// these maps compile the objects from all species into a single sorted list for presentation in the UI etc.
+	std::map<slim_objectid_t,MutationType*> all_mutation_types_;					// NOT OWNED: each species owns its own mutation types
+	std::map<slim_objectid_t,GenomicElementType*> all_genomic_element_types_;		// NOT OWNED: each species owns its own genomic element types
+	std::map<slim_objectid_t,InteractionType*> all_interaction_types_;				// NOT OWNED: each species owns its own interaction types
+	
 #ifdef SLIMGUI
 public:
 	
@@ -119,7 +124,8 @@ private:
 #endif
 	
 	std::vector<Species *>all_species_;												// a vector of the species being simulated, in declaration order
-	bool is_multispecies_ = false;													// true if we have explicit species declarations (even if only one, even if named "sim")
+	bool is_explicit_species_ = false;												// true if we have explicit species declarations (even if only one, even if named "sim")
+	bool is_multispecies_ = false;													// true if we actually have more than one species; false if a single species is explicitly declared
 	Species *active_species_ = nullptr;												// the species presently executing; currently used only for initialize() callback dispatch
 	
 	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
@@ -204,6 +210,10 @@ public:
 	Species *SpeciesWithID(slim_objectid_t p_species_id);
 	
 	Species *SpeciesWithName(const std::string &species_name);
+	
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &AllMutationTypes(void) const			{ return all_mutation_types_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &AllGenomicElementTypes(void)		{ return all_genomic_element_types_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &AllInteractionTypes(void)			{ return all_interaction_types_; }
 	
 	// Running ticks
 	bool RunOneTick(void);															// run one tick and advance the tick count; returns false if finished

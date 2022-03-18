@@ -4420,15 +4420,15 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			return displaySpecies->mutation_types_.size();
+			return community->AllMutationTypes().size();
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			return displaySpecies->genomic_element_types_.size();
+			return community->AllGenomicElementTypes().size();
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			return displaySpecies->interaction_types_.size();
+			return community->AllInteractionTypes().size();
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
@@ -4526,7 +4526,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
+			const std::map<slim_objectid_t,MutationType*> &mutationTypes = community->AllMutationTypes();
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -4605,7 +4605,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = displaySpecies->genomic_element_types_;
+			const std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = community->AllGenomicElementTypes();
 			int genomicElementTypeCount = (int)genomicElementTypes.size();
 			
 			if (rowIndex < genomicElementTypeCount)
@@ -4645,7 +4645,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
+			const std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->AllInteractionTypes();
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)
@@ -4804,7 +4804,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = displaySpecies->mutation_types_;
+			const std::map<slim_objectid_t,MutationType*> &mutationTypes = community->AllMutationTypes();
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -4845,7 +4845,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = displaySpecies->interaction_types_;
+			const std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->AllInteractionTypes();
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)

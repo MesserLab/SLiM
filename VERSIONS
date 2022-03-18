@@ -37,6 +37,7 @@ development head:
 		Species now supports simulationFinished(), but only in the single-species case; in multispecies models call community.simulationFinished() instead
 		make "early()" required; the default block type has been a source of confusion and is worse now with the multispecies syntax
 		add optional "species <identifier>" and "ticks <identifier>" syntax to the SLiM top-level syntax to modify block declarations
+		make the Object Tables window in SLiMgui display all objects, across all species
 		
 
 version 3.7.1 (Eidos version 2.7.1):

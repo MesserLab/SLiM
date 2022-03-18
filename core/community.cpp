@@ -119,6 +119,11 @@ Community::Community(std::istream &p_infile) : self_symbol_(gID_community, Eidos
 Community::~Community(void)
 {
 	//EIDOS_ERRSTREAM << "Community::~Community" << std::endl;
+	
+	all_mutation_types_.clear();
+	all_interaction_types_.clear();
+	all_genomic_element_types_.clear();
+	
 	for (Species *species : all_species_)
 		delete species;
 	
@@ -286,6 +291,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 		// This is the single-species case; create a species named "sim"
 		all_species_.push_back(new Species(*this, 0, "sim"));
 		
+		is_explicit_species_ = false;
 		is_multispecies_ = false;
 	}
 	else
@@ -296,7 +302,8 @@ void Community::InitializeFromFile(std::istream &p_infile)
 		for (std::string &species_name : explicit_species_decl_names)
 			all_species_.push_back(new Species(*this, species_id++, species_name));
 		
-		is_multispecies_ = true;
+		is_explicit_species_ = true;
+		is_multispecies_ = (all_species_.size() > 1);
 	}
 	
 	// Extract SLiMEidosBlocks from the parse tree
@@ -316,14 +323,14 @@ void Community::InitializeFromFile(std::istream &p_infile)
 			
 			if (script_block_node->token_->token_string_.compare(gStr_species) == 0)
 			{
-				if (!is_multispecies_)
+				if (!is_explicit_species_)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no species have been explicitly declared, so species specifiers should not be used." << EidosTerminate(script_block_node->token_);
 				
 				last_species_spec = species;
 			}
 			else if (script_block_node->token_->token_string_.compare(gStr_ticks) == 0)
 			{
-				if (!is_multispecies_)
+				if (!is_explicit_species_)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no species have been explicitly declared, so ticks specifiers should not be used." << EidosTerminate(script_block_node->token_);
 				
 				last_ticks_spec = species;
@@ -356,10 +363,10 @@ void Community::InitializeFromFile(std::istream &p_infile)
 				if (last_ticks_spec)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) callback declarations may not be preceded by a ticks specifier." << EidosTerminate(new_script_block->root_node_->token_);
 				
-				Species *block_species = (is_multispecies_ ? last_species_spec : all_species_[0]);
+				Species *block_species = (is_explicit_species_ ? last_species_spec : all_species_[0]);
 				
 				if (!block_species)
-					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): in multi-species models, every callback must be preceded by a species specifier; callbacks are always species-specific." << EidosTerminate(new_script_block->root_node_->token_);
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every callback must be preceded by a species specifier; callbacks are always species-specific." << EidosTerminate(new_script_block->root_node_->token_);
 				
 				new_script_block->species_spec_ = block_species;
 			}
@@ -1379,6 +1386,18 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	}
 	
 	DeregisterScheduledScriptBlocks();
+	
+	// compile results from initialization into our overall state
+	for (Species *species : all_species_)
+	{
+		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
+		const std::map<slim_objectid_t,GenomicElementType*> &getypes = species->GenomicElementTypes();
+		const std::map<slim_objectid_t,InteractionType*> &inttypes = species->InteractionTypes();
+		
+		all_mutation_types_.insert(muttypes.begin(), muttypes.end());
+		all_genomic_element_types_.insert(getypes.begin(), getypes.end());
+		all_interaction_types_.insert(inttypes.begin(), inttypes.end());
+	}
 	
 	// set up global symbols for all species, and for ourselves
 	for (Species *species : all_species_)
