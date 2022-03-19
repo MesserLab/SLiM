@@ -75,6 +75,11 @@ public slots:
     
 protected:
     QtSLiMWindow *controller_ = nullptr;
+    std::string focalSpeciesName_;                                  // we keep the name of our focal species, since a pointer would be unsafe
+    std::string focalSpeciesAvatar_;                                // cached so we can display it even when the simulation is invalid
+    
+    Species *focalDisplaySpecies(void);
+    void updateSpeciesBadge(void);
     
     // Base graphing functionality
     QRect interiorRectForBounds(QRect bounds);

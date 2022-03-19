@@ -143,7 +143,7 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
         if (controller_->community->ModelType() == SLiMModelType::kModelTypeWF)
             return "requires a\nnonWF model";
         
-        Species *graphSpecies = controller_->focalDisplaySpecies();
+        Species *graphSpecies = focalDisplaySpecies();
         
         if (graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
@@ -155,7 +155,7 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
@@ -198,7 +198,7 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
 
 QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
@@ -227,7 +227,7 @@ bool QtSLiMGraphView_AgeDistribution::providesStringForData(void)
 void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
 	
@@ -258,7 +258,7 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)

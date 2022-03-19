@@ -113,8 +113,7 @@
 
 - (BOOL)addSubpopulationsToMenu
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	NSMenuItem *lastItem;
 	slim_objectid_t firstTag = -1;
 	
@@ -167,8 +166,7 @@
 
 - (BOOL)addMutationTypesToMenu
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	NSMenuItem *lastItem;
 	int firstTag = -1;
 	
@@ -251,7 +249,11 @@
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	Community &community = *controller->community;
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (!displaySpecies)
+		return;
+	
 	Population &population = displaySpecies->population_;
 	int registry_size;
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);

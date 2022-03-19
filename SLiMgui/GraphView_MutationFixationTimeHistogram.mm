@@ -56,7 +56,7 @@
 
 - (double *)fixationTimeDataWithController:(SLiMWindowController *)controller
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	slim_tick_t *histogram = displaySpecies->population_.mutation_fixation_times_;
@@ -111,7 +111,7 @@
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	double *plotData = [self fixationTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
@@ -132,7 +132,7 @@
 	[string appendString:[self dateline]];
 	[string appendString:@"\n\n"];
 	
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	double *plotData = [self fixationTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();

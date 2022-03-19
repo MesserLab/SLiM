@@ -164,7 +164,7 @@ void QtSLiMGraphView_1DSampleSFS::updateAfterTick(void)
 
 QString QtSLiMGraphView_1DSampleSFS::disableMessage(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     
     if (graphSpecies)
     {
@@ -250,7 +250,7 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
 {
     if (!sfs1dbuf_)
     {
-        Species *graphSpecies = controller_->focalDisplaySpecies();
+        Species *graphSpecies = focalDisplaySpecies();
         Population &population = graphSpecies->population_;
         
         // Find our subpops and mutation type

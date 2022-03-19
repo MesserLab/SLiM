@@ -34,8 +34,10 @@
 #include <QComboBox>
 #include <QtGlobal>
 #include <QMessageBox>
+#include <QLabel>
 #include <QDebug>
 
+#include "species.h"
 #include "subpopulation.h"
 #include "genome.h"
 #include "mutation_run.h"
@@ -60,6 +62,7 @@ QFont QtSLiMGraphView::labelFontOfPointSize(double size)
 QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : QWidget(p_parent)
 {
     controller_ = controller;
+    focalSpeciesName_ = controller_->focalDisplaySpecies()->name_;
     
     connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
     connect(controller, &QtSLiMWindow::controllerSelectionChanged, this, &QtSLiMGraphView::controllerSelectionChanged);
@@ -118,6 +121,55 @@ QtSLiMGraphView::~QtSLiMGraphView()
 void QtSLiMGraphView::cleanup()
 {
     invalidateDrawingCache();
+}
+
+Species *QtSLiMGraphView::focalDisplaySpecies(void)
+{
+    // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+    // Before initialize() is done species have not been created, so we return nullptr in that case
+	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
+		return controller_->community->SpeciesWithName(focalSpeciesName_);
+	
+	return nullptr;
+}
+
+void QtSLiMGraphView::updateSpeciesBadge(void)
+{
+    QHBoxLayout *enclosingLayout = buttonLayout();
+    int layoutCount = enclosingLayout ? enclosingLayout->count() : 0;
+    QLayoutItem *labelItem = (layoutCount > 0) ? enclosingLayout->itemAt(0) : nullptr;
+    QWidget *labelWidget = labelItem ? labelItem->widget() : nullptr;
+    QLabel *speciesLabel = qobject_cast<QLabel *>(labelWidget);
+    
+    if (!speciesLabel)
+    {
+        qDebug() << "No species label!  enclosingLayout ==" << enclosingLayout << ", layoutCount ==" << layoutCount << ", labelItem ==" << labelItem << ", labelWidget ==" << labelWidget;
+        return;
+    }
+    
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    // Cache our graphSpecies avatar whenever we're in a valid state, because it could change,
+    // and because we want to be able to display it even when the sim is in an invalid state
+    if (graphSpecies)
+    {
+        if (graphSpecies->community_.is_multispecies_)
+            focalSpeciesAvatar_ = graphSpecies->avatar_;
+        else
+            focalSpeciesAvatar_ = "";
+    }
+    
+    // Display our current avatar cache; if we have no avatar, hide the label
+    if (focalSpeciesAvatar_.length())
+    {
+        speciesLabel->setText(QString::fromStdString(focalSpeciesAvatar_));
+        speciesLabel->setHidden(false);
+    }
+    else
+    {
+        speciesLabel->setText("");
+        speciesLabel->setHidden(true);
+    }
 }
 
 QHBoxLayout *QtSLiMGraphView::buttonLayout(void)
@@ -705,6 +757,11 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
     {
         drawMessage(painter, "no\ndata", bounds);
     }
+    else if (!focalDisplaySpecies())
+    {
+        // The species name no longer refers to a species in the community
+        drawMessage(painter, "missing\nspecies", bounds);
+    }
     else if (disableMessage().length() > 0)
     {
         drawMessage(painter, disableMessage(), bounds);
@@ -794,11 +851,13 @@ void QtSLiMGraphView::resizeEvent(QResizeEvent *p_event)
 
 void QtSLiMGraphView::controllerRecycled(void)
 {
+    updateSpeciesBadge();
+    
 	invalidateDrawingCache();
     update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->community->Tick() > 0));
+    if (action) action->setEnabled(!controller_->invalidSimulation() && focalDisplaySpecies());
 }
 
 void QtSLiMGraphView::controllerSelectionChanged(void)
@@ -811,10 +870,12 @@ void QtSLiMGraphView::controllerTickFinished(void)
 
 void QtSLiMGraphView::updateAfterTick(void)
 {
-	update();
+    updateSpeciesBadge();
+    
+    update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && (controller_->community->Tick() > 0));
+    if (action) action->setEnabled(!controller_->invalidSimulation() && focalDisplaySpecies());
 }
 
 bool QtSLiMGraphView::providesStringForData(void)
@@ -868,7 +929,7 @@ QString QtSLiMGraphView::disableMessage(void)
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 {
-    if (!controller_->invalidSimulation() && (controller_->community->Tick() > 0)) // && ![[controller window] attachedSheet])
+    if (!controller_->invalidSimulation() && focalDisplaySpecies()) // && ![[controller window] attachedSheet])
 	{
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
@@ -1258,7 +1319,11 @@ QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_object
 
 QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return QtSLiMLegendSpec();
+    
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	// if we only have one mutation type, do not show a legend
@@ -1423,7 +1488,7 @@ void QtSLiMGraphView::drawHeatmap(QPainter &painter, QRect interiorRect, double 
 
 bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_objectid_t selectedSubpopID, slim_objectid_t avoidSubpopID)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	slim_objectid_t firstTag = -1;
     
     // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
@@ -1486,7 +1551,7 @@ bool QtSLiMGraphView::addSubpopulationsToMenu(QComboBox *subpopButton, slim_obje
 
 bool QtSLiMGraphView::addMutationTypesToMenu(QComboBox *mutTypeButton, int selectedMutIDIndex)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	int firstTag = -1;
 	
     // QComboBox::currentIndexChanged signals will be sent during rebuilding; this flag
@@ -1550,7 +1615,11 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return 0;
+    
 	Population &population = graphSpecies->population_;
 	size_t subpop_total_genome_count = 0;
 	
@@ -1609,8 +1678,12 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
 	//
-    Species *graphSpecies = controller_->focalDisplaySpecies();
-	Population &population = graphSpecies->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return 0;
+    
+    Population &population = graphSpecies->population_;
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     

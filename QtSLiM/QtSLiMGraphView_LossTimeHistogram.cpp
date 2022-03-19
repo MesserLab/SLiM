@@ -61,7 +61,7 @@ QString QtSLiMGraphView_LossTimeHistogram::aboutString(void)
 double *QtSLiMGraphView_LossTimeHistogram::lossTimeData(void)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	slim_tick_t *histogram = graphSpecies->population_.mutation_loss_times_;
 	int64_t histogramBins = static_cast<int64_t>(graphSpecies->population_.mutation_loss_tick_slots_);	// fewer than binCount * mutationTypeCount may exist
@@ -117,7 +117,7 @@ void QtSLiMGraphView_LossTimeHistogram::drawGraph(QPainter &painter, QRect inter
 {
     double *plotData = lossTimeData();
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	// plot our histogram bars
@@ -138,7 +138,7 @@ void QtSLiMGraphView_LossTimeHistogram::appendStringForData(QString &string)
 {
 	double *plotData = lossTimeData();
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	for (auto mutationTypeIter : graphSpecies->mutation_types_)

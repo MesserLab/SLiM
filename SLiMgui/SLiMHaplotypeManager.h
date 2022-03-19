@@ -23,8 +23,10 @@
 #include "slim_globals.h"
 #include "mutation.h"
 
+#include <string>
 
 @class SLiMWindowController;
+class Species;
 class Genome;
 
 
@@ -55,6 +57,8 @@ typedef enum
 // SLiMHaplotypeManager handles collecting information, clustering, building a display list, and drawing
 @interface SLiMHaplotypeManager : NSObject
 {
+	std::string focalSpeciesName;							// we keep the name of our focal species, since a pointer would be unsafe
+	
 	SLiMHaplotypeClusteringMethod clusterMethod;
 	SLiMHaplotypeClusteringOptimization clusterOptimization;
 	
@@ -91,6 +95,8 @@ typedef enum
 						sourceController:(SLiMWindowController *)controller
 							  sampleSize:(int)sampleSize
 					 clusterInBackground:(BOOL)clusterInBackground;
+
+- (Species *)focalDisplaySpeciesWithController:(SLiMWindowController *)controller;
 
 - (void)glDrawHaplotypesInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips eraseBackground:(BOOL)eraseBackground previousFirstBincounts:(int64_t **)previousFirstBincounts;
 - (NSBitmapImageRep *)bitmapImageRepForPlotInRect:(NSRect)interior displayBlackAndWhite:(BOOL)displayBW showSubpopStrips:(BOOL)showSubpopStrips;

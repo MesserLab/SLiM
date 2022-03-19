@@ -165,7 +165,7 @@ void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
 
 QString QtSLiMGraphView_2DPopulationSFS::disableMessage(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     
     if (graphSpecies)
     {
@@ -213,7 +213,7 @@ void QtSLiMGraphView_2DPopulationSFS::appendStringForData(QString &string)
 
 double *QtSLiMGraphView_2DPopulationSFS::mutation2DSFS(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Population &population = graphSpecies->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);

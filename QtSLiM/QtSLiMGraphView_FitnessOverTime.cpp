@@ -113,9 +113,10 @@ QString QtSLiMGraphView_FitnessOverTime::aboutString(void)
 
 void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 {
-	if (!controller_->invalidSimulation() && !yAxisIsUserRescaled_)
+    Species *graphSpecies = focalDisplaySpecies();
+    
+	if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
 	{
-        Species *graphSpecies = controller_->focalDisplaySpecies();
 		Population &pop = graphSpecies->population_;
 		double minHistory = std::numeric_limits<double>::infinity();
 		double maxHistory = -std::numeric_limits<double>::infinity();
@@ -177,7 +178,7 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)
 {
     Community *community = controller_->community;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
@@ -274,7 +275,7 @@ void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect in
 void QtSLiMGraphView_FitnessOverTime::drawLineGraph(QPainter &painter, QRect interiorRect)
 {
     Community *community = controller_->community;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
@@ -354,7 +355,7 @@ bool QtSLiMGraphView_FitnessOverTime::providesStringForData(void)
 void QtSLiMGraphView_FitnessOverTime::appendStringForData(QString &string)
 {
     Community *community = controller_->community;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	slim_tick_t completedTicks = community->Tick() - 1;
 	
@@ -402,7 +403,7 @@ QtSLiMLegendSpec QtSLiMGraphView_FitnessOverTime::legendKey(void)
     if (!showSubpopulations_)
         return QtSLiMLegendSpec();
     
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     std::vector<slim_objectid_t> subpopsToDisplay;
     
     for (auto history_record_iter : graphSpecies->population_.fitness_histories_)

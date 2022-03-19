@@ -95,8 +95,7 @@
 
 - (void)updateAfterTick
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	
 	if (displaySpecies && ![self yAxisIsUserRescaled])
 	{
@@ -160,7 +159,7 @@
 
 - (void)drawPointGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
@@ -280,7 +279,7 @@
 
 - (void)drawLineGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
@@ -392,7 +391,7 @@
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
 {
 	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ tick\n"];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
@@ -459,8 +458,7 @@
 
 - (NSArray *)legendKey
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop

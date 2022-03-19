@@ -20,6 +20,7 @@
 
 #import "SLiMHaplotypeManager.h"
 #import "SLiMWindowController.h"
+#import "species.h"
 
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
@@ -41,7 +42,10 @@
 {
 	if (self = [super init])
 	{
-		Species *displaySpecies = [controller focalDisplaySpecies];
+		// Focus permanently on whatever species is the current species in the controller
+		focalSpeciesName = [controller focalDisplaySpecies]->name_;
+		
+		Species *displaySpecies = [self focalDisplaySpeciesWithController:controller];
 		Population &population = displaySpecies->population_;
 		
 		clusterMethod = clusteringMethod;
@@ -147,6 +151,15 @@
 	return self;
 }
 
+- (Species *)focalDisplaySpeciesWithController:(SLiMWindowController *)controller
+{
+	// We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+	if (controller && controller->community)
+		return controller->community->SpeciesWithName(focalSpeciesName);
+	
+	return nullptr;
+}
+
 - (void)finishClusteringAnalysisWithBackgroundController:(SLiMWindowController *)backgroundController
 {
 	// This method and everything is calls may be executed on a background thread!  If so, backgroundController
@@ -215,7 +228,7 @@
 
 - (void)configureMutationInfoBufferForController:(SLiMWindowController *)controller
 {
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpeciesWithController:controller];
 	Population &population = displaySpecies->population_;
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	int registry_size;

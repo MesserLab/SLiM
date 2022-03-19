@@ -34,6 +34,7 @@
 #include <QMimeData>
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <QLabel>
 #include <QDebug>
 
 #include <vector>
@@ -41,6 +42,7 @@
 
 #include "eidos_globals.h"
 #include "subpopulation.h"
+#include "species.h"
 
 
 
@@ -97,6 +99,14 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
                 buttonLayout->setSpacing(5);
                 topLayout->addLayout(buttonLayout);
                 
+                if (controller->community->is_multispecies_)
+                {
+                    // make our species avatar badge
+                    QLabel *speciesLabel = new QLabel();
+                    speciesLabel->setText(QString::fromStdString(controller->focalDisplaySpecies()->avatar_));
+                    buttonLayout->addWidget(speciesLabel);
+                }
+                
                 QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
                 buttonLayout->addItem(rightSpacer);
                 
@@ -142,9 +152,10 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     QObject(p_parent)
 {
     controller_ = controller;
+    focalSpeciesName_ = controller->focalDisplaySpecies()->name_;
     
     Community *community = controller_->community;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Population &population = graphSpecies->population_;
     
     clusterMethod = clusteringMethod;
@@ -269,6 +280,16 @@ QtSLiMHaplotypeManager::~QtSLiMHaplotypeManager(void)
 	}
 }
 
+Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
+{
+    // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+    // Before initialize() is done species have not been created, so we return nullptr in that case
+	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
+		return controller_->community->SpeciesWithName(focalSpeciesName_);
+	
+	return nullptr;
+}
+
 void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 {
 	// Work out an approximate best sort order
@@ -295,8 +316,12 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
-	Population &population = graphSpecies->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return;
+    
+    Population &population = graphSpecies->population_;
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);

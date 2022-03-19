@@ -83,7 +83,7 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 		bins[i] = 0.0;
 	
     // bin fitness values from one subpop or from across the population
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Population &pop = graphSpecies->population_;
     
     for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : pop.subpops_)
@@ -126,7 +126,7 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 
 void QtSLiMGraphView_SubpopFitnessDists::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
     bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop
@@ -184,7 +184,7 @@ bool QtSLiMGraphView_SubpopFitnessDists::providesStringForData(void)
 
 void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
     bool showSubpops = true;
     int binCount = histogramBinCount_;
@@ -219,7 +219,7 @@ void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 
 QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Population &pop = graphSpecies->population_;
 	bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop

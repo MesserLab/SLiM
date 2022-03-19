@@ -137,7 +137,7 @@ void QtSLiMGraphView_LifetimeReproduction::updateAfterTick(void)
 
 QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     
     if (graphSpecies)
     {
@@ -151,7 +151,7 @@ QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
@@ -194,7 +194,7 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
 
 QtSLiMLegendSpec QtSLiMGraphView_LifetimeReproduction::legendKey(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
@@ -223,7 +223,7 @@ bool QtSLiMGraphView_LifetimeReproduction::providesStringForData(void)
 void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
 	
@@ -254,7 +254,7 @@ void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 double *QtSLiMGraphView_LifetimeReproduction::reproductionDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)

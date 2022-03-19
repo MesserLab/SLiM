@@ -21,6 +21,8 @@
 #import "GraphView.h"
 #import "SLiMWindowController.h"
 
+#import "species.h"
+
 
 @implementation GraphView
 
@@ -35,6 +37,16 @@
 	
 	if (!attrs)
 		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:14]} retain];
+	
+	return attrs;
+}
+
++ (NSDictionary *)attributesForAvatars
+{
+	static NSDictionary *attrs = nil;
+	
+	if (!attrs)
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:12]} retain];
 	
 	return attrs;
 }
@@ -74,6 +86,7 @@
 	if (self = [super initWithFrame:frameRect])
 	{
 		[self setSlimWindowController:controller];
+		focalSpeciesName = [controller focalDisplaySpecies]->name_;
 		
 		_showXAxis = TRUE;
 		_allowXAxisUserRescale = TRUE;
@@ -107,6 +120,33 @@
 	}
 	
 	return self;
+}
+
+- (Species *)focalDisplaySpecies
+{
+	// We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+	// Before initialize() is done species have not been created, so we return nullptr in that case
+	SLiMWindowController *controller = [self slimWindowController];
+	
+	if (controller && controller->community && (controller->community->Tick() >= 1))
+		return controller->community->SpeciesWithName(focalSpeciesName);
+	
+	return nullptr;
+}
+
+- (void)updateSpeciesBadge
+{
+	Species *graphSpecies = [self focalDisplaySpecies];
+	
+	// Cache our graphSpecies avatar whenever we're in a valid state, because it could change,
+	// and because we want to be able to display it even when the sim is in an invalid state
+	if (graphSpecies)
+	{
+		if (graphSpecies->community_.is_multispecies_)
+			focalSpeciesAvatar = graphSpecies->avatar_;
+		else
+			focalSpeciesAvatar = "";
+	}
 }
 
 - (void)cleanup
@@ -520,6 +560,27 @@
 	}
 }
 
+- (void)drawSpeciesAvatar
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSRect bounds = [self bounds];
+	
+	if (controller->community->is_multispecies_)
+	{
+		Species *displaySpecies = [self focalDisplaySpecies];
+		
+		if (displaySpecies)
+		{
+			NSDictionary *avatarAttrs = [[self class] attributesForAvatars];
+			NSString *avatarString = [NSString stringWithUTF8String:displaySpecies->avatar_.c_str()];
+			NSAttributedString *avatar = [[NSAttributedString alloc] initWithString:avatarString attributes:avatarAttrs];
+			
+			[avatar drawAtPoint:NSMakePoint(bounds.origin.x + bounds.size.width - 23, bounds.origin.x + 7)];
+			[avatar release];
+		}
+	}
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
 	NSRect bounds = [self bounds];
@@ -531,7 +592,20 @@
 	// Get our controller and test for validity, so subclasses don't have to worry about this
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation] && (controller->community->Tick() > 0))
+	if (!controller || [controller invalidSimulation])
+	{
+		[self drawMessage:@"   invalid\nsimulation" inRect:bounds];
+	}
+	else if (controller->community->Tick() == 0)
+	{
+		[self drawMessage:@" no\ndata" inRect:bounds];
+	}
+	else if (![self focalDisplaySpecies])
+	{
+		// The species name no longer refers to a species in the community
+		[self drawMessage:@"missing\nspecies" inRect:bounds];
+	}
+	else
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
 		
@@ -575,12 +649,10 @@
 			// Overdraw the legend
 			if ([self legendVisible])
 				[self drawLegendInInteriorRect:interiorRect];
+			
+			// Overdraw the species avatar
+			[self drawSpeciesAvatar];
 		}
-	}
-	else
-	{
-		// The controller is invalid, so just draw a generic message
-		[self drawMessage:@"   invalid\nsimulation" inRect:bounds];
 	}
 }
 
@@ -852,7 +924,7 @@
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation] && ![[controller window] attachedSheet])
+	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && [self focalDisplaySpecies])
 	{
 		BOOL addedItems = NO;
 		NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
@@ -986,6 +1058,7 @@
 
 - (void)controllerRecycled
 {
+	[self updateSpeciesBadge];
 	[self invalidateDrawingCache];
 	[self setNeedsDisplay:YES];
 }
@@ -1000,6 +1073,7 @@
 
 - (void)updateAfterTick
 {
+	[self updateSpeciesBadge];
 	[self setNeedsDisplay:YES];
 }
 
@@ -1046,8 +1120,11 @@
 
 - (NSArray *)mutationTypeLegendKey
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	Species *displaySpecies = [controller focalDisplaySpecies];
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (!displaySpecies)
+		return nil;
+	
 	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
 	// if we only have one mutation type, do not show a legend

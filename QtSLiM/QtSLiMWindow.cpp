@@ -74,6 +74,7 @@
 #include <QDesktopServices>
 #include <QScreen>
 #include <QMetaMethod>
+#include <QLabel>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -4579,6 +4580,11 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         
+        QLabel *speciesLabel = new QLabel();
+        speciesLabel->setText("");
+        buttonLayout->addWidget(speciesLabel);
+        speciesLabel->setHidden(true);
+        
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
         buttonLayout->addItem(rightSpacer);
         
@@ -4646,9 +4652,10 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 void QtSLiMWindow::graphPopupButtonRunMenu(void)
 {
 	bool disableAll = false;
+    Species *displaySpecies = focalDisplaySpecies();
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (invalidSimulation_) // || !community || !community->simulation_valid_ || (community->Tick() < 1) || !community->single_species_)
+	if (invalidSimulation_ || !displaySpecies)
 		disableAll = true;
     
     QMenu contextMenu("graph_menu", this);
@@ -4706,14 +4713,15 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     contextMenu.addSeparator();
     
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    Species *displaySpecies = focalDisplaySpecies();
     createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
     QAction *action = contextMenu.exec(mousePos);
     
-    if (action && !invalidSimulation_)
+    displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
+    
+    if (action && !invalidSimulation_ && displaySpecies)
     {
         QtSLiMGraphView *graphView = nullptr;
         
@@ -4747,8 +4755,6 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == createHaplotypePlot)
         {
-            displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
-            
             if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status

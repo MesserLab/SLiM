@@ -87,7 +87,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
     controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	// tally into our bins
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
@@ -149,7 +149,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 void QtSLiMGraphView_1DPopulationSFS::drawGraph(QPainter &painter, QRect interiorRect)
 {
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *spectrum = populationSFS(mutationTypeCount);
 	
@@ -208,7 +208,7 @@ void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
         string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
 	
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	

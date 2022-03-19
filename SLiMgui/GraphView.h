@@ -33,6 +33,9 @@
 
 @interface GraphView : NSView
 {
+	std::string focalSpeciesName;							// we keep the name of our focal species, since a pointer would be unsafe
+	std::string focalSpeciesAvatar;							// cached so we can display it even when the simulation is invalid
+	
 	// set to YES during a copy: operation, to allow customization
 	BOOL generatingPDF;
 	
@@ -87,6 +90,9 @@
 + (NSColor *)gridLineColor;
 
 - (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller;		// designated initializer
+
+- (Species *)focalDisplaySpecies;
+- (void)updateSpeciesBadge;
 
 - (void)cleanup;
 

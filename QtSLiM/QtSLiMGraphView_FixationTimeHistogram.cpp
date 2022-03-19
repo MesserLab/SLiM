@@ -61,7 +61,7 @@ QString QtSLiMGraphView_FixationTimeHistogram::aboutString(void)
 double *QtSLiMGraphView_FixationTimeHistogram::fixationTimeData(void)
 {
     int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	slim_tick_t *histogram = graphSpecies->population_.mutation_fixation_times_;
 	int64_t histogramBins = static_cast<int64_t>(graphSpecies->population_.mutation_fixation_tick_slots_);	// fewer than binCount * mutationTypeCount may exist
@@ -120,7 +120,7 @@ void QtSLiMGraphView_FixationTimeHistogram::drawGraph(QPainter &painter, QRect i
 {
     double *plotData = fixationTimeData();
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	// plot our histogram bars
@@ -141,7 +141,7 @@ void QtSLiMGraphView_FixationTimeHistogram::appendStringForData(QString &string)
 {
 	double *plotData = fixationTimeData();
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	
 	for (auto mutationTypeIter : graphSpecies->mutation_types_)

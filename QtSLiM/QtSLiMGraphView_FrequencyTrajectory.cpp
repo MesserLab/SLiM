@@ -97,7 +97,11 @@ void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)
 void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
 {
     Community *community = controller_->community;
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return;
+    
     Population &population = graphSpecies->population_;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
@@ -305,7 +309,7 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerTickFinished(void)
     }
 	
 	// Fetch and store the frequencies for all mutations of the selected mutation type(s), within the subpopulation selected
-	fetchDataForFinishedTick();
+    fetchDataForFinishedTick();
 }
 
 QString QtSLiMGraphView_FrequencyTrajectory::graphTitle(void)
@@ -339,7 +343,7 @@ void QtSLiMGraphView_FrequencyTrajectory::updateAfterTick(void)
 
 QString QtSLiMGraphView_FrequencyTrajectory::disableMessage(void)
 {
-    Species *graphSpecies = controller_->focalDisplaySpecies();
+    Species *graphSpecies = focalDisplaySpecies();
     
     if (graphSpecies)
     {

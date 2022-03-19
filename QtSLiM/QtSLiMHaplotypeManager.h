@@ -30,10 +30,13 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 
+#include <string>
+
 #include "slim_globals.h"
 #include "mutation.h"
 
 class QtSLiMWindow;
+class Species;
 class Genome;
 class QtSLiMHaplotypeProgress;
 class QtSLiMPushButton;
@@ -70,6 +73,10 @@ public:
 
 private:
     QtSLiMWindow *controller_ = nullptr;
+    std::string focalSpeciesName_;                          // we keep the name of our focal species, since a pointer would be unsafe
+    
+    Species *focalDisplaySpecies(void);
+    
     QtSLiMHaplotypeProgress *progressPanel_ = nullptr;
     
     ClusteringMethod clusterMethod;
