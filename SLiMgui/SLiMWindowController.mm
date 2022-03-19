@@ -4539,7 +4539,12 @@ static int DisplayDigitsForIntegerPart(double x)
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
+					NSString *idString = [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
+					
+					if (community->is_multispecies_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:mutationType->species_.avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
@@ -4618,7 +4623,12 @@ static int DisplayDigitsForIntegerPart(double x)
 				
 				if (aTableColumn == genomicElementTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
+					NSString *idString = [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
+					
+					if (community->is_multispecies_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:genomicElementType->species_.avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == genomicElementTypeColorColumn)
 				{
@@ -4658,7 +4668,12 @@ static int DisplayDigitsForIntegerPart(double x)
 				
 				if (aTableColumn == interactionTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
+					NSString *idString = [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
+					
+					if (community->is_multispecies_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:interactionType->species_.avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == interactionTypeMaxDistanceColumn)
 				{
@@ -4715,13 +4730,21 @@ static int DisplayDigitsForIntegerPart(double x)
 				if (aTableColumn == scriptBlocksIDColumn)
 				{
 					slim_objectid_t block_id = scriptBlock->block_id_;
+					NSString *idString;
 					
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
-						return @"—";
+						idString = @"—";
 					else if (block_id == -1)
-						return @"—";
+						idString = @"—";
 					else
-						return [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
+						idString = [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
+					
+					if (community->is_multispecies_ && scriptBlock->species_spec_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->species_spec_->avatar_.c_str()]];
+					else if (community->is_multispecies_ && scriptBlock->ticks_spec_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->ticks_spec_->avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == scriptBlocksStartColumn)
 				{

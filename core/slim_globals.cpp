@@ -1367,6 +1367,7 @@ const std::string &gStr_initializeHotspotMap = EidosRegisteredString("initialize
 const std::string &gStr_initializeRecombinationRate = EidosRegisteredString("initializeRecombinationRate", gID_initializeRecombinationRate);
 const std::string &gStr_initializeSex = EidosRegisteredString("initializeSex", gID_initializeSex);
 const std::string &gStr_initializeSLiMOptions = EidosRegisteredString("initializeSLiMOptions", gID_initializeSLiMOptions);
+const std::string &gStr_initializeSpecies = EidosRegisteredString("initializeSpecies", gID_initializeSpecies);
 const std::string &gStr_initializeTreeSeq = EidosRegisteredString("initializeTreeSeq", gID_initializeTreeSeq);
 const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initializeSLiMModelType", gID_initializeSLiMModelType);
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);

@@ -1649,6 +1649,7 @@ void Species::RunInitializeCallbacks(void)
 	num_modeltype_declarations_ = 0;
 	num_ancseq_declarations_ = 0;
 	num_hotspot_maps_ = 0;
+	num_species_declarations_ = 0;
 	
 	if (SLiM_verbosity_level >= 1)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
@@ -1701,6 +1702,10 @@ void Species::RunInitializeCallbacks(void)
 		((chromosome_->hotspot_multipliers_M_.size() != 0) && (chromosome_->hotspot_multipliers_F_.size() == 0)))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): Both sex-specific hotspot maps must be defined, not just one (but one may be defined as 1.0)." << EidosTerminate();
 	
+	
+	// set a default avatar string if one was not provided; these will be A, B, etc.
+	if (avatar_.length() == 0)
+		avatar_ = std::string(1, (char)('A' + species_id_));
 	
 	// We default to WF, but here we explicitly declare our model type so the community knows the default was not changed
 	// This cements the choice of WF if the first species initialized does not declare a model type explicitly

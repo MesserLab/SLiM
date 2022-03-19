@@ -1267,6 +1267,72 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	(void)initializeSpecies([integer$ tickModulo = 1], [integer$ tickPhase = 1], [Ns$ avatar = NULL])
+//
+EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_interpreter)
+	EidosValue *arg_tickModulo_value = p_arguments[0].get();
+	EidosValue *arg_tickPhase_value = p_arguments[1].get();
+	EidosValue *arg_avatar_value = p_arguments[2].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (num_species_declarations_ > 0)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may be called only once per species." << EidosTerminate();
+	
+	int64_t tickModulo = arg_tickModulo_value->IntAtIndex(0, nullptr);
+	
+	if ((tickModulo < 1) || (tickModulo >= SLIM_MAX_TICK))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() requires a tickModulo value >= 1." << EidosTerminate();
+	
+	tick_modulo_ = (slim_tick_t)tickModulo;
+	
+	int64_t tickPhase = arg_tickPhase_value->IntAtIndex(0, nullptr);
+	
+	if ((tickPhase < 1) || (tickModulo >= SLIM_MAX_TICK))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() requires a tickPhase value >= 1." << EidosTerminate();
+	
+	tick_phase_ = (slim_tick_t)tickPhase;
+	
+	if (arg_avatar_value->Type() != EidosValueType::kValueNULL)
+		avatar_ = arg_avatar_value->StringAtIndex(0, nullptr);
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		output_stream << "initializeSpecies(";
+		
+		bool previous_params = false;
+		
+		if (tickModulo != 1)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "tickModulo = " << tickModulo;
+			previous_params = true;
+		}
+		
+		if (tickPhase != 1)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "tickPhase = " << tickPhase;
+			previous_params = true;
+		}
+		
+		if (avatar_.length() > 0)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "avatar = \"" << avatar_ << "\"";
+			previous_params = true;
+			(void)previous_params;	// dead store above is deliberate
+		}
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_species_declarations_++;
+	
+	return gStaticEidosValueVOID;
+}
+
 // TREE SEQUENCE RECORDING
 //	*********************	(void)initializeTreeSeq([logical$ recordMutations = T], [Nif$ simplificationRatio = NULL], [Ni$ simplificationInterval = NULL], [logical$ checkCoalescence = F], [logical$ runCrosschecks = F], [logical$ retainCoalescentOnly = T], [Ns$ timeUnit = NULL])
 //
@@ -1482,7 +1548,7 @@ const EidosClass *Species::Class(void) const
 
 void Species::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName();	// standard EidosObject behavior (not Dictionary behavior)
+	p_ostream << Class()->ClassName() << "<" << species_id_ << ":" << avatar_ << ">";
 }
 
 EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)

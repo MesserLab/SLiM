@@ -87,6 +87,7 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	else if (p_function_name.compare(gStr_initializeHotspotMap) == 0)			return active_species_->ExecuteContextFunction_initializeHotspotMap(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSex) == 0)					return active_species_->ExecuteContextFunction_initializeSex(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return active_species_->ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeSpecies) == 0)				return active_species_->ExecuteContextFunction_initializeSpecies(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeTreeSeq) == 0)				return active_species_->ExecuteContextFunction_initializeTreeSeq(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return active_species_->ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_interpreter);
 	
@@ -124,6 +125,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 										->AddString_S("chromosomeType"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMOptions, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("keepPedigrees", gStaticEidosValue_LogicalF)->AddString_OS("dimensionality", gStaticEidosValue_StringEmpty)->AddString_OS("periodicity", gStaticEidosValue_StringEmpty)->AddInt_OS("mutationRuns", gStaticEidosValue_Integer0)->AddLogical_OS("preventIncidentalSelfing", gStaticEidosValue_LogicalF)->AddLogical_OS("nucleotideBased", gStaticEidosValue_LogicalF));
+		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSpecies, nullptr, kEidosValueMaskVOID, "SLiM"))
+									   ->AddInt_OS("tickModulo", gStaticEidosValue_Integer1)->AddInt_OS("tickPhase", gStaticEidosValue_Integer1)->AddString_OSN("avatar", gStaticEidosValueNULL));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeTreeSeq, nullptr, kEidosValueMaskVOID, "SLiM"))
 									   ->AddLogical_OS("recordMutations", gStaticEidosValue_LogicalT)->AddNumeric_OSN("simplificationRatio", gStaticEidosValueNULL)->AddInt_OSN("simplificationInterval", gStaticEidosValueNULL)->AddLogical_OS("checkCoalescence", gStaticEidosValue_LogicalF)->AddLogical_OS("runCrosschecks", gStaticEidosValue_LogicalF)->AddLogical_OS("retainCoalescentOnly", gStaticEidosValue_LogicalT)->AddString_OSN("timeUnit", gStaticEidosValueNULL));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeSLiMModelType, nullptr, kEidosValueMaskVOID, "SLiM"))

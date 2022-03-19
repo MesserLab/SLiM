@@ -410,7 +410,7 @@ void QtSLiMTablesDrawer::initializeUI(void)
     {
         QHeaderView *mutTypeTableHHeader = configureTableView(ui->mutationTypeTable);
         
-        mutTypeTableHHeader->resizeSection(0, 43);
+        mutTypeTableHHeader->resizeSection(0, 53);
         mutTypeTableHHeader->resizeSection(1, 43);
         mutTypeTableHHeader->resizeSection(2, 53);
         //mutTypeTableHHeader->resizeSection(3, ?);
@@ -425,7 +425,7 @@ void QtSLiMTablesDrawer::initializeUI(void)
     {
         QHeaderView *geTypeTableHHeader = configureTableView(ui->genomicElementTypeTable);
         
-        geTypeTableHHeader->resizeSection(0, 43);
+        geTypeTableHHeader->resizeSection(0, 53);
         geTypeTableHHeader->resizeSection(1, 43);
         //geTypeTableHHeader->resizeSection(2, ?);
         geTypeTableHHeader->setSectionResizeMode(0, QHeaderView::Fixed);
@@ -438,7 +438,7 @@ void QtSLiMTablesDrawer::initializeUI(void)
     {
         QHeaderView *interactionTypeTableHHeader = configureTableView(ui->interactionTypeTable);
         
-        interactionTypeTableHHeader->resizeSection(0, 43);
+        interactionTypeTableHHeader->resizeSection(0, 53);
         interactionTypeTableHHeader->resizeSection(1, 43);
         interactionTypeTableHHeader->resizeSection(2, 53);
         //interactionTypeTableHHeader->resizeSection(3, ?);
@@ -453,7 +453,7 @@ void QtSLiMTablesDrawer::initializeUI(void)
     {
         QHeaderView *eidosBlockTableHHeader = configureTableView(ui->eidosBlockTable);
         
-        eidosBlockTableHHeader->resizeSection(0, 43);
+        eidosBlockTableHHeader->resizeSection(0, 53);
         eidosBlockTableHHeader->resizeSection(1, 63);
         eidosBlockTableHHeader->resizeSection(2, 63);
         //eidosBlockTableHHeader->resizeSection(3, ?);
@@ -534,7 +534,12 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             
             if (p_index.column() == 0)
             {
-                return QVariant(QString("m%1").arg(mutTypeID));
+                QString idString = QString("m%1").arg(mutTypeID);
+                
+                if (community->is_multispecies_)
+                    idString.append(" ").append(QString::fromStdString(mutationType->species_.avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {
@@ -738,7 +743,12 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &p_index, int role) 
             
             if (p_index.column() == 0)
             {
-                return QVariant(QString("g%1").arg(genomicElementTypeID));
+                QString idString = QString("g%1").arg(genomicElementTypeID);
+                
+                if (community->is_multispecies_)
+                    idString.append(" ").append(QString::fromStdString(genomicElementType->species_.avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {
@@ -879,7 +889,12 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
             
             if (p_index.column() == 0)
             {
-                return QVariant(QString("i%1").arg(interactionTypeID));
+                QString idString = QString("i%1").arg(interactionTypeID);
+                
+                if (community->is_multispecies_)
+                    idString.append(" ").append(QString::fromStdString(interactionType->species_.avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {
@@ -1060,13 +1075,21 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
             if (p_index.column() == 0)
             {
                 slim_objectid_t block_id = scriptBlock->block_id_;
+                QString idString;
                 
                 if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
-                    return QVariant("—");
+                    idString = "—";
                 else if (block_id == -1)
-                    return QVariant("—");
+                    idString = "—";
                 else
-                    return QVariant(QString("s%1").arg(block_id));
+                    idString = QString("s%1").arg(block_id);
+                
+                if (community->is_multispecies_ && scriptBlock->species_spec_)
+                    idString.append(" ").append(QString::fromStdString(scriptBlock->species_spec_->avatar_));
+                else if (community->is_multispecies_ && scriptBlock->ticks_spec_)
+                    idString.append(" ").append(QString::fromStdString(scriptBlock->ticks_spec_->avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {

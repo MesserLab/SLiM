@@ -197,6 +197,11 @@ private:
 	slim_tick_t generation_ = 0;													// the current generation reached in simulation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; invalidates automatically when used
 	
+	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
+	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
+	
+	std::string avatar_;															// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
+	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
@@ -228,6 +233,7 @@ private:
 	int num_modeltype_declarations_;
 	int num_ancseq_declarations_;
 	int num_hotspot_maps_;
+	int num_species_declarations_;
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
@@ -533,6 +539,7 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeHotspotMap(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSex(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeSpecies(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
