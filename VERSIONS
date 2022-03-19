@@ -40,6 +40,7 @@ development head:
 		make the Object Tables window in SLiMgui display all objects, across all species
 		add initializeSpecies() function to set species-specific options in multispecies models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
 		SLiMgui now displays avatars in the Object Tables window
+		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes properties to Community
 		
 
 version 3.7.1 (Eidos version 2.7.1):

@@ -194,6 +194,46 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
+		case gID_allGenomicElementTypes:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElementType_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto getype : all_genomic_element_types_)
+				vec->push_object_element_NORR(getype.second);
+			
+			return result_SP;
+		}
+		case gID_allInteractionTypes:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_InteractionType_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto inttype : all_interaction_types_)
+				vec->push_object_element_NORR(inttype.second);
+			
+			return result_SP;
+		}
+		case gID_allMutationTypes:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_MutationType_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto muttype : all_mutation_types_)
+				vec->push_object_element_NORR(muttype.second);
+			
+			return result_SP;
+		}
+		case gID_allSpecies:
+		{
+			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Species_Class);
+			EidosValue_SP result_SP = EidosValue_SP(vec);
+			
+			for (auto species : all_species_)
+				vec->push_object_element_NORR(species);
+			
+			return result_SP;
+		}
 		case gID_logFiles:
 		{
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_LogFile_Class);
@@ -898,6 +938,10 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allGenomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allInteractionTypes,	true,	kEidosValueMaskObject, gSLiM_InteractionType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allMutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allSpecies,				true,	kEidosValueMaskObject, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_scriptBlocks,			true,	kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class)));

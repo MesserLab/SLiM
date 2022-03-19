@@ -745,6 +745,10 @@ extern const std::string &gStr_mutationStackPolicy;
 //extern const std::string &gStr_type;		now gEidosStr_type
 //extern const std::string &gStr_source;		now gEidosStr_source
 extern const std::string &gStr_active;
+extern const std::string &gStr_allGenomicElementTypes;
+extern const std::string &gStr_allInteractionTypes;
+extern const std::string &gStr_allMutationTypes;
+extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomeType;
 extern const std::string &gStr_genomicElementTypes;
@@ -1092,6 +1096,10 @@ enum _SLiMGlobalStringID : int {
 	//gID_type,		now gEidosID_type
 	//gID_source,	now gEidosID_source
 	gID_active,
+	gID_allGenomicElementTypes,
+	gID_allInteractionTypes,
+	gID_allMutationTypes,
+	gID_allSpecies,
 	gID_chromosome,
 	gID_chromosomeType,
 	gID_genomicElementTypes,
