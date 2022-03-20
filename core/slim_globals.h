@@ -748,6 +748,7 @@ extern const std::string &gStr_active;
 extern const std::string &gStr_allGenomicElementTypes;
 extern const std::string &gStr_allInteractionTypes;
 extern const std::string &gStr_allMutationTypes;
+extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomeType;
@@ -1099,6 +1100,7 @@ enum _SLiMGlobalStringID : int {
 	gID_allGenomicElementTypes,
 	gID_allInteractionTypes,
 	gID_allMutationTypes,
+	gID_allScriptBlocks,
 	gID_allSpecies,
 	gID_chromosome,
 	gID_chromosomeType,

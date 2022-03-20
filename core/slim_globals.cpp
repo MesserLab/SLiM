@@ -1439,6 +1439,7 @@ const std::string &gStr_active = EidosRegisteredString("active", gID_active);
 const std::string &gStr_allGenomicElementTypes = EidosRegisteredString("allGenomicElementTypes", gID_allGenomicElementTypes);
 const std::string &gStr_allInteractionTypes = EidosRegisteredString("allInteractionTypes", gID_allInteractionTypes);
 const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTypes", gID_allMutationTypes);
+const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
 const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomeType = EidosRegisteredString("chromosomeType", gID_chromosomeType);

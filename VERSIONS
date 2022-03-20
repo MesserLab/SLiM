@@ -14,7 +14,7 @@ development head:
 	
 	MULTISPECIES SLiM WORK:
 		split SLiMSim into two new classes: Species and Community
-		moved to Community: properties logFiles, scriptBlocks, generationStage, verbosity; it also has properties tick and tag
+		moved to Community: properties logFiles, generationStage, verbosity; it also has properties tick and tag
 		moved to Community: methods createLogFile(), register[X]Event(), deregisterScriptBlock(), rescheduleScriptBlock(), outputUsage(); also has its own simulationFinished()
 		change generations to ticks across almost all APIs; the basic unit of time is now called a tick, "generation" is a species-specific concept
 		remove the inSLiMgui property of SLiMSim (deprecated since SLiM 3.2.1)
@@ -40,7 +40,7 @@ development head:
 		make the Object Tables window in SLiMgui display all objects, across all species
 		add initializeSpecies() function to set species-specific options in multispecies models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
 		SLiMgui now displays avatars in the Object Tables window
-		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes properties to Community
+		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes, allScriptBlocks properties to Community
 		graph windows (and haplotype plots) are now associated with the focal species at their time of creation, and display the species avatar as a badge
 		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
 		
