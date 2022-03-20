@@ -694,12 +694,11 @@
 					}
 					
 					[speciesBar setLabel:tabLabel forSegment:speciesIndex];
-					[speciesBar setAlignment:NSTextAlignmentCenter forSegment:speciesIndex];
 					[speciesBar setWidth:0 forSegment:speciesIndex];
 					
 					NSString *tooltipString = [@"Species " stringByAppendingString:[NSString stringWithUTF8String:species->name_.c_str()]];
 					
-					[speciesBar setToolTip:tooltipString forSegment:speciesIndex];
+					[[speciesBar cell] setToolTip:tooltipString forSegment:speciesIndex];	// do this on the cell because the corresponding NSSegmentedControl API wasn't added until 10.13
 					
 					if (focalSpeciesName.length() && (species->name_.compare(focalSpeciesName) == 0))
 						selectedSpeciesIndex = speciesIndex;
@@ -1168,7 +1167,7 @@
 	if (reloadingSpeciesBar)
 		return;
 	
-	int speciesIndex = [speciesBar selectedSegment];
+	int speciesIndex = (int)[speciesBar selectedSegment];
 	const std::vector<Species *> &allSpecies = community->AllSpecies();
 	
 	if ((speciesIndex < 0) || (speciesIndex >= (int)allSpecies.size()))

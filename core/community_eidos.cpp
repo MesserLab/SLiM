@@ -567,6 +567,7 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 //
 EidosValue_SP Community::ExecuteMethod_genomicElementTypesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -605,6 +606,7 @@ EidosValue_SP Community::ExecuteMethod_genomicElementTypesWithIDs(EidosGlobalStr
 //
 EidosValue_SP Community::ExecuteMethod_interactionTypesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -643,6 +645,7 @@ EidosValue_SP Community::ExecuteMethod_interactionTypesWithIDs(EidosGlobalString
 //
 EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -681,6 +684,7 @@ EidosValue_SP Community::ExecuteMethod_mutationTypesWithIDs(EidosGlobalStringID 
 //
 EidosValue_SP Community::ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -719,6 +723,7 @@ EidosValue_SP Community::ExecuteMethod_scriptBlocksWithIDs(EidosGlobalStringID p
 //
 EidosValue_SP Community::ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	
@@ -757,6 +762,7 @@ EidosValue_SP Community::ExecuteMethod_speciesWithIDs(EidosGlobalStringID p_meth
 //
 EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
+#pragma unused (p_method_id, p_interpreter)
 	EidosValue *ids_value = p_arguments[0].get();
 	int ids_count = ids_value->Count();
 	

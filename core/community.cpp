@@ -39,6 +39,7 @@
 #include <typeinfo>
 #include <memory>
 #include <string>
+#include <map>
 #include <utility>
 #include <sys/types.h>
 #include <sys/stat.h>
