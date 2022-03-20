@@ -750,6 +750,7 @@ extern const std::string &gStr_allInteractionTypes;
 extern const std::string &gStr_allMutationTypes;
 extern const std::string &gStr_allScriptBlocks;
 extern const std::string &gStr_allSpecies;
+extern const std::string &gStr_allSubpopulations;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomeType;
 extern const std::string &gStr_genomicElementTypes;
@@ -836,6 +837,12 @@ extern const std::string &gStr_setDistribution;
 extern const std::string &gStr_addSubpop;
 extern const std::string &gStr_addSubpopSplit;
 extern const std::string &gStr_deregisterScriptBlock;
+extern const std::string &gStr_genomicElementTypesWithIDs;
+extern const std::string &gStr_interactionTypesWithIDs;
+extern const std::string &gStr_mutationTypesWithIDs;
+extern const std::string &gStr_scriptBlocksWithIDs;
+extern const std::string &gStr_speciesWithIDs;
+extern const std::string &gStr_subpopulationsWithIDs;
 extern const std::string &gStr_individualsWithPedigreeIDs;
 extern const std::string &gStr_mutationCounts;
 extern const std::string &gStr_mutationCountsInGenomes;
@@ -1102,6 +1109,7 @@ enum _SLiMGlobalStringID : int {
 	gID_allMutationTypes,
 	gID_allScriptBlocks,
 	gID_allSpecies,
+	gID_allSubpopulations,
 	gID_chromosome,
 	gID_chromosomeType,
 	gID_genomicElementTypes,
@@ -1188,6 +1196,12 @@ enum _SLiMGlobalStringID : int {
 	gID_addSubpop,
 	gID_addSubpopSplit,
 	gID_deregisterScriptBlock,
+	gID_genomicElementTypesWithIDs,
+	gID_interactionTypesWithIDs,
+	gID_mutationTypesWithIDs,
+	gID_scriptBlocksWithIDs,
+	gID_speciesWithIDs,
+	gID_subpopulationsWithIDs,
 	gID_individualsWithPedigreeIDs,
 	gID_mutationCounts,
 	gID_mutationCountsInGenomes,

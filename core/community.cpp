@@ -1134,6 +1134,15 @@ InteractionType *Community::InteractionTypeWithID(slim_objectid_t p_inttype_id)
 	return nullptr;
 }
 
+SLiMEidosBlock *Community::ScriptBlockWithID(slim_objectid_t p_script_block_id)
+{
+	for (SLiMEidosBlock *block : script_blocks_)
+		if (block->block_id_ == p_script_block_id)
+			return block;
+	
+	return nullptr;
+}
+
 Species *Community::SpeciesWithID(slim_objectid_t p_species_id)
 {
 	// Species IDs are just indices into all_species_

@@ -40,9 +40,11 @@ development head:
 		make the Object Tables window in SLiMgui display all objects, across all species
 		add initializeSpecies() function to set species-specific options in multispecies models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
 		SLiMgui now displays avatars in the Object Tables window
-		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes, allScriptBlocks properties to Community
+		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes, allScriptBlocks, allSubpopulations properties to Community
 		graph windows (and haplotype plots) are now associated with the focal species at their time of creation, and display the species avatar as a badge
 		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
+		add id property to Species
+		add lookup by id on Community for subpopulations, mutation types, genomic element types, interaction types, script blocks, and species with xWithIDs() methods
 		
 
 version 3.7.1 (Eidos version 2.7.1):
