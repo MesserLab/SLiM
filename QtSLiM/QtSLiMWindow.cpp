@@ -223,6 +223,22 @@ void QtSLiMWindow::init(void)
     
     // create the window UI
     ui->setupUi(this);
+    
+    // hide the species bar initially so it doesn't interfere with the sizing done by interpolateSplitters()
+    ui->speciesBarWidget->setHidden(true);
+    
+    ui->speciesBar->setAcceptDrops(false);
+    ui->speciesBar->setDocumentMode(false);
+    ui->speciesBar->setDrawBase(false);
+    ui->speciesBar->setExpanding(false);
+    ui->speciesBar->setMovable(false);
+    ui->speciesBar->setShape(QTabBar::RoundedNorth);
+    ui->speciesBar->setTabsClosable(false);
+    ui->speciesBar->setUsesScrollButtons(false);
+    
+    connect(ui->speciesBar, &QTabBar::currentChanged, this, &QtSLiMWindow::selectedSpeciesChanged);
+    
+    // add splitters with the species bar hidden; this sets correct heights on things
     interpolateSplitters();
     initializeUI();
     
@@ -400,8 +416,8 @@ void QtSLiMWindow::interpolateVerticalSplitter(void)
     QLayoutItem *child;
     while ((child = parentLayout->takeAt(0)) != nullptr);
     
-    ui->line->setParent(nullptr);
-    ui->line = nullptr;
+    ui->topBottomDividerLine->setParent(nullptr);
+    ui->topBottomDividerLine = nullptr;
     
     // make the new top-level widgets and transfer in their contents
     overallTopWidget = new QWidget(nullptr);
@@ -750,6 +766,7 @@ QtSLiMWindow::~QtSLiMWindow()
     {
         delete community;
         community = nullptr;
+        focalSpecies = nullptr;
     }
     if (slimgui)
 	{
@@ -798,6 +815,7 @@ void QtSLiMWindow::invalidateUI(void)
     tickPlayOn_ = false;
     
     // Recycle to throw away any bulky simulation state; set the default script first to avoid errors
+    // Note that this creates a species named "sim" even if the window being closed was multispecies!
     ui->scriptTextEdit->setPlainText(QString::fromStdString(defaultWFScriptString()));
     recycleClicked();
     
@@ -1313,6 +1331,7 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.
         community = nullptr;
+        focalSpecies = nullptr;
         slimgui = nullptr;
 
         Eidos_FreeRNG(sim_RNG);
@@ -1328,6 +1347,7 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     {
         delete community;
         community = nullptr;
+        focalSpecies = nullptr;
     }
     if (slimgui)
     {
@@ -1396,13 +1416,59 @@ Species *QtSLiMWindow::focalDisplaySpecies(void)
 	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
 	if (!invalidSimulation_ && community && community->simulation_valid_)
 	{
+        // If we have a focal species set already, it must be valid (the community still exists), so return it
+        if (focalSpecies)
+            return focalSpecies;
+        
+        // If not, we'll choose a species from the species list if there are any
 		const std::vector<Species *> &all_species = community->AllSpecies();
 		
 		if (all_species.size() >= 1)
-			return all_species[0];
+        {
+            // If we have a species name remembered, try to choose that species again
+            if (focalSpeciesName.length())
+            {
+                for (Species *species : all_species)
+                {
+                    if (species->name_.compare(focalSpeciesName) == 0)
+                    {
+                        focalSpecies = species;
+                        return focalSpecies;
+                    }
+                }
+            }
+            
+            // Failing that, choose the first declared species and remember its name
+            focalSpecies = all_species[0];
+            focalSpeciesName = focalSpecies->name_;
+        }
 	}
 	
 	return nullptr;
+}
+
+void QtSLiMWindow::selectedSpeciesChanged(void)
+{
+    // We don't want to react to automatic tab changes as we are adding or removing tabs from the species bar
+    if (reloadingSpeciesBar)
+        return;
+    
+    int speciesIndex = ui->speciesBar->currentIndex();
+    const std::vector<Species *> &allSpecies = community->AllSpecies();
+    
+    if ((speciesIndex < 0) || (speciesIndex >= (int)allSpecies.size()))
+    {
+        qDebug() << "selectedSpeciesChanged() index" << speciesIndex << "out of range";
+        return;
+    }
+    
+    focalSpecies = allSpecies[speciesIndex];
+    focalSpeciesName = focalSpecies->name_;
+    
+    //qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
+    
+    // do a full update to show the state for the new species
+    updateAfterTickFull(true);
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -1589,8 +1655,84 @@ void QtSLiMWindow::updateTickCounter(void)
     }
 }
 
+void QtSLiMWindow::updateSpeciesBar(void)
+{
+    Species *displaySpecies = focalDisplaySpecies();
+    
+    // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+    if (community && displaySpecies && (community->Tick() >= 1))
+    {
+        bool speciesBarVisibleNow = !ui->speciesBarWidget->isHidden();
+        bool speciesBarShouldBeVisible = community->is_multispecies_;
+        
+        if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
+        {
+            ui->speciesBar->setEnabled(false);
+            ui->speciesBarWidget->setHidden(true);
+            
+            reloadingSpeciesBar = true;
+            
+            while (ui->speciesBar->count())
+                ui->speciesBar->removeTab(0);
+            
+            reloadingSpeciesBar = false;
+        }
+        else if (!speciesBarVisibleNow && speciesBarShouldBeVisible)
+        {
+            ui->speciesBar->setEnabled(true);
+            ui->speciesBarWidget->setHidden(false);
+            
+            if ((ui->speciesBar->count() == 0) && (community->all_species_.size() > 0))
+            {
+                // add tabs for species when shown
+                int selectedSpeciesIndex = 0;
+                bool avatarsOnly = (community->all_species_.size() > 2);
+                
+                reloadingSpeciesBar = true;
+                
+                for (Species *species : community->all_species_)
+                {
+                    QString tabLabel = QString::fromStdString(species->avatar_);
+                    
+                    if (!avatarsOnly)
+                    {
+                        tabLabel.append(" ");
+                        tabLabel.append(QString::fromStdString(species->name_));
+                    }
+                    
+                    int newTabIndex = ui->speciesBar->addTab(tabLabel);
+                    
+                    ui->speciesBar->setTabToolTip(newTabIndex, QString::fromStdString(species->name_).prepend("Species "));
+                    
+                    if (focalSpeciesName.length() && (species->name_.compare(focalSpeciesName) == 0))
+                        selectedSpeciesIndex = newTabIndex;
+                }
+                
+                reloadingSpeciesBar = false;
+                
+                //qDebug() << "selecting index" << selectedSpeciesIndex << "for name" << QString::fromStdString(focalSpeciesName);
+                ui->speciesBar->setCurrentIndex(selectedSpeciesIndex);
+            }        
+        }
+    }
+    else
+    {
+        // Whenever we're invalid or uninitialized, we hide the species bar and disable and remove all the tabs
+        ui->speciesBar->setEnabled(false);
+        ui->speciesBarWidget->setHidden(true);
+        
+        reloadingSpeciesBar = true;
+        
+        while (ui->speciesBar->count())
+            ui->speciesBar->removeTab(0);
+        
+        reloadingSpeciesBar = false;
+    }
+}
+
 void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 {
+    
     // fullUpdate is used to suppress some expensive updating to every third update
 	if (!fullUpdate)
 	{
@@ -1600,6 +1742,11 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			fullUpdate = true;
 		}
 	}
+    
+    // Update the species bar and then fetch the focal species after that update, which might change it
+    updateSpeciesBar();
+    
+    Species *displaySpecies = focalDisplaySpecies();
 	
     // Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
 	if (fullUpdate)
@@ -1609,8 +1756,6 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	checkForSimulationTermination();
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-    Species *displaySpecies = focalDisplaySpecies();
-	
 	if (fullUpdate)
 	{
 		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...

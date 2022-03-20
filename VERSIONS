@@ -42,6 +42,7 @@ development head:
 		SLiMgui now displays avatars in the Object Tables window
 		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes properties to Community
 		graph windows (and haplotype plots) are now associated with the focal species at their time of creation, and display the species avatar as a badge
+		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
 		
 
 version 3.7.1 (Eidos version 2.7.1):

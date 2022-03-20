@@ -119,11 +119,14 @@ public:
     
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     Community *community = nullptr;		// the simulation instance for this window
+    Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
+    std::string focalSpeciesName;       // the name of the focal species, for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
+    bool reloadingSpeciesBar = false;
 
 public:
     typedef enum {
@@ -175,6 +178,7 @@ public:
     Species *focalDisplaySpecies(void);
     void updateOutputViews(void);
     void updateTickCounter(void);
+    void updateSpeciesBar(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
     void updateProfileButtonIcon(bool pressed);
@@ -248,6 +252,7 @@ public slots:
     void changeDirectoryClicked(void);
     void displayGraphClicked(void);
 
+    void selectedSpeciesChanged(void);
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
     //

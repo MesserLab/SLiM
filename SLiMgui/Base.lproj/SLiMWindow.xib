@@ -57,6 +57,8 @@
                 <outlet property="showGenomicElementsButton" destination="57G-Tr-aOB" id="p7J-Vg-Y1W"/>
                 <outlet property="showMutationsButton" destination="MPC-lP-uVU" id="Qm6-Js-ooL"/>
                 <outlet property="showRecombinationIntervalsButton" destination="LwJ-mt-MjQ" id="ug0-W8-hrL"/>
+                <outlet property="speciesBar" destination="yft-oc-j5g" id="8BT-uc-7lQ"/>
+                <outlet property="speciesBarBottomConstraint" destination="xiD-GK-pM3" id="OTA-Bk-1zN"/>
                 <outlet property="subpopFemaleCloningRateColumn" destination="abH-RI-Xxq" id="hDU-CK-aVO"/>
                 <outlet property="subpopIDColumn" destination="JUP-60-29u" id="YJq-gt-Ih8"/>
                 <outlet property="subpopMaleCloningRateColumn" destination="3aN-DZ-0sG" id="K1M-fV-gYa"/>
@@ -92,13 +94,13 @@
                                         <rect key="frame" x="0.0" y="0.0" width="1180" height="393"/>
                                         <subviews>
                                             <scrollView autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" horizontalScrollElasticity="none" verticalScrollElasticity="none" translatesAutoresizingMaskIntoConstraints="NO" id="gYT-79-LuL" userLabel="Bordered Scroll View - SLiM Table View">
-                                                <rect key="frame" x="15" y="140" width="257" height="238"/>
+                                                <rect key="frame" x="15" y="140" width="257" height="207"/>
                                                 <clipView key="contentView" id="W1T-hP-cku">
-                                                    <rect key="frame" x="1" y="0.0" width="255" height="237"/>
+                                                    <rect key="frame" x="1" y="0.0" width="255" height="206"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
                                                         <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" alternatingRowBackgroundColors="YES" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" typeSelect="NO" headerView="Pg2-UV-Ozl" id="l73-oi-ONH" userLabel="SLiM Table View" customClass="SLiMTableView">
-                                                            <rect key="frame" x="0.0" y="0.0" width="255" height="214"/>
+                                                            <rect key="frame" x="0.0" y="0.0" width="255" height="183"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <size key="intercellSpacing" width="3" height="2"/>
                                                             <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -583,12 +585,8 @@
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                 </textFieldCell>
                                                 <connections>
-                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="jJn-V4-PjH" id="Sfs-Ra-e08">
+                                                    <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="jJn-V4-PjH">
                                                         <dictionary key="options">
-                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
-                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
-                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
-                                                            <integer key="NSNullPlaceholder" value="-1"/>
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
@@ -601,13 +599,30 @@
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
-                                                    <binding destination="-2" name="enabled" keyPath="continuousPlayOn" id="jJn-V4-PjH">
+                                                    <binding destination="-2" name="enabled2" keyPath="tickPlayOn" previousBinding="jJn-V4-PjH" id="Sfs-Ra-e08">
                                                         <dictionary key="options">
+                                                            <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                                            <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                                            <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                                            <integer key="NSNullPlaceholder" value="-1"/>
                                                             <string key="NSValueTransformerName">NSNegateBoolean</string>
                                                         </dictionary>
                                                     </binding>
                                                 </connections>
                                             </textField>
+                                            <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yft-oc-j5g">
+                                                <rect key="frame" x="13" y="355" width="141" height="24"/>
+                                                <segmentedCell key="cell" borderStyle="border" alignment="left" style="rounded" trackingMode="selectOne" id="OAY-i8-ktG">
+                                                    <font key="font" metaFont="system"/>
+                                                    <segments>
+                                                        <segment label="X xxxxx"/>
+                                                        <segment label="Y yyyyy" selected="YES" tag="1"/>
+                                                    </segments>
+                                                </segmentedCell>
+                                                <connections>
+                                                    <action selector="speciesBarChanged:" target="-2" id="1tu-vP-DDK"/>
+                                                </connections>
+                                            </segmentedControl>
                                         </subviews>
                                         <constraints>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="8pr-59-g4r" secondAttribute="trailing" constant="12" id="0pH-Uz-gPw"/>
@@ -619,6 +634,7 @@
                                             <constraint firstAttribute="bottom" secondItem="nQF-Rr-G8N" secondAttribute="bottom" constant="10" id="6I6-UZ-CRE"/>
                                             <constraint firstItem="nQF-Rr-G8N" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="bottom" constant="15" id="809-sA-R79"/>
                                             <constraint firstItem="KIv-hd-PKz" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="8vQ-GM-6Oy"/>
+                                            <constraint firstItem="yft-oc-j5g" firstAttribute="trailing" relation="lessThanOrEqual" secondItem="gYT-79-LuL" secondAttribute="trailing" id="9VU-DJ-EiT"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="trailing" secondItem="kRU-NC-9qC" secondAttribute="trailing" constant="-2" id="9fC-VY-d0v"/>
                                             <constraint firstItem="1i8-ZT-cwT" firstAttribute="leading" secondItem="sjX-UH-cdK" secondAttribute="leading" id="B8o-nz-zbE"/>
                                             <constraint firstItem="LwJ-mt-MjQ" firstAttribute="leading" secondItem="MPC-lP-uVU" secondAttribute="leading" id="BkA-pJ-HYh"/>
@@ -629,6 +645,7 @@
                                             <constraint firstItem="sjX-UH-cdK" firstAttribute="leading" secondItem="gYT-79-LuL" secondAttribute="trailing" constant="20" id="GER-9e-c56"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="leading" secondItem="KIv-hd-PKz" secondAttribute="trailing" constant="8" id="IRk-z7-f7T"/>
                                             <constraint firstItem="3fa-Za-QvL" firstAttribute="top" secondItem="KMS-2V-Mrb" secondAttribute="top" id="KtX-Ea-Cw0"/>
+                                            <constraint firstItem="yft-oc-j5g" firstAttribute="top" secondItem="SJ3-be-U3c" secondAttribute="top" constant="15" id="LDB-Zj-sxG"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="trailing" secondItem="Yfj-bi-uzJ" secondAttribute="trailing" id="LSL-e2-CxJ"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="mKg-N7-deE" secondAttribute="bottom" constant="-26" id="MXR-dr-7JN"/>
                                             <constraint firstItem="sC1-aa-1AY" firstAttribute="leading" secondItem="MPC-lP-uVU" secondAttribute="trailing" constant="4" id="NGC-0B-DiO"/>
@@ -644,7 +661,7 @@
                                             <constraint firstItem="sC1-aa-1AY" firstAttribute="top" secondItem="57G-Tr-aOB" secondAttribute="bottom" constant="2" id="X3F-kO-Fr0"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="8" id="Zhw-Fa-4p6"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="leading" secondItem="SJ3-be-U3c" secondAttribute="leading" constant="13" id="aJb-cQ-YWD"/>
-                                            <constraint firstItem="gYT-79-LuL" firstAttribute="height" secondItem="sjX-UH-cdK" secondAttribute="height" id="c31-Bq-c4y"/>
+                                            <constraint firstItem="yft-oc-j5g" firstAttribute="leading" secondItem="gYT-79-LuL" secondAttribute="leading" id="fLk-Vj-zIe"/>
                                             <constraint firstItem="kRU-NC-9qC" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="bottom" constant="6" id="gab-YI-p0S"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="width" secondItem="nQF-Rr-G8N" secondAttribute="width" id="hzb-ik-LI8"/>
                                             <constraint firstItem="eXF-cI-cZK" firstAttribute="top" secondItem="epB-1i-iSd" secondAttribute="top" id="ibK-E9-puS"/>
@@ -652,13 +669,14 @@
                                             <constraint firstItem="LwJ-mt-MjQ" firstAttribute="top" secondItem="nQF-Rr-G8N" secondAttribute="top" constant="-1" id="mBg-MN-5to"/>
                                             <constraint firstItem="VWw-o4-Pjo" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="trailing" constant="9" id="pCu-QP-RtD"/>
                                             <constraint firstItem="epB-1i-iSd" firstAttribute="top" secondItem="KIv-hd-PKz" secondAttribute="top" id="pnS-73-RN0"/>
+                                            <constraint firstItem="gYT-79-LuL" firstAttribute="bottom" secondItem="1i8-ZT-cwT" secondAttribute="bottom" id="u70-S5-h2X"/>
                                             <constraint firstItem="KMS-2V-Mrb" firstAttribute="top" secondItem="sjX-UH-cdK" secondAttribute="bottom" constant="20" id="uQe-Eb-jXh"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="Yfj-bi-uzJ" secondAttribute="leading" id="vDE-O3-YUj"/>
                                             <constraint firstItem="8pr-59-g4r" firstAttribute="leading" secondItem="Bdq-3V-iQ8" secondAttribute="leading" id="wq4-z5-OJb"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="firstBaseline" secondItem="8pr-59-g4r" secondAttribute="firstBaseline" id="xHx-GQ-9gs"/>
                                             <constraint firstItem="SK3-fM-QuU" firstAttribute="top" secondItem="Yfj-bi-uzJ" secondAttribute="bottom" constant="8" id="xUG-V6-nFJ"/>
                                             <constraint firstItem="Bdq-3V-iQ8" firstAttribute="baseline" secondItem="Yfj-bi-uzJ" secondAttribute="baseline" id="xUd-e3-o5G"/>
-                                            <constraint firstItem="gYT-79-LuL" firstAttribute="top" secondItem="SJ3-be-U3c" secondAttribute="top" constant="15" id="y66-cs-ZQV"/>
+                                            <constraint firstItem="gYT-79-LuL" firstAttribute="top" secondItem="yft-oc-j5g" secondAttribute="bottom" constant="10" id="xiD-GK-pM3"/>
                                             <constraint firstItem="mKg-N7-deE" firstAttribute="leading" secondItem="epB-1i-iSd" secondAttribute="trailing" constant="-20" id="yBh-ld-fov"/>
                                         </constraints>
                                     </customView>
@@ -1532,34 +1550,34 @@
         <image name="check_H" width="137" height="137"/>
         <image name="delete" width="137" height="137"/>
         <image name="delete_H" width="137" height="137"/>
-        <image name="dump_output" width="137" height="137"/>
-        <image name="dump_output_H" width="137" height="137"/>
-        <image name="graph_submenu" width="137" height="137"/>
-        <image name="graph_submenu_H" width="137" height="137"/>
-        <image name="open_type_drawer" width="137" height="137"/>
-        <image name="open_type_drawer_H" width="137" height="137"/>
-        <image name="play" width="133" height="133"/>
-        <image name="play_H" width="133" height="133"/>
-        <image name="play_step" width="133" height="133"/>
-        <image name="play_step_H" width="133" height="133"/>
+        <image name="dump_output" width="136" height="136"/>
+        <image name="dump_output_H" width="136" height="136"/>
+        <image name="graph_submenu" width="136" height="136"/>
+        <image name="graph_submenu_H" width="136" height="136"/>
+        <image name="open_type_drawer" width="136" height="136"/>
+        <image name="open_type_drawer_H" width="68" height="68"/>
+        <image name="play" width="264" height="264"/>
+        <image name="play_H" width="264" height="264"/>
+        <image name="play_step" width="264" height="264"/>
+        <image name="play_step_H" width="264" height="264"/>
         <image name="prettyprint" width="137" height="137"/>
         <image name="prettyprint_H" width="137" height="138"/>
         <image name="profile" width="133" height="133"/>
         <image name="profile_H" width="133" height="133"/>
-        <image name="recycle" width="133" height="133"/>
-        <image name="recycle_H" width="133" height="133"/>
+        <image name="recycle" width="264" height="264"/>
+        <image name="recycle_H" width="264" height="264"/>
         <image name="show_browser" width="137" height="137"/>
         <image name="show_browser_H" width="137" height="137"/>
-        <image name="show_console" width="137" height="137"/>
-        <image name="show_console_H" width="137" height="137"/>
-        <image name="show_fixed" width="137" height="137"/>
-        <image name="show_fixed_H" width="137" height="137"/>
-        <image name="show_genomicelements" width="137" height="137"/>
-        <image name="show_genomicelements_H" width="137" height="137"/>
-        <image name="show_mutations" width="137" height="137"/>
-        <image name="show_mutations_H" width="137" height="137"/>
-        <image name="show_recombination" width="137" height="137"/>
-        <image name="show_recombination_H" width="137" height="137"/>
+        <image name="show_console" width="136" height="136"/>
+        <image name="show_console_H" width="68" height="68"/>
+        <image name="show_fixed" width="136" height="136"/>
+        <image name="show_fixed_H" width="136" height="136"/>
+        <image name="show_genomicelements" width="136" height="136"/>
+        <image name="show_genomicelements_H" width="136" height="136"/>
+        <image name="show_mutations" width="136" height="136"/>
+        <image name="show_mutations_H" width="136" height="136"/>
+        <image name="show_recombination" width="136" height="136"/>
+        <image name="show_recombination_H" width="136" height="136"/>
         <image name="syntax_help" width="137" height="137"/>
         <image name="syntax_help_H" width="137" height="137"/>
     </resources>

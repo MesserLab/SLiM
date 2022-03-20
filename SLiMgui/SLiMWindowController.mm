@@ -228,6 +228,7 @@
 	{
 		delete community;
 		community = nullptr;
+		focalSpecies = nullptr;
 	}
 	if (slimgui)
 	{
@@ -383,6 +384,7 @@
 		// Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
 		// of the old simulation object; who knows what state it is in, touching it might crash.
 		community = nullptr;
+		focalSpecies = nullptr;
 		slimgui = nullptr;
 		
 		Eidos_FreeRNG(sim_RNG);
@@ -398,6 +400,7 @@
 	{
 		delete community;
 		community = nullptr;
+		focalSpecies = nullptr;
 	}
 	if (slimgui)
 	{
@@ -643,6 +646,90 @@
 	return NO;
 }
 
+- (void)updateSpeciesBar
+{
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	// Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+	if (community && displaySpecies && (community->Tick() >= 1))
+	{
+		BOOL speciesBarVisibleNow = ![speciesBar isHidden];
+		bool speciesBarShouldBeVisible = community->is_multispecies_;
+		
+		if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
+		{
+			[speciesBar setEnabled:NO];
+			
+			[speciesBar setHidden:YES];
+			[speciesBarBottomConstraint setConstant:0];
+			
+			reloadingSpeciesBar = true;
+			[speciesBar setSegmentCount:0];
+			reloadingSpeciesBar = false;
+		}
+		else if (!speciesBarVisibleNow && speciesBarShouldBeVisible)
+		{
+			[speciesBar setHidden:NO];
+			[speciesBarBottomConstraint setConstant:10];
+			
+			if (([speciesBar segmentCount] == 0) && (community->all_species_.size() > 0))
+			{
+				// add tabs for species when shown
+				int selectedSpeciesIndex = 0;
+				int speciesCount = (int)community->all_species_.size(), speciesIndex = 0;
+				bool avatarsOnly = (speciesCount > 2);
+				
+				reloadingSpeciesBar = true;
+				
+				[speciesBar setSegmentCount:speciesCount];
+				
+				for (Species *species : community->all_species_)
+				{
+					NSString *tabLabel = [NSString stringWithUTF8String:species->avatar_.c_str()];
+					
+					if (!avatarsOnly)
+					{
+						tabLabel = [tabLabel stringByAppendingString:@" "];
+						tabLabel = [tabLabel stringByAppendingString:[NSString stringWithUTF8String:species->name_.c_str()]];
+					}
+					
+					[speciesBar setLabel:tabLabel forSegment:speciesIndex];
+					[speciesBar setAlignment:NSTextAlignmentCenter forSegment:speciesIndex];
+					[speciesBar setWidth:0 forSegment:speciesIndex];
+					
+					NSString *tooltipString = [@"Species " stringByAppendingString:[NSString stringWithUTF8String:species->name_.c_str()]];
+					
+					[speciesBar setToolTip:tooltipString forSegment:speciesIndex];
+					
+					if (focalSpeciesName.length() && (species->name_.compare(focalSpeciesName) == 0))
+						selectedSpeciesIndex = speciesIndex;
+					
+					speciesIndex++;
+				}
+				
+				reloadingSpeciesBar = false;
+				
+				//qDebug() << "selecting index" << selectedSpeciesIndex << "for name" << QString::fromStdString(focalSpeciesName);
+				[speciesBar setSelectedSegment:selectedSpeciesIndex];
+			}
+			
+			[speciesBar setEnabled:YES];
+		}
+	}
+	else
+	{
+		// Whenever we're invalid or uninitialized, we hide the species bar and disable and remove all the tabs
+		[speciesBar setEnabled:NO];
+		
+		[speciesBar setHidden:YES];
+		[speciesBarBottomConstraint setConstant:0];
+		
+		reloadingSpeciesBar = true;
+		[speciesBar setSegmentCount:0];
+		reloadingSpeciesBar = false;
+	}
+}
+
 - (void)updateAfterTickFull:(BOOL)fullUpdate
 {
 	// fullUpdate is used to suppress some expensive updating to every third update
@@ -655,6 +742,11 @@
 		}
 	}
 	
+	// Update the species bar and then fetch the focal species after that update, which might change it
+	[self updateSpeciesBar];
+	
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
 	// Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
 	if (fullUpdate)
 		Eidos_FlushFiles();
@@ -663,8 +755,6 @@
 	[self checkForSimulationTermination];
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	Species *displaySpecies = [self focalDisplaySpecies];
-	
 	if (fullUpdate)
 	{
 		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
@@ -902,17 +992,39 @@
 
 - (Species *)focalDisplaySpecies
 {
-	// SLiMguiLegacy does not provides multispecies-aware UI at this time.  Instead, it always presents the first declared species.
+	// SLiMgui focuses on one species at a time in its main window display; this method should be called to obtain that species.
 	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
 	if (![self invalidSimulation] && community && community->simulation_valid_)
 	{
+		// If we have a focal species set already, it must be valid (the community still exists), so return it
+		if (focalSpecies)
+			return focalSpecies;
+		
+		// If not, we'll choose a species from the species list if there are any
 		const std::vector<Species *> &all_species = community->AllSpecies();
 		
 		if (all_species.size() >= 1)
-			return all_species[0];
+		{
+			// If we have a species name remembered, try to choose that species again
+			if (focalSpeciesName.length())
+			{
+				for (Species *species : all_species)
+				{
+					if (species->name_.compare(focalSpeciesName) == 0)
+					{
+						focalSpecies = species;
+						return focalSpecies;
+					}
+				}
+			}
+			
+			// Failing that, choose the first declared species and remember its name
+			focalSpecies = all_species[0];
+			focalSpeciesName = focalSpecies->name_;
+		}
 	}
 	
-	return nil;
+	return nullptr;
 }
 
 - (std::vector<Subpopulation*>)selectedSubpopulations
@@ -1050,16 +1162,28 @@
 #pragma mark -
 #pragma mark Actions
 
-- (void)scriptModNonWFError
+- (IBAction)speciesBarChanged:(id)sender
 {
-	NSAlert *alert = [[NSAlert alloc] init];
+	// We don't want to react to automatic tab changes as we are adding or removing tabs from the species bar
+	if (reloadingSpeciesBar)
+		return;
 	
-	[alert setAlertStyle:NSCriticalAlertStyle];
-	[alert setMessageText:@"Script Modification Error"];
-	[alert setInformativeText:@"This type of script modification can only be applied to WF models.  This model appears to be a nonWF model, so this script modification cannot be used."];
-	[alert addButtonWithTitle:@"OK"];
+	int speciesIndex = [speciesBar selectedSegment];
+	const std::vector<Species *> &allSpecies = community->AllSpecies();
 	
-	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
+	if ((speciesIndex < 0) || (speciesIndex >= (int)allSpecies.size()))
+	{
+		//qDebug() << "selectedSpeciesChanged() index" << speciesIndex << "out of range";
+		return;
+	}
+	
+	focalSpecies = allSpecies[speciesIndex];
+	focalSpeciesName = focalSpecies->name_;
+	
+	//qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
+	
+	// do a full update to show the state for the new species
+	[self updateAfterTickFull:YES];
 }
 
 - (void)positionNewGraphWindow:(NSWindow *)window

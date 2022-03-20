@@ -43,9 +43,11 @@
 @interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate, EidosTextViewDelegate>
 {
 @public
-	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
-	Community *community;	// the simulation instance for this window
-	SLiMgui *slimgui;			// the SLiMgui Eidos class instance for this window
+	NSString *scriptString;					// the script string that we are running on right now; not the same as the script textview!
+	Community *community;					// the simulation instance for this window
+	Species *focalSpecies;					// NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
+	std::string focalSpeciesName;			// the name of the focal species, for persistence across recycles
+	SLiMgui *slimgui;						// the SLiMgui Eidos class instance for this window
 	
 	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	Eidos_RNG_State sim_RNG;
@@ -79,6 +81,7 @@
 	BOOL zoomedChromosomeShowsMutations;
 	BOOL zoomedChromosomeShowsFixedSubstitutions;
 	BOOL reloadingSubpopTableview;
+	BOOL reloadingSpeciesBar;
 	
 	// outlets
 	IBOutlet NSButton *buttonForDrawer;
@@ -129,6 +132,9 @@
 	IBOutlet EidosTextView *outputTextView;
 	IBOutlet NSButton *consoleButton;
 	IBOutlet NSButton *browserButton;
+	
+	IBOutlet NSSegmentedControl *speciesBar;
+	IBOutlet NSLayoutConstraint *speciesBarBottomConstraint;
 	
 	IBOutlet NSTableView *subpopTableView;
 	IBOutlet NSTableColumn *subpopIDColumn;
@@ -228,6 +234,8 @@
 //
 //	Actions
 //
+
+- (IBAction)speciesBarChanged:(id)sender;
 
 - (IBAction)graphMutationFrequencySpectrum:(id)sender;
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender;

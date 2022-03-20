@@ -31,7 +31,7 @@
      <number>10</number>
     </property>
     <item>
-     <layout class="QVBoxLayout" name="overallTopLayout">
+     <layout class="QVBoxLayout" name="overallTopLayout" stretch="1,0">
       <property name="spacing">
        <number>10</number>
       </property>
@@ -41,59 +41,109 @@
          <number>10</number>
         </property>
         <item>
-         <widget class="QTableView" name="subpopTableView">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>270</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>270</width>
-            <height>130</height>
-           </size>
-          </property>
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="verticalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOn</enum>
-          </property>
-          <property name="editTriggers">
-           <set>QAbstractItemView::NoEditTriggers</set>
-          </property>
-          <property name="tabKeyNavigation">
-           <bool>false</bool>
-          </property>
-          <property name="showDropIndicator" stdset="0">
-           <bool>false</bool>
-          </property>
-          <property name="selectionMode">
-           <enum>QAbstractItemView::ExtendedSelection</enum>
-          </property>
-          <property name="selectionBehavior">
-           <enum>QAbstractItemView::SelectRows</enum>
-          </property>
-          <property name="showGrid">
-           <bool>false</bool>
-          </property>
-          <property name="wordWrap">
-           <bool>false</bool>
-          </property>
-          <property name="cornerButtonEnabled">
-           <bool>false</bool>
-          </property>
-          <attribute name="verticalHeaderVisible">
-           <bool>false</bool>
-          </attribute>
-         </widget>
+         <layout class="QVBoxLayout" name="speciesSubpopTableLayout">
+          <item>
+           <widget class="QWidget" name="speciesBarWidget" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>270</width>
+              <height>21</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>270</width>
+              <height>21</height>
+             </size>
+            </property>
+            <layout class="QHBoxLayout" name="speciesBarLayout">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QTabBar" name="speciesBar" native="true"/>
+             </item>
+             <item>
+              <spacer name="speciesBarSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>10</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QTableView" name="subpopTableView">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>270</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>270</width>
+              <height>130</height>
+             </size>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOn</enum>
+            </property>
+            <property name="editTriggers">
+             <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="tabKeyNavigation">
+             <bool>false</bool>
+            </property>
+            <property name="showDropIndicator" stdset="0">
+             <bool>false</bool>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::ExtendedSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
+            </property>
+            <property name="showGrid">
+             <bool>false</bool>
+            </property>
+            <property name="wordWrap">
+             <bool>false</bool>
+            </property>
+            <property name="cornerButtonEnabled">
+             <bool>false</bool>
+            </property>
+            <attribute name="verticalHeaderVisible">
+             <bool>false</bool>
+            </attribute>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QtSLiMIndividualsWidget" name="individualsWidget">
@@ -722,7 +772,7 @@ QSlider::handle:horizontal:disabled {
      </layout>
     </item>
     <item>
-     <widget class="Line" name="line">
+     <widget class="Line" name="topBottomDividerLine">
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
@@ -1949,6 +1999,12 @@ QSlider::handle:horizontal:disabled {
    <class>QtSLiMScriptTextEdit</class>
    <extends>QPlainTextEdit</extends>
    <header>QtSLiMScriptTextEdit.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QTabBar</class>
+   <extends>QWidget</extends>
+   <header>QTabBar.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>
