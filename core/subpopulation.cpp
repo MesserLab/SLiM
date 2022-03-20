@@ -3692,6 +3692,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
 		}
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+		}
 		case gID_individualCount:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentSubpopSize()));
 			
@@ -6968,6 +6972,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,						true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,						true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling));

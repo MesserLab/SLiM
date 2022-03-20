@@ -1313,6 +1313,13 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gEidosID_source:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(compound_statement_node_->token_->token_string_));
+		case gID_species:
+		{
+			if (species_spec_)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(species_spec_, gSLiM_Species_Class));
+			else
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Species_Class));
+		}
 			
 			// variables
 		case gID_active:
@@ -1382,6 +1389,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_end,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_type,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_source,	true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,		true,	kEidosValueMaskObject, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		

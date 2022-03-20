@@ -2997,6 +2997,10 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(spatiality_string_));
 		}
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+		}
 			
 			// variables
 		case gID_maxDistance:
@@ -4605,6 +4609,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reciprocal,		true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexSegregation,	true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatiality,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,		true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_maxDistance,	false,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_tag));
 		

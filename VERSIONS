@@ -45,6 +45,7 @@ development head:
 		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
 		add id property to Species
 		add lookup by id on Community for subpopulations, mutation types, genomic element types, interaction types, script blocks, and species with xWithIDs() methods
+		add species property to Chromosome, GenomicElementType, InteractionType, MutationType, SLiMEidosBlock, Subpopulation
 		
 
 version 3.7.1 (Eidos version 2.7.1):

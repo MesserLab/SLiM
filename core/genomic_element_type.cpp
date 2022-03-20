@@ -272,6 +272,10 @@ EidosValue_SP GenomicElementType::GetProperty(EidosGlobalStringID p_property_id)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::GetProperty): property mutationMatrix is only defined in nucleotide-based models." << EidosTerminate();
 			return mutation_matrix_;
 		}
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+		}
 		
 			// variables
 		case gEidosID_color:
@@ -456,6 +460,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationTypes,		true,	kEidosValueMaskObject, gSLiM_MutationType_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationFractions,	true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationMatrix,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		

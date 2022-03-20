@@ -1628,6 +1628,11 @@ EidosValue_SP Chromosome::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector(recombination_rates_F_));
 		}
 			
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
+		}
+			
 			// variables
 		case gID_colorSubstitution:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_sub_));
@@ -2386,6 +2391,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRates,						true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesM,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_recombinationRatesF,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,								true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionEnabled,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionGCBias,					true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_geneConversionNonCrossoverFraction,		true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
