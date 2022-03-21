@@ -339,8 +339,10 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.mutationTypes = m1; } ", "read-only property", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.mutations; } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.mutations = _Test(7); } ", "cannot be object element type", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { community.scriptBlocks; } ", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { community.scriptBlocks = community.scriptBlocks[0]; } ", "read-only property", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.scriptBlocks; } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.scriptBlocks = sim.scriptBlocks[0]; } ", "read-only property", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { community.allScriptBlocks; } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { community.allScriptBlocks = community.allScriptBlocks[0]; } ", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.sexEnabled == F) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 early() { if (sim.sexEnabled == T) stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (size(sim.subpopulations) == 0) stop(); } ", __LINE__);
