@@ -1936,7 +1936,7 @@ void Species::WF_GenerateOffspring(void)
 	if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present || mutation_callbacks_present)
 	{
 		for (SLiMEidosBlock *callback : mate_choice_callbacks)
-			if (callback->active_)
+			if (callback->block_active_)
 			{
 				no_active_callbacks = false;
 				break;
@@ -1944,7 +1944,7 @@ void Species::WF_GenerateOffspring(void)
 		
 		if (no_active_callbacks)
 			for (SLiMEidosBlock *callback : modify_child_callbacks)
-				if (callback->active_)
+				if (callback->block_active_)
 				{
 					no_active_callbacks = false;
 					break;
@@ -1952,7 +1952,7 @@ void Species::WF_GenerateOffspring(void)
 		
 		if (no_active_callbacks)
 			for (SLiMEidosBlock *callback : recombination_callbacks)
-				if (callback->active_)
+				if (callback->block_active_)
 				{
 					no_active_callbacks = false;
 					break;
@@ -1960,7 +1960,7 @@ void Species::WF_GenerateOffspring(void)
 		
 		if (no_active_callbacks)
 			for (SLiMEidosBlock *callback : mutation_callbacks)
-				if (callback->active_)
+				if (callback->block_active_)
 				{
 					no_active_callbacks = false;
 					break;
@@ -2162,7 +2162,7 @@ void Species::nonWF_ViabilitySurvival(void)
 	if (survival_callbacks_present)
 	{
 		for (SLiMEidosBlock *callback : survival_callbacks)
-			if (callback->active_)
+			if (callback->block_active_)
 			{
 				no_active_callbacks = false;
 				break;

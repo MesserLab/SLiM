@@ -693,7 +693,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
 		if (all_species.size() == 1)
 			found_species = all_species[0];
 		else
-			EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addPopulationSexRatio): addPopulationSexRatio() requires a species to be supplied in multispecies models." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSpeciesFromEidosValue_No): " << p_method_name << " requires a species to be supplied in multispecies models." << EidosTerminate();
 	}
 	else
 	{
@@ -1561,6 +1561,7 @@ const std::string &gStr_registerSurvivalCallback = EidosRegisteredString("regist
 const std::string &gStr_registerReproductionCallback = EidosRegisteredString("registerReproductionCallback", gID_registerReproductionCallback);
 const std::string &gStr_rescheduleScriptBlock = EidosRegisteredString("rescheduleScriptBlock", gID_rescheduleScriptBlock);
 const std::string &gStr_simulationFinished = EidosRegisteredString("simulationFinished", gID_simulationFinished);
+const std::string &gStr_skipTick = EidosRegisteredString("skipTick", gID_skipTick);
 const std::string &gStr_subsetMutations = EidosRegisteredString("subsetMutations", gID_subsetMutations);
 const std::string &gStr_treeSeqCoalesced = EidosRegisteredString("treeSeqCoalesced", gID_treeSeqCoalesced);
 const std::string &gStr_treeSeqSimplify = EidosRegisteredString("treeSeqSimplify", gID_treeSeqSimplify);

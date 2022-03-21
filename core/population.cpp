@@ -528,7 +528,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
-		if (mate_choice_callback->active_)
+		if (mate_choice_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
@@ -890,7 +890,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 	
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
-		if (modify_child_callback->active_)
+		if (modify_child_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
@@ -2154,7 +2154,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	
 	for (SLiMEidosBlock *recombination_callback : p_recombination_callbacks)
 	{
-		if (recombination_callback->active_)
+		if (recombination_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
@@ -4527,14 +4527,14 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	bool no_active_callbacks = true;
 	
 	for (SLiMEidosBlock *callback : fitness_callbacks)
-		if (callback->active_)
+		if (callback->block_active_)
 		{
 			no_active_callbacks = false;
 			break;
 		}
 	if (no_active_callbacks)
 		for (SLiMEidosBlock *callback : global_fitness_callbacks)
-			if (callback->active_)
+			if (callback->block_active_)
 			{
 				no_active_callbacks = false;
 				break;
@@ -4570,7 +4570,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		
 		for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (fitness_callback->block_active_)
 			{
 				if (fitness_callback->subpopulation_id_ == -1)
 				{

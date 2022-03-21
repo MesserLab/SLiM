@@ -197,6 +197,7 @@ private:
 	slim_tick_t generation_ = 0;													// the current generation reached in simulation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; invalidates automatically when used
 	
+	slim_usertag_t species_active_ = -1;											// the "active" property of the species: 0 if inactive, all other values are active
 	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
 	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
 	
@@ -410,6 +411,12 @@ public:
 	// accessors
 	inline __attribute__((always_inline)) slim_tick_t Generation(void) const												{ return generation_; }
 	void SetGeneration(slim_tick_t p_new_generation);
+	
+	inline __attribute__((always_inline)) bool Active(void) { return (species_active_ != 0); }
+	inline __attribute__((always_inline)) void SetActive(bool p_active) { species_active_ = (p_active ? -1 : 0); }
+	inline __attribute__((always_inline)) slim_tick_t TickModulo(void) { return tick_modulo_; }
+	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
+	
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
@@ -568,6 +575,7 @@ public:
 	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_subsetMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqCoalesced(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

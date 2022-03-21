@@ -1366,7 +1366,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	
 	for (SLiMEidosBlock *interaction_callback : p_interaction_callbacks)
 	{
-		if (interaction_callback->active_)
+		if (interaction_callback->block_active_)
 		{
 #ifndef DEBUG_POINTS_ENABLED
 #error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"

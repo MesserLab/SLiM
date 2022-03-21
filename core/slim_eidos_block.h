@@ -144,7 +144,7 @@ public:
 	const EidosToken *identifier_token_ = nullptr;
 	int32_t user_script_line_offset_;							// the initial position (lines) in the user's script; -1 if it is not in the user's script
 	
-	slim_usertag_t active_ = -1;								// the "active" property of the block: 0 if inactive, all other values are active
+	slim_usertag_t block_active_ = -1;							// the "active" property of the block: 0 if inactive, all other values are active
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;			// a user-defined tag value
 	
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.

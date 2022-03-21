@@ -46,6 +46,7 @@ development head:
 		add id property to Species
 		add lookup by id on Community for subpopulations, mutation types, genomic element types, interaction types, script blocks, and species with xWithIDs() methods
 		add species property to Chromosome, GenomicElementType, InteractionType, MutationType, SLiMEidosBlock, Subpopulation
+		add active property and skipTick() method to Species, start using ticksModulo/ticksPhase to actually control species activation
 		
 
 version 3.7.1 (Eidos version 2.7.1):

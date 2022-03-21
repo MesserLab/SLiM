@@ -1323,7 +1323,7 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 			
 			// variables
 		case gID_active:
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(active_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(block_active_));
 		case gID_tag:
 		{
 			slim_usertag_t tag_value = tag_value_;
@@ -1346,7 +1346,13 @@ void SLiMEidosBlock::SetProperty(EidosGlobalStringID p_property_id, const EidosV
 	{
 		case gID_active:
 		{
-			active_ = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
+			
+			// cannot activate a block if it has been deactivated by its association with an inactive species
+			if (value && ((species_spec_ && !species_spec_->Active()) || (ticks_spec_ && !ticks_spec_->Active())))
+				EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SetProperty): property active cannot be used to activate a block that is inactive because of a 'species' or 'ticks' specifier in its declaration." << EidosTerminate();
+			
+			block_active_ = value;
 			
 			return;
 		}

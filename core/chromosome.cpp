@@ -713,7 +713,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 	
 	for (SLiMEidosBlock *mutation_callback : p_mutation_callbacks)
 	{
-		if (mutation_callback->active_)
+		if (mutation_callback->block_active_)
 		{
 			slim_objectid_t callback_mutation_type_id = mutation_callback->mutation_type_id_;
 			

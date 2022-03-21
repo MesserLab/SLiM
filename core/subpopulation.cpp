@@ -1245,7 +1245,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		
 		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (fitness_callback->block_active_)
 			{
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
@@ -1285,7 +1285,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
 		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (fitness_callback->block_active_)
 			{
 				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
 				
@@ -1755,7 +1755,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
-		if (fitness_callback->active_)
+		if (fitness_callback->block_active_)
 		{
 			slim_objectid_t callback_mutation_type_id = fitness_callback->mutation_type_id_;
 			
@@ -1919,7 +1919,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
-		if (fitness_callback->active_)
+		if (fitness_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
@@ -2941,7 +2941,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 	
 	for (SLiMEidosBlock *reproduction_callback : p_reproduction_callbacks)
 	{
-		if (reproduction_callback->active_)
+		if (reproduction_callback->block_active_)
 		{
 			IndividualSex sex_specificity = reproduction_callback->sex_specificity_;
 			
@@ -3142,7 +3142,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	
 	for (SLiMEidosBlock *survival_callback : p_survival_callbacks)
 	{
-		if (survival_callback->active_)
+		if (survival_callback->block_active_)
 		{
 #ifndef DEBUG_POINTS_ENABLED
 #error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"

@@ -869,6 +869,7 @@ extern const std::string &gStr_registerSurvivalCallback;
 extern const std::string &gStr_registerReproductionCallback;
 extern const std::string &gStr_rescheduleScriptBlock;
 extern const std::string &gStr_simulationFinished;
+extern const std::string &gStr_skipTick;
 extern const std::string &gStr_subsetMutations;
 extern const std::string &gStr_treeSeqCoalesced;
 extern const std::string &gStr_treeSeqSimplify;
@@ -1228,6 +1229,7 @@ enum _SLiMGlobalStringID : int {
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
 	gID_simulationFinished,
+	gID_skipTick,
 	gID_subsetMutations,
 	gID_treeSeqCoalesced,
 	gID_treeSeqSimplify,
