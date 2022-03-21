@@ -49,7 +49,7 @@ initialize() {
 	p2.setMigrationRates(p1, 0.01);
 	
 	// replicate the s1 event to output in generation 2 also
-	sim.registerEarlyEvent("s2", s1.source, 2, 2);
+	community.registerEarlyEvent("s2", s1.source, 2, 2);
 	
 	// optional: give m2 mutations to everyone, as standing variation
 	g = sim.subpopulations.genomes;

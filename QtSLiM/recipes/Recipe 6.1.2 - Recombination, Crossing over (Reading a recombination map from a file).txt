@@ -23,5 +23,5 @@ initialize() {
 	rates = rates * 1e-8;
 	initializeRecombinationRate(rates, ends);
 }
-1 { sim.addSubpop("p1", 500); }
-10000 { sim.simulationFinished(); }
+1 early() { sim.addSubpop("p1", 500); }
+10000 early() { sim.simulationFinished(); }

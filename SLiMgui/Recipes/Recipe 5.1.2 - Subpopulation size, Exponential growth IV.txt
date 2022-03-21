@@ -7,8 +7,8 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 100); }
-1000: {
+1 early() { sim.addSubpop("p1", 100); }
+1000: early() {
 	newSize = round(1.03^(sim.generation - 999) * 100);
 	if (newSize > 2000)
 		newSize = 2000;

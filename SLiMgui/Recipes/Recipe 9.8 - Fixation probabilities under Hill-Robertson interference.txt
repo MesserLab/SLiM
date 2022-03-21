@@ -7,7 +7,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 1000);
 }
 6000 late() {
@@ -24,7 +24,7 @@ initialize() {
 	
 	// Figure out the actual number of fixations after burn-in
 	subs = sim.substitutions;
-	actual = sum(subs.fixationGeneration >= 5000);
+	actual = sum(subs.fixationTick >= 5000);
 	
 	// Print a summary of our findings
 	cat("P(fix) = " + p_fix + "\n");

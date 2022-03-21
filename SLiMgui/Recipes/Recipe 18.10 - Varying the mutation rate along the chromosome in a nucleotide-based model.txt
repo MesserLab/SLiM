@@ -14,7 +14,7 @@ initialize() {
 	multipliers = rlnorm(100, 0.0, 0.75);
 	initializeHotspotMap(multipliers, ends);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 2000 late() { sim.outputFixedMutations(); }

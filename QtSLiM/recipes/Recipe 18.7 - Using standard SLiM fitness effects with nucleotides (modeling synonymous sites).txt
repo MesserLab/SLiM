@@ -16,7 +16,7 @@ initialize() {
 	ends = starts + rep(c(1,0), 1e5);
 	initializeGenomicElement(types, starts, ends);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 1e6 late() {

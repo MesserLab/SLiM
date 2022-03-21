@@ -8,6 +8,6 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 500); }
+1 early() { sim.addSubpop("p1", 500); }
 2000:3999 fitness(m2) { return 1.0; }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }

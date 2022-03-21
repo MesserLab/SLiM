@@ -31,4 +31,4 @@ early() {
 		sim.simulationFinished();
 	}
 }
-2000 { sim.simulationFinished(); }
+2000 early() { sim.simulationFinished(); }

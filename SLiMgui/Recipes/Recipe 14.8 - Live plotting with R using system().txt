@@ -14,17 +14,17 @@ initialize() {
 	else
 		stop("Couldn't find Rscript.");
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 5000);
 	sim.setValue("fixed", NULL);
 	
-	defineConstant("pdfPath", writeTempFile("plot_", ".pdf", ""));
+	defineConstant("pngPath", writeTempFile("plot_", ".png", ""));
 	
 	// If we're running in SLiMgui, open a plot window
 	if (exists("slimgui"))
-		slimgui.openDocument(pdfPath);
+		slimgui.openDocument(pngPath);
 }
-1: {
+1: early() {
 	if (sim.generation % 10 == 0)
 	{
 		count = sim.substitutions.size();
@@ -39,7 +39,7 @@ initialize() {
 	rstr = paste('{',
 		'x <- (1:' + size(y) + ') * 10',
 		'y <- c(' + paste(y, sep=", ") + ')',
-		'quartz(width=4, height=4, type="pdf", file="' + pdfPath + '")',
+		'png(width=4, height=4, units="in", res=72, file="' + pngPath + '")',
 		'par(mar=c(4.0, 4.0, 1.5, 1.5))',
 		'plot(x=x, y=y, xlim=c(0, 50000), ylim=c(0, 500), type="l",',
 			'xlab="Generation", ylab="Fixed mutations", cex.axis=0.95,',

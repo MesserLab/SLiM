@@ -10,5 +10,5 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-6);
 }
-1 { sim.addSubpop("p1", 1000); }
+1 early() { sim.addSubpop("p1", 1000); }
 1000 late() { sim.treeSeqOutput("recipe_nucleotides.trees"); }

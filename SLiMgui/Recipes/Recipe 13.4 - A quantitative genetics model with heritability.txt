@@ -55,7 +55,7 @@ fitness(m2) {
 	f = sim.mutationFrequencies(NULL, qtls);
 	s = qtls.selectionCoeff;
 	p = qtls.position;
-	o = qtls.originGeneration;
+	o = qtls.originTick;
 	indices = order(f, F);
 	
 	for (i in indices)

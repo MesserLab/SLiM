@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-7);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 100);
 }
 mateChoice() {

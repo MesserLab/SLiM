@@ -11,5 +11,5 @@ initialize() {
 	ends = c(999999, 1000000, 1999999, 2000000, 2999999);
 	initializeRecombinationRate(rates, ends);
 }
-1 { sim.addSubpop("p1", 500); }
+1 early() { sim.addSubpop("p1", 500); }
 10000 late() { sim.outputFixedMutations(); }

@@ -13,7 +13,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 late() {
@@ -29,5 +29,5 @@ s1 fitness(NULL) {
 	subs = sim.substitutions[sim.substitutions.position == 100];
 	
 	for (sub in subs)
-		catn("Sub to " + sub.nucleotide + " in "  + sub.fixationGeneration);
+		catn("Sub to " + sub.nucleotide + " in "  + sub.fixationTick);
 }

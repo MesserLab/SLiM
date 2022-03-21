@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 	
 	gens = cumSum(rpois(10, 10));      // make a vector of start gens
@@ -16,9 +16,9 @@ initialize() {
 	defineConstant("Z", max(gens));    // remember the last gen
 	
 	for (gen in gens)
-		sim.registerLateEvent(NULL, s1.source, gen, gen);
+		community.registerLateEvent(NULL, s1.source, gen, gen);
 	
-	sim.deregisterScriptBlock(s1);
+	community.deregisterScriptBlock(s1);
 }
 s1 1000 late() {
 	target = sample(p1.genomes, 1);

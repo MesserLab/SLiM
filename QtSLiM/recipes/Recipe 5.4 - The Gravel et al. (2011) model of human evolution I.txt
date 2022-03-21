@@ -10,17 +10,17 @@ initialize() {
 }
 
 // INITIALIZE the ancestral African population of size 7310
-1 { sim.addSubpop("p1", asInteger(round(7310.370867595234))); } // paper rounds to 7310
+1 early() { sim.addSubpop("p1", asInteger(round(7310.370867595234))); } // paper rounds to 7310
 
 // END BURN-IN period of 10*N=73104 generations (specific to SLiM recipe); EXPAND the African population
 // This occurs (5919.131117 generations)*(25 years)=147978 yr ago; paper rounds to 5920 gens (148000 yr)
 // Thus, simulation should end at generation 1+73104+5919.131117=79024
-73105 { p1.setSubpopulationSize(asInteger(round(14474.54608753566))); } // paper rounds to 14474
+73105 early() { p1.setSubpopulationSize(asInteger(round(14474.54608753566))); } // paper rounds to 14474
 
 // SPLIT Eurasians (p2) from Africans (p1) and SET UP MIGRATION between them
 // This occurs 2056.396652 generations (51409.9163 years) ago; paper rounds to 2040 gens (51000 yr)
 // Relative to beginning, this is generation 79024-2056.396652=76968
-76968 {
+76968 early() {
 	sim.addSubpopSplit("p2", asInteger(round(1861.288190027689)), p1); // paper rounds to 1861
 	p1.setMigrationRates(c(p2), c(15.24422112e-5)); // paper rounds to 15e-5
 	p2.setMigrationRates(c(p1), c(15.24422112e-5)); // paper rounds to 15e-5
@@ -29,7 +29,7 @@ initialize() {
 // SPLIT p2 into European (p2) and East Asian (p3) subpopulations; RESIZE; SET UP MIGRATION between them
 // This occurs 939.8072428 generations (23495.18107 years) ago; paper rounds to 920 gens (23000 yr)
 // Relative to beginning, this is generation 79024-939.8072428=78084
-78084 {
+78084 early() {
 	sim.addSubpopSplit("p3", asInteger(round(553.8181989)), p2); // paper rounds to 554
 	p2.setSubpopulationSize(asInteger(round(1032.1046957333444)));  // reduce European size; paper rounds to 1032
 
@@ -43,7 +43,7 @@ initialize() {
 // Where N(0) is the base subpopulation size and t = gen - 78084:
 //    N(Europe) should be int(round(N(0) * (1 + 0.003784324268)^t)), i.e., growth is r=0.38% per generation
 //    N(East Asia) should be int(round(N(0) * (1 + 0.004780219543)^t)), i.e., growth is r=0.48% per generation
-78084:79024 {
+78084:79024 early() {
 	t = sim.generation - 78084;
 	p2_size = round(1032.1046957333444 * (1 + 0.003784324268)^t); // paper rounds to N(0)=1032 and r=0.0038
 	p3_size = round(553.8181989 * (1 + 0.004780219543)^t); // paper rounds to N(0)=554 and r=0.0048

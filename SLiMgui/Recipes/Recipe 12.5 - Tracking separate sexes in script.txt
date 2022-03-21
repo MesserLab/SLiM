@@ -7,7 +7,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 	p1.individuals.tag = repEach(0:1, 250);  // F==0, M==1
 }

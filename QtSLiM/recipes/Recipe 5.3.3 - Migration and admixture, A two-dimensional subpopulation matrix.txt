@@ -7,7 +7,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	metapopSide = 3;	// number of subpops along one side of the grid
 	metapopSize = metapopSide * metapopSide;
 	for (i in 1:metapopSize)

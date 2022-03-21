@@ -9,7 +9,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e8-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 20000 late() { sim.treeSeqOutput("./recipe_17.7.trees"); }

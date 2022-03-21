@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	for (i in 0:5)
 		sim.addSubpop(i, 500);
 	for (i in 1:5)

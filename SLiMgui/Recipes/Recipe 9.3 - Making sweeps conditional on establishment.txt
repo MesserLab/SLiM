@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", getSeed());
 	
@@ -30,7 +30,7 @@ initialize() {
 		if (sim.mutationFrequencies(NULL, mut) > 0.1)
 		{
 			cat(simID + ": ESTABLISHED\n");
-			sim.deregisterScriptBlock(self);
+			community.deregisterScriptBlock(self);
 		}
 	}
 	else
@@ -48,6 +48,6 @@ initialize() {
 		target.addNewDrawnMutation(m2, 10000);
 	}
 }
-10000 {
+10000 early() {
 	sim.simulationFinished();
 }

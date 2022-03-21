@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", getSeed());
 	

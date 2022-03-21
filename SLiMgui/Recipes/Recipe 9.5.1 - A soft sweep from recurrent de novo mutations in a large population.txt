@@ -9,10 +9,10 @@ initialize() {
 	initializeGenomicElement(g1, 0, 0);
 	initializeRecombinationRate(0);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 100000);
 }
-1:10000 {
+1:10000 early() {
 	counts = p1.genomes.countOfMutationsOfType(m1);
 	freq = mean(counts > 0);
 	
@@ -20,10 +20,10 @@ initialize() {
 	{
 		cat("\nTotal mutations: " + size(sim.mutations) + "\n\n");
 		
-		for (mut in sortBy(sim.mutations, "originGeneration"))
+		for (mut in sortBy(sim.mutations, "originTick"))
 		{
 			mutFreq = mean(p1.genomes.containsMutations(mut));
-			cat("Origin " + mut.originGeneration+ ": " + mutFreq + "\n");
+			cat("Origin " + mut.originTick + ": " + mutFreq + "\n");
 		}
 		
 		sim.simulationFinished();

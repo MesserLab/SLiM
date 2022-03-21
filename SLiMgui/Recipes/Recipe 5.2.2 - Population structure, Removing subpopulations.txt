@@ -7,19 +7,19 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 500); }
-100 { sim.addSubpop("p2", 100); }
-100:150 {
+1 early() { sim.addSubpop("p1", 500); }
+100 early() { sim.addSubpop("p2", 100); }
+100:150 early() {
 	migrationProgress = (sim.generation - 100) / 50;
 	p1.setMigrationRates(p2, 0.2 * migrationProgress);
 	p2.setMigrationRates(p1, 0.8 * migrationProgress);
 }
-1000 { sim.addSubpop("p3", 10); }
-1000:1100 {
+1000 early() { sim.addSubpop("p3", 10); }
+1000:1100 early() {
 	p3Progress = (sim.generation - 1000) / 100;
 	p3.setSubpopulationSize(asInteger(990 * p3Progress + 10));
 	p1.setMigrationRates(p3, 0.1 * p3Progress);
 	p2.setMigrationRates(p3, 0.01 * p3Progress);
 }
-2000 { p2.setSubpopulationSize(0); }
+2000 early() { p2.setSubpopulationSize(0); }
 10000 late() { sim.outputFixedMutations(); }

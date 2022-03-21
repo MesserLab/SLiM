@@ -9,7 +9,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 1000);
 	p1.individuals.tag = rbinom(1000, 1, 0.5);
 }
@@ -25,4 +25,4 @@ fitness(m2) {
 	else
 		return relFitness;  // beneficial for milk-drinkers
 }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }
