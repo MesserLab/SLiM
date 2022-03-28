@@ -124,8 +124,6 @@ private:
 #endif
 	
 	std::vector<Species *>all_species_;												// a vector of the species being simulated, in declaration order
-	bool is_explicit_species_ = false;												// true if we have explicit species declarations (even if only one, even if named "sim")
-	bool is_multispecies_ = false;													// true if we actually have more than one species; false if a single species is explicitly declared
 	Species *active_species_ = nullptr;												// the species presently executing; currently used only for initialize() callback dispatch
 	
 	EidosSymbolTable *simulation_globals_ = nullptr;								// A symbol table of global variables, typically empty; the parent of simulation_constants_
@@ -152,6 +150,9 @@ private:
 	
 public:
 	
+	bool is_explicit_species_ = false;												// true if we have explicit species declarations (even if only one, even if named "sim")
+	bool is_multispecies_ = false;													// true if we actually have more than one species; false if a single species is explicitly declared
+
 	bool model_type_explicit_ = false;												// true if the model type has been explicitly declared
 	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
 	
