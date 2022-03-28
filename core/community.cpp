@@ -218,6 +218,9 @@ void Community::InitializeFromFile(std::istream &p_infile)
 				{
 					//std::cout << "species specifier seen: " << pending_spec_species_name << std::endl;
 					
+					if (pending_spec_species_name.compare("all") == 0)
+						EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): 'all' is not a legal species name; it is reserved for use in 'ticks all'." << EidosTerminate(script_block_node->children_[0]->token_);
+					
 					pending_species_spec = true;
 					continue;
 				}
@@ -309,6 +312,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	
 	// Extract SLiMEidosBlocks from the parse tree
 	Species *last_species_spec = nullptr, *last_ticks_spec = nullptr;
+	bool last_ticks_spec_is_species_all = false;	// "species all" is a special syntax; there is no species named "all" so it must be tracked with a separate flag
 	
 	for (EidosASTNode *script_block_node : root_node->children_)
 	{
@@ -317,9 +321,10 @@ void Community::InitializeFromFile(std::istream &p_infile)
 			// A "species <identifier>" or "ticks <identifier>" specification is present; remember what it specified
 			EidosASTNode *child = script_block_node->children_[0];
 			const std::string &species_name = child->token_->token_string_;
-			Species *species = SpeciesWithName(species_name);
+			bool is_species_all = (species_name.compare("all") == 0);
+			Species *species = (is_species_all ? nullptr : SpeciesWithName(species_name));
 			
-			if (!species)
+			if (!species && !is_species_all)
 				EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): undeclared species name " << species_name << "; species must be explicitly declared with a species <name> specifier on an initialize() block." << EidosTerminate(child->token_);
 			
 			if (script_block_node->token_->token_string_.compare(gStr_species) == 0)
@@ -335,6 +340,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): no species have been explicitly declared, so ticks specifiers should not be used." << EidosTerminate(script_block_node->token_);
 				
 				last_ticks_spec = species;
+				last_ticks_spec_is_species_all = is_species_all;
 			}
 		}
 		else
@@ -344,7 +350,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 			if (new_script_block->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 			{
 				// User-defined functions may not have a species or ticks specifier preceding them; this was already checked above
-				if (last_species_spec || last_ticks_spec)
+				if (last_species_spec || last_ticks_spec || last_ticks_spec_is_species_all)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) user-defined functions may not be preceded by a species or ticks specifier." << EidosTerminate(new_script_block->root_node_->token_);
 			}
 			else if ((new_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
@@ -355,19 +361,30 @@ void Community::InitializeFromFile(std::istream &p_infile)
 				if (last_species_spec)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) event declarations may not be preceded by a species specifier." << EidosTerminate(new_script_block->root_node_->token_);
 				
-				if (last_ticks_spec)
-					new_script_block->ticks_spec_ = last_ticks_spec;
+				if (is_explicit_species_)
+				{
+					Species *block_ticks = last_ticks_spec;
+					
+					if (!block_ticks && !last_ticks_spec_is_species_all)
+						EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every event must be preceded by a ticks specifier of the form 'ticks <species-name>'; if you want an event to run in every tick, specify 'ticks all'." << EidosTerminate(new_script_block->root_node_->token_);
+					
+					new_script_block->ticks_spec_ = block_ticks;	// nullptr for "ticks all"
+				}
+				else
+				{
+					new_script_block->ticks_spec_ = nullptr;
+				}
 			}
 			else
 			{
 				// Callbacks may have a ticks specifier, but not a species specifier, preceding them; this was already checked above
-				if (last_ticks_spec)
+				if (last_ticks_spec || last_ticks_spec_is_species_all)
 					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): (internal error) callback declarations may not be preceded by a ticks specifier." << EidosTerminate(new_script_block->root_node_->token_);
 				
 				Species *block_species = (is_explicit_species_ ? last_species_spec : all_species_[0]);
 				
 				if (!block_species)
-					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every callback must be preceded by a species specifier; callbacks are always species-specific." << EidosTerminate(new_script_block->root_node_->token_);
+					EIDOS_TERMINATION << "ERROR (Community::InitializeFromFile): when species names have been explicitly declared (such as in multispecies models), every callback must be preceded by a species specifier of the form 'species <species-name>'; callbacks are always species-specific." << EidosTerminate(new_script_block->root_node_->token_);
 				
 				new_script_block->species_spec_ = block_species;
 			}
@@ -376,6 +393,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 			
 			last_species_spec = nullptr;
 			last_ticks_spec = nullptr;
+			last_ticks_spec_is_species_all = false;
 		}
 	}
 	
