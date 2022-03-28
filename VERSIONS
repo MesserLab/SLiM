@@ -38,7 +38,7 @@ development head:
 		make "early()" required; the default block type has been a source of confusion and is worse now with the multispecies syntax
 		add optional "species <identifier>" and "ticks <identifier>" syntax to the SLiM top-level syntax to modify block declarations
 		make the Object Tables window in SLiMgui display all objects, across all species
-		add initializeSpecies() function to set species-specific options in multispecies models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
+		add initializeSpecies() function to set species-specific options in explicit-species models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
 		SLiMgui now displays avatars in the Object Tables window
 		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes, allScriptBlocks, allSubpopulations properties to Community
 		graph windows (and haplotype plots) are now associated with the focal species at their time of creation, and display the species avatar as a badge

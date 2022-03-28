@@ -1277,6 +1277,12 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	EidosValue *arg_avatar_value = p_arguments[2].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// BCH 27 March 2022: This is not actually necessary, but it seems best to draw a sharp line between explicit-species models
+	// and implied-species (single-species) models, to avoid confusion.  We do the same for 'ticks' and 'species' specifications
+	// on events and callbacks.  If you want to do species-related stuff, declare your species.
+	if (!community_.is_explicit_species_)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may only be called if species have been explicitly declared, with a 'species <name>' specifier preceding an initialize() callback." << EidosTerminate();
+	
 	if (num_species_declarations_ > 0)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSpecies): initializeSpecies() may be called only once per species." << EidosTerminate();
 	
