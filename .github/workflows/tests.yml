@@ -173,6 +173,7 @@ jobs:
         uses: jurplel/install-qt-action@v2
         with:
           version: ${{ matrix.qt }}
+          setup-python: false
 
       - name: Build (cmake)
         run: |
