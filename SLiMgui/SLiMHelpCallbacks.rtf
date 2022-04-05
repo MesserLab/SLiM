@@ -117,7 +117,7 @@ Then comes a generation or a range of generations, and then a block of Eidos cod
 \f3\fs18 :1000
 \f2\fs22  would similarly specify that the event should run in the first generation executed, and every subsequent generation, up to and including generation 
 \f3\fs18 1000
-\f2\fs22 .  (You might notice that the grammar shown above for the generation range is not quite correct; see section 27.1 for the correct, complete grammar.)\
+\f2\fs22 .\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 In fact, you can omit specifying a generation altogether, in which case the Eidos event runs every generation.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of generations possible; however, that is more of a concern with the callbacks we will look at later in this chapter, since they might be called many time in every generation, whereas 
@@ -128,7 +128,7 @@ In fact, you can omit specifying a generation altogether, in which case the Eido
 \f3\fs18 late()
 \f2\fs22  events will just be called once per generation.\
 The generations specified for a Eidos event block can be any positive integer.  All scripts that apply to a given time point will be run in the order in which they are given; scripts specified higher in the input file will run before those specified lower.  Sometimes it is desirable to have a script block execute in a generation which is not fixed, but instead depends upon some parameter, defined constant, or calculation; this may be achieved by rescheduling the script block with the 
-\f3\fs18 SLiMSim
+\f3\fs18 Community
 \f2\fs22  method 
 \f3\fs18 rescheduleScriptBlock()
 \f2\fs22 .\
@@ -137,8 +137,8 @@ When Eidos events are executed, several global variables are defined by SLiM for
 
 \f3\fs18 \cf2    sim
 \f2\fs22 	A 
-\f3\fs18 SLiMSim
-\f2\fs22  object representing the current SLiM simulation\
+\f3\fs18 Species
+\f2\fs22  object representing the current SLiM species (in single-species simulations)\
 
 \f3\fs18    g1, ...
 \f2\fs22 	
@@ -170,13 +170,13 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \f3\fs18 SLiMEidosBlock
 \f2\fs22  object representing the script block currently executing\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 Note that the 
+\cf2  In multispecies models, symbols for each species will be defined instead of 
 \f3\fs18 sim
-\f2\fs22  global is 
+\f2\fs22 .  Note that species symbols are 
 \f0\i not
 \f2\i0  available in 
 \f3\fs18 initialize()
-\f2\fs22  callbacks, since the simulation has not yet been initialized.  Similarly, the globals for subpopulations, mutation types, and genomic element types are only available after the point at which those objects have been defined by an 
+\f2\fs22  callbacks, since the species objects have not yet been initialized.  Similarly, the globals for subpopulations, mutation types, and genomic element types are only available after the point at which those objects have been defined by an 
 \f3\fs18 initialize()
 \f2\fs22  callback.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -223,8 +223,9 @@ A
 \f3\fs18 haploidDominanceCoeff
 \f2\fs22  property of the 
 \f3\fs18 MutationType
-\f2\fs22  is used instead.  See section 22.6 for further discussion of this detail.\
-\expnd0\expndtw0\kerning0
+\f2\fs22  is used instead.\
+\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
 \f3\fs18 fitness()
 \f2\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes:\

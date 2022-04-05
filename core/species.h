@@ -197,7 +197,7 @@ private:
 	slim_tick_t generation_ = 0;													// the current generation reached in simulation
 	EidosValue_SP cached_value_generation_;											// a cached value for generation_; invalidates automatically when used
 	
-	slim_usertag_t species_active_ = -1;											// the "active" property of the species: 0 if inactive, all other values are active
+	bool species_active_ = true;													// the "active" property of the species
 	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
 	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
 	
@@ -412,8 +412,8 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t Generation(void) const												{ return generation_; }
 	void SetGeneration(slim_tick_t p_new_generation);
 	
-	inline __attribute__((always_inline)) bool Active(void) { return (species_active_ != 0); }
-	inline __attribute__((always_inline)) void SetActive(bool p_active) { species_active_ = (p_active ? -1 : 0); }
+	inline __attribute__((always_inline)) bool Active(void) { return species_active_; }
+	inline __attribute__((always_inline)) void SetActive(bool p_active) { species_active_ = p_active; }
 	inline __attribute__((always_inline)) slim_tick_t TickModulo(void) { return tick_modulo_; }
 	inline __attribute__((always_inline)) slim_tick_t TickPhase(void) { return tick_phase_; }
 	

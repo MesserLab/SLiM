@@ -434,7 +434,7 @@
 			
 			//NSLog(@"topic function name: %@, line: %@", callName, line);
 			
-			// check for a built-in function signature that matches and substitute it in
+			// Check for a built-in function signature that matches and substitute it in
 			if (functionList)
 			{
 				std::string function_name([callName UTF8String]);
@@ -485,7 +485,7 @@
 			
 			//NSLog(@"topic method name: %@, line: %@", callName, line);
 			
-			// check for a built-in method signature that matches and substitute it in
+			// Check for a built-in method signature that matches and substitute it in
 			if (methodList)
 			{
 				std::string method_name([callName UTF8String]);
@@ -513,6 +513,10 @@
 					}
 					else
 					{
+						// BCH 3 April 2022: I don't think there's any reason why we can't have more than one method with the same name,
+						// but with different signatures, as long as they are not in the same class; we can't handle overloading, but
+						// method lookup is within-class.  So this code could be generalized as the property lookup code below was; I just
+						// haven't bothered to do so.
 						NSLog(@"*** method signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
 					}
 				}
@@ -536,41 +540,46 @@
 			
 			//NSLog(@"topic property name: %@, line: %@", callName, line);
 			
-			// check for a built-in property signature that matches and substitute it in
+			// Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
+			// API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
+			// This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
 			if (propertyList)
 			{
 				std::string property_name([callName UTF8String]);
-				EidosPropertySignature_CSP property_signature = nullptr;
+				bool found_match = false, found_mismatch = false;
+				NSString *oldSignatureString = nullptr;
+				NSString *newSignatureString = nullptr;
 				
 				for (auto signature_iter = propertyList->begin(); signature_iter != propertyList->end(); signature_iter++)
 					if ((*signature_iter)->property_name_.compare(property_name) == 0)
 					{
-						property_signature = *signature_iter;
-						break;
+						EidosPropertySignature_CSP candidate_signature = *signature_iter;
+						NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:candidate_signature.get() size:11.0];
+						
+						oldSignatureString = [lineAttrString string];
+						newSignatureString = [attrSig string];
+						
+						if ([oldSignatureString isEqualToString:newSignatureString])
+						{
+							//NSLog(@"signature match for method %@", callName);
+							
+							// Replace the signature line from the RTF file with the syntax-colored version
+							lineAttrString = attrSig;
+							found_match = true;
+							break;
+						}
+						else
+						{
+							// If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
+							// the signature, unless we find a match later on with a different signature for the same property name.
+							found_mismatch = true;
+						}
 					}
 				
-				if (property_signature)
-				{
-					NSAttributedString *attrSig = [NSAttributedString eidosAttributedStringForPropertySignature:property_signature.get() size:11.0];
-					NSString *oldSignatureString = [lineAttrString string];
-					NSString *newSignatureString = [attrSig string];
-					
-					if ([oldSignatureString isEqualToString:newSignatureString])
-					{
-						//NSLog(@"signature match for method %@", callName);
-						
-						// Replace the signature line from the RTF file with the syntax-colored version
-						lineAttrString = attrSig;
-					}
-					else
-					{
-						NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
-					}
-				}
-				else
-				{
+				if (found_mismatch && !found_match)
+					NSLog(@"*** property signature mismatch:\nold: %@\nnew: %@", oldSignatureString, newSignatureString);
+				else if (!found_match)
 					NSLog(@"*** no property signature found for property name %@", callName);
-				}
 			}
 			
 			topicItemKey = [NSString stringWithFormat:@"%@ %@", callName, readOnlyName];

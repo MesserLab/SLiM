@@ -45,9 +45,11 @@ development head:
 		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
 		add id property to Species
 		add lookup by id on Community for subpopulations, mutation types, genomic element types, interaction types, script blocks, and species with xWithIDs() methods
-		add species property to Chromosome, GenomicElementType, InteractionType, MutationType, SLiMEidosBlock, Subpopulation
+		add species property to Chromosome, GenomicElementType, InteractionType, MutationType, Subpopulation
 		add active property and skipTick() method to Species, start using ticksModulo/ticksPhase to actually control species activation
 		add 'all' as a reserved species name, add the 'ticks all' syntax for event declarations and make it required in explicit-species models
+		add [No<Species>$ ticksSpec = NULL] to registerXEvent() so created event blocks can have a ticks specifier; add speciesSpec and tickSpec properties to SLiMEidosBlock
+		documentation/manual revisions for all of the above
 		
 
 version 3.7.1 (Eidos version 2.7.1):

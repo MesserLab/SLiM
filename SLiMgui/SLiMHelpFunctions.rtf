@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
-\f6\fnil\fcharset0 Menlo-Bold;}
+\f6\fnil\fcharset0 Menlo-Bold;\f7\fnil\fcharset0 AppleColorEmoji;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
@@ -851,11 +851,11 @@ Configure options for the simulation.  If
 \f1\fs18 reproductiveOutput
 \f2\fs20  property of 
 \f1\fs18 Individual
-\f2\fs20  (see section 24.6.1) and the 
+\f2\fs20  and the 
 \f1\fs18 lifetimeReproductiveOutput
 \f2\fs20  property of 
 \f1\fs18 Subpopulation
-\f2\fs20  (see section 24.14.1).\
+\f2\fs20 .\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 If 
 \f1\fs18 dimensionality
@@ -973,6 +973,50 @@ If
 \f2\fs20 .  This choice has many consequences across SLiM. \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)initializeSpecies([integer$\'a0tickModulo\'a0=\'a01], [integer$\'a0tickPhase\'a0=\'a01], [Ns$\'a0avatar\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Configure options for the species being initialized.  This initialization function may only be called in multispecies models (i.e., models with explicit species declarations); in single-species models, the default values are assumed and cannot be changed.\
+The 
+\f1\fs18 tickModulo
+\f2\fs20  and 
+\f1\fs18 tickPhase
+\f2\fs20  parameters determine the activation schedule for the species.  The 
+\f1\fs18 active
+\f2\fs20  property of the species will be set to 
+\f1\fs18 T
+\f2\fs20  (thus activating the species) every 
+\f1\fs18 tickModulo
+\f2\fs20  ticks, beginning in tick 
+\f1\fs18 tickPhase
+\f2\fs20 .  (However, when the species is activated in a given tick, the 
+\f1\fs18 skipTick()
+\f2\fs20  method may still be called in a 
+\f1\fs18 first()
+\f2\fs20  event to deactivate it.)  See the 
+\f1\fs18 active
+\f2\fs20  property of 
+\f1\fs18 Species
+\f2\fs20  for more details.\
+The 
+\f1\fs18 avatar
+\f2\fs20  parameter, if not 
+\f1\fs18 NULL
+\f2\fs20 , sets a 
+\f1\fs18 string
+\f2\fs20  value used to represent the species graphically, particularly in SLiMgui but perhaps in other contexts also.  The 
+\f1\fs18 avatar
+\f2\fs20  should generally be a single character \'96 usually an emoji corresponding to the species, such as 
+\f1\fs18 "
+\f7\fs14 \uc0\u55358 \u56714 
+\f1\fs18 "
+\f2\fs20  for foxes or 
+\f1\fs18 "
+\f7\fs14 \uc0\u55357 \u56365 
+\f1\fs18 "
+\f2\fs20  for mice.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -1642,9 +1686,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub :\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1656,8 +1699,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i \expnd0\expndtw0\kerning0
 H
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
@@ -1882,9 +1924,9 @@ This function assumes that mutations of type
 \f1\fs18 defineSpatialMap()
 \f2\fs20  method of 
 \f1\fs18 Subpopulation
-\f2\fs20 .  For further discussion of dimensionality and spatiality, see section 24.1 on 
+\f2\fs20 .  For further discussion of dimensionality and spatiality, see 
 \f1\fs18 initializeInteractionType()
-\f2\fs20 , and section 24.7 on 
+\f2\fs20  and 
 \f1\fs18 InteractionType
 \f2\fs20 .\
 The 
@@ -1911,7 +1953,7 @@ The
 \f3\i centers
 \f2\i0  of the edge and corner grid squares are aligned with the limits of the spatial bounds.  This matches the way that 
 \f1\fs18 defineSpatialMap()
-\f2\fs20  defines its maps; see section 15.11 for illustration.\
+\f2\fs20  defines its maps.\
 The particular summary produced depends upon the parameters 
 \f1\fs18 operation
 \f2\fs20  and 

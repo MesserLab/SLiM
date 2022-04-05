@@ -82,7 +82,7 @@ extern "C" {
 
 Community::Community(std::istream &p_infile) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
 {
-	// BCH 3/16/2022: We used to allocate the SLiMSim object here, as the first thing we did.  In SLiM 4 there can
+	// BCH 3/16/2022: We used to allocate the Species object here, as the first thing we did.  In SLiM 4 there can
 	// be multiple species and they can have names other than "sim", so we delay species creation until parse time.
 	
 	// set up the symbol tables we will use for global variables and constants; note that the global variables table

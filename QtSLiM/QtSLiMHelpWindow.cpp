@@ -792,7 +792,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 			
 			//qDebug() << "topic function name: " << callName << ", line: " << line;
 			
-			// check for a built-in function signature that matches and substitute it in
+			// Check for a built-in function signature that matches and substitute it in
 			if (functionList)
 			{
 				std::string function_name = callName.toStdString();
@@ -822,7 +822,11 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 			
 			//qDebug() << "topic method name: " << callName << ", line: " << line;
 			
-			// check for a built-in method signature that matches and substitute it in
+			// Check for a built-in method signature that matches and substitute it in
+            // BCH 3 April 2022: I don't think there's any reason why we can't have more than one method with the same name,
+            // but with different signatures, as long as they are not in the same class; we can't handle overloading, but
+            // method lookup is within-class.  So this code could be generalized as the property lookup code below was; I just
+            // haven't bothered to do so.
 			if (methodList)
 			{
 				std::string method_name(callName.toStdString());
@@ -852,23 +856,46 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 			
             //qDebug() << "topic property name: " << callName << ", line: " << line;
             
-			// check for a built-in property signature that matches and substitute it in
-			if (propertyList)
-			{
-				std::string property_name(callName.toStdString());
-				const EidosPropertySignature *property_signature = nullptr;
-				
-				for (auto signature_iter : *propertyList)
-					if (signature_iter->property_name_.compare(property_name) == 0)
-					{
-						property_signature = signature_iter.get();
-						break;
-					}
-				
-				if (property_signature)
-                    ColorizePropertySignature(property_signature, 11.0, lineCursor);
-				else
-					qDebug() << "*** no property signature found for property name " << callName;
+            // Check for a built-in property signature that matches and substitute it in.  Note that we accept a match from any property in any class
+			// API as long as the signature matches; we do not rigorously check that the API within a given class matches between signature and doc.
+			// This is mostly not a problem because it is quite rare for the same property name to be used with more than one signature.
+            if (propertyList)
+            {
+                std::string property_name(callName.toStdString());
+                bool found_match = false, found_mismatch = false;
+                QString oldSignatureString, newSignatureString;
+                
+                for (auto signature_iter : *propertyList)
+                    if (signature_iter->property_name_.compare(property_name) == 0)
+                    {
+                        const EidosPropertySignature *property_signature = signature_iter.get();
+                        
+                        oldSignatureString = lineCursor.selectedText();
+                        std::ostringstream ss;
+                        ss << *property_signature;
+                        newSignatureString = QString::fromStdString(ss.str());
+                        
+                        if (newSignatureString == oldSignatureString)
+                        {
+                            //qDebug() << "signature match for method" << callName;
+                            
+                            // Replace the signature line with the syntax-colored version
+                            ColorizePropertySignature(property_signature, 11.0, lineCursor);
+                            found_match = true;
+                            break;
+                        }
+                        else
+                        {
+                            // If we find a mismatched signature but no matching signature, that's probably an error in either the doc or
+                            // the signature, unless we find a match later on with a different signature for the same property name.
+                            found_mismatch = true;
+                        }
+                    }
+                
+                if (found_mismatch && !found_match)
+                    qDebug() << "*** property signature mismatch:\nold: " << oldSignatureString << "\nnew: " << newSignatureString;
+				else if (!found_match)
+					qDebug() << "*** no property signature found for property name" << callName;
 			}
 			
 			topicItemKey = callName + "\u00A0" + readOnlyName;

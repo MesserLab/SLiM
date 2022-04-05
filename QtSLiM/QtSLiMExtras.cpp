@@ -229,17 +229,6 @@ void ColorizePropertySignature(const EidosPropertySignature *property_signature,
     //	These two should be kept in synch so the user-visible format of signatures is consistent.
     //
     QString docSigString = lineCursor.selectedText();
-    std::ostringstream ss;
-    ss << *property_signature;
-    QString propertySigString = QString::fromStdString(ss.str());
-    
-    if (docSigString != propertySigString)
-    {
-        qDebug() << "*** property signature mismatch:\nold: " << docSigString << "\nnew: " << propertySigString;
-        return;
-    }
-    
-    // the signature conforms to expectations, so we can colorize it
     QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
     QTextCharFormat ttFormat;
     QFont displayFont(prefs.displayFontPref());

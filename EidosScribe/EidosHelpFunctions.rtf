@@ -3433,7 +3433,7 @@ Note that the semantics of this function differ slightly from the
 \f3\fs20  type, however, 
 \f1\fs18 elementType()
 \f3\fs20  returns the name of the type of element contained by the object, such as 
-\f1\fs18 "SLiMSim"
+\f1\fs18 "Species"
 \f3\fs20  or 
 \f1\fs18 "Mutation"
 \f3\fs20  in the Context of SLiM.  Contrast this with 
@@ -4811,6 +4811,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -4928,6 +4929,7 @@ If
 \f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "cm")
 \f3\fs20  instead.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf5 Generate colors in a \'93cyan-magenta\'94 color palette.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -5041,6 +5043,7 @@ This function can also be called with a non-singleton vector of color strings in
 \f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "heat")
 \f3\fs20  instead.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf5 Generate colors in a \'93heat map\'94 color palette.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
@@ -5163,6 +5166,7 @@ This function can also be called with a matrix of RGB values, with three columns
 \f3\b0   In SLiM 3.5 and later, use 
 \f1\fs18 colors(n, "terrain")
 \f3\fs20  instead.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf5 Generate colors in a \'93terrain\'94 color palette.\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
@@ -5657,8 +5661,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 
@@ -6074,7 +6079,7 @@ When running under SLiM, other tools for monitoring memory usage include the
 \f3\fs20 , and the 
 \f1\fs18 outputUsage()
 \f3\fs20  method of 
-\f1\fs18 SLiMSim
+\f1\fs18 Community
 \f3\fs20 ; see the SLiM manual for more information.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 

@@ -668,13 +668,22 @@ EidosValue_SP LogFile::ExecuteMethod_addGeneration(EidosGlobalStringID p_method_
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addGeneration");
 	
-	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	// Figure out the species to log; if species is NULL, check for a singleton species to default to
 	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addGeneration()");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Generation, nullptr, species->species_id_, EidosValue_SP()});
 	
-	column_names_.emplace_back("generation");
+	// column name is "generation" in single-species models; append the species name in multispecies models
+	std::string col_name = "generation";
+	
+	if (community_.is_explicit_species_)
+	{
+		col_name.append("_");
+		col_name.append(species->name_);
+	}
+	
+	column_names_.emplace_back(col_name);
 	
 	return gStaticEidosValueVOID;
 }
@@ -742,12 +751,22 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSexRatio(EidosGlobalStringID p
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSexRatio");
 	
-	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	// Figure out the species to log; if species is NULL, check for a singleton species to default to
 	EidosValue_SP species_value = p_arguments[0];
 	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, species->species_id_, EidosValue_SP()});
-	column_names_.emplace_back("sex_ratio");
+
+	// column name is "sex_ratio" in single-species models; append the species name in multispecies models
+	std::string col_name = "sex_ratio";
+	
+	if (community_.is_explicit_species_)
+	{
+		col_name.append("_");
+		col_name.append(species->name_);
+	}
+	
+	column_names_.emplace_back(col_name);
 	
 	return gStaticEidosValueVOID;
 }
@@ -759,12 +778,22 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSize(EidosGlobalStringID p_met
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSize");
 	
-	// Figure out the species to log; if species is NULL, check for a singletyon species to default to
+	// Figure out the species to log; if species is NULL, check for a singleton species to default to
 	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSize()");
 	
 	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSize, nullptr, species->species_id_, EidosValue_SP()});
-	column_names_.emplace_back("num_individuals");
+	
+	// column name is "num_individuals" in single-species models; append the species name in multispecies models
+	std::string col_name = "num_individuals";
+	
+	if (community_.is_explicit_species_)
+	{
+		col_name.append("_");
+		col_name.append(species->name_);
+	}
+	
+	column_names_.emplace_back(col_name);
 	
 	return gStaticEidosValueVOID;
 }
