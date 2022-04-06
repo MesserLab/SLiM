@@ -15,7 +15,7 @@ initialize() {
 }
 1 early() { sim.addSubpop("p1", 500); }
 fitness(NULL) {
-	phenotype = sum(c(genome1,genome2).countOfMutationsOfType(m2));
+	phenotype = sum(individual.genomes.countOfMutationsOfType(m2));
 	return 1.5 - (phenotype - 10.0)^2 * 0.005;
 }
 5000 late() {

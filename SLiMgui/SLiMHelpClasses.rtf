@@ -518,7 +518,18 @@ It is generally recommended that the parent individual be supplied to this metho
 \f3\fs18 parent
 \f4\fs20  is not used, and the caller does not guarantee that the generated breakpoints will actually be used to recombine the genomes of 
 \f3\fs18 parent
-\f4\fs20  in particular.\
+\f4\fs20  in particular.\kerning1\expnd0\expndtw0   If a 
+\f3\fs18 recombination()
+\f4\fs20  callback is called, 
+\f3\fs18 genome1
+\f4\fs20  for that callback will always be 
+\f3\fs18 parent.genome1
+\f4\fs20 ; in other words, 
+\f3\fs18 drawBreakpoints()
+\f4\fs20  will always treat 
+\f3\fs18 parent.genome1
+\f4\fs20  as the initial copy strand.  If the caller wishes to randomly choose an initial copy strand (which is usually desirable), they should do that themselves.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(integer$)setAncestralNucleotides(is\'a0sequence)\

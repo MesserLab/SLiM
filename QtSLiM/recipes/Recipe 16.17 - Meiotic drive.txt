@@ -42,9 +42,9 @@ initialize() {
 }
 reproduction() {
 	m = subpop.sampleIndividuals(1);
-	b1 = driveBreakpoints(genome1, genome2);
+	b1 = driveBreakpoints(individual.genome1, individual.genome2);
 	b2 = driveBreakpoints(m.genome1, m.genome2);
-	subpop.addRecombinant(genome1, genome2, b1, m.genome1, m.genome2, b2);
+	subpop.addRecombinant(individual.genome1, individual.genome2, b1, m.genome1, m.genome2, b2);
 }
 1 early() {
 	sim.addSubpop("p1", 10);

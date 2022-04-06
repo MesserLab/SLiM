@@ -1744,7 +1744,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 }
 
-double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
+double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -1857,10 +1857,6 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 						}
 						if (fitness_callback->contains_individual_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
-						if (fitness_callback->contains_genome1_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_genome1, p_genome1->CachedEidosValue());
-						if (fitness_callback->contains_genome2_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_genome2, p_genome2->CachedEidosValue());
 						if (fitness_callback->contains_subpop_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 						
@@ -1914,8 +1910,6 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 	double computed_fitness = 1.0;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
 	
 	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
 	{
@@ -2007,10 +2001,6 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 						callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, gStaticEidosValue_Float1);
 					if (fitness_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-					if (fitness_callback->contains_genome1_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome1, genome1->CachedEidosValue());
-					if (fitness_callback->contains_genome2_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome2, genome2->CachedEidosValue());
 					if (fitness_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 					if (fitness_callback->contains_homozygous_)
@@ -2314,7 +2304,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome_mutation = *genome_iter;
 				
-				w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2361,7 +2351,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2376,7 +2366,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2405,7 +2395,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
+									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual);
 									
 									goto homozygousExit3;
 								}
@@ -2414,7 +2404,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 							
 						homozygousExit3:
 							
@@ -2447,7 +2437,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2477,7 +2467,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome1_mutation = *genome1_iter;
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2490,7 +2480,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome2_mutation = *genome2_iter;
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2555,7 +2545,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2611,7 +2601,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2635,7 +2625,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2673,7 +2663,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
+										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual);
 										
 										goto homozygousExit5;
 									}
@@ -2682,7 +2672,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 								
 							homozygousExit5:
 								
@@ -2743,7 +2733,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -2800,7 +2790,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome1_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2821,7 +2811,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome2_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2976,9 +2966,6 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 				}
 #endif
 				
-				Genome *genome1 = parent_genomes_[p_individual_index * 2];
-				Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
-				
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
@@ -2996,10 +2983,6 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 					// referred to by the values may change, but the values themselves will not change).
 					if (reproduction_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-					if (reproduction_callback->contains_genome1_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome1, genome1->CachedEidosValue());
-					if (reproduction_callback->contains_genome2_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome2, genome2->CachedEidosValue());
 					if (reproduction_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 					
@@ -4058,7 +4041,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	if (modify_child_callbacks_.size())
 	{
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, &parent_genome_1, &parent_genome_1, parent, &parent_genome_2, &parent_genome_2, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 	
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Uniparental(*parent);
@@ -4164,7 +4147,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1, parent1->genome1_, parent1->genome2_, parent2, parent2->genome1_, parent2->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent1, parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Biparental(*parent1, *parent2);
@@ -4285,7 +4268,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	if (registered_modify_child_callbacks_.size())
 	{
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Parentless();
@@ -4617,7 +4600,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	if (registered_modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, /* p_parent1 */ nullptr, strand1, strand2, /* p_parent2 */ nullptr, strand3, strand4, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		// BCH 4/5/2022: When removing excess pseudo-parameters from callbacks, we lost a bit of functionality here: we used to pass
+		// the four recombinant strands to the callback as the four "parental genomes".  But that was always kind of fictional, and
+		// it was never documented, and I doubt anybody was using it, and they can do the same without the modifyChild() callback,
+		// so I'm not viewing this loss of functionality as an obstacle to making this change.
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Parentless();
@@ -4811,7 +4798,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, parent->genome1_, parent->genome2_, parent, parent->genome1_, parent->genome2_, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Uniparental(*parent);

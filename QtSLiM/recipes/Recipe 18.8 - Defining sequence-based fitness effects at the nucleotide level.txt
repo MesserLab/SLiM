@@ -21,8 +21,8 @@ late() {
 		s1.active = 0;
 }
 s1 fitness(NULL) {
-	nuc1 = genome1.nucleotides(100, 100, format="integer");
-	nuc2 = genome2.nucleotides(100, 100, format="integer");
+	nuc1 = individual.genome1.nucleotides(100, 100, format="integer");
+	nuc2 = individual.genome2.nucleotides(100, 100, format="integer");
 	return EFF[nuc1] * EFF[nuc2];
 }
 10000 late() {

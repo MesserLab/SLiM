@@ -1815,6 +1815,9 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 	std::vector<slim_position_t> all_breakpoints;
 	std::vector<slim_position_t> heteroduplex;				// never actually used since simple_conversion_fraction_ must be 1.0
 	
+	// Note that for calling recombination() callbacks below, we always treat the parent's first genome as the initial copy strand.
+	// This is documented; it is perhaps a weakness of the API here, but if randomly chose an initial copy strand it would not be used downstream, so.
+	
 	// draw the breakpoints based on the recombination rate map, and sort and unique the result
 	if (num_breakpoints)
 	{

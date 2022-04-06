@@ -597,18 +597,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					callback_symbols.InitializeConstantSymbolEntry(gID_individual, parent1->CachedEidosValue());
 				}
 				
-				if (mate_choice_callback->contains_genome1_)
-				{
-					Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
-					callback_symbols.InitializeConstantSymbolEntry(gID_genome1, parent1_genome1->CachedEidosValue());
-				}
-				
-				if (mate_choice_callback->contains_genome2_)
-				{
-					Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
-					callback_symbols.InitializeConstantSymbolEntry(gID_genome2, parent1_genome2->CachedEidosValue());
-				}
-				
 				if (mate_choice_callback->contains_subpop_)
 					callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_subpop->SymbolTableEntry().second);
 				
@@ -876,7 +864,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 }
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -933,28 +921,8 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			if (modify_child_callback->contains_child_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_child, p_child->CachedEidosValue());
 			
-			if (modify_child_callback->contains_childGenome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome1, p_child_genome1->CachedEidosValue());
-			
-			if (modify_child_callback->contains_childGenome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome2, p_child_genome2->CachedEidosValue());
-			
-			if (modify_child_callback->contains_childIsFemale_)
-			{
-				if (p_child_sex == IndividualSex::kHermaphrodite)
-					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, gStaticEidosValueNULL);
-				else
-					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-			}
-			
 			if (modify_child_callback->contains_parent1_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, p_parent1 ? p_parent1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent1Genome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, p_parent1Genome1 ? p_parent1Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent1Genome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, p_parent1Genome2 ? p_parent1Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_isSelfing_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -964,12 +932,6 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent2_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, p_parent2 ? p_parent2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent2Genome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, p_parent2Genome1 ? p_parent2Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent2Genome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, p_parent2Genome2 ? p_parent2Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_subpop_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_target_subpop->SymbolTableEntry().second);
@@ -1414,7 +1376,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
@@ -1500,7 +1462,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, /* p_is_selfing */ false, /* p_is_cloning */ false, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
 							child_genome1->clear_to_nullptr();
@@ -1863,7 +1825,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *parent1_ind = source_subpop->parent_individuals_[parent1];
 					Individual *parent2_ind = source_subpop->parent_individuals_[parent2];
 					
-					if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
+					if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
 					{
 						// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different

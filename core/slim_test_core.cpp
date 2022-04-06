@@ -1878,7 +1878,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return mut; } 100 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { mut; homozygous; individual; genome1; genome2; subpop; return relFitness; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { mut; homozygous; individual; subpop; return relFitness; } 100 early() { stop(); }", __LINE__);
 	
 	// mateChoice() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice() { return weights; } 10 early() { stop(); }", __LINE__);
@@ -1900,7 +1900,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 1.0; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return genome1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return individual.genome1; } 10 early() { ; }", "return value", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; ; } 10 early() { ; }", "must explicitly return a value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return F; } 10 early() { ; }", "return value", __LINE__);
@@ -1908,9 +1908,9 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 1.0; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return genome1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { subpop; return individual.genome1; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { individual; genome1; genome2; subpop; sourceSubpop; return weights; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice(p1) { individual; subpop; sourceSubpop; return weights; } 10 early() { stop(); }", __LINE__);
 	
 	// modifyChild() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild() { return T; } 10 early() { stop(); }", __LINE__);
@@ -1940,7 +1940,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { subpop; return child; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { child; childGenome1; childGenome2; parent1; parent1Genome1; parent1Genome2; isCloning; isSelfing; parent2; parent2Genome1; parent2Genome2; subpop; sourceSubpop; return T; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "modifyChild(p1) { child; parent1; isCloning; isSelfing; parent2; subpop; sourceSubpop; return T; } 10 early() { stop(); }", __LINE__);
 	
 	// recombination() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination() { return F; } 10 early() { stop(); }", __LINE__);
@@ -2053,7 +2053,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return 'a'; } 10 early() { ; }", "must return void", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { subpop; return subpop; } 10 early() { ; }", "must return void", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { individual; genome1; genome2; subpop; subpop.addCloned(individual); } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_nonWF + "reproduction(p1) { individual; subpop; subpop.addCloned(individual); } 10 early() { stop(); }", __LINE__);
 	
 	// mutation() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutation(m1) { return T; } 100 early() { stop(); }", __LINE__);

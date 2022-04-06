@@ -34,12 +34,12 @@ fitness(m2) {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 1)
 	{
-		hasMutOnChromosome1 = childGenome1.containsMutations(mut);
-		hasMutOnChromosome2 = childGenome2.containsMutations(mut);
+		hasMutOnChromosome1 = child.genome1.containsMutations(mut);
+		hasMutOnChromosome2 = child.genome2.containsMutations(mut);
 		if (hasMutOnChromosome1 & !hasMutOnChromosome2)
-			childGenome2.addMutations(mut);
+			child.genome2.addMutations(mut);
 		else if (hasMutOnChromosome2 & !hasMutOnChromosome1)
-			childGenome1.addMutations(mut);
+			child.genome1.addMutations(mut);
 	}
 	return T;
 }

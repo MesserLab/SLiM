@@ -171,7 +171,7 @@ public:
 	}
 	
 	// apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-	bool ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
+	bool ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks);
 	
 	// apply recombination() callbacks to a generated child; a return of true means the breakpoints were changed
 	bool ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks);

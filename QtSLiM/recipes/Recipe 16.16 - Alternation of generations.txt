@@ -23,8 +23,8 @@ initialize()
 }
 reproduction(p1)
 {
-	g_1 = genome1;
-	g_2 = genome2;
+	g_1 = individual.genome1;
+	g_2 = individual.genome2;
 	
 	for (meiosisCount in 1:5)
 	{

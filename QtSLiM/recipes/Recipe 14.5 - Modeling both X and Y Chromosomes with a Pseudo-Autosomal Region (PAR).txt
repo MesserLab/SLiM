@@ -31,9 +31,9 @@ initialize()
 modifyChild() {
 	// females should not have a Y, males should have a Y
 	if (child.sex == "F")
-		return !childGenome2.containsMarkerMutation(m3, 5999999);
+		return !child.genome2.containsMarkerMutation(m3, 5999999);
 	else
-		return childGenome2.containsMarkerMutation(m3, 5999999);
+		return child.genome2.containsMarkerMutation(m3, 5999999);
 }
 
 1:10000 late() {

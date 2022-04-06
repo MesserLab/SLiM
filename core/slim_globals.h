@@ -933,18 +933,11 @@ extern const std::string &gStr_subpop;
 extern const std::string &gStr_sourceSubpop;
 //extern const std::string &gStr_weights;		now gEidosStr_weights
 extern const std::string &gStr_child;
-extern const std::string &gStr_childGenome1;
-extern const std::string &gStr_childGenome2;
-extern const std::string &gStr_childIsFemale;
 extern const std::string &gStr_parent;
 extern const std::string &gStr_parent1;
-extern const std::string &gStr_parent1Genome1;
-extern const std::string &gStr_parent1Genome2;
 extern const std::string &gStr_isCloning;
 extern const std::string &gStr_isSelfing;
 extern const std::string &gStr_parent2;
-extern const std::string &gStr_parent2Genome1;
-extern const std::string &gStr_parent2Genome2;
 extern const std::string &gStr_mut;
 extern const std::string &gStr_relFitness;
 extern const std::string &gStr_homozygous;
@@ -1296,18 +1289,11 @@ enum _SLiMGlobalStringID : int {
 	gID_sourceSubpop,
 	//gID_weights,		now gEidosID_weights
 	gID_child,
-	gID_childGenome1,
-	gID_childGenome2,
-	gID_childIsFemale,
 	gID_parent,
 	gID_parent1,
-	gID_parent1Genome1,
-	gID_parent1Genome2,
 	gID_isCloning,
 	gID_isSelfing,
 	gID_parent2,
-	gID_parent2Genome1,
-	gID_parent2Genome2,
 	gID_mut,
 	gID_relFitness,
 	gID_homozygous,

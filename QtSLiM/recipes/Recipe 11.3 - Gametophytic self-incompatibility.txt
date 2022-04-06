@@ -17,9 +17,9 @@ initialize() {
 	cat("m2 mutation count: " + sim.countOfMutationsOfType(m2) + "\n");
 }
 modifyChild(p1) {
-	pollenSMuts = childGenome2.mutationsOfType(m2);
-	styleSMuts1 = parent1Genome1.mutationsOfType(m2);
-	styleSMuts2 = parent1Genome2.mutationsOfType(m2);
+	pollenSMuts = child.genome2.mutationsOfType(m2);
+	styleSMuts1 = parent1.genome1.mutationsOfType(m2);
+	styleSMuts2 = parent1.genome2.mutationsOfType(m2);
 	if (identical(pollenSMuts, styleSMuts1))
 		if (runif(1) < 0.99)
 			return F;
