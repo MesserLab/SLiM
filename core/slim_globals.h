@@ -922,6 +922,7 @@ extern const std::string &gStr_totalOfNeighborStrengths;
 extern const std::string &gStr_unevaluate;
 extern const std::string &gStr_drawByStrength;
 
+extern const std::string &gStr_community;
 extern const std::string &gStr_sim;
 extern const std::string &gStr_self;
 extern const std::string &gStr_individual;

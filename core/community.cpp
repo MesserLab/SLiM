@@ -293,7 +293,7 @@ void Community::InitializeFromFile(std::istream &p_infile)
 	if (implied_species_decl_count > 0)
 	{
 		// This is the single-species case; create a species named "sim"
-		all_species_.push_back(new Species(*this, 0, "sim"));
+		all_species_.push_back(new Species(*this, 0, gStr_sim));
 		
 		is_explicit_species_ = false;
 		is_multispecies_ = false;

@@ -3712,11 +3712,11 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
-	if (token_string.compare("community") == 0)
+	if (token_string.compare(gStr_community) == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
-	if (token_string.compare("sim") == 0)
+	if (token_string.compare(gStr_sim) == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
-	if (token_string.compare("slimgui") == 0)
+	if (token_string.compare(gStr_slimgui) == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
 	
 	// Request that SLiM's callback keywords be highlighted as "context keywords", which gives them a special color
