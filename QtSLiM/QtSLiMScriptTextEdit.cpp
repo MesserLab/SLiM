@@ -1964,18 +1964,36 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                 // Now we know the type of the node, and the root node of its compound statement; extract what we want
                 if (block_statement_root)
                 {
-                    // The symbol sim is defined in all blocks except initialize() blocks; we need to add and remove it
-                    // dynamically so that each block has it defined or not defined as necessary.  Since the completion block
-                    // is last, the sim symbol will be correctly defined at the end of this process.
+                    // The species/community symbols are  defined in all blocks except initialize() blocks; we need to add
+                    // and remove them dynamically so that each block has it defined or not defined as necessary.  Since
+                    // the completion block is last, the symbols will be correctly defined at the end of this process.
                     if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
                     {
-                        (*typeTable)->RemoveTypeForSymbol(gID_sim);
-                        (*typeTable)->RemoveTypeForSymbol(gID_community);
+                        std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
+                        
+                        for (EidosGlobalStringID symbol_id : symbol_ids)
+                        {
+                            EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+                            
+                            if ((typeSpec.type_mask == kEidosValueMaskObject) && ((typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_Species_Class)))
+                                (*typeTable)->RemoveTypeForSymbol(symbol_id);
+                        }
                     }
                     else
                     {
-                        (*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+                        Community *community = (windowSLiMController ? windowSLiMController->community : nullptr);
+                        
                         (*typeTable)->SetTypeForSymbol(gID_community, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Community_Class});
+                        
+                        if (community)
+                        {
+                            for (Species *species : community->AllSpecies())
+                            {
+                                EidosGlobalStringID species_symbol = species->self_symbol_.first;
+                                
+                                (*typeTable)->SetTypeForSymbol(species_symbol, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+                            }
+                        }
                     }
                     
                     // The slimgui symbol is always available within a block, but not at the top level
@@ -2135,7 +2153,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
     // This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
     // keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination",
-    // "mutation", "survival", and "reproduction" are.
+    // "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for multispecies models.
     // Note that the strings here are display strings; they are fixed to contain newlines in insertCompletion()
     keywords->clear();
     (*keywords) << "initialize() { }";
@@ -2151,16 +2169,22 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     (*keywords) << "survival() { }";
     (*keywords) << "reproduction() { }";
     (*keywords) << "function (void)name(void) { }";
+    (*keywords) << "species";
+    (*keywords) << "ticks";
     
     // At the outer level, functions are also not legal
     (*functionMap)->clear();
     
-    // And no variables exist except SLiM objects like pX, gX, mX, sX
+    // And no variables exist except SLiM objects like pX, gX, mX, sX and species symbols
     std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
     
     for (EidosGlobalStringID symbol_id : symbol_ids)
-        if (((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject) || (symbol_id == gID_sim) || (symbol_id == gID_slimgui))
+    {
+        EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+        
+        if ((typeSpec.type_mask != kEidosValueMaskObject) || (typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_SLiMgui_Class))
             (*typeTable)->RemoveTypeForSymbol(symbol_id);
+    }
 }
 
 //- (void)_completionHandlerWithRangeForCompletion:(NSRange *)baseRange completions:(NSArray **)completions
