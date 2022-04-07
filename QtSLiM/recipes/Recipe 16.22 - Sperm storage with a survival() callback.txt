@@ -2,7 +2,7 @@
 
 // This model is loosely based upon a model by Anita Lerch.
 
-initialize(){
+initialize() {
 	initializeSLiMModelType("nonWF");
 	initializeSLiMOptions(keepPedigrees=T);
 	initializeSex("A");
