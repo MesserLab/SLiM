@@ -417,6 +417,7 @@ typedef struct
 	size_t eidosASTNodePool;				// this pool is kept globally by Eidos
 	size_t eidosSymbolTablePool;			// this pool is kept globally by EidosSymbolTable
 	size_t eidosValuePool;					// this pool is kept globally by Eidos
+	size_t fileBuffers;						// these buffers are kept globally by Eidos
 	
 	size_t totalMemoryUsage;
 } SLiMMemoryUsage_Community;

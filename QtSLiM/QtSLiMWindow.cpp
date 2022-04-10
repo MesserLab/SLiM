@@ -3245,7 +3245,13 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_C.eidosValuePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosValue pool", optima13_d);
-	}
+        
+        tc.insertText("   ", menlo11_d);
+        tc.insertText(attributedStringForByteCount(mem_tot_C.fileBuffers / div, average_total, colored_menlo), colored_menlo);
+        tc.insertText(" / ", optima13_d);
+        tc.insertText(attributedStringForByteCount(mem_last_C.fileBuffers, final_total, colored_menlo), colored_menlo);
+        tc.insertText(" : File buffers", optima13_d);
+    }
     
     // Done, show the window
     tc.setPosition(0);

@@ -2579,7 +2579,6 @@ void Species::CreateNucleotideMutationRateMap(void)
 
 void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 {
-#warning this is surely still wrong; test by calling twice in a row to see that everything doubles
 	EIDOS_BZERO(p_usage, sizeof(SLiMMemoryUsage_Species));
 	
 	// Gather genomes in preparation for the work below

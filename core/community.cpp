@@ -2503,6 +2503,9 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	p_usage->eidosSymbolTablePool = MemoryUsageForSymbolTables(p_current_symbols);
 	p_usage->eidosValuePool = gEidosValuePool->MemoryUsageForAllNodes();
 	
+	for (auto const &filebuf_pair : gEidosBufferedZipAppendData)
+		p_usage->fileBuffers += filebuf_pair.second.capacity();
+	
 	// Total
 	SumUpMemoryUsage_Community(*p_usage);
 }

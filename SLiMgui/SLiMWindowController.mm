@@ -2230,6 +2230,12 @@ static int DisplayDigitsForIntegerPart(double x)
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.eidosValuePool total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : EidosValue pool" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.fileBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.fileBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : File buffers" attributes:optima13_d];
 	}
 	
 	// Set the attributed string into the profile report text view

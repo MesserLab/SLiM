@@ -896,6 +896,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "      EidosASTNode pool: " << PrintBytes(usage_community.eidosASTNodePool) << std::endl;
 	out << "      EidosSymbolTable pool: " << PrintBytes(usage_community.eidosSymbolTablePool) << std::endl;
 	out << "      EidosValue pool: " << PrintBytes(usage_community.eidosValuePool) << std::endl;
+	out << "      File buffers: " << PrintBytes(usage_community.fileBuffers) << std::endl;
 	
 	out << "   # Total accounted for: " << PrintBytes(usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage) << std::endl;
 	out << std::endl;

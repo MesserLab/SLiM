@@ -761,7 +761,8 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 		p_usage.mutationRunUnusedPoolBuffers +
 		p_usage.eidosASTNodePool +
 		p_usage.eidosSymbolTablePool +
-		p_usage.eidosValuePool;
+		p_usage.eidosValuePool + 
+		p_usage.fileBuffers;
 }
 
 void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SLiMMemoryUsage_Species &p_total)
@@ -840,6 +841,7 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	p_total.eidosASTNodePool += p_usage.eidosASTNodePool;
 	p_total.eidosSymbolTablePool += p_usage.eidosSymbolTablePool;
 	p_total.eidosValuePool += p_usage.eidosValuePool;
+	p_total.fileBuffers += p_usage.fileBuffers;
 	
 	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
 }
