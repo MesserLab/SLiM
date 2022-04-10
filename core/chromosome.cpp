@@ -61,8 +61,6 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 
 Chromosome::Chromosome(Species &p_species) :
 
-	community_(p_species.community_),
-	species_(p_species),
 	single_recombination_map_(true), 
 	single_mutation_map_(true),
 	lookup_mutation_H_(nullptr), lookup_mutation_M_(nullptr), lookup_mutation_F_(nullptr), 
@@ -76,6 +74,8 @@ Chromosome::Chromosome(Species &p_species) :
 	probability_both_0_F_(0.0), probability_both_0_OR_mut_0_break_non0_F_(0.0), probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_F_(0.0), 
 #endif
 	
+	community_(p_species.community_),
+	species_(p_species),
 	last_position_(0),
 	overall_mutation_rate_H_(0.0), overall_mutation_rate_M_(0.0), overall_mutation_rate_F_(0.0),
 	overall_mutation_rate_H_userlevel_(0.0), overall_mutation_rate_M_userlevel_(0.0), overall_mutation_rate_F_userlevel_(0.0),
