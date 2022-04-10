@@ -4001,6 +4001,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
 	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+	
 	// Check for some other illegal setups
 	if (parent->index_ == -1)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
@@ -4101,6 +4105,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	if ((parent2_sex != IndividualSex::kMale) && (parent2_sex != IndividualSex::kHermaphrodite))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent2 must be male in sexual models (or hermaphroditic in non-sexual models)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
 	
 	// Check for some other illegal setups
 	if ((parent1->index_ == -1) || (parent2->index_ == -1))
@@ -4333,6 +4341,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if ((strand1 && (strand1_parent->index_ == -1)) || (strand2 && (strand2_parent->index_ == -1)) ||
 		(strand3 && (strand3_parent->index_ == -1)) || (strand4 && (strand4_parent->index_ == -1)))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): a parental strand is not visible in the subpopulation (i.e., belongs to a new juvenile)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((strand1_parent && (&strand1_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand2_parent && (&strand2_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand3_parent && (&strand3_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand4_parent && (&strand4_parent->subpopulation_->species_ != &this->species_)))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that all source genomes belong to the same species as the target subpopulation." << EidosTerminate();
 	
 	// If both strands are non-NULL for a pair, they must be the same type of genome
 	if (strand1 && strand2 && (strand1->Type() != strand2->Type()))
@@ -4764,6 +4779,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (parent_sex != IndividualSex::kHermaphrodite)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): parent must be hermaphroditic in addSelfed()." << EidosTerminate();
 	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+	
 	// Check for some other illegal setups
 	if (parent->index_ == -1)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
@@ -4850,6 +4869,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	
 	if (migrant_count == 0)
 		return gStaticEidosValueVOID;
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(migrants_value);
+	
+	if (species != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() requires that all individuals belong to the same species as the target subpopulation." << EidosTerminate();
 	
 	// Loop over the migrants and move them one by one
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
@@ -5010,7 +5035,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
-		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");	// checks species match
+		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");		// SPECIES CONSISTENCY CHECK
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)
@@ -5809,8 +5834,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
+		// SPECIES CONSISTENCY CHECK
 		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must belong to the subpopulation being sampled." << EidosTerminate(nullptr);
+		
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
 		
@@ -6079,8 +6106,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
+		// SPECIES CONSISTENCY CHECK
 		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must belong to the subpopulation being subset." << EidosTerminate(nullptr);
+		
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
 		

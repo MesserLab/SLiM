@@ -209,14 +209,14 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElement(const std
 	if (element_count == 0)
 		return gStaticEidosValueVOID;
 	
-	GenomicElementType *genomic_element_type_ptr_0 = ((type_count == 1) ? SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, &community_, this, "initializeGenomicElement()") : nullptr);	// checks species match
+	GenomicElementType *genomic_element_type_ptr_0 = ((type_count == 1) ? SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, &community_, this, "initializeGenomicElement()") : nullptr);					// SPECIES CONSISTENCY CHECK
 	GenomicElementType *genomic_element_type_ptr = nullptr;
 	slim_position_t start_position = 0, end_position = 0;
 	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_GenomicElement_Class))->resize_no_initialize(element_count);
 	
 	for (int element_index = 0; element_index < element_count; ++element_index)
 	{
-		genomic_element_type_ptr = ((type_count == 1) ? genomic_element_type_ptr_0 : SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, element_index, &community_, this, "initializeGenomicElement()"));	// checks species match
+		genomic_element_type_ptr = ((type_count == 1) ? genomic_element_type_ptr_0 : SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, element_index, &community_, this, "initializeGenomicElement()"));	// SPECIES CONSISTENCY CHECK
 		start_position = SLiMCastToPositionTypeOrRaise(start_value->IntAtIndex(element_index, nullptr));
 		end_position = SLiMCastToPositionTypeOrRaise(end_value->IntAtIndex(element_index, nullptr));
 		
@@ -295,7 +295,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGenomicElementType(const
 	
 	for (int mut_type_index = 0; mut_type_index < mut_type_id_count; ++mut_type_index)
 	{
-		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, &community_, this, "initializeGenomicElementType()");	// checks species match
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutationTypes_value, mut_type_index, &community_, this, "initializeGenomicElementType()");		// SPECIES CONSISTENCY CHECK
 		double proportion = proportions_value->FloatAtIndex(mut_type_index, nullptr);
 		
 		if ((proportion < 0) || !std::isfinite(proportion))		// == 0 is allowed but must be fixed before the simulation executes; see InitializeDraws()
@@ -1899,7 +1899,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	
 	slim_objectid_t subpop_id = SLiM_ExtractObjectIDFromEidosValue_is(subpopID_value, 0, 'p');
 	slim_popsize_t subpop_size = SLiMCastToPopsizeTypeOrRaise(size_value->IntAtIndex(0, nullptr));
-	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, &community_, this, "addSubpopSplit()");	// checks species match
+	Subpopulation *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpop_value, 0, &community_, this, "addSubpopSplit()");		// SPECIES CONSISTENCY CHECK
 	
 	double sex_ratio = sexRatio_value->FloatAtIndex(0, nullptr);
 	
@@ -1946,7 +1946,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		int requested_subpop_count = subpops_value->Count();
 		
 		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-			subpops_to_search.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this, "individualsWithPedigreeIDs()"));	// checks species match
+			subpops_to_search.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this, "individualsWithPedigreeIDs()"));		// SPECIES CONSISTENCY CHECK
 	}
 	
 	// An empty pedigreeIDs vector gets you an empty result, guaranteed
@@ -2074,10 +2074,19 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		{
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
 				subpops_to_tally.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this,
-																						 (p_method_id == gID_mutationFrequencies) ? "mutationFrequencies()" : "mutationCounts()"));	// checks species match
+																						 (p_method_id == gID_mutationFrequencies) ? "mutationFrequencies()" : "mutationCounts()"));		// SPECIES CONSISTENCY CHECK
 		}
 		
 		total_genome_count = population_.TallyMutationReferences(&subpops_to_tally, false);
+	}
+	
+	// SPECIES CONSISTENCY CHECK
+	if (mutations_value->Count() >= 1)
+	{
+		Species *mut_species = Community::SpeciesForMutations(mutations_value);
+		
+		if (mut_species != this)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_mutationFreqsCounts): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all mutations belong to the target species." << EidosTerminate();
 	}
 	
 	// OK, now construct our result vector from the tallies for just the requested mutations
@@ -2095,7 +2104,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "mutationsOfType()");	// checks species match
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "mutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
@@ -2199,7 +2208,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "countOfMutationsOfType()");	// checks species match
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
@@ -2466,13 +2475,17 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	std::ostream &out = *(has_file ? (std::ostream *)&outfile : (std::ostream *)&output_stream);
 	
-#warning all mutations must be from the target species; that needs to be checked here
-	
 	int mutations_count = mutations_value->Count();
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 	if (mutations_count > 0)
 	{
+		// SPECIES CONSISTENCY CHECK
+		Species *mutations_species = Community::SpeciesForMutations(mutations_value);
+		
+		if (mutations_species != this)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputMutations): outputMutations() requires that all mutations belong to the target species." << EidosTerminate();
+		
 		// as we scan through genomes building the polymorphism map, we want to process only mutations that are
 		// in the user-supplied mutations vector; to do that filtering efficiently, we use Mutation::scratch_
 		// first zero out scratch_ in all mutations in the registry...
@@ -2644,6 +2657,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
 	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -2684,6 +2698,7 @@ EidosValue_SP Species::ExecuteMethod_registerInteractionCallback(EidosGlobalStri
 	new_script_block->interaction_type_id_ = int_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
 	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -2740,6 +2755,7 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 	
 	new_script_block->subpopulation_id_ = subpop_id;
 	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -2783,6 +2799,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationCallback(EidosGlobalStringI
 	new_script_block->mutation_type_id_ = mut_type_id;
 	new_script_block->subpopulation_id_ = subpop_id;
 	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -2840,6 +2857,7 @@ EidosValue_SP Species::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	new_script_block->subpopulation_id_ = subpop_id;
 	new_script_block->sex_specificity_ = sex_specificity;
 	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	community_.AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -2899,13 +2917,17 @@ EidosValue_SP Species::ExecuteMethod_subsetMutations(EidosGlobalStringID p_metho
 	
 	// parse our arguments
 	Mutation *exclude = (exclude_value->Type() == EidosValueType::kValueNULL) ? nullptr : (Mutation *)exclude_value->ObjectElementAtIndex(0, nullptr);
-	MutationType *mutation_type_ptr = (mutType_value->Type() == EidosValueType::kValueNULL) ? nullptr : SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "subsetMutations()");	// checks species match
+	MutationType *mutation_type_ptr = (mutType_value->Type() == EidosValueType::kValueNULL) ? nullptr : SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &community_, this, "subsetMutations()");	// SPECIES CONSISTENCY CHECK
 	slim_position_t position = (position_value->Type() == EidosValueType::kValueNULL) ? -1 : SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
 	int8_t nucleotide = -1;
 	bool has_tag = !(tag_value->Type() == EidosValueType::kValueNULL);
 	slim_usertag_t tag = (has_tag ? tag_value->IntAtIndex(0, nullptr) : 0);
 	bool has_id = !(id_value->Type() == EidosValueType::kValueNULL);
 	slim_mutationid_t id = (has_id ? id_value->IntAtIndex(0, nullptr) : 0);
+	
+	// SPECIES CONSISTENCY CHECK
+	if (exclude && (&exclude->mutation_type_ptr_->species_ != this))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): subsetMutations() requires that exclude belong to the target species." << EidosTerminate();
 	
 	if (nucleotide_value->Type() == EidosValueType::kValueInt)
 	{
@@ -3091,6 +3113,12 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	
 	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
 	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(individuals_value);
+	
+	if (species != this)
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
 	if (individuals_value->Count() == 1)
 	{

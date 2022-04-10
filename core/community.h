@@ -217,12 +217,23 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &AllGenomicElementTypes(void)		{ return all_genomic_element_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &AllInteractionTypes(void)			{ return all_interaction_types_; }
 	
+	// Checking for species identity; these return nullptr if the objects do not all belong to the same species
+	// Calls to these methods, and other such species checks, should be labeled SPECIES CONSISTENCY CHECK to make them easier to find
+	static Species *SpeciesForIndividualsVector(Individual **individuals, int value_count);
+	static Species *SpeciesForIndividuals(EidosValue *value);
+	
+	static Species *SpeciesForGenomesVector(Genome **genomes, int value_count);
+	static Species *SpeciesForGenomes(EidosValue *value);
+	
+	static Species *SpeciesForMutationsVector(Mutation **mutations, int value_count);
+	static Species *SpeciesForMutations(EidosValue *value);
+	
 	// Running ticks
 	bool RunOneTick(void);															// run one tick and advance the tick count; returns false if finished
 	bool _RunOneTick(void);															// does the work of RunOneTick(), with no try/catch
 	void ExecuteEidosEvent(SLiMEidosBlock *p_script_block);
 	void AllSpecies_RunInitializeCallbacks(void);									// run initialize() callbacks and check for complete initialization
-	void AllSpecies_CheckIndividualIntegrity(void);
+	void AllSpecies_CheckIntegrity(void);
 	
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)

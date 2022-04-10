@@ -1130,6 +1130,15 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 	EidosValue *mutations_value = p_arguments[0].get();
 	int mutations_count = mutations_value->Count();
 	
+	// SPECIES CONSISTENCY CHECK
+	if (mutations_count > 0)
+	{
+		Species *species = Community::SpeciesForMutations(mutations_value);
+		
+		if (species != &subpopulation_->species_)
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): containsMutations() requires that all mutations belong to the same species as the target individual." << EidosTerminate();
+	}
+	
 	if (mutations_count == 1)
 	{
 		MutationIndex mut = ((Mutation *)(mutations_value->ObjectElementAtIndex(0, nullptr)))->BlockIndex();
@@ -1164,7 +1173,7 @@ EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalString
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	Species &species = subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "countOfMutationsOfType()");	// checks species match
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1210,8 +1219,17 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *individuals_value = p_arguments[0].get();
-	
 	int individuals_count = individuals_value->Count();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (individuals_count > 0)
+	{
+		Species *species = Community::SpeciesForIndividuals(individuals_value);
+		
+		if (species != &subpopulation_->species_)
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_relatedness): relatedness() requires that all individuals belong to the same species as the target individual." << EidosTerminate();
+	}
+	
 	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
 	
 	if (individuals_count == 1)
@@ -1268,7 +1286,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	Individual *element0 = (Individual *)(p_elements[0]);
 	Species &species = element0->subpopulation_->species_;
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");	// checks species match
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1334,7 +1352,7 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	Species &species = subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "uniqueMutationsOfType()");	// checks species match
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "uniqueMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// This code is adapted from uniqueMutations and follows its logic closely
 	

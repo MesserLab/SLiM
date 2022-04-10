@@ -426,8 +426,6 @@ class Genome_Class : public EidosClass
 private:
 	typedef EidosClass super;
 
-	Species &SpeciesFromTarget(EidosValue_Object *p_target, std::string p_caller) const;
-	
 public:
 	Genome_Class(const Genome_Class &p_original) = delete;	// no copy-construct
 	Genome_Class& operator=(const Genome_Class&) = delete;	// no copying

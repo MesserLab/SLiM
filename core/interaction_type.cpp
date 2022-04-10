@@ -3157,6 +3157,12 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(integral));
 	}
 	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(individuals_value);
+	
+	if (species != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_clippedIntegral): clippedIntegral() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	// Otherwise, we have a singleton or vector of individuals; we'd like to treat them both in the same way, so we set up for that here
 	// We do not try to create a singleton return value when passed a singleton individual; too complicated to optimize for that here
 	const Individual * const *individuals_data;
@@ -3295,6 +3301,11 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	// individuals1 is guaranteed to be singleton; let's get the info on it
 	Individual *ind1 = (Individual *)individuals1->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop1 = ind1->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop1->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int ind1_index = ind1->index_;
@@ -3348,6 +3359,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 		{
 			Individual *ind2 = (Individual *)individuals2->ObjectElementAtIndex(ind2_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop1 != ind2->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distance): distance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
@@ -3408,6 +3420,11 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 	// individuals is guaranteed to be of length >= 1; let's get the info on it
 	Individual *ind_first = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop1 = ind_first->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop1->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	auto subpop_data_iter = data_.find(subpop1_id);
 	
@@ -3435,6 +3452,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		{
 			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop1 != ind->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
@@ -3454,6 +3472,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceToPoint(EidosGlobalStringID
 		{
 			Individual *ind = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop1 != ind->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_distanceToPoint): distanceToPoint() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
@@ -3546,6 +3565,11 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = individual->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -3693,7 +3717,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 		int requested_subpop_count = subpops_value->Count();
 		
 		for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
-			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &species_.community_, &species_, "evaluate()"), immediate);	// checks species match
+			EvaluateSubpopulation(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &species_.community_, &species_, "evaluate()"), immediate);		// SPECIES CONSISTENCY CHECK
 	}
 	
 	return gStaticEidosValueVOID;
@@ -3715,6 +3739,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		// Check the individual and subpop
 		Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 		Subpopulation *subpop = individual->subpopulation_;
+		
+		// SPECIES CONSISTENCY CHECK
+		if (&subpop->species_ != &this->species_)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+		
 		slim_objectid_t subpop_id = subpop->subpopulation_id_;
 		int ind_index = individual->index_;
 		
@@ -3757,6 +3786,12 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		
 		if (individual_count > 0)
 		{
+			// SPECIES CONSISTENCY CHECK
+			Species *species = Community::SpeciesForIndividuals(individual_value);
+			
+			if (species != &this->species_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+			
 			for (int focal_ind_index = 0; focal_ind_index < individual_count; ++focal_ind_index)
 			{
 				Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(focal_ind_index, nullptr);
@@ -3816,6 +3851,11 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	// individuals is guaranteed to have at least one value
 	Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = first_ind->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	auto subpop_data_iter = data_.find(subpop_id);
 	
@@ -3877,6 +3917,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop != individual->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
@@ -3927,6 +3968,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	// receiver_value is guaranteed to be singleton; let's get the info on it
 	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop1 = receiver->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop1->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
@@ -3974,6 +4020,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		{
 			Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop1 != exerter->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactionDistance): interactionDistance() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			
@@ -4012,6 +4059,11 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = individual->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -4114,6 +4166,11 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	// Check the individual and subpop
 	Individual *individual = (Individual *)individual_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = individual->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	int ind_index = individual->index_;
@@ -4165,7 +4222,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires that the interaction be spatial." << EidosTerminate();
 	
 	// Check the subpop
-	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, &species_.community_, &species_, "nearestNeighborsOfPoint()");	// checks species match
+	Subpopulation *subpop = SLiM_ExtractSubpopulationFromEidosValue_io(subpop_value, 0, &species_.community_, &species_, "nearestNeighborsOfPoint()");		// SPECIES CONSISTENCY CHECK
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 	auto subpop_data_iter = data_.find(subpop_id);
@@ -4321,6 +4378,11 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	// receiver_value is guaranteed to be singleton; let's get the info on it
 	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop1 = receiver->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop1->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop1_id = subpop1->subpopulation_id_;
 	slim_popsize_t subpop1_size = subpop1->parent_subpop_size_;
 	int receiver_index = receiver->index_;
@@ -4370,6 +4432,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 			{
 				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 				
+				// SPECIES CONSISTENCY CHECK
 				if (subpop1 != exerter->subpopulation_)
 					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 				
@@ -4449,6 +4512,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				{
 					Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
 					
+					// SPECIES CONSISTENCY CHECK
 					if (subpop1 != exerter->subpopulation_)
 						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all individuals be in the same subpopulation." << EidosTerminate();
 					
@@ -4503,6 +4567,11 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	// individuals is guaranteed to have at least one value
 	Individual *first_ind = (Individual *)individuals->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *subpop = first_ind->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&subpop->species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals belong to the same species as the target InteractionType." << EidosTerminate();
+	
 	slim_objectid_t subpop_id = subpop->subpopulation_id_;
 	auto subpop_data_iter = data_.find(subpop_id);
 	
@@ -4547,6 +4616,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		{
 			Individual *individual = (Individual *)individuals->ObjectElementAtIndex(ind_index, nullptr);
 			
+			// SPECIES CONSISTENCY CHECK
 			if (subpop != individual->subpopulation_)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all individuals be in the same subpopulation." << EidosTerminate();
 			

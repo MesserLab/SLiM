@@ -1792,6 +1792,10 @@ EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_me
 		parent_sex = parent->sex_;
 		parent_subpop = parent->subpopulation_;
 		recombination_callbacks = species_.CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosRecombinationCallback, -1, -1, parent_subpop->subpopulation_id_);
+		
+		// SPECIES CONSISTENCY CHECK
+		if (&parent_subpop->species_ != &this->species_)
+			EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() requires that parent, if non-NULL, belongs to the same species as the target chromosome." << EidosTerminate();
 	}
 	
 	// Much of the breakpoint-drawing code here is taken from Population::DoCrossoverMutation().

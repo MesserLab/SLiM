@@ -873,7 +873,7 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	
 	p_script_block->TokenizeAndParse();	// can raise
 	
-	// Remove the species from the script block if it is an event, which execute without a focal species
+	// Check for the presence/absence of a species specifier, as required by the block type
 	if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosNoBlockType)
 	{
 		EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) attempted add of a script block of type SLiMEidosNoBlockType." << EidosTerminate(p_error_token);
@@ -889,6 +889,72 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	else if (!p_script_block->species_spec_)
 	{
 		EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a callback has no species set." << EidosTerminate(p_error_token);
+	}
+	
+	// SPECIES CONSISTENCY CHECK
+	if (p_script_block->species_spec_)
+	{
+		bool species_has_initialized = (p_script_block->species_spec_->Generation() >= 1);
+		
+		if (p_script_block->mutation_type_id_ >= 0)
+		{
+			// if the mutation type exists now, we check that it belongs to the specified species
+			MutationType *muttype = MutationTypeWithID(p_script_block->mutation_type_id_);
+			
+			if (species_has_initialized && !muttype)
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to a mutation type id (" << p_script_block->mutation_type_id_ << ") that does not exist." << EidosTerminate(p_error_token);
+			
+			if (muttype && (&muttype->species_ != p_script_block->species_spec_))
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to a mutation type id (" << p_script_block->mutation_type_id_ << ") that belongs to a different species." << EidosTerminate(p_error_token);
+		}
+		
+		if (p_script_block->subpopulation_id_ >= 0)
+		{
+			// if the subpopulation exists now, we check that it belongs to the specified species
+			Subpopulation *subpop = SubpopulationWithID(p_script_block->subpopulation_id_);
+			
+			// cannot error out if the subpopulation does not exist, since subpopulations are dynamic
+			
+			if (subpop && (&subpop->species_ != p_script_block->species_spec_))
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to a subpopulation id (" << p_script_block->subpopulation_id_ << ") that belongs to a different species." << EidosTerminate(p_error_token);
+		}
+		
+		if (p_script_block->interaction_type_id_ >= 0)
+		{
+			// if the interaction type exists now, we check that it belongs to the specified species
+			InteractionType *inttype = InteractionTypeWithID(p_script_block->interaction_type_id_);
+			
+			if (species_has_initialized && !inttype)
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to an interaction type id (" << p_script_block->interaction_type_id_ << ") that does not exist." << EidosTerminate(p_error_token);
+			
+			if (inttype && (&inttype->species_ != p_script_block->species_spec_))
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): script block is specific to an interaction type id (" << p_script_block->interaction_type_id_ << ") that belongs to a different species." << EidosTerminate(p_error_token);
+		}
+		
+		if (p_script_block->sex_specificity_ != IndividualSex::kUnspecified)
+		{
+			// if the species has been initialized, we check that it is sexual if necessary
+			if (p_script_block->type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-reproduction() callback has sex_specificity_ set." << EidosTerminate(p_error_token);
+			
+			if (species_has_initialized && !p_script_block->species_spec_->SexEnabled())
+				EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a reproduction() callback has sex_specificity_ set, but the specified species is not sexual." << EidosTerminate(p_error_token);
+		}
+	}
+	else
+	{
+		// With no species specifier, we have an event or a user-defined function, and no other specifier should be set
+		if (p_script_block->mutation_type_id_ != -1)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback has mutation_type_id_ set." << EidosTerminate(p_error_token);
+		
+		if (p_script_block->subpopulation_id_ != -1)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback has subpopulation_id_ set." << EidosTerminate(p_error_token);
+		
+		if (p_script_block->interaction_type_id_ != -1)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback has interaction_type_id_ set." << EidosTerminate(p_error_token);
+		
+		if (p_script_block->sex_specificity_ != IndividualSex::kUnspecified)
+			EIDOS_TERMINATION << "ERROR (Community::AddScriptBlock): (internal error) script block for a non-callback has sex_specificity_ set." << EidosTerminate(p_error_token);
 	}
 	
 	// The script block passed tokenization and parsing, so it is reasonably well-formed.  Now we check for cases we optimize.
@@ -1180,6 +1246,141 @@ Species *Community::SpeciesWithName(const std::string &species_name)
 	}
 	
 	return nullptr;
+}
+
+Species *Community::SpeciesForIndividualsVector(Individual **individuals, int value_count)
+{
+	if (value_count == 0)
+		return nullptr;
+	
+	Species *consensus_species = &individuals[0]->subpopulation_->species_;
+	
+	if (!consensus_species->community_.is_multispecies_)	// with only one species, all objects must be in this species
+		return consensus_species;
+	
+	for (int value_index = 1; value_index < value_count; ++value_index)
+	{
+		Species *species = &individuals[value_index]->subpopulation_->species_;
+		
+		if (species != consensus_species)
+			return nullptr;
+	}
+	
+	return consensus_species;
+}
+
+Species *Community::SpeciesForIndividuals(EidosValue *value)
+{
+	if (value->Type() != EidosValueType::kValueObject)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForIndividuals): (internal error) value is not of type object." << EidosTerminate();
+	
+	EidosValue_Object *object_value = (EidosValue_Object *)value;
+	
+	int value_count = object_value->Count();
+	
+	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
+		return nullptr;
+	
+	if (object_value->Class() != gSLiM_Individual_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForIndividuals): (internal error) value is not of class Individual." << EidosTerminate();
+	
+	if (value_count == 1)
+		return &((Individual *)object_value->ObjectElementAtIndex(0, nullptr))->subpopulation_->species_;
+	
+	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	Individual **individuals = (Individual **)object_vector_value->data();
+	
+	return Community::SpeciesForIndividualsVector(individuals, value_count);
+}
+
+Species *Community::SpeciesForGenomesVector(Genome **genomes, int value_count)
+{
+	if (value_count == 0)
+		return nullptr;
+	
+	Species *consensus_species = &genomes[0]->OwningIndividual()->subpopulation_->species_;
+	
+	if (!consensus_species->community_.is_multispecies_)	// with only one species, all objects must be in this species
+		return consensus_species;
+	
+	for (int value_index = 1; value_index < value_count; ++value_index)
+	{
+		Species *species = &genomes[value_index]->OwningIndividual()->subpopulation_->species_;
+		
+		if (species != consensus_species)
+			return nullptr;
+	}
+	
+	return consensus_species;
+}
+
+Species *Community::SpeciesForGenomes(EidosValue *value)
+{
+	if (value->Type() != EidosValueType::kValueObject)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of type object." << EidosTerminate();
+	
+	EidosValue_Object *object_value = (EidosValue_Object *)value;
+	
+	int value_count = object_value->Count();
+	
+	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
+		return nullptr;
+	
+	if (object_value->Class() != gSLiM_Genome_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForGenomes): (internal error) value is not of class Genome." << EidosTerminate();
+	
+	if (value_count == 1)
+		return &((Genome *)object_value->ObjectElementAtIndex(0, nullptr))->OwningIndividual()->subpopulation_->species_;
+	
+	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	Genome **genomes = (Genome **)object_vector_value->data();
+	
+	return Community::SpeciesForGenomesVector(genomes, value_count);
+}
+
+Species *Community::SpeciesForMutationsVector(Mutation **mutations, int value_count)
+{
+	if (value_count == 0)
+		return nullptr;
+	
+	Species *consensus_species = &mutations[0]->mutation_type_ptr_->species_;
+	
+	if (!consensus_species->community_.is_multispecies_)	// with only one species, all objects must be in this species
+		return consensus_species;
+	
+	for (int value_index = 1; value_index < value_count; ++value_index)
+	{
+		Species *species = &mutations[value_index]->mutation_type_ptr_->species_;
+		
+		if (species != consensus_species)
+			return nullptr;
+	}
+	
+	return consensus_species;
+}
+
+Species *Community::SpeciesForMutations(EidosValue *value)
+{
+	if (value->Type() != EidosValueType::kValueObject)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForMutations): (internal error) value is not of type object." << EidosTerminate();
+	
+	EidosValue_Object *object_value = (EidosValue_Object *)value;
+	
+	int value_count = object_value->Count();
+	
+	if (value_count == 0)	// allow an empty vector that is not of class Individual, to allow object() to pass our checks
+		return nullptr;
+	
+	if (object_value->Class() != gSLiM_Mutation_Class)
+		EIDOS_TERMINATION << "ERROR (Community::SpeciesForMutations): (internal error) value is not of class Mutation." << EidosTerminate();
+	
+	if (value_count == 1)
+		return &((Mutation *)object_value->ObjectElementAtIndex(0, nullptr))->mutation_type_ptr_->species_;
+	
+	EidosValue_Object_vector *object_vector_value = (EidosValue_Object_vector *)object_value;
+	Mutation **mutations = (Mutation **)object_vector_value->data();
+	
+	return Community::SpeciesForMutationsVector(mutations, value_count);
 }
 
 slim_tick_t Community::FirstTick(void)
@@ -1585,13 +1786,57 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	executing_block_type_ = old_executing_block_type;
 }
 
-void Community::AllSpecies_CheckIndividualIntegrity(void)
+void Community::AllSpecies_CheckIntegrity(void)
 {
 #if DEBUG
 	// Check the integrity of all the information in the individuals and genomes of the parental population
 	for (Species *species : all_species_)
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : species->population_.subpops_)
 			subpop_pair.second->CheckIndividualIntegrity();
+#endif
+	
+#if DEBUG
+	// Check for species consistency across all of the objects in each species
+	for (size_t species_index = 0; species_index < all_species_.size(); ++species_index)
+	{
+		Species *species = all_species_[species_index];
+		
+		if (&species->community_ != this)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->community_ mismatch." << EidosTerminate();
+		
+		if (species->model_type_ != model_type_)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->model_type_ mismatch." << EidosTerminate();
+		
+		if (species->species_id_ != (int)species_index)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->species_id_ mismatch." << EidosTerminate();
+		
+		if (&species->TheChromosome().species_ != species)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) species->TheChromosome().species_ mismatch." << EidosTerminate();
+		
+		Population &population = species->population_;
+		const std::map<slim_objectid_t,MutationType*> &muttypes = species->MutationTypes();
+		const std::map<slim_objectid_t,GenomicElementType*> &getypes = species->GenomicElementTypes();
+		const std::map<slim_objectid_t,InteractionType*> &inttypes = species->InteractionTypes();
+		
+		if (&population.species_ != species)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) population.species_ mismatch." << EidosTerminate();
+		
+		for (auto const &subpop_iter : population.subpops_)
+			if (&subpop_iter.second->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) subpopulation->species_ mismatch." << EidosTerminate();
+		
+		for (auto const &muttype_iter : muttypes)
+			if (&muttype_iter.second->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) muttype->species_ mismatch." << EidosTerminate();
+		
+		for (auto const &getype_iter : getypes)
+			if (&getype_iter.second->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) getype->species_ mismatch." << EidosTerminate();
+		
+		for (auto const &inttype_iter : inttypes)
+			if (&inttype_iter.second->species_ != species)
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) inttype->species_ mismatch." << EidosTerminate();
+	}
 #endif
 }
 
@@ -1634,7 +1879,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	// ******************************************************************
 	//
@@ -1661,7 +1906,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1703,7 +1948,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1736,7 +1981,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1761,7 +2006,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1789,7 +2034,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1929,7 +2174,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -1996,7 +2241,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -2028,7 +2273,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -2090,7 +2335,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -2115,7 +2360,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************
@@ -2148,7 +2393,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
-	AllSpecies_CheckIndividualIntegrity();
+	AllSpecies_CheckIntegrity();
 	
 	
 	// ******************************************************************

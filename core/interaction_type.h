@@ -128,9 +128,6 @@ public:
 private:
 #endif
 	
-	Community &community_;
-	Species &species_;
-	
 	EidosSymbolTableEntry self_symbol_;			// for fast setup of the symbol table
 	
 	std::string spatiality_string_;				// can be "x", "y", "z", "xy", "xz", "yz", or "xyz"; this determines spatiality_
@@ -210,6 +207,9 @@ private:
 	bool clipped_integral_valid_ = false;
 	
 public:
+	
+	Community &community_;
+	Species &species_;
 	
 	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
 	EidosValue_SP cached_value_inttype_id_;		// a cached value for interaction_type_id_; reset() if that changes

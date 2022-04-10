@@ -1293,11 +1293,15 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 		beenHere = true;
 	}
 	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(individuals_value);
+	
+	if (!species)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() requires that all individuals belong to the same species." << EidosTerminate();
+	
 	// Get the model's dimensionality, which will be context for everything we do below
-#warning need to test that individuals are from the same species
-	Species &species = (*individuals_buffer)->subpopulation_->species_;
-	Community &community = species.community_;
-	int spatial_dimensionality = species.SpatialDimensionality();
+	Community &community = species->community_;
+	int spatial_dimensionality = species->SpatialDimensionality();
 	
 	if (spatial_dimensionality <= 0)
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction_summarizeIndividuals): summarizeIndividuals() can only be called in spatial models, since it summarizes spatially-partitioned information." << EidosTerminate();
