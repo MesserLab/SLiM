@@ -837,7 +837,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	
 	// stop()
 	EidosAssertScriptRaise("stop();", 0, "stop() called");
-	EidosAssertScriptRaise("stop('Error');", 0, "stop(\"Error\") called");
+	EidosAssertScriptRaise("stop('Error');", 0, "stop() called with error message:");
 	EidosAssertScriptRaise("stop(NULL);", 0, "stop() called");		// same as omitting the parameter
 	EidosAssertScriptRaise("stop(T);", 0, "cannot be type");
 	EidosAssertScriptRaise("stop(3);", 0, "cannot be type");
