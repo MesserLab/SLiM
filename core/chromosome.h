@@ -61,8 +61,6 @@ private:
 #endif
 	
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
-	Community &community_;
-	Species &species_;
 	
 	// We now allow different recombination maps for males and females, optionally.  Unfortunately, this means we have a bit of an
 	// explosion of state involved with recombination.  We now have _H, _M, and _F versions of many ivars.  The _M and _F versions
@@ -113,6 +111,9 @@ private:
 	std::vector<GESubrange> mutation_subranges_F_;
 	
 public:
+	
+	Community &community_;
+	Species &species_;
 	
 	std::vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
 	std::vector<slim_position_t> mutation_end_positions_M_;
