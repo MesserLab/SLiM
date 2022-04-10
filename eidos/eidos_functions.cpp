@@ -12694,7 +12694,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 		
 		p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 		
-		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop() called with error message:\n\n" + stop_string) << EidosTerminate(nullptr);
 	}
 	else
 	{

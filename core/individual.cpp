@@ -1283,10 +1283,14 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	if (p_elements_size == 0)
 		return gStaticEidosValue_Float_ZeroVec;
 	
-	Individual *element0 = (Individual *)(p_elements[0]);
-	Species &species = element0->subpopulation_->species_;
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
+	
+	if (species == nullptr)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType): sumOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+	
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;

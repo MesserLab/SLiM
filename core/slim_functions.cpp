@@ -91,20 +91,38 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 // (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
 R"({
+	if ((genomes1.length() == 0) | (genomes2.length() == 0))
+		stop("ERROR (calcFST()): genomes1 and genomes2 must both be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes1.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcFST()): all genomes must belong to the same species.");
+		if (!all(species == genomes2.individual.subpopulation.species))
+			stop("ERROR (calcFST()): all genomes must belong to the same species.");
+		if (!isNULL(muts))
+			if (!all(species == muts.mutationType.species))
+				stop("ERROR (calcFST()): all mutations must belong to the same species as the genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcFST()): start must be less than or equal to end");
+			stop("ERROR (calcFST()): start must be less than or equal to end.");
 		if (isNULL(muts))
-			muts = sim.mutations;
+			muts = species.mutations;
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcFST()): start and end must both be NULL or both be non-NULL");
+		stop("ERROR (calcFST()): start and end must both be NULL or both be non-NULL.");
 	}
 	
 	// do the calculation
@@ -121,9 +139,14 @@ R"({
 // (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
 R"({
+	species = mutType.species;
+	if (community.allSpecies.length() > 1)
+		if (!all(individuals.subpopulation.species == species))
+			stop("ERROR (calcVA()): all individuals must belong to the same species as mutType.");
+	
 	// look up an integer mutation type id
 	if (type(mutType) == "integer") {
-		mutType = sim.mutationTypes[sim.mutationTypes.id == mutType];
+		mutType = species.mutationTypes[species.mutationTypes.id == mutType];
 		assert(length(mutType) == 1, "calcVA() mutation type lookup failed");
 	}
 	return var(individuals.sumOfMutationsOfType(mutType));
@@ -132,15 +155,26 @@ R"({
 // (float$)calcPairHeterozygosity(object<Genome>$ genome1, object<Genome>$ genome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
 const char *gSLiMSourceCode_calcPairHeterozygosity = 
 R"({
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(c(genome1.individual.subpopulation.species, genome2.individual.subpopulation.species), preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcPairHeterozygosity()): genome1 and genome2 must belong to the same species.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
 	muts1 = genome1.mutations;
 	muts2 = genome2.mutations;
-	length = sim.chromosome.lastPosition + 1;
+	length = species.chromosome.lastPosition + 1;
 
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcPairHeterozygosity()): start must be less than or equal to end");
+			stop("ERROR (calcPairHeterozygosity()): start must be less than or equal to end.");
 		m1pos = muts1.position;
 		m2pos = muts2.position;
 		muts1 = muts1[(m1pos >= start) & (m1pos <= end)];
@@ -149,7 +183,7 @@ R"({
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcPairHeterozygosity()): start and end must both be NULL or both be non-NULL");
+		stop("ERROR (calcPairHeterozygosity()): start and end must both be NULL or both be non-NULL.");
 	}
 
 	// do the calculation
@@ -163,22 +197,38 @@ R"({
 // (float$)calcHeterozygosity(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcHeterozygosity = 
 R"({
-	length = sim.chromosome.lastPosition + 1;
+	if (genomes.length() == 0)
+		stop("ERROR (calcHeterozygosity()): genomes must be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcHeterozygosity()): genomes must all belong to the same species.");
+		if (!isNULL(muts))
+			if (!all(muts.mutationType.species == species))
+				stop("ERROR (calcHeterozygosity()): muts must all belong to the same species as genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
+	length = species.chromosome.lastPosition + 1;
 
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcHeterozygosity()): start must be less than or equal to end");
+			stop("ERROR (calcHeterozygosity()): start must be less than or equal to end.");
 		if (isNULL(muts))
-			muts = sim.mutations;
+			muts = species.mutations;
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcHeterozygosity()): start and end must both be NULL or both be non-NULL");
+		stop("ERROR (calcHeterozygosity()): start and end must both be NULL or both be non-NULL.");
 	}
 
 	// do the calculation
@@ -190,21 +240,37 @@ R"({
 // (float$)calcWattersonsTheta(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcWattersonsTheta = 
 R"({
+	if (genomes.length() == 0)
+		stop("ERROR (calcWattersonsTheta()): genomes must be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcWattersonsTheta()): genomes must all belong to the same species.");
+		if (!isNULL(muts))
+			if (!all(muts.mutationType.species == species))
+				stop("ERROR (calcWattersonsTheta()): muts must all belong to the same species as genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
 	if (isNULL(muts))
-		muts = sim.mutations;
-
+		muts = species.mutations;
+	
 	// handle windowing
 	if (!isNULL(start) & !isNULL(end))
 	{
 		if (start > end)
-			stop("ERROR (calcWattersonsTheta()): start must be less than or equal to end");
+			stop("ERROR (calcWattersonsTheta()): start must be less than or equal to end.");
 		mpos = muts.position;
 		muts = muts[(mpos >= start) & (mpos <= end)];
 		length = end - start + 1;
 	}
 	else if (!isNULL(start) | !isNULL(end))
 	{
-		stop("ERROR (calcWattersonsTheta()): start and end must both be NULL or both be non-NULL");
+		stop("ERROR (calcWattersonsTheta()): start and end must both be NULL or both be non-NULL.");
 	}
 
 	// narrow down to the mutations that are actually present in the genomes and aren't fixed
@@ -215,7 +281,7 @@ R"({
 	k = size(muts);
 	n = genomes.size();
 	a_n = sum(1 / 1:(n-1));
-	theta = (k / a_n) / (sim.chromosome.lastPosition + 1);
+	theta = (k / a_n) / (species.chromosome.lastPosition + 1);
 	return theta;
 })";
 
