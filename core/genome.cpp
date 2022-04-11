@@ -3898,6 +3898,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
+			if (target_genome->IsNull())
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
+			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
 				MutationRun *mutrun = target_genome->mutruns_[run_index].get();
@@ -4112,7 +4115,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 				
 				if (target_genome->IsNull())
+				{
+					Genome::BulkOperationEnd(operation_id, mutrun_index);	// clean up for SLiMgui
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
+				}
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 				if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
