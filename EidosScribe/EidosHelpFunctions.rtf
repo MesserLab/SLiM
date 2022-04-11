@@ -1424,6 +1424,105 @@ Cholesky decomposition of the variance-covariance matrix
 \f2 \
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (integer)findInterval(numeric\'a0x, numeric\'a0vec, [logical$\'a0rightmostClosed\'a0=\'a0F], [logical$\'a0allInside\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns a vector of 
+\f0\b interval indices
+\f3\b0  for the values in 
+\f1\fs18 x
+\f3\fs20  within a vector of non-decreasing breakpoints 
+\f1\fs18 vec
+\f3\fs20 .  The returned 
+\f1\fs18 integer
+\f3\fs20  vector contains, for each corresponding element of 
+\f1\fs18 x
+\f3\fs20 , the index of the interval in 
+\f1\fs18 vec
+\f3\fs20  within which that element of 
+\f1\fs18 x
+\f3\fs20  is contained.\
+More precisely, if 
+\f1\fs18 i
+\f3\fs20  is the returned 
+\f1\fs18 integer
+\f3\fs20  vector from 
+\f1\fs18 findInterval(x, v)
+\f3\fs20 , and 
+\f1\fs18 N
+\f3\fs20  is 
+\f1\fs18 length(v)
+\f3\fs20 , then for each index 
+\f1\fs18 j
+\f3\fs20  in 
+\f1\fs18 x
+\f3\fs20 , it will be true that 
+\f1\fs18 v[i[j]]
+\f3\fs20  \uc0\u8804  
+\f1\fs18 x[j]
+\f3\fs20  < 
+\f1\fs18 v[i[j]+1]
+\f3\fs20 , treating 
+\f1\fs18 v[-1]
+\f3\fs20  as 
+\f1\fs18 -INF
+\f3\fs20  and 
+\f1\fs18 v[N]
+\f3\fs20  as 
+\f1\fs18 INF
+\f3\fs20 , 
+\f7\i assuming
+\f3\i0  that the two flags 
+\f1\fs18 rightmostClosed
+\f3\fs20  and 
+\f1\fs18 allInside
+\f3\fs20  have their default value of 
+\f1\fs18 F
+\f3\fs20 .  The effects of the flags will be discussed below.  Note that 
+\f1\fs18 vec
+\f3\fs20  must be non-decreasing; in other words, it must be sorted in ascending order, although it may have duplicate values.  The returned vector will thus be equal in length to 
+\f1\fs18 x
+\f3\fs20 , and each of its elements will be in the interval [
+\f1\fs18 -1
+\f3\fs20 , 
+\f1\fs18 N-1
+\f3\fs20 ].\
+The 
+\f1\fs18 rightmostClosed
+\f3\fs20  flag, if 
+\f1\fs18 T
+\f3\fs20 , alters the above behavior to treat the rightmost interval, 
+\f1\fs18 vec[N-2]
+\f3\fs20  .. 
+\f1\fs18 vec[N-1]
+\f3\fs20 , as closed.  This means that if 
+\f1\fs18 x[j]==vec[N-1]
+\f3\fs20  (i.e., equals 
+\f1\fs18 max(vec)
+\f3\fs20 ), the corresponding result 
+\f1\fs18 i[j]
+\f3\fs20  will be 
+\f1\fs18 N-2
+\f3\fs20  as for all other values in the last interval.\
+The 
+\f1\fs18 allInside
+\f3\fs20  flag, if 
+\f1\fs18 T
+\f3\fs20 , alters the above behavior to coerce returned indices into 
+\f1\fs18 0
+\f3\fs20  .. 
+\f1\fs18 N-2
+\f3\fs20 .  In other words, 
+\f1\fs18 -1
+\f3\fs20  is mapped to 
+\f1\fs18 0
+\f3\fs20 , and 
+\f1\fs18 N-1
+\f3\fs20  is mapped to 
+\f1\fs18 N-2
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
 (float)pnorm(float\'a0q, [numeric\'a0mean\'a0=\'a00], [numeric\'a0sd\'a0=\'a01])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -4811,7 +4910,6 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -5661,9 +5759,8 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

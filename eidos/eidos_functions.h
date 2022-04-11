@@ -102,6 +102,7 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 #pragma mark -
 
 //	distribution draw / density functions
+EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_qnorm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

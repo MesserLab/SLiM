@@ -204,6 +204,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	distribution draw / density functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("findInterval",		Eidos_ExecuteFunction_findInterval,	kEidosValueMaskInt))->AddNumeric("x")->AddNumeric("vec")->AddLogical_OS("rightmostClosed", gStaticEidosValue_LogicalF)->AddLogical_OS("allInside", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dbeta",				Eidos_ExecuteFunction_dbeta,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Integer1));
@@ -5331,6 +5332,157 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 #pragma mark Distribution draw/density functions
 #pragma mark -
 
+
+//	(integer)findInterval(numeric x, numeric vec, [logical$ rightmostClosed = F], [logical$ allInside = F])
+EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue *arg_x = p_arguments[0].get();
+	EidosValue *arg_vec = p_arguments[1].get();
+	EidosValue *arg_rightmostClosed = p_arguments[2].get();
+	EidosValue *arg_allInside = p_arguments[3].get();
+	
+	EidosValueType x_type = arg_x->Type();
+	int x_count = arg_x->Count();
+	
+	EidosValueType vec_type = arg_vec->Type();
+	int vec_count = arg_vec->Count();
+	
+	if (vec_count == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be of length > 0." << EidosTerminate(nullptr);
+	
+	bool rightmostClosed = arg_rightmostClosed->LogicalAtIndex(0, nullptr);
+	bool allInside = arg_allInside->LogicalAtIndex(0, nullptr);
+	int initial_x_result = allInside ? 0 : -1;
+	
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+	
+	if (vec_type == EidosValueType::kValueInt)
+	{
+		// Get a raw pointer to vec's values
+		const int64_t *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Int_singleton *)arg_vec)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_vec)->data();
+		
+		// Check that vec is sorted
+		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
+			if (vec_data[vec_index] > vec_data[vec_index + 1])
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be sorted into non-decreasing order." << EidosTerminate(nullptr);
+		
+		// Branch on the type of arg_x
+		if (x_type == EidosValueType::kValueInt)
+		{
+			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			
+			// Find intervals for integer vec, integer x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+		else	// (x_type == EidosValueType::kValueFloat)
+		{
+			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			
+			// Find intervals for integer vec, float x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+	}
+	else // (vec_type == EidosValueType::kValueFloat))
+	{
+		// Get a raw pointer to vec's values
+		const double *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Float_singleton *)arg_vec)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_vec)->data();
+		
+		// Check that vec is sorted
+		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
+			if (vec_data[vec_index] > vec_data[vec_index + 1])
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be sorted into non-decreasing order." << EidosTerminate(nullptr);
+		
+		// Branch on the type of arg_x
+		if (x_type == EidosValueType::kValueInt)
+		{
+			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			
+			// Find intervals for float vec, integer x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+		else	// (x_type == EidosValueType::kValueFloat)
+		{
+			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			
+			// Find intervals for float vec, float x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+	}
+	
+	return EidosValue_SP(int_result);
+}
 
 //	(float)dmvnorm(float x, numeric mu, numeric sigma)
 EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
