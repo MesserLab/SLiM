@@ -1424,6 +1424,9 @@ QSlider::handle:horizontal:disabled {
     <property name="title">
      <string>Help</string>
     </property>
+    <addaction name="actionShowCycle_WF"/>
+    <addaction name="actionShowCycle_nonWF"/>
+    <addaction name="separator"/>
     <addaction name="actionQtSLiMHelp"/>
     <addaction name="actionSLiMWorkshops"/>
     <addaction name="separator"/>
@@ -1960,6 +1963,16 @@ QSlider::handle:horizontal:disabled {
   <action name="actionCreate_Haplotype_Plot">
    <property name="text">
     <string>Create Haplotype Plot</string>
+   </property>
+  </action>
+  <action name="actionShowCycle_WF">
+   <property name="text">
+    <string>Show WF Generation Cycle</string>
+   </property>
+  </action>
+  <action name="actionShowCycle_nonWF">
+   <property name="text">
+    <string>Show nonWF Generation Cycle</string>
    </property>
   </action>
  </widget>

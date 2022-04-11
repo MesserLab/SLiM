@@ -50,6 +50,7 @@
 #include <QFileDialog>
 #include <QTextEdit>
 #include <QPlainTextEdit>
+#include <QLabel>
 #include <QDebug>
 
 #include <stdio.h>
@@ -806,6 +807,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionAbout);
     }
     {
+        QAction *actionShowCycle_WF = new QAction("Show WF Generation Cycle", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
+        window->addAction(actionShowCycle_WF);
+    }
+    {
+        QAction *actionShowCycle_nonWF = new QAction("Show nonWF Generation Cycle", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
+        window->addAction(actionShowCycle_nonWF);
+    }
+    {
         QAction *actionHelp = new QAction("Help", this);
         //actionHelp->setShortcut(Qt::CTRL + Qt::Key_Comma);
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -1088,6 +1101,81 @@ void QtSLiMAppDelegate::dispatch_about(void)
     aboutWindow->show();
     aboutWindow->raise();
     aboutWindow->activateWindow();
+}
+
+QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const QString &title, double scaleFactor)
+{
+    // This is based on QtSLiMWindow::imageWindowWithPath(), but makes a simple global window
+    // without context menus and other fluff, for simple display of help-related images
+    QImage image(path);
+    
+    if (image.isNull())
+    {
+        qApp->beep();
+        return nullptr;
+    }
+    
+    QFileInfo fileInfo(path);
+    int window_width = round(image.width() * scaleFactor);
+    int window_height = round(image.height() * scaleFactor);
+    
+    QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
+    
+    image_window->setWindowTitle(title);
+    image_window->setFixedSize(window_width, window_height);
+    
+    // Make the image view
+    QLabel *imageView = new QLabel();
+    
+    imageView->setStyleSheet("QLabel { background-color : white; }");
+    imageView->setBackgroundRole(QPalette::Base);
+    imageView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    imageView->setScaledContents(true);
+    imageView->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+    imageView->setPixmap(QPixmap::fromImage(image));
+    
+    // Install imageView in the window
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    image_window->setLayout(topLayout);
+    topLayout->setMargin(0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(imageView);
+    
+    // Position the window nicely
+    //positionNewSubsidiaryWindow(image_window);
+    
+    // make window actions for all global menu items
+    // this does not seem to be necessary on macOS, but maybe it is on Linux; will need testing FIXME
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    image_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    return image_window;
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/GenerationCycle_WF.png", "WF Cycle", 0.3);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/GenerationCycle_nonWF.png", "nonWF Cycle", 0.3);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
 }
 
 void QtSLiMAppDelegate::dispatch_help(void)

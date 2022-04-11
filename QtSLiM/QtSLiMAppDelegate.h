@@ -108,6 +108,8 @@ public slots:
     // and get dispatched to the right target according to focus.
     void dispatch_preferences(void);
     void dispatch_about(void);
+    void dispatch_showCycle_WF(void);
+    void dispatch_showCycle_nonWF(void);
     void dispatch_help(void);
     void dispatch_quit(void);
     
@@ -172,6 +174,8 @@ private:
     QVector<QPointer<QWidget>> focusedWindowList;       // a list of all windows, from front to back
     void pruneWindowList(void);                         // remove all windows that are closed or hidden
     bool queuedActiveWindowUpdate = false;
+    
+    QWidget *globalImageWindowWithPath(const QString &path, const QString &title, double scaleFactor);
     
     void updateRecentFileActions(void);
     void openRecentFile(void);

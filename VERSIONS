@@ -54,6 +54,7 @@ development head:
 			fitness(), reproduction(), mateChoice(): removed genome1, genome2 (kept these in recombination() callbacks since they are not redundant, indicating the initial copy strand)
 			modifyChild(): removed childGenome1, childGenome2, childIsFemale, parent1Genome1, parent1Genome2, parent2Genome1, parent2Genome2
 			revised recipes in reaction to these changes: 10.3.1 I/II, 11.3, 12.2 I/II, 12.3, 13.1, 14.5, 16.13, 16.14, 16.16, 16.17, 18.8
+		add WF/nonWF generation cycle images to QtSLiM, under the Help menu, for quick reference
 		
 
 version 3.7.1 (Eidos version 2.7.1):
