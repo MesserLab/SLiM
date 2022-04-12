@@ -131,9 +131,8 @@ R"({
 	mean_p = (p1_p + p2_p) / 2.0;
 	H_t = 2.0 * mean_p * (1.0 - mean_p);
 	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
-	fst = 1.0 - H_s/H_t;
-	fst = fst[!isNAN(fst)];  // exclude muts where mean_p is 0.0 or 1.0
-	return mean(fst);
+	fst = 1.0 - mean(H_s) / mean(H_t);
+	return fst;
 })";
 
 // (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)

@@ -7,13 +7,13 @@ Note that not every commit will be logged here; that is what the Github commit h
 The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
 
 
-development head:
+development head (in the master branch):
 	fix deprecated pyslim API issues in recipes 17.2, 17.4, 17.5, 17.7, 17.8, 17.10, 18.13:
 		use tskit.load() instead of pyslim.load(), pyslim.recapitate() instead of ts.recapitate(), ts.metadata['SLiM']['generation'] instead of ts.slim_generation
 	add a second recipe to section 16.19 (range expansion in a stepping-stone model), showing how to solve the same migration problem with a survival() callback
 	fix a crash (rather than an error) when calling removeMutations() on a null genome in some situations
 	
-	SLiM 4.0 WORK (MOSTLY MULTISPECIES):
+	SLiM 4.0 work (in the `multispecies` branch, mostly multispecies-related but also miscellaneous SLiM 4 changes):
 		split SLiMSim into two new classes: Species and Community
 		moved to Community: properties logFiles, generationStage, verbosity; it also has properties tick and tag
 		moved to Community: methods createLogFile(), register[X]Event(), deregisterScriptBlock(), rescheduleScriptBlock(), outputUsage(); also has its own simulationFinished()
@@ -57,6 +57,7 @@ development head:
 			revised recipes in reaction to these changes: 10.3.1 I/II, 11.3, 12.2 I/II, 12.3, 13.1, 14.5, 16.13, 16.14, 16.16, 16.17, 18.8
 		add WF/nonWF generation cycle images to QtSLiM, under the Help menu, for quick reference
 		add a findInterval() function to Eidos
+		change calcFST() from "average of ratios" to "ratio of averages", following current best practice; this breaks backward compatibility for users of this function, but hopefully in a good way
 		
 
 version 3.7.1 (Eidos version 2.7.1):

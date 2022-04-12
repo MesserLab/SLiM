@@ -768,9 +768,8 @@ If the optional
 \f2\fs20 .  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f1\fs18 chromosomeType
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b \cf2 The 
+\f0\b The 
 \f6\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 3.7 and later, use the 
@@ -1682,12 +1681,13 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
 The code for 
 \f1\fs18 calcFST()
-\f2\fs20  is just an Eidos implementation of Wright\'92s definition of 
+\f2\fs20  is, roughly, an Eidos implementation of Wright\'92s definition of 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub :\
+\fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1699,22 +1699,38 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
-\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \nosupersub  is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
+\f3\i H
+\fs13\fsmilli6667 \sub S
+\f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
+\f3\i H
+\fs13\fsmilli6667 \sub T 
+\f2\i0\fs20 \nosupersub is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.  In SLiM 3, the implementation followed Wright\'92s definition closely, and returned the 
+\f3\i average of ratios
+\f2\i0 : 
+\f1\fs18 mean(1.0 - H_s/H_t)
+\f2\fs20 , in the Eidos code.  In SLiM 4, it returns the 
+\f3\i ratio of averages
+\f2\i0  instead: 
+\f1\fs18 1.0 - mean(H_s)/mean(H_t)
+\f2\fs20 .  In other words, the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  value reported by SLiM 4 is an average across the specified mutations in the two sets of genomes, where 
+\f1\fs18 H_s
+\f2\fs20  and 
+\f1\fs18 H_t
+\f2\fs20  are first averaged across all specified mutations prior to taking the ratio of the two.  This ratio of averages is less biased than the average of ratios, and and is generally considered to be best practice (see, e.g., Bhatia et al., 2013).  This means that the behavior of 
+\f1\fs18 calcFST()
+\f2\fs20  differs between SLiM 3 and SLiM 4.\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
 \f2\fs20 , treats every mutation in 
 \f1\fs18 muts
-\f2\fs20  as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
+\f2\fs20  as independent in the heterozygosity calculations; in other words, if mutations are stacked, the heterozygosity calculated is 
 \f3\i by mutation
 \f2\i0 , not 
 \f3\i by site
@@ -1723,15 +1739,6 @@ The implementation of
 \f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
 \f1\fs18 Mutation
 \f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.\
-It is also worth noting that mutations that are at a frequency of 
-\f1\fs18 0.0
-\f2\fs20  or 
-\f1\fs18 1.0
-\f2\fs20  across the two subpopulations are excluded from the calculation, because 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \nosupersub  for such mutations is zero and the result is therefore undefined.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcHeterozygosity(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
