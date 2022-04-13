@@ -4348,6 +4348,24 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         }
     }
     
+    // Figure out whether we have multispecies avatars, and thus want to use the "low brightness symbol" emoji for "ticks all" blocks.
+    // This emoji provides nicely lined up spacing in the menu, and indicates "ticks all" clearly; seems better than nothing.  It would
+    // be even better, perhaps, to have a spacer of emoji width, to make things line up without having a symbol displayed; unfortunately
+    // such a spacer does not seem to exist.  https://stackoverflow.com/questions/66496671/is-there-a-blank-unicode-character-matching-emoji-width
+    QString ticksAllAvatar;
+    
+    if (community && community->is_explicit_species_ && (community->all_species_.size() > 0))
+    {
+        bool hasAvatars = false;
+        
+        for (Species *species : community->all_species_)
+            if (species->avatar_.length() > 0)
+                hasAvatars = true;
+        
+        if (hasAvatars)
+            ticksAllAvatar = QString::fromUtf8("\xF0\x9F\x94\x85");     // "low brightness symbol", https://www.compart.com/en/unicode/U+1F505
+    }
+    
     // Next we parse and get script blocks
     if (cstr)
     {
@@ -4359,13 +4377,24 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             // Extract SLiMEidosBlocks from the parse tree
             const EidosASTNode *root_node = script.AST();
+            QString specifierAvatar;
             
             for (EidosASTNode *script_block_node : root_node->children_)
             {
-                // skip species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
-#warning incorporate the species/ticks info into the menu somehow
+                // handle species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
                 if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+                {
+                    EidosASTNode *specifierChild = script_block_node->children_[0];
+                    std::string specifierSpeciesName = specifierChild->token_->token_string_;
+                    Species *specifierSpecies = (community ? community->SpeciesWithName(specifierSpeciesName) : nullptr);
+                    
+                    if (specifierSpecies && specifierSpecies->avatar_.length())
+                        specifierAvatar = QString::fromStdString(specifierSpecies->avatar_);
+                    else if (!specifierSpecies && (specifierSpeciesName == "all"))
+                        specifierAvatar = ticksAllAvatar;
+                    
                     continue;
+                }
                 
                 // Create the block and use it to find the string from the start of its declaration to the start of its code
                 SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
@@ -4420,6 +4449,13 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 
                 if (comment.length() > 0)
                     decl = decl + "  —  " + comment;
+                
+                // If a species/ticks specifier was previously seen that provides us with an avatar, prepend that
+                if (specifierAvatar.length())
+                {
+                    decl = specifierAvatar + " " + decl;
+                    specifierAvatar.clear();
+                }
                 
                 // Make a menu item with the final string, and annotate it with the range to select
                 QAction *jumpAction = new QAction(decl);
