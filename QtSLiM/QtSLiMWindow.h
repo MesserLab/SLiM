@@ -214,7 +214,10 @@ public:
     void resetSLiMChangeCount(void);
     void scriptTexteditChanged(void);
     
-    bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);    
+    bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);   
+    
+    bool offerAndExecuteAutofix(QTextCursor target, QString replacement, QString explanation, QString terminationMessage);
+    bool checkTerminationForAutofix(QString terminationMessage);
     
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);

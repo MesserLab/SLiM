@@ -1290,13 +1290,149 @@ void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
     }
 }
 
+bool QtSLiMWindow::offerAndExecuteAutofix(QTextCursor target, QString replacement, QString explanation, QString terminationMessage)
+{
+    QString informativeText = "SLiMgui has found an issue with your script that it knows how to fix:\n\n";
+    informativeText.append(explanation);
+    informativeText.append("\n\nWould you like SLiMgui to automatically fix it, and then recycle?\n");
+    
+    QMessageBox messageBox(this);
+    messageBox.setText("Autofixable Error");
+    messageBox.setInformativeText(informativeText);
+    messageBox.setDetailedText(terminationMessage.trimmed());
+    messageBox.setIcon(QMessageBox::Warning);
+    messageBox.setWindowModality(Qt::WindowModal);
+    messageBox.setFixedWidth(700);      // seems to be ignored
+    messageBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    
+    int button = messageBox.exec();
+    
+    if (button == QMessageBox::Yes)
+    {
+        target.insertText(replacement);
+        recycleClicked();
+        return true;
+    }
+    
+    return false;
+}
+
+bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
+{
+    QTextCursor selection = ui->scriptTextEdit->textCursor();
+    QString selectionString = selection.selectedText();
+    
+    // get the four characters prior to the selected error range, to recognize if the error is preceded by "sim."; note this is a heuristic, not precise
+    QTextCursor beforeSelection4 = selection;
+    beforeSelection4.setPosition(beforeSelection4.selectionStart(), QTextCursor::MoveAnchor);
+    beforeSelection4.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 4);
+    beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
+    QString beforeSelection4String = beforeSelection4.selectedText();
+    
+    // early() events are no longer default
+    if (terminationMessage.contains("unexpected token {") &&
+            terminationMessage.contains("expected an event declaration") &&
+            terminationMessage.contains("early() is no longer a default script block type") &&
+            (selectionString == "{"))
+        return offerAndExecuteAutofix(selection, "early() {", "Script blocks no longer default to `early()`; `early()` must be explicitly specified.", terminationMessage);
+    
+    // sim to community changes
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `createLogFile()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `deregisterScriptBlock()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerFirstEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerEarlyEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerLateEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `rescheduleScriptBlock()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `simulationFinished()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `outputUsage()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property logFiles is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `logFiles` property has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property generationStage is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `generationStage` property has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property verbosity is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `verbosity` property has been moved to the Community class.", terminationMessage);
+    
+    // generation to tick changes
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation"))
+        return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Mutation; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
+
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution"))
+        return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Substitution; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
+
+    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution"))
+        return offerAndExecuteAutofix(selection, "fixationTick", "The `fixationGeneration` property has been removed from Substitution; in its place is `fixationTick` (which measures in ticks, not generations).", terminationMessage);
+    
+    // removal of various callback pseudo-parameters
+    if (terminationMessage.contains("undefined identifier genome1"))
+        return offerAndExecuteAutofix(selection, "individual.genome1", "The `genome1` pseudo-parameter has been removed; it is now accessed as `individual.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome2"))
+        return offerAndExecuteAutofix(selection, "individual.genome2", "The `genome2` pseudo-parameter has been removed; it is now accessed as `individual.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childGenome1"))
+        return offerAndExecuteAutofix(selection, "child.genome1", "The `childGenome1` pseudo-parameter has been removed; it is now accessed as `child.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childGenome2"))
+        return offerAndExecuteAutofix(selection, "child.genome2", "The `childGenome2` pseudo-parameter has been removed; it is now accessed as `child.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent1Genome1"))
+        return offerAndExecuteAutofix(selection, "parent1.genome1", "The `parent1Genome1` pseudo-parameter has been removed; it is now accessed as `parent1.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent1Genome2"))
+        return offerAndExecuteAutofix(selection, "parent1.genome2", "The `parent1Genome2` pseudo-parameter has been removed; it is now accessed as `parent1.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent2Genome1"))
+        return offerAndExecuteAutofix(selection, "parent2.genome1", "The `parent2Genome1` pseudo-parameter has been removed; it is now accessed as `parent2.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent2Genome2"))
+        return offerAndExecuteAutofix(selection, "parent2.genome2", "The `parent2Genome2` pseudo-parameter has been removed; it is now accessed as `parent2.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childIsFemale"))
+        return offerAndExecuteAutofix(selection, "(child.sex == \"F\")", "The `childIsFemale` pseudo-parameter has been removed; it is now accessed as `child.sex == \"F\"`.", terminationMessage);
+    
+    // other deprecated APIs, unrelated to multispecies
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
+    {
+        QTextCursor simAndSelection = beforeSelection4;
+        simAndSelection.setPosition(selection.selectionEnd(), QTextCursor::KeepAnchor);
+        
+        return offerAndExecuteAutofix(simAndSelection, "exists(\"slimgui\")", "The `inSLiMgui` property has been removed; now use `exists(\"slimgui\")`.", terminationMessage);
+    }
+    
+    return false;
+}
+
 void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
 {
     //qDebug() << terminationMessage;
     
     // Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
 	if (!changedSinceRecycle())
+    {
 		ui->scriptTextEdit->selectErrorRange();
+        
+        // check to see if this is an error we can assist the user in fixing; if they choose to autofix, we are done
+        if (checkTerminationForAutofix(terminationMessage))
+            return;
+    }
     
     // Show an error sheet/panel
     QString fullMessage(terminationMessage);
