@@ -1799,7 +1799,7 @@ void QtSLiMWindow::updateSpeciesBar(void)
     if (community && displaySpecies && (community->Tick() >= 1))
     {
         bool speciesBarVisibleNow = !ui->speciesBarWidget->isHidden();
-        bool speciesBarShouldBeVisible = community->is_multispecies_;
+        bool speciesBarShouldBeVisible = (community->all_species_.size() > 1);
         
         if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
         {

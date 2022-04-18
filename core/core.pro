@@ -101,7 +101,7 @@ SOURCES += \
     slim_test_core.cpp \
     slim_test_genetics.cpp \
     slim_test_other.cpp \
-    sparse_array.cpp \
+    sparse_vector.cpp \
     species.cpp \
     species_eidos.cpp \
     subpopulation.cpp \
@@ -125,7 +125,7 @@ HEADERS += \
     slim_functions.h \
     slim_globals.h \
     slim_test.h \
-    sparse_array.h \
+    sparse_vector.h \
     species.h \
     subpopulation.h \
     substitution.h

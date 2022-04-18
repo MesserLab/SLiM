@@ -99,7 +99,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
                 buttonLayout->setSpacing(5);
                 topLayout->addLayout(buttonLayout);
                 
-                if (controller->community->is_multispecies_)
+                if (controller->community->all_species_.size() > 1)
                 {
                     // make our species avatar badge
                     QLabel *speciesLabel = new QLabel();

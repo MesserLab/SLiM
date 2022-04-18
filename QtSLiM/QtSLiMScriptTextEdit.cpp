@@ -56,6 +56,7 @@
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
 #include "eidos_interpreter.h"
+#include "interaction_type.h"
 
 
 //

@@ -153,7 +153,7 @@ void QtSLiMGraphView::updateSpeciesBadge(void)
     // and because we want to be able to display it even when the sim is in an invalid state
     if (graphSpecies)
     {
-        if (graphSpecies->community_.is_multispecies_)
+        if (graphSpecies->community_.all_species_.size() > 1)
             focalSpeciesAvatar_ = graphSpecies->avatar_;
         else
             focalSpeciesAvatar_ = "";
@@ -1324,30 +1324,30 @@ QtSLiMLegendSpec QtSLiMGraphView::mutationTypeLegendKey(void)
     if (!graphSpecies)
         return QtSLiMLegendSpec();
     
-	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
-	
-	// if we only have one mutation type, do not show a legend
-	if (mutationTypeCount < 2)
-		return QtSLiMLegendSpec();
-	
-	QtSLiMLegendSpec legend_key;
-	
-	// first we put in placeholders
+    int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
+    
+    // if we only have one mutation type, do not show a legend
+    if (mutationTypeCount < 2)
+        return QtSLiMLegendSpec();
+    
+    QtSLiMLegendSpec legend_key;
+    
+    // first we put in placeholders
     legend_key.resize(graphSpecies->mutation_types_.size());
-	
-	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter : graphSpecies->mutation_types_)
-	{
-		MutationType *mutationType = mutationTypeIter.second;
-		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
+    
+    // then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
+    for (auto mutationTypeIter : graphSpecies->mutation_types_)
+    {
+        MutationType *mutationType = mutationTypeIter.second;
+        int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
         QString labelString = QString("m%1").arg(mutationType->mutation_type_id_);
-		QtSLiMLegendEntry &entry = legend_key[static_cast<size_t>(mutationTypeIndex)];
+        QtSLiMLegendEntry &entry = legend_key[static_cast<size_t>(mutationTypeIndex)];
         
         entry.first = labelString;
         entry.second = controller_->blackContrastingColorForIndex(mutationTypeIndex);
-	}
-	
-	return legend_key;
+    }
+    
+    return legend_key;
 }
 
 void QtSLiMGraphView::drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth)

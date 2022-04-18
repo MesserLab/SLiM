@@ -536,7 +536,7 @@ QVariant QtSLiMMutTypeTableModel::data(const QModelIndex &p_index, int role) con
             {
                 QString idString = QString("m%1").arg(mutTypeID);
                 
-                if (community->is_multispecies_)
+                if (community->all_species_.size() > 1)
                     idString.append(" ").append(QString::fromStdString(mutationType->species_.avatar_));
                 
                 return QVariant(idString);
@@ -745,7 +745,7 @@ QVariant QtSLiMGETypeTypeTableModel::data(const QModelIndex &p_index, int role) 
             {
                 QString idString = QString("g%1").arg(genomicElementTypeID);
                 
-                if (community->is_multispecies_)
+                if (community->all_species_.size() > 1)
                     idString.append(" ").append(QString::fromStdString(genomicElementType->species_.avatar_));
                 
                 return QVariant(idString);
@@ -890,9 +890,6 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
             if (p_index.column() == 0)
             {
                 QString idString = QString("i%1").arg(interactionTypeID);
-                
-                if (community->is_multispecies_)
-                    idString.append(" ").append(QString::fromStdString(interactionType->species_.avatar_));
                 
                 return QVariant(idString);
             }
@@ -1084,9 +1081,9 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
                 else
                     idString = QString("s%1").arg(block_id);
                 
-                if (community->is_multispecies_ && scriptBlock->species_spec_)
+                if ((community->all_species_.size() > 1) && scriptBlock->species_spec_)
                     idString.append(" ").append(QString::fromStdString(scriptBlock->species_spec_->avatar_));
-                else if (community->is_multispecies_ && scriptBlock->ticks_spec_)
+                else if ((community->all_species_.size() > 1) && scriptBlock->ticks_spec_)
                     idString.append(" ").append(QString::fromStdString(scriptBlock->ticks_spec_->avatar_));
                 
                 return QVariant(idString);
