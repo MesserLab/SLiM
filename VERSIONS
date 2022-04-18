@@ -59,6 +59,26 @@ development head (in the master branch):
 		add a findInterval() function to Eidos
 		change calcFST() from "average of ratios" to "ratio of averages", following current best practice; this breaks backward compatibility for users of this function, but hopefully in a good way
 		add autocorrect smarts to SLiMgui for common changes needed to migrate to SLiM 4
+		switch InteractionType from using a semi-permanent sparse array to using a transient sparse vector, providing multispecies flexibility:
+			add "species all initialize()" for non-species-specific initialization, move initializeInteractionType() to be non-species-specific, remove the `species` property from InteractionType
+			make it required, in multispecies models, to declare interaction() callbacks as "species all interaction()"; they are always active, and are not associated with any one species
+			move registerInteractionCallback() from Species to Community, since interaction() callbacks are now non-species-specific
+			change InteractionType APIs to be more explicit about receiver vs. exerter, allow an exerter subpop to be specified, etc.; new APIs:
+				– (float)clippedIntegral(No<Individual> receivers) - no change
+				– (float)distance(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - receiver must now be singleton (matching interactionDistance()), exerters subpop must be evaluated
+				– (float)distanceFromPoint(float point, object<Individual> exerters) - renamed from distanceToPoint(), parameters switched places for consistency, exerters subpop must be evaluated
+				– (object<Individual>)drawByStrength(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - "receiver", added exerterSubpop, must be evaluated
+				– (integer)interactingNeighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - changed individuals to receivers, added exerterSubpop, require all receivers in one subpop
+				– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change, exerters subpop must be evaluated
+				– (float)localPopulationDensity(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - added exerterSubpop, must be evaluated
+				– (object<Individual>)nearestInteractingNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - "receiver", added exerterSubpop, must be evaluated
+				– (object<Individual>)nearestNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - renamed individual to receiver, added exerterSubpop
+				– (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1]) - parameters switched, exerters subpop must be evaluated
+				– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change, exerters subpop must be evaluated
+				– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - note receiver's current positions are used, added exerterSubpop
+			change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> exerterSubpops) - `subpops` renamed to `exerterSubpops` and required, remove `immediate`; only exerter positions are snapped!
+			remove the `subpop` pseudo-parameter from interaction() callbacks; receiver.subpop and exerter.subpop should now be used, and are not always the same
+		move initializeSLiMModelType() to be non-species-specific (i.e., must be in "species all initialize()"), so it is shared and doesn't need to be repeated
 		
 
 version 3.7.1 (Eidos version 2.7.1):

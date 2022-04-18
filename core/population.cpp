@@ -36,6 +36,7 @@
 #include "eidos_symbol_table.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "interaction_type.h"
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -470,10 +471,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 	
 	// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 	// selectively invalidate only the subpops involved in the migrations that occurred
-	auto &interactionTypes = species_.InteractionTypes();
-	
-	for (auto int_type : interactionTypes)
-		int_type.second->Invalidate();
+	community_.InvalidateInteractionsForSpecies(&species_);
 }
 
 void Population::PurgeRemovedSubpopulations(void)

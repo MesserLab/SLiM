@@ -29,6 +29,7 @@
 #include "individual.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "interaction_type.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -125,10 +126,6 @@ Species::~Species(void)
 	for (auto genomic_element_type : genomic_element_types_)
 		delete genomic_element_type.second;
 	genomic_element_types_.clear();
-	
-	for (auto interaction_type : interaction_types_)
-		delete interaction_type.second;
-	interaction_types_.clear();
 	
 	// Dispose of mutation run experiment data
 	if (x_experiments_enabled_)
@@ -301,8 +298,7 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 	}
 	
 	// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
-	for (auto iter : interaction_types_)
-		iter.second->Invalidate();
+	community_.InvalidateInteractionsForSpecies(this);
 	
 	// then we dispose of all existing subpopulations, mutations, etc.
 	population_.RemoveAllSubpopulationInfo();
@@ -1636,7 +1632,6 @@ std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick,
 void Species::RunInitializeCallbacks(void)
 {
 	// zero out the initialization check counts
-	num_interaction_types_ = 0;
 	num_mutation_types_ = 0;
 	num_mutation_rates_ = 0;
 	num_genomic_element_types_ = 0;
@@ -1646,13 +1641,9 @@ void Species::RunInitializeCallbacks(void)
 	num_sex_declarations_ = 0;
 	num_options_declarations_ = 0;
 	num_treeseq_declarations_ = 0;
-	num_modeltype_declarations_ = 0;
 	num_ancseq_declarations_ = 0;
 	num_hotspot_maps_ = 0;
 	num_species_declarations_ = 0;
-	
-	if (SLiM_verbosity_level >= 1)
-		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
 	
 	// execute initialize() callbacks, which should always have a tick of 0 set
 	std::vector<SLiMEidosBlock*> init_blocks = CallbackBlocksMatching(0, SLiMEidosBlockType::SLiMEidosInitializeCallback, -1, -1, -1);
@@ -1707,16 +1698,15 @@ void Species::RunInitializeCallbacks(void)
 	if (avatar_.length() == 0)
 		avatar_ = std::string(1, (char)('A' + species_id_));
 	
-	// We default to WF, but here we explicitly declare our model type so the community knows the default was not changed
-	// This cements the choice of WF if the first species initialized does not declare a model type explicitly
-	if (num_modeltype_declarations_ == 0)
-		community_.SetModelType(SLiMModelType::kModelTypeWF);
-	
-	// then get our model type from the community; we and our descendants cache it
-	// no subpopulations exist yet, so we don't need to worry about propagating to them
-	// this is also done in ExecuteContextFunction_initializeSLiMModelType() but we make sure here!
-	model_type_ = community_.ModelType();
-	population_.model_type_ = model_type_;
+	// In single-species models, we are responsible for finalizing the model type decision at the end of our initialization
+	// In multispecies models, the Community will have already made this decision and propagated it down to us.
+	if (!community_.is_explicit_species_)
+	{
+		// We default to WF, but here we explicitly declare our model type so everybody knows the default was not changed
+		// This cements the choice of WF if the first species initialized does not declare a model type explicitly
+		if (!community_.model_type_set_)
+			community_.SetModelType(SLiMModelType::kModelTypeWF);
+	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 	{
@@ -1822,6 +1812,12 @@ void Species::RunInitializeCallbacks(void)
 		AllocateTreeSequenceTables();
 }
 
+bool Species::HasDoneAnyInitialization(void)
+{
+	// This is used by Community to make sure that initializeModelType() executes before any other init
+	return ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0) || (num_species_declarations_ > 0));
+}
+
 void Species::PrepareForGenerationCycle(void)
 {
 	// Called by Community at the very start of each generation, whether WF or nonWF (but not before initialize() callbacks)
@@ -1873,12 +1869,6 @@ void Species::MaintainMutationRegistry(void)
 	// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
 	if (generation_ % 100 == 0)
 		population_.UniqueMutationRuns();
-}
-
-void Species::InvalidateAllInteractions(void)
-{
-	for (auto iter : interaction_types_)
-		iter.second->Invalidate();
 }
 
 void Species::RecalculateFitness(void)
@@ -2135,8 +2125,7 @@ void Species::nonWF_GenerateOffspring(void)
 	community_.executing_block_type_ = old_executing_block_type;
 	
 	// Invalidate interactions, now that the generation they were valid for is disappearing
-	for (auto iter : interaction_types_)
-		iter.second->Invalidate();
+	community_.InvalidateInteractionsForSpecies(this);
 	
 	// then merge in the generated offspring; we don't want to do this until all callbacks have executed for all subpops
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
@@ -2652,19 +2641,6 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		p_usage->individualObjects_count = objectCount;
 		p_usage->individualObjects = sizeof(Individual) * p_usage->individualObjects_count;
 		p_usage->individualUnusedPoolSpace = individual_pool_usage - p_usage->individualObjects;
-	}
-	
-	// InteractionType
-	{
-		p_usage->interactionTypeObjects_count = interaction_types_.size();
-		p_usage->interactionTypeObjects = sizeof(InteractionType) * p_usage->interactionTypeObjects_count;
-		
-		for (auto iter : interaction_types_)
-		{
-			p_usage->interactionTypeKDTrees += iter.second->MemoryUsageForKDTrees();
-			p_usage->interactionTypePositionCaches += iter.second->MemoryUsageForPositions();
-			p_usage->interactionTypeSparseArrays += iter.second->MemoryUsageForSparseArrays();
-		}
 	}
 	
 	// Mutation

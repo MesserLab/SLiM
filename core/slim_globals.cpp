@@ -36,7 +36,7 @@
 #include "subpopulation.h"
 
 #include "mutation_run.h"
-#include "sparse_array.h"
+#include "sparse_vector.h"
 
 #include <string>
 #include <vector>
@@ -53,257 +53,6 @@ EidosValue_String_SP gStaticEidosValue_StringC;
 EidosValue_String_SP gStaticEidosValue_StringG;
 EidosValue_String_SP gStaticEidosValue_StringT;
 
-
-void TestSparseArray(void);
-void TestSparseArray(void)
-{
-#if 0
-	{
-		// This should succeed and contain six elements
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		uint32_t row3cols[] = {4, 1};
-		float row3dists[] = {4, 1};
-		float row3strengths[] = {3.45f, 3.15f};
-		
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(2, nullptr, nullptr, nullptr, 0);
-		sa.AddRowInteractions(3, row3cols, row3dists, row3strengths, 2);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should succeed and contain six elements, identical to the previous
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 0, 0, 0.05f);
-		sa.AddEntryInteraction(0, 3, 3, 0.35f);
-		sa.AddEntryInteraction(0, 2, 2, 0.25f);
-		sa.AddEntryInteraction(1, 4, 4, 1.45f);
-		sa.AddEntryInteraction(3, 4, 4, 3.45f);
-		sa.AddEntryInteraction(3, 1, 1, 3.15f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-
-#if 0
-	{
-		// This should fail because row 1 is added twice
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because row 0 is after row 1
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(0, nullptr, nullptr, nullptr, 0);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because row 0 is not added first
-		SparseArray sa(5, 5);
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because rows are added out of order
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 0, 0, 0.05f);
-		sa.AddEntryInteraction(1, 4, 4, 1.45f);
-		sa.AddEntryInteraction(0, 3, 3, 0.35f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because a row is added that is beyond bounds
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(5, 0, 0, 0.05f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because a column is added that is beyond bounds
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 5, 0, 0.05f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// stress test by creating a large number of sparse arrays by entry and cross-checking them
-		for (int trial = 0; trial < 10000; ++trial)
-		{
-			float *distances = (float *)calloc(100 * 100, sizeof(float));
-			float *strengths = (float *)calloc(100 * 100, sizeof(float));
-			int n_entries = random() % 5000;
-			
-			for (int entry = 1; entry <= n_entries; ++entry)
-			{
-				int entry_index = random() % 10000;
-				
-				distances[entry_index] = entry;
-				strengths[entry_index] = random();
-			}
-			
-			SparseArray sa(100, 100);
-			
-			for (int row = 0; row < 100; row++)
-				for (int col = 0; col < 100; ++col)
-					if (*(distances + row + col * 100) != 0)
-						sa.AddEntryInteraction(row, col, *(distances + row + col * 100), *(strengths + row + col * 100));
-			sa.Finished();
-			
-			for (int col = 0; col < 100; ++col)
-				for (int row = 0; row < 100; row++)
-					if (*(distances + row + col * 100) == 0)
-					{
-						if (!isinf(sa.Distance(row, col)))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
-						if (sa.Strength(row, col) != 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
-					}
-					else
-					{
-						double distance = sa.Distance(row, col);
-						double strength = sa.Strength(row, col);
-						
-						if (isinf(distance))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
-						if (strength == 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
-						if (distance != *(distances + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
-						if (strength != *(strengths + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
-					}
-			
-			free(distances);
-			free(strengths);
-		}
-	}
-#endif
-	
-#if 0
-	{
-		// stress test by creating a large number of sparse arrays by row and cross-checking them
-		for (int trial = 0; trial < 10000; ++trial)
-		{
-			float *distances = (float *)calloc(100 * 100, sizeof(double));
-			float *strengths = (float *)calloc(100 * 100, sizeof(double));
-			int n_entries = random() % 5000;
-			
-			for (int entry = 1; entry <= n_entries; ++entry)
-			{
-				int entry_index = random() % 10000;
-				
-				distances[entry_index] = entry;
-				strengths[entry_index] = random();
-			}
-			
-			SparseArray sa(100, 100);
-			
-			for (int row = 0; row < 100; row++)
-			{
-				std::vector<uint32_t> columns;
-				std::vector<float> row_distances;
-				std::vector<float> row_strengths;
-				
-				for (int col = 0; col < 100; ++col)
-					if (*(distances + row + col * 100) != 0)
-					{
-						columns.emplace_back(col);
-						row_distances.emplace_back(*(distances + row + col * 100));
-						row_strengths.emplace_back(*(strengths + row + col * 100));
-					}
-				
-				sa.AddRowInteractions(row, columns.data(), row_distances.data(), row_strengths.data(), (uint32_t)columns.size());
-			}
-			sa.Finished();
-			
-			for (int col = 0; col < 100; ++col)
-				for (int row = 0; row < 100; row++)
-					if (*(distances + row + col * 100) == 0)
-					{
-						if (!isinf(sa.Distance(row, col)))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
-						if (sa.Strength(row, col) != 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
-					}
-					else
-					{
-						double distance = sa.Distance(row, col);
-						double strength = sa.Strength(row, col);
-						
-						if (isinf(distance))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
-						if (strength == 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
-						if (distance != *(distances + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
-						if (strength != *(strengths + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
-					}
-			
-			free(distances);
-			free(strengths);
-		}
-	}
-#endif
-}
 
 void SLiM_WarmUp(void)
 {
@@ -352,9 +101,6 @@ void SLiM_WarmUp(void)
 		// Check for a memory limit and prepare for memory-limit testing
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
-		
-		// Test sparse arrays; these are not structured as unit tests at the moment
-		TestSparseArray();
 		
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
 		
@@ -732,10 +478,6 @@ void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
 		p_usage.genomicElementTypeObjects +
 		p_usage.individualObjects +
 		p_usage.individualUnusedPoolSpace +
-		p_usage.interactionTypeObjects +
-		p_usage.interactionTypeKDTrees +
-		p_usage.interactionTypePositionCaches +
-		p_usage.interactionTypeSparseArrays +
 		p_usage.mutationObjects +
 		p_usage.mutationRunObjects +
 		p_usage.mutationRunExternalBuffers +
@@ -759,6 +501,10 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 		p_usage.mutationUnusedPoolSpace +
 		p_usage.mutationRunUnusedPoolSpace +
 		p_usage.mutationRunUnusedPoolBuffers +
+		p_usage.interactionTypeObjects +
+		p_usage.interactionTypeKDTrees +
+		p_usage.interactionTypePositionCaches +
+		p_usage.interactionTypeSparseVectorPool +
 		p_usage.eidosASTNodePool +
 		p_usage.eidosSymbolTablePool +
 		p_usage.eidosValuePool + 
@@ -790,12 +536,6 @@ void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SL
 	p_total.individualObjects_count += p_usage.individualObjects_count;
 	p_total.individualObjects += p_usage.individualObjects;
 	p_total.individualUnusedPoolSpace += p_usage.individualUnusedPoolSpace;
-	
-	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
-	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;
-	p_total.interactionTypeKDTrees += p_usage.interactionTypeKDTrees;
-	p_total.interactionTypePositionCaches += p_usage.interactionTypePositionCaches;
-	p_total.interactionTypeSparseArrays += p_usage.interactionTypeSparseArrays;
 	
 	p_total.mutationObjects_count += p_usage.mutationObjects_count;
 	p_total.mutationObjects += p_usage.mutationObjects;
@@ -837,6 +577,13 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	
 	p_total.mutationRunUnusedPoolSpace += p_usage.mutationRunUnusedPoolSpace;
 	p_total.mutationRunUnusedPoolBuffers += p_usage.mutationRunUnusedPoolBuffers;
+	
+	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
+	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;
+	p_total.interactionTypeKDTrees += p_usage.interactionTypeKDTrees;
+	p_total.interactionTypePositionCaches += p_usage.interactionTypePositionCaches;
+	
+	p_total.interactionTypeSparseVectorPool += p_usage.interactionTypeSparseVectorPool;
 	
 	p_total.eidosASTNodePool += p_usage.eidosASTNodePool;
 	p_total.eidosSymbolTablePool += p_usage.eidosSymbolTablePool;
@@ -1447,7 +1194,6 @@ const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulat
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomeType = EidosRegisteredString("chromosomeType", gID_chromosomeType);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
-const std::string &gStr_interactionTypes = EidosRegisteredString("interactionTypes", gID_interactionTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
 const std::string &gStr_lifetimeReproductiveOutputF = EidosRegisteredString("lifetimeReproductiveOutputF", gID_lifetimeReproductiveOutputF);
@@ -1605,7 +1351,7 @@ const std::string &gStr_distance = EidosRegisteredString("distance", gID_distanc
 const std::string &gStr_localPopulationDensity = EidosRegisteredString("localPopulationDensity", gID_localPopulationDensity);
 const std::string &gStr_interactionDistance = EidosRegisteredString("interactionDistance", gID_interactionDistance);
 const std::string &gStr_clippedIntegral = EidosRegisteredString("clippedIntegral", gID_clippedIntegral);
-const std::string &gStr_distanceToPoint = EidosRegisteredString("distanceToPoint", gID_distanceToPoint);
+const std::string &gStr_distanceFromPoint = EidosRegisteredString("distanceFromPoint", gID_distanceFromPoint);
 const std::string &gStr_nearestNeighbors = EidosRegisteredString("nearestNeighbors", gID_nearestNeighbors);
 const std::string &gStr_nearestInteractingNeighbors = EidosRegisteredString("nearestInteractingNeighbors", gID_nearestInteractingNeighbors);
 const std::string &gStr_interactingNeighborCount = EidosRegisteredString("interactingNeighborCount", gID_interactingNeighborCount);

@@ -23,6 +23,8 @@
 #include "species.h"
 #include "eidos_test.h"
 #include "individual.h"
+#include "mutation_run.h"
+#include "interaction_type.h"
 
 #include <iostream>
 #include <string>
@@ -70,6 +72,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	{
 		delete community;
 		MutationRun::DeleteMutationRunFreeList();
+		InteractionType::DeleteSparseVectorFreeList();
 		
 		if (p_lineNumber != -1)
 			std::cerr << "[" << p_lineNumber << "] ";
@@ -83,6 +86,7 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	
 	delete community;
 	MutationRun::DeleteMutationRunFreeList();
+	InteractionType::DeleteSparseVectorFreeList();
 	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
 	gSLiMTestSuccessCount++;
@@ -188,6 +192,7 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 	
 	delete community;
 	MutationRun::DeleteMutationRunFreeList();
+	InteractionType::DeleteSparseVectorFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
@@ -247,6 +252,7 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	
 	delete community;
 	MutationRun::DeleteMutationRunFreeList();
+	InteractionType::DeleteSparseVectorFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
@@ -264,11 +270,11 @@ std::string gen1_setup_sex("initialize() { initializeMutationRate(1e-7); initial
 std::string gen2_stop(" 2 early() { stop(); } ");
 std::string gen1_setup_highmut_p1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
 std::string gen1_setup_fixmut_p1("initialize() { initializeMutationRate(1e-4); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } 10 early() { sim.mutations[0].setSelectionCoeff(500.0); sim.recalculateFitness(); } ");
-std::string gen1_setup_i1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', ''); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { i1.evaluate(); i1.strength(p1.individuals[0]); } ");
-std::string gen1_setup_i1x("initialize() { initializeSLiMOptions(dimensionality='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
-std::string gen1_setup_i1xPx("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
-std::string gen1_setup_i1xyz("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
-std::string gen1_setup_i1xyzPxz("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(); i1.strength(p1.individuals[0]); } ");
+std::string gen1_setup_i1("initialize() { initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', ''); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } ");
+std::string gen1_setup_i1x("initialize() { initializeSLiMOptions(dimensionality='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(p1); i1.strength(p1.individuals[0]); } ");
+std::string gen1_setup_i1xPx("initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); i1.evaluate(p1); i1.strength(p1.individuals[0]); } ");
+std::string gen1_setup_i1xyz("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); i1.strength(p1.individuals[0]); } ");
+std::string gen1_setup_i1xyzPxz("initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { p1.individuals.x = runif(10); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); i1.strength(p1.individuals[0]); } ");
 std::string gen1_setup_p1(gen1_setup + "1 early() { sim.addSubpop('p1', 10); } ");
 std::string gen1_setup_sex_p1(gen1_setup_sex + "1 early() { sim.addSubpop('p1', 10); } ");
 std::string gen1_setup_p1p2p3(gen1_setup + "1 early() { sim.addSubpop('p1', 10); sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } ");
@@ -413,16 +419,18 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox 1 early() {}", "preceded by a species", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox fitness(m1) {}", "preceded by a ticks", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox fitness(m1) {}", "undeclared species", __LINE__);
-	SLiMAssertScriptRaise("species all initialize() {} ticks all 1 early() { stop(); }", "not a legal species name", __LINE__);
+	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() {} ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() {} 1 early() {}", "preceded by a ticks", __LINE__);
+	SLiMAssertScriptRaise("species all initialize() {} ticks all 1 early() { stop(); }", "no species-specific initialize() callback found", __LINE__, false);
 	SLiMAssertScriptRaise("species fox initialize() {} initialize() {} 1 early() {}", "species specifiers are required", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} species fox initialize() {} 1 early() {}", "species specifiers are illegal", __LINE__);
 	SLiMAssertScriptRaise("species fox initialize() {} 1 early() { stop(); }", "must be preceded by a ticks specifier", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} ticks all 1 early() { stop(); }", "ticks specifiers should not be used", __LINE__);
-	SLiMAssertScriptRaise("initialize() {} species all 1 early() { stop(); }", "not a legal species name", __LINE__);
+	SLiMAssertScriptRaise("initialize() {} species all 1 early() { stop(); }", "may not be preceded by a species specifier", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks bear 1 early() {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks fox 1 early() {}", "mutation rate interval", __LINE__, false);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species all fitness(m1) {}", "not a legal species name", __LINE__);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species all fitness(m1) {}", "fitness() callbacks may not be declared with 'species all'", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species bear fitness(m1) {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species fox fitness(m1) {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} fitness(m1) {}", "must be preceded", __LINE__);

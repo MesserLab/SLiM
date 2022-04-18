@@ -21,7 +21,6 @@
 #import <Cocoa/Cocoa.h>
 
 #include "eidos_rng.h"
-#include "community.h"
 #include "species.h"
 #include "slim_gui.h"
 #import "ChromosomeView.h"
@@ -38,6 +37,8 @@
 
 
 @class SLiMHaplotypeGraphView;
+
+class Community;
 
 
 @interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate, EidosTextViewDelegate>

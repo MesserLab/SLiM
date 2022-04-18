@@ -36,7 +36,6 @@
 #include "population.h"
 #include "chromosome.h"
 #include "eidos_value.h"
-#include "interaction_type.h"
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
@@ -54,6 +53,9 @@ extern "C" {
 class Community;
 class EidosInterpreter;
 class Individual;
+class MutationType;
+class GenomicElementType;
+class InteractionType;
 struct ts_subpop_info;
 struct ts_mut_info;
 
@@ -206,7 +208,6 @@ private:
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
-	std::map<slim_objectid_t,InteractionType*> interaction_types_;					// OWNED POINTERS: this map is the owner of all allocated InteractionType objects
 	
 	bool mutation_stack_policy_changed_;											// when set, the stacking policy settings need to be checked for consistency
 	
@@ -221,7 +222,6 @@ private:
 	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
 	
 	// initialization completeness check counts; used only when running initialize() callbacks
-	int num_interaction_types_;
 	int num_mutation_types_;
 	int num_mutation_rates_;
 	int num_genomic_element_types_;
@@ -231,7 +231,6 @@ private:
 	int num_sex_declarations_;	// SEX ONLY; used to check for sex vs. non-sex errors in the file, so the #SEX tag must come before any reliance on SEX ONLY features
 	int num_options_declarations_;
 	int num_treeseq_declarations_;
-	int num_modeltype_declarations_;
 	int num_ancseq_declarations_;
 	int num_hotspot_maps_;
 	int num_species_declarations_;
@@ -368,9 +367,9 @@ public:
 	// Running generations
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
+	bool HasDoneAnyInitialization(void);
 	void PrepareForGenerationCycle(void);
 	void MaintainMutationRegistry(void);
-	void InvalidateAllInteractions(void);
 	void RecalculateFitness(void);
 	void MaintainTreeSequence(void);
 	void FinishMutationRunExperimentTiming(void);
@@ -420,7 +419,6 @@ public:
 	inline __attribute__((always_inline)) Chromosome &TheChromosome(void)													{ return *chromosome_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
-	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &InteractionTypes(void)			{ return interaction_types_; }
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);
@@ -441,10 +439,6 @@ public:
 	inline GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id) {
 		auto id_iter = genomic_element_types_.find(p_getype_id);
 		return (id_iter == genomic_element_types_.end()) ? nullptr : id_iter->second;
-	}
-	inline InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id) {
-		auto id_iter = interaction_types_.find(p_inttype_id);
-		return (id_iter == interaction_types_.end()) ? nullptr : id_iter->second;
 	}
 	
 	inline __attribute__((always_inline)) bool SexEnabled(void) const														{ return sex_enabled_; }
@@ -538,7 +532,6 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeAncestralNucleotides(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElement(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGenomicElementType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeMutationType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeRecombinationRate(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
@@ -548,7 +541,6 @@ public:
 	EidosValue_SP ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeSpecies(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteContextFunction_initializeTreeSeq(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
@@ -570,7 +562,6 @@ public:
 	EidosValue_SP ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerFitnessCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerMutationCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerReproductionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

@@ -1612,7 +1612,7 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			
 			const std::string &function_name = p_method_signature->call_name_;
 			
-			if (((function_name == "registerFirstEvent") || (function_name == "registerEarlyEvent") || (function_name == "registerFitnessCallback") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "registerMutationCallback") || (function_name == "registerSurvivalCallback") || (function_name == "registerReproductionCallback") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
+			if (((function_name == "registerFirstEvent") || (function_name == "registerEarlyEvent") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}
@@ -1626,6 +1626,10 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			if (((function_name == "addSubpop") || (function_name == "addSubpopSplit")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
+			}
+			if (((function_name == "registerFitnessCallback") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "registerMutationCallback") || (function_name == "registerSurvivalCallback") || (function_name == "registerReproductionCallback")) && (argument_count >= 1))
+			{
+				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}
 		}
 	}

@@ -21,6 +21,8 @@
 #import "GraphView_MutationFrequencyTrajectory.h"
 #import "SLiMWindowController.h"
 
+#include "community.h"
+
 
 @implementation GraphView_MutationFrequencyTrajectory
 

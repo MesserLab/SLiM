@@ -360,10 +360,6 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { if (sim.dimensionality == '') stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.dimensionality = 'x'; }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { if (sim.dimensionality == 'x') stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (size(sim.interactionTypes) == 0) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { if (sim.interactionTypes == i1) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.interactionTypes = i1; }", "read-only property", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { if (sim.interactionTypes == i1) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.periodicity == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { if (sim.periodicity == '') stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.periodicity = 'x'; }", "read-only property", __LINE__);
@@ -575,22 +571,22 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
-	// Test sim - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; sim.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
+	// Test community - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
@@ -1975,7 +1971,7 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "recombination(p1) { individual; genome1; genome2; subpop; breakpoints; return T; } 10 early() { stop(); }", __LINE__);
 	
 	// interaction() callbacks
-	static std::string gen1_setup_p1p2p3_i1(gen1_setup_p1p2p3 + "initialize() { initializeInteractionType('i1', ''); } early() { i1.evaluate(immediate=T); i1.strength(p1.individuals[0]); } ");
+	static std::string gen1_setup_p1p2p3_i1(gen1_setup_p1p2p3 + "initialize() { initializeInteractionType('i1', ''); } early() { i1.evaluate(sim.subpopulations); i1.strength(p1.individuals[0]); } ");
 	
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 1.0; } 10 early() { stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { stop(); } 10 early() { ; }", __LINE__);
@@ -2002,16 +1998,16 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return T; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 1; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return subpop; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return exerter; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; ; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return F; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return T; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return 1; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return 'a'; } 10 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { subpop; return subpop; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; ; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return F; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return T; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return 1; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return 'a'; } 10 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { exerter; return exerter; } 10 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { distance; strength; receiver; exerter; subpop; return 1.0; } 10 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3_i1 + "interaction(i1) { distance; strength; receiver; exerter; return 1.0; } 10 early() { stop(); }", __LINE__);
 	
 	// reproduction() callbacks
 	static std::string gen1_setup_p1p2p3_nonWF(nonWF_prefix + gen1_setup_sex_p1 + "1 early() { sim.addSubpop('p2', 10); sim.addSubpop('p3', 10); } " + "late() { sim.subpopulations.individuals.fitnessScaling = 0.0; } ");

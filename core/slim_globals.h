@@ -368,12 +368,6 @@ typedef struct
 	size_t individualObjects;
 	size_t individualUnusedPoolSpace;			// this pool is kept by Population, per-species
 	
-	int64_t interactionTypeObjects_count;
-	size_t interactionTypeObjects;
-	size_t interactionTypeKDTrees;
-	size_t interactionTypePositionCaches;
-	size_t interactionTypeSparseArrays;
-	
 	int64_t mutationObjects_count;
 	size_t mutationObjects;
 	
@@ -413,6 +407,12 @@ typedef struct
 	
 	size_t mutationRunUnusedPoolSpace;		// this pool is kept globally by MutationRun
 	size_t mutationRunUnusedPoolBuffers;	// this pool is kept globally by MutationRun
+	
+	int64_t interactionTypeObjects_count;	// InteractionType is kept by Community now
+	size_t interactionTypeObjects;
+	size_t interactionTypeKDTrees;
+	size_t interactionTypePositionCaches;
+	size_t interactionTypeSparseVectorPool;	// This pool is kept globally by InteractionType
 	
 	size_t eidosASTNodePool;				// this pool is kept globally by Eidos
 	size_t eidosSymbolTablePool;			// this pool is kept globally by EidosSymbolTable
@@ -755,7 +755,6 @@ extern const std::string &gStr_allSubpopulations;
 extern const std::string &gStr_chromosome;
 extern const std::string &gStr_chromosomeType;
 extern const std::string &gStr_genomicElementTypes;
-extern const std::string &gStr_interactionTypes;
 extern const std::string &gStr_lifetimeReproductiveOutput;
 extern const std::string &gStr_lifetimeReproductiveOutputM;
 extern const std::string &gStr_lifetimeReproductiveOutputF;
@@ -912,7 +911,7 @@ extern const std::string &gStr_distance;
 extern const std::string &gStr_localPopulationDensity;
 extern const std::string &gStr_interactionDistance;
 extern const std::string &gStr_clippedIntegral;
-extern const std::string &gStr_distanceToPoint;
+extern const std::string &gStr_distanceFromPoint;
 extern const std::string &gStr_nearestNeighbors;
 extern const std::string &gStr_nearestInteractingNeighbors;
 extern const std::string &gStr_interactingNeighborCount;
@@ -1111,7 +1110,6 @@ enum _SLiMGlobalStringID : int {
 	gID_chromosome,
 	gID_chromosomeType,
 	gID_genomicElementTypes,
-	gID_interactionTypes,
 	gID_lifetimeReproductiveOutput,
 	gID_lifetimeReproductiveOutputM,
 	gID_lifetimeReproductiveOutputF,
@@ -1268,7 +1266,7 @@ enum _SLiMGlobalStringID : int {
 	gID_localPopulationDensity,
 	gID_interactionDistance,
 	gID_clippedIntegral,
-	gID_distanceToPoint,
+	gID_distanceFromPoint,
 	gID_nearestNeighbors,
 	gID_nearestInteractingNeighbors,
 	gID_interactingNeighborCount,

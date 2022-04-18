@@ -22,6 +22,8 @@
 #import "SLiMWindowController.h"
 
 #import "species.h"
+#include "community.h"
+
 
 
 @implementation GraphView
@@ -142,7 +144,7 @@
 	// and because we want to be able to display it even when the sim is in an invalid state
 	if (graphSpecies)
 	{
-		if (graphSpecies->community_.is_multispecies_)
+		if (graphSpecies->community_.all_species_.size() > 1)
 			focalSpeciesAvatar = graphSpecies->avatar_;
 		else
 			focalSpeciesAvatar = "";
@@ -565,7 +567,7 @@
 	SLiMWindowController *controller = [self slimWindowController];
 	NSRect bounds = [self bounds];
 	
-	if (controller->community->is_multispecies_)
+	if (controller->community->all_species_.size() > 1)
 	{
 		Species *displaySpecies = [self focalDisplaySpecies];
 		

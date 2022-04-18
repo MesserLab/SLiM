@@ -21,6 +21,8 @@
 #import "GraphView_PopulationVisualization.h"
 #import "SLiMWindowController.h"
 
+#include "community.h"
+
 
 @implementation GraphView_PopulationVisualization
 

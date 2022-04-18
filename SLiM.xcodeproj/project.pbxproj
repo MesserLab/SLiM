@@ -249,6 +249,8 @@
 		985724F31AD6D4060047C223 /* show_tokens.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985724EF1AD6D4060047C223 /* show_tokens.pdf */; };
 		985724F61AD6DD470047C223 /* show_execution_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985724F41AD6DD470047C223 /* show_execution_H.pdf */; };
 		985724F71AD6DD470047C223 /* show_execution.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 985724F51AD6DD470047C223 /* show_execution.pdf */; };
+		985D1D8B2808B84F00461CFA /* sparse_vector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985D1D892808B84F00461CFA /* sparse_vector.cpp */; };
+		985D1D8C2808B84F00461CFA /* sparse_vector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985D1D892808B84F00461CFA /* sparse_vector.cpp */; };
 		985F3EEA24BA27EC00E712E0 /* slim_test_genetics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */; };
 		985F3EEB24BA27EC00E712E0 /* slim_test_genetics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */; };
 		985F3EED24BA2A5D00E712E0 /* eidos_test_operators_other.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3EEC24BA2A5D00E712E0 /* eidos_test_operators_other.cpp */; };
@@ -612,8 +614,6 @@
 		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
-		98DC39942127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
-		98DC39952127D52000025211 /* sparse_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC39922127D52000025211 /* sparse_array.cpp */; };
 		98DD5F022155B857009062EE /* change_folder.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F002155B857009062EE /* change_folder.pdf */; };
 		98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F012155B857009062EE /* change_folder_H.pdf */; };
 		98DDAED6221765480038C133 /* slim_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DDAED4221765480038C133 /* slim_functions.cpp */; };
@@ -852,6 +852,8 @@
 		985724F51AD6DD470047C223 /* show_execution.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = show_execution.pdf; sourceTree = "<group>"; };
 		9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_intrusive_ptr.h; sourceTree = "<group>"; };
 		985A11861BBA07CB009EE1FF /* eidos_object_pool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_object_pool.h; sourceTree = "<group>"; };
+		985D1D892808B84F00461CFA /* sparse_vector.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sparse_vector.cpp; sourceTree = "<group>"; };
+		985D1D8A2808B84F00461CFA /* sparse_vector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparse_vector.h; sourceTree = "<group>"; };
 		985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = slim_test_genetics.cpp; sourceTree = "<group>"; };
 		985F3EEC24BA2A5D00E712E0 /* eidos_test_operators_other.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_operators_other.cpp; sourceTree = "<group>"; };
 		985F3EF124BA2A8C00E712E0 /* eidos_test_functions_other.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_functions_other.cpp; sourceTree = "<group>"; };
@@ -1081,8 +1083,6 @@
 		98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosPrettyprinter.mm; sourceTree = "<group>"; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
-		98DC39922127D52000025211 /* sparse_array.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sparse_array.cpp; sourceTree = "<group>"; };
-		98DC39932127D52000025211 /* sparse_array.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparse_array.h; sourceTree = "<group>"; };
 		98DD5F002155B857009062EE /* change_folder.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder.pdf; sourceTree = "<group>"; };
 		98DD5F012155B857009062EE /* change_folder_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder_H.pdf; sourceTree = "<group>"; };
 		98DDAED4221765480038C133 /* slim_functions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = slim_functions.cpp; sourceTree = "<group>"; };
@@ -1294,8 +1294,8 @@
 				98E9A68E1A3CD4CF000AD4FC /* mutation_type.cpp */,
 				98E9A69B1A3CD542000AD4FC /* polymorphism.h */,
 				98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */,
-				98DC39932127D52000025211 /* sparse_array.h */,
-				98DC39922127D52000025211 /* sparse_array.cpp */,
+				985D1D8A2808B84F00461CFA /* sparse_vector.h */,
+				985D1D892808B84F00461CFA /* sparse_vector.cpp */,
 				98DB3D6E1E6122AE00E2C200 /* interaction_type.h */,
 				98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */,
 				9809DF9F2550F32500C4E82D /* log_file.h */,
@@ -2374,6 +2374,7 @@
 				98C8213A1C7A980000548839 /* gamma.c in Sources */,
 				982B50C62704048E006E91BC /* nbinomial.c in Sources */,
 				98C821311C7A980000548839 /* poisson.c in Sources */,
+				985D1D8B2808B84F00461CFA /* sparse_vector.cpp in Sources */,
 				98E9A6AE1A3CD5D3000AD4FC /* population.cpp in Sources */,
 				9876E6121ED55C6B00FF9762 /* beta.c in Sources */,
 				98332AE81FDBC1D900274FF0 /* rowcol.c in Sources */,
@@ -2449,7 +2450,6 @@
 				985F3F0624BA310100E712E0 /* eidos_test_operators_comparison.cpp in Sources */,
 				98C8212F1C7A980000548839 /* lognormal.c in Sources */,
 				9836867427CD40CF00683639 /* community.cpp in Sources */,
-				98DC39942127D52000025211 /* sparse_array.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2681,7 +2681,6 @@
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
-				98DC39952127D52000025211 /* sparse_array.cpp in Sources */,
 				98332B121FDBD0F500274FF0 /* init.c in Sources */,
 				986926EB1AA6B7480000E138 /* GraphView_PopulationVisualization.mm in Sources */,
 				98D524691F2EB4DD005AD9A6 /* EidosPrettyprinter.mm in Sources */,
@@ -2691,6 +2690,7 @@
 				98C821B31C7A9B9F00548839 /* shuffle.c in Sources */,
 				98C8214B1C7A983700548839 /* gamma.c in Sources */,
 				98800DC51B82B6C60046F5F9 /* slim_test.cpp in Sources */,
+				985D1D8C2808B84F00461CFA /* sparse_vector.cpp in Sources */,
 				9876E60E1ED55C0B00FF9762 /* expint.c in Sources */,
 				98D4C1D91A6F542900FFB083 /* mutation_type.cpp in Sources */,
 				9854D2642278B9F8001D43BC /* convert.c in Sources */,

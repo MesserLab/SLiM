@@ -24,6 +24,7 @@
 #include "individual.h"
 #include "subpopulation.h"
 #include "polymorphism.h"
+#include "interaction_type.h"
 #include "log_file.h"
 
 #include <iostream>
@@ -72,13 +73,17 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	if (tick_ != 0)
 		EIDOS_TERMINATION << "ERROR (Community::ContextDefinedFunctionDispatch): the function " << p_function_name << "() may only be called in an initialize() callback." << EidosTerminate();
 	
+	// Non-species-specific initialization
+	if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)				return this->ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)		return this->ExecuteContextFunction_initializeInteractionType(p_function_name, p_arguments, p_interpreter);
+	
+	// Species-specific initialization
 	if (!active_species_)
-		EIDOS_TERMINATION << "ERROR (Community::ContextDefinedFunctionDispatch): (internal error) no active species in context-defined function dispatch." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ContextDefinedFunctionDispatch): no active species in context-defined function dispatch; " << p_function_name << "() must be called from a species-specific initialize() callback." << EidosTerminate();
 	
 	if (p_function_name.compare(gStr_initializeAncestralNucleotides) == 0)		return active_species_->ExecuteContextFunction_initializeAncestralNucleotides(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElement) == 0)		return active_species_->ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)	return active_species_->ExecuteContextFunction_initializeGenomicElementType(p_function_name, p_arguments, p_interpreter);
-	else if (p_function_name.compare(gStr_initializeInteractionType) == 0)		return active_species_->ExecuteContextFunction_initializeInteractionType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeMutationTypeNuc) == 0)		return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return active_species_->ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_interpreter);
@@ -89,7 +94,6 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	else if (p_function_name.compare(gStr_initializeSLiMOptions) == 0)			return active_species_->ExecuteContextFunction_initializeSLiMOptions(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeSpecies) == 0)				return active_species_->ExecuteContextFunction_initializeSpecies(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeTreeSeq) == 0)				return active_species_->ExecuteContextFunction_initializeTreeSeq(p_function_name, p_arguments, p_interpreter);
-	else if (p_function_name.compare(gStr_initializeSLiMModelType) == 0)		return active_species_->ExecuteContextFunction_initializeSLiMModelType(p_function_name, p_arguments, p_interpreter);
 	
 	EIDOS_TERMINATION << "ERROR (Community::ContextDefinedFunctionDispatch): the function " << p_function_name << "() is not implemented by Community." << EidosTerminate();
 }
@@ -178,6 +182,125 @@ EidosSymbolTable *Community::SymbolsFromBaseSymbols(EidosSymbolTable *p_base_sym
 	return simulation_constants_;
 }
 
+//	*********************	(void)initializeSLiMModelType(string$ modelType)
+//
+EidosValue_SP Community::ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_interpreter)
+	EidosValue *arg_modelType_value = p_arguments[0].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (num_modeltype_declarations_ > 0)
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() may be called only once." << EidosTerminate();
+	
+	if (is_explicit_species_ && active_species_)
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeSLiMModelType): in multispecies models, initializeSLiMModelType() may only be called from a non-species-specific (`species all`) initialize() callback." << EidosTerminate();
+	
+	if ((num_interaction_types_ > 0) ||
+		(active_species_ &&
+		 active_species_->HasDoneAnyInitialization()))
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeSLiMModelType): initializeSLiMModelType() must be called before all other initialization functions." << EidosTerminate();
+	
+	{
+		// string$ modelType
+		std::string model_type = arg_modelType_value->StringAtIndex(0, nullptr);
+		
+		if (model_type == "WF")
+			SetModelType(SLiMModelType::kModelTypeWF);
+		else if (model_type == "nonWF")
+			SetModelType(SLiMModelType::kModelTypeNonWF);
+		else
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeSLiMModelType): in initializeSLiMModelType(), legal values for parameter modelType are only 'WF' or 'nonWF'." << EidosTerminate();
+	}
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		output_stream << "initializeSLiMModelType(";
+		
+		// modelType
+		output_stream << "modelType = ";
+		
+		if (model_type_ == SLiMModelType::kModelTypeWF) output_stream << "'WF'";
+		else if (model_type_ == SLiMModelType::kModelTypeNonWF) output_stream << "'nonWF'";
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_modeltype_declarations_++;
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	(object<InteractionType>$)initializeInteractionType(is$ id, string$ spatiality, [logical$ reciprocal = F], [numeric$ maxDistance = INF], [string$ sexSegregation = "**"])
+//
+EidosValue_SP Community::ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_function_name, p_arguments, p_interpreter)
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *spatiality_value = p_arguments[1].get();
+	EidosValue *reciprocal_value = p_arguments[2].get();
+	EidosValue *maxDistance_value = p_arguments[3].get();
+	EidosValue *sexSegregation_value = p_arguments[4].get();
+	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
+	
+	if (is_explicit_species_ && active_species_)
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeInteractionType): in multispecies models, initializeInteractionType() may only be called from a non-species-specific (`species all`) initialize() callback." << EidosTerminate();
+	
+	slim_objectid_t map_identifier = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 'i');
+	std::string spatiality_string = spatiality_value->StringAtIndex(0, nullptr);
+	bool reciprocal = reciprocal_value->LogicalAtIndex(0, nullptr);		// UNUSED
+	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	std::string sex_string = sexSegregation_value->StringAtIndex(0, nullptr);
+	IndividualSex receiver_sex = IndividualSex::kUnspecified, exerter_sex = IndividualSex::kUnspecified;
+	
+	if (InteractionTypeWithID(map_identifier))
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() interaction type m" << map_identifier << " already defined." << EidosTerminate();
+	
+	if (sex_string == "**")			{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kUnspecified;	}
+	else if (sex_string == "*M")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kMale;			}
+	else if (sex_string == "*F")	{ receiver_sex = IndividualSex::kUnspecified;	exerter_sex = IndividualSex::kFemale;		}
+	else if (sex_string == "M*")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kUnspecified;	}
+	else if (sex_string == "MM")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kMale;			}
+	else if (sex_string == "MF")	{ receiver_sex = IndividualSex::kMale;			exerter_sex = IndividualSex::kFemale;		}
+	else if (sex_string == "F*")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kUnspecified;	}
+	else if (sex_string == "FM")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kMale;			}
+	else if (sex_string == "FF")	{ receiver_sex = IndividualSex::kFemale;		exerter_sex = IndividualSex::kFemale;		}
+	else
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() unsupported sexSegregation value (must be '**', '*M', '*F', 'M*', 'MM', 'MF', 'F*', 'FM', or 'FF')." << EidosTerminate();
+	
+	InteractionType *new_interaction_type = new InteractionType(*this, map_identifier, spatiality_string, reciprocal, max_distance, receiver_sex, exerter_sex);
+	
+	interaction_types_.emplace(map_identifier, new_interaction_type);
+	interaction_types_changed_ = true;
+	
+	// define a new Eidos variable to refer to the new mutation type
+	EidosSymbolTableEntry &symbol_entry = new_interaction_type->SymbolTableEntry();
+	
+	if (p_interpreter.SymbolTable().ContainsSymbol(symbol_entry.first))
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteContextFunction_initializeInteractionType): initializeInteractionType() symbol " << EidosStringRegistry::StringForGlobalStringID(symbol_entry.first) << " was already defined prior to its definition here." << EidosTerminate();
+	
+	SymbolTable().InitializeConstantSymbolEntry(symbol_entry);
+	
+	if (SLiM_verbosity_level >= 1)
+	{
+		output_stream << "initializeInteractionType(" << map_identifier << ", \"" << spatiality_string << "\"";
+		
+		if (reciprocal == true)
+			output_stream << ", reciprocal=T";
+		
+		if (!std::isinf(max_distance))
+			output_stream << ", maxDistance=" << max_distance;
+		
+		if (sex_string != "**")
+			output_stream << ", sexSegregation=\"" << sex_string << "\"";
+		
+		output_stream << ");" << std::endl;
+	}
+	
+	num_interaction_types_++;
+	return symbol_entry.second;
+}
+
 const EidosClass *Community::Class(void) const
 {
 	return gSLiM_Community_Class;
@@ -209,7 +332,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			EidosValue_Object_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_InteractionType_Class);
 			EidosValue_SP result_SP = EidosValue_SP(vec);
 			
-			for (auto inttype : all_interaction_types_)
+			for (auto inttype : interaction_types_)
 				vec->push_object_element_NORR(inttype.second);
 			
 			return result_SP;
@@ -430,6 +553,7 @@ EidosValue_SP Community::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, 
 		case gID_registerFirstEvent:
 		case gID_registerEarlyEvent:
 		case gID_registerLateEvent:				return ExecuteMethod_registerFirstEarlyLateEvent(p_method_id, p_arguments, p_interpreter);
+		case gID_registerInteractionCallback:	return ExecuteMethod_registerInteractionCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
@@ -851,13 +975,13 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "      Unused pool space: " << PrintBytes(usage_all_species.individualUnusedPoolSpace) << std::endl;
 	
 	// InteractionType
-	out << "   InteractionType objects (" << usage_all_species.interactionTypeObjects_count << "): " << PrintBytes(usage_all_species.interactionTypeObjects) << std::endl;
+	out << "   InteractionType objects (" << usage_community.interactionTypeObjects_count << "): " << PrintBytes(usage_community.interactionTypeObjects) << std::endl;
 	
-	if (usage_all_species.interactionTypeObjects_count)
+	if (usage_community.interactionTypeObjects_count)
 	{
-		out << "      k-d trees: " << PrintBytes(usage_all_species.interactionTypeKDTrees) << std::endl;
-		out << "      Position caches: " << PrintBytes(usage_all_species.interactionTypePositionCaches) << std::endl;
-		out << "      Sparse arrays: " << PrintBytes(usage_all_species.interactionTypeSparseArrays) << std::endl;
+		out << "      k-d trees: " << PrintBytes(usage_community.interactionTypeKDTrees) << std::endl;
+		out << "      Position caches: " << PrintBytes(usage_community.interactionTypePositionCaches) << std::endl;
+		out << "      Sparse vector pool: " << PrintBytes(usage_community.interactionTypeSparseVectorPool) << std::endl;
 	}
 	
 	// Mutation
@@ -973,6 +1097,47 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, target_type, start_tick, end_tick, nullptr, ticksSpec);
 	
+	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
+	
+	return new_script_block->SelfSymbolTableEntry().second;
+}
+
+//	*********************	– (object<SLiMEidosBlock>$)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
+//
+EidosValue_SP Community::ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *id_value = p_arguments[0].get();
+	EidosValue *source_value = p_arguments[1].get();
+	EidosValue *intType_value = p_arguments[2].get();
+	EidosValue *subpop_value = p_arguments[3].get();
+	EidosValue *start_value = p_arguments[4].get();
+	EidosValue *end_value = p_arguments[5].get();
+	
+	slim_objectid_t script_id = -1;		// used if the id is NULL, to indicate an anonymous block
+	std::string script_string = source_value->StringAtIndex(0, nullptr);
+	slim_objectid_t int_type_id = (intType_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(intType_value->IntAtIndex(0, nullptr)) : ((InteractionType *)intType_value->ObjectElementAtIndex(0, nullptr))->interaction_type_id_;
+	slim_objectid_t subpop_id = -1;
+	slim_tick_t start_tick = ((start_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(start_value->IntAtIndex(0, nullptr)) : 1);
+	slim_tick_t end_tick = ((end_value->Type() != EidosValueType::kValueNULL) ? SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)) : SLIM_MAX_TICK + 1);
+	
+	if (id_value->Type() != EidosValueType::kValueNULL)
+		script_id = SLiM_ExtractObjectIDFromEidosValue_is(id_value, 0, 's');
+	
+	if (subpop_value->Type() != EidosValueType::kValueNULL)
+		subpop_id = (subpop_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(subpop_value->IntAtIndex(0, nullptr)) : ((Subpopulation *)subpop_value->ObjectElementAtIndex(0, nullptr))->subpopulation_id_;
+	
+	if (start_tick > end_tick)
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
+	
+	CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage7AdvanceGenerationCounter : SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter);
+	
+	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_tick, end_tick, nullptr, nullptr);
+	
+	new_script_block->interaction_type_id_ = int_type_id;
+	new_script_block->subpopulation_id_ = subpop_id;
+	
+	// SPECIES CONSISTENCY CHECK (done by AddScriptBlock())
 	AddScriptBlock(new_script_block, &p_interpreter, nullptr);		// takes ownership from us
 	
 	return new_script_block->SelfSymbolTableEntry().second;
@@ -1232,6 +1397,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFirstEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddObject_OSN("ticksSpec", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerEarlyEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddObject_OSN("ticksSpec", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerLateEvent, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddObject_OSN("ticksSpec", gSLiM_Species_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerInteractionCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_S("intType", gSLiM_InteractionType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescheduleScriptBlock, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddIntObject_S("block", gSLiM_SLiMEidosBlock_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddInt_ON("ticks", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_scriptBlocksWithIDs, kEidosValueMaskObject, gSLiM_SLiMEidosBlock_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));

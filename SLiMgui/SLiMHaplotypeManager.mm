@@ -20,7 +20,6 @@
 
 #import "SLiMHaplotypeManager.h"
 #import "SLiMWindowController.h"
-#import "species.h"
 
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
@@ -30,6 +29,8 @@
 #include <algorithm>
 
 #include "eidos_globals.h"
+#include "community.h"
+#include "species.h"
 
 
 @implementation SLiMHaplotypeManager

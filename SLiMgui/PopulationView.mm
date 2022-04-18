@@ -26,6 +26,8 @@
 #include <OpenGL/glu.h>
 #include <GLKit/GLKMatrix4.h>
 
+#include "community.h"
+
 
 static const int kMaxGLRects = 2000;				// 2000 rects
 static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each

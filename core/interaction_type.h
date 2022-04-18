@@ -38,7 +38,8 @@
 #include "eidos_symbol_table.h"
 #include "slim_globals.h"
 #include "slim_eidos_block.h"
-#include "sparse_array.h"
+#include "sparse_vector.h"
+#include "subpopulation.h"
 
 
 class Species;
@@ -89,17 +90,20 @@ struct _InteractionsData
 	// unless the subpopulation size changes (which forces a reallocation).  This is important because these blocks can be so large
 	// that they are considered "large blocks" by malloc, triggering some very slow processing such as madvise() that is to be
 	// avoided at all costs.
-	bool evaluated_ = false, distances_calculated_ = false, strengths_calculated_ = false;
+	bool evaluated_ = false;
 	std::vector<SLiMEidosBlock*> evaluation_interaction_callbacks_;
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
 	slim_popsize_t first_male_index_ = 0;	// from the subpopulation's value; needed for sex-segregation handling
 	slim_popsize_t kd_node_count_ = 0;		// the number of entries in the k-d tree; may be a multiple of individual_count_ due to periodicity
 	
+	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from the evaluated Species
+	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
+	bool periodic_z_ = false;
+	
 	double bounds_x1_, bounds_y1_, bounds_z1_;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
 	
 	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
-	SparseArray *dist_str_ = nullptr;		// a sparse array of interaction distances/strengths between individuals, individual_count_ x individual_count_
 	SLiM_kdNode *kd_nodes_ = nullptr;		// individual_count_ entries, holding the nodes of the k-d tree
 	SLiM_kdNode *kd_root_ = nullptr;		// the root of the k-d tree
 	
@@ -131,8 +135,9 @@ private:
 	EidosSymbolTableEntry self_symbol_;			// for fast setup of the symbol table
 	
 	std::string spatiality_string_;				// can be "x", "y", "z", "xy", "xz", "yz", or "xyz"; this determines spatiality_
+	int required_dimensionality_;				// the dimensionality required of all exerter/receiver subpops by our spatiality
 	int spatiality_;							// 0=none, 1=1D (x/y/z), 2=2D (xy/xz/yz), 3=3D (xyz)
-	bool reciprocal_;							// if true, interaction strengths A->B == B->A
+	bool reciprocal_;							// if true, interaction strengths A->B == B->A; NOW UNUSED
 	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
 	double max_distance_sq_;					// the maximum distance squared, cached for speed
 	IndividualSex receiver_sex_;				// the sex of the individuals that feel the interaction
@@ -143,20 +148,27 @@ private:
 	IFType if_type_;							// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
 	
-	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from Species
-	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
-	bool periodic_z_ = false;
+	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each "exerter" subpopulation
 	
-	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each subpopulation
+	void _InvalidateData(InteractionsData &data);
 	
-	void CalculateAllDistances(Subpopulation *p_subpop);
-	void CalculateAllStrengths(Subpopulation *p_subpop);
+	void CheckSpeciesCompatibility(Species &species);
+	void CheckSpatialCompatibility(Subpopulation *receiver_subpop, Subpopulation *exerter_subpop);
+	
+	static void GetReceiverPosition_1x(Individual *receiver, double *position);
+	static void GetReceiverPosition_1y(Individual *receiver, double *position);
+	static void GetReceiverPosition_1z(Individual *receiver, double *position);
+	static void GetReceiverPosition_2xy(Individual *receiver, double *position);
+	static void GetReceiverPosition_2xz(Individual *receiver, double *position);
+	static void GetReceiverPosition_2yz(Individual *receiver, double *position);
+	static void GetReceiverPosition_3xyz(Individual *receiver, double *position);
+	void (*GetReceiverPosition)(Individual *receiver, double *position) = nullptr;	// a function that provides receiver positions
 	
 	double CalculateDistance(double *p_position1, double *p_position2);
 	double CalculateDistanceWithPeriodicity(double *p_position1, double *p_position2, InteractionsData &p_subpop_data);
 	
 	double CalculateStrengthNoCallbacks(double p_distance);
-	double CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
+	double CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	
 	SLiM_kdNode *FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end);
 	SLiM_kdNode *FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end);
@@ -182,12 +194,12 @@ private:
 	int CheckKDTree3_p2(SLiM_kdNode *t);
 	void CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
 	
-	void BuildSA_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array);
-	void BuildSA_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase);
-	void BuildSA_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int p_phase);
-	void BuildSA_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter);
-	void BuildSA_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
-	void BuildSA_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseArray *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
+	void BuildSV_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array);
+	void BuildSV_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int p_phase);
+	void BuildSV_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int p_phase);
+	void BuildSV_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter);
+	void BuildSV_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
+	void BuildSV_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
 	
 	void FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist);
 	void FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
@@ -206,10 +218,55 @@ private:
 	double *clipped_integral_ = nullptr;
 	bool clipped_integral_valid_ = false;
 	
+	// We keep a pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity
+	static std::vector<SparseVector *> s_freed_sparse_vectors_;
+#if DEBUG
+	static int s_sparse_vector_count_;
+#endif
+	
+	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop)
+	{
+		// Return a recycled SparseVector object, or create a new one if we have no recycled objects left.
+		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
+		SparseVector *sv;
+		
+		if (s_freed_sparse_vectors_.size())
+		{
+			sv = s_freed_sparse_vectors_.back();
+			s_freed_sparse_vectors_.pop_back();
+			
+			sv->Reset(exerter_subpop->parent_subpop_size_);
+		}
+		else
+		{
+			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
+			
+#if DEBUG
+			if (++s_sparse_vector_count_ > 1)
+				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_ << "..." << std::endl;
+#endif
+		}
+		
+		return sv;
+	}
+	
+	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
+	{
+		// We return mutation runs to the free list without resetting them, because we do not know the ncols
+		// value for their next usage.  They would hang on to their internal buffers for reuse.
+		s_freed_sparse_vectors_.emplace_back(sv);
+		
+#if DEBUG
+		s_sparse_vector_count_--;
+#endif
+	}
+	
+	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
+	void FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
+	
 public:
 	
-	Community &community_;
-	Species &species_;
+	Community &community_;						// we know the community, but we have no focal species
 	
 	slim_objectid_t interaction_type_id_;		// the id by which this interaction type is indexed in the chromosome
 	EidosValue_SP cached_value_inttype_id_;		// a cached value for interaction_type_id_; reset() if that changes
@@ -218,26 +275,36 @@ public:
 	InteractionType(const InteractionType&) = delete;					// no copying
 	InteractionType& operator=(const InteractionType&) = delete;		// no copying
 	InteractionType(void) = delete;										// no null construction
-	InteractionType(Species &p_species, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
+	InteractionType(Community &p_community, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
 	~InteractionType(void);
 	
-	void EvaluateSubpopulation(Subpopulation *p_subpop, bool p_immediate);
+	void EvaluateSubpopulation(Subpopulation *p_exerter_subpop);
 	bool AnyEvaluated(void);
 	void Invalidate(void);
+	void InvalidateForSpecies(Species *p_invalid_species);
 	
 	void CacheClippedIntegral_1D(void);
 	void CacheClippedIntegral_2D(void);
-	double ClippedIntegral_1D(double indDistanceA1, double indDistanceA2);
-	double ClippedIntegral_2D(double indDistanceA1, double indDistanceA2, double indDistanceB1, double indDistanceB2);
+	double ClippedIntegral_1D(double indDistanceA1, double indDistanceA2, bool periodic_x);
+	double ClippedIntegral_2D(double indDistanceA1, double indDistanceA2, double indDistanceB1, double indDistanceB2, bool periodic_x, bool periodic_y);
 	
 	// apply interaction() callbacks to an interaction strength; the return value is the final interaction strength
-	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, Subpopulation *p_subpop, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
+	double ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks);
 	
 	// Memory usage tallying, for outputUsage()
 	size_t MemoryUsageForKDTrees(void);
 	size_t MemoryUsageForPositions(void);
-	size_t MemoryUsageForSparseArrays(void);
+	static size_t MemoryUsageForSparseVectorPool(void);
 	
+	static inline void DeleteSparseVectorFreeList(void)
+	{
+		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
+		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
+		for (auto sv : s_freed_sparse_vectors_)
+			delete (sv);
+		
+		s_freed_sparse_vectors_.clear();
+	}
 	
 	//
 	// Eidos support
@@ -253,7 +320,7 @@ public:
 	virtual EidosValue_SP ExecuteInstanceMethod(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) override;
 	EidosValue_SP ExecuteMethod_clippedIntegral(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_distance(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_distanceToPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_distanceFromPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_evaluate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

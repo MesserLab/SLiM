@@ -31,11 +31,14 @@
 #import "EidosHelpController.h"
 #import "EidosPrettyprinter.h"
 #import "EidosCocoaExtra.h"
-#import "eidos_call_signature.h"
-#import "eidos_property_signature.h"
-#import "eidos_type_interpreter.h"
-#import "slim_test.h"
-#import "slim_gui.h"
+
+#include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
+#include "eidos_type_interpreter.h"
+#include "slim_test.h"
+#include "slim_gui.h"
+#include "community.h"
+#include "interaction_type.h"
 
 #include <iostream>
 #include <sstream>
@@ -654,7 +657,7 @@
 	if (community && displaySpecies && (community->Tick() >= 1))
 	{
 		BOOL speciesBarVisibleNow = ![speciesBar isHidden];
-		bool speciesBarShouldBeVisible = community->is_multispecies_;
+		bool speciesBarShouldBeVisible = (community->all_species_.size() > 1);
 		
 		if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
 		{
@@ -2092,9 +2095,9 @@ static int DisplayDigitsForIntegerPart(double x)
 			[content eidosAppendString:@" : position caches\n" attributes:optima13_d];
 			
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.interactionTypeSparseArrays / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeSparseVectorPool / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.interactionTypeSparseArrays total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeSparseVectorPool total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : sparse arrays\n" attributes:optima13_d];
 		}
 		
@@ -4677,7 +4680,7 @@ static int DisplayDigitsForIntegerPart(double x)
 				{
 					NSString *idString = [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
 					
-					if (community->is_multispecies_)
+					if (community->all_species_.size() > 1)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:mutationType->species_.avatar_.c_str()]];
 					
 					return idString;
@@ -4761,7 +4764,7 @@ static int DisplayDigitsForIntegerPart(double x)
 				{
 					NSString *idString = [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
 					
-					if (community->is_multispecies_)
+					if (community->all_species_.size() > 1)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:genomicElementType->species_.avatar_.c_str()]];
 					
 					return idString;
@@ -4805,9 +4808,6 @@ static int DisplayDigitsForIntegerPart(double x)
 				if (aTableColumn == interactionTypeIDColumn)
 				{
 					NSString *idString = [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
-					
-					if (community->is_multispecies_)
-						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:interactionType->species_.avatar_.c_str()]];
 					
 					return idString;
 				}
@@ -4875,9 +4875,9 @@ static int DisplayDigitsForIntegerPart(double x)
 					else
 						idString = [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
 					
-					if (community->is_multispecies_ && scriptBlock->species_spec_)
+					if ((community->all_species_.size() > 1) && scriptBlock->species_spec_)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->species_spec_->avatar_.c_str()]];
-					else if (community->is_multispecies_ && scriptBlock->ticks_spec_)
+					else if ((community->all_species_.size() > 1) && scriptBlock->ticks_spec_)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->ticks_spec_->avatar_.c_str()]];
 					
 					return idString;

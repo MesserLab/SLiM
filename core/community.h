@@ -99,7 +99,11 @@ private:
 	// these maps compile the objects from all species into a single sorted list for presentation in the UI etc.
 	std::map<slim_objectid_t,MutationType*> all_mutation_types_;					// NOT OWNED: each species owns its own mutation types
 	std::map<slim_objectid_t,GenomicElementType*> all_genomic_element_types_;		// NOT OWNED: each species owns its own genomic element types
-	std::map<slim_objectid_t,InteractionType*> all_interaction_types_;				// NOT OWNED: each species owns its own interaction types
+	
+	std::map<slim_objectid_t,InteractionType*> interaction_types_;					// OWNED POINTERS: this map is the owner of all allocated InteractionType objects
+	
+	int num_interaction_types_;
+	int num_modeltype_declarations_;
 	
 #ifdef SLIMGUI
 public:
@@ -151,9 +155,8 @@ private:
 public:
 	
 	bool is_explicit_species_ = false;												// true if we have explicit species declarations (even if only one, even if named "sim")
-	bool is_multispecies_ = false;													// true if we actually have more than one species; false if a single species is explicitly declared
-
-	bool model_type_explicit_ = false;												// true if the model type has been explicitly declared
+	
+	bool model_type_set_ = false;													// true if the model type has been set, either explicitly or implicitly
 	SLiMModelType model_type_ = SLiMModelType::kModelTypeWF;						// the overall model type: WF or nonWF, at present; affects many other things!
 	
 	// warning flags; used to issue warnings only once per run of the simulation
@@ -207,15 +210,21 @@ public:
 	Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id);
 	MutationType *MutationTypeWithID(slim_objectid_t p_muttype_id);
 	GenomicElementType *GenomicElementTypeWithID(slim_objectid_t p_getype_id);
-	InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id);
 	SLiMEidosBlock *ScriptBlockWithID(slim_objectid_t p_script_block_id);
 	Species *SpeciesWithID(slim_objectid_t p_species_id);
 	
 	Species *SpeciesWithName(const std::string &species_name);
 	
+	inline InteractionType *InteractionTypeWithID(slim_objectid_t p_inttype_id) {
+		auto id_iter = interaction_types_.find(p_inttype_id);
+		return (id_iter == interaction_types_.end()) ? nullptr : id_iter->second;
+	}
+	
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &AllMutationTypes(void) const			{ return all_mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &AllGenomicElementTypes(void)		{ return all_genomic_element_types_; }
-	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &AllInteractionTypes(void)			{ return all_interaction_types_; }
+	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &AllInteractionTypes(void)			{ return interaction_types_; }
+	
+	void InvalidateInteractionsForSpecies(Species *p_invalid_species);
 	
 	// Checking for species identity; these return nullptr if the objects do not all belong to the same species
 	// Calls to these methods, and other such species checks, should be labeled SPECIES CONSISTENCY CHECK to make them easier to find
@@ -233,6 +242,7 @@ public:
 	bool _RunOneTick(void);															// does the work of RunOneTick(), with no try/catch
 	void ExecuteEidosEvent(SLiMEidosBlock *p_script_block);
 	void AllSpecies_RunInitializeCallbacks(void);									// run initialize() callbacks and check for complete initialization
+	void RunInitializeCallbacks(void);												// run `species all` initialize() callbacks
 	void AllSpecies_CheckIntegrity(void);
 	
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
@@ -318,6 +328,9 @@ public:
 	static const std::vector<EidosFunctionSignature_CSP> *SLiMFunctionSignatures(void);		// all non-zero-tick functions
 	static void AddSLiMFunctionsToMap(EidosFunctionMap &p_map);
 	
+	EidosValue_SP ExecuteContextFunction_initializeSLiMModelType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteContextFunction_initializeInteractionType(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	
 	virtual const EidosClass *Class(void) const override;
 	virtual void Print(std::ostream &p_ostream) const override;
 	
@@ -336,6 +349,7 @@ public:
 	EidosValue_SP ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_registerInteractionCallback(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_simulationFinished(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };

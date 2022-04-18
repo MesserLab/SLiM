@@ -23,6 +23,7 @@
 #include "species.h"
 #include "slim_globals.h"
 #include "population.h"
+#include "interaction_type.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
@@ -5005,10 +5006,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
-		auto &interactionTypes = species_.InteractionTypes();
-		
-		for (auto int_type : interactionTypes)
-			int_type.second->Invalidate();
+		community_.InvalidateInteractionsForSpecies(&species_);
 	}
 	
 	return gStaticEidosValueVOID;

@@ -23,6 +23,8 @@
 #import "CocoaExtra.h"
 #import "SLiMHaplotypeManager.h"
 
+#include "community.h"
+
 
 // We now use OpenGL to do some of our drawing, so we need these headers
 #import <OpenGL/OpenGL.h>
