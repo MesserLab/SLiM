@@ -3223,29 +3223,29 @@ void QtSLiMWindow::displayProfileResults(void)
 		
 		// InteractionType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot_S.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.interactionTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot_C.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_C.interactionTypeObjects_count), optima13_d);
 		
-		if (mem_tot_S.interactionTypeObjects_count || mem_last_S.interactionTypeObjects_count)
+		if (mem_tot_C.interactionTypeObjects_count || mem_last_C.interactionTypeObjects_count)
 		{
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : k-d trees\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : position caches\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot_S.interactionTypeSparseArrays / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeSparseVectorPool / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last_S.interactionTypeSparseArrays, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeSparseVectorPool, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : sparse arrays\n", optima13_d);
 		}
 		

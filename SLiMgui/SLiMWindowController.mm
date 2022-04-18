@@ -2075,23 +2075,23 @@ static int DisplayDigitsForIntegerPart(double x)
 		
 		// InteractionType
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.interactionTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot_S.interactionTypeObjects_count / ddiv, mem_last_S.interactionTypeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot_C.interactionTypeObjects_count / ddiv, mem_last_C.interactionTypeObjects_count] attributes:optima13_d];
 		
-		if (mem_tot_S.interactionTypeObjects_count || mem_last_S.interactionTypeObjects_count)
+		if (mem_tot_C.interactionTypeObjects_count || mem_last_C.interactionTypeObjects_count)
 		{
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.interactionTypeKDTrees / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeKDTrees / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.interactionTypeKDTrees total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeKDTrees total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : k-d trees\n" attributes:optima13_d];
 			
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.interactionTypePositionCaches / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypePositionCaches / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.interactionTypePositionCaches total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypePositionCaches total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : position caches\n" attributes:optima13_d];
 			
 			[content eidosAppendString:@"   " attributes:menlo11_d];
