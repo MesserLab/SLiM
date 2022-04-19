@@ -64,8 +64,7 @@ private:
 	
 	bool finished_;						// if true, Finished() has been called and the vector is ready to use
 	
-	void _ResizeToFitNNZ(void);
-	inline __attribute__((always_inline)) void ResizeToFitNNZ(void) { if (nnz_ > nnz_capacity_) _ResizeToFitNNZ(); };
+	void ResizeToFitMaxNNZ(uint32_t max_nnz);
 	
 public:
 	SparseVector(const SparseVector&) = delete;					// no copying
@@ -74,7 +73,6 @@ public:
 	SparseVector(unsigned int p_ncols);
 	~SparseVector(void);
 	
-	void Reset(void);														// reset to a dimensionless state
 	void Reset(unsigned int p_ncols, SparseVectorDataType data_type);		// reset to new dimensions
 	
 	// Building a sparse vector has to be done in column order, one entry at a time, and then has to be Finished().
@@ -109,14 +107,6 @@ public:
 	friend std::ostream &operator<<(std::ostream &p_outstream, const SparseVector &p_vector);
 };
 
-inline __attribute__((always_inline)) void SparseVector::Reset(void)
-{
-	ncols_ = 0;
-	nnz_ = 0;
-	finished_ = false;
-	value_type_ = SparseVectorDataType::kNoData;
-}
-
 inline void SparseVector::Reset(unsigned int p_ncols, SparseVectorDataType data_type)
 {
 #if DEBUG
@@ -128,6 +118,7 @@ inline void SparseVector::Reset(unsigned int p_ncols, SparseVectorDataType data_
 	nnz_ = 0;
 	finished_ = false;
 	value_type_ = data_type;
+	ResizeToFitMaxNNZ(ncols_);
 }
 
 inline void SparseVector::AddEntryDistance(const uint32_t p_column, sv_value_t p_distance)
@@ -139,16 +130,14 @@ inline void SparseVector::AddEntryDistance(const uint32_t p_column, sv_value_t p
 		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryDistance): adding column beyond the end of the sparse vector." << EidosTerminate(nullptr);
 	if (value_type_ != SparseVectorDataType::kDistances)
 		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryDistance): sparse vector is not specialized for distances." << EidosTerminate(nullptr);
+	if (nnz_ >= nnz_capacity_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryDistance): insufficient capacity allocated." << EidosTerminate(nullptr);
 #endif
 	
-	uint32_t offset = nnz_;
-	
+	// insert the new entry
+	columns_[nnz_] = p_column;
+	values_[nnz_] = p_distance;
 	nnz_++;
-	ResizeToFitNNZ();
-	
-	// insert the new entry; we leave strengths_[offset] uninitialized
-	columns_[offset] = p_column;
-	values_[offset] = p_distance;
 }
 
 inline void SparseVector::AddEntryStrength(const uint32_t p_column, sv_value_t p_strength)
@@ -160,16 +149,14 @@ inline void SparseVector::AddEntryStrength(const uint32_t p_column, sv_value_t p
 		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryStrength): adding column beyond the end of the sparse vector." << EidosTerminate(nullptr);
 	if (value_type_ != SparseVectorDataType::kStrengths)
 		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryStrength): sparse vector is not specialized for strengths." << EidosTerminate(nullptr);
+	if (nnz_ >= nnz_capacity_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryStrength): insufficient capacity allocated." << EidosTerminate(nullptr);
 #endif
 	
-	uint32_t offset = nnz_;
-	
-	nnz_++;
-	ResizeToFitNNZ();
-	
 	// insert the new entry
-	columns_[offset] = p_column;
-	values_[offset] = p_strength;
+	columns_[nnz_] = p_column;
+	values_[nnz_] = p_strength;
+	nnz_++;
 }
 
 inline __attribute__((always_inline)) void SparseVector::Finished(void)

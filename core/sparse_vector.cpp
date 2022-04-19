@@ -44,6 +44,8 @@ SparseVector::SparseVector(unsigned int p_ncols)
 	
 	if (!columns_ || !values_)
 		EIDOS_TERMINATION << "ERROR (SparseVector::SparseVector): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	ResizeToFitMaxNNZ(ncols_);
 }
 
 SparseVector::~SparseVector(void)
@@ -61,13 +63,17 @@ SparseVector::~SparseVector(void)
 	values_ = nullptr;
 }
 
-void SparseVector::_ResizeToFitNNZ(void)
+void SparseVector::ResizeToFitMaxNNZ(uint32_t max_nnz)
 {
-	if (nnz_ > nnz_capacity_)	// guaranteed if we're called by ResizeToFitNNZ(), but might as well be safe...
+	// The design of SparseVector is that it always knows up front the maximum number of entries that can be added; it is
+	// always the number of columns specified to its constructor or to Reset().  This method resizes the vector proactively
+	// to make room for that maximum number of entries.  This allows us to add new entries without checking capacity.  For
+	// models with a million individuals, this will cause our capacity to grow to a million entries, but that is trivial.
+	if (max_nnz > nnz_capacity_)
 	{
 		do
 			nnz_capacity_ <<= 1;
-		while (nnz_ > nnz_capacity_);
+		while (max_nnz > nnz_capacity_);
 		
 		columns_ = (uint32_t *)realloc(columns_, nnz_capacity_ * sizeof(uint32_t));
 		values_ = (sv_value_t *)realloc(values_, nnz_capacity_ * sizeof(sv_value_t));
