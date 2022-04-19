@@ -33,14 +33,14 @@ initialize() {
 	}
 }
 1: late() {
-	i1.evaluate();
+	i1.evaluate(p1);
 	inds = sim.subpopulations.individuals;
 	competition = i1.totalOfNeighborStrengths(inds) / size(inds);
 	competition = pmin(competition, 0.99);
 	inds.fitnessScaling = 1.0 - competition;
 }
-first() {
-	i2.evaluate();
+2: first() {
+	i2.evaluate(p1);
 }
 mateChoice() {
 	return i2.strength(individual);

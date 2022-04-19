@@ -18,7 +18,7 @@ initialize() {
 	p1.individuals.setSpatialPosition(p1.pointUniform(500));
 }
 1: late() {
-	i1.evaluate();
+	i1.evaluate(p1);
 }
 fitness(NULL) {
 	totalStrength = i1.totalOfNeighborStrengths(individual);

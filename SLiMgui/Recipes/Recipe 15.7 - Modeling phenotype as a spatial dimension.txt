@@ -33,7 +33,7 @@ fitness(m2) { return 1.0; }
 	inds.x = phenotypes;
 	
 	// evaluate phenotypic competition
-	i1.evaluate();
+	i1.evaluate(p1);
 	competition = sapply(inds, "sum(i1.strength(applyValue));");
 	effects = 1.0 - competition / size(inds);
 	inds.fitnessScaling = inds.fitnessScaling * effects;

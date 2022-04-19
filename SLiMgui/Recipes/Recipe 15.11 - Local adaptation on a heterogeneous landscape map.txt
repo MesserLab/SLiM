@@ -54,14 +54,14 @@ modifyChild() {
 	inds.color = p1.spatialMapColor("map1", phenotype);
 	
 	// evaluate phenotypic competition
-	i1.evaluate();
+	i1.evaluate(p1);
 	competition = sapply(inds, "sum(i1.strength(applyValue));");
 	effects = 1.0 - competition / size(inds);
 	inds.fitnessScaling = inds.fitnessScaling * effects;
 }
-first() {
+2: first() {
 	// evaluate mate choice in preparation for reproduction
-	i2.evaluate();
+	i2.evaluate(p1);
 }
 mateChoice() {
 	// spatial mate choice

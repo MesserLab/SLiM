@@ -21,7 +21,7 @@ initialize() {
 }
 1: late() {
 	// evaluate interactions before fitness calculations
-	i1.evaluate();
+	i1.evaluate(p1);
 }
 fitness(NULL) {
 	// spatial competition

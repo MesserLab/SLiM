@@ -32,9 +32,9 @@ initialize() {
 	// spatial mate choice
 	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.05);
 }
-first() {
+2: first() {
 	// look for mates
-	i2.evaluate();
+	i2.evaluate(p1);
 }
 reproduction() {
 	litterSize = rpois(1, FERTILITY);
@@ -66,7 +66,7 @@ reproduction() {
 	target.tag = HEALTH_I;
 }
 early() {
-	i1.evaluate();
+	i1.evaluate(p1);
 	
 	// spatial competition provides density-dependent selection
 	inds = p1.individuals;
