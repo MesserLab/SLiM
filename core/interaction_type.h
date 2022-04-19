@@ -147,6 +147,7 @@ private:
 	
 	IFType if_type_;							// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
+	double n_2param2sq_;						// for type "n", precalculated == 2.0 * if_param2_ * if_param2_
 	
 	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each "exerter" subpopulation
 	
@@ -194,12 +195,18 @@ private:
 	int CheckKDTree3_p2(SLiM_kdNode *t);
 	void CheckKDTree3_p2_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
 	
-	void BuildSV_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array);
-	void BuildSV_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int p_phase);
-	void BuildSV_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int p_phase);
-	void BuildSV_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter);
-	void BuildSV_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
-	void BuildSV_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_array, int start_exerter, int after_end_exerter, int p_phase);
+	void BuildSV_Distances_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector);
+	void BuildSV_Distances_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Distances_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Distances_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter);
+	void BuildSV_Distances_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
+	void BuildSV_Distances_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
+	
+	void BuildSV_Strengths_f_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Strengths_l_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Strengths_e_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	
 	void FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist);
 	void FindNeighbors1_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist, int p_phase);
@@ -224,7 +231,7 @@ private:
 	static int s_sparse_vector_count_;
 #endif
 	
-	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop)
+	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop, SparseVectorDataType data_type)
 	{
 		// Return a recycled SparseVector object, or create a new one if we have no recycled objects left.
 		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
@@ -235,11 +242,12 @@ private:
 			sv = s_freed_sparse_vectors_.back();
 			s_freed_sparse_vectors_.pop_back();
 			
-			sv->Reset(exerter_subpop->parent_subpop_size_);
+			sv->Reset(exerter_subpop->parent_subpop_size_, data_type);
 		}
 		else
 		{
 			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
+			sv->SetDataType(data_type);
 			
 #if DEBUG
 			if (++s_sparse_vector_count_ > 1)

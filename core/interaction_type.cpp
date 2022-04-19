@@ -756,7 +756,7 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 		case IFType::kExponential:
 			return (if_param1_ * exp(-if_param2_ * p_distance));										// fmax * exp(−λd)
 		case IFType::kNormal:
-			return (if_param1_ * exp(-(p_distance * p_distance) / (2.0 * if_param2_ * if_param2_)));	// fmax * exp(−d^2/2σ^2)
+			return (if_param1_ * exp(-(p_distance * p_distance) / n_2param2sq_));						// fmax * exp(−d^2/2σ^2)
 		case IFType::kCauchy:
 		{
 			double temp = p_distance / if_param2_;
@@ -1933,7 +1933,7 @@ inline __attribute__((always_inline)) double dist_sq3(SLiM_kdNode *a, double *b)
 }
 
 // add neighbors to the sparse vector in 1D
-void InteractionType::BuildSV_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector)
+void InteractionType::BuildSV_Distances_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector)
 {
 	double d = dist_sq1(root, nd);
 #ifndef __clang_analyzer__
@@ -1944,32 +1944,32 @@ void InteractionType::BuildSV_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
+			BuildSV_Distances_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
+			BuildSV_Distances_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
+			BuildSV_Distances_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
+			BuildSV_Distances_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
 	}
 }
 
 // add neighbors to the sparse vector in 2D
-void InteractionType::BuildSV_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+void InteractionType::BuildSV_Distances_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
 #ifndef __clang_analyzer__
@@ -1980,34 +1980,34 @@ void InteractionType::BuildSV_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 }
 
 // add neighbors to the sparse vector in 3D
-void InteractionType::BuildSV_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+void InteractionType::BuildSV_Distances_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq3(root, nd);
 #ifndef __clang_analyzer__
@@ -2018,34 +2018,34 @@ void InteractionType::BuildSV_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+			BuildSV_Distances_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 }
 
 // add neighbors to the sparse vector in 1D (exerter sex-specific)
-void InteractionType::BuildSV_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter)
+void InteractionType::BuildSV_Distances_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter)
 {
 	double d = dist_sq1(root, nd);
 #ifndef __clang_analyzer__
@@ -2056,32 +2056,32 @@ void InteractionType::BuildSV_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+			BuildSV_Distances_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+			BuildSV_Distances_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+			BuildSV_Distances_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+			BuildSV_Distances_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
 	}
 }
 
 // add neighbors to the sparse vector in 2D (exerter sex-specific)
-void InteractionType::BuildSV_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
+void InteractionType::BuildSV_Distances_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
 {
 	double d = dist_sq2(root, nd);
 #ifndef __clang_analyzer__
@@ -2092,34 +2092,34 @@ void InteractionType::BuildSV_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 	}
 }
 
 // add neighbors to the sparse vector in 3D (exerter sex-specific)
-void InteractionType::BuildSV_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
+void InteractionType::BuildSV_Distances_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
 {
 	double d = dist_sq3(root, nd);
 #ifndef __clang_analyzer__
@@ -2130,29 +2130,175 @@ void InteractionType::BuildSV_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_distance_t)sqrt(d));
+		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
 	if (dx > 0)
 	{
 		if (root->left)
-			BuildSV_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->right)
-			BuildSV_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 	}
 	else
 	{
 		if (root->right)
-			BuildSV_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 		
 		if (dx2 > max_distance_sq_) return;
 		
 		if (root->left)
-			BuildSV_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+			BuildSV_Distances_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+	}
+}
+
+// add neighbor strengths of type "f" (IFType::kFixed : fixed) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_f_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		//d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)if_param1_);
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_f_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_f_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_f_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_f_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbor strengths of type "l" (IFType::kLinear : linear) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_l_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)(if_param1_ * (1.0 - d / max_distance_)));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_l_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_l_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_l_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_l_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbor strengths of type "e" (IFType::kExponential : exponential) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_e_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)(if_param1_ * exp(-if_param2_ * d)));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_e_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_e_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_e_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_e_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbor strengths of type "n" (IFType::kNormal : normal/Gaussian) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		//d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)(if_param1_ * exp(-d / n_2param2sq_)));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_n_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_n_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_n_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_n_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+
+// add neighbor strengths of type "c" (IFType::kCauchy : Cauchy) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		double temp = sqrt(d) / if_param2_;
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)(if_param1_ / (1.0 + temp * temp)));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_c_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_c_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_c_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_c_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 }
 
@@ -2181,6 +2327,10 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
 	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	
+	// The caller should be handing us a sparse vector set up for distance data
+	if (sv->DataType() != SparseVectorDataType::kDistances)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the sparse vector is not configured for distances." << EidosTerminate();
 #endif
 	
 	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
@@ -2193,13 +2343,13 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 	if (exerter_sex_ == IndividualSex::kUnspecified)
 	{
 		// Without a specified exerter sex, we can add each exerter with no sex test
-		if (spatiality_ == 2)		BuildSV_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
-		else if (spatiality_ == 1)	BuildSV_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv);
-		else if (spatiality_ == 3)	BuildSV_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
+		if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
 	}
 	else
 	{
-		// With a specified exerter sex, we use a special version of BuildSV_X() that tests for that by range
+		// With a specified exerter sex, we use a special version of BuildSV_Distances_X() that tests for that by range
 		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
 		
 		if (exerter_sex_ == IndividualSex::kMale)
@@ -2209,9 +2359,9 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 		else
 			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
 		
-		if (spatiality_ == 2)		BuildSV_SS_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
-		else if (spatiality_ == 1)	BuildSV_SS_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter);
-		else if (spatiality_ == 3)	BuildSV_SS_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
+		if (spatiality_ == 2)		BuildSV_Distances_SS_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_SS_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter);
+		else if (spatiality_ == 3)	BuildSV_Distances_SS_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
 	}
 	
 	// After building the sparse vector above, we mark it finished
@@ -2243,6 +2393,10 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
 	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	
+	// The caller should be handing us a sparse vector set up for strength data
+	if (sv->DataType() != SparseVectorDataType::kStrengths)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the sparse vector is not configured for strengths." << EidosTerminate();
 #endif
 	
 	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
@@ -2252,16 +2406,40 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 	double receiver_pos[SLIM_MAX_DIMENSIONALITY];
 	GetReceiverPosition(receiver, receiver_pos);
 	
+	// Set up to build distances first; this is an internal implementation detail, so we require the sparse vector set up for strengths above
+	sv->SetDataType(SparseVectorDataType::kDistances);
+	
 	if (exerter_sex_ == IndividualSex::kUnspecified)
 	{
 		// Without a specified exerter sex, we can add each exerter with no sex test
-		if (spatiality_ == 2)		BuildSV_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
-		else if (spatiality_ == 1)	BuildSV_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv);
-		else if (spatiality_ == 3)	BuildSV_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
+		// We special-case some builds directly to strength values here, for efficiency, with
+		// no callbacks and spatiality "xy".
+		if ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (spatiality_ == 2))
+		{
+			sv->SetDataType(SparseVectorDataType::kStrengths);
+			
+			switch (if_type_)
+			{
+				case IFType::kFixed:		BuildSV_Strengths_f_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0); break;
+				case IFType::kLinear:		BuildSV_Strengths_l_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0); break;
+				case IFType::kExponential:	BuildSV_Strengths_e_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0); break;
+				case IFType::kNormal:		BuildSV_Strengths_n_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0); break;
+				case IFType::kCauchy:		BuildSV_Strengths_c_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0); break;
+				default:
+					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized IFType value." << EidosTerminate();
+			}
+			
+			sv->Finished();
+			return;
+		}
+		
+		if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, 0);
 	}
 	else
 	{
-		// With a specified exerter sex, we use a special version of BuildSV_X() that tests for that by range
+		// With a specified exerter sex, we use a special version of BuildSV_Distances_X() that tests for that by range
 		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
 		
 		if (exerter_sex_ == IndividualSex::kMale)
@@ -2271,27 +2449,25 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 		else
 			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
 		
-		if (spatiality_ == 2)		BuildSV_SS_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
-		else if (spatiality_ == 1)	BuildSV_SS_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter);
-		else if (spatiality_ == 3)	BuildSV_SS_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
+		if (spatiality_ == 2)		BuildSV_Distances_SS_2(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_SS_1(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter);
+		else if (spatiality_ == 3)	BuildSV_Distances_SS_3(exerter_subpop_data.kd_root_, receiver_pos, focal_individual_index, sv, start_exerter, after_end_exerter, 0);
 	}
 	
 	// After building the sparse vector above, we mark it finished
 	sv->Finished();
 	
-#warning PEND: the cases without callbacks could be handled by special versions of Build_SV(), potentially skipping storing distances at all
-	// Now we scan through the pre-existing sparse array for interacting pairs,
-	// and fill in interaction strength values calculated for each.
+	// Now we scan through the pre-existing sparse vector for interacting pairs,
+	// and transform distances into interaction strength values calculated for each.
 	std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
+	uint32_t nnz, *columns;
+	sv_value_t *values;
+	
+	sv->Distances(&nnz, &columns, &values);
 	
 	if (callbacks.size() == 0)
 	{
 		// No callbacks; strength calculations come from the interaction function only
-		uint32_t nnz, *columns;
-		sv_distance_t *distances;
-		sv_strength_t *strengths;
-		
-		sv->Interactions(&nnz, &columns, &distances, &strengths);
 		
 		// CalculateStrengthNoCallbacks() is basically inlined here, moved outside the loop; see that function for comments
 		switch (if_type_)
@@ -2299,16 +2475,16 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			case IFType::kFixed:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
-					strengths[col_iter] = (sv_strength_t)if_param1_;
+					values[col_iter] = (sv_value_t)if_param1_;
 				break;
 			}
 			case IFType::kLinear:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
-					sv_distance_t distance = distances[col_iter];
+					sv_value_t distance = values[col_iter];
 					
-					strengths[col_iter] = (sv_strength_t)(if_param1_ * (1.0 - distance / max_distance_));
+					values[col_iter] = (sv_value_t)(if_param1_ * (1.0 - distance / max_distance_));
 				}
 				break;
 			}
@@ -2316,9 +2492,9 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
-					sv_distance_t distance = distances[col_iter];
+					sv_value_t distance = values[col_iter];
 					
-					strengths[col_iter] = (sv_strength_t)(if_param1_ * exp(-if_param2_ * distance));
+					values[col_iter] = (sv_value_t)(if_param1_ * exp(-if_param2_ * distance));
 				}
 				break;
 			}
@@ -2326,9 +2502,9 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
-					sv_distance_t distance = distances[col_iter];
+					sv_value_t distance = values[col_iter];
 					
-					strengths[col_iter] = (sv_strength_t)(if_param1_ * exp(-(distance * distance) / (2.0 * if_param2_ * if_param2_)));
+					values[col_iter] = (sv_value_t)(if_param1_ * exp(-(distance * distance) / n_2param2sq_));
 				}
 				break;
 			}
@@ -2336,10 +2512,10 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
-					sv_distance_t distance = distances[col_iter];
+					sv_value_t distance = values[col_iter];
 					double temp = distance / if_param2_;
 					
-					strengths[col_iter] = (sv_strength_t)(if_param1_ / (1.0 + temp * temp));
+					values[col_iter] = (sv_value_t)(if_param1_ / (1.0 + temp * temp));
 				}
 				break;
 			}
@@ -2348,9 +2524,9 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				// should never be hit, but this is the base case
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
-					sv_distance_t distance = distances[col_iter];
+					sv_value_t distance = values[col_iter];
 					
-					strengths[col_iter] = (sv_strength_t)CalculateStrengthNoCallbacks(distance);
+					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks(distance);
 				}
 				
 				EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unimplemented IFType case." << EidosTerminate();
@@ -2361,21 +2537,18 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 	{
 		// Callbacks; strength calculations need to include callback effects
 		Individual **subpop_individuals = exerter_subpop->parent_individuals_.data();
-		uint32_t nnz, *columns;
-		sv_distance_t *distances;
-		sv_strength_t *strengths;
-		
-		sv->Interactions(&nnz, &columns, &distances, &strengths);
 		
 		for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 		{
 			uint32_t col = columns[col_iter];
-			sv_distance_t distance = distances[col_iter];
-			sv_strength_t strength = (sv_strength_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], callbacks);
+			sv_value_t distance = values[col_iter];
 			
-			strengths[col_iter] = strength;
+			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], callbacks);
 		}
 	}
+	
+	// We have transformed distances into strengths in the sparse vector's values_ buffer
+	sv->SetDataType(SparseVectorDataType::kStrengths);
 }
 
 
@@ -3649,11 +3822,11 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		// Spatial case; we use the k-d tree to get strengths for all neighbors.
 		EnsureKDTreePresent(exerter_subpop_data);
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 		FillSparseVectorForReceiverStrengths(sv, receiver, exerter_subpop, exerter_subpop_data);
 		uint32_t nnz;
 		const uint32_t *columns;
-		const sv_distance_t *strengths;
+		const sv_value_t *strengths;
 		std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
 		
 		strengths = sv->Strengths(&nnz, &columns);
@@ -3663,7 +3836,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		
 		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
 		{
-			sv_strength_t strength = strengths[col_index];
+			sv_value_t strength = strengths[col_index];
 			
 			total_interaction_strength += strength;
 			double_strengths.emplace_back((double)strength);
@@ -3754,7 +3927,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
 			return gStaticEidosValue_Integer0;
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
 		FillSparseVectorForReceiverDistances(sv, receiver, exerter_subpop, exerter_subpop_data);	// FIXME all we actually need is nnz!
 
 		// Get the sparse vector data
@@ -3784,7 +3957,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 				continue;
 			}
 			
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
 			FillSparseVectorForReceiverDistances(sv, receiver, exerter_subpop, exerter_subpop_data);	// FIXME all we actually need is nnz!
 			
 			// Get the sparse vector data
@@ -3857,12 +4030,12 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != first_receiver->sex_))
 			return gStaticEidosValue_Integer0;
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 		FillSparseVectorForReceiverStrengths(sv, first_receiver, exerter_subpop, exerter_subpop_data);
 		
 		// Get the sparse vector data
 		uint32_t nnz;
-		const sv_strength_t *strengths;
+		const sv_value_t *strengths;
 		
 		strengths = sv->Strengths(&nnz);
 		
@@ -3901,12 +4074,12 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				continue;
 			}
 			
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 			FillSparseVectorForReceiverStrengths(sv, receiver, exerter_subpop, exerter_subpop_data);
 			
 			// Get the sparse vector data
 			uint32_t nnz;
-			const sv_strength_t *strengths;
+			const sv_value_t *strengths;
 			
 			strengths = sv->Strengths(&nnz);
 			
@@ -3986,11 +4159,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 		return EidosValue_SP(result_vec);
 	}
 	
-	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
 	FillSparseVectorForReceiverDistances(sv, receiver, exerter_subpop, exerter_subpop_data);
 	uint32_t nnz;
 	const uint32_t *columns;
-	const sv_distance_t *distances;
+	const sv_value_t *distances;
 	
 	distances = sv->Distances(&nnz, &columns);
 	
@@ -4093,11 +4266,11 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	
 	// Find the neighbors
 	std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
 	FillSparseVectorForReceiverDistances(sv, receiver, exerter_subpop, exerter_subpop_data);
 	uint32_t nnz;
 	const uint32_t *columns;
-	const sv_distance_t *distances;
+	const sv_value_t *distances;
 	
 	distances = sv->Distances(&nnz, &columns);
 	
@@ -4134,12 +4307,12 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	else	// (count < nnz)
 	{
 		// return the <count> individuals with the smallest distances
-		std::vector<std::pair<uint32_t, sv_distance_t>> neighbors;
+		std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
 		
 		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
 			neighbors.emplace_back(col_index, distances[col_index]);
 		
-		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_distance_t> &l, const std::pair<uint32_t, sv_distance_t> &r) {
+		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
 			return l.second < r.second;
 		});
 		
@@ -4366,6 +4539,9 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
 	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
 	
+	if (if_type_ == IFType::kNormal)
+		n_2param2sq_ = 2.0 * if_param2_ * if_param2_;
+	
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
 	community_.interaction_types_changed_ = true;
 	
@@ -4426,14 +4602,14 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	if (spatiality_)
 	{
 		// Spatial case; we use the k-d tree to get strengths for all neighbors.  For non-null exerters_value, we could
-		// calculate distances and strengths with the receiver directly, to save building the sparse array; FIXME.
+		// calculate distances and strengths with the receiver directly, to save building the sparse vector; FIXME.
 		EnsureKDTreePresent(exerter_subpop_data);
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 		FillSparseVectorForReceiverStrengths(sv, receiver, exerter_subpop, exerter_subpop_data);
 		uint32_t nnz;
 		const uint32_t *columns;
-		const sv_distance_t *strengths;
+		const sv_value_t *strengths;
 		
 		strengths = sv->Strengths(&nnz, &columns);
 		
@@ -4589,12 +4765,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
 			return gStaticEidosValue_Integer0;
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 		FillSparseVectorForReceiverStrengths(sv, receiver, exerter_subpop, exerter_subpop_data);
 		
 		// Get the sparse vector data
 		uint32_t nnz;
-		const sv_strength_t *strengths;
+		const sv_value_t *strengths;
 		
 		strengths = sv->Strengths(&nnz);
 		
@@ -4627,12 +4803,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 				continue;
 			}
 			
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop);
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 			FillSparseVectorForReceiverStrengths(sv, receiver, exerter_subpop, exerter_subpop_data);
 			
 			// Get the sparse vector data
 			uint32_t nnz;
-			const sv_strength_t *strengths;
+			const sv_value_t *strengths;
 			
 			strengths = sv->Strengths(&nnz);
 			

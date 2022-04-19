@@ -36,15 +36,14 @@ SparseVector::SparseVector(unsigned int p_ncols)
 	ncols_ = p_ncols;
 	nnz_ = 0;
 	nnz_capacity_ = 1024;
+	finished_ = false;
+	value_type_ = SparseVectorDataType::kNoData;
 	
 	columns_ = (uint32_t *)malloc(nnz_capacity_ * sizeof(uint32_t));
-	distances_ = (sv_distance_t *)malloc(nnz_capacity_ * sizeof(sv_distance_t));
-	strengths_ = (sv_strength_t *)malloc(nnz_capacity_ * sizeof(sv_strength_t));
+	values_ = (sv_value_t *)malloc(nnz_capacity_ * sizeof(sv_value_t));
 	
-	if (!columns_ || !distances_ || !strengths_)
+	if (!columns_ || !values_)
 		EIDOS_TERMINATION << "ERROR (SparseVector::SparseVector): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-	finished_ = false;
 }
 
 SparseVector::~SparseVector(void)
@@ -53,15 +52,13 @@ SparseVector::~SparseVector(void)
 	nnz_ = 0;
 	nnz_capacity_ = 0;
 	finished_ = false;
+	value_type_ = SparseVectorDataType::kNoData;
 	
 	free(columns_);
 	columns_ = nullptr;
 	
-	free(distances_);
-	distances_ = nullptr;
-	
-	free(strengths_);
-	strengths_ = nullptr;
+	free(values_);
+	values_ = nullptr;
 }
 
 void SparseVector::_ResizeToFitNNZ(void)
@@ -73,20 +70,21 @@ void SparseVector::_ResizeToFitNNZ(void)
 		while (nnz_ > nnz_capacity_);
 		
 		columns_ = (uint32_t *)realloc(columns_, nnz_capacity_ * sizeof(uint32_t));
-		distances_ = (sv_distance_t *)realloc(distances_, nnz_capacity_ * sizeof(sv_distance_t));
-		strengths_ = (sv_strength_t *)realloc(strengths_, nnz_capacity_ * sizeof(sv_strength_t));
+		values_ = (sv_value_t *)realloc(values_, nnz_capacity_ * sizeof(sv_value_t));
 		
-		if (!columns_ || !distances_ || !strengths_)
+		if (!columns_ || !values_)
 			EIDOS_TERMINATION << "ERROR (SparseVector::_ResizeToFitNNZ): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 }
 
-sv_distance_t SparseVector::Distance(uint32_t p_column) const
+sv_value_t SparseVector::Distance(uint32_t p_column) const
 {
 #if DEBUG
-	// should be done building the array
+	// should be done building the vector
 	if (!finished_)
 		EIDOS_TERMINATION << "ERROR (SparseVector::Distance): sparse vector is not finished being built." << EidosTerminate(nullptr);
+	if (value_type_ != SparseVectorDataType::kDistances)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Distance): sparse vector is not specialized for distances." << EidosTerminate(nullptr);
 #endif
 	
 	// bounds-check
@@ -97,19 +95,21 @@ sv_distance_t SparseVector::Distance(uint32_t p_column) const
 	for (uint64_t index = 0; index < nnz_; ++index)
 	{
 		if (columns_[index] == p_column)
-			return distances_[index];
+			return values_[index];
 	}
 	
 	// no match found; return infinite distance
 	return INFINITY;
 }
 
-sv_strength_t SparseVector::Strength(uint32_t p_column) const
+sv_value_t SparseVector::Strength(uint32_t p_column) const
 {
 #if DEBUG
-	// should be done building the array
+	// should be done building the vector
 	if (!finished_)
 		EIDOS_TERMINATION << "ERROR (SparseVector::Strength): sparse vector is not finished being built." << EidosTerminate(nullptr);
+	if (value_type_ != SparseVectorDataType::kStrengths)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Strength): sparse vector is not specialized for strengths." << EidosTerminate(nullptr);
 #endif
 	
 	// bounds-check
@@ -120,7 +120,7 @@ sv_strength_t SparseVector::Strength(uint32_t p_column) const
 	for (uint64_t index = 0; index < nnz_; ++index)
 	{
 		if (columns_[index] == p_column)
-			return strengths_[index];
+			return values_[index];
 	}
 	
 	// no match found; return zero interaction strength
@@ -129,40 +129,47 @@ sv_strength_t SparseVector::Strength(uint32_t p_column) const
 
 size_t SparseVector::MemoryUsage(void)
 {
-	return (sizeof(uint32_t) + sizeof(sv_distance_t) + sizeof(sv_strength_t)) * (nnz_capacity_);
+	return (sizeof(uint32_t) + sizeof(sv_value_t)) * (nnz_capacity_);
 }
 
-std::ostream &operator<<(std::ostream &p_outstream, const SparseVector &p_array)
+std::ostream &operator<<(std::ostream &p_outstream, const SparseVector &p_vector)
 {
-	p_outstream << "SparseVector: " << p_array.ncols_ << " columns";
-	if (!p_array.finished_)
+	p_outstream << "SparseVector: " << p_vector.ncols_ << " columns";
+	if (!p_vector.finished_)
 		p_outstream << " (NOT FINISHED)" << std::endl;
 	p_outstream << std::endl;
 	
-	p_outstream << "   ncols == " << p_array.ncols_ << std::endl;
-	p_outstream << "   nnz == " << p_array.nnz_ << std::endl;
-	p_outstream << "   nnz_capacity == " << p_array.nnz_capacity_ << std::endl;
+	p_outstream << "   ncols == " << p_vector.ncols_ << std::endl;
+	p_outstream << "   nnz == " << p_vector.nnz_ << std::endl;
+	p_outstream << "   nnz_capacity == " << p_vector.nnz_capacity_ << std::endl;
 	
 	p_outstream << "   columns == {";
-	for (uint32_t nzi = 0; nzi < p_array.nnz_; ++nzi)
+	for (uint32_t nzi = 0; nzi < p_vector.nnz_; ++nzi)
 	{
 		if (nzi > 0)
 			p_outstream << ", ";
-		p_outstream << p_array.columns_[nzi];
+		p_outstream << p_vector.columns_[nzi];
 	}
 	p_outstream << "}" << std::endl;
 	
-	p_outstream << "   values == {";
-	for (uint32_t nzi = 0; nzi < p_array.nnz_; ++nzi)
+	p_outstream << "   ";
+	
+	if (p_vector.value_type_ == SparseVectorDataType::kDistances)			p_outstream << "distances";
+	else if (p_vector.value_type_ == SparseVectorDataType::kStrengths)		p_outstream << "strengths";
+	else
 	{
-		if (nzi > 0)
-			p_outstream << ", ";
-		p_outstream << "[" << p_array.distances_[nzi] << ", " << p_array.strengths_[nzi] << "]";
-	}
-	p_outstream << "}" << std::endl;
-	
-	if (!p_array.finished_)
+		p_outstream << "unknown values" << std::endl;
 		return p_outstream;
+	}
+	
+	p_outstream << " == {";
+	for (uint32_t nzi = 0; nzi < p_vector.nnz_; ++nzi)
+	{
+		if (nzi > 0)
+			p_outstream << ", ";
+		p_outstream << p_vector.values_[nzi];
+	}
+	p_outstream << "}" << std::endl;
 	
 	return p_outstream;
 }
