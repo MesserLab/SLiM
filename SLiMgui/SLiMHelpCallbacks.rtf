@@ -17,15 +17,15 @@
 \f2\i0 \cf2 Before a SLiM simulation can be run, the various classes underlying the simulation need to be set up with an initial configuration.  Simulation configuration in SLiM is done in 
 \f1\i\fs18 initialize()
 \f0\fs22  callbacks
-\f2\i0  that run prior to the beginning of simulation execution.  In your input file, you can simply write something like this:\
+\f2\i0  that run prior to the beginning of simulation execution.  Eidos callbacks are discussed more broadly in chapter 25, but for our present purposes, the idea is very simple.  In your input file, you can simply write something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 initialize() \{ ... \}\
+\f3\fs18 \cf2 initialize()\uc0\u8232 \{\u8232 	...\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 initialize()
-\f2\fs22  specifies that the script block is to be executed as an 
+\f2\fs22  declaration specifies that the script block is to be executed as an 
 \f3\fs18 initialize()
 \f2\fs22  callback before the simulation starts.  The script between the braces 
 \f3\fs18 \{\}
@@ -35,14 +35,16 @@
 \f3\fs18 initialize()
 \f2\fs22  callback, and their names begin with 
 \f3\fs18 initialize
-\f2\fs22  to mark them clearly as such.  You may also use other Eidos functionality, of course; for example, you might automate generating a large number of subpopulations with complex migration patterns by using a 
+\f2\fs22  to mark them clearly as such.  You may also use other Eidos functionality in these callbacks; for example, you might automate generating a complex genetic structure containing many genes by using a 
 \f3\fs18 for
 \f2\fs22  loop.\
 One thing worth mentioning is that in the context of an 
 \f3\fs18 initialize()
 \f2\fs22  callback, the 
 \f3\fs18 sim
-\f2\fs22  global for the simulation itself is not defined.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.\
+\f2\fs22  global for the simulation itself is not defined.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  (Similarly, in multispecies models, the 
+\f3\fs18 community
+\f2\fs22  object and the objects representing individual species are not yet defined.)\
 The above 
 \f3\fs18 initialize()
 \f2\fs22  callback syntax 
@@ -61,7 +63,34 @@ The above
 
 \f2\fs22 \cf2 This sets up a multispecies model (although it might, in fact, declare only a single species, 
 \f3\fs18 fox
-\f2\fs22 ; the term \'93multispecies\'94, in SLiM parlance, really means \'93explicitly declared species\'94, but multispecies models almost always do contain multiple species, so the distinction is unimportant).\
+\f2\fs22 ; the term \'93multispecies\'94, in SLiM parlance, really means \'93explicitly declared species\'94, but multispecies models almost always 
+\f0\i do
+\f2\i0  contain multiple species, so the distinction is unimportant).  See section 1.9 and chapter 19 for further discussion of multispecies models; in most respects they work identically to single-species models, so we will tend to focus on the single-species case in the reference documentation, with a species name of 
+\f3\fs18 sim
+\f2\fs22 , for simplicity and clarity.\
+In single-species models all initialization can be done in a single 
+\f3\fs18 initialize()
+\f2\fs22  callback (or you can have more than one, if you wish).  In multispecies models, each species must be initialized with its own callback, as shown above.  In addition, multispecies models also support an optional community-level initialization callback that is declared as follows:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 species all initialize() \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 These callbacks, technically called 
+\f0\i non-species-specific 
+\f1\fs18 initialize()
+\f0\fs22  callbacks
+\f2\i0 , provide a place for community-level initialization to occur.  They are run before any species-specific 
+\f3\fs18 initialize()
+\f2\fs22  callbacks are run, so you might wish to set up all of your model parameters in one, providing a single location for all parameters.  In multispecies models, the 
+\f3\fs18 initializeModelType()
+\f2\fs22  and 
+\f3\fs18 initializeInteractionType()
+\f2\fs22  functions may only be called from a non-species-specific 
+\f3\fs18 initialize()
+\f2\fs22  callback, since those aspects of model configuration span the entire community.  In single-species models, these functions may be called from an ordinary 
+\f3\fs18 initialize()
+\f2\fs22  callback for simplicity and backward compatibility.\
 Once all 
 \f3\fs18 initialize()
 \f2\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The generation number at which it starts is determined by the Eidos events you have defined; the first generation in which an Eidos event is scheduled to execute is the generation at which the simulation starts.  Similarly, the simulation will terminate after the last generation for which a script block (either an event or a callback) is registered to execute, unless the 
@@ -916,20 +945,20 @@ As with the other callback types, multiple
 
 \f2\i0 \cf2 The 
 \f3\fs18 InteractionType
-\f2\fs22  class provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
+\f2\fs22  class (section 24.8) provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
 \f3\fs18 interaction()
 \f2\fs22  callbacks to be defined that modify the standard interaction strength calculated by 
 \f3\fs18 InteractionType
 \f2\fs22 .  In particular, this mechanism allows the strength of interactions to depend upon not only the distance between individuals, but also the genetics and other state of the individuals, the spatial position of the individuals, and other environmental variables.\
 An 
 \f3\fs18 interaction()
-\f2\fs22  callback is called by SLiM when it is determining the strength of the interaction between one individual (the receiver of the interaction) and another individual (the exerter of the interaction).  This may occur when the 
-\f3\fs18 evaluate()
-\f2\fs22  method of 
+\f2\fs22  callback is called by SLiM when it is determining the strength of the interaction between one individual (the 
+\f0\i receiver
+\f2\i0  of the interaction) and another individual (the 
+\f0\i exerter
+\f2\i0  of the interaction).  This generally occurs when an interaction query is made to 
 \f3\fs18 InteractionType
-\f2\fs22  is called, if immediate evaluation is requested; or it may occur at some point after evaluation of the 
-\f3\fs18 InteractionType
-\f2\fs22 , when the interaction strength is needed, if immediate evaluation was not requested.  This means that 
+\f2\fs22 , as a side effect of serving that query.  This means that 
 \f3\fs18 interaction()
 \f2\fs22  callbacks may be called at a variety of points in the generation cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
 \f3\fs18 interaction()
@@ -938,14 +967,14 @@ An
 \f2\fs22  was called, may be dangerous.\
 When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the 
 \f3\fs18 InteractionType
-\f2\fs22 .  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
+\f2\fs22  (see section 24.8).  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
 \f3\fs18 InteractionType
 \f2\fs22 , the interaction strength is also always zero.  In these cases, 
 \f3\fs18 interaction()
 \f2\fs22  callbacks will not be called, and there is no way to redefine these interaction strengths.\
 Otherwise, SLiM will then call 
 \f3\fs18 interaction()
-\f2\fs22  callbacks that apply to the interaction type and subpopulation for the interaction being evaluated.  An 
+\f2\fs22  callbacks that apply to the interaction type and exerter subpopulation for the interaction being evaluated.  An 
 \f3\fs18 interaction()
 \f2\fs22  callback is defined with a variation of the syntax used for other callbacks:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
@@ -963,17 +992,42 @@ Otherwise, SLiM will then call
 \f3\fs18 1.0
 \f2\fs22  would be used for all interactions of interaction type 
 \f3\fs18 i2
-\f2\fs22  in subpopulation 
+\f2\fs22 , for exerters in subpopulation 
 \f3\fs18 p3
-\f2\fs22  from tick 
+\f2\fs22 , from tick 
 \f3\fs18 1000
 \f2\fs22  to tick 
 \f3\fs18 2000
-\f2\fs22 .  (In multispecies models, the definition must be preceded by a 
-\f3\fs18 species
-\f2\fs22  specification as usual.)\
+\f2\fs22 .\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 In addition to the standard SLiM globals, an 
+\cf2 Beginning in SLiM 4, the receiver and exerter may be in different subpopulations from each other \'96 or even, in multispecies models, in different species altogether.  For the subpopulation id in the 
+\f3\fs18 interaction()
+\f2\fs22  callback declaration, it does not matter which subpopulation the receiver is in; if the exerter is in 
+\f3\fs18 p3
+\f2\fs22 , for the above example, then the 
+\f3\fs18 interaction()
+\f2\fs22  callback will be called regardless of the receiver\'92s subpopulation (assuming other preconditions are also met, such as the generation range and the interaction type id).  This means that 
+\f3\fs18 interaction()
+\f2\fs22  callbacks are not species-specific, unlike other callback types; even if an 
+\f3\fs18 interaction()
+\f2\fs22  callback is declared to be specific to exerters in 
+\f3\fs18 p3
+\f2\fs22 , as above, receivers can still be in a different species.  With no subpopulation id specified, 
+\f3\fs18 interaction()
+\f2\fs22  callbacks are even more general: 
+\f3\fs18 InteractionType
+\f2\fs22  can be evaluated and queried for receivers and exerters belonging to any species.  For this reason, in multispecies models 
+\f3\fs18 interaction()
+\f2\fs22  callbacks must be declared using a species specifier of 
+\f3\fs18 species all
+\f2\fs22 , unlike all other SLiM callback types; it is not legal to declare an 
+\f3\fs18 interaction()
+\f2\fs22  callback as species-specific.  Note that there is no way to declare an 
+\f3\fs18 interaction()
+\f2\fs22  callback as applying only to receivers in a given subpopulation; if that functionality is desired, you can test 
+\f3\fs18 receiver.subpopulation
+\f2\fs22  in your callback code and act accordingly.\
+In addition to the standard SLiM globals, an 
 \f3\fs18 interaction()
 \f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94:\
 \pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0

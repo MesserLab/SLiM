@@ -300,9 +300,9 @@ If the optional
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocal\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
 \f4 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add an interaction type at initialization time.  The 
+\f2\fs20 \cf2 Add an interaction type at initialization time.  The 
 \f1\fs18 id
 \f2\fs20  must not already be used for any interaction type in the simulation.  The 
 \f1\fs18 id
@@ -313,15 +313,13 @@ If the optional
 \f2\fs20  giving the name of the new interaction type (such as 
 \f1\fs18 "i5"
 \f2\fs20  to specify an ID of 5).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+The 
 \f1\fs18 spatiality
 \f2\fs20  may be 
 \f1\fs18 ""
 \f2\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); 
 \f1\fs18 "x"
-\f4\fs20 ,
-\f2  
+\f2\fs20 , 
 \f1\fs18 "y"
 \f2\fs20 , or 
 \f1\fs18 "z"
@@ -333,7 +331,7 @@ If the optional
 \f1\fs18 "yz"
 \f2\fs20  for two-dimensional interactions; or 
 \f1\fs18 "xyz"
-\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
+\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must be defined as spatial dimensions with 
 \f1\fs18 initializeSLiMOptions()
 \f2\fs20 ; if the simulation has dimensionality 
 \f1\fs18 "xy"
@@ -353,55 +351,34 @@ If the optional
 \f1\fs18 "yz"
 \f2\fs20 , or 
 \f1\fs18 "xyz"
-\f4\fs20 .
-\f2   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+\f2\fs20 .  If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
+The 
 \f1\fs18 reciprocal
 \f2\fs20  flag may be 
 \f1\fs18 T
 \f2\fs20 , in which case the interaction is guaranteed by the user to be 
 \f3\i reciprocal
-\f2\i0 : whatever the interaction strength is for individual B upon individual A, it will be equal (in magnitude and sign) for A upon B.  This allows the 
+\f2\i0 : whatever the interaction strength is for exerter B upon receiver A, it will be equal (in magnitude and sign) for exerter A upon receiver B.  In principle, this allows the 
 \f1\fs18 InteractionType
-\f2\fs20  to reduce the amount of computation necessary by up to a factor of two.  If 
+\f2\fs20  to reduce the amount of computation necessary by up to a factor of two (although it may or may not be used).  If 
 \f1\fs18 reciprocal
 \f2\fs20  is 
 \f1\fs18 F
 \f2\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, but if you implement an 
 \f1\fs18 interaction()
-\f2\fs20  callback, you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
+\f2\fs20  callback (see section 25.6), you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
 \f1\fs18 reciprocal=F
 \f2\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
 \f1\fs18 sexSegregation
 \f2\fs20  flag.\
-Note that even if an interaction is reciprocal, it may occasionally be slightly faster for 
-\f1\fs18 reciprocal
-\f2\fs20  to be set to 
-\f1\fs18 F
-\f2\fs20 .  This is most likely when the amount of computation per interaction is very small (particularly if no 
-\f1\fs18 interaction()
-\f2\fs20  callbacks are involved), and when it is unlikely that the reciprocal of a queried interaction will also be queried.  Even in such cases, however, the slowdown for 
-\f1\fs18 reciprocal=T
-\f2\fs20  should be fairly small.  In most usage cases, setting 
-\f1\fs18 reciprocal
-\f2\fs20  to 
-\f1\fs18 T
-\f2\fs20  (when the interaction is in fact reciprocal) will result in at least equal performance, if not better; with a very slow 
-\f1\fs18 interaction()
-\f2\fs20  callback, the performance can be as much as double, making it generally worthwhile to use 
-\f1\fs18 reciprocal=T
-\f2\fs20  when possible.  However, for maximal performance one might wish to time and compare runs with reciprocality enabled and disabled (using the same random number seed).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+The 
 \f1\fs18 maxDistance
 \f2\fs20  parameter supplies the maximum distance over which interactions of this type will be evaluated; at greater distances, the interaction strength is considered to be zero (for efficiency).  The default value of 
 \f1\fs18 maxDistance
 \f2\fs20 , 
 \f1\fs18 INF
-\f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+\f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.  In SLiM 3.1 and later, a warning will be issued if a spatial interaction type is defined with no maximum distance to encourage a maximum distance to be defined.\
+The 
 \f1\fs18 sexSegregation
 \f2\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  It does not affect distance calculations in any way; it only modifies the way in which interaction strengths are calculated.  The default, 
 \f1\fs18 "**"
@@ -421,8 +398,7 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f1\fs18 "**"
 \f2\fs20  unless sex has been enabled with 
 \f1\fs18 initializeSex()
-\f4\fs20 .
-\f2   Note that a value of 
+\f2\fs20 .  Note that a value of 
 \f1\fs18 sexSegregation
 \f2\fs20  other than 
 \f1\fs18 "**"
@@ -433,8 +409,7 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f2\fs20  for this reason; SLiM will take the sex-segregation of the interaction into account for you.  The value of 
 \f1\fs18 reciprocal
 \f2\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 By default, the interaction strength is 
+By default, the interaction strength is 
 \f1\fs18 1.0
 \f2\fs20  for all interactions within 
 \f1\fs18 maxDistance
@@ -442,14 +417,20 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f1\fs18 setInteractionFunction()
 \f2\fs20 ; modifying interaction strengths can also be achieved with 
 \f1\fs18 interaction()
-\f2\fs20  callbacks if necessary.  In any case, interactions beyond 
+\f2\fs20  callbacks if necessary (see section 25.6).  In any case, interactions beyond 
 \f1\fs18 maxDistance
 \f2\fs20  always have a strength of 
 \f1\fs18 0.0
 \f2\fs20 , and the interaction strength of an individual with itself is always 
 \f1\fs18 0.0
 \f2\fs20 , regardless of the interaction function or callbacks.\
-The global symbol for the new interaction type is immediately available; the return value also provides the new object.\
+The global symbol for the new interaction type is immediately available; the return value also provides the new object.  Note that in multispecies models, 
+\f1\fs18 initializeInteractionType()
+\f2\fs20  must be called from a non-species-specific 
+\f1\fs18 interaction()
+\f2\fs20  callback (declared as 
+\f1\fs18 species all initialize()
+\f2\fs20 ), since interactions are managed at the community level.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)initializeMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
@@ -768,8 +749,9 @@ If the optional
 \f2\fs20 .  Calling this function has the side effect of enabling sex in the simulation; individuals will be male and female (rather than hermaphroditic) regardless of the 
 \f1\fs18 chromosomeType
 \f2\fs20  chosen for simulation.  There is no way to disable sex once it has been enabled; if you don\'92t want to have sex, don\'92t call this function.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f0\b The 
+\f0\b \cf2 The 
 \f6\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 3.7 and later, use the 
