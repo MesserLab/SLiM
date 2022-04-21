@@ -64,7 +64,7 @@ development head (in the master branch):
 			make it required, in multispecies models, to declare interaction() callbacks as "species all interaction()"; they are always active, and are not associated with any one species
 			move registerInteractionCallback() from Species to Community, since interaction() callbacks are now non-species-specific
 			change InteractionType APIs to be more explicit about receiver vs. exerter, allow an exerter subpop to be specified, etc.; new APIs:
-				– (float)clippedIntegral(No<Individual> receivers) - no change
+				– (float)clippedIntegral(No<Individual> receivers) - note this method now uses saved positions from evaluate(), and thus requires evaluation
 				– (float)distance(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - receiver must now be singleton (matching interactionDistance())
 				– (float)distanceFromPoint(float point, object<Individual> exerters) - renamed from distanceToPoint(), parameters switched places for consistency
 				– (object<Individual>)drawByStrength(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - "receiver", added exerterSubpop
@@ -75,10 +75,10 @@ development head (in the master branch):
 				– (object<Individual>)nearestNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - renamed individual to receiver, added exerterSubpop
 				– (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1]) - parameters switched
 				– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change
-				– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - note receiver's current positions are used, added exerterSubpop
-			change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> exerterSubpops) - `subpops` renamed to `exerterSubpops` and required, remove `immediate`; only exerter positions are snapped!
+				– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - added exerterSubpop
+			change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> subpops) - `subpops` now required, remove `immediate`
 			remove the `subpop` pseudo-parameter from interaction() callbacks; receiver.subpop and exerter.subpop should now be used, and are not always the same
-			revised recipes for these changes (for evaluate() now requiring exerterSubpops, in all cases; no other changes needed): 15.2, 15.3 I/II/III/IV, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12, 16.10, 16.11, 16.18
+			revised recipes for these changes (for evaluate() now requiring subpops, in all cases; no other changes needed): 15.2, 15.3 I/II/III/IV, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12, 16.10, 16.11, 16.18
 			note that these changes break backward compatibility for most models, and break backward reproducibility for many (due to distances not being rounded off from double to float in some code paths now)
 		move initializeSLiMModelType() to be non-species-specific (i.e., must be in "species all initialize()"), so it is shared and doesn't need to be repeated
 		

@@ -156,15 +156,6 @@ private:
 	void CheckSpeciesCompatibility(Species &species);
 	void CheckSpatialCompatibility(Subpopulation *receiver_subpop, Subpopulation *exerter_subpop);
 	
-	static void GetReceiverPosition_1x(Individual *receiver, double *position);
-	static void GetReceiverPosition_1y(Individual *receiver, double *position);
-	static void GetReceiverPosition_1z(Individual *receiver, double *position);
-	static void GetReceiverPosition_2xy(Individual *receiver, double *position);
-	static void GetReceiverPosition_2xz(Individual *receiver, double *position);
-	static void GetReceiverPosition_2yz(Individual *receiver, double *position);
-	static void GetReceiverPosition_3xyz(Individual *receiver, double *position);
-	void (*GetReceiverPosition)(Individual *receiver, double *position) = nullptr;	// a function that provides receiver positions
-	
 	double CalculateDistance(double *p_position1, double *p_position2);
 	double CalculateDistanceWithPeriodicity(double *p_position1, double *p_position2, InteractionsData &p_subpop_data);
 	
@@ -269,8 +260,8 @@ private:
 #endif
 	}
 	
-	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
-	void FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
+	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
+	void FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
 	
 public:
 	
@@ -286,7 +277,7 @@ public:
 	InteractionType(Community &p_community, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex);
 	~InteractionType(void);
 	
-	void EvaluateSubpopulation(Subpopulation *p_exerter_subpop);
+	void EvaluateSubpopulation(Subpopulation *p_subpop);
 	bool AnyEvaluated(void);
 	void Invalidate(void);
 	void InvalidateForSpecies(Species *p_invalid_species);

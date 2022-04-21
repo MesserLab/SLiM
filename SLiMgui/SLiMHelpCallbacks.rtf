@@ -1014,9 +1014,9 @@ Otherwise, SLiM will then call
 \f3\fs18 p3
 \f2\fs22 , as above, receivers can still be in a different species.  With no subpopulation id specified, 
 \f3\fs18 interaction()
-\f2\fs22  callbacks are even more general: 
+\f2\fs22  callbacks are even more general: the 
 \f3\fs18 InteractionType
-\f2\fs22  can be evaluated and queried for receivers and exerters belonging to any species.  For this reason, in multispecies models 
+\f2\fs22  can then be evaluated and queried for receivers and exerters belonging to any species.  For this reason, in multispecies models 
 \f3\fs18 interaction()
 \f2\fs22  callbacks must be declared using a species specifier of 
 \f3\fs18 species all
@@ -1067,9 +1067,15 @@ In addition to the standard SLiM globals, an
 \f3\fs18 float
 \f2\fs22  value greater than or equal to 
 \f3\fs18 0.0
-\f2\fs22  may be returned.  The value returned will be cached by SLiM; if the interaction strength between the same two individuals is needed again later, the 
+\f2\fs22  may be returned.  The value returned will be not be cached by SLiM; if the interaction strength between the same two individuals is needed again later, the 
 \f3\fs18 interaction()
-\f2\fs22  callback will not be called again until the interaction is next evaluated (something to keep in mind if the interaction strength includes a stochastic component).\
+\f2\fs22  callback will be called again (something to keep in mind if the interaction strength includes a stochastic component).  Note that the provided 
+\f3\fs18 distance
+\f2\fs22  and 
+\f3\fs18 strength
+\f2\fs22  values are based upon the spatial positions of the exerter and receiver when 
+\f3\fs18 evaluate()
+\f2\fs22  was called, not their current spatial positions, if they have moved since the interaction was evaluated.\
 More than one 
 \f3\fs18 interaction()
 \f2\fs22  callback may be defined to operate in the same tick.  As with other callbacks, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
