@@ -1226,17 +1226,17 @@ void EidosInterpreter::_CreateArgumentList(const EidosASTNode *p_node, const Eid
 					EidosGlobalStringID arg_name_ID = p_call_signature->arg_name_IDs_[sig_check_index];
 					
 					if (named_arg_nameID == arg_name_ID)
-						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to function " << p_call_signature->call_name_ << " could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): argument " << named_arg << " to " << p_call_signature->call_name_ << "() could not be matched; probably supplied out of order or supplied more than once." << EidosTerminate(nullptr);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): unrecognized named argument " << named_arg << " to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
 			}
 			else
 			{
 				if (had_named_argument)
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << " (after handling named arguments, which might have filled in default values for previous arguments)." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to " << p_call_signature->call_name_ << "() (after handling named arguments, which might have filled in default values for previous arguments)." << EidosTerminate(nullptr);
 				else
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to function " << p_call_signature->call_name_ << "." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::_ProcessArgumentList): too many arguments supplied to " << p_call_signature->call_name_ << "()." << EidosTerminate(nullptr);
 			}
 		}
 	}

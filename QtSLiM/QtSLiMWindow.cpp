@@ -1408,6 +1408,76 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("undefined identifier childIsFemale"))
         return offerAndExecuteAutofix(selection, "(child.sex == \"F\")", "The `childIsFemale` pseudo-parameter has been removed; it is now accessed as `child.sex == \"F\"`.", terminationMessage);
     
+    // changes to InteractionType -evaluate()
+    if (terminationMessage.contains("missing required argument subpops") && (selectionString == "evaluate"))
+    {
+        QTextCursor entireCall = selection;
+        entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
+        entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 11);
+        QString entireCallString = entireCall.selectedText();
+        
+        if (entireCallString == "evaluate();")
+            return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method now requires a vector of subpopulations to evaluate.", terminationMessage);
+    }
+    
+    if (terminationMessage.contains("named argument immediate skipped over required argument subpops") && (selectionString == "evaluate"))
+    {
+        QTextCursor entireCall = selection;
+        entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
+        entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 22);
+        QString entireCallString = entireCall.selectedText();
+        
+        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);"))
+            return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+    }
+    
+    if (terminationMessage.contains("unrecognized named argument immediate") && (selectionString == "evaluate"))
+    {
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 15);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ", immediate=T);") || (callEndString == ", immediate=F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 14);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ",immediate=T);") || (callEndString == ",immediate=F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 17);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ", immediate = T);") || (callEndString == ", immediate = F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 16);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ",immediate = T);") || (callEndString == ",immediate = F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+    }
+    
     // other deprecated APIs, unrelated to multispecies
     if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
     {
