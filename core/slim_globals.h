@@ -782,6 +782,7 @@ extern const std::string &gStr_subpopulation;
 extern const std::string &gStr_index;
 extern const std::string &gStr_immigrantSubpopIDs;
 extern const std::string &gStr_immigrantSubpopFractions;
+extern const std::string &gStr_avatar;
 extern const std::string &gStr_name;
 extern const std::string &gStr_description;
 extern const std::string &gStr_selfingRate;
@@ -1137,6 +1138,7 @@ enum _SLiMGlobalStringID : int {
 	gID_index,
 	gID_immigrantSubpopIDs,
 	gID_immigrantSubpopFractions,
+	gID_avatar,
 	gID_name,
 	gID_description,
 	gID_selfingRate,

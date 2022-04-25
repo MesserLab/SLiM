@@ -1166,7 +1166,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSpecies([integer$ tickModulo = 1], [integer$ tickPhase = 1], [Ns$ avatar = NULL])
+//	*********************	(void)initializeSpecies([integer$ tickModulo = 1], [integer$ tickPhase = 1], [string$ avatar = ""], [string$ color = ""])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -1174,6 +1174,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	EidosValue *arg_tickModulo_value = p_arguments[0].get();
 	EidosValue *arg_tickPhase_value = p_arguments[1].get();
 	EidosValue *arg_avatar_value = p_arguments[2].get();
+	EidosValue *arg_color_value = p_arguments[3].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	// BCH 27 March 2022: This is not actually necessary, but it seems best to draw a sharp line between explicit-species models
@@ -1199,8 +1200,11 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 	
 	tick_phase_ = (slim_tick_t)tickPhase;
 	
-	if (arg_avatar_value->Type() != EidosValueType::kValueNULL)
-		avatar_ = arg_avatar_value->StringAtIndex(0, nullptr);
+	avatar_ = arg_avatar_value->StringAtIndex(0, nullptr);
+	
+	color_ = arg_color_value->StringAtIndex(0, nullptr);
+	if (!color_.empty())
+		Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
 	
 	if (SLiM_verbosity_level >= 1)
 	{
@@ -1226,6 +1230,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSpecies(const std::strin
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "avatar = \"" << avatar_ << "\"";
+			previous_params = true;
+		}
+		
+		if (color_.length() > 0)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "color = \"" << color_ << "\"";
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}
@@ -1415,6 +1426,10 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_active:
 			return (species_active_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		case gID_avatar:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(avatar_));
+		}
 		case gID_chromosome:
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(chromosome_, gSLiM_Chromosome_Class));
 		case gID_chromosomeType:
@@ -1426,6 +1441,10 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 				case GenomeType::kYChromosome:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_Y));
 			}
 			EIDOS_TERMINATION << "ERROR (Species::GetProperty): (internal error) unrecognized value for modeled_chromosome_type_." << EidosTerminate();
+		}
+		case gEidosID_color:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
 		}
 		case gID_dimensionality:
 		{
@@ -3004,8 +3023,10 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_description,			false,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_dimensionality,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_periodicity,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));

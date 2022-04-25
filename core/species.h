@@ -205,6 +205,9 @@ private:
 	
 	std::string avatar_;															// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
 	
+	std::string color_;																// color to use when displayed (in SLiMgui)
+	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
+	
 	// std::map is used instead of std::unordered_map mostly for convenience, for sorted order in the UI; these are unlikely to be bottlenecks I think
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects

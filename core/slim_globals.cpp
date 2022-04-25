@@ -1221,6 +1221,7 @@ const std::string &gStr_subpopulation = EidosRegisteredString("subpopulation", g
 const std::string &gStr_index = EidosRegisteredString("index", gID_index);
 const std::string &gStr_immigrantSubpopIDs = EidosRegisteredString("immigrantSubpopIDs", gID_immigrantSubpopIDs);
 const std::string &gStr_immigrantSubpopFractions = EidosRegisteredString("immigrantSubpopFractions", gID_immigrantSubpopFractions);
+const std::string &gStr_avatar = EidosRegisteredString("avatar", gID_avatar);
 const std::string &gStr_name = EidosRegisteredString("name", gID_name);
 const std::string &gStr_description = EidosRegisteredString("description", gID_description);
 const std::string &gStr_selfingRate = EidosRegisteredString("selfingRate", gID_selfingRate);

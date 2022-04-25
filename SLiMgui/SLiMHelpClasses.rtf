@@ -5116,6 +5116,16 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20  event.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 avatar => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The avatar string used to represent this species in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Avatars are typically one-character strings, often using an emoji that symbolizes the species.  This property is read-only; its value should be set with the 
+\f3\fs18 avatar
+\f4\fs20  parameter of 
+\f3\fs18 initializeSpecies()
+\f4\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 chromosome => (object<Chromosome>$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5136,6 +5146,18 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20 , or 
 \f3\fs18 "Y"
 \f5\fs20 .\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 color => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The color used to display information about this species in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f3\fs18 "#RRGGBB"
+\f4\fs20  (see the Eidos manual).  This property is read-only; its value should be set with the 
+\f3\fs18 color
+\f4\fs20  parameter of 
+\f3\fs18 initializeSpecies()
+\f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 description <\'96> (string$)\

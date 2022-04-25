@@ -956,7 +956,7 @@ If
 \cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (void)initializeSpecies([integer$\'a0tickModulo\'a0=\'a01], [integer$\'a0tickPhase\'a0=\'a01], [Ns$\'a0avatar\'a0=\'a0NULL])\
+\f1\fs18 \cf2 (void)initializeSpecies([integer$\'a0tickModulo\'a0=\'a01], [integer$\'a0tickPhase\'a0=\'a01], [string$\'a0avatar\'a0=\'a0""], [string$\'a0color\'a0=\'a0""])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Configure options for the species being initialized.  This initialization function may only be called in multispecies models (i.e., models with explicit species declarations); in single-species models, the default values are assumed and cannot be changed.\
@@ -984,7 +984,7 @@ The
 The 
 \f1\fs18 avatar
 \f2\fs20  parameter, if not 
-\f1\fs18 NULL
+\f1\fs18 ""
 \f2\fs20 , sets a 
 \f1\fs18 string
 \f2\fs20  value used to represent the species graphically, particularly in SLiMgui but perhaps in other contexts also.  The 
@@ -997,7 +997,24 @@ The
 \f1\fs18 "
 \f7\fs14 \uc0\u55357 \u56365 
 \f1\fs18 "
-\f2\fs20  for mice.\
+\f2\fs20  for mice.  If 
+\f1\fs18 avatar
+\f2\fs20  is the empty string, 
+\f1\fs18 ""
+\f2\fs20 , SLiMgui will choose a default avatar.\
+The 
+\f1\fs18 color
+\f2\fs20  parameter, if not 
+\f1\fs18 ""
+\f2\fs20 , sets a 
+\f1\fs18 string
+\f2\fs20  color value used to represent the species in SLiMgui.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f1\fs18 "#RRGGBB"
+\f2\fs20  (see the Eidos manual for details).  If 
+\f1\fs18 color
+\f2\fs20  is the empty string, 
+\f1\fs18 ""
+\f2\fs20 , SLiMgui will choose a default color.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
