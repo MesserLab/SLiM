@@ -124,6 +124,53 @@ Chromosome::~Chromosome(void)
 // initialize the random lookup tables used by Chromosome to draw mutation and recombination events
 void Chromosome::InitializeDraws(void)
 {
+	// If we are in the special case of having no genetics, do some simple initialization and return.
+	// This leaves us in an unusual state, with nullptr for recombination/mutation rate maps and a
+	// last_position_ of -1; this state is not normally achievable, and might cause special problems.
+	if (!species_.HasGenetics())
+	{
+		single_recombination_map_ = true;
+		single_mutation_map_ = true;
+		
+		cached_value_lastpos_.reset();
+		last_position_ = -1;
+		
+		if (hotspot_multipliers_H_.size() == 0)
+			hotspot_multipliers_H_.emplace_back(1.0);
+		if (hotspot_end_positions_H_.size() == 0)
+			hotspot_end_positions_H_.emplace_back(-1);
+		
+		if (mutation_rates_H_.size() == 0)
+			mutation_rates_H_.emplace_back(1.0);
+		if (mutation_end_positions_H_.size() == 0)
+			mutation_end_positions_H_.emplace_back(-1);
+		
+		lookup_mutation_H_ = nullptr;
+		overall_mutation_rate_M_userlevel_ = overall_mutation_rate_F_userlevel_ = overall_mutation_rate_H_userlevel_ = 0.0;
+		overall_mutation_rate_M_ = overall_mutation_rate_F_ = overall_mutation_rate_H_ = 0.0;
+		exp_neg_overall_mutation_rate_M_ = exp_neg_overall_mutation_rate_F_ = exp_neg_overall_mutation_rate_H_ = 1.0;
+		
+		if (recombination_rates_H_.size() == 0)
+			recombination_rates_H_.emplace_back(1.0);
+		if (recombination_end_positions_H_.size() == 0)
+			recombination_end_positions_H_.emplace_back(-1);
+		
+		lookup_recombination_H_ = nullptr;
+		any_recombination_rates_05_ = false;
+		overall_recombination_rate_M_userlevel_ = overall_recombination_rate_F_userlevel_ = overall_recombination_rate_H_userlevel_ = 0.0;
+		overall_recombination_rate_M_ = overall_recombination_rate_F_ = overall_recombination_rate_H_ = 0.0;
+		exp_neg_overall_recombination_rate_M_ = exp_neg_overall_recombination_rate_F_ = exp_neg_overall_recombination_rate_H_ = 1.0;
+		
+#ifndef USE_GSL_POISSON
+		_InitializeJointProbabilities(overall_mutation_rate_H_, exp_neg_overall_mutation_rate_H_,
+									  overall_recombination_rate_H_, exp_neg_overall_recombination_rate_H_,
+									  probability_both_0_H_, probability_both_0_OR_mut_0_break_non0_H_, probability_both_0_OR_mut_0_break_non0_OR_mut_non0_break_0_H_);
+		
+#endif
+		
+		return;
+	}
+	
 	if (genomic_elements_.size() == 0)
 		EIDOS_TERMINATION << "ERROR (Chromosome::InitializeDraws): empty chromosome." << EidosTerminate();
 	
@@ -347,7 +394,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	last_position_mutrun_ = mutrun_count_ * mutrun_length_ - 1;
 	
 	// Consistency check
-	if ((mutrun_length_ < 1) || (mutrun_count_ * mutrun_length_ <= last_position_))
+	if (((mutrun_length_ < 1) && species_.HasGenetics()) || (mutrun_count_ * mutrun_length_ <= last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 	if (last_position_mutrun_ < last_position_)
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
@@ -1765,6 +1812,9 @@ EidosValue_SP Chromosome::ExecuteMethod_ancestralNucleotides(EidosGlobalStringID
 EidosValue_SP Chromosome::ExecuteMethod_drawBreakpoints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_drawBreakpoints): drawBreakpoints() may not be called for a species with no genetics." << EidosTerminate();
+	
 	EidosValue *parent_value = p_arguments[0].get();
 	EidosValue *n_value = p_arguments[1].get();
 	
@@ -2004,6 +2054,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setAncestralNucleotides(EidosGlobalStrin
 EidosValue_SP Chromosome::ExecuteMethod_setGeneConversion(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setGeneConversion): setGeneConversion() may not be called for a species with no genetics." << EidosTerminate();
+	
 	EidosValue *nonCrossoverFraction_value = p_arguments[0].get();
 	EidosValue *meanLength_value = p_arguments[1].get();
 	EidosValue *simpleConversionFraction_value = p_arguments[2].get();
@@ -2040,6 +2093,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setGeneConversion(EidosGlobalStringID p_
 EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() may not be called for a species with no genetics." << EidosTerminate();
 	if (!species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() may only be called in nucleotide-based models (use setMutationRate() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
@@ -2147,6 +2202,8 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() may not be called for a species with no genetics." << EidosTerminate();
 	if (species_.IsNucleotideBased())
 		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() may not be called in nucleotide-based models (use setHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
@@ -2254,6 +2311,9 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() may not be called for a species with no genetics." << EidosTerminate();
+	
 	EidosValue *rates_value = p_arguments[0].get();
 	EidosValue *ends_value = p_arguments[1].get();
 	EidosValue *sex_value = p_arguments[2].get();

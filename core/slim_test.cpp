@@ -413,13 +413,14 @@ void _RunBasicTests(void)
 	
 	// Test top-level structure parsing; this was adding for SLiM 4 due to the multispecies revisions
 	// If these tests do not stop for other reasons, they produce a raise due to incorrect initialization, "At least one mutation rate interval must be defined..."
-	SLiMAssertScriptRaise("initialize() {} 1 early() {}", "mutation rate interval", __LINE__, false);
-	SLiMAssertScriptRaise("initialize() {} initialize() {} 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptStop("initialize() {} 1 early() { stop(); }", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(0.0); } 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(0.0); } initialize() {} 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox 1 early() {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox 1 early() {}", "preceded by a species", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox fitness(m1) {}", "preceded by a ticks", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox fitness(m1) {}", "undeclared species", __LINE__);
-	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() {} ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() {} 1 early() {}", "preceded by a ticks", __LINE__);
 	SLiMAssertScriptRaise("species all initialize() {} ticks all 1 early() { stop(); }", "no species-specific initialize() callback found", __LINE__, false);
 	SLiMAssertScriptRaise("species fox initialize() {} initialize() {} 1 early() {}", "species specifiers are required", __LINE__);
@@ -427,12 +428,13 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("species fox initialize() {} 1 early() { stop(); }", "must be preceded by a ticks specifier", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} ticks all 1 early() { stop(); }", "ticks specifiers should not be used", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} species all 1 early() { stop(); }", "may not be preceded by a species specifier", __LINE__);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptStop("species mouse initialize() {} species fox initialize() {} ticks all 1 early() { stop(); }", __LINE__);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks bear 1 early() {}", "undeclared species", __LINE__);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks fox 1 early() {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks fox 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species all fitness(m1) {}", "fitness() callbacks may not be declared with 'species all'", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species bear fitness(m1) {}", "undeclared species", __LINE__);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species fox fitness(m1) {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } species fox fitness(m1) {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} fitness(m1) {}", "must be preceded", __LINE__);
 	SLiMAssertScriptRaise("species mouse species mouse", "must be followed by a callback", __LINE__);
 	SLiMAssertScriptRaise("ticks mouse ticks mouse", "must be followed by an event", __LINE__);

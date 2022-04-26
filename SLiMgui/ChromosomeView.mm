@@ -374,6 +374,23 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 - (void)drawTicksInContentRect:(NSRect)contentRect withController:(SLiMWindowController *)controller displayedRange:(NSRange)displayedRange
 {
 	NSRect interiorRect = [self interiorRect];
+	
+	if (displayedRange.length == 0)
+	{
+		// Handle the "no genetics" case separately
+		if (!_selectable)
+		{
+			NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:@"no genetics" attributes:tickAttrs];
+			NSSize tickLabelSize = [tickAttrLabel size];
+			int tickLabelX = (int)floor(interiorRect.origin.x + (interiorRect.size.width - tickLabelSize.width) / 2.0);
+			
+			[tickAttrLabel drawAtPoint:NSMakePoint(tickLabelX, contentRect.origin.y - 14)];
+			[tickAttrLabel release];
+		}
+		
+		return;
+	}
+	
 	int64_t lastTickIndex = numberOfTicksPlusOne;
 	
 	// Display fewer ticks when we are displaying a very small number of positions

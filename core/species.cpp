@@ -1652,18 +1652,65 @@ void Species::RunInitializeCallbacks(void)
 		community_.ExecuteEidosEvent(script_block);
 	
 	// check for complete initialization
+	if ((num_mutation_rates_ == 0) && (num_mutation_types_ == 0) && (num_genomic_element_types_ == 0) &&
+		(num_genomic_elements_ == 0) && (num_recombination_rates_ == 0) && (num_hotspot_maps_ == 0) &&
+		(num_gene_conversions_ == 0))
+	{
+		// BCH 26 April 2022: In SLiM 4, as a special case, we allow *all* of the genetic structure boilerplate to be omitted.
+		// This gives a species with no genetics, no mutations, no recombination, etc.  It is still permissible for a call
+		// to initializeChromosome() to set the length of the chromosome, but that chromosome will have no structure.
+		// Either way, here we set up the default empty genetic structure and pretend to have been initialized, so we have
+		// little bits of several initialization functions excerpted here.  Note that the state achieved by this code path
+		// cannot be achieved any other way; in particular, we have no genomic element types, no mutation types, and no
+		// genomic elements; normally that is illegal, but we deliberately carve out this special case.
+		has_genetics_ = false;
+		
+		if (!nucleotide_based_)
+		{
+			// initializeMutationRate(): initialize to zero
+			std::vector<slim_position_t> &positions = chromosome_->mutation_end_positions_H_;
+			std::vector<double> &rates = chromosome_->mutation_rates_H_;
+			rates.clear();
+			positions.clear();
+			rates.emplace_back(0.0);
+			num_mutation_rates_++;
+		}
+		else
+		{
+			// initializeHotspotMap(): initialize to zero
+			std::vector<slim_position_t> &positions = chromosome_->hotspot_end_positions_H_;
+			std::vector<double> &multipliers = chromosome_->hotspot_multipliers_H_;
+			multipliers.clear();
+			positions.clear();
+			multipliers.emplace_back(0.0);
+			num_hotspot_maps_++;
+		}
+		
+		{
+			// initializeRecombinationRate(): initialize to zero
+			std::vector<slim_position_t> &positions = chromosome_->recombination_end_positions_H_;
+			std::vector<double> &rates = chromosome_->recombination_rates_H_;
+			rates.clear();
+			positions.clear();
+			rates.emplace_back(0.0);
+			num_recombination_rates_++;
+		}
+		
+		community_.chromosome_changed_ = true;
+	}
+	
 	if (!nucleotide_based_ && (num_mutation_rates_ == 0))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation rate interval must be defined in an initialize() callback with initializeMutationRate()." << EidosTerminate();
 	if (nucleotide_based_ && (num_mutation_rates_ > 0))
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): initializeMutationRate() may not be called in nucleotide-based models (use initializeHotspotMap() to vary the mutation rate along the chromosome)." << EidosTerminate();
 	
-	if (num_mutation_types_ == 0)
+	if ((num_mutation_types_ == 0) && has_genetics_)
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one mutation type must be defined in an initialize() callback with initializeMutationType() (or initializeMutationTypeNuc(), in nucleotide-based models)." << EidosTerminate();
 	
-	if (num_genomic_element_types_ == 0)
+	if ((num_genomic_element_types_ == 0) && has_genetics_)
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element type must be defined in an initialize() callback with initializeGenomicElementType()." << EidosTerminate();
 	
-	if (num_genomic_elements_ == 0)
+	if ((num_genomic_elements_ == 0) && has_genetics_)
 		EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): At least one genomic element must be defined in an initialize() callback with initializeGenomicElement()." << EidosTerminate();
 	
 	if (num_recombination_rates_ == 0)

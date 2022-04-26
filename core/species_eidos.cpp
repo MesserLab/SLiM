@@ -846,7 +846,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 		double mutation_rate = rates_value->FloatAtIndex(0, nullptr);
 		
 		// check values
-		if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))		// intentionally no upper bound
+		if ((mutation_rate < 0.0) || (mutation_rate >= 1.0) || !std::isfinite(mutation_rate))
 			EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requires rates to be >= 0.0 and < 1.0 (" << EidosStringForFloat(mutation_rate) << " supplied)." << EidosTerminate();
 		
 		// then adopt them

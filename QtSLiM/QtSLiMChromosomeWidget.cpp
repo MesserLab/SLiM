@@ -408,6 +408,23 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
     }
     painter.setFont(*tickFont);
     
+    if (displayedRange.length == 0)
+	{
+		// Handle the "no genetics" case separately
+		if (!selectable_)
+		{
+            QString tickLabel("no genetics");
+            int tickLabelX = static_cast<int>(floor(contentRect.left() + contentRect.width() / 2.0));
+            int tickLabelY = contentRect.bottom() + (2 + 13);
+            int textFlags = (Qt::TextDontClip | Qt::TextSingleLine | Qt::AlignBottom | Qt::AlignHCenter);
+            
+            painter.drawText(QRect(tickLabelX, tickLabelY, 0, 0), textFlags, tickLabel);
+		}
+		
+        painter.restore();
+		return;
+	}
+    
 	for (int tickIndex = 0; tickIndex <= lastTickIndex; ++tickIndex)
 	{
 		slim_position_t tickBase = static_cast<slim_position_t>(displayedRange.location) + static_cast<slim_position_t>(ceil((displayedRange.length - 1) * (tickIndex / tickIndexDivisor)));	// -1 because we are choosing an in-between-base position that falls, at most, to the left of the last base

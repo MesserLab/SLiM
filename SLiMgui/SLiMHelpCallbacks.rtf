@@ -38,6 +38,21 @@
 \f2\fs22  to mark them clearly as such.  You may also use other Eidos functionality in these callbacks; for example, you might automate generating a complex genetic structure containing many genes by using a 
 \f3\fs18 for
 \f2\fs22  loop.\
+In general, it is required for a species to set up its genetic structure in an 
+\f3\fs18 initialize()
+\f2\fs22  callback with calls to 
+\f3\fs18 initializeMutationRate()
+\f2\fs22 , 
+\f3\fs18 initializeRecombinationRate()
+\f2\fs22 , 
+\f3\fs18 initializeMutationType()
+\f2\fs22 , 
+\f3\fs18 initializeGenomicElementType()
+\f2\fs22 , and 
+\f3\fs18 initializeGenomicElement()
+\f2\fs22 ; species must call all of these, setting up at least one mutation type, at least one genomic element type, and at least one genomic element.  The exception to this general rule is for species that have no genetics at all \'96 species that are modeled purely on an ecological/behavioral level.  Such species may be defined by calling 
+\f0\i none
+\f2\i0  of those initialization functions; in this case, SLiM will default to a zero-length chromosome with mutation and recombination rates of zero.  A middle ground between these two configuration paths is not allowed; either a species has no genetics, or it fully defines its genetics.\
 One thing worth mentioning is that in the context of an 
 \f3\fs18 initialize()
 \f2\fs22  callback, the 
