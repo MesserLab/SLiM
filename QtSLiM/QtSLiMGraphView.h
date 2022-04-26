@@ -78,7 +78,9 @@ protected:
     std::string focalSpeciesName_;                                  // we keep the name of our focal species, since a pointer would be unsafe
     std::string focalSpeciesAvatar_;                                // cached so we can display it even when the simulation is invalid
     
+    void setFocalDisplaySpecies(Species *species);
     Species *focalDisplaySpecies(void);
+    bool missingFocalDisplaySpecies(void);                          // true if the graph has a focal display species but can't find it
     void updateSpeciesBadge(void);
     
     // Base graphing functionality
@@ -120,6 +122,7 @@ protected:
     // Prefab additions
     QString dateline(void);
     void setXAxisRangeFromTick(void);
+    QColor colorForSpecies(Species *species);
     QtSLiMLegendSpec subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray);
     QtSLiMLegendSpec mutationTypeLegendKey(void);
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);

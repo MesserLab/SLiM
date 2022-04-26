@@ -62,7 +62,7 @@ QFont QtSLiMGraphView::labelFontOfPointSize(double size)
 QtSLiMGraphView::QtSLiMGraphView(QWidget *p_parent, QtSLiMWindow *controller) : QWidget(p_parent)
 {
     controller_ = controller;
-    focalSpeciesName_ = controller_->focalDisplaySpecies()->name_;
+    setFocalDisplaySpecies(controller_->focalDisplaySpecies());
     
     connect(controller, &QtSLiMWindow::controllerUpdatedAfterTick, this, &QtSLiMGraphView::updateAfterTick);
     connect(controller, &QtSLiMWindow::controllerSelectionChanged, this, &QtSLiMGraphView::controllerSelectionChanged);
@@ -123,14 +123,39 @@ void QtSLiMGraphView::cleanup()
     invalidateDrawingCache();
 }
 
+void QtSLiMGraphView::setFocalDisplaySpecies(Species *species)
+{
+    if (species)
+    {
+        focalSpeciesName_ = species->name_;
+        // focalSpeciesAvatar_ is set by updateSpeciesBadge()
+    }
+    else
+    {
+        focalSpeciesName_ = "";
+        focalSpeciesAvatar_ = "";
+    }
+}
+
 Species *QtSLiMGraphView::focalDisplaySpecies(void)
 {
     // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
     // Before initialize() is done species have not been created, so we return nullptr in that case
-	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
-		return controller_->community->SpeciesWithName(focalSpeciesName_);
-	
-	return nullptr;
+    // Some graph types will have no focal species; in that case we always return nullptr
+    if (focalSpeciesName_.length() == 0)
+        return nullptr;
+    
+    if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
+        return controller_->community->SpeciesWithName(focalSpeciesName_);
+    
+    return nullptr;
+}
+
+bool QtSLiMGraphView::missingFocalDisplaySpecies(void)
+{
+    if (focalSpeciesName_.length() == 0)
+        return false;
+    return (focalDisplaySpecies() == nullptr);
 }
 
 void QtSLiMGraphView::updateSpeciesBadge(void)
@@ -757,7 +782,7 @@ void QtSLiMGraphView::drawContents(QPainter &painter)
     {
         drawMessage(painter, "no\ndata", bounds);
     }
-    else if (!focalDisplaySpecies())
+    else if (missingFocalDisplaySpecies())
     {
         // The species name no longer refers to a species in the community
         drawMessage(painter, "missing\nspecies", bounds);
@@ -857,7 +882,7 @@ void QtSLiMGraphView::controllerRecycled(void)
     update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && focalDisplaySpecies());
+    if (action) action->setEnabled(!controller_->invalidSimulation() && !missingFocalDisplaySpecies());
 }
 
 void QtSLiMGraphView::controllerSelectionChanged(void)
@@ -875,7 +900,7 @@ void QtSLiMGraphView::updateAfterTick(void)
     update();
     
     QPushButton *action = actionButton();
-    if (action) action->setEnabled(!controller_->invalidSimulation() && focalDisplaySpecies());
+    if (action) action->setEnabled(!controller_->invalidSimulation() && !missingFocalDisplaySpecies());
 }
 
 bool QtSLiMGraphView::providesStringForData(void)
@@ -929,7 +954,7 @@ QString QtSLiMGraphView::disableMessage(void)
 
 void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
 {
-    if (!controller_->invalidSimulation() && focalDisplaySpecies()) // && ![[controller window] attachedSheet])
+    if (!controller_->invalidSimulation() && !missingFocalDisplaySpecies()) // && ![[controller window] attachedSheet])
 	{
 		bool addedItems = false;
         QMenu contextMenu("graph_menu", this);
@@ -1289,6 +1314,14 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 	}
 }
 
+QColor QtSLiMGraphView::colorForSpecies(Species *species)
+{
+    if (species->color_.length() > 0)
+        return QtSLiMColorWithRGB(species->color_red_, species->color_green_, species->color_blue_, 1.0);
+    
+    return controller_->whiteContrastingColorForIndex(species->species_id_);
+}
+
 QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray)
 {
     QtSLiMLegendSpec legend_key;
@@ -1620,10 +1653,10 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     if (!graphSpecies)
         return 0;
     
-	Population &population = graphSpecies->population_;
-	size_t subpop_total_genome_count = 0;
-	
-	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+    Population &population = graphSpecies->population_;
+    size_t subpop_total_genome_count = 0;
+    
+    Mutation *mut_block_ptr = gSLiM_Mutation_Block;
     
     {
         int registry_size;

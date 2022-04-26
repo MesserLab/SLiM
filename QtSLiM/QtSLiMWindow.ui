@@ -1389,6 +1389,8 @@ QSlider::handle:horizontal:disabled {
      <addaction name="actionGraph_Population_Size_Time"/>
      <addaction name="actionGraph_Population_Visualization"/>
      <addaction name="separator"/>
+     <addaction name="actionGraph_Multispecies_Population_Size_Time"/>
+     <addaction name="separator"/>
      <addaction name="actionCreate_Haplotype_Plot"/>
     </widget>
     <addaction name="actionStep"/>
@@ -1973,6 +1975,14 @@ QSlider::handle:horizontal:disabled {
   <action name="actionShowCycle_nonWF">
    <property name="text">
     <string>Show nonWF Generation Cycle</string>
+   </property>
+  </action>
+  <action name="actionGraph_Multispecies_Population_Size_Time">
+   <property name="text">
+    <string>Multispecies Population Size ~ Time</string>
+   </property>
+   <property name="toolTip">
+    <string>Graph Multispecies Population Size ~ Time</string>
    </property>
   </action>
  </widget>

@@ -48,6 +48,7 @@
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
 #include "QtSLiMGraphView_PopFitnessDist.h"
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
+#include "QtSLiMGraphView_MultispeciesPopSizeOverTime.h"
 #include "QtSLiMHaplotypeManager.h"
 
 #include <QCoreApplication>
@@ -4669,6 +4670,8 @@ void QtSLiMWindow::displayGraphClicked(void)
             graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
         if (action == ui->actionGraph_Population_Visualization)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
+        if (action == ui->actionGraph_Multispecies_Population_Size_Time)
+            graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
         if (action == ui->actionCreate_Haplotype_Plot)
         {
             Species *displaySpecies = focalDisplaySpecies();
@@ -5105,6 +5108,11 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     contextMenu.addSeparator();
     
+    QAction *graphMultispeciesPopSizeVsTime = contextMenu.addAction("Multispecies Population Size ~ Time");
+    graphMultispeciesPopSizeVsTime->setEnabled(!disableAll);
+    
+    contextMenu.addSeparator();
+    
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
     createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size());
     
@@ -5146,6 +5154,8 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
             graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
         if (action == graphPopVisualization)
             graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
+        if (action == graphMultispeciesPopSizeVsTime)
+            graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
         if (action == createHaplotypePlot)
         {
             if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
