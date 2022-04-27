@@ -1607,12 +1607,7 @@ std::string EidosValue_Int_vector::StringAtIndex(int p_idx, const EidosToken *p_
 	if ((p_idx < 0) || (p_idx >= (int)size()))
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_vector::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
-	// with C++11, could use std::to_string(values_[p_idx])
-	std::ostringstream ss;
-	
-	ss << values_[p_idx];
-	
-	return ss.str();
+	return std::to_string(values_[p_idx]);		// way faster than std::ostringstream
 }
 
 int64_t EidosValue_Int_vector::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
@@ -1741,12 +1736,7 @@ std::string EidosValue_Int_singleton::StringAtIndex(int p_idx, const EidosToken 
 	if (p_idx != 0)
 		EIDOS_TERMINATION << "ERROR (EidosValue_Int_singleton::StringAtIndex): subscript " << p_idx << " out of range." << EidosTerminate(p_blame_token);
 	
-	// with C++11, could use std::to_string(value_)
-	std::ostringstream ss;
-	
-	ss << value_;
-	
-	return ss.str();
+	return std::to_string(value_);		// way faster than std::ostringstream
 }
 
 int64_t EidosValue_Int_singleton::IntAtIndex(int p_idx, const EidosToken *p_blame_token) const
