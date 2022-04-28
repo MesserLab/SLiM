@@ -56,7 +56,7 @@ late() {
 	qtlValues = p1.individuals.tagF;
 	expectedSizes = pmax(0.0, qtlValues + 3);
 	
-	cat(sim.generation + ": " + p1.individualCount + " individuals");
+	cat(sim.cycle + ": " + p1.individualCount + " individuals");
 	cat(", mean litter size " + mean(expectedSizes));
 	catn();
 }

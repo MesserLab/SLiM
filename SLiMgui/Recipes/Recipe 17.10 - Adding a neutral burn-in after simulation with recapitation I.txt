@@ -18,7 +18,7 @@ initialize() {
 100:10000 late() {
 	mut = sim.mutationsOfType(m2);
 	if (mut.size() != 1)
-		stop(sim.generation + ": LOST");
+		stop(sim.cycle + ": LOST");
 	else if (sum(sim.mutationFrequencies(NULL, mut)) == 1.0)
 	{
 		sim.treeSeqOutput("recipe_17.10_decap.trees");

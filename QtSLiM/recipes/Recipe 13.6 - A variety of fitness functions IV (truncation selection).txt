@@ -21,7 +21,7 @@ fitness(m2) { return 1.0; }
 	phenotypes = inds.sumOfMutationsOfType(m2);
 	inds.fitnessScaling = ifelse(phenotypes < 0.0, 0.0, 1.0);
 	
-	if (sim.generation % 10 == 0)
+	if (sim.cycle % 10 == 0)
 		cat(", " + mean(phenotypes));
 }
 15000 late() {

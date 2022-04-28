@@ -20,7 +20,7 @@ fitness(m2) { return 1.0; }
 	scale = dnorm(0.0, 0.0, 2.0);
 	inds.fitnessScaling = 1.5 - dnorm(phenotypes, 0.0, 2.0) / scale;
 	
-	if (sim.generation % 10 == 0)
+	if (sim.cycle % 10 == 0)
 		cat(", " + mean(phenotypes));
 }
 5000 late() {

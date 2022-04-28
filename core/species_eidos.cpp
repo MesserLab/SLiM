@@ -1584,13 +1584,13 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(description_));
 		}
-		case gID_generation:
+		case gID_cycle:
 		{
-			if (cached_value_generation_ && (((EidosValue_Int_singleton *)cached_value_generation_.get())->IntValue() != generation_))
-				cached_value_generation_.reset();
-			if (!cached_value_generation_)
-				cached_value_generation_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation_));
-			return cached_value_generation_;
+			if (cached_value_cycle_ && (((EidosValue_Int_singleton *)cached_value_cycle_.get())->IntValue() != cycle_))
+				cached_value_cycle_.reset();
+			if (!cached_value_cycle_)
+				cached_value_cycle_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle_));
+			return cached_value_cycle_;
 		}
 		case gID_tag:
 		{
@@ -1622,14 +1622,14 @@ void Species::SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p
 			description_ = description;
 			return;
 		}
-		case gID_generation:
+		case gID_cycle:
 		{
 			int64_t value = p_value.IntAtIndex(0, nullptr);
-			slim_tick_t old_generation = generation_;
-			slim_tick_t new_generation = SLiMCastToTickTypeOrRaise(value);
+			slim_tick_t old_cycle = cycle_;
+			slim_tick_t new_cycle = SLiMCastToTickTypeOrRaise(value);
 			
-			if (new_generation != old_generation)
-				SetGeneration(new_generation);
+			if (new_cycle != old_cycle)
+				SetCycle(new_cycle);
 			return;
 		}
 			
@@ -1688,10 +1688,10 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() may only be called from an early() or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() may not be called from inside a callback." << EidosTerminate();
@@ -1742,10 +1742,10 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): method -addSubpopSplit() is not available in nonWF models." << EidosTerminate();
 	
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may not be called from inside a callback." << EidosTerminate();
@@ -1868,7 +1868,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		else
 		{
 			// for larger problem sizes, we speed up lookups by building a hash table first, changing from O(N*M) to O(N)
-			// we could get even more fancy and cache this hash table to speed up successive calls within one generation,
+			// we could get even more fancy and cache this hash table to speed up successive calls within one cycle,
 			// but since the hash table is specific to the set of subpops we're searching, that would get a bit hairy...
 #if EIDOS_ROBIN_HOOD_HASHING
 			robin_hood::unordered_flat_map<slim_pedigreeid_t, Individual *> fromIDToIndividual;
@@ -1966,7 +1966,7 @@ EidosValue_SP Species::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_metho
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-	// track calls per generation to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
+	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
 	bool start_registry = (mutation_type_ptr->muttype_registry_call_count_++ >= 1);
 	population_.any_muttype_call_count_used_ = true;
 	
@@ -2070,7 +2070,7 @@ EidosValue_SP Species::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID 
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
-	// track calls per generation to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
+	// track calls per cycle to Species::ExecuteMethod_mutationsOfType() and Species::ExecuteMethod_countOfMutationsOfType()
 	bool start_registry = (mutation_type_ptr->muttype_registry_call_count_++ >= 1);
 	population_.any_muttype_call_count_used_ = true;
 	
@@ -2129,11 +2129,11 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	if (!community_.warned_early_output_)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2166,8 +2166,8 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 		Eidos_CheckRSSAgainstMax("Species::ExecuteMethod_outputFixedMutations", "(outputFixedMutations(): The memory usage was already out of bounds on entry.)");
 #endif
 	
-	// Output header line.  BCH 3/6/2022: Note that the generation was added after the tick in SLiM 4.
-	out << "#OUT: " << community_.Tick() << " " << Generation() << " F";
+	// Output header line.  BCH 3/6/2022: Note that the cycle was added after the tick in SLiM 4.
+	out << "#OUT: " << community_.Tick() << " " << Cycle() << " F";
 	
 	if (has_file)
 		out << " " << outfile_path;
@@ -2216,11 +2216,11 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	
 	if (!community_.warned_early_output_)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2235,9 +2235,9 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	if (output_pedigree_ids && !PedigreesEnabledByUser())
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_outputFull): outputFull() cannot output pedigree IDs, because pedigree recording has not been enabled." << EidosTerminate();
 	
-	// BCH 3/6/2022: Note that in SLiM 4 we now output the species generation after the tick.  This breaks backward compatibility
+	// BCH 3/6/2022: Note that in SLiM 4 we now output the species cycle after the tick.  This breaks backward compatibility
 	// for code that parses the output from outputFull(), but in a minor way.  It is necessary so that we can round-trip a model
-	// with outputFull()/readFromPopulationFile(); that needs to restore the species generation.  The generation is also added to
+	// with outputFull()/readFromPopulationFile(); that needs to restore the species cycle.  The cycle is also added to
 	// the other text output formats, except those on Genome (where the genomes might come from multiple species).
 	
 	if (filePath_value->Type() == EidosValueType::kValueNULL)
@@ -2247,7 +2247,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 		
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
-		output_stream << "#OUT: " << community_.Tick() << " " << Generation() << " A" << std::endl;
+		output_stream << "#OUT: " << community_.Tick() << " " << Cycle() << " A" << std::endl;
 		population_.PrintAll(output_stream, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids);
 	}
 	else
@@ -2278,7 +2278,7 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 				//				for (int i = 0; i < input_parameters.size(); i++)
 				//					outfile << input_parameters[i] << endl;
 				
-				outfile << "#OUT: " << community_.Tick() << " " << Generation() << " A " << outfile_path << std::endl;
+				outfile << "#OUT: " << community_.Tick() << " " << Cycle() << " A " << outfile_path << std::endl;
 				population_.PrintAll(outfile, output_spatial_positions, output_ages, output_ancestral_nucs, output_pedigree_ids);
 			}
 			
@@ -2306,11 +2306,11 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	if (!community_.warned_early_output_)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2395,10 +2395,10 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 			
 			// output the frequencies of these mutations in each subpopulation; note the format here comes from the old tracked mutations code
 			// NOTE the format of this output changed because print_no_id() added the mutation_id_ to its output; BCH 11 June 2016
-			// BCH 3/6/2022: Note that the generation was added after the tick in SLiM 4.
+			// BCH 3/6/2022: Note that the cycle was added after the tick in SLiM 4.
 			for (const PolymorphismPair &polymorphism_pair : polymorphisms) 
 			{
-				out << "#OUT: " << community_.Tick() << " " << Generation() << " T p" << subpop_pair.first << " ";
+				out << "#OUT: " << community_.Tick() << " " << Cycle() << " T p" << subpop_pair.first << " ";
 				polymorphism_pair.second.Print_NoID(out);
 			}
 		}
@@ -2415,29 +2415,29 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may not be called from inside a callback." << EidosTerminate();
 	
 	if (!community_.warned_early_read_)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to generating offspring unless recalculateFitness() is called." << std::endl;
 				community_.warned_early_read_ = true;
 			}
 		}
-		if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to offspring generation unless recalculateFitness() is called." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to generating offspring unless recalculateFitness() is called." << std::endl;
 				community_.warned_early_read_ = true;
 			}
 		}
@@ -2455,10 +2455,10 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may only be called from an early() or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may not be called from inside a callback." << EidosTerminate();
@@ -2506,7 +2506,7 @@ EidosValue_SP Species::ExecuteMethod_registerFitnessCallback(EidosGlobalStringID
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerFitnessCallback): registerFitnessCallback() requires start <= end." << EidosTerminate();
 	
-	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage6CalculateFitness : SLiMGenerationStage::kNonWFStage3CalculateFitness);
+	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage6CalculateFitness : SLiMCycleStage::kNonWFStage3CalculateFitness);
 	
 	SLiMEidosBlockType block_type = ((mut_type_id == -2) ? SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback : SLiMEidosBlockType::SLiMEidosFitnessCallback);
 	
@@ -2566,7 +2566,7 @@ EidosValue_SP Species::ExecuteMethod_registerMateModifyRecSurvCallback(EidosGlob
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerMateModifyRecSurvCallback): (internal error) unrecognized callback type." << EidosTerminate();
 	
-	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
+	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage2GenerateOffspring : SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
 	
@@ -2609,7 +2609,7 @@ EidosValue_SP Species::ExecuteMethod_registerMutationCallback(EidosGlobalStringI
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerFitnessCallback): registerMutationCallback() requires start <= end." << EidosTerminate();
 	
-	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage2GenerateOffspring : SLiMGenerationStage::kNonWFStage1GenerateOffspring);
+	community_.CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage2GenerateOffspring : SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosMutationCallback, start_tick, end_tick, this, nullptr);
 	
@@ -2666,7 +2666,7 @@ EidosValue_SP Species::ExecuteMethod_registerReproductionCallback(EidosGlobalStr
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_registerReproductionCallback): registerReproductionCallback() requires start <= end." << EidosTerminate();
 	
-	community_.CheckScheduling(start_tick, SLiMGenerationStage::kNonWFStage1GenerateOffspring);
+	community_.CheckScheduling(start_tick, SLiMCycleStage::kNonWFStage1GenerateOffspring);
 	
 	SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, block_type, start_tick, end_tick, this, nullptr);
@@ -2700,10 +2700,10 @@ EidosValue_SP Species::ExecuteMethod_simulationFinished(EidosGlobalStringID p_me
 EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_skipTick): skipTick() may only be called from a first() event; skipping ticks should be arranged before any portion of the generation cycle has occurred." << EidosTerminate();
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_skipTick): skipTick() may only be called from a first() event; skipping ticks should be arranged before any portion of the cycle has occurred." << EidosTerminate();
 	
 	if (species_active_)
 	{
@@ -2896,10 +2896,10 @@ EidosValue_SP Species::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called when tree recording is enabled." << EidosTerminate();
 	
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from a first(), early(), or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
@@ -2968,10 +2968,10 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called when tree recording is enabled." << EidosTerminate();
 	
-	SLiMGenerationStage gen_stage = community_.GenerationStage();
+	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
-	if ((gen_stage != SLiMGenerationStage::kWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kWFStage5ExecuteLateScripts) &&
-		(gen_stage != SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) && (gen_stage != SLiMGenerationStage::kNonWFStage6ExecuteLateScripts))
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from a first(), early(), or late() event." << EidosTerminate();
 	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
@@ -3040,7 +3040,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexEnabled,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulations,			true,	kEidosValueMaskObject, gSLiM_Subpopulation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_substitutions,			true,	kEidosValueMaskObject, gSLiM_Substitution_Class)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generation,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cycle,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);

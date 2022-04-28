@@ -602,33 +602,33 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 int64_t SLiM_verbosity_level = 1;
 
-// stream output for generation stages
-std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage)
+// stream output for cycle stages
+std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
 {
 	switch (p_stage)
 	{
 		// some of these are not user-visible
-		case SLiMGenerationStage::kStagePreGeneration: return "begin";
-		case SLiMGenerationStage::kWFStage0ExecuteFirstScripts: return "first";
-		case SLiMGenerationStage::kWFStage1ExecuteEarlyScripts: return "early";
-		case SLiMGenerationStage::kWFStage2GenerateOffspring: return "reproduction";
-		case SLiMGenerationStage::kWFStage3RemoveFixedMutations: return "tally";
-		case SLiMGenerationStage::kWFStage4SwapGenerations: return "swap";
-		case SLiMGenerationStage::kWFStage5ExecuteLateScripts: return "late";
-		case SLiMGenerationStage::kWFStage6CalculateFitness: return "fitness";
-		case SLiMGenerationStage::kWFStage7AdvanceGenerationCounter: return "end";
-		case SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts: return "first";
-		case SLiMGenerationStage::kNonWFStage1GenerateOffspring: return "reproduction";
-		case SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts: return "early";
-		case SLiMGenerationStage::kNonWFStage3CalculateFitness: return "fitness";
-		case SLiMGenerationStage::kNonWFStage4SurvivalSelection: return "survival";
-		case SLiMGenerationStage::kNonWFStage5RemoveFixedMutations: return "tally";
-		case SLiMGenerationStage::kNonWFStage6ExecuteLateScripts: return "late";
-		case SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter: return "end";
-		case SLiMGenerationStage::kStagePostGeneration: return "console";
+		case SLiMCycleStage::kStagePreCycle: return "begin";
+		case SLiMCycleStage::kWFStage0ExecuteFirstScripts: return "first";
+		case SLiMCycleStage::kWFStage1ExecuteEarlyScripts: return "early";
+		case SLiMCycleStage::kWFStage2GenerateOffspring: return "reproduction";
+		case SLiMCycleStage::kWFStage3RemoveFixedMutations: return "tally";
+		case SLiMCycleStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage5ExecuteLateScripts: return "late";
+		case SLiMCycleStage::kWFStage6CalculateFitness: return "fitness";
+		case SLiMCycleStage::kWFStage7AdvanceTickCounter: return "end";
+		case SLiMCycleStage::kNonWFStage0ExecuteFirstScripts: return "first";
+		case SLiMCycleStage::kNonWFStage1GenerateOffspring: return "reproduction";
+		case SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts: return "early";
+		case SLiMCycleStage::kNonWFStage3CalculateFitness: return "fitness";
+		case SLiMCycleStage::kNonWFStage4SurvivalSelection: return "survival";
+		case SLiMCycleStage::kNonWFStage5RemoveFixedMutations: return "tally";
+		case SLiMCycleStage::kNonWFStage6ExecuteLateScripts: return "late";
+		case SLiMCycleStage::kNonWFStage7AdvanceTickCounter: return "end";
+		case SLiMCycleStage::kStagePostCycle: return "console";
 	}
 	
-	EIDOS_TERMINATION << "ERROR (StringForSLiMGenerationStage): (internal) unrecognized generation stage." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (StringForSLiMCycleStage): (internal) unrecognized cycle stage." << EidosTerminate();
 }
 
 // stream output for enumerations
@@ -1204,8 +1204,8 @@ const std::string &gStr_sexEnabled = EidosRegisteredString("sexEnabled", gID_sex
 const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations", gID_subpopulations);
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
 const std::string &gStr_tick = EidosRegisteredString("tick", gID_tick);
-const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
-const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
+const std::string &gStr_cycle = EidosRegisteredString("cycle", gID_cycle);
+const std::string &gStr_cycleStage = EidosRegisteredString("cycleStage", gID_cycleStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
 const std::string &gStr_verbosity = EidosRegisteredString("verbosity", gID_verbosity);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
@@ -1421,8 +1421,8 @@ const std::string &gStr_LogFile = EidosRegisteredString("LogFile", gID_LogFile);
 const std::string &gStr_logInterval = EidosRegisteredString("logInterval", gID_logInterval);
 const std::string &gStr_precision = EidosRegisteredString("precision", gID_precision);
 const std::string &gStr_addCustomColumn = EidosRegisteredString("addCustomColumn", gID_addCustomColumn);
-const std::string &gStr_addGeneration = EidosRegisteredString("addGeneration", gID_addGeneration);
-const std::string &gStr_addGenerationStage = EidosRegisteredString("addGenerationStage", gID_addGenerationStage);
+const std::string &gStr_addCycle = EidosRegisteredString("addCycle", gID_addCycle);
+const std::string &gStr_addCycleStage = EidosRegisteredString("addCycleStage", gID_addCycleStage);
 const std::string &gStr_addMeanSDColumns = EidosRegisteredString("addMeanSDColumns", gID_addMeanSDColumns);
 const std::string &gStr_addPopulationSexRatio = EidosRegisteredString("addPopulationSexRatio", gID_addPopulationSexRatio);
 const std::string &gStr_addPopulationSize = EidosRegisteredString("addPopulationSize", gID_addPopulationSize);
@@ -1519,7 +1519,7 @@ void SLiM_ConfigureContext(void)
 // see https://stackoverflow.com/a/5460235/2752221
 
 const std::string gSLiM_tsk_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.8","name":"fox","description":"foxes on Catalina island","generation":123,"tick":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.8","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"generation":{"description":"The 'SLiM generation' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.8","name":"fox","description":"foxes on Catalina island","cycle":123,"tick":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.8","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_edge_metadata_schema = "";
 const std::string gSLiM_tsk_site_metadata_schema = "";

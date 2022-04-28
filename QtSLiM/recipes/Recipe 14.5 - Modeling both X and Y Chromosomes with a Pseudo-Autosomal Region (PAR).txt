@@ -39,7 +39,7 @@ modifyChild() {
 1:10000 late() {
 	// periodically remove m2 (non-PAR) mutations that are fixed in X or Y
 	// m1 (PAR) mutations will be automatically removed when fixed
-	if (sim.generation % 1000 == 0) {
+	if (sim.cycle % 1000 == 0) {
 		numY = sum(p1.individuals.sex == "M");
 		numX = 2 * size(p1.individuals) - numY;
 		
@@ -66,7 +66,7 @@ modifyChild() {
 		xcounts = sim.mutationCounts(NULL, xmuts);
 		removeX = xmuts[xcounts == numX];
 		
-		cat("Gen. " + sim.generation + ": Removing ");
+		cat("Cycle " + sim.cycle + ": Removing ");
 		cat(removeX.size() + "/" + removeY.size() + " on X/Y\n");
 		
 		removes = c(removeY, removeX);

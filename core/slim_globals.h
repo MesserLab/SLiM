@@ -484,9 +484,9 @@ enum class SLiMModelType
 	kModelTypeNonWF				// a non-Wright-Fisher model: a new model type that is more general
 };
 
-enum class SLiMGenerationStage
+enum class SLiMCycleStage
 {
-	kStagePreGeneration = 0,
+	kStagePreCycle = 0,
 	
 	// stages for WF models
 	kWFStage0ExecuteFirstScripts = 1,
@@ -496,7 +496,7 @@ enum class SLiMGenerationStage
 	kWFStage4SwapGenerations,
 	kWFStage5ExecuteLateScripts,
 	kWFStage6CalculateFitness,
-	kWFStage7AdvanceGenerationCounter,
+	kWFStage7AdvanceTickCounter,
 	
 	// stages for nonWF models
 	kNonWFStage0ExecuteFirstScripts = 101,
@@ -506,13 +506,13 @@ enum class SLiMGenerationStage
 	kNonWFStage4SurvivalSelection,
 	kNonWFStage5RemoveFixedMutations,
 	kNonWFStage6ExecuteLateScripts,
-	kNonWFStage7AdvanceGenerationCounter,
+	kNonWFStage7AdvanceTickCounter,
 	
-	// end stage between generations; things in the Eidos console happen here
-	kStagePostGeneration = 201,
+	// end stage between ticks; things in the Eidos console happen here
+	kStagePostCycle = 201,
 };
 
-std::string StringForSLiMGenerationStage(SLiMGenerationStage p_stage);
+std::string StringForSLiMCycleStage(SLiMCycleStage p_stage);
 
 // This enumeration represents the type of chromosome represented by a genome: autosome, X, or Y.  Note that this is somewhat
 // separate from the sex of the individual; one can model sexual individuals but model only an autosome, in which case the sex
@@ -765,8 +765,8 @@ extern const std::string &gStr_sexEnabled;
 extern const std::string &gStr_subpopulations;
 extern const std::string &gStr_substitutions;
 extern const std::string &gStr_tick;
-extern const std::string &gStr_generation;
-extern const std::string &gStr_generationStage;
+extern const std::string &gStr_cycle;
+extern const std::string &gStr_cycleStage;
 extern const std::string &gStr_colorSubstitution;
 extern const std::string &gStr_verbosity;
 extern const std::string &gStr_tag;
@@ -977,8 +977,8 @@ extern const std::string &gStr_LogFile;
 extern const std::string &gStr_logInterval;
 extern const std::string &gStr_precision;
 extern const std::string &gStr_addCustomColumn;
-extern const std::string &gStr_addGeneration;
-extern const std::string &gStr_addGenerationStage;
+extern const std::string &gStr_addCycle;
+extern const std::string &gStr_addCycleStage;
 extern const std::string &gStr_addMeanSDColumns;
 extern const std::string &gStr_addPopulationSexRatio;
 extern const std::string &gStr_addPopulationSize;
@@ -1121,8 +1121,8 @@ enum _SLiMGlobalStringID : int {
 	gID_subpopulations,
 	gID_substitutions,
 	gID_tick,
-	gID_generation,
-	gID_generationStage,
+	gID_cycle,
+	gID_cycleStage,
 	gID_colorSubstitution,
 	gID_verbosity,
 	gID_tag,
@@ -1333,8 +1333,8 @@ enum _SLiMGlobalStringID : int {
 	gID_logInterval,
 	gID_precision,
 	gID_addCustomColumn,
-	gID_addGeneration,
-	gID_addGenerationStage,
+	gID_addCycle,
+	gID_addCycleStage,
 	gID_addMeanSDColumns,
 	gID_addPopulationSexRatio,
 	gID_addPopulationSize,

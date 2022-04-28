@@ -69,13 +69,13 @@ mateChoice() {
 	return i2.strength(individual);
 }
 1:5001 late() {
-	if (sim.generation == 1)
-		cat("  gen    mean      sd\n");
+	if (sim.cycle == 1)
+		cat("  cyc    mean      sd\n");
 	
-	if (sim.generation % 100 == 1)
+	if (sim.cycle % 100 == 1)
 	{
 		phenotypes = p1.individuals.z;
-		cat(format("%5d  ", sim.generation));
+		cat(format("%5d  ", sim.cycle));
 		cat(format("%6.2f  ", mean(phenotypes)));
 		cat(format("%6.2f\n", sd(phenotypes)));
 	}

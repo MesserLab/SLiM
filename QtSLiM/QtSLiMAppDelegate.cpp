@@ -807,13 +807,13 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionAbout);
     }
     {
-        QAction *actionShowCycle_WF = new QAction("Show WF Generation Cycle", this);
+        QAction *actionShowCycle_WF = new QAction("Show WF Tick Cycle", this);
         //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
         connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
         window->addAction(actionShowCycle_WF);
     }
     {
-        QAction *actionShowCycle_nonWF = new QAction("Show nonWF Generation Cycle", this);
+        QAction *actionShowCycle_nonWF = new QAction("Show nonWF Tick Cycle", this);
         //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
         connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
         window->addAction(actionShowCycle_nonWF);
@@ -1156,7 +1156,7 @@ QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const
 
 void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
 {
-    QWidget *imageWindow = globalImageWindowWithPath(":/help/GenerationCycle_WF.png", "WF Cycle", 0.3);
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.3);
     
     if (imageWindow)
     {
@@ -1168,7 +1168,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
 {
-    QWidget *imageWindow = globalImageWindowWithPath(":/help/GenerationCycle_nonWF.png", "nonWF Cycle", 0.3);
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.3);
     
     if (imageWindow)
     {

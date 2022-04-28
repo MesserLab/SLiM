@@ -2165,7 +2165,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	if (!community.warned_early_mutation_add_)
 	{
-		if (community.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
@@ -2173,11 +2173,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 				community.warned_early_mutation_add_ = true;
 			}
 		}
-		if (community.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
+		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next cycle." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2452,7 +2452,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	if (!community.warned_early_mutation_add_)
 	{
-		if (community.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
@@ -2460,11 +2460,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 				community.warned_early_mutation_add_ = true;
 			}
 		}
-		if (community.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
+		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next cycle." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
@@ -2682,7 +2682,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		
 		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
 		// It is possible that some mutations will not actually be added to any genome, due to stacking; they will be cleared from the
-		// registry as lost mutations in the next generation.  All mutations are returned to the user, whether actually added or not.
+		// registry as lost mutations in the next cycle.  All mutations are returned to the user, whether actually added or not.
 		MutationType *mutation_type_ptr = singleton_mutation_type_ptr;
 		double selection_coeff = singleton_selection_coeff;
 		slim_position_t position = singleton_position;
@@ -2943,7 +2943,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 		
 		// For the output stream, we put out a descriptive SLiM-style header for all output types
-		// BCH 3/6/2022: Note the species generation is NOT output; might be a mixed-species sample
+		// BCH 3/6/2022: Note the species cycle is NOT output; might be a mixed-species sample
 		output_stream << "#OUT: " << community.Tick() << " G";
 		
 		if (p_method_id == gID_output)
@@ -2978,7 +2978,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 			{
 				case gID_output:
 					// For file output, we put out the descriptive SLiM-style header only for SLiM-format output
-					// BCH 3/6/2022: Note the species generation is NOT output; might be a mixed-species sample
+					// BCH 3/6/2022: Note the species cycle is NOT output; might be a mixed-species sample
 					outfile << "#OUT: " << community.Tick() << " GS " << sample_size << " " << outfile_path << std::endl;
 					Genome::PrintGenomes_SLiM(outfile, genomes, -1);	// -1 represents unknown source subpopulation
 					break;
@@ -3924,7 +3924,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	}
 	else
 	{
-		// If the user is creating substitutions for mutations, we now check for consistency at the end of the generation, so that
+		// If the user is creating substitutions for mutations, we now check for consistency at the end of the cycle, so that
 		// we don't have a mutation still segregating while a substitution for it has also been created; see CheckMutationRegistry()
 		// BCH 9/24/2021: Note that we cannot do the opposite check: checking that we only substitute a mutation when it has, in fact,
 		// fixed.  We can't do that because there are models, such as the PAR (pseudo-autosomal region) recipe, that have different
@@ -4204,7 +4204,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	// like haploid models and haplodiploid models, should not have to see/suppress this warning.
 	if (any_nonneutral_removed && !create_substitutions && !community.warned_early_mutation_remove_)
 	{
-		if (community.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
@@ -4212,11 +4212,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				community.warned_early_mutation_remove_ = true;
 			}
 		}
-		if (community.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts)
+		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next cycle." << std::endl;
 				community.warned_early_mutation_remove_ = true;
 			}
 		}

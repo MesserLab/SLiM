@@ -480,7 +480,7 @@ QSlider::handle:horizontal:disabled {
            </layout>
           </item>
           <item>
-           <layout class="QHBoxLayout" name="generationLayout">
+           <layout class="QHBoxLayout" name="cycleLayout">
             <item>
              <spacer name="horizontalSpacer_5">
               <property name="orientation">
@@ -498,7 +498,7 @@ QSlider::handle:horizontal:disabled {
              </spacer>
             </item>
             <item>
-             <widget class="QLabel" name="generationLabel">
+             <widget class="QLabel" name="cycleLabel">
               <property name="minimumSize">
                <size>
                 <width>80</width>
@@ -512,12 +512,12 @@ QSlider::handle:horizontal:disabled {
                </size>
               </property>
               <property name="text">
-               <string>Generation:</string>
+               <string>Cycle:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="generationLineEdit">
+             <widget class="QLineEdit" name="cycleLineEdit">
               <property name="maximumSize">
                <size>
                 <width>100</width>
@@ -525,7 +525,7 @@ QSlider::handle:horizontal:disabled {
                </size>
               </property>
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;the generation that will execute next&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;the cycle that will execute next&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="text">
                <string>initialize()</string>
@@ -1969,12 +1969,12 @@ QSlider::handle:horizontal:disabled {
   </action>
   <action name="actionShowCycle_WF">
    <property name="text">
-    <string>Show WF Generation Cycle</string>
+    <string>Show WF Tick Cycle</string>
    </property>
   </action>
   <action name="actionShowCycle_nonWF">
    <property name="text">
-    <string>Show nonWF Generation Cycle</string>
+    <string>Show nonWF Tick Cycle</string>
    </property>
   </action>
   <action name="actionGraph_Multispecies_Population_Size_Time">

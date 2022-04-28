@@ -1381,6 +1381,19 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution"))
         return offerAndExecuteAutofix(selection, "fixationTick", "The `fixationGeneration` property has been removed from Substitution; in its place is `fixationTick` (which measures in ticks, not generations).", terminationMessage);
     
+    // generation to cycle changes
+    if (terminationMessage.contains("property generation is not defined for object element type Species"))
+        return offerAndExecuteAutofix(selection, "cycle", "The `generation` property of Species has been renamed to `cycle`.", terminationMessage);
+    
+    if (terminationMessage.contains("property generationStage is not defined for object element type Community"))
+        return offerAndExecuteAutofix(selection, "cycleStage", "The `generationStage` property of Community has been renamed to `cycleStage`.", terminationMessage);
+    
+    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile"))
+        return offerAndExecuteAutofix(selection, "addCycle", "The `addGeneration()` method of Community has been renamed to `addCycle()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile"))
+        return offerAndExecuteAutofix(selection, "addCycleStage", "The `addGenerationStage()` method of Community has been renamed to `addCycleStage()`.", terminationMessage);
+    
     // removal of various callback pseudo-parameters
     if (terminationMessage.contains("undefined identifier genome1"))
         return offerAndExecuteAutofix(selection, "individual.genome1", "The `genome1` pseudo-parameter has been removed; it is now accessed as `individual.genome1`.", terminationMessage);
@@ -1847,18 +1860,18 @@ void QtSLiMWindow::updateTickCounter(void)
 		if (community->Tick() == 0)
         {
             ui->tickLineEdit->setText("initialize()");
-            ui->generationLineEdit->setText("initialize()");
+            ui->cycleLineEdit->setText("initialize()");
         }
 		else
         {
             ui->tickLineEdit->setText(QString::number(community->Tick()));
-            ui->generationLineEdit->setText(QString::number(displaySpecies->Generation()));
+            ui->cycleLineEdit->setText(QString::number(displaySpecies->Cycle()));
         }
 	}
 	else
     {
         ui->tickLineEdit->setText("");
-        ui->generationLineEdit->setText("");
+        ui->cycleLineEdit->setText("");
     }
 }
 
@@ -2140,7 +2153,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     
     ui->playSpeedSlider->setEnabled(!invalidSimulation_);
     ui->tickLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
-    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
+    ui->cycleLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
 
     ui->toggleDrawerButton->setEnabled(true);
     
@@ -2163,7 +2176,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->outputTextEdit->setReadOnly(true);
     
     ui->tickLabel->setEnabled(!invalidSimulation_);
-    ui->generationLabel->setEnabled(!invalidSimulation_);
+    ui->cycleLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
     // Tell the console controller to enable/disable its buttons
@@ -2678,7 +2691,7 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Final tick SLiM memory use: %1\n").arg(stringForByteCount(last_usage)), optima13_d);
     
 	//
-	//	Generation stage breakdown
+	//	Cycle stage breakdown
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
@@ -2714,7 +2727,7 @@ void QtSLiMWindow::displayProfileResults(void)
         fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage8Time));
 		
 		tc.insertText(" \n", optima13_d);
-		tc.insertText("Generation stage breakdown\n", optima14b_d);
+		tc.insertText("Cycle stage breakdown\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage0Time, fw, 'f', 2).arg(percentStage0, 5, 'f', 2), menlo11_d);
@@ -2810,7 +2823,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText("Callback type breakdown\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
-		// Note these are out of numeric order, but in generation-cycle order
+		// Note these are out of numeric order, but in cycle stage order
 		if (community->ModelType() == SLiMModelType::kModelTypeWF)
 		{
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_initialize, fw, 'f', 2).arg(percent_initialize, fw2, 'f', 2), menlo11_d);
@@ -3481,7 +3494,7 @@ void QtSLiMWindow::startProfiling(void)
     for (Species *species : community->all_species_)
         species->CollectSLiMguiMutationProfileInfo();
 	
-	// zero out profile counts for generation stages
+	// zero out profile counts for cycle stages
     for (int i = 0; i < 9; ++i)
 		community->profile_stage_totals_[i] = 0;
 	
@@ -4605,17 +4618,17 @@ void QtSLiMWindow::dumpPopulationClicked(void)
     
     try
 	{
-        // BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
+        // BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
         Species *displaySpecies = focalDisplaySpecies();
-		slim_tick_t species_generation = displaySpecies->Generation();
+		slim_tick_t species_cycle = displaySpecies->Cycle();
         
 		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " A" << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " A" << std::endl;
 		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " F " << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
 		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)

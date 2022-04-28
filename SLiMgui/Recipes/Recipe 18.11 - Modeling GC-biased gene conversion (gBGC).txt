@@ -16,8 +16,8 @@ initialize() {
 	sim.addSubpop("p1", 500);
 }
 1:500001 early() {
-	if (sim.generation % 1000 == 1) {
-		cat(sim.generation + ": ");
+	if (sim.cycle % 1000 == 1) {
+		cat(sim.cycle + ": ");
 		print(nucleotideFrequencies(sim.chromosome.ancestralNucleotides()));
 	}
 }

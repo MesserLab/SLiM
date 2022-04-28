@@ -134,12 +134,12 @@ private:
 	EidosSymbolTable *simulation_constants_ = nullptr;								// A symbol table of constants defined by SLiM (p1, g1, m1, s1, etc.)
 	EidosFunctionMap simulation_functions_;											// A map of all defined functions in the simulation
 	
-	// these ivars track top-level simulation state: the tick, generation stage, etc.
+	// these ivars track top-level simulation state: the tick, cycle stage, etc.
 	slim_tick_t tick_start_ = 0;													// the first tick number for which the simulation will run
 	slim_tick_t tick_ = 0;															// the current tick reached in simulation
 	EidosValue_SP cached_value_tick_;												// a cached value for tick_; invalidates automatically when used
 	
-	SLiMGenerationStage generation_stage_ = SLiMGenerationStage::kStagePreGeneration;		// the within-generation stage currently being executed
+	SLiMCycleStage cycle_stage_ = SLiMCycleStage::kStagePreCycle;					// the within-cycle stage currently being executed
 	bool sim_declared_finished_ = false;											// a flag set by Community.simulationFinished() to halt the sim at the end of the current tick
 	
 	EidosSymbolTableEntry self_symbol_;												// for fast setup of the symbol table
@@ -191,7 +191,7 @@ public:
 	
 	void TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols);		// used by outputUsage() and SLiMgui profiling
 	
-	// Managing script blocks; these two methods should be used as a matched pair, bracketing each generation stage that calls out to script
+	// Managing script blocks; these two methods should be used as a matched pair, bracketing each cycle stage that calls out to script
 	void ValidateScriptBlockCaches(void);
 	std::vector<SLiMEidosBlock*> ScriptBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id, Species *p_species);
 	std::vector<SLiMEidosBlock*> &AllScriptBlocks();
@@ -201,7 +201,7 @@ public:
 	void DeregisterScheduledScriptBlocks(void);
 	void DeregisterScheduledInteractionBlocks(void);
 	void ExecuteFunctionDefinitionBlock(SLiMEidosBlock *p_script_block);			// execute a SLiMEidosBlock that defines a function
-	void CheckScheduling(slim_tick_t p_target_tick, SLiMGenerationStage p_target_stage);
+	void CheckScheduling(slim_tick_t p_target_tick, SLiMCycleStage p_target_stage);
 	
 	// Managing resources shared across the community
 	bool SubpopulationIDInUse(slim_objectid_t p_subpop_id);							// not whether a SLiM subpop with this ID currently exists, but whether the ID is "in use"
@@ -268,7 +268,7 @@ public:
 	inline __attribute__((always_inline)) slim_tick_t Tick(void) const														{ return tick_; }
 	void SetTick(slim_tick_t p_new_tick);
 	
-	inline __attribute__((always_inline)) SLiMGenerationStage GenerationStage(void) const									{ return generation_stage_; }
+	inline __attribute__((always_inline)) SLiMCycleStage CycleStage(void) const												{ return cycle_stage_; }
 	
 	inline __attribute__((always_inline)) std::string ScriptString(void) { return script_->String(); }
 	
@@ -300,7 +300,7 @@ public:
 	void AllSpecies_TSXC_Enable(void);          // forces tree-seq with crosschecks on for all species; called by the undocumented -TSXC option
 	void AllSpecies_TSF_Enable(void);           // forces tree-seq without crosschecks on for all species; called by the undocumented -TSF option
 	
-	slim_tick_t tree_seq_tick_ = 0;				// the tick for the tree sequence code, incremented after offspring generation
+	slim_tick_t tree_seq_tick_ = 0;				// the tick for the tree sequence code, incremented after generating offspring
 												// this is needed since addSubpop() in an early() event makes one gen, and then the offspring
 												// arrive in the same tick according to SLiM, which confuses the tree-seq code
 												// BCH 5/13/2021: We now increment this after first() events in nonWF models, too

@@ -31,10 +31,10 @@ s1 1000 late() {
 1:10000 late() {
 	if (any(sim.substitutions.mutationType == m2))
 	{
-		catn("Sweep completed in generation " + sim.generation + ".");
+		catn("Sweep completed in cycle " + sim.cycle + ".");
 		sim.simulationFinished();
 	}
-	else if ((sim.countOfMutationsOfType(m2) == 0) & (sim.generation > Z))
+	else if ((sim.countOfMutationsOfType(m2) == 0) & (sim.cycle > Z))
 	{
 		catn("Soft sweep failed to establish.");
 		sim.simulationFinished();

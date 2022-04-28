@@ -170,7 +170,7 @@ void Population::RemoveAllSubpopulationInfo(void)
 		mutation_fixation_tick_slots_ = 0;
 	}
 	// Don't throw away the fitness history; it is perfectly valid even if the population has just been changed completely.  It happened.
-	// If the read is followed by setting the generation backward, individual fitness history entries will be invalidated in response.
+	// If the read is followed by setting the cycle backward, individual fitness history entries will be invalidated in response.
 //	if (fitness_history_)
 //	{
 //		free(fitness_history_);
@@ -302,7 +302,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	}
 	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
-	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this generation.
+	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this cycle.
 	
 	return new_subpop;
 }
@@ -323,7 +323,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		// only remove if we have not already removed
 		if (subpops_.count(subpop_id))
 		{
-			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the cycle and then free it
 			// First we remove the symbol for the subpop
 			community_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 			
@@ -354,7 +354,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	// only remove if we have not already removed
 	if (subpops_.count(subpop_id))
 	{
-		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the cycle and then free it
 		// First we remove the symbol for the subpop
 		community_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 		
@@ -486,7 +486,7 @@ void Population::PurgeRemovedSubpopulations(void)
 }
 
 // WF only:
-// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
+// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per cycle  
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (subpops_.count(p_source_subpop_id) == 0)
@@ -4389,7 +4389,7 @@ void Population::SurveyPopulation(void)
 		Subpopulation *subpop = subpop_pair.second;
 		
 		// first calculate the total fitness across the subpopulation; we used to do this during fitness calculations,
-		// but in nonWF models the population composition can change later in the generation cycle, due to mortality
+		// but in nonWF models the population composition can change later in the cycle, due to mortality
 		// and migration, so we need to postpone this assessment to the end of the tick – now
 		double subpop_total = 0;
 		
@@ -4613,9 +4613,9 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			species_.nonneutral_change_counter_++;
 		else
 		{
-			// If we are in regime 2 this generation and were last generation as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this generation as it was last
-			// generation, we can actually carry over our nonneutral buffers.
+			// If we are in regime 2 this cycle and were last cycle as well, then if the way that
+			// fitness callbacks are influencing mutation types is the same this cycle as it was last
+			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
 			for (auto muttype_iter : mut_types)
@@ -4636,9 +4636,9 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			species_.nonneutral_change_counter_++;
 		else
 		{
-			// If we are in regime 3 this generation and were last generation as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this generation as it was last
-			// generation, we can actually carry over our nonneutral buffers.
+			// If we are in regime 3 this cycle and were last cycle as well, then if the way that
+			// fitness callbacks are influencing mutation types is the same this cycle as it was last
+			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
 			for (auto muttype_iter : mut_types)
@@ -5334,7 +5334,7 @@ void Population::AssessMutationRuns(void)
 }
 
 // WF only:
-// step forward a generation: make the children become the parents
+// step forward to the next generation: make the children become the parents
 void Population::SwapGenerations(void)
 {
 	// record lifetime reproductive outputs for all parents before swapping, including in subpops being removed
@@ -5346,7 +5346,7 @@ void Population::SwapGenerations(void)
 	// dispose of any freed subpops
 	PurgeRemovedSubpopulations();
 	
-	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
+	// make children the new parents; each subpop flips its child_generation_valid_ flag at the end of this call
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		subpop_pair.second->SwapChildAndParentGenomes();
 	
@@ -5436,7 +5436,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// mutation in each Genome; our first order of business is to figure out which case we are using.
 		bool can_tally_runs = true;
 		
-		// To tally using MutationRun, we should be at the point in the generation cycle where the registry is
+		// To tally using MutationRun, we should be at the point in the cycle where the registry is
 		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
 		if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 			can_tally_runs = false;
@@ -5977,7 +5977,7 @@ void Population::RemoveAllFixedMutations(void)
 	
 	// We use stack-local MutationRun objects so they get disposed of properly via RAII; non-optimal
 	// from a performance perspective, since they will do reallocs to reach their needed size, but
-	// since this method is only called once per generation it shouldn't matter.
+	// since this method is only called once per cycle it shouldn't matter.
 	MutationRun removed_mutation_accumulator;
 	MutationRun fixed_mutation_accumulator;
 	
@@ -6313,7 +6313,7 @@ void Population::CheckMutationRegistry(bool p_check_genomes)
 // print all mutations and all genomes to a stream
 void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This method is written to be able to print the population whether child_generation_valid is true or false.
+	// This method is written to be able to print the population whether child_generation_valid_ is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
 #if DO_MEMORY_CHECKS
@@ -6579,7 +6579,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
@@ -6610,7 +6610,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 																					// version 4 started with SLiM 3.0, only when individual age is output
 																					// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
 																					// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
-																					// version 7 started with SLiM 4.0, changing generation to ticks and adding generation
+																					// version 7 started with SLiM 4.0, changing generation to ticks and adding cycle
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -6659,12 +6659,12 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_genomeid_t_size), sizeof slim_genomeid_t_size);					// Added in version 6
 		
-		// Write the tick and generation
+		// Write the tick and cycle
 		slim_tick_t tick = community_.Tick();																		// Changed from generation to tick in version 7
-		slim_tick_t generation = species_.Generation();																// Added in version 7
+		slim_tick_t cycle = species_.Cycle();																		// Added in version 7
 		
 		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
-		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
+		p_out.write(reinterpret_cast<char *>(&cycle), sizeof cycle);
 		
 		// Write the number of spatial coordinates we will write per individual.  Added in version 3.
 		p_out.write(reinterpret_cast<char *>(&spatial_output_count), sizeof spatial_output_count);
@@ -6937,7 +6937,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
 void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
@@ -6985,7 +6985,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_filter_monomorphic) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
@@ -7033,7 +7033,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 // print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id
 void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();

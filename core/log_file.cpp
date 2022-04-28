@@ -103,20 +103,20 @@ void LogFile::SetFlushInterval(bool p_explicit_flushing, int64_t p_flushInterval
 	flush_interval_ = p_flushInterval;
 }
 
-EidosValue_SP LogFile::_GeneratedValue_Generation(const LogFileGeneratorInfo &p_generator_info)
+EidosValue_SP LogFile::_GeneratedValue_Cycle(const LogFileGeneratorInfo &p_generator_info)
 {
 	const std::vector<Species *> &all_species = community_.AllSpecies();
 	Species *species = all_species[p_generator_info.objectid_];
-	slim_tick_t generation = species->Generation();
+	slim_tick_t cycle = species->Cycle();
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(generation));
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(cycle));
 }
 
-EidosValue_SP LogFile::_GeneratedValue_GenerationStage(const LogFileGeneratorInfo &p_generator_info)
+EidosValue_SP LogFile::_GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_generator_info)
 {
 #pragma unused(p_generator_info)
-	SLiMGenerationStage generation_stage = community_.GenerationStage();
-	std::string stage_string = StringForSLiMGenerationStage(generation_stage);
+	SLiMCycleStage cycle_stage = community_.CycleStage();
+	std::string stage_string = StringForSLiMCycleStage(cycle_stage);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(stage_string));
 }
@@ -382,11 +382,11 @@ void LogFile::AppendNewRow(void)
 			
 			switch (generator.type_)
 			{
-				case LogFileGeneratorType::kGenerator_Generation:
-					generated_value = _GeneratedValue_Generation(generator);
+				case LogFileGeneratorType::kGenerator_Cycle:
+					generated_value = _GeneratedValue_Cycle(generator);
 					break;
-				case LogFileGeneratorType::kGenerator_GenerationStage:
-					generated_value = _GeneratedValue_GenerationStage(generator);
+				case LogFileGeneratorType::kGenerator_CycleStage:
+					generated_value = _GeneratedValue_CycleStage(generator);
 					break;
 				case LogFileGeneratorType::kGenerator_PopulationSexRatio:
 					generated_value = _GeneratedValue_PopulationSexRatio(generator);
@@ -591,8 +591,8 @@ EidosValue_SP LogFile::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 	{
 			// our own methods
 		case gID_addCustomColumn:				return ExecuteMethod_addCustomColumn(p_method_id, p_arguments, p_interpreter);
-		case gID_addGeneration:					return ExecuteMethod_addGeneration(p_method_id, p_arguments, p_interpreter);
-		case gID_addGenerationStage:			return ExecuteMethod_addGenerationStage(p_method_id, p_arguments, p_interpreter);
+		case gID_addCycle:						return ExecuteMethod_addCycle(p_method_id, p_arguments, p_interpreter);
+		case gID_addCycleStage:					return ExecuteMethod_addCycleStage(p_method_id, p_arguments, p_interpreter);
 		case gID_addMeanSDColumns:				return ExecuteMethod_addMeanSDColumns(p_method_id, p_arguments, p_interpreter);
 		case gID_addPopulationSexRatio:			return ExecuteMethod_addPopulationSexRatio(p_method_id, p_arguments, p_interpreter);
 		case gID_addPopulationSize:				return ExecuteMethod_addPopulationSize(p_method_id, p_arguments, p_interpreter);
@@ -661,21 +661,21 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)addGeneration([No<Species>$ species])
-EidosValue_SP LogFile::ExecuteMethod_addGeneration(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+//	*********************	- (void)addCycle([No<Species>$ species])
+EidosValue_SP LogFile::ExecuteMethod_addCycle(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (header_logged_)
-		RaiseForLockedHeader("LogFile::ExecuteMethod_addGeneration");
+		RaiseForLockedHeader("LogFile::ExecuteMethod_addCycle");
 	
 	// Figure out the species to log; if species is NULL, check for a singleton species to default to
 	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addGeneration()");
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addCycle()");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Generation, nullptr, species->species_id_, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Cycle, nullptr, species->species_id_, EidosValue_SP()});
 	
-	// column name is "generation" in single-species models; append the species name in multispecies models
-	std::string col_name = "generation";
+	// column name is "cycle" in single-species models; append the species name in multispecies models
+	std::string col_name = "cycle";
 	
 	if (community_.is_explicit_species_)
 	{
@@ -688,15 +688,15 @@ EidosValue_SP LogFile::ExecuteMethod_addGeneration(EidosGlobalStringID p_method_
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)addGenerationStage()
-EidosValue_SP LogFile::ExecuteMethod_addGenerationStage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+//	*********************	- (void)addCycleStage()
+EidosValue_SP LogFile::ExecuteMethod_addCycleStage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (header_logged_)
-		RaiseForLockedHeader("LogFile::ExecuteMethod_addGenerationStage");
+		RaiseForLockedHeader("LogFile::ExecuteMethod_addCycleStage");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_GenerationStage, nullptr, -1, EidosValue_SP()});
-	column_names_.emplace_back("gen_stage");
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CycleStage, nullptr, -1, EidosValue_SP()});
+	column_names_.emplace_back("cycle_stage");
 	
 	return gStaticEidosValueVOID;
 }
@@ -1026,8 +1026,8 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		
 		// our own methods
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCustomColumn, kEidosValueMaskVOID))->AddString_S("columnName")->AddString_S(gEidosStr_source)->AddAny_O("context", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addGeneration, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addGenerationStage, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCycle, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCycleStage, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addMeanSDColumns, kEidosValueMaskVOID))->AddString_S("columnName")->AddString_S(gEidosStr_source)->AddAny_O("context", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSexRatio, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSize, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));

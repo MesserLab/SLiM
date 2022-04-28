@@ -28,7 +28,7 @@ initialize() {
 	if (sum(sim.mutations.selectionCoeff) == 0.0)
 	{
 		if (sum(sim.substitutions.selectionCoeff) == 0.0)
-			cat("Sweep mutation lost in gen. " + sim.generation + "\n");
+			cat("Sweep mutation lost in cycle " + sim.cycle + "\n");
 		else
 			cat("Sweep mutation reached fixation.\n");
 		sim.simulationFinished();

@@ -19,7 +19,7 @@ initialize() {
 	sim.addSubpop("p3", 50);   // Beverton-Holt influencing survival
 	
 	log = community.createLogFile("~/Desktop/sim_log.txt", logInterval=1);
-	log.addGeneration();
+	log.addCycle();
 	log.addSubpopulationSize(p1);
 	log.addSubpopulationSize(p2);
 	log.addSubpopulationSize(p3);

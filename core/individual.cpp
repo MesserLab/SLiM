@@ -201,8 +201,8 @@ double Individual::_Relatedness(slim_pedigreeid_t A, slim_pedigreeid_t A_P1, sli
 double Individual::RelatednessToIndividual(Individual &p_ind)
 {
 	// So, the goal is to calculate A and B's relatedness, given pedigree IDs for themselves and (perhaps) for their parents and
-	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given generation, information should either be
-	// available for everybody, or for nobody (the latter occurs when that generation is prior to the start of forward simulation).
+	// grandparents.  Note that a pedigree ID of -1 means "no information"; for a given cycle, information should either be
+	// available for everybody, or for nobody (the latter occurs when that cycle is prior to the start of forward simulation).
 	// So we have these ancestry trees:
 	//
 	//         G1  G2 G3  G4     G5  G6 G7  G8

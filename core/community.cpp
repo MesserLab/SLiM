@@ -949,7 +949,7 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 	// SPECIES CONSISTENCY CHECK
 	if (p_script_block->species_spec_)
 	{
-		bool species_has_initialized = (p_script_block->species_spec_->Generation() >= 1);
+		bool species_has_initialized = (p_script_block->species_spec_->Cycle() >= 1);
 		
 		if (p_script_block->mutation_type_id_ >= 0)
 		{
@@ -1050,7 +1050,7 @@ void Community::DeregisterScheduledScriptBlocks(void)
 {
 	// If we have blocks scheduled for deregistration, we sweep through and deregister them at the end of each stage of each tick.
 	// This happens at a time when script blocks are not executing, so that we're guaranteed not to leave hanging pointers that could
-	// cause a crash; it also guarantees that script blocks are applied consistently across each generation stage.  A single block
+	// cause a crash; it also guarantees that script blocks are applied consistently across each cycle stage.  A single block
 	// might be scheduled for deregistration more than once, but should only occur in script_blocks_ once, so we have to be careful
 	// with our deallocations here; we deallocate a block only when we find it in script_blocks_.
 #if DEBUG_BLOCK_REG_DEREG
@@ -1492,10 +1492,10 @@ void Community::SetTick(slim_tick_t p_new_tick)
 {
 	tick_ = p_new_tick;
 	
-	// The tree sequence tick increments when offspring generation occurs, not at the ends of ticks as delineated by SLiM.
+	// The tree sequence tick increments when generating offspring occurs, not at the ends of ticks as delineated by SLiM.
 	// This prevents the tree sequence code from seeing two "generations" with the same value for the tick counter.
-	if (((model_type_ == SLiMModelType::kModelTypeWF) && (GenerationStage() < SLiMGenerationStage::kWFStage2GenerateOffspring)) ||
-		((model_type_ == SLiMModelType::kModelTypeNonWF) && (GenerationStage() < SLiMGenerationStage::kNonWFStage1GenerateOffspring)))
+	if (((model_type_ == SLiMModelType::kModelTypeWF) && (CycleStage() < SLiMCycleStage::kWFStage2GenerateOffspring)) ||
+		((model_type_ == SLiMModelType::kModelTypeNonWF) && (CycleStage() < SLiMCycleStage::kNonWFStage1GenerateOffspring)))
 		tree_seq_tick_ = tick_ - 1;
 	else
 		tree_seq_tick_ = tick_;
@@ -1613,11 +1613,11 @@ bool Community::_RunOneTick(void)
 	
 	// ******************************************************************
 	//
-	// Stage 0: Pre-generation bookkeeping
+	// Stage 0: Pre-cycle bookkeeping
 	//
-	generation_stage_ = SLiMGenerationStage::kStagePreGeneration;
+	cycle_stage_ = SLiMCycleStage::kStagePreCycle;
 	
-	// Define the current script around each generation execution, for error reporting
+	// Define the current script around each cycle execution, for error reporting
 	gEidosErrorContext.currentScript = script_;
 	gEidosErrorContext.executingRuntimeScript = false;
 	
@@ -1667,7 +1667,7 @@ bool Community::_RunOneTick(void)
 		}
 	}
 	
-	// Execute either initialize() callbacks (for tick 0) or the full generation cycle
+	// Execute either initialize() callbacks (for tick 0) or the full cycle
 	if (tick_ == 0)
 	{
 		AllSpecies_RunInitializeCallbacks();
@@ -1677,7 +1677,7 @@ bool Community::_RunOneTick(void)
 	{
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->PrepareForGenerationCycle();
+				species->PrepareForCycle();
 		
 		// Non-zero ticks are handled by separate functions for WF and nonWF models
 		if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1920,7 +1920,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 }
 
 //
-//		_RunOneTickWF() : runs all the stages for one generation of a WF model
+//		_RunOneTickWF() : runs all the stages for one cycle of a WF model
 //
 bool Community::_RunOneTickWF(void)
 {
@@ -1935,7 +1935,7 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 0: Execute first() script events for the current generation
+	// Stage 0: Execute first() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -1943,7 +1943,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage0ExecuteFirstScripts;
+		cycle_stage_ = SLiMCycleStage::kWFStage0ExecuteFirstScripts;
 		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
@@ -1962,7 +1962,7 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 1: Execute early() script events for the current generation
+	// Stage 1: Execute early() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -1970,7 +1970,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts;
+		cycle_stage_ = SLiMCycleStage::kWFStage1ExecuteEarlyScripts;
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
@@ -2001,7 +2001,7 @@ bool Community::_RunOneTickWF(void)
 		for (Species *species : all_species_)
 			species->CheckMutationStackPolicy();
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage2GenerateOffspring;
+		cycle_stage_ = SLiMCycleStage::kWFStage2GenerateOffspring;
 		
 		// increment the tree-sequence tick immediately, since we are now going to make a new generation of individuals
 		tree_seq_tick_++;
@@ -2040,7 +2040,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage3RemoveFixedMutations;
+		cycle_stage_ = SLiMCycleStage::kWFStage3RemoveFixedMutations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2073,7 +2073,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage4SwapGenerations;
+		cycle_stage_ = SLiMCycleStage::kWFStage4SwapGenerations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2090,7 +2090,7 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 5: Execute late() script events for the current generation
+	// Stage 5: Execute late() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2098,7 +2098,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage5ExecuteLateScripts;
+		cycle_stage_ = SLiMCycleStage::kWFStage5ExecuteLateScripts;
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
@@ -2126,7 +2126,7 @@ bool Community::_RunOneTickWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kWFStage6CalculateFitness;
+		cycle_stage_ = SLiMCycleStage::kWFStage6CalculateFitness;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2156,10 +2156,10 @@ bool Community::_RunOneTickWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 7: Advance the tick counter and do end-generation tasks
+	// Stage 7: Advance the tick counter and do end-cycle tasks
 	//
 	{
-		generation_stage_ = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter;
+		cycle_stage_ = SLiMCycleStage::kWFStage7AdvanceTickCounter;
 		
 #ifdef SLIMGUI
 		// re-tally for SLiMgui; this should avoid doing any new work if no mutations have been added or removed since the last tally
@@ -2179,14 +2179,14 @@ bool Community::_RunOneTickWF(void)
 		for (LogFile *log_file : log_file_registry_)
 			log_file->TickEndCallout();
 		
-		// Advance the tick and generation counters (note that tree_seq_tick_ was incremented earlier!)
+		// Advance the tick and cycle counters (note that tree_seq_tick_ was incremented earlier!)
 		tick_++;
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->AdvanceGenerationCounter();
+				species->AdvanceCycleCounter();
 		
-		// Use a special generation stage for the interstitial space between ticks, when Eidos console input runs
-		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
+		// Use a special cycle stage for the interstitial space between ticks, when Eidos console input runs
+		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;
@@ -2215,7 +2215,7 @@ bool Community::_RunOneTickWF(void)
 }
 
 //
-//		_RunOneTickNonWF() : runs all the stages for one generation of a nonWF model
+//		_RunOneTickNonWF() : runs all the stages for one cycle of a nonWF model
 //
 bool Community::_RunOneTickNonWF(void)
 {
@@ -2230,7 +2230,7 @@ bool Community::_RunOneTickNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 0: Execute first() script events for the current generation
+	// Stage 0: Execute first() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2238,7 +2238,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
 		std::vector<SLiMEidosBlock*> first_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventFirst, -1, -1, -1, nullptr);
 		
 		for (auto script_block : first_blocks)
@@ -2302,7 +2302,7 @@ bool Community::_RunOneTickNonWF(void)
 		for (Species *species : all_species_)
 			species->CheckMutationStackPolicy();
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage1GenerateOffspring;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage1GenerateOffspring;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2325,7 +2325,7 @@ bool Community::_RunOneTickNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 2: Execute early() script events for the current generation
+	// Stage 2: Execute early() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2333,7 +2333,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
 		std::vector<SLiMEidosBlock*> early_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventEarly, -1, -1, -1, nullptr);
 		
 		for (auto script_block : early_blocks)
@@ -2357,7 +2357,7 @@ bool Community::_RunOneTickNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 3: Calculate fitness values for the new generation
+	// Stage 3: Calculate fitness values for the new population
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2365,7 +2365,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage3CalculateFitness;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage3CalculateFitness;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2374,7 +2374,7 @@ bool Community::_RunOneTickNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-		// Invalidate interactions, now that the generation they were valid for is disappearing
+		// Invalidate interactions, now that the cycle they were valid for is disappearing
 		for (Species *species : all_species_)
 			if (species->Active())
 				InvalidateInteractionsForSpecies(species);
@@ -2399,7 +2399,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage4SurvivalSelection;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage4SurvivalSelection;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2427,7 +2427,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage5RemoveFixedMutations;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage5RemoveFixedMutations;
 		
 		for (Species *species : all_species_)
 			if (species->Active())
@@ -2444,7 +2444,7 @@ bool Community::_RunOneTickNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 6: Execute late() script events for the current generation
+	// Stage 6: Execute late() script events for the current cycle
 	//
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2452,7 +2452,7 @@ bool Community::_RunOneTickNonWF(void)
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
-		generation_stage_ = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
 		std::vector<SLiMEidosBlock*> late_blocks = ScriptBlocksMatching(tick_, SLiMEidosBlockType::SLiMEidosEventLate, -1, -1, -1, nullptr);
 		
 		for (auto script_block : late_blocks)
@@ -2477,10 +2477,10 @@ bool Community::_RunOneTickNonWF(void)
 	
 	// ******************************************************************
 	//
-	// Stage 7: Advance the tick counter and do end-generation tasks
+	// Stage 7: Advance the tick counter and do end-cycle tasks
 	//
 	{
-		generation_stage_ = SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter;
+		cycle_stage_ = SLiMCycleStage::kNonWFStage7AdvanceTickCounter;
 		
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
@@ -2511,7 +2511,7 @@ bool Community::_RunOneTickNonWF(void)
 		tick_++;
 		for (Species *species : all_species_)
 			if (species->Active())
-				species->AdvanceGenerationCounter();
+				species->AdvanceCycleCounter();
 		
 		for (Species *species : all_species_)
 		{
@@ -2520,8 +2520,8 @@ bool Community::_RunOneTickNonWF(void)
 					subpop_pair.second->IncrementIndividualAges();
 		}
 		
-		// Use a special generation stage for the interstitial space between ticks, when Eidos console input runs
-		generation_stage_ = SLiMGenerationStage::kStagePostGeneration;
+		// Use a special cycle stage for the interstitial space between ticks, when Eidos console input runs
+		cycle_stage_ = SLiMCycleStage::kStagePostCycle;
 		
 		// Zero out error-reporting info so raises elsewhere don't get attributed to this script
 		gEidosErrorContext.currentScript = nullptr;

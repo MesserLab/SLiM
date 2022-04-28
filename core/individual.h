@@ -26,9 +26,9 @@
  
  Individuals are kept by Subpopulation, and have the same lifetime as the Subpopulation to which they belong.  Since they do not
  actually contain any information specific to a particular individual – just an index in the Subpopulation's genomes vector –
- they do not get deallocated and reallocated between generations; the same object continues to represent individual #17 of the
+ they do not get deallocated and reallocated between cycles; the same object continues to represent individual #17 of the
  subpopulation for as long as that subpopulation exists.  This is safe because of the way that objects cannot live across code
- block boundaries in SLiM.  The tag values of particular Individual objects will persist between generations, even though the
+ block boundaries in SLiM.  The tag values of particular Individual objects will persist between cycles, even though the
  individual that is conceptually represented has changed, but that is fine since those values are officially undefined until set.
  
  */
@@ -95,11 +95,11 @@ public:
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
-	slim_age_t age_;					// nonWF only: the age of the individual, in generations; -1 in WF models
+	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
-	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
+	eidos_logical_t migrant_;			// T if the individual has migrated in the current cycle, F otherwise
 	uint8_t scratch_;					// available for use by algorithms
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.

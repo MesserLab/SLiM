@@ -594,18 +594,18 @@
 		if (community->tick_ == 0)
 		{
 			[tickTextField setStringValue:@"initialize()"];
-			[generationTextField setStringValue:@"initialize()"];
+			[cycleTextField setStringValue:@"initialize()"];
 		}
 		else
 		{
 			[tickTextField setIntegerValue:community->tick_];
-			[generationTextField setIntegerValue:displaySpecies->generation_];
+			[cycleTextField setIntegerValue:displaySpecies->cycle_];
 		}
 	}
 	else
 	{
 		[tickTextField setStringValue:@""];
-		[generationTextField setStringValue:@""];
+		[cycleTextField setStringValue:@""];
 	}
 }
 
@@ -1457,7 +1457,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 	
 	//
-	//	Generation stage breakdown
+	//	Cycle stage breakdown
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
@@ -1493,7 +1493,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage8Time));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"Generation stage breakdown\n" attributes:optima14b_d];
+		[content eidosAppendString:@"Cycle stage breakdown\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage0Time, percentStage0] attributes:menlo11_d];
@@ -1589,7 +1589,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		[content eidosAppendString:@"Callback type breakdown\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
-		// Note these are out of numeric order, but in generation-cycle order
+		// Note these are out of numeric order, but in cycle stage order
 		if (community->ModelType() == SLiMModelType::kModelTypeWF)
 		{
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_initialize, fw2, percent_initialize] attributes:menlo11_d];
@@ -2298,7 +2298,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	for (Species *focal_species : community->all_species_)
 		focal_species->CollectSLiMguiMutationProfileInfo();
 	
-	// zero out profile counts for generation stages
+	// zero out profile counts for cycle stages
 	for (int i = 0; i < 9; ++i)
 		community->profile_stage_totals_[i] = 0;
 	
@@ -3060,17 +3060,17 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 	try
 	{
-		// BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
+		// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
 		Species *displaySpecies = [self focalDisplaySpecies];
-		slim_tick_t species_generation = displaySpecies->Generation();
+		slim_tick_t species_cycle = displaySpecies->Cycle();
 		
 		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " A" << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " A" << std::endl;
 		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_generation << " F " << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
 		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
@@ -3255,11 +3255,11 @@ static int DisplayDigitsForIntegerPart(double x)
 //			for (int i = 0; i < input_parameters.size(); i++)
 //				outstring << input_parameters[i] << std::endl;
 			
-			// BCH 3/6/2022: Note that the species generation has been added here for SLiM 4, in keeping with SLiM's native output formats.
+			// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
 			Species *displaySpecies = [self focalDisplaySpecies];
-			slim_tick_t species_generation = displaySpecies->Generation();
+			slim_tick_t species_cycle = displaySpecies->Cycle();
 			
-			outstring << "#OUT: " << community->tick_ << " " << species_generation << " A " << std::endl;
+			outstring << "#OUT: " << community->tick_ << " " << species_cycle << " A " << std::endl;
 			displaySpecies->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
 			
 			std::string &&population_dump = outstring.str();

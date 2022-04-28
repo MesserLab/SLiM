@@ -125,7 +125,7 @@ class Community;
 	IBOutlet NSSlider *playSpeedSlider;
 	IBOutlet NSTextField *tickTextField;
 	IBOutlet NSProgressIndicator *tickProgressIndicator;
-	IBOutlet NSTextField *generationTextField;
+	IBOutlet NSTextField *cycleTextField;
 	
 	IBOutlet NSSplitView *bottomSplitView;
 	IBOutlet EidosTextView *scriptTextView;

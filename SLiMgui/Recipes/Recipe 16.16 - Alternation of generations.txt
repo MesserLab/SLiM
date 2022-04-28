@@ -58,7 +58,7 @@ reproduction(p2, "F")
 }
 early()
 {
-	if (sim.generation % 2 == 0)
+	if (sim.cycle % 2 == 0)
 	{
 		p1.fitnessScaling = 0.0;
 		p2.individuals.tag = 0;

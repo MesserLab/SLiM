@@ -3986,7 +3986,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
-	if (community_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
@@ -4078,7 +4078,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
-	if (community_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may not be called from a nested callback." << EidosTerminate();
@@ -4205,7 +4205,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
-	if (community_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may not be called from a nested callback." << EidosTerminate();
@@ -4300,7 +4300,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() is not available in WF models." << EidosTerminate();
-	if (community_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
@@ -4761,7 +4761,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
-	if (community_.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
 	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
@@ -5740,14 +5740,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage6CalculateFitness)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
 	}
 	else
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage3CalculateFitness)
+		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
 		// in nonWF models uncalculated fitness values for new individuals are guaranteed to be NaN, so there is no need for a check here
 	}
@@ -6754,11 +6754,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (!community_.warned_early_output_)
 	{
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -6825,8 +6825,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (!has_file || (p_method_id == gID_outputSample))
 	{
-		// Output header line.  BCH 3/6/2022: Note that the generation was added after the tick in SLiM 4.
-		out << "#OUT: " << community_.Tick() << " " << species_.Generation() << " S";
+		// Output header line.  BCH 3/6/2022: Note that the cycle was added after the tick in SLiM 4.
+		out << "#OUT: " << community_.Tick() << " " << species_.Cycle() << " S";
 		
 		if (p_method_id == gID_outputSample)
 			out << "S";

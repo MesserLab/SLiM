@@ -23,7 +23,7 @@ reproduction() {
 	sim.tag = sim.tag + 1;
 	
 	// log the mating
-	line = paste(sim.generation, individual.tag, mate.tag, child.tag);
+	line = paste(community.tick, individual.tag, mate.tag, child.tag);
 	writeFile("~/Desktop/mating.txt", line, append=T);
 }
 1 early() {
@@ -40,7 +40,7 @@ early() {
 survival() {
 	if (!surviving) {
 		// log the death
-		line = sim.generation + " " + individual.tag;
+		line = community.tick + " " + individual.tag;
 		writeFile("~/Desktop/death.txt", line, append=T);
 	}
 	return NULL;

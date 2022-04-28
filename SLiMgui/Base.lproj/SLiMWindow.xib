@@ -14,8 +14,8 @@
                 <outlet property="chromosomeOverview" destination="KMS-2V-Mrb" id="tJ6-LQ-ybJ"/>
                 <outlet property="chromosomeZoomed" destination="nQF-Rr-G8N" id="5Ui-I9-Vky"/>
                 <outlet property="consoleButton" destination="aPl-XV-6R5" id="tR9-uy-AYS"/>
+                <outlet property="cycleTextField" destination="SK3-fM-QuU" id="oG9-gV-gt0"/>
                 <outlet property="drawer" destination="Sdd-Vl-XmH" id="so7-Og-cHF"/>
-                <outlet property="generationTextField" destination="SK3-fM-QuU" id="YJK-94-MGP"/>
                 <outlet property="genomicElementTypeColorColumn" destination="hiN-OA-WpD" id="mFt-in-zk9"/>
                 <outlet property="genomicElementTypeIDColumn" destination="mYu-Tp-AnJ" id="JiS-2G-IkK"/>
                 <outlet property="genomicElementTypeMutationTypesColumn" destination="HQN-n3-bmZ" id="H2y-BR-Tbk"/>
@@ -391,7 +391,7 @@
                                                 </connections>
                                             </textField>
                                             <textField toolTip="the tick that is about to execute" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yfj-bi-uzJ" customClass="SLiMAutoselectTextField">
-                                                <rect key="frame" x="1057" y="270" width="108" height="21"/>
+                                                <rect key="frame" x="1035" y="270" width="130" height="21"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="1" drawsBackground="YES" id="bq2-MX-jxa">
                                                     <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="9R9-Iu-e40"/>
                                                     <font key="font" metaFont="system"/>
@@ -566,8 +566,8 @@
                                                 <rect key="frame" x="292" y="140" width="657" height="238"/>
                                             </customView>
                                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8pr-59-g4r">
-                                                <rect key="frame" x="967" y="243" width="80" height="16"/>
-                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Generation:" id="iJF-fn-UC7">
+                                                <rect key="frame" x="967" y="243" width="45" height="16"/>
+                                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Cycle:" id="iJF-fn-UC7">
                                                     <font key="font" metaFont="systemBold"/>
                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                     <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -576,8 +576,8 @@
                                                     <binding destination="-2" name="textColor" keyPath="colorForWindowLabels" id="Qi9-TV-fJu"/>
                                                 </connections>
                                             </textField>
-                                            <textField toolTip="the generation that will execute next" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SK3-fM-QuU">
-                                                <rect key="frame" x="1057" y="241" width="108" height="21"/>
+                                            <textField toolTip="the cycle that will execute next" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SK3-fM-QuU">
+                                                <rect key="frame" x="1035" y="241" width="130" height="21"/>
                                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" borderStyle="bezel" alignment="right" drawsBackground="YES" id="6Dx-Ud-xy8">
                                                     <numberFormatter key="formatter" formatterBehavior="custom10_4" localizesFormat="NO" numberStyle="decimal" allowsFloats="NO" usesGroupingSeparator="NO" formatWidth="-1" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="qL7-n7-QG8"/>
                                                     <font key="font" usesAppearanceFont="YES"/>
@@ -625,7 +625,7 @@
                                             </segmentedControl>
                                         </subviews>
                                         <constraints>
-                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="8pr-59-g4r" secondAttribute="trailing" constant="12" id="0pH-Uz-gPw"/>
+                                            <constraint firstItem="SK3-fM-QuU" firstAttribute="leading" secondItem="8pr-59-g4r" secondAttribute="trailing" constant="25" id="0pH-Uz-gPw"/>
                                             <constraint firstItem="MPC-lP-uVU" firstAttribute="top" secondItem="LwJ-mt-MjQ" secondAttribute="bottom" constant="2" id="1UM-lb-Fey"/>
                                             <constraint firstItem="Yfj-bi-uzJ" firstAttribute="top" secondItem="kRU-NC-9qC" secondAttribute="bottom" constant="8" id="1eG-Ec-HKM"/>
                                             <constraint firstAttribute="trailing" secondItem="eXF-cI-cZK" secondAttribute="trailing" constant="15" id="3F8-Yv-UIR"/>

@@ -59,10 +59,10 @@ early() {
 100:1000 late() {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 0) {
-		catn(sim.generation + ": LOST");
+		catn(sim.cycle + ": LOST");
 		sim.simulationFinished();
 	} else if (sim.mutationFrequencies(NULL, mut) == 1.0) {
-		catn(sim.generation + ": FIXED");
+		catn(sim.cycle + ": FIXED");
 		sim.simulationFinished();
 	}
 }

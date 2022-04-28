@@ -15,8 +15,8 @@ initialize() {
 	osize = fixedMuts * 2 + inds.countOfMutationsOfType(m2);
 	inds.tagF = log(osize + 1) * 0.1;
 	
-	if (sim.generation % 1000 == 1)
-		catn(sim.generation + ": Mean ornament size == " + mean(osize));
+	if (sim.cycle % 1000 == 1)
+		catn(sim.cycle + ": Mean ornament size == " + mean(osize));
 }
 mateChoice() {
 	for (attempt in 1:5)

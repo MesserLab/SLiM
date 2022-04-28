@@ -17,7 +17,7 @@ initialize() {
 	p_fix = (1 - exp(-2 * s)) / (1 - exp(-4 * N * s));
 	
 	// Calculate the expected number of fixed mutations
-	n_gens = 1000;  // first 5000 generations were burn-in
+	n_gens = 1000;  // first 5000 ticks were burn-in
 	mu = 1e-6;
 	locus_size = 100000;
 	expected = mu * locus_size * n_gens * 2 * N * p_fix;

@@ -35,8 +35,8 @@ extern EidosClass *gSLiM_LogFile_Class;
 // Built-in and custom generator types that are presently supported
 enum class LogFileGeneratorType
 {
-	kGenerator_Generation,
-	kGenerator_GenerationStage,
+	kGenerator_Cycle,
+	kGenerator_CycleStage,
 	kGenerator_PopulationSexRatio,
 	kGenerator_PopulationSize,
 	kGenerator_SubpopulationSexRatio,
@@ -99,8 +99,8 @@ private:
 	
 	void RaiseForLockedHeader(const std::string &p_caller_name);
 	
-	EidosValue_SP _GeneratedValue_Generation(const LogFileGeneratorInfo &p_generator_info);
-	EidosValue_SP _GeneratedValue_GenerationStage(const LogFileGeneratorInfo &p_generator_info);
+	EidosValue_SP _GeneratedValue_Cycle(const LogFileGeneratorInfo &p_generator_info);
+	EidosValue_SP _GeneratedValue_CycleStage(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_PopulationSexRatio(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_PopulationSize(const LogFileGeneratorInfo &p_generator_info);
 	EidosValue_SP _GeneratedValue_SubpopulationSexRatio(const LogFileGeneratorInfo &p_generator_info);
@@ -139,8 +139,8 @@ public:
 	
 	// Our own methods
 	EidosValue_SP ExecuteMethod_addCustomColumn(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_addGeneration(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
-	EidosValue_SP ExecuteMethod_addGenerationStage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addCycle(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addCycleStage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addPopulationSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addPopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

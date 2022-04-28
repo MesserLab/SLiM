@@ -83,7 +83,7 @@ early() {
 	
 	for (ind in infected)
 	{
-		// make contact with random neighbors each generation
+		// make contact with random neighbors each cycle
 		contacts = i1.drawByStrength(ind, rpois(1, INFECTIVITY));
 		
 		for (contact in contacts)
@@ -98,11 +98,11 @@ early() {
 			}
 		}
 		
-		// die with some probability each generation
+		// die with some probability each cycle
 		if (runif(1) < RATE_DEATH)
 			ind.fitnessScaling = 0.0;
 		
-		// recover with some probability each generation
+		// recover with some probability each cycle
 		if (runif(1) < RATE_CLEAR)
 			ind.tag = HEALTH_R;
 	}
@@ -130,8 +130,8 @@ late()
 	cat(sum(tags == HEALTH_S) + ", " + sum(tags == HEALTH_I) + ", " +
 		sum(tags == HEALTH_R) + ", ");
 	
-	if ((sum(tags == HEALTH_I) == 0) & (sim.generation >= 100)) {
-		catn("\nLOST in generation " + sim.generation);
+	if ((sum(tags == HEALTH_I) == 0) & (sim.cycle >= 100)) {
+		catn("\nLOST in cycle " + sim.cycle);
 		sim.simulationFinished();
 	}
 }

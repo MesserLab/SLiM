@@ -24,13 +24,13 @@ initialize() {
 	defineConstant("M", readIntTable("~/Desktop/mating.txt"));
 	defineConstant("D", readIntTable("~/Desktop/death.txt"));
 	
-	// extract the generations for quick lookup
-	defineConstant("Mg", drop(M[,0]));
-	defineConstant("Dg", drop(D[,0]));
+	// extract the ticks for quick lookup
+	defineConstant("Mt", drop(M[,0]));
+	defineConstant("Dt", drop(D[,0]));
 }
 reproduction() {
-	// generate all offspring for the generation
-	m = M[Mg == sim.generation,];
+	// generate all offspring for the tick
+	m = M[Mt == community.tick,];
 	
 	for (index in seqLen(nrow(m))) {
 		row = m[index,];
@@ -53,7 +53,7 @@ early() {
 	inds = p1.individuals;
 	inds.fitnessScaling = 1.0;
 	
-	d = drop(D[Dg == sim.generation, 1]);
+	d = drop(D[Dt == community.tick, 1]);
 	indices = match(d, inds.tag);
 	inds[indices].fitnessScaling = 0.0;
 }

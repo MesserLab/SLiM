@@ -39,13 +39,13 @@ fitness(m2) { return 1.0; }
 	inds.fitnessScaling = inds.fitnessScaling * effects;
 }
 1:2001 late() {
-	if (sim.generation == 1)
-		cat("  gen    mean      sd\n");
+	if (sim.cycle == 1)
+		cat("  cyc    mean      sd\n");
 	
-	if (sim.generation % 100 == 1)
+	if (sim.cycle % 100 == 1)
 	{
 		phenotypes = p1.individuals.x;
-		cat(format("%5d  ", sim.generation));
+		cat(format("%5d  ", sim.cycle));
 		cat(format("%6.2f  ", mean(phenotypes)));
 		cat(format("%6.2f\n", sd(phenotypes)));
 	}

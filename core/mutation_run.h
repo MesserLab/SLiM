@@ -110,13 +110,13 @@ private:
 	// three separate regimes in which these caches are used:
 	//
 	//	1. No fitness callbacks defined.  Here caches depend solely upon mutation selection coefficients, and can
-	//		be carried forward through generations with impunity.  If any mutation's selcoeff is changed between
+	//		be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
 	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
 	//		mutation types and callbacks, and figures this state out and sets a flag in each mutation type as to
 	//		whether it is effectively neutral, after considering these constant-effect callbacks, or not.  This
-	//		state changes in every generation, so caches cannot be carried forward from generation to generation
+	//		state changes in every cycle, so caches cannot be carried forward from cycle to cycle
 	//		in this regime unless the state of the callbacks, with respect to making mutation types neutral, is
 	//		unchanged.  If RecalculateFitness() detects a callback change, it sets the global all-invalid flag.
 	//
@@ -136,7 +136,7 @@ private:
 	//
 	// When models switch between one regime and another, they generally need to recache, since the criteria
 	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
-	// The last regime used (for the previous generation) is remembered in sim.last_nonneutral_regime_.
+	// The last regime used (for the previous cycle) is remembered in sim.last_nonneutral_regime_.
 	//
 	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one genome.
 	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral

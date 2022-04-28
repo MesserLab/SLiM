@@ -20,7 +20,7 @@
 /*
  
  The class Substitution represents a mutation that has fixed in the population. Fixed mutations are converted to substitutions for
- efficiency, since such mutations no longer need to be tracked in each generation.  This class is not a subclass of Mutation, to
+ efficiency, since such mutations no longer need to be tracked in each cycle.  This class is not a subclass of Mutation, to
  avoid any possibility of instances of this class getting confused with mutation instances in the code.  It also adds one new
  piece of information, the time to fixation.
  

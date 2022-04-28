@@ -14,10 +14,10 @@ initialize() {
 1: late() {
 	if (sim.treeSeqCoalesced())
 	{
-		catn(sim.generation + ": COALESCED");
+		catn(sim.cycle + ": COALESCED");
 		sim.simulationFinished();
 	}
 }
 100000 late() {
-	catn("NO COALESCENCE BY GENERATION 100000");
+	catn("NO COALESCENCE BY CYCLE 100000");
 }

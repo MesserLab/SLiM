@@ -121,7 +121,7 @@ typedef struct __attribute__((__packed__)) {
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
  } IndividualMetadataRec_PREPARENT;	// used to read .trees file versions 0.6 and earlier, before parent pedigree ids were added
 
-#define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this generation
+#define SLIM_INDIVIDUAL_METADATA_MIGRATED	0x01	// set if the individual has migrated in this cycle
 
 // *** Subpopulation metadata is now JSON
 typedef struct __attribute__((__packed__)) {
@@ -180,12 +180,12 @@ public:
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each generation
-	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each generation
-	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across generations
+	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
+	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
+	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across cycles
 	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
-	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across generations
-	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across generations
+	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across cycles
+	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
 	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
@@ -196,8 +196,8 @@ private:
 #endif
 	
 	// Species simulation state
-	slim_tick_t generation_ = 0;													// the current generation reached in simulation
-	EidosValue_SP cached_value_generation_;											// a cached value for generation_; invalidates automatically when used
+	slim_tick_t cycle_ = 0;													// the current cycle reached in simulation
+	EidosValue_SP cached_value_cycle_;											// a cached value for cycle_; invalidates automatically when used
 	
 	bool species_active_ = true;													// the "active" property of the species
 	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
@@ -274,14 +274,14 @@ private:
 #define SLIM_MUTRUN_EXPERIMENT_LENGTH	50		// kind of based on how large a sample size is needed to detect important differences fairly reliably by t-test
 #define SLIM_MUTRUN_MAXIMUM_COUNT		1024	// the most mutation runs we will ever use; hard to imagine that any model will want more than this
 	
-	bool x_experiments_enabled_;				// if false, no experiments are run and no generation runtimes are recorded
+	bool x_experiments_enabled_;				// if false, no experiments are run and no cycle runtimes are recorded
 	
 	int32_t x_current_mutcount_;				// the number of mutation runs we're currently using
-	double *x_current_runtimes_;				// generation runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	double *x_current_runtimes_;				// cycle runtimes recorded at this mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
 	int x_current_buflen_;						// the number of runtimes in the current_mutcount_runtimes_ buffer
 	
 	int32_t x_previous_mutcount_;				// the number of mutation runs we previously used
-	double *x_previous_runtimes_;				// generation runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
+	double *x_previous_runtimes_;				// cycle runtimes recorded at that mutcount (SLIM_MUTRUN_EXPERIMENT_MAXLENGTH length)
 	int x_previous_buflen_;						// the number of runtimes in the previous_mutcount_runtimes_ buffer
 	
 	bool x_continuing_trend_;					// if true, the current experiment continues a trend, such that the opposite trend can be excluded
@@ -292,9 +292,9 @@ private:
 	int32_t x_prev1_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis last time
 	int32_t x_prev2_stasis_mutcount_;			// the number of mutation runs we settled on when we reached stasis the time before last
 	
-	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each generation
+	std::vector<int32_t> x_mutcount_history_;	// a record of the mutation run count used in each cycle
 	
-	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current generation's runtime (across measured code blocks)
+	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
 												// look at MUTRUNEXP_START_TIMING() / MUTRUNEXP_END_TIMING() usage to see which blocks are measured
 	
 	// TREE SEQUENCE RECORDING
@@ -324,12 +324,12 @@ private:
 	bool last_coalescence_state_ = false;		// if running_coalescence_checks_==true, updated every simplification
 	
 	bool running_treeseq_crosschecks_ = false;	// true if crosschecks between our tree sequence tables and SLiM's data are enabled
-	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ generations
+	int treeseq_crosschecks_interval_ = 1;		// crosschecks, if enabled, will be done every treeseq_crosschecks_interval_ cycles
 	
 	double simplification_ratio_;				// the pre:post table size ratio we target with our automatic simplification heuristic
-	int64_t simplification_interval_;			// the generation interval between simplifications; -1 if not used (in which case the ratio is used)
-	int64_t simplify_elapsed_ = 0;				// the number of generations elapsed since a simplification was done (automatic or otherwise)
-	double simplify_interval_;					// the current number of generations between automatic simplifications when using simplification_ratio_
+	int64_t simplification_interval_;			// the cycle interval between simplifications; -1 if not used (in which case the ratio is used)
+	int64_t simplify_elapsed_ = 0;				// the number of cycles elapsed since a simplification was done (automatic or otherwise)
+	double simplify_interval_;					// the current number of cycles between automatic simplifications when using simplification_ratio_
 	
 public:
 	
@@ -369,11 +369,11 @@ public:
 	
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
 	
-	// Running generations
+	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
 	bool HasDoneAnyInitialization(void);
-	void PrepareForGenerationCycle(void);
+	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(void);
 	void MaintainTreeSequence(void);
@@ -386,7 +386,7 @@ public:
 	void nonWF_GenerateOffspring(void);
 	void nonWF_ViabilitySurvival(void);
 	
-	void AdvanceGenerationCounter(void);
+	void AdvanceCycleCounter(void);
 	void SimulationHasFinished(void);
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -413,8 +413,8 @@ public:
 	void CreateNucleotideMutationRateMap(void);
 	
 	// accessors
-	inline __attribute__((always_inline)) slim_tick_t Generation(void) const												{ return generation_; }
-	void SetGeneration(slim_tick_t p_new_generation);
+	inline __attribute__((always_inline)) slim_tick_t Cycle(void) const														{ return cycle_; }
+	void SetCycle(slim_tick_t p_new_cycle);
 	
 	inline __attribute__((always_inline)) bool Active(void) { return species_active_; }
 	inline __attribute__((always_inline)) void SetActive(bool p_active) { species_active_ = p_active; }
@@ -488,14 +488,12 @@ public:
 	void RecordNewDerivedState(const Genome *p_genome, slim_position_t p_position, const std::vector<Mutation *> &p_derived_mutations);
 	void RetractNewIndividual(void);
 	void AddIndividualsToTable(Individual * const *p_individual, size_t p_num_individuals, tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash, tsk_flags_t p_flags);
-	void AddCurrentGenerationToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
-	void UnmarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
-	void RemarkFirstGenerationSamples(tsk_table_collection_t *p_tables);
+	void AddLiveIndividualsToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
 	void FixAliveIndividuals(tsk_table_collection_t *p_tables);
 	void WritePopulationTable(tsk_table_collection_t *p_tables);
 	void WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_newlines, bool p_include_model);
 	void WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosDictionaryUnretained *p_metadata_dict);
-	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_generation, SLiMModelType *p_model_type, int *p_file_version);
+	void ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version);
 	void WriteTreeSequence(std::string &p_recording_tree_path, bool p_binary, bool p_simplify, bool p_include_model, EidosDictionaryUnretained *p_metadata_dict);
     void ReorderIndividualTable(tsk_table_collection_t *p_tables, std::vector<int> p_individual_map, bool p_keep_unmapped);
 	void AddParentsColumnForOutput(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash);
@@ -519,7 +517,7 @@ public:
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
 	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_generation, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
 	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
 	

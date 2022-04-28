@@ -8,7 +8,7 @@
         <file>help/EidosHelpOperators.html</file>
         <file>help/EidosHelpStatements.html</file>
         <file>help/EidosHelpTypes.html</file>
-        <file>help/GenerationCycle_nonWF.png</file>
-        <file>help/GenerationCycle_WF.png</file>
+        <file>help/TickCycle_nonWF.png</file>
+        <file>help/TickCycle_WF.png</file>
     </qresource>
 </RCC>

@@ -9,7 +9,7 @@ initialize() {
 }
 1 early() { sim.addSubpop("p1", 100); }
 1000: early() {
-	newSize = round(1.03^(sim.generation - 999) * 100);
+	newSize = round(1.03^(sim.cycle - 999) * 100);
 	if (newSize > 2000)
 		newSize = 2000;
 	p1.setSubpopulationSize(asInteger(newSize));

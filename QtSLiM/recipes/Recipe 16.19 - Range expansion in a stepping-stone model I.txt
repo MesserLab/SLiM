@@ -34,7 +34,7 @@ reproduction() {
 1 late() {
 	// set up a log file
 	log = community.createLogFile("~/Desktop/sim_log.txt", sep="\t", logInterval=10);
-	log.addGeneration();
+	log.addCycle();
 	log.addPopulationSize();
 	log.addMeanSDColumns("size", "sim.subpopulations.individualCount;");
 	log.addCustomColumn("pop_migrants", "sum(sim.subpopulations.individuals.migrant);");

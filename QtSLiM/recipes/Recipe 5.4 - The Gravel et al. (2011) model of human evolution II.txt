@@ -37,7 +37,7 @@ initialize() {
 }
 
 78084:79024 early() /* exponential growth */ {
-	t = sim.generation - 78084;
+	t = sim.cycle - 78084;
 	p2_size = round(1032.1046957333444 * (1 + 0.003784324268)^t);
 	p3_size = round(553.8181989 * (1 + 0.004780219543)^t);
 	

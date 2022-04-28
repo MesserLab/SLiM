@@ -36,6 +36,6 @@ early() {
 }
 late() {
 	// print our age distribution after mortality
-	catn(sim.generation + ": " + paste(sort(p1.individuals.age)));
+	catn(sim.cycle + ": " + paste(sort(p1.individuals.age)));
 }
 2000 late() { sim.outputFixedMutations(); }

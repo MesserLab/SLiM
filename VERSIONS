@@ -84,6 +84,12 @@ development head (in the master branch):
 		add parameter color to initializeSpecies(), and property color to Species; add property avatar to Species; tweak avatar to be [s$=""] not [Ns$=NULL], the empty string can be the default
 		add "Multispecies Population Size ~ Time" graph to SLiMgui
 		shift initialization requirements to allow "no-genetics" species to omit all of their genetic setup (mutation and recombination rates, mutation types, genomic element types, genomic elements)
+		obsolete the term "generation" in favor of "cycle", "generation cycle" in favor of "tick cycle"; user-visible API changes:
+			Species.generation -> .cycle, Community.generationStage -> .cycleStage
+			change the "generation" metadata key in the tree sequence top-level scheme to "cycle"
+			LogFile.addGeneration() -> .addCycle(), LogFile.addGenerationStage() -> .addCycleStage()
+			change the column names produced by LogFile from "generation" and "gen_stage" to "cycle" and "cycle_stage"
+			revise recipes to use the new properties and methods, have correct comments, etc.
 		
 
 version 3.7.1 (Eidos version 2.7.1):

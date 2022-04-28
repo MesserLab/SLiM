@@ -462,7 +462,7 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	subpop_data->evaluation_interaction_callbacks_ = community_.ScriptBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosInteractionCallback, -1, interaction_type_id_, subpop_id, nullptr);
 	
 	// Note that we do not create the k-d tree here.  Non-spatial models will never have a k-d tree; spatial models may or
-	// may not need one, depending upon what methods are called by the client, which may vary generation by generation.
+	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.
 	// Also, receiver subpopulations need to be evaluated too, but (if used only for receivers) will not require a k-d tree.
 	// Methods that need the k-d tree must therefore call EnsureKDTreePresent() prior to using it.
 }
@@ -3879,10 +3879,10 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *subpops_value = p_arguments[0].get();
 	
-	if ((community_.GenerationStage() == SLiMGenerationStage::kWFStage2GenerateOffspring) ||
-		(community_.GenerationStage() == SLiMGenerationStage::kNonWFStage1GenerateOffspring) ||
-		(community_.GenerationStage() == SLiMGenerationStage::kNonWFStage4SurvivalSelection))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during the offspring generation or selection/mortality generation cycle stages." << EidosTerminate();
+	if ((community_.CycleStage() == SLiMCycleStage::kWFStage2GenerateOffspring) ||
+		(community_.CycleStage() == SLiMCycleStage::kNonWFStage1GenerateOffspring) ||
+		(community_.CycleStage() == SLiMCycleStage::kNonWFStage4SurvivalSelection))
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during the offspring generation or selection/mortality cycle stages." << EidosTerminate();
 	
 	// Get the requested subpops
 	int requested_subpop_count = subpops_value->Count();

@@ -418,11 +418,11 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 				cached_value_tick_ = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tick_));
 			return cached_value_tick_;
 		}
-		case gID_generationStage:
+		case gID_cycleStage:
 		{
-			SLiMGenerationStage generation_stage = GenerationStage();
-			std::string generation_stage_str = StringForSLiMGenerationStage(generation_stage);
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(generation_stage_str));
+			SLiMCycleStage cycle_stage = CycleStage();
+			std::string cycle_stage_str = StringForSLiMCycleStage(cycle_stage);
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(cycle_stage_str));
 		}
 		case gID_tag:
 		{
@@ -654,7 +654,7 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 		{
 			// interaction() callbacks have to work differently, because they can be called at any time after an
 			// interaction has been evaluated, up until the interaction is invalidated; we can't make pointers
-			// to interaction() callbacks go stale except at that specific point in the generation cycle
+			// to interaction() callbacks go stale except at that specific point in the cycle
 			if (std::find(scheduled_interaction_deregs_.begin(), scheduled_interaction_deregs_.end(), block) != scheduled_interaction_deregs_.end())
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
@@ -669,7 +669,7 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 		}
 		else
 		{
-			// all other script blocks go on the main list and get cleared out at the end of each generation stage
+			// all other script blocks go on the main list and get cleared out at the end of each cycle stage
 			if (std::find(scheduled_deregistrations_.begin(), scheduled_deregistrations_.end(), block) != scheduled_deregistrations_.end())
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_deregisterScriptBlock): deregisterScriptBlock() called twice on the same script block." << EidosTerminate();
 			
@@ -1032,14 +1032,14 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	return gStaticEidosValueVOID;
 }
 
-void Community::CheckScheduling(slim_tick_t p_target_tick, SLiMGenerationStage p_target_stage)
+void Community::CheckScheduling(slim_tick_t p_target_tick, SLiMCycleStage p_target_stage)
 {
 	if (p_target_tick < tick_)
 		EIDOS_TERMINATION << "ERROR (Community::CheckScheduling): event/callback scheduled for a past tick would not run." << EidosTerminate();
-	if ((p_target_tick == tick_) && (p_target_stage < generation_stage_))
-		EIDOS_TERMINATION << "ERROR (Community::CheckScheduling): event/callback scheduled for the current tick, but for a past generation cycle stage, would not run." << EidosTerminate();
-	if ((p_target_tick == tick_) && (p_target_stage == generation_stage_))
-		EIDOS_TERMINATION << "ERROR (Community::CheckScheduling): event/callback scheduled for the current tick, but for the currently executing generation cycle stage, would not run." << EidosTerminate();
+	if ((p_target_tick == tick_) && (p_target_stage < cycle_stage_))
+		EIDOS_TERMINATION << "ERROR (Community::CheckScheduling): event/callback scheduled for the current tick, but for a past cycle stage, would not run." << EidosTerminate();
+	if ((p_target_tick == tick_) && (p_target_stage == cycle_stage_))
+		EIDOS_TERMINATION << "ERROR (Community::CheckScheduling): event/callback scheduled for the current tick, but for the currently executing cycle stage, would not run." << EidosTerminate();
 }
 
 //	*********************	– (object<SLiMEidosBlock>$)registerFirstEvent(Nis$ id, string$ source, [Ni$ start = NULL], [Ni$ end = NULL], [No<Species>$ ticksSpec = NULL])
@@ -1077,14 +1077,14 @@ EidosValue_SP Community::ExecuteMethod_registerFirstEarlyLateEvent(EidosGlobalSt
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFirstEarlyLateEvent): register" << ((p_method_id == gID_registerFirstEvent) ? "First" : ((p_method_id == gID_registerEarlyEvent) ? "Early" : "Late")) << "Event() requires start <= end." << EidosTerminate();
 	
-	SLiMGenerationStage target_stage;
+	SLiMCycleStage target_stage;
 	
 	if (target_type == SLiMEidosBlockType::SLiMEidosEventFirst)
-		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage0ExecuteFirstScripts : SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts;
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage0ExecuteFirstScripts : SLiMCycleStage::kNonWFStage0ExecuteFirstScripts;
 	else if (target_type == SLiMEidosBlockType::SLiMEidosEventEarly)
-		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage1ExecuteEarlyScripts : SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts;
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage1ExecuteEarlyScripts : SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts;
 	else if (target_type == SLiMEidosBlockType::SLiMEidosEventLate)
-		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage5ExecuteLateScripts : SLiMGenerationStage::kNonWFStage6ExecuteLateScripts;
+		target_stage = (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage5ExecuteLateScripts : SLiMCycleStage::kNonWFStage6ExecuteLateScripts;
 	else
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerFirstEarlyLateEvent): (internal error) unrecognized target_type." << EidosTerminate();
 	
@@ -1130,7 +1130,7 @@ EidosValue_SP Community::ExecuteMethod_registerInteractionCallback(EidosGlobalSt
 	if (start_tick > end_tick)
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_registerInteractionCallback): registerInteractionCallback() requires start <= end." << EidosTerminate();
 	
-	CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMGenerationStage::kWFStage7AdvanceGenerationCounter : SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter);
+	CheckScheduling(start_tick, (model_type_ == SLiMModelType::kModelTypeWF) ? SLiMCycleStage::kWFStage7AdvanceTickCounter : SLiMCycleStage::kNonWFStage7AdvanceTickCounter);
 	
 	SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_id, script_string, -1, SLiMEidosBlockType::SLiMEidosInteractionCallback, start_tick, end_tick, nullptr, nullptr);
 	
@@ -1164,26 +1164,26 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on user-defined function script blocks." << EidosTerminate();
 	}
 	
-	// Figure out what generation stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
-	SLiMGenerationStage stage = SLiMGenerationStage::kStagePostGeneration;	// unused below, just here to silence a warning
+	// Figure out what cycle stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
+	SLiMCycleStage stage = SLiMCycleStage::kStagePostCycle;	// unused below, just here to silence a warning
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		switch (block->type_)
 		{
-			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMGenerationStage::kWFStage0ExecuteFirstScripts; break;
-			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kWFStage1ExecuteEarlyScripts; break;
-			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kWFStage5ExecuteLateScripts; break;
-			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStagePreGeneration; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kWFStage6CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kWFStage7AdvanceGenerationCounter; break;
-			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMGenerationStage::kWFStage4SwapGenerations; break;				// never hit
-			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kWFStage2GenerateOffspring; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMCycleStage::kWFStage0ExecuteFirstScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kWFStage1ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kWFStage5ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kWFStage7AdvanceTickCounter; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kWFStage4SwapGenerations; break;				// never hit
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;				// never hit
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
@@ -1193,19 +1193,19 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	{
 		switch (block->type_)
 		{
-			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts; break;
-			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts; break;
-			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMGenerationStage::kNonWFStage6ExecuteLateScripts; break;
-			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMGenerationStage::kStagePreGeneration; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMGenerationStage::kNonWFStage3CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMGenerationStage::kNonWFStage7AdvanceGenerationCounter; break;
-			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;			// never hit
-			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
-			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMGenerationStage::kNonWFStage4SurvivalSelection; break;
-			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMGenerationStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosEventFirst:				stage = SLiMCycleStage::kNonWFStage0ExecuteFirstScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts; break;
+			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kNonWFStage6ExecuteLateScripts; break;
+			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kNonWFStage7AdvanceTickCounter; break;
+			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;			// never hit
+			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosMutationCallback:			stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
+			case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			stage = SLiMCycleStage::kNonWFStage4SurvivalSelection; break;
+			case SLiMEidosBlockType::SLiMEidosReproductionCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosNoBlockType:
 			case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
@@ -1370,7 +1370,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_logFiles,				true,	kEidosValueMaskObject, gSLiM_LogFile_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_modelType,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tick,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_generationStage,		true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cycleStage,				true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_verbosity,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		

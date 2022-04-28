@@ -120,10 +120,10 @@ QString QtSLiMGraphView_AgeDistribution::graphTitle(void)
 QString QtSLiMGraphView_AgeDistribution::aboutString(void)
 {
     return "The Age Distribution graph shows the distribution of age values within a chosen subpopulation.  The "
-           "x axis is individual age (in generations, in the SLiM sense of the term); the y axis is the "
-           "frequency of a given age in the population, normalized to a total of 1.0.  This graph is only "
-           "meaningful for nonWF models; WF models have non-overlapping generations without age structure.  Note "
-           "that display occurs <i>after</i> the generation counter increments, so new offspring will have age 1.";
+           "x axis is individual age (in cycles, in the SLiM sense of the term); the y axis is the frequency "
+           "of a given age in the population, normalized to a total of 1.0.  This graph is only meaningful "
+           "for nonWF models; WF models have non-overlapping generations without age structure.  Note that "
+           "display occurs <i>after</i> the cycle counter increments, so new offspring will have age 1.";
 }
 
 void QtSLiMGraphView_AgeDistribution::updateAfterTick(void)

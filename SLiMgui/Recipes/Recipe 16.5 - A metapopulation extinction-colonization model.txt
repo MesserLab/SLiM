@@ -47,7 +47,7 @@ early() {
 }
 late() {
 	if (sum(sim.subpopulations.individualCount) == 0)
-		stop("Global extinction in generation " + sim.generation + ".");
+		stop("Global extinction in cycle " + sim.cycle + ".");
 }
 2000 late() {
 	sim.outputFixedMutations();

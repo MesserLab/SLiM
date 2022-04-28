@@ -10,13 +10,13 @@ initialize() {
 1 early() { sim.addSubpop("p1", 500); }
 100 early() { sim.addSubpopSplit("p2", 100, p1); }
 100:150 early() {
-	migrationProgress = (sim.generation - 100) / 50;
+	migrationProgress = (sim.cycle - 100) / 50;
 	p1.setMigrationRates(p2, 0.2 * migrationProgress);
 	p2.setMigrationRates(p1, 0.8 * migrationProgress);
 }
 1000 early() { sim.addSubpopSplit("p3", 10, p2); }
 1000:1100 early() {
-	p3Progress = (sim.generation - 1000) / 100;
+	p3Progress = (sim.cycle - 1000) / 100;
 	p3.setSubpopulationSize(asInteger(990 * p3Progress + 10));
 	p1.setMigrationRates(p3, 0.1 * p3Progress);
 	p2.setMigrationRates(p3, 0.01 * p3Progress);

@@ -35,7 +35,7 @@ fitness(m2) {
 	return 1.0;   // QTLs are neutral; fitness effects are handled below
 }
 1:100000 late() {
-	if (sim.generation == 1)
+	if (sim.cycle == 1)
 		cat("Mean phenotype:\n");
 	
 	meanPhenotype = mean(p1.individuals.tagF);
@@ -49,7 +49,7 @@ fitness(m2) {
 	}
 	
 	cat("\n\n-------------------------------\n");
-	cat("QTLs at generation " + sim.generation + ":\n\n");
+	cat("QTLs at cycle " + sim.cycle + ":\n\n");
 	
 	qtls = sim.mutationsOfType(m2);
 	f = sim.mutationFrequencies(NULL, qtls);

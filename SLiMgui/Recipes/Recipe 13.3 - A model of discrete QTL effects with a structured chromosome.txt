@@ -48,7 +48,7 @@ initialize() {
 	p1.setMigrationRates(p2, 0.01);
 	p2.setMigrationRates(p1, 0.01);
 	
-	// replicate the s1 event to output in generation 2 also
+	// replicate the s1 event to output in tick 2 also
 	community.registerEarlyEvent("s2", s1.source, 2, 2);
 	
 	// optional: give m2 mutations to everyone, as standing variation
@@ -80,7 +80,7 @@ mateChoice() {
 }
 s1 2001 early() {
 	cat("-------------------------------\n");
-	cat("Output for end of generation " + (sim.generation - 1) + ":\n\n");
+	cat("Output for end of cycle " + (sim.cycle - 1) + ":\n\n");
 	
 	// Output population fitness values
 	cat("p1 mean fitness = " + mean(p1.cachedFitness(NULL)) + "\n");

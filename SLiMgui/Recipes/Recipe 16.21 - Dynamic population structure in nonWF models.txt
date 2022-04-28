@@ -29,7 +29,7 @@ early() {
 5000 late() { }
 
 //
-// Join p1 and p2 to form p3 in generation 1000
+// Join p1 and p2 to form p3 in tick 1000
 //
 
 999 late() {
@@ -58,7 +58,7 @@ early() {
 		p3.addCrossed(parent1, parent2);
 	}
 	
-	// we're done, don't run again this generation
+	// we're done, don't run again this tick
 	self.active = 0;
 }
 1000 early() {
@@ -88,6 +88,6 @@ early() {
 		p4.addCrossed(parent1, parent2);
 	}
 	
-	// we're done, don't run again this generation
+	// we're done, don't run again this tick
 	self.active = 0;
 }

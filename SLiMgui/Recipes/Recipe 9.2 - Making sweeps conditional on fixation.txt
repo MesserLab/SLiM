@@ -36,7 +36,7 @@ initialize() {
 		{
 			cat(simID + ": LOST - RESTARTING\n");
 			
-			// go back to generation 1000
+			// go back to tick 1000
 			sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 			
 			// start a newly seeded run

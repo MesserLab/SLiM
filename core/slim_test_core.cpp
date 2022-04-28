@@ -319,15 +319,15 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosomeType = 'A'; } " + gen2_stop, "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex + "1 early() { if (sim.chromosomeType == 'X') stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex + "1 early() { sim.chromosomeType = 'X'; } " + gen2_stop, "read-only property", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.generation; } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.generation = 7; } " + gen2_stop, __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.cycle; } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.cycle = 7; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { community.tick = 7; } " + gen2_stop, __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.generationStage == 'early') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.generationStage == 'early') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup + "1 late() { if (community.generationStage == 'late') stop(); } ", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (community.generationStage == 'reproduction') stop(); } 2 early() {}", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (community.generationStage == 'fitness') stop(); } 100 early() {}", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { community.generationStage = 'early'; } ", "read-only property", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.cycleStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.cycleStage == 'early') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 late() { if (community.cycleStage == 'late') stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (community.cycleStage == 'reproduction') stop(); } 2 early() {}", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (community.cycleStage == 'fitness') stop(); } 100 early() {}", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { community.cycleStage = 'early'; } ", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.genomicElementTypes == g1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.genomicElementTypes = g1; } ", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.modelType == 'WF') stop(); } ", __LINE__);
@@ -622,7 +622,7 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.registerModifyChildCallback(1, '{ stop(); }', NULL, 0, 0); }", "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { sim.registerModifyChildCallback(1, '{ $; }', NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
-	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni generations = NULL])
+	// Test sim – (object<SLiMEidosBlock>)rescheduleScriptBlock(io<SLiMEidosBlock>$ block, [Ni$ start = NULL], [Ni$ end = NULL], [Ni ticks = NULL])
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, start=10, end=9); stop(); } s1 10 early() { }", "requires start <= end", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=integer(0)); stop(); } s1 10 early() { }", "requires at least one tick", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(s1, ticks=c(25, 25)); stop(); } s1 10 early() { }", "same tick cannot be used twice", __LINE__);
@@ -836,7 +836,7 @@ void _RunSubpopulationTests(void)
 	
 	// Test Subpopulation - (float)cachedFitness(Ni indices)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.cachedFitness(NULL), rep(1.0, 10))) stop(); }", __LINE__);				// legal (after subpop construction)
-	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(p1.cachedFitness(NULL), rep(1.0, 10))) stop(); }", __LINE__);				// legal (after child generation)
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(p1.cachedFitness(NULL), rep(1.0, 10))) stop(); }", __LINE__);				// legal (after generating children)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.cachedFitness(0), 1.0)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.cachedFitness(0:3), rep(1.0, 4))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { identical(p1.cachedFitness(-1), rep(1.0, 10)); stop(); }", "out of range", __LINE__);
@@ -1168,10 +1168,10 @@ void _RunSubpopulationTests(void)
 	// Test Subpopulation - (void)setSubpopulationSize(integer$ size)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(0); if (p1.individualCount == 10) stop(); }", "undefined identifier", __LINE__);		// the symbol is undefined immediately
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { px=p1; p1.setSubpopulationSize(0); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until child generation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { px=p1; p1.setSubpopulationSize(0); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until generating children
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(0); } 2 early() { if (p1.individualCount == 0) stop(); }", "undefined identifier", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(20); stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }", __LINE__);					// does not take visible effect until child generation
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(20); if (p1.individualCount == 10) stop(); }", __LINE__);					// does not take visible effect until generating children
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(20); } 2 early() { if (p1.individualCount == 20) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(-1); stop(); }", "out of range", __LINE__);
 	

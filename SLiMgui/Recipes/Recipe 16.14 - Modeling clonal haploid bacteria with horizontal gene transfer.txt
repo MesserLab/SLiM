@@ -54,8 +54,8 @@ late() {
 	
 	if (all(freqs == 1.0))
 	{
-		catn(sim.generation + ": " + sum(freqs == 1.0) + " fixed.");
+		catn(sim.cycle + ": " + sum(freqs == 1.0) + " fixed.");
 		sim.simulationFinished();
 	}
 }
-1e6 late() { catn(sim.generation + ": no result."); }
+1e6 late() { catn(sim.cycle + ": no result."); }

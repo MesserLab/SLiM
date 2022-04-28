@@ -13,7 +13,7 @@ initialize() {
 	p1.setMigrationRates(p2, 0.001);
 	p2.setMigrationRates(p1, 0.001);
 	log = community.createLogFile("~/Desktop/sim_log.txt", logInterval=10);
-	log.addGeneration();
+	log.addCycle();
 	log.addCustomColumn("FST", "calcFST(p1.genomes, p2.genomes);");
 }
 20000 late() { }

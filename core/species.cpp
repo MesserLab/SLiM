@@ -78,7 +78,7 @@ extern "C" {
 
 // Mutation run experiment timing macros.  We use these to accumulate clocks taken in critical sections of the code.
 // Note that this design does NOT include time taken in first()/early()/late() events; since script blocks can do very
-// different work from one generation to the next, this seems best, although it does mean that the impact of the number
+// different work from one cycle to the next, this seems best, although it does mean that the impact of the number
 // of mutation runs on the execution time of Eidos events is not measured.
 #define MUTRUNEXP_START_TIMING(var) std::clock_t var = (x_experiments_enabled_ ? std::clock() : 0);
 #define MUTRUNEXP_END_TIMING(var) if (x_experiments_enabled_) x_total_gen_clocks_ += (std::clock() - var);
@@ -92,7 +92,7 @@ static const char *SLIM_TREES_FILE_VERSION_HASH = "0.4";		// SLiM 3.4.x, with th
 static const char *SLIM_TREES_FILE_VERSION_META = "0.5";		// SLiM 3.5.x onward, with information in metadata instead of provenance
 static const char *SLIM_TREES_FILE_VERSION_PREPARENT = "0.6";	// SLiM 3.6.x onward, with SLIM_TSK_INDIVIDUAL_RETAINED instead of SLIM_TSK_INDIVIDUAL_FIRST_GEN
 static const char *SLIM_TREES_FILE_VERSION_PRESPECIES = "0.7";	// SLiM 3.7.x onward, with parent pedigree IDs in the individuals table metadata
-static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `generation`
+static const char *SLIM_TREES_FILE_VERSION = "0.8";				// SLiM 4.0.x onward, with species `name`/`description`, and `tick` in addition to `cycle`
 
 #pragma mark -
 #pragma mark Species
@@ -362,7 +362,7 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 
 slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-	slim_tick_t file_tick, file_generation;
+	slim_tick_t file_tick, file_cycle;
 	std::map<slim_polymorphismid_t,MutationIndex> mutations;
 	std::string line, sub; 
 	std::ifstream infile(p_file);
@@ -372,7 +372,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	if (!infile.is_open())
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): could not open initialization file." << EidosTerminate();
 	
-	// Parse the first line, to get the tick and generation
+	// Parse the first line, to get the tick and cycle
 	{
 		GetInputLine(infile, line);
 	
@@ -384,17 +384,17 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		int64_t tick_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
 		file_tick = SLiMCastToTickTypeOrRaise(tick_long);
 		
-		// Next is either the generation, or "A"; we handle the addition of generation in SLiM 4 without a version bump
+		// Next is either the cycle, or "A"; we handle the addition of cycle in SLiM 4 without a version bump
 		iss >> sub;
 		if (sub == "A")
 		{
-			// If it is "A", we are reading a pre-4.0 file, and the tick and generation are the same
-			file_generation = file_tick;
+			// If it is "A", we are reading a pre-4.0 file, and the tick and cycle are the same
+			file_cycle = file_tick;
 		}
 		else
 		{
-			int64_t generation_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
-			file_generation = SLiMCastToTickTypeOrRaise(generation_long);
+			int64_t cycle_long = EidosInterpreter::NonnegativeIntegerForString(sub, nullptr);
+			file_cycle = SLiMCastToTickTypeOrRaise(cycle_long);
 			
 			// "A" follows but we don't bother reading it
 		}
@@ -402,7 +402,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
 	// As of SLiM 3, we set the generation up here, before making any individuals, because we need it to be correct for the tree-seq recording code.
-	// As of SLiM 4, we save and read the tick instead, and do not touch the generation counter for the species; this decision may need to be revisited
+	// As of SLiM 4, we save and read the tick instead, and do not touch the cycle counter for the species; this decision may need to be revisited
 	community_.SetTick(file_tick);
 	
 	// Read and ignore initial stuff until we hit the Populations section
@@ -825,10 +825,10 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
-	// a new population in an early() event, in a late() event, or in between generations in SLiMgui, e.g. in the Eidos console.
+	// a new population in an early() event, in a late() event, or in between cycles in SLiMgui, e.g. in the Eidos console.
 	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
-	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the generation cycle,
-	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current generation
+	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the cycle,
+	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current
 	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
@@ -845,11 +845,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	if (file_version <= 2)
 	{
-		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
+		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next cycle
 		// used to be generation + 1; removing that 18 Feb 2016 BCH
 		
 		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
-		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next generation
+		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
 		
 		for (auto muttype_iter : mutation_types_)
 			(muttype_iter.second)->subject_to_fitness_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
@@ -882,7 +882,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
 	std::size_t file_size = 0;
-	slim_tick_t file_tick, file_generation;
+	slim_tick_t file_tick, file_cycle;
 	int32_t spatial_output_count;
 	int age_output_count = 0;
 	int pedigree_output_count = 0;
@@ -964,7 +964,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		if (file_version >= 5)
 			header_length += sizeof(flags);
 		if (file_version >= 7)
-			header_length += sizeof(file_generation);
+			header_length += sizeof(file_cycle);
 		
 		if (p + header_length > buf_end)
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF while reading header." << EidosTerminate();
@@ -1044,13 +1044,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		if (file_version >= 7)
 		{
-			memcpy(&file_generation, p, sizeof(file_generation));
-			p += sizeof(file_generation);
+			memcpy(&file_cycle, p, sizeof(file_cycle));
+			p += sizeof(file_cycle);
 		}
 		else
 		{
-			// we are reading a pre-4.0 file, so the generation is the same as the tick
-			file_generation = file_tick;
+			// we are reading a pre-4.0 file, so the cycle is the same as the tick
+			file_cycle = file_tick;
 		}
 		
 		if (file_version >= 3)
@@ -1101,9 +1101,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
 	// As of SLiM 3, we set the generation up here, before making any individuals, because we need it to be correct for the tree-seq recording code.
-	// As of SLiM 4, we set both the tick and the generation, which are both saved to the file for version 7 and after.
+	// As of SLiM 4, we set both the tick and the cycle, which are both saved to the file for version 7 and after.
 	community_.SetTick(file_tick);
-	SetGeneration(file_generation);
+	SetCycle(file_cycle);
 	
 	// Populations section
 	while (true)
@@ -1555,10 +1555,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	}
 	
 	// It's a little unclear how we ought to clean up after ourselves, and this is a continuing source of bugs.  We could be loading
-	// a new population in an early() event, in a late() event, or in between generations in SLiMgui, e.g. in the Eidos console.
+	// a new population in an early() event, in a late() event, or in between cycles in SLiMgui, e.g. in the Eidos console.
 	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
-	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the generation cycle,
-	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current generation
+	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the cycle,
+	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current
 	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
@@ -1575,11 +1575,11 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	if (file_version <= 2)
 	{
-		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next generation
+		// Now that we have the info on everybody, update fitnesses so that we're ready to run the next cycle
 		// used to be generation + 1; removing that 18 Feb 2016 BCH
 		
 		nonneutral_change_counter_++;			// trigger unconditional nonneutral mutation caching inside UpdateFitness()
-		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next generation
+		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
 		
 		for (auto muttype_iter : mutation_types_)
 			(muttype_iter.second)->subject_to_fitness_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
@@ -1616,10 +1616,10 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 #endif
 
 //
-// Running generations
+// Running cycles
 //
 #pragma mark -
-#pragma mark Running generations
+#pragma mark Running cycles
 #pragma mark -
 
 std::vector<SLiMEidosBlock*> Species::CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id)
@@ -1837,8 +1837,8 @@ void Species::RunInitializeCallbacks(void)
 		}
 	}
 	
-	// always start at generation 1, regardless of what the starting tick value might be
-	SetGeneration(1);
+	// always start at cycle 1, regardless of what the starting tick value might be
+	SetCycle(1);
 	
 	// initialize chromosome
 	chromosome_->InitializeDraws();
@@ -1865,9 +1865,9 @@ bool Species::HasDoneAnyInitialization(void)
 	return ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0) || (num_species_declarations_ > 0));
 }
 
-void Species::PrepareForGenerationCycle(void)
+void Species::PrepareForCycle(void)
 {
-	// Called by Community at the very start of each generation, whether WF or nonWF (but not before initialize() callbacks)
+	// Called by Community at the very start of each cycle, whether WF or nonWF (but not before initialize() callbacks)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 		// Optimization; see mutation_type.h for an explanation of what this counter is used for
 		if (population_.any_muttype_call_count_used_)
@@ -1907,14 +1907,14 @@ void Species::MaintainMutationRegistry(void)
 	
 	MUTRUNEXP_END_TIMING(x_clock0);
 	
-	// Every hundredth generation we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
+	// Every hundredth cycle we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
 	// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
 	// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
 	// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
-	// generation would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
+	// cycle would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
 	// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
 	// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
-	if (generation_ % 100 == 0)
+	if (cycle_ % 100 == 0)
 		population_.UniqueMutationRuns();
 }
 
@@ -1922,7 +1922,7 @@ void Species::RecalculateFitness(void)
 {
 	MUTRUNEXP_START_TIMING(x_clock0);
 	
-	population_.RecalculateFitness(generation_);	// used to be generation_ + 1 in the WF generation cycle; removing that 18 Feb 2016 BCH
+	population_.RecalculateFitness(cycle_);	// used to be cycle_ + 1 in the WF cycle; removing that 18 Feb 2016 BCH
 	
 	MUTRUNEXP_END_TIMING(x_clock0);
 }
@@ -1933,7 +1933,7 @@ void Species::MaintainTreeSequence(void)
 	if (recording_tree_)
 	{
 #if DEBUG
-		// check the integrity of the tree sequence in every generation in Debug mode only
+		// check the integrity of the tree sequence in every cycle in Debug mode only
 		CheckTreeSeqIntegrity();
 #endif
 					
@@ -1950,7 +1950,7 @@ void Species::MaintainTreeSequence(void)
 #endif
 		
 		// note that this causes simplification, so it will confuse the auto-simplification code
-		if (running_treeseq_crosschecks_ && (generation_ % treeseq_crosschecks_interval_ == 0))
+		if (running_treeseq_crosschecks_ && (cycle_ % treeseq_crosschecks_interval_ == 0))
 			CrosscheckTreeSeqIntegrity();
 	}
 }
@@ -2085,7 +2085,7 @@ void Species::WF_SwitchToChildGeneration(void)
 	population_.child_generation_valid_ = true;
 	
 	// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
-	// moved up to SLiMGenerationStage::kWFStage2GenerateOffspring, 9 January 2018, so that the
+	// moved up to SLiMCycleStage::kWFStage2GenerateOffspring, 9 January 2018, so that the
 	// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
 	MUTRUNEXP_START_TIMING(x_clock0);
 	
@@ -2265,18 +2265,18 @@ void Species::FinishMutationRunExperimentTiming(void)
 	}
 }
 
-void Species::SetGeneration(slim_tick_t p_new_generation)
+void Species::SetCycle(slim_tick_t p_new_cycle)
 {
-	generation_ = p_new_generation;
+	cycle_ = p_new_cycle;
 	
-	// Note that the tree sequence tick depends upon the tick, not the generation,
+	// Note that the tree sequence tick depends upon the tick, not the cycle,
 	// so that it is is sync for all species in the community.
 }
 
-void Species::AdvanceGenerationCounter(void)
+void Species::AdvanceCycleCounter(void)
 {
-	// called by Community at the end of the generation
-	SetGeneration(generation_ + 1);
+	// called by Community at the end of the cycle
+	SetCycle(cycle_ + 1);
 }
 
 void Species::SimulationHasFinished(void)
@@ -2339,7 +2339,7 @@ void Species::SimulationHasFinished(void)
 		double modal_fraction = power_tallies[modal_index] / (double)(x_mutcount_history_.size());
 		
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "// Mutation run modal count: " << modal_count << " (" << (modal_fraction * 100) << "% of generations)" << std::endl;
+		SLIM_OUTSTREAM << "// Mutation run modal count: " << modal_count << " (" << (modal_fraction * 100) << "% of cycles)" << std::endl;
 		SLIM_OUTSTREAM << "//" << std::endl;
 		SLIM_OUTSTREAM << "// It might (or might not) speed up your model to add a call to:" << std::endl;
 		SLIM_OUTSTREAM << "//" << std::endl;
@@ -2940,7 +2940,7 @@ void Species::EnterStasisForMutationRunExperiments(void)
 
 void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 {
-	// Log the last generation time into our buffer
+	// Log the last cycle time into our buffer
 	if (x_current_buflen_ >= SLIM_MUTRUN_EXPERIMENT_LENGTH)
 		EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): Buffer overrun, failure to reset after completion of an experiment." << EidosTerminate();
 	
@@ -2957,7 +2957,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	if ((x_current_buflen_ == 10) && (x_current_mutcount_ != x_previous_mutcount_) && (x_previous_mutcount_ != 0))
 	{
 		// We want to be able to cut an experiment short if it is clearly a disaster.  So if we're not in stasis, and
-		// we've run for 10 generations, and the experiment mean is already different from the baseline at alpha 0.01,
+		// we've run for 10 cycles, and the experiment mean is already different from the baseline at alpha 0.01,
 		// and the experiment mean is worse than the baseline mean (if it is better, we want to continue collecting),
 		// let's short-circuit the rest of the experiment and bail – like early termination of a medical trial.
 		p = Eidos_TTest_TwoSampleWelch(x_current_runtimes_, x_current_buflen_, x_previous_runtimes_, x_previous_buflen_, &current_mean, &previous_mean);
@@ -2968,7 +2968,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			if (SLiM_verbose_output)
 			{
 				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << generation_ << " : Early t-test yielded HIGHLY SIGNIFICANT p of " << p << " with negative results; terminating early." << std::endl;
+				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded HIGHLY SIGNIFICANT p of " << p << " with negative results; terminating early." << std::endl;
 			}
 #endif
 			
@@ -2980,12 +2980,12 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			if (p >= 0.01)
 			{
 				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << generation_ << " : Early t-test yielded not highly significant p of " << p << "; continuing." << std::endl;
+				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded not highly significant p of " << p << "; continuing." << std::endl;
 			}
 			else if (current_mean > previous_mean)
 			{
 				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << generation_ << " : Early t-test yielded highly significant p of " << p << " with positive results; continuing data collection." << std::endl;
+				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded highly significant p of " << p << " with positive results; continuing data collection." << std::endl;
 			}
 		}
 #endif
@@ -3001,7 +3001,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		if (SLiM_verbose_output)
 		{
 			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// ** " << generation_ << " : First mutation run experiment completed with mutrun count " << x_current_mutcount_ << "; will now try " << (x_current_mutcount_ * 2) << std::endl;
+			SLIM_OUTSTREAM << "// ** " << cycle_ << " : First mutation run experiment completed with mutrun count " << x_current_mutcount_ << "; will now try " << (x_current_mutcount_ * 2) << std::endl;
 		}
 #endif
 		
@@ -3010,7 +3010,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	else
 	{
 		// If we've just finished the second stasis experiment, run another stasis experiment before trying to draw any
-		// conclusions.  We often enter stasis with one generation's worth of data that was actually collected quite a
+		// conclusions.  We often enter stasis with one cycle's worth of data that was actually collected quite a
 		// while ago, because we did exploration in both directions first.  This can lead to breaking out of stasis
 		// immediately after entering, because we're comparing apples and oranges.  So we avoid doing that here.
 		if ((x_stasis_counter_ <= 1) && (x_current_mutcount_ == x_previous_mutcount_))
@@ -3022,7 +3022,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			if (SLiM_verbose_output)
 			{
 				SLIM_OUTSTREAM << std::endl;
-				SLIM_OUTSTREAM << "// " << generation_ << " : Mutation run experiment completed (second stasis generation, no tests conducted)" << std::endl;
+				SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed (second stasis cycle, no tests conducted)" << std::endl;
 			}
 #endif
 			
@@ -3038,7 +3038,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		if (SLiM_verbose_output)
 		{
 			SLIM_OUTSTREAM << std::endl;
-			SLIM_OUTSTREAM << "// " << generation_ << " : Mutation run experiment completed:" << std::endl;
+			SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed:" << std::endl;
 			SLIM_OUTSTREAM << "//    mean == " << current_mean << " for " << x_current_mutcount_ << " mutruns (" << x_current_buflen_ << " data points)" << std::endl;
 			SLIM_OUTSTREAM << "//    mean == " << previous_mean << " for " << x_previous_mutcount_ << " mutruns (" << x_previous_buflen_ << " data points)" << std::endl;
 		}
@@ -3068,7 +3068,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 				
 #if MUTRUN_EXPERIMENT_OUTPUT
 				if (SLiM_verbose_output)
-					SLIM_OUTSTREAM << "// ** " << generation_ << " : Stasis mean changed, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
+					SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis mean changed, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
 #endif
 			}
 			else
@@ -3085,7 +3085,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
 					if (SLiM_verbose_output)
-						SLIM_OUTSTREAM << "// ** " << generation_ << " : Stasis limit reached, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
+						SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis limit reached, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
 #endif
 				}
 				else
@@ -3097,7 +3097,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
 					if (SLiM_verbose_output)
-						SLIM_OUTSTREAM << "//    " << generation_ << " : Stasis limit not reached (" << x_stasis_counter_ << " of " << x_stasis_limit_ << "), running another stasis experiment at " << x_current_mutcount_ << std::endl;
+						SLIM_OUTSTREAM << "//    " << cycle_ << " : Stasis limit not reached (" << x_stasis_counter_ << " of " << x_stasis_limit_ << "), running another stasis experiment at " << x_current_mutcount_ << std::endl;
 #endif
 				}
 			}
@@ -3138,7 +3138,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ****** " << generation_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
+							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
 						EnterStasisForMutationRunExperiments();
@@ -3152,7 +3152,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ****** " << generation_ << " : Experiment " << (means_different_05 ? "failed" : "inconclusive but negative") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
+							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "failed" : "inconclusive but negative") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
 						EnterStasisForMutationRunExperiments();
@@ -3166,7 +3166,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						// so we will run the next experiment against the current experiment's results
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ** " << generation_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), continuing trend with " << trend_next << " (against " << x_current_mutcount_ << ")" << std::endl;
+							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), continuing trend with " << trend_next << " (against " << x_current_mutcount_ << ")" << std::endl;
 #endif
 						
 						TransitionToNewExperimentAgainstCurrentExperiment(trend_next);
@@ -3180,7 +3180,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						// against whichever preceding experiment had the lowest mean.
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ** " << generation_ << " : Experiment inconclusive but negative at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), checking " << trend_next << " (against " << x_previous_mutcount_ << ")" << std::endl;
+							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment inconclusive but negative at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), checking " << trend_next << " (against " << x_previous_mutcount_ << ")" << std::endl;
 #endif
 						
 						TransitionToNewExperimentAgainstPreviousExperiment(trend_next);
@@ -3199,7 +3199,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
 					if (SLiM_verbose_output)
-						SLIM_OUTSTREAM << "// ****** " << generation_ << " : Experiment failed, already tried opposite side, so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
+						SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, already tried opposite side, so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 					
 					EnterStasisForMutationRunExperiments();
@@ -3217,7 +3217,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ****** " << generation_ << " : Experiment failed, opposite side blocked so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
+							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, opposite side blocked so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
 						EnterStasisForMutationRunExperiments();
@@ -3228,7 +3228,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
-							SLIM_OUTSTREAM << "// ** " << generation_ << " : Experiment failed at " << x_current_mutcount_ << ", opposite side untried, reversing trend back to " << new_mutcount << " (against " << x_previous_mutcount_ << ")" << std::endl;
+							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment failed at " << x_current_mutcount_ << ", opposite side untried, reversing trend back to " << new_mutcount << " (against " << x_previous_mutcount_ << ")" << std::endl;
 #endif
 						
 						TransitionToNewExperimentAgainstPreviousExperiment(new_mutcount);
@@ -4048,7 +4048,7 @@ void Species::CheckAutoSimplification(void)
 		EIDOS_TERMINATION << "ERROR (Species::CheckAutoSimplification): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
-	// This is called at the end of each generation, at an appropriate time to simplify.  This method decides
+	// This is called at the end of each cycle, at an appropriate time to simplify.  This method decides
 	// whether to simplify or not, based upon how long it has been since the last time we simplified.  Each
 	// time we simplify, we ask whether we simplified too early, too late, or just the right time by comparing
 	// the pre:post ratio of the tree recording table sizes to the desired pre:post ratio, simplification_ratio_,
@@ -4150,11 +4150,11 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 	
 	// Parse the provenance info just to find out the file version, which we need for mutation metadata parsing
 	slim_tick_t metadata_tick;
-	slim_tick_t metadata_generation;
+	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_generation, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
 	
 	if (file_version != 8)
 		EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): reading text trees data from older file formats is not supported; this file cannot be read." << EidosTerminate();
@@ -4753,7 +4753,7 @@ void Species::AddIndividualsToTable(Individual * const *p_individual, size_t p_n
 	}
 }
 
-void Species::AddCurrentGenerationToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash)
+void Species::AddLiveIndividualsToIndividualsTable(tsk_table_collection_t *p_tables, INDIVIDUALS_HASH *p_individuals_hash)
 {
 	// add currently alive individuals to the individuals table, so they persist
 	// through simplify and can be revived when loading saved state
@@ -4766,7 +4766,7 @@ void Species::AddCurrentGenerationToIndividualsTable(tsk_table_collection_t *p_t
 void Species::FixAliveIndividuals(tsk_table_collection_t *p_tables)
 {
 	// This clears the alive flags of the remaining entries; our internal tables never say "alive",
-	// since that changes from generation to generation, so after loading saved state we want to strip
+	// since that changes from cycle to cycle, so after loading saved state we want to strip
 	for (size_t j = 0; j < p_tables->individuals.num_rows; j++)
 		p_tables->individuals.flags[j] &= (~SLIM_TSK_INDIVIDUAL_ALIVE);
 }
@@ -4926,27 +4926,27 @@ void Species::WriteTreeSequenceMetadata(tsk_table_collection_t *p_tables, EidosD
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF) {
 		metadata["SLiM"]["model_type"] = "WF";
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage0ExecuteFirstScripts) {
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
 			metadata["SLiM"]["stage"] = "first";
-		} else if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+		} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
 			metadata["SLiM"]["stage"] = "early";
 		} else {
-			assert(community_.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+			assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
 			metadata["SLiM"]["stage"] = "late";
 		}
 	} else {
 		assert(model_type_ == SLiMModelType::kModelTypeNonWF);
 		metadata["SLiM"]["model_type"] = "nonWF";
-		if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) {
+		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
 			metadata["SLiM"]["stage"] = "first";
-		} else if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+		} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
 			metadata["SLiM"]["stage"] = "early";
 		} else {
-			assert(community_.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+			assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
 			metadata["SLiM"]["stage"] = "late";
 		}
 	}
-	metadata["SLiM"]["generation"] = Generation();
+	metadata["SLiM"]["cycle"] = Cycle();
 	metadata["SLiM"]["tick"] = community_.Tick();
 	metadata["SLiM"]["file_version"] = SLIM_TREES_FILE_VERSION;
 	
@@ -5043,11 +5043,11 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	// provenance, so the code remains much the same.
 	
 #if 0
-	// Old provenance generation code, making a JSON string by hand; this is file_version 0.1
+	// Old provenance writing code, making a JSON string by hand; this is file_version 0.1
 	char *provenance_str;
 	provenance_str = (char *)malloc(1024);
 	sprintf(provenance_str, "{\"program\": \"SLiM\", \"version\": \"%s\", \"file_version\": \"%s\", \"model_type\": \"%s\", \"generation\": %d, \"remembered_node_count\": %ld}",
-			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Generation(), (long)remembered_genomes_.size());
+			SLIM_VERSION_STRING, SLIM_TREES_FILE_VERSION, (model_type_ == SLiMModelType::kModelTypeWF) ? "WF" : "nonWF", Cycle(), (long)remembered_genomes_.size());
 	
 	time(&timer);
 	tm_info = localtime(&timer);
@@ -5057,7 +5057,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	free(provenance_str);
 	if (ret < 0) handle_error("tsk_provenance_table_add_row", ret);
 #else
-	// New provenance generation code, using the JSON for Modern C++ library (json.hpp); this is file_version 0.2 (and up)
+	// New provenance writing code, using the JSON for Modern C++ library (json.hpp); this is file_version 0.2 (and up)
 	nlohmann::json j;
 	
 	j["schema_version"] = "1.0.0";
@@ -5078,7 +5078,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["software"]["version"] = SLIM_VERSION_STRING;
 	
 	j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// see declaration of SLIM_TREES_FILE_VERSION for comments on prior versions
-	j["slim"]["generation"] = Generation();
+	j["slim"]["cycle"] = Cycle();
 	j["slim"]["tick"] = community_.Tick();
 	//j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();	// no longer writing this key!
 	
@@ -5100,23 +5100,23 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	// note high overlap with WriteTreeSequenceMetadata
 	if (model_type_ == SLiMModelType::kModelTypeWF) {
 		j["parameters"]["model_type"] = "WF";
-		if (community_.GenerationStage() == SLiMGenerationStage::kWFStage0ExecuteFirstScripts) {
+		if (community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) {
 			j["parameters"]["stage"] = "first";
-		} else if (community_.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts) {
+		} else if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) {
 			j["parameters"]["stage"] = "early";
 		} else {
-			assert(community_.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts);
+			assert(community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts);
 			j["parameters"]["stage"] = "late";
 		}
 	} else {
 		assert(model_type_ == SLiMModelType::kModelTypeNonWF);
 		j["parameters"]["model_type"] = "nonWF";
-		if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage0ExecuteFirstScripts) {
+		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) {
 			j["parameters"]["stage"] = "first";
-		} else if (community_.GenerationStage() == SLiMGenerationStage::kNonWFStage2ExecuteEarlyScripts) {
+		} else if (community_.CycleStage() == SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) {
 			j["parameters"]["stage"] = "early";
 		} else {
-			assert(community_.GenerationStage() == SLiMGenerationStage::kNonWFStage6ExecuteLateScripts);
+			assert(community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts);
 			j["parameters"]["stage"] = "late";
 		}
 	}
@@ -5179,7 +5179,7 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 #endif
 }
 
-void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_generation, SLiMModelType *p_model_type, int *p_file_version)
+void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_tick_t *p_tick, slim_tick_t *p_cycle, SLiMModelType *p_model_type, int *p_file_version)
 {
 #if 0
 	// Old provenance reading code; this can handle file_version 0.1 only
@@ -5242,7 +5242,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	std::string version_str(version);
 	std::string file_version_str(file_version);
 	std::string model_type_str(model_type);
-	std::string generation_str(generation);
+	std::string cycle_str(generation);
 	std::string rem_count_str(rem_count);
 	
 	if (program_str != "SLiM")
@@ -5271,7 +5271,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	long long gen_ll = 0;
 	
 	try {
-		gen_ll = std::stoll(generation_str);
+		gen_ll = std::stoll(cycle_str);
 	}
 	catch (...)
 	{
@@ -5282,7 +5282,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): generation value out of range; this file cannot be read." << EidosTerminate();
 	
 	*p_tick = (slim_tick_t)gen_ll;			// assumed to be the same as the generation, for this file format version
-	*p_generation = (slim_tick_t)gen_ll;
+	*p_cycle = (slim_tick_t)gen_ll;
 	
 	// read the remembered genome count and bounds-check it
 	long long rem_count_ll = 0;
@@ -5316,12 +5316,12 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 		std::string metadata_str(p_tables->metadata, p_tables->metadata_length);
 		auto metadata = nlohmann::json::parse(metadata_str);
 		model_type_str = metadata["SLiM"]["model_type"];
-		gen_ll = metadata["SLiM"]["generation"];
+		gen_ll = metadata["SLiM"]["cycle"];
 		
 		if (metadata["SLiM"].contains("tick"))
 			tick_ll = metadata["SLiM"]["tick"];
 		else
-			tick_ll = metadata["SLiM"]["generation"];		// when tick is missing, assume it is equal to generation
+			tick_ll = metadata["SLiM"]["cycle"];		// when tick is missing, assume it is equal to cycle
 		
 		if (metadata["SLiM"].contains("name"))
 		{
@@ -5443,8 +5443,8 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 			
 			try {
 				model_type_str = j["parameters"]["model_type"];
-				tick_ll = j["slim"]["generation"];			// assumed to be the same as the generation, for this file format version
-				gen_ll = j["slim"]["generation"];
+				tick_ll = j["slim"]["cycle"];			// assumed to be the same as the cycle, for this file format version
+				gen_ll = j["slim"]["cycle"];
 				//rem_count_ll = j["slim"]["remembered_node_count"];	// no longer using this key
 			}
 			catch (...)
@@ -5473,14 +5473,14 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	else
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): unrecognized model type; this file cannot be read." << EidosTerminate();
 	
-	// bounds-check the generation and tick
+	// bounds-check the cycle and tick
 	if ((gen_ll < 1) || (gen_ll > SLIM_MAX_TICK))
-		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): generation value out of range; this file cannot be read." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): cycle value out of range; this file cannot be read." << EidosTerminate();
 	if ((tick_ll < 1) || (tick_ll > SLIM_MAX_TICK))
 		EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): tick value out of range; this file cannot be read." << EidosTerminate();
 	
 	*p_tick = (slim_tick_t)tick_ll;
-	*p_generation = (slim_tick_t)gen_ll;
+	*p_cycle = (slim_tick_t)gen_ll;
 #endif
 }
 
@@ -5542,7 +5542,7 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 	{
 		// Create a local hash table for pedigree IDs to individuals table indices.  If we simplified, that validated
 		// tabled_individuals_hash_ as a side effect, so we can copy that as a base; otherwise, we make one from scratch.
-		// Note that this hash table is used only for AddCurrentGenerationToIndividualsTable() below; after that we reorder
+		// Note that this hash table is used only for AddLiveIndividualsToIndividualsTable() below; after that we reorder
 		// the individuals table, so we'll make another hash table for AddParentsColumnForOutput(), unfortunately.
 		INDIVIDUALS_HASH local_individuals_lookup;
 
@@ -5551,10 +5551,10 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		else
 			BuildTabledIndividualsHash(&output_tables, &local_individuals_lookup);
 
-		// Add information about the current generation to the individual table; 
+		// Add information about the current cycle to the individual table; 
 		// this modifies "remembered" individuals, since information comes from the
 		// time of output, not creation
-		AddCurrentGenerationToIndividualsTable(&output_tables, &local_individuals_lookup);
+		AddLiveIndividualsToIndividualsTable(&output_tables, &local_individuals_lookup);
 	}
 
 	// We need the individual table's order, for alive individuals, to match that of
@@ -7123,14 +7123,14 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	free(vg);
 }
 
-void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_generation, SLiMModelType p_file_model_type, int p_file_version)
+void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version)
 {
-	// set the tick and generation from the provenance data
+	// set the tick and cycle from the provenance data
 	if (tables_.sequence_length != chromosome_->last_position_ + 1)
 		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): chromosome length in loaded population does not match the configured chromosome length." << EidosTerminate();
 	
 	community_.SetTick(p_metadata_tick);
-	SetGeneration(p_metadata_generation);
+	SetCycle(p_metadata_cycle);
 	
 	// rebase the times in the nodes to be in SLiM-land; see WriteTreeSequence for the inverse operation
 	// BCH 4/4/2019: switched to using tree_seq_tick_ to avoid a parent/child timestamp conflict
@@ -7494,14 +7494,14 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	
 	// read in the tree sequence metadata first
 	slim_tick_t metadata_tick;
-	slim_tick_t metadata_generation;
+	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_generation, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
 	
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_generation, file_model_type, file_version);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!was_recording_tree)
@@ -7548,11 +7548,11 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	
 	// read in the tree sequence metadata first so we have file version information
 	slim_tick_t metadata_tick;
-	slim_tick_t metadata_generation;
+	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
 	
-	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_generation, &file_model_type, &file_version);
+	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
 	
 	// in nucleotide-based models, read the ancestral sequence; we do this ourselves, directly from kastore, to avoid having
 	// tskit make a full ASCII copy of the reference sequences from kastore into tables_; see tsk_table_collection_load() above
@@ -7590,7 +7590,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	}
 
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_generation, file_model_type, file_version);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!was_recording_tree)
@@ -7737,7 +7737,7 @@ void Species::TSXC_Enable(void)
 	simplify_interval_ = 20;				// this is the initial simplification interval
 	running_coalescence_checks_ = false;
 	running_treeseq_crosschecks_ = true;
-	treeseq_crosschecks_interval_ = 50;		// check every 50th generation, otherwise it is just too slow
+	treeseq_crosschecks_interval_ = 50;		// check every 50th cycle, otherwise it is just too slow
 	
 	pedigrees_enabled_ = true;
 	pedigrees_enabled_by_SLiM_ = true;

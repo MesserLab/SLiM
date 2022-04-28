@@ -23,7 +23,7 @@ early() {
 	// QTL-based fitness
 	inds = sim.subpopulations.individuals;
 	phenotypes = inds.sumOfMutationsOfType(m1);
-	optimum = (sim.generation < Tdelta) ? opt1 else opt2;
+	optimum = (sim.cycle < Tdelta) ? opt1 else opt2;
 	deviations = optimum - phenotypes;
 	fitnessFunctionMax = dnorm(0.0, 0.0, 5.0);
 	adaptation = dnorm(deviations, 0.0, 5.0) / fitnessFunctionMax;
@@ -38,7 +38,7 @@ late() {
 	if (p1.individualCount == 0)
 	{
 		// stop at extinction
-		catn("Extinction in generation " + sim.generation + ".");
+		catn("Extinction in cycle " + sim.cycle + ".");
 		sim.simulationFinished();
 	}
 	else
@@ -46,7 +46,7 @@ late() {
 		// output the phenotypic mean and pop size
 		phenotypes = p1.individuals.tagF;
 		
-		cat(sim.generation + ": " + p1.individualCount + " individuals");
+		cat(sim.cycle + ": " + p1.individualCount + " individuals");
 		cat(", phenotype mean " + mean(phenotypes));
 		if (size(phenotypes) > 1)
 			cat(" (sd " + sd(phenotypes) + ")");

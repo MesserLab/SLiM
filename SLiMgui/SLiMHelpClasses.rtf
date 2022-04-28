@@ -776,12 +776,12 @@ The recombination intervals are normally a constant in simulations, so be sure y
 \f4\fs20  objects defined in the simulation.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 generationStage => (string$)\
+\f3\fs18 \cf2 cycleStage => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 The current generation stage, as a 
+\f4\fs20 \cf2 The current cycle stage, as a 
 \f3\fs18 string
-\f4\fs20 .  The values of this property essentially mirror the generation stages of WF and nonWF models (see chapters 22 and 23).  Common values include 
+\f4\fs20 .  The values of this property essentially mirror the cycle stages of WF and nonWF models (see chapters 22 and 23).  Common values include 
 \f3\fs18 "first"
 \f4\fs20  (during execution of 
 \f3\fs18 first()
@@ -802,15 +802,15 @@ The recombination intervals are normally a constant in simulations, so be sure y
 \f4\fs20  events).\
 Other possible values include 
 \f3\fs18 "begin"
-\f4\fs20  (during internal setup before each generation), 
-\f3\fs18 \'94tally"
+\f4\fs20  (during internal setup before each cycle), 
+\f3\fs18 "tally"
 \f4\fs20  (while tallying mutation reference counts and removing fixed mutations), 
 \f3\fs18 "swap"
 \f4\fs20  (while swapping the offspring generation into the parental generation in WF models), 
 \f3\fs18 "end"
-\f4\fs20  (during internal bookkeeping after each generation), and 
+\f4\fs20  (during internal bookkeeping after each cycle), and 
 \f3\fs18 "console"
-\f4\fs20  (during the in-between-generations state in which commands in SLiMgui\'92s Eidos console are executed).  It would probably be a good idea not to use this latter set of values; they are probably not user-visible during ordinary model execution anyway.\
+\f4\fs20  (during the in-between-ticks state in which commands in SLiMgui\'92s Eidos console are executed).  It would probably be a good idea not to use this latter set of values; they are probably not user-visible during ordinary model execution anyway.\
 During execution of 
 \f3\fs18 initialize()
 \f4\fs20  callbacks, no 
@@ -3940,35 +3940,39 @@ See
 \f4\fs20  for a useful variant.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)addGeneration([No<Species>$\'a0species\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(void)addCycle([No<Species>$\'a0species\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Adds a new data column that provides the generation number for 
+\f4\fs20 \cf2 Adds a new data column that provides the cycle counter for 
 \f3\fs18 species
-\f4\fs20 .  In single-species models, 
+\f4\fs20  (the same as the value of the 
+\f3\fs18 cycle
+\f4\fs20  property of that species).  In single-species models, 
 \f3\fs18 species
 \f4\fs20  may be 
 \f3\fs18 NULL
 \f4\fs20  to indicate that single species.  The column will simply be named 
-\f3\fs18 generation
+\f3\fs18 cycle
 \f4\fs20  in single-species models; an underscore and the name of the species will be appended in multispecies models.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)addGenerationStage(void)\
+\f3\fs18 \cf2 \'96\'a0(void)addCycleStage(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Adds a new data column that provides the generation cycle stage, named 
-\f3\fs18 gen_stage
+\f4\fs20 \cf2 Adds a new data column that provides the cycle stage, named 
+\f3\fs18 cycle_stage
 \f4\fs20 .  The stage is provided as a 
 \f3\fs18 string
 \f4\fs20 , and will typically be 
+\f3\fs18 "first"
+\f4\fs20 , 
 \f3\fs18 "early"
 \f4\fs20 , 
 \f3\fs18 "late"
 \f4\fs20 , or 
 \f3\fs18 "end"
 \f4\fs20  (the latter used for the point in time at which end-of-generation automatic logging occurs).  Other possible values are discussed in the documentation for the 
-\f3\fs18 generationStage
+\f3\fs18 cycleStage
 \f4\fs20  property of 
 \f3\fs18 Community
 \f4\fs20 , which this column reflects.\
@@ -5160,6 +5164,12 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 cycle <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The current cycle count for this species.  This counter begins at 1, and increments at the end of every tick in which the species is active.  In models with non-overlapping generations, particularly WF models, this can be thought of as a generation counter.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 description <\'96> (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5184,13 +5194,6 @@ If the model is being profiled, or is executing forward to a generation number e
 \f4\fs20 , or 
 \f3\fs18 "xyz"
 \f4\fs20 , for simulations using those spatial dimensions respectively.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf0 generation <\'96> (integer$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf0 The current generation number for this species.
-\f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 genomicElementTypes => (object<GenomicElementType>)\

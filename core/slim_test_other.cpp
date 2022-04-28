@@ -921,7 +921,7 @@ void _RunNonWFTests(void)
 	// Subpopulation - (void)removeSubpopulation()
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); if (p1.individualCount == 10) stop(); }", "undefined identifier", __LINE__);		// the symbol is undefined immediately
-	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until child generation
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until generating children
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); } 2 early() { if (p1.individualCount == 0) stop(); }", "undefined identifier", __LINE__);
 }
 

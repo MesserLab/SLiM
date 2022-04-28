@@ -86,7 +86,7 @@ public:
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
 #ifdef SLIMGUI
-	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
+	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at cycle end
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	

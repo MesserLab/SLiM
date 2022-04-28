@@ -29,7 +29,7 @@ early() {
 }
 late() {
 	inds = p1.individuals;
-	catn(sim.generation + ": " + size(inds) + " (" + max(inds.age) + ")");
+	catn(sim.cycle + ": " + size(inds) + " (" + max(inds.age) + ")");
 }
 2000 late() {
 	sim.outputFull(ages=T);

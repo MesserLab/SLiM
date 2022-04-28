@@ -34,7 +34,7 @@ reproduction(p1) {
 			for (i in seqLen(litterSize))
 				subpop.addCrossed(female, mate);
 		} else {
-			catn(sim.generation + ": No mate found for tag " + female.tag);
+			catn(sim.cycle + ": No mate found for tag " + female.tag);
 		}
 	}
 	self.active = 0;
@@ -73,7 +73,7 @@ survival(p1000) {
 	return (individual.tag == 1);
 }
 late() {
-	catn(sim.generation + ": p1 (" + p1.individualCount + ")" +
+	catn(sim.cycle + ": p1 (" + p1.individualCount + ")" +
 		", p1000 (" + p1000.individualCount + ")");
 }
 10000 late() {
