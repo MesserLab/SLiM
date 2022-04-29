@@ -185,5 +185,10 @@
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model I.txt</file>
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model II.txt</file>
         <file>recipes/Recipe 9.11 - Effective population size versus census population size.txt</file>
+        <file>recipes/Recipe 19.1 - A simple multispecies model.txt</file>
+        <file>recipes/Recipe 19.2 - A two-species model.txt</file>
+        <file>recipes/Recipe 19.3 - A deterministic host-parasitoid model.txt</file>
+        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model I.txt</file>
+        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model II.txt</file>
     </qresource>
 </RCC>

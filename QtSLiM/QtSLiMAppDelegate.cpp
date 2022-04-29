@@ -456,6 +456,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 16:chapterName = "Going beyond Wright-Fisher models: nonWF model recipes";             break;
                     case 17:chapterName = "Tree-sequence recording: tracking population history";				break;
                     case 18:chapterName = "Modeling explicit nucleotides";										break;
+                    case 19:chapterName = "Multispecies modeling";                                              break;
                     default: break;
                 }
                 
@@ -698,7 +699,7 @@ void QtSLiMAppDelegate::findRecipe(void)
         
         for (QString resourceName : resourceNames)
         {
-            qDebug() << "recipe name:" << resourceName;
+            //qDebug() << "recipe name:" << resourceName;
             
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
@@ -729,7 +730,7 @@ void QtSLiMAppDelegate::openRecipe(void)
         
         if (resourceName.length())
         {
-            qDebug() << "recipe name:" << resourceName;
+            //qDebug() << "recipe name:" << resourceName;
             
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
