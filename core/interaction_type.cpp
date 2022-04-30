@@ -4000,6 +4000,9 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	if (spatiality_ == 3)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() does not support the 'xyz' case yet.  If you need this functionality, please file a GitHub issue." << EidosTerminate();
 	
+	if (receivers_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
 	// receivers_value is guaranteed to have at least one value
 	Individual *first_receiver = (Individual *)receivers_value->ObjectElementAtIndex(0, nullptr);
 	Subpopulation *receiver_subpop = first_receiver->subpopulation_;
@@ -4057,7 +4060,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			total_strength += strengths[col_index];
 		
 		// Add the interaction strength for the focal individual to the focal point, since it counts for density
-		total_strength += strength_for_zero_distance;
+		if (receiver_subpop == exerter_subpop)
+			total_strength += strength_for_zero_distance;
 		
 		// Divide by the corresponding clipped integral to get density
 		total_strength /= clipped_integrals->FloatAtIndex(0, nullptr);
@@ -4106,7 +4110,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				total_strength += strengths[col_index];
 			
 			// Add the interaction strength for the focal individual to the focal point, since it counts for density
-			total_strength += strength_for_zero_distance;
+			if (receiver_subpop == exerter_subpop)
+				total_strength += strength_for_zero_distance;
 			
 			// Divide by the corresponding clipped integral to get density
 			total_strength /= clipped_integrals->FloatAtIndex(receiver_index, nullptr);
