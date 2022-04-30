@@ -190,5 +190,6 @@
         <file>recipes/Recipe 19.3 - A deterministic host-parasitoid model.txt</file>
         <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model I.txt</file>
         <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model II.txt</file>
+        <file>recipes/Recipe 19.5 - A continuous-space host-parasitoid model.txt</file>
     </qresource>
 </RCC>
