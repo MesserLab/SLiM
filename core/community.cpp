@@ -1299,6 +1299,12 @@ void Community::InvalidateInteractionsForSpecies(Species *p_invalid_species)
 		iter.second->InvalidateForSpecies(p_invalid_species);
 }
 
+void Community::InvalidateInteractionsForSubpopulation(Subpopulation *p_invalid_subpop)
+{
+	for (auto iter : interaction_types_)
+		iter.second->InvalidateForSubpopulation(p_invalid_subpop);
+}
+
 Species *Community::SpeciesForIndividualsVector(Individual **individuals, int value_count)
 {
 	if (value_count == 0)

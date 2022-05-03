@@ -4877,6 +4877,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	if (species != &this->species_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() requires that all individuals belong to the same species as the target subpopulation." << EidosTerminate();
 	
+	if (has_been_removed_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() should not be called to add individuals to a subpopulation that has been removed." << EidosTerminate();
+
 	// Loop over the migrants and move them one by one
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
 	{

@@ -355,6 +355,8 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	if (subpops_.count(subpop_id))
 	{
 		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the cycle and then free it
+		community_.InvalidateInteractionsForSubpopulation(&p_subpop);
+		
 		// First we remove the symbol for the subpop
 		community_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 		
@@ -363,6 +365,9 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 		
 		// remember the subpop for later disposal
 		removed_subpops_.emplace_back(&p_subpop);
+		
+		// and let it know that it is invalid
+		p_subpop.has_been_removed_ = true;
 	}
 }
 

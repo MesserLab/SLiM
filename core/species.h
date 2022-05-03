@@ -214,7 +214,7 @@ private:
 	std::map<slim_objectid_t,MutationType*> mutation_types_;						// OWNED POINTERS: this map is the owner of all allocated MutationType objects
 	std::map<slim_objectid_t,GenomicElementType*> genomic_element_types_;			// OWNED POINTERS: this map is the owner of all allocated GenomicElementType objects
 	
-	bool mutation_stack_policy_changed_;											// when set, the stacking policy settings need to be checked for consistency
+	bool mutation_stack_policy_changed_ = true;										// when set, the stacking policy settings need to be checked for consistency
 	
 	// SEX ONLY: sex-related instance variables
 	bool sex_enabled_ = false;														// true if sex is tracked for individuals; if false, all individuals are hermaphroditic

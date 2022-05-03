@@ -281,6 +281,7 @@ public:
 	bool AnyEvaluated(void);
 	void Invalidate(void);
 	void InvalidateForSpecies(Species *p_invalid_species);
+	void InvalidateForSubpopulation(Subpopulation *p_invalid_subpop);
 	
 	void CacheClippedIntegral_1D(void);
 	void CacheClippedIntegral_2D(void);

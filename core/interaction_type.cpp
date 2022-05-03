@@ -117,6 +117,9 @@ InteractionType::~InteractionType(void)
 
 void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 {
+	if (p_subpop->has_been_removed_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): you cannot evaluate an InteractionType for a subpopulation that has been removed." << EidosTerminate();
+
 	// We evaluate for receiver and exerter subpopulations, so that all interaction evaluation state (except for
 	// interaction() callbacks) is frozen at the same time.  Evaluate is necessary because the k-d tree is built
 	// once and used to serve many queries, typically, and so it must be built based upon a fixed state snapshot.
@@ -518,9 +521,26 @@ void InteractionType::InvalidateForSpecies(Species *p_invalid_species)
 	{
 		slim_objectid_t subpop_id = data_iter.first;
 		Subpopulation *subpop = community_.SubpopulationWithID(subpop_id);
-		Species *species = &subpop->species_;
 		
-		if (species == p_invalid_species)
+		if (subpop)
+		{
+			Species *species = &subpop->species_;
+			
+			if (species == p_invalid_species)
+				_InvalidateData(data_iter.second);
+		}
+	}
+}
+
+void InteractionType::InvalidateForSubpopulation(Subpopulation *p_invalid_subpop)
+{
+	// This is like Invalidate(), but invalidates only data associated with a given subpop
+	for (auto &data_iter : data_)
+	{
+		slim_objectid_t subpop_id = data_iter.first;
+		Subpopulation *subpop = community_.SubpopulationWithID(subpop_id);
+		
+		if (subpop == p_invalid_subpop)
 			_InvalidateData(data_iter.second);
 	}
 }
@@ -4018,6 +4038,25 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			(receiver_subpop->bounds_y0_ != exerter_subpop->bounds_y0_) || (receiver_subpop->bounds_y1_ != exerter_subpop->bounds_y1_) ||
 			(receiver_subpop->bounds_z0_ != exerter_subpop->bounds_z0_) || (receiver_subpop->bounds_z1_ != exerter_subpop->bounds_z1_))
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that the receiver and exerter subpopulations have identical bounds." << EidosTerminate();
+	
+	if (exerter_subpop->parent_subpop_size_ == 0)
+	{
+		// If the exerter subpop is empty then all density values for the receivers are zero (note that we
+		// already handled the case of receivers_count == 0 above, so the receiver is not in the exerter subpop)
+		if (receivers_count == 1)
+		{
+			return gStaticEidosValue_Float0;
+		}
+		else
+		{
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+			
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+				result_vec->set_float_no_check(0, receiver_index);
+			
+			return EidosValue_SP(result_vec);
+		}
+	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);

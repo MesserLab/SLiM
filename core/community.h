@@ -225,6 +225,7 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,InteractionType*> &AllInteractionTypes(void)			{ return interaction_types_; }
 	
 	void InvalidateInteractionsForSpecies(Species *p_invalid_species);
+	void InvalidateInteractionsForSubpopulation(Subpopulation *p_invalid_subpop);
 	
 	// Checking for species identity; these return nullptr if the objects do not all belong to the same species
 	// Calls to these methods, and other such species checks, should be labeled SPECIES CONSISTENCY CHECK to make them easier to find

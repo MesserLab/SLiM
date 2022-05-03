@@ -149,6 +149,7 @@ public:
 	
 	slim_objectid_t subpopulation_id_;				// the id by which this subpopulation is indexed in the Population
 	EidosValue_SP cached_value_subpop_id_;			// a cached value for subpopulation_id_; reset() if changed
+	bool has_been_removed_ = false;					// a flag set to true when the subpop is removed and should no longer be used
 	
 	std::string name_;								// the `name` property; "p1", "p2", etc. by default, following the Eidos self-symbol
 	std::string description_;						// the `description` property; the empty string by default
