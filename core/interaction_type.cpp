@@ -3790,6 +3790,10 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
+	
+	if (count > exerter_subpop_size)
+		count = exerter_subpop_size;
+	
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
@@ -3934,6 +3938,24 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	
 	CheckSpeciesCompatibility(receiver_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
+	
+	if (exerter_subpop->parent_subpop_size_ == 0)
+	{
+		// If the exerter subpop is empty then all count values for the receivers are zero
+		if (receivers_count == 1)
+		{
+			return gStaticEidosValue_Integer0;
+		}
+		else
+		{
+			EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+			
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+				result_vec->set_int_no_check(0, receiver_index);
+			
+			return EidosValue_SP(result_vec);
+		}
+	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
@@ -4313,6 +4335,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
+	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	EnsureKDTreePresent(exerter_subpop_data);
 	
@@ -4321,6 +4344,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires count >= 0." << EidosTerminate();
+	
+	if (count > exerter_subpop_size)
+		count = exerter_subpop_size;
+	
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
@@ -4435,11 +4462,12 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires count >= 0." << EidosTerminate();
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	if (count > exerter_subpop_size)
 		count = exerter_subpop_size;
+	
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	// Find the neighbors
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
@@ -4488,11 +4516,12 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count >= 0." << EidosTerminate();
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	if (count > exerter_subpop_size)
 		count = exerter_subpop_size;
+	
+	if (count == 0)
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	// Find the neighbors
 	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve((int)count);
@@ -4804,6 +4833,24 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	
 	CheckSpeciesCompatibility(receiver_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
+	
+	if (exerter_subpop->parent_subpop_size_ == 0)
+	{
+		// If the exerter subpop is empty then all strength totals for the receivers are zero
+		if (receivers_count == 1)
+		{
+			return gStaticEidosValue_Float0;
+		}
+		else
+		{
+			EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+			
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+				result_vec->set_float_no_check(0, receiver_index);
+			
+			return EidosValue_SP(result_vec);
+		}
+	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
