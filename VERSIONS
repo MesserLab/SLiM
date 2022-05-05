@@ -90,7 +90,7 @@ development head (in the master branch):
 			LogFile.addGeneration() -> .addCycle(), LogFile.addGenerationStage() -> .addCycleStage()
 			change the column names produced by LogFile from "generation" and "gen_stage" to "cycle" and "cycle_stage"
 			revise recipes to use the new properties and methods, have correct comments, etc.
-		add recipes 19.1, 19.2, 19.3, 19.4, 19.5: new multispecies recipes!
+		add recipes 19.1, 19.2, 19.3, 19.4, 19.5, 19.6: new multispecies recipes!
 		
 
 version 3.7.1 (Eidos version 2.7.1):
