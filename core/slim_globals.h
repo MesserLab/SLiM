@@ -914,6 +914,8 @@ extern const std::string &gStr_interactionDistance;
 extern const std::string &gStr_clippedIntegral;
 extern const std::string &gStr_distanceFromPoint;
 extern const std::string &gStr_nearestNeighbors;
+extern const std::string &gStr_neighborCount;
+extern const std::string &gStr_neighborCountOfPoint;
 extern const std::string &gStr_nearestInteractingNeighbors;
 extern const std::string &gStr_interactingNeighborCount;
 extern const std::string &gStr_nearestNeighborsOfPoint;
@@ -1270,6 +1272,8 @@ enum _SLiMGlobalStringID : int {
 	gID_clippedIntegral,
 	gID_distanceFromPoint,
 	gID_nearestNeighbors,
+	gID_neighborCount,
+	gID_neighborCountOfPoint,
 	gID_nearestInteractingNeighbors,
 	gID_interactingNeighborCount,
 	gID_nearestNeighborsOfPoint,

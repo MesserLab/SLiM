@@ -2540,6 +2540,127 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 #pragma mark k-d tree neighbor searches
 #pragma mark -
 
+// count neighbors in 1D
+int InteractionType::CountNeighbors_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index)
+{
+	int neighborCount = 0;
+	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		neighborCount++;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			neighborCount += CountNeighbors_1(root->left, nd, p_focal_individual_index);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->right)
+			neighborCount += CountNeighbors_1(root->right, nd, p_focal_individual_index);
+	}
+	else
+	{
+		if (root->right)
+			neighborCount += CountNeighbors_1(root->right, nd, p_focal_individual_index);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->left)
+			neighborCount += CountNeighbors_1(root->left, nd, p_focal_individual_index);
+	}
+	
+	return neighborCount;
+}
+
+// count neighbors in 2D
+int InteractionType::CountNeighbors_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_phase)
+{
+	int neighborCount = 0;
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		neighborCount++;
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			neighborCount += CountNeighbors_2(root->left, nd, p_focal_individual_index, p_phase);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->right)
+			neighborCount += CountNeighbors_2(root->right, nd, p_focal_individual_index, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			neighborCount += CountNeighbors_2(root->right, nd, p_focal_individual_index, p_phase);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->left)
+			neighborCount += CountNeighbors_2(root->left, nd, p_focal_individual_index, p_phase);
+	}
+	
+	return neighborCount;
+}
+
+// count neighbors in 3D
+int InteractionType::CountNeighbors_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_phase)
+{
+	int neighborCount = 0;
+	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		neighborCount++;
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			neighborCount += CountNeighbors_3(root->left, nd, p_focal_individual_index, p_phase);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->right)
+			neighborCount += CountNeighbors_3(root->right, nd, p_focal_individual_index, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			neighborCount += CountNeighbors_3(root->right, nd, p_focal_individual_index, p_phase);
+		
+		if (dx2 > max_distance_sq_) return neighborCount;
+		
+		if (root->left)
+			neighborCount += CountNeighbors_3(root->left, nd, p_focal_individual_index, p_phase);
+	}
+	
+	return neighborCount;
+}
+
 // find the one best neighbor in 1D
 void InteractionType::FindNeighbors1_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SLiM_kdNode **best, double *best_dist)
 {
@@ -3026,9 +3147,10 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 		if (p_count == 0)
 			return;
 		
+		// Exclude the focal individual if and only if it is in the exerter subpopulation
 		slim_popsize_t focal_individual_index;
 		
-		if (p_excluded_individual)
+		if (p_excluded_individual && (p_excluded_individual->subpopulation_ == p_subpop))
 			focal_individual_index = p_excluded_individual->index_;
 		else
 			focal_individual_index = -1;
@@ -3269,6 +3391,8 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_nearestInteractingNeighbors:	return ExecuteMethod_nearestInteractingNeighbors(p_method_id, p_arguments, p_interpreter);
 		case gID_nearestNeighbors:			return ExecuteMethod_nearestNeighbors(p_method_id, p_arguments, p_interpreter);
 		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_interpreter);
+		case gID_neighborCount:				return ExecuteMethod_neighborCount(p_method_id, p_arguments, p_interpreter);
+		case gID_neighborCountOfPoint:		return ExecuteMethod_neighborCountOfPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_interpreter);
 		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
 		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
@@ -4531,6 +4655,156 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	return EidosValue_SP(result_vec);
 }
 
+//	*********************	– (integer)neighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+//
+EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *receivers_value = p_arguments[0].get();
+	EidosValue *exerterSubpop_value = p_arguments[1].get();
+	int receivers_count = receivers_value->Count();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that the interaction be spatial." << EidosTerminate();
+	
+	if (receivers_count == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	// the exerter subpopulation defaults to the same subpop as the receivers
+	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
+	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
+	
+	CheckSpeciesCompatibility(receiver_subpop->species_);
+	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
+	
+	if (exerter_subpop->parent_subpop_size_ == 0)
+	{
+		// If the exerter subpop is empty then all count values for the receivers are zero
+		if (receivers_count == 1)
+		{
+			return gStaticEidosValue_Integer0;
+		}
+		else
+		{
+			EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+			
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+				result_vec->set_int_no_check(0, receiver_index);
+			
+			return EidosValue_SP(result_vec);
+		}
+	}
+	
+	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	EnsureKDTreePresent(exerter_subpop_data);
+
+	if (receivers_count == 1)
+	{
+		// Just one value, so we can return a singleton and skip some work
+		Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(0, nullptr);
+		slim_popsize_t receiver_index_in_subpop = receiver->index_;
+		
+		if (receiver_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+	
+		// Find the neighbors
+		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		slim_popsize_t focal_individual_index = (exerter_subpop == receiver_subpop) ? receiver_index_in_subpop : -1;
+		int neighborCount;
+		
+		switch (spatiality_)
+		{
+			case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
+			case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+			case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+			default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): (internal error) unsupported spatiality" << EidosTerminate();
+		}
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+	}
+	else
+	{
+		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+		
+		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+		{
+			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
+			slim_popsize_t receiver_index_in_subpop = receiver->index_;
+			
+			if (receiver_index_in_subpop < 0)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			
+			// SPECIES CONSISTENCY CHECK
+			if (receiver_subpop != receiver->subpopulation_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			
+			// Find the neighbors
+			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+			slim_popsize_t focal_individual_index = (exerter_subpop == receiver_subpop) ? receiver_index_in_subpop : -1;
+			int neighborCount;
+			
+			switch (spatiality_)
+			{
+				case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
+				case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+				case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+				default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): (internal error) unsupported spatiality" << EidosTerminate();
+			}
+			
+			result_vec->set_int_no_check(neighborCount, receiver_index);
+		}
+		
+		return EidosValue_SP(result_vec);
+	}
+}
+
+//	*********************	– (integer$)neighborCountOfPoint(float point, io<Subpopulation>$ exerterSubpop)
+//
+EidosValue_SP InteractionType::ExecuteMethod_neighborCountOfPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *point_value = p_arguments[0].get();
+	EidosValue *exerterSubpop_value = p_arguments[1].get();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): neighborCountOfPoint() requires that the interaction be spatial." << EidosTerminate();
+	
+	// Check the subpop
+	Subpopulation *exerter_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(exerterSubpop_value, 0, &community_, nullptr, "nearestNeighborsOfPoint()");
+	Species &exerter_species = exerter_subpop->species_;
+	
+	CheckSpeciesCompatibility(exerter_species);
+	
+	if (exerter_subpop->parent_subpop_size_ == 0)
+		return gStaticEidosValue_Integer0;
+	
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	EnsureKDTreePresent(exerter_subpop_data);
+
+	// Check the point
+	if (point_value->Count() != spatiality_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): neighborCountOfPoint() requires that point is of length equal to the interaction spatiality." << EidosTerminate();
+	
+	double point_array[SLIM_MAX_DIMENSIONALITY];
+	
+	for (int point_index = 0; point_index < spatiality_; ++point_index)
+		point_array[point_index] = point_value->FloatAtIndex(point_index, nullptr);
+	
+	// Find the neighbors
+	int neighborCount;
+	
+	switch (spatiality_)
+	{
+		case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, point_array, -1);		break;
+		case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, point_array, -1, 0);		break;
+		case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, point_array, -1, 0);		break;
+		default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): (internal error) unsupported spatiality" << EidosTerminate();
+	}
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+}
+
 //	*********************	- (void)setInteractionFunction(string$ functionType, ...)
 //
 EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -4998,6 +5272,8 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCountOfPoint, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
