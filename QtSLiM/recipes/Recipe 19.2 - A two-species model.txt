@@ -1,3 +1,5 @@
+// Keywords: multispecies
+
 species fox initialize() {
 	initializeSpecies(tickModulo=3, tickPhase=5, avatar="🦊");
 }

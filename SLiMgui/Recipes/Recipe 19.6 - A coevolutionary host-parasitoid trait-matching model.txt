@@ -1,3 +1,5 @@
+// Keywords: multispecies, interaction
+
 species all initialize() {
 	defineConstant("K", 100);
 	defineConstant("R", log(20));

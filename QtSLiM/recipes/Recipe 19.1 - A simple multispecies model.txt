@@ -1,3 +1,5 @@
+// Keywords: multispecies
+
 species sim initialize()
 {
 	initializeMutationRate(1e-7);

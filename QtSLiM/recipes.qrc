@@ -191,6 +191,7 @@
         <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model I.txt</file>
         <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model II.txt</file>
         <file>recipes/Recipe 19.5 - A continuous-space host-parasitoid model.txt</file>
-        <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid model.txt</file>
+        <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
+        <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
     </qresource>
 </RCC>
