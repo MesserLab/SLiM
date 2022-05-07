@@ -260,18 +260,11 @@ SLiMFileFormat Species::FormatOfPopulationFile(const std::string &p_file_string)
 	return SLiMFileFormat::kFormatUnrecognized;
 }
 
-slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter)
+void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 {
-	SLiMFileFormat file_format = FormatOfPopulationFile(p_file_string);
-	
-	if (file_format == SLiMFileFormat::kFileNotFound)
-		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): initialization file does not exist or is empty." << EidosTerminate();
-	if (file_format == SLiMFileFormat::kFormatUnrecognized)
-		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
-	
-	// first we clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
+	// clear out all variables of type Subpopulation etc. from the symbol table; they will all be invalid momentarily
 	// note that we do this not only in our constants table, but in the user's variables as well; we can leave no stone unturned
-	// FIXME: Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
+	// Note that we presently have no way of clearing out EidosScribe/SLiMgui references (the variable browser, in particular),
 	// and so EidosConsoleWindowController has to do an ugly and only partly effective hack to work around this issue.
 	if (p_interpreter)
 	{
@@ -286,16 +279,106 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 			
 			if (symbol_value->Type() == EidosValueType::kValueObject)
 			{
-				const EidosClass *symbol_class = static_pointer_cast<EidosValue_Object>(symbol_value)->Class();
+				EidosValue_Object *symbol_object = (static_pointer_cast<EidosValue_Object>(symbol_value)).get();
+				const EidosClass *symbol_class = symbol_object->Class();
 				
 				if ((symbol_class == gSLiM_Subpopulation_Class) || (symbol_class == gSLiM_Genome_Class) || (symbol_class == gSLiM_Individual_Class) || (symbol_class == gSLiM_Mutation_Class) || (symbol_class == gSLiM_Substitution_Class))
-					symbols_to_remove.emplace_back(symbol_ID);
+				{
+					// BCH 5/7/2022: For multispecies, we now have to be careful to clear out only state related to the target species!
+					// This is truly disgusting, because it means we have to go down into the elements of the value to check their species
+					// If *any* element of a value belongs to the target species, we remove the whole value (rather than editing out elements)
+					// Unless/until we are able to let the user retain references to these objects beyond their natural lifetime, there is
+					// just no alternative; the user may find it surprising that their local variable has disappeared, but... such is life
+					bool refers_to_target_species = false;
+					
+					if (symbol_class == gSLiM_Subpopulation_Class)
+					{
+						for (int i = 0; i < symbol_object->Count(); ++i)
+						{
+							Subpopulation *element = (Subpopulation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							
+							if (&element->species_ == this)
+							{
+								refers_to_target_species = true;
+								break;
+							}
+						}
+					}
+					else if (symbol_class == gSLiM_Genome_Class)
+					{
+						for (int i = 0; i < symbol_object->Count(); ++i)
+						{
+							Genome *element = (Genome *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							
+							if (&element->individual_->subpopulation_->species_ == this)
+							{
+								refers_to_target_species = true;
+								break;
+							}
+						}
+					}
+					else if (symbol_class == gSLiM_Individual_Class)
+					{
+						for (int i = 0; i < symbol_object->Count(); ++i)
+						{
+							Individual *element = (Individual *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							
+							if (&element->subpopulation_->species_ == this)
+							{
+								refers_to_target_species = true;
+								break;
+							}
+						}
+					}
+					else if (symbol_class == gSLiM_Mutation_Class)
+					{
+						for (int i = 0; i < symbol_object->Count(); ++i)
+						{
+							Mutation *element = (Mutation *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							
+							if (&element->mutation_type_ptr_->species_ == this)
+							{
+								refers_to_target_species = true;
+								break;
+							}
+						}
+					}
+					else if (symbol_class == gSLiM_Substitution_Class)
+					{
+						for (int i = 0; i < symbol_object->Count(); ++i)
+						{
+							Substitution *element = (Substitution *)symbol_object->ObjectElementAtIndex(i, nullptr);
+							
+							if (&element->mutation_type_ptr_->species_ == this)
+							{
+								refers_to_target_species = true;
+								break;
+							}
+						}
+					}
+					
+					if (refers_to_target_species)
+						symbols_to_remove.emplace_back(symbol_ID);
+				}
 			}
 		}
 		
 		for (EidosGlobalStringID symbol_ID : symbols_to_remove)
 			symbols.RemoveConstantForSymbol(symbol_ID);
 	}
+}
+
+slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter)
+{
+	SLiMFileFormat file_format = FormatOfPopulationFile(p_file_string);
+	
+	if (file_format == SLiMFileFormat::kFileNotFound)
+		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): initialization file does not exist or is empty." << EidosTerminate();
+	if (file_format == SLiMFileFormat::kFormatUnrecognized)
+		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
+	
+	// start by cleaning out all variable/constant references to the species or any population object underneath it
+	_CleanAllReferencesToSpecies(p_interpreter);
 	
 	// invalidate interactions, since any cached interaction data depends on the subpopulations and individuals
 	community_.InvalidateInteractionsForSpecies(this);

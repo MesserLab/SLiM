@@ -222,6 +222,7 @@ private:
 	
 	// private initialization methods
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
+	void _CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter);				// clean up in anticipation of loading new species state
 	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
 	slim_tick_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);				// initialize the population from a SLiM text file
 	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
