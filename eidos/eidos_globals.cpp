@@ -1052,7 +1052,7 @@ size_t Eidos_GetMaxRSS(void)
 
 #if defined(_WIN32)
 	// Assume unlimited on Windows with warning
-	std::cerr << "Warning: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect.";
+	std::cerr << "WARNING: Eidos_GetMaxRSS() does not work properly in Windows, so return assumes no limit, which may be incorrect.";
 	max_rss = 0;
 
 #else
