@@ -193,5 +193,6 @@
         <file>recipes/Recipe 19.5 - A continuous-space host-parasitoid model.txt</file>
         <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
         <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
+        <file>recipes/Recipe 18.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
     </qresource>
 </RCC>

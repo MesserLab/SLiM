@@ -1,4 +1,4 @@
-// Keywords: IBS, identity by state, IBD, identity by descent, unique down
+// Keywords: IBS, identity by state, IBD, identity by descent, unique down, back-mutation
 
 initialize() {
 	initializeSLiMOptions(nucleotideBased=T);
@@ -17,14 +17,31 @@ mutation() {
 		return m;
 	return T;
 }
+late() {
+	// unique new mutations down to the ancestral state
+	muts = sim.mutations;
+	new_muts = muts[muts.originTick == community.tick];
+	back_muts = NULL;
+	for (mut in new_muts)
+	{
+		pos = mut.position;
+		if (mut.nucleotide == sim.chromosome.ancestralNucleotides(pos, pos))
+			back_muts = c(back_muts, mut);
+	}
+	if (size(back_muts))
+		sim.subpopulations.genomes.removeMutations(back_muts);
+}
 1000 late() {
 	for (pos in 0:99)
 	{
 		muts = sim.subsetMutations(position=pos);
 		nucs = muts.nucleotide;
+		ancestral = sim.chromosome.ancestralNucleotides(pos, pos);
 		cat(pos + " : " + paste(nucs));
 		if (size(nucs) != size(unique(nucs)))
 			cat("     DUPLICATES!");
+		if (any(nucs == ancestral))
+			cat("     BACK-MUTATION (" + ancestral + ")!");
 		catn();
 	}
 }

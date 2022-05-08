@@ -11,7 +11,7 @@ initialize() {
 1 early() {
 	sim.addSubpop("p1", 500);
 }
-mutation(m1) {
+mutation() {
 	m = sim.subsetMutations(position=mut.position, nucleotide=mut.nucleotide);
 	if (m.length())
 		return m;

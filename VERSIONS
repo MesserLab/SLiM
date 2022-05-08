@@ -92,6 +92,8 @@ development head (in the master branch):
 			revise recipes to use the new properties and methods, have correct comments, etc.
 		add recipes 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7: new multispecies recipes!
 		add neighborCount() and neighborCountOfPoint() methods to fill out the InteractionType API
+		modify recipe 18.14 to unique down nucleotide-based mutations regardless of their mutation type (mutation() rather than mutation(m1))
+		add recipe 18.15, showing how to unique down to the ancestral state when that is desirable
 		
 
 version 3.7.1 (Eidos version 2.7.1):
