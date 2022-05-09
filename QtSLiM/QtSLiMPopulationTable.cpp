@@ -39,13 +39,7 @@ QtSLiMPopulationTableModel::~QtSLiMPopulationTableModel()
 
 int QtSLiMPopulationTableModel::rowCount(const QModelIndex & /* parent */) const
 {
-    QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
-    Species *displaySpecies = controller->focalDisplaySpecies();
-    
-    if (displaySpecies)
-        return static_cast<int>(displaySpecies->population_.subpops_.size());
-    
-    return 0;
+    return static_cast<int>(displaySubpops.size());
 }
 
 int QtSLiMPopulationTableModel::columnCount(const QModelIndex & /* parent */) const
@@ -59,28 +53,30 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
-    Species *displaySpecies = controller->focalDisplaySpecies();
+    Community *community = controller->community;
     
-    if (!displaySpecies)
+    int subpopCount = static_cast<int>(displaySubpops.size());
+    
+    if (subpopCount == 0)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
-        Community *community = controller->community;
-        Population &population = displaySpecies->population_;
-        int subpopCount = static_cast<int>(population.subpops_.size());
-        
         if (p_index.row() < subpopCount)
         {
-            auto popIter = population.subpops_.begin();
+            auto popIter = displaySubpops.begin();
             
             std::advance(popIter, p_index.row());
-            slim_objectid_t subpop_id = popIter->first;
-            Subpopulation *subpop = popIter->second;
+            Subpopulation *subpop = *popIter;
             
             if (p_index.column() == 0)
             {
-                return QVariant(QString("p%1").arg(subpop_id));
+                QString idString = QString("p%1").arg(subpop->subpopulation_id_);
+                
+                if (community->all_species_.size() > 1)
+                    idString.append(" ").append(QString::fromStdString(subpop->species_.avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {
@@ -217,6 +213,15 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
 void QtSLiMPopulationTableModel::reloadTable(void)
 {
     beginResetModel();
+    
+    // recache the list of subpopulations we display
+    displaySubpops.clear();
+    
+    QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    
+    if (controller)
+        displaySubpops = controller->listedSubpopulations();
+    
     endResetModel();
 }
 

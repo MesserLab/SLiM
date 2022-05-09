@@ -116,9 +116,6 @@ public:
 	
 	std::map<slim_objectid_t,FitnessHistory> fitness_histories_;	// fitness histories indexed by subpopulation id (or by -1, for the Population history)
     std::map<slim_objectid_t,SubpopSizeHistory> subpop_size_histories_;	// size histories indexed by subpopulation id (or by -1, for the Population history)
-	
-	// true if gui_selected_ is set for all subpops, otherwise false; must be kept in synch with subpop flags!
-	bool gui_all_selected_ = true;
 #endif
 	
 	Population(const Population&) = delete;					// no copying

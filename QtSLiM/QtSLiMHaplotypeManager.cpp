@@ -50,6 +50,7 @@
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
 void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 {
+    Species *displaySpecies = controller->focalDisplaySpecies();
     QtSLiMHaplotypeOptions optionsPanel(controller);
     
     int result = optionsPanel.exec();
@@ -62,7 +63,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, genomeSampleSize, true);
+                                                                              controller, displaySpecies, genomeSampleSize, true);
         
         if (haplotypeManager->valid_)
         {
@@ -103,7 +104,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
                 {
                     // make our species avatar badge
                     QLabel *speciesLabel = new QLabel();
-                    speciesLabel->setText(QString::fromStdString(controller->focalDisplaySpecies()->avatar_));
+                    speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
                     buttonLayout->addWidget(speciesLabel);
                 }
                 
@@ -148,11 +149,11 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMWindow *controller, size_t sampleSize, bool showProgress) :
+                                               QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress) :
     QObject(p_parent)
 {
     controller_ = controller;
-    focalSpeciesName_ = controller->focalDisplaySpecies()->name_;
+    focalSpeciesName_ = displaySpecies->name_;
     
     Community *community = controller_->community;
     Species *graphSpecies = focalDisplaySpecies();
@@ -174,7 +175,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     
     // Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...
     
-    controller_->chromosomeSelection(&usingSubrange, &subrangeFirstBase, &subrangeLastBase);
+    controller_->chromosomeSelection(graphSpecies, &usingSubrange, &subrangeFirstBase, &subrangeLastBase);
     
     // Also dig to find out whether we're displaying all mutation types or just a subset; if a subset, each MutationType has a display flag
     displayingMuttypeSubset = (controller_->chromosomeDisplayMuttypes().size() != 0);

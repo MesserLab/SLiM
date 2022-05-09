@@ -1314,14 +1314,6 @@ void QtSLiMGraphView::setXAxisRangeFromTick(void)
 	}
 }
 
-QColor QtSLiMGraphView::colorForSpecies(Species *species)
-{
-    if (species->color_.length() > 0)
-        return QtSLiMColorWithRGB(species->color_red_, species->color_green_, species->color_blue_, 1.0);
-    
-    return controller_->whiteContrastingColorForIndex(species->species_id_);
-}
-
 QtSLiMLegendSpec QtSLiMGraphView::subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray)
 {
     QtSLiMLegendSpec legend_key;

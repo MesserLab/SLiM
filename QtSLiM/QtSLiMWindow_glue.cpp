@@ -166,7 +166,8 @@ void QtSLiMWindow::glueUI(void)
 	connect(ui->actionGraph_Age_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Lifetime_Reproduce_Output, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
-	connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionGraph_Multispecies_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionCreate_Haplotype_Plot, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole

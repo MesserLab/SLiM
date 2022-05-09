@@ -25,6 +25,7 @@
 #include <QHeaderView>
 
 class QPainter;
+class Subpopulation;
 
 
 class QtSLiMPopulationTableModel : public QAbstractTableModel
@@ -42,6 +43,12 @@ public:
     virtual QVariant headerData(int section, Qt::Orientation p_orientation, int role = Qt::DisplayRole) const override;
     
     void reloadTable(void);
+    
+    Subpopulation *subpopAtIndex(int i) const { return displaySubpops[i]; }
+    
+protected:
+    // We cache a list of the subpopulations we are displaying, for more efficient display
+    std::vector<Subpopulation *> displaySubpops;
 };
 
 class QtSLiMPopulationTableHeaderView : public QHeaderView

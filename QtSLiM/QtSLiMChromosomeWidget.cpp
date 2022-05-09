@@ -96,9 +96,10 @@ static const int selectionKnobSizeExtension = 2;	// a 5-pixel-width knob is 2: 2
 static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobSizeExtension + 1;
 
 
-QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, Qt::WindowFlags f) : QOpenGLWidget(p_parent, f)
+QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, QtSLiMWindow *controller, Species *displaySpecies, Qt::WindowFlags f) : QOpenGLWidget(p_parent, f)
 {
-    //[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
+    controller_ = controller;
+    setFocalDisplaySpecies(displaySpecies);
     
     if (!glArrayVertices)
         glArrayVertices = static_cast<float *>(malloc(kMaxVertices * 2 * sizeof(float)));		// 2 floats per vertex, kMaxVertices vertices
@@ -110,10 +111,6 @@ QtSLiMChromosomeWidget::QtSLiMChromosomeWidget(QWidget *p_parent, Qt::WindowFlag
 QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
 {
     setReferenceChromosomeView(nullptr);
-	
-	//[self unbind:@"enabled"];
-	
-	//[self removeSelectionMarkers];
 	
 	if (glArrayVertices)
 	{
@@ -138,6 +135,35 @@ QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()
         free(haplotype_previous_bincounts);
         haplotype_previous_bincounts = nullptr;
     }
+    
+    controller_ = nullptr;
+}
+
+void QtSLiMChromosomeWidget::setController(QtSLiMWindow *controller)
+{
+    controller_ = controller;
+}
+
+void QtSLiMChromosomeWidget::setFocalDisplaySpecies(Species *displaySpecies)
+{
+    // We can have no focal species (when coming out of the nib, in particular); in that case we display empty state
+    if (displaySpecies)
+        focalSpeciesName_ = displaySpecies->name_;
+    else
+        focalSpeciesName_ = "";
+}
+
+Species *QtSLiMChromosomeWidget::focalDisplaySpecies(void)
+{
+    // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+    // Before initialize() is done species have not been created, so we return nullptr in that case
+    if (focalSpeciesName_.length() == 0)
+        return nullptr;
+    
+    if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
+        return controller_->community->SpeciesWithName(focalSpeciesName_);
+    
+    return nullptr;
 }
 
 void QtSLiMChromosomeWidget::stateChanged(void)
@@ -232,7 +258,7 @@ void QtSLiMChromosomeWidget::setReferenceChromosomeView(QtSLiMChromosomeWidget *
 	}
 }
 
-QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(void)
+QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(Species *displaySpecies)
 {
     if (hasSelection_)
 	{
@@ -240,8 +266,6 @@ QtSLiMRange QtSLiMChromosomeWidget::getSelectedRange(void)
 	}
 	else
 	{
-        QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-        Species *displaySpecies = controller->focalDisplaySpecies();
 		Chromosome &chromosome = displaySpecies->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
@@ -313,16 +337,14 @@ const std::vector<slim_objectid_t> &QtSLiMChromosomeWidget::displayMuttypes(void
     return display_muttypes_;
 }
 
-QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(void)
+QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(Species *displaySpecies)
 {
 	QtSLiMChromosomeWidget *reference = referenceChromosomeView_;
 	
 	if (reference)
-		return reference->getSelectedRange();
+		return reference->getSelectedRange(displaySpecies);
 	else
 	{
-        QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-        Species *displaySpecies = controller->focalDisplaySpecies();
 		Chromosome &chromosome = displaySpecies->TheChromosome();
 		slim_position_t chromosomeLastPosition = chromosome.last_position_;
 		
@@ -340,14 +362,14 @@ void QtSLiMChromosomeWidget::paintGL()
     
     painter.setPen(Qt::black);      // make sure we have our default color of black, since Qt apparently does not guarantee that
     
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    bool ready = isEnabled() && !controller->invalidSimulation();
+    Species *displaySpecies = focalDisplaySpecies();
+    bool ready = (isEnabled() && !controller_->invalidSimulation() && (displaySpecies != nullptr));
     QRect contentRect = getContentRect();
 	QRect interiorRect = getInteriorRect();
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->community->Tick() == 0)
+		if (controller_->community->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -355,14 +377,14 @@ void QtSLiMChromosomeWidget::paintGL()
         // erase the content area itself; done in glDrawRect() now
         //painter.fillRect(interiorRect, Qt::black);
 		
-		QtSLiMRange displayedRange = getDisplayedRange();
+		QtSLiMRange displayedRange = getDisplayedRange(displaySpecies);
         
 		// draw ticks at bottom of content rect
-        drawTicksInContentRect(contentRect, controller, displayedRange, painter);
+        drawTicksInContentRect(contentRect, displaySpecies, displayedRange, painter);
 		
         // draw our OpenGL content
         painter.beginNativePainting();
-        glDrawRect();
+        glDrawRect(displaySpecies);
         painter.endNativePainting();
         
         // frame near the end, so that any roundoff errors that caused overdrawing by a pixel get cleaned up
@@ -370,7 +392,7 @@ void QtSLiMChromosomeWidget::paintGL()
         
 		// overlay the selection last, since it bridges over the frame
 		if (hasSelection_)
-			overlaySelection(interiorRect, controller, displayedRange, painter);
+			overlaySelection(interiorRect, displayedRange, painter);
     }
     else
     {
@@ -382,7 +404,7 @@ void QtSLiMChromosomeWidget::paintGL()
     }
 }
 
-void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribute__((__unused__)) QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter)
+void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribute__((__unused__)) Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter)
 {
     bool inDarkMode = QtSLiMInDarkMode();
 	QRect interiorRect = getInteriorRect();
@@ -473,15 +495,14 @@ void QtSLiMChromosomeWidget::drawTicksInContentRect(QRect contentRect, __attribu
     painter.restore();
 }
 
-void QtSLiMChromosomeWidget::glDrawRect(void)
+void QtSLiMChromosomeWidget::glDrawRect(Species *displaySpecies)
 {
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    bool ready = isEnabled() && !controller->invalidSimulation();
+    bool ready = isEnabled() && !controller_->invalidSimulation();
 	QRect interiorRect = getInteriorRect();
     
     // if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->community->Tick() == 0)
+		if (controller_->community->Tick() == 0)
 			ready = false;
 	
     if (ready)
@@ -489,7 +510,7 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
         // erase the content area itself
         glColor3f(0.0f, 0.0f, 0.0f);
 		glRecti(interiorRect.left(), interiorRect.top(), interiorRect.left() + interiorRect.width(), interiorRect.top() + interiorRect.height());
-		QtSLiMRange displayedRange = getDisplayedRange();
+		QtSLiMRange displayedRange = getDisplayedRange(displaySpecies);
 		
 		bool splitHeight = (shouldDrawRateMaps_ && shouldDrawGenomicElements_);
 		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
@@ -502,19 +523,19 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
         
         // draw recombination intervals in interior
 		if (shouldDrawRateMaps_)
-			glDrawRateMaps(splitHeight ? topInteriorRect : interiorRect, controller, displayedRange);
+			glDrawRateMaps(splitHeight ? topInteriorRect : interiorRect, displaySpecies, displayedRange);
 		
 		// draw genomic elements in interior
 		if (shouldDrawGenomicElements_)
-			glDrawGenomicElements(splitHeight ? bottomInteriorRect : interiorRect, controller, displayedRange);
+			glDrawGenomicElements(splitHeight ? bottomInteriorRect : interiorRect, displaySpecies, displayedRange);
 		
 		// figure out which mutation types we're displaying
 		if (shouldDrawFixedSubstitutions_ || shouldDrawMutations_)
-			updateDisplayedMutationTypes();
+			updateDisplayedMutationTypes(displaySpecies);
 		
 		// draw fixed substitutions in interior
 		if (shouldDrawFixedSubstitutions_)
-			glDrawFixedSubstitutions(interiorRect, controller, displayedRange);
+			glDrawFixedSubstitutions(interiorRect, displaySpecies, displayedRange);
 		
 		// draw mutations in interior
 		if (shouldDrawMutations_)
@@ -528,7 +549,7 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
                 if (!haplotype_mgr_)
                 {
                     size_t interiorHeight = static_cast<size_t>(interiorRect.height());	// one sample per available pixel line, for simplicity and speed; 47, in the current UI layout
-                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller, interiorHeight, false);
+                    haplotype_mgr_ = new QtSLiMHaplotypeManager(nullptr, QtSLiMHaplotypeManager::ClusterNearestNeighbor, QtSLiMHaplotypeManager::ClusterNoOptimization, controller_, displaySpecies, interiorHeight, false);
                 }
                 
                 if (haplotype_mgr_)
@@ -537,7 +558,7 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
 			else
 			{
 				// display mutations as a frequency plot; this is the standard display mode
-                glDrawMutations(interiorRect, controller, displayedRange);
+                glDrawMutations(interiorRect, displaySpecies, displayedRange);
 			}
 		}
     }
@@ -549,9 +570,8 @@ void QtSLiMChromosomeWidget::glDrawRect(void)
     }
 }
 
-void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
-    Species *displaySpecies = controller->focalDisplaySpecies();
     Chromosome &chromosome = displaySpecies->TheChromosome();
 	int previousIntervalLeftEdge = -10000;
 	
@@ -588,7 +608,7 @@ void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWi
 			{
 				slim_objectid_t elementTypeID = geType->genomic_element_type_id_;
                 
-				controller->colorForGenomicElementType(geType, elementTypeID, &colorRed, &colorGreen, &colorBlue, &colorAlpha);
+				controller_->colorForGenomicElementType(geType, elementTypeID, &colorRed, &colorGreen, &colorBlue, &colorAlpha);
 			}
 			
 			SLIM_GL_DEFCOORDS(elementRect);
@@ -607,16 +627,12 @@ void QtSLiMChromosomeWidget::glDrawGenomicElements(QRect &interiorRect, QtSLiMWi
 	SLIM_GL_FINISH();
 }
 
-void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
+void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(Species *displaySpecies)
 {
 	// We use a flag in MutationType to indicate whether we're drawing that type or not; we update those flags here,
 	// before every drawing of mutations, from the vector of mutation type IDs that we keep internally
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	
-	if (controller)
+	if (controller_)
 	{
-        Species *displaySpecies = controller->focalDisplaySpecies();
-		
 		if (displaySpecies)
 		{
 			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
@@ -640,10 +656,9 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(void)
 	}
 }
 
-void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
 	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-    Species *displaySpecies = controller->focalDisplaySpecies();
 	Population &pop = displaySpecies->population_;
 	double totalGenomeCount = pop.gui_total_genome_count_;				// this includes only genomes in the selected subpopulations
     int registry_size;
@@ -900,10 +915,9 @@ void QtSLiMChromosomeWidget::glDrawMutations(QRect &interiorRect, QtSLiMWindow *
 	SLIM_GL_FINISH();
 }
 
-void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
     double scalingFactor = 0.8; // used to be controller->selectionColorScale;
-    Species *displaySpecies = controller->focalDisplaySpecies();
 	Population &pop = displaySpecies->population_;
     Chromosome &chromosome = displaySpecies->TheChromosome();
 	bool chromosomeHasDefaultColor = !chromosome.color_sub_.empty();
@@ -1043,7 +1057,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, QtSLi
 	SLIM_GL_FINISH();
 }
 
-void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attribute__((__unused__)) QtSLiMWindow *controller, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue)
+void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attribute__((__unused__)) Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue)
 {
 	size_t recombinationIntervalCount = ends.size();
 	slim_position_t intervalStartPosition = 0;
@@ -1115,14 +1129,13 @@ void QtSLiMChromosomeWidget::_glDrawRateMapIntervals(QRect &interiorRect, __attr
 	SLIM_GL_FINISH();
 }
 
-void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
-    Species *displaySpecies = controller->focalDisplaySpecies();
 	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_recombination_map_)
 	{
-		_glDrawRateMapIntervals(interiorRect, controller, displayedRange, chromosome.recombination_end_positions_H_, chromosome.recombination_rates_H_, 0.65);
+		_glDrawRateMapIntervals(interiorRect, displaySpecies, displayedRange, chromosome.recombination_end_positions_H_, chromosome.recombination_rates_H_, 0.65);
 	}
 	else
 	{
@@ -1134,19 +1147,18 @@ void QtSLiMChromosomeWidget::glDrawRecombinationIntervals(QRect &interiorRect, Q
         bottomInteriorRect.setHeight(remainingHeight);
         bottomInteriorRect.translate(0, halfHeight);
 		
-		_glDrawRateMapIntervals(topInteriorRect, controller, displayedRange, chromosome.recombination_end_positions_M_, chromosome.recombination_rates_M_, 0.65);
-		_glDrawRateMapIntervals(bottomInteriorRect, controller, displayedRange, chromosome.recombination_end_positions_F_, chromosome.recombination_rates_F_, 0.65);
+		_glDrawRateMapIntervals(topInteriorRect, displaySpecies, displayedRange, chromosome.recombination_end_positions_M_, chromosome.recombination_rates_M_, 0.65);
+		_glDrawRateMapIntervals(bottomInteriorRect, displaySpecies, displayedRange, chromosome.recombination_end_positions_F_, chromosome.recombination_rates_F_, 0.65);
 	}
 }
 
-void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
-    Species *displaySpecies = controller->focalDisplaySpecies();
 	Chromosome &chromosome = displaySpecies->TheChromosome();
 	
 	if (chromosome.single_mutation_map_)
 	{
-		_glDrawRateMapIntervals(interiorRect, controller, displayedRange, chromosome.mutation_end_positions_H_, chromosome.mutation_rates_H_, 0.75);
+		_glDrawRateMapIntervals(interiorRect, displaySpecies, displayedRange, chromosome.mutation_end_positions_H_, chromosome.mutation_rates_H_, 0.75);
 	}
 	else
 	{
@@ -1158,14 +1170,13 @@ void QtSLiMChromosomeWidget::glDrawMutationIntervals(QRect &interiorRect, QtSLiM
         bottomInteriorRect.setHeight(remainingHeight);
         bottomInteriorRect.translate(0, halfHeight);
 		
-		_glDrawRateMapIntervals(topInteriorRect, controller, displayedRange, chromosome.mutation_end_positions_M_, chromosome.mutation_rates_M_, 0.75);
-		_glDrawRateMapIntervals(bottomInteriorRect, controller, displayedRange, chromosome.mutation_end_positions_F_, chromosome.mutation_rates_F_, 0.75);
+		_glDrawRateMapIntervals(topInteriorRect, displaySpecies, displayedRange, chromosome.mutation_end_positions_M_, chromosome.mutation_rates_M_, 0.75);
+		_glDrawRateMapIntervals(bottomInteriorRect, displaySpecies, displayedRange, chromosome.mutation_end_positions_F_, chromosome.mutation_rates_F_, 0.75);
 	}
 }
 
-void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange)
+void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange)
 {
-    Species *displaySpecies = controller->focalDisplaySpecies();
 	Chromosome &chromosome = displaySpecies->TheChromosome();
 	bool recombinationWorthShowing = false;
 	bool mutationWorthShowing = false;
@@ -1183,11 +1194,11 @@ void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *c
 	// If neither map is worth showing, we show just the recombination map, to mirror the behavior of 2.4 and earlier
 	if ((!mutationWorthShowing && !recombinationWorthShowing) || (!mutationWorthShowing && recombinationWorthShowing))
 	{
-		glDrawRecombinationIntervals(interiorRect, controller, displayedRange);
+		glDrawRecombinationIntervals(interiorRect, displaySpecies, displayedRange);
 	}
 	else if (mutationWorthShowing && !recombinationWorthShowing)
 	{
-		glDrawMutationIntervals(interiorRect, controller, displayedRange);
+		glDrawMutationIntervals(interiorRect, displaySpecies, displayedRange);
 	}
 	else	// mutationWorthShowing && recombinationWorthShowing
 	{
@@ -1199,12 +1210,12 @@ void QtSLiMChromosomeWidget::glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *c
         bottomInteriorRect.setHeight(remainingHeight);
         bottomInteriorRect.translate(0, halfHeight);
         
-		glDrawRecombinationIntervals(topInteriorRect, controller, displayedRange);
-		glDrawMutationIntervals(bottomInteriorRect, controller, displayedRange);
+		glDrawRecombinationIntervals(topInteriorRect, displaySpecies, displayedRange);
+		glDrawMutationIntervals(bottomInteriorRect, displaySpecies, displayedRange);
 	}
 }
 
-void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMWindow * /*controller*/, QtSLiMRange displayedRange, QPainter &painter)
+void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter)
 {
 	if (hasSelection_)
 	{
@@ -1257,19 +1268,19 @@ void QtSLiMChromosomeWidget::overlaySelection(QRect interiorRect, QtSLiMWindow *
 
 void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 {
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-	bool ready = (selectable_ && isEnabled() && !controller->invalidSimulation());
+    Species *displaySpecies = focalDisplaySpecies();
+	bool ready = (selectable_ && isEnabled() && !controller_->invalidSimulation() && (displaySpecies != nullptr));
 	
 	// if the simulation is at tick 0, it is not ready
 	if (ready)
-		if (controller->community->Tick() == 0)
+		if (controller_->community->Tick() == 0)
 			ready = false;
 	
 	if (ready)
 	{
 		QRect contentRect = getContentRect();
 		QRect interiorRect = getInteriorRect();
-		QtSLiMRange displayedRange = getDisplayedRange();
+		QtSLiMRange displayedRange = getDisplayedRange(displaySpecies);
         QPoint curPoint = p_event->pos();
 		
 		// Option-clicks just set the selection to the clicked genomic element, no questions asked
@@ -1279,7 +1290,6 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 			{
 				slim_position_t clickedBase = baseForPosition(curPoint.x(), interiorRect, displayedRange);
 				QtSLiMRange selectionRange = QtSLiMRange(0, 0);
-                Species *displaySpecies = controller->focalDisplaySpecies();
 				Chromosome &chromosome = displaySpecies->TheChromosome();
 				
 				for (GenomicElement *genomicElement : chromosome.GenomicElements())
@@ -1357,7 +1367,8 @@ void QtSLiMChromosomeWidget::mousePressEvent(QMouseEvent *p_event)
 void QtSLiMChromosomeWidget::_mouseTrackEvent(QMouseEvent *p_event)
 {
     QRect interiorRect = getInteriorRect();
-    QtSLiMRange displayedRange = getDisplayedRange();
+    Species *displaySpecies = focalDisplaySpecies();
+    QtSLiMRange displayedRange = getDisplayedRange(displaySpecies);
     QPoint curPoint = p_event->pos();
 	
 	QPoint correctedPoint = QPoint(curPoint.x() - trackingXAdjust_, curPoint.y());
@@ -1436,8 +1447,7 @@ void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
 
 void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
 {
-    QtSLiMWindow *controller = dynamic_cast<QtSLiMWindow *>(window());
-    Species *displaySpecies = controller->focalDisplaySpecies();
+    Species *displaySpecies = focalDisplaySpecies();
     
     if (displaySpecies)// && !isSelectable() && enabled())
 	{

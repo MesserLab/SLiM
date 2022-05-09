@@ -256,7 +256,7 @@ public:
 #endif
 	
 #ifdef SLIMGUI
-	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations; note Population::gui_all_selected_ must be kept in synch!
+	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations
 	double parental_total_fitness_ = 0.0;				// updated in SurveyPopulation() when running under SLiMgui
 	
 	bool gui_center_from_user_ = false;					// if this flag is true, the center below comes from the user and should not be modified

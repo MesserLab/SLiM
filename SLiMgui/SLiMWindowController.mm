@@ -4513,19 +4513,12 @@ static int DisplayDigitsForIntegerPart(double x)
 			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			auto popIter = population.subpops_.begin();
-			bool all_selected = true;
 			
 			for (int i = 0; i < subpopCount; ++i)
 			{
 				popIter->second->gui_selected_ = [subpopTableView isRowSelected:i];
-				
-				if (!popIter->second->gui_selected_)
-					all_selected = false;
-				
 				popIter++;
 			}
-			
-			population.gui_all_selected_ = all_selected;
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
 			population.TallyMutationReferences(nullptr, true);

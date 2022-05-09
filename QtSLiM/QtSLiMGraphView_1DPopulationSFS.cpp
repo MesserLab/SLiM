@@ -81,13 +81,13 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 		spectrum[i] = 0;
 	
 	// get the selected chromosome range
+    Species *graphSpecies = focalDisplaySpecies();
 	bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	// tally into our bins
-    Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	
 	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
@@ -160,7 +160,7 @@ void QtSLiMGraphView_1DPopulationSFS::drawGraph(QPainter &painter, QRect interio
     bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
 	
 	if (hasSelection)
 	{
@@ -199,16 +199,16 @@ bool QtSLiMGraphView_1DPopulationSFS::providesStringForData(void)
 void QtSLiMGraphView_1DPopulationSFS::appendStringForData(QString &string)
 {
     // get the selected chromosome range
+    Species *graphSpecies = focalDisplaySpecies();
 	bool hasSelection;
 	slim_position_t selectionFirstBase;
 	slim_position_t selectionLastBase;
-    controller_->chromosomeSelection(&hasSelection, &selectionFirstBase, &selectionLastBase);
+    controller_->chromosomeSelection(graphSpecies, &hasSelection, &selectionFirstBase, &selectionLastBase);
 
 	if (hasSelection)
         string.append(QString("# Selected chromosome range: %1 – %2\n").arg(selectionFirstBase).arg(selectionLastBase));
 	
 	int binCount = histogramBinCount_;
-    Species *graphSpecies = focalDisplaySpecies();
 	int mutationTypeCount = static_cast<int>(graphSpecies->mutation_types_.size());
 	double *plotData = populationSFS(mutationTypeCount);
 	

@@ -61,7 +61,7 @@ public:
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMWindow *controller, size_t sampleSize, bool showProgress);
+                           QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     
     void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts);

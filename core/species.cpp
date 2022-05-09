@@ -1828,6 +1828,8 @@ void Species::RunInitializeCallbacks(void)
 	if (avatar_.length() == 0)
 		avatar_ = std::string(1, (char)('A' + species_id_));
 	
+	community_.scripts_changed_ = true;		// avatars changed, either here or with initializeSpecies(), so redisplay the script block table
+	
 	// In single-species models, we are responsible for finalizing the model type decision at the end of our initialization
 	// In multispecies models, the Community will have already made this decision and propagated it down to us.
 	if (!community_.is_explicit_species_)

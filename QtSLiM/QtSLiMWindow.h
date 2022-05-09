@@ -120,7 +120,7 @@ public:
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
     Community *community = nullptr;		// the simulation instance for this window
     Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
-    std::string focalSpeciesName;       // the name of the focal species, for persistence across recycles
+    std::string focalSpeciesName;       // the name of the focal species (or "all"), for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
@@ -148,9 +148,12 @@ public:
     static const QColor &blackContrastingColorForIndex(int index);
     static const QColor &whiteContrastingColorForIndex(int index);
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    void colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    QColor qcolorForSpecies(Species *species);
     
+    std::vector<Subpopulation *> listedSubpopulations(void);
     std::vector<Subpopulation*> selectedSubpopulations(void);
-    void chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
+    void chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
     const std::vector<slim_objectid_t> &chromosomeDisplayMuttypes(void);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
@@ -179,6 +182,7 @@ public:
     void updateOutputViews(void);
     void updateTickCounter(void);
     void updateSpeciesBar(void);
+    void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
     void updateProfileButtonIcon(bool pressed);

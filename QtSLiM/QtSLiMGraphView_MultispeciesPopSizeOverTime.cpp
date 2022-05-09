@@ -226,7 +226,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::drawPointGraph(QPainter &paint
         // First draw subpops, then draw the population size
         for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
         {
-            QColor speciesColor = colorForSpecies(species);
+            QColor speciesColor = controller_->qcolorForSpecies(species);
             QColor pointColor = (iter == 0) ? speciesColor.lighter(150) : speciesColor;
             
             for (auto history_record_iter : pop.subpop_size_histories_)
@@ -272,7 +272,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::drawLineGraph(QPainter &painte
         // First draw subpops, then draw the population size
         for (int iter = (showSubpops ? 0 : 1); iter <= 1; ++iter)
         {
-            QColor speciesColor = colorForSpecies(species);
+            QColor speciesColor = controller_->qcolorForSpecies(species);
             QColor lineColor = (iter == 0) ? speciesColor.lighter(150) : speciesColor;
             double lineWidth = (iter == 0) ? 1.0 : 1.5;
             
@@ -370,7 +370,7 @@ QtSLiMLegendSpec QtSLiMGraphView_MultispeciesPopSizeOverTime::legendKey(void)
     for (Species *species : community->all_species_)
     {
         QString speciesName = QString::fromStdString(species->name_);
-        QColor speciesColor = colorForSpecies(species);
+        QColor speciesColor = controller_->qcolorForSpecies(species);
         
         legend_key.emplace_back(speciesName, speciesColor);
     }

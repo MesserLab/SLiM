@@ -202,7 +202,16 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
 	// to SLiMgui's next update, because then mutation tallies are not kept properly up to date, resulting in a bad GUI refresh.
 	// The rule is: if all currently existing subpops are selected, then the new subpop comes in selected as well.
-	new_subpop->gui_selected_ = gui_all_selected_;
+    bool gui_all_selected = true;
+    
+    for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+        if (!subpop_pair.second->gui_selected_)
+        {
+            gui_all_selected = false;
+            break;
+        }
+    
+    new_subpop->gui_selected_ = gui_all_selected;
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
@@ -234,7 +243,16 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
 	// to SLiMgui's next update, because then mutation tallies are not kept properly up to date, resulting in a bad GUI refresh.
 	// The rule is: if all currently existing subpops are selected, then the new subpop comes in selected as well.
-	new_subpop->gui_selected_ = gui_all_selected_;
+    bool gui_all_selected = true;
+    
+    for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+        if (!subpop_pair.second->gui_selected_)
+        {
+            gui_all_selected = false;
+            break;
+        }
+    
+    new_subpop->gui_selected_ = gui_all_selected;
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
