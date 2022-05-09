@@ -68,7 +68,7 @@ public slots:
     virtual void invalidateDrawingCache(void);
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);
-    virtual void controllerSelectionChanged(void);
+    virtual void controllerChromosomeSelectionChanged(void);
     virtual void controllerTickFinished(void);
     virtual void updateAfterTick(void);
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);

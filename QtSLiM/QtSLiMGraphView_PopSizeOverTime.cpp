@@ -85,14 +85,6 @@ void QtSLiMGraphView_PopSizeOverTime::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-void QtSLiMGraphView_PopSizeOverTime::controllerSelectionChanged(void)
-{
-    invalidateDrawingCache();
-    update();
-	
-	QtSLiMGraphView::controllerSelectionChanged();
-}
-
 QString QtSLiMGraphView_PopSizeOverTime::graphTitle(void)
 {
     return "Population Size ~ Time";

@@ -332,11 +332,6 @@ void QtSLiMChromosomeWidget::restoreLastSelection(void)
     emit selectedRangeChanged();
 }
 
-const std::vector<slim_objectid_t> &QtSLiMChromosomeWidget::displayMuttypes(void)
-{
-    return display_muttypes_;
-}
-
 QtSLiMRange QtSLiMChromosomeWidget::getDisplayedRange(Species *displaySpecies)
 {
 	QtSLiMChromosomeWidget *reference = referenceChromosomeView_;
@@ -363,7 +358,7 @@ void QtSLiMChromosomeWidget::paintGL()
     painter.setPen(Qt::black);      // make sure we have our default color of black, since Qt apparently does not guarantee that
     
     Species *displaySpecies = focalDisplaySpecies();
-    bool ready = (isEnabled() && !controller_->invalidSimulation() && (displaySpecies != nullptr));
+    bool ready = (isEnabled() && controller_ && !controller_->invalidSimulation() && (displaySpecies != nullptr));
     QRect contentRect = getContentRect();
 	QRect interiorRect = getInteriorRect();
     
@@ -512,7 +507,7 @@ void QtSLiMChromosomeWidget::glDrawRect(Species *displaySpecies)
 		glRecti(interiorRect.left(), interiorRect.top(), interiorRect.left() + interiorRect.width(), interiorRect.top() + interiorRect.height());
 		QtSLiMRange displayedRange = getDisplayedRange(displaySpecies);
 		
-		bool splitHeight = (shouldDrawRateMaps_ && shouldDrawGenomicElements_);
+		bool splitHeight = (shouldDrawRateMaps() && shouldDrawGenomicElements());
 		QRect topInteriorRect = interiorRect, bottomInteriorRect = interiorRect;
 		int halfHeight = static_cast<int>(ceil(interiorRect.height() / 2.0));
 		int remainingHeight = interiorRect.height() - halfHeight;
@@ -522,25 +517,25 @@ void QtSLiMChromosomeWidget::glDrawRect(Species *displaySpecies)
         bottomInteriorRect.translate(0, halfHeight);
         
         // draw recombination intervals in interior
-		if (shouldDrawRateMaps_)
+		if (shouldDrawRateMaps())
 			glDrawRateMaps(splitHeight ? topInteriorRect : interiorRect, displaySpecies, displayedRange);
 		
 		// draw genomic elements in interior
-		if (shouldDrawGenomicElements_)
+		if (shouldDrawGenomicElements())
 			glDrawGenomicElements(splitHeight ? bottomInteriorRect : interiorRect, displaySpecies, displayedRange);
 		
 		// figure out which mutation types we're displaying
-		if (shouldDrawFixedSubstitutions_ || shouldDrawMutations_)
+		if (shouldDrawFixedSubstitutions() || shouldDrawMutations())
 			updateDisplayedMutationTypes(displaySpecies);
 		
 		// draw fixed substitutions in interior
-		if (shouldDrawFixedSubstitutions_)
+		if (shouldDrawFixedSubstitutions())
 			glDrawFixedSubstitutions(interiorRect, displaySpecies, displayedRange);
 		
 		// draw mutations in interior
-		if (shouldDrawMutations_)
+		if (shouldDrawMutations())
 		{
-			if (display_haplotypes_)
+			if (displayHaplotypes())
 			{
 				// display mutations as a haplotype plot, courtesy of QtSLiMHaplotypeManager; we use ClusterNearestNeighbor and
 				// ClusterNoOptimization because they're fast, and NN might also provide a bit more run-to-run continuity
@@ -636,16 +631,17 @@ void QtSLiMChromosomeWidget::updateDisplayedMutationTypes(Species *displaySpecie
 		if (displaySpecies)
 		{
 			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
+            std::vector<slim_objectid_t> &displayTypes = displayMuttypes();
 			
 			for (auto muttype_iter : muttypes)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
-				if (display_muttypes_.size())
+				if (displayTypes.size())
 				{
 					slim_objectid_t muttype_id = muttype->mutation_type_id_;
 					
-					muttype->mutation_type_displayed_ = (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end());
+					muttype->mutation_type_displayed_ = (std::find(displayTypes.begin(), displayTypes.end(), muttype_id) != displayTypes.end());
 				}
 				else
 				{
@@ -945,7 +941,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Speci
 				slim_position_t substitutionPosition = substitution->position_;
 				QRect substitutionTickRect = rectEncompassingBaseToBase(substitutionPosition, substitutionPosition, interiorRect, displayedRange);
 				
-				if (!shouldDrawMutations_ || !chromosomeHasDefaultColor)
+				if (!shouldDrawMutations() || !chromosomeHasDefaultColor)
 				{
 					// If we're drawing mutations as well, then substitutions just get colored blue (set above), to contrast
 					// If we're not drawing mutations as well, then substitutions get colored by selection coefficient, like mutations
@@ -989,7 +985,7 @@ void QtSLiMChromosomeWidget::glDrawFixedSubstitutions(QRect &interiorRect, Speci
 			}
 		}
 		
-		if (shouldDrawMutations_ && chromosomeHasDefaultColor)
+		if (shouldDrawMutations() && chromosomeHasDefaultColor)
 		{
 			// If we're drawing mutations as well, then substitutions just get colored blue, to contrast
 			QRect mutationTickRect = interiorRect;
@@ -1445,164 +1441,14 @@ void QtSLiMChromosomeWidget::mouseReleaseEvent(QMouseEvent *p_event)
 	isTracking_ = false;
 }
 
-void QtSLiMChromosomeWidget::runContextMenuAtPoint(QPoint p_globalPoint)
+void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent * /* p_event */)
 {
-    Species *displaySpecies = focalDisplaySpecies();
+    // BCH 5/9/2022: I think now that we can have multiple chromosome views it might be best to make
+    // people use the action button; a context menu running on a particular view looks view-specific,
+    // but the multiple chromosome views share all their configuration state, so that would be odd.
     
-    if (displaySpecies)// && !isSelectable() && enabled())
-	{
-        QMenu contextMenu("chromosome_menu", this);
-        
-        QAction *displayMutations = contextMenu.addAction("Display Mutations");
-        displayMutations->setCheckable(true);
-        displayMutations->setChecked(shouldDrawMutations_);
-        
-        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
-        displaySubstitutions->setCheckable(true);
-        displaySubstitutions->setChecked(shouldDrawFixedSubstitutions_);
-        
-        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
-        displayGenomicElements->setCheckable(true);
-        displayGenomicElements->setChecked(shouldDrawGenomicElements_);
-        
-        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
-        displayRateMaps->setCheckable(true);
-        displayRateMaps->setChecked(shouldDrawRateMaps_);
-        
-        contextMenu.addSeparator();
-        
-        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
-        displayFrequencies->setCheckable(true);
-        displayFrequencies->setChecked(!display_haplotypes_);
-        
-        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
-        displayHaplotypes->setCheckable(true);
-        displayHaplotypes->setChecked(display_haplotypes_);
-        
-        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
-        displayGroup->addAction(displayFrequencies);
-        displayGroup->addAction(displayHaplotypes);
-        
-        QAction *displayAllMutations = nullptr;
-        QAction *selectNonneutralMutations = nullptr;
-        
-		if (displaySpecies)
-		{
-			std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
-			
-			if (muttypes.size() > 0)
-			{
-                contextMenu.addSeparator();
-                
-                displayAllMutations = contextMenu.addAction("Display All Mutations");
-                displayAllMutations->setCheckable(true);
-                displayAllMutations->setChecked(display_muttypes_.size() == 0);
-                
-                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
-				std::vector<slim_objectid_t> all_muttypes;
-				
-				for (auto muttype_iter : muttypes)
-				{
-					MutationType *muttype = muttype_iter.second;
-					slim_objectid_t muttype_id = muttype->mutation_type_id_;
-					
-					all_muttypes.emplace_back(muttype_id);
-				}
-				
-				all_muttypes.insert(all_muttypes.end(), display_muttypes_.begin(), display_muttypes_.end());
-                
-                // Avoid building a huge menu, which will hang the app
-				if (all_muttypes.size() <= 500)
-				{
-					std::sort(all_muttypes.begin(), all_muttypes.end());
-					all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
-					
-					// Then add menu items for each of those muttypes
-					for (slim_objectid_t muttype_id : all_muttypes)
-					{
-                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
-                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
-                        
-                        mutationAction->setData(muttype_id);
-                        mutationAction->setCheckable(true);
-                        
-						if (std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id) != display_muttypes_.end())
-							mutationAction->setChecked(true);
-					}
-				}
-                
-                contextMenu.addSeparator();
-                
-                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
-            }
-        }
-        
-        // Run the context menu synchronously
-        QAction *action = contextMenu.exec(p_globalPoint);
-        
-        // Act upon the chosen action; we just do it right here instead of dealing with slots
-        if (action)
-        {
-            if (action == displayMutations)
-                shouldDrawMutations_ = !shouldDrawMutations_;
-            else if (action == displaySubstitutions)
-                shouldDrawFixedSubstitutions_ = !shouldDrawFixedSubstitutions_;
-            else if (action == displayGenomicElements)
-                shouldDrawGenomicElements_ = !shouldDrawGenomicElements_;
-            else if (action == displayRateMaps)
-                shouldDrawRateMaps_ = !shouldDrawRateMaps_;
-            else if (action == displayFrequencies)
-                display_haplotypes_ = false;
-            else if (action == displayHaplotypes)
-                display_haplotypes_ = true;
-            else if (displaySpecies)
-            {
-                std::map<slim_objectid_t,MutationType*> &muttypes = displaySpecies->mutation_types_;
-                
-                if (action == displayAllMutations)
-                    display_muttypes_.clear();
-                else if (action == selectNonneutralMutations)
-                {
-                    // - (IBAction)filterNonNeutral:(id)sender
-                    display_muttypes_.clear();
-                    
-                    for (auto muttype_iter : muttypes)
-                    {
-                        MutationType *muttype = muttype_iter.second;
-                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
-                        
-                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
-                            display_muttypes_.emplace_back(muttype_id);
-                    }
-                }
-                else
-                {
-                    // - (IBAction)filterMutations:(id)sender
-                    slim_objectid_t muttype_id = action->data().toInt();
-                    auto present_iter = std::find(display_muttypes_.begin(), display_muttypes_.end(), muttype_id);
-                    
-                    if (present_iter == display_muttypes_.end())
-                    {
-                        // this mut-type is not being displayed, so add it to our display list
-                        display_muttypes_.emplace_back(muttype_id);
-                    }
-                    else
-                    {
-                        // this mut-type is being displayed, so remove it from our display list
-                        display_muttypes_.erase(present_iter);
-                    }
-                }
-            }
-            
-            update();
-        }
-    }
-}
-
-void QtSLiMChromosomeWidget::contextMenuEvent(QContextMenuEvent *p_event)
-{
-    if (!selectable_)
-        runContextMenuAtPoint(p_event->globalPos());
+    //if (!selectable_)
+    //    controller_->runChromosomeContextMenuAtPoint(p_event->globalPos());
 }
 
 

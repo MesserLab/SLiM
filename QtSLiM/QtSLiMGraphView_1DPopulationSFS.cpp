@@ -185,7 +185,7 @@ QtSLiMLegendSpec QtSLiMGraphView_1DPopulationSFS::legendKey(void)
 	return mutationTypeLegendKey();     // we use the prefab mutation type legend
 }
 
-void QtSLiMGraphView_1DPopulationSFS::controllerSelectionChanged(void)
+void QtSLiMGraphView_1DPopulationSFS::controllerChromosomeSelectionChanged(void)
 {
     invalidateDrawingCache();
     update();

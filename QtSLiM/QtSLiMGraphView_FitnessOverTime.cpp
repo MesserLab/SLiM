@@ -85,14 +85,6 @@ void QtSLiMGraphView_FitnessOverTime::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-void QtSLiMGraphView_FitnessOverTime::controllerSelectionChanged(void)
-{
-    invalidateDrawingCache();
-    update();
-	
-	QtSLiMGraphView::controllerSelectionChanged();
-}
-
 QString QtSLiMGraphView_FitnessOverTime::graphTitle(void)
 {
     return "Fitness ~ Time";

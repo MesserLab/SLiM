@@ -88,14 +88,6 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::controllerRecycled(void)
 	QtSLiMGraphView::controllerRecycled();
 }
 
-void QtSLiMGraphView_MultispeciesPopSizeOverTime::controllerSelectionChanged(void)
-{
-    invalidateDrawingCache();
-    update();
-	
-	QtSLiMGraphView::controllerSelectionChanged();
-}
-
 QString QtSLiMGraphView_MultispeciesPopSizeOverTime::graphTitle(void)
 {
     return "Multispecies Population Size ~ Time";

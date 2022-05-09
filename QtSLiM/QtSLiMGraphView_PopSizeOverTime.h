@@ -45,7 +45,6 @@ public:
 public slots:
     virtual void invalidateDrawingCache(void) override;
     virtual void controllerRecycled(void) override;
-    virtual void controllerSelectionChanged(void) override;
     virtual void updateAfterTick(void) override;
     void toggleShowSubpopulations(void);
     void toggleDrawLines(void);

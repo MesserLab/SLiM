@@ -49,6 +49,7 @@ class SLiMgui;
 class QtSLiMGraphView;
 class QtSLiMScriptTextEdit;
 class QtSLiMDebugOutputWindow;
+class QtSLiMChromosomeWidget;
 
 
 namespace Ui {
@@ -127,6 +128,15 @@ public:
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
     bool reloadingSpeciesBar = false;
+    
+    // chromosome view configuration, kept by us because it applies to all chromosome views in multispecies models
+    bool chromosome_shouldDrawMutations_ = true;
+    bool chromosome_shouldDrawFixedSubstitutions_ = false;
+    bool chromosome_shouldDrawGenomicElements_ = false;
+    bool chromosome_shouldDrawRateMaps_ = false;
+    
+    bool chromosome_display_haplotypes_ = false;                // if false, displaying frequencies; if true, displaying haplotypes
+    std::vector<slim_objectid_t> chromosome_display_muttypes_;  // if empty, display all mutation types; otherwise, display only the muttypes chosen
 
 public:
     typedef enum {
@@ -233,7 +243,7 @@ signals:
     void controllerChangeCountChanged(int changeCount);
     
     void controllerUpdatedAfterTick(void);
-    void controllerSelectionChanged(void);
+    void controllerChromosomeSelectionChanged(void);
     void controllerTickFinished(void);
     void controllerRecycled(void);
     
@@ -342,6 +352,15 @@ protected:
     QSplitter *bottomSplitter = nullptr;
     
     void interpolateSplitters(void);
+    
+    // multispecies chromosome view support
+    std::vector<QVBoxLayout *> chromosomeWidgetLayouts;
+    std::vector<QtSLiMChromosomeWidget *> chromosomeOverviewWidgets;
+    std::vector<QtSLiMChromosomeWidget *> chromosomeZoomedWidgets;
+    
+    void removeExtraChromosomeViews(void);
+    void addChromosomeWidgets(QVBoxLayout *layout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
+    void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
     
 private:
     void glueUI(void);
