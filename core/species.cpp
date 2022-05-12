@@ -5388,6 +5388,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	// New provenance reading code, using the JSON for Modern C++ library (json.hpp); 
 	
 	std::string model_type_str;
+	std::string cycle_stage_str;
 	long long tick_ll, gen_ll;
 
 	////////////
@@ -5414,6 +5415,9 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 			tick_ll = metadata["SLiM"]["tick"];
 		else
 			tick_ll = gen_ll;		// when tick is missing, assume it is equal to cycle
+		
+		if (metadata["SLiM"].contains("stage"))
+			cycle_stage_str = metadata["SLiM"]["stage"];
 		
 		if (metadata["SLiM"].contains("name"))
 		{
@@ -5544,6 +5548,9 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 				
 				tick_ll = j["slim"]["cycle"];			// assumed to be the same as the cycle, for this file format version
 				
+				if (j["parameters"].contains("stage"))
+					cycle_stage_str = j["parameters"]["stage"];
+				
 				//rem_count_ll = j["slim"]["remembered_node_count"];	// no longer using this key
 			}
 			catch (...)
@@ -5583,6 +5590,34 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	
 	*p_tick = (slim_tick_t)tick_ll;
 	*p_cycle = (slim_tick_t)gen_ll;
+	
+	// check the cycle stage for a match, warn on mismatch; this is new in SLiM 4, seems like a good idea
+	if (cycle_stage_str.length())
+	{
+		if (cycle_stage_str == "first")
+		{
+			// loading in a first() event is not currently allowed, so presumably such saves will be loaded in early()
+			if ((community_.CycleStage() != SLiMCycleStage::kWFStage0ExecuteFirstScripts) &&
+				(community_.CycleStage() != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) &&
+				(community_.CycleStage() != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) &&
+				(community_.CycleStage() != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the cycle stage of the .trees file ('first') does not match the current cycle stage." << std::endl;
+		}
+		else if (cycle_stage_str == "early")
+		{
+			if ((community_.CycleStage() != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) &&
+				(community_.CycleStage() != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the cycle stage of the .trees file ('early') does not match the current cycle stage." << std::endl;
+		}
+		else if (cycle_stage_str == "late")
+		{
+			if ((community_.CycleStage() != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+				(community_.CycleStage() != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the cycle stage of the .trees file ('late') does not match the current cycle stage." << std::endl;
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): a cycle stage is given in metadata, but its value ('" << cycle_stage_str << "') is unrecognized." << EidosTerminate();
+	}
 #endif
 }
 
