@@ -511,6 +511,7 @@ public:
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	
+	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);
 	void __ConfigureSubpopulationsFromTables(EidosInterpreter *p_interpreter);

@@ -6315,6 +6315,61 @@ typedef struct ts_subpop_info {
 	std::vector<uint32_t> flags_;
 } ts_subpop_info;
 
+void Species::__PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap)
+{
+	// This reads the subpopulation table and creates ts_subpop_info records for the non-empty subpopulations
+	// Doing this first allows us to check that individuals are going into subpopulations that we understand
+	// The code here is duplicated to some extent in __ConfigureSubpopulationsFromTables(), which finalizes things
+	tsk_population_table_t &pop_table = tables_.populations;
+	tsk_size_t pop_count = pop_table.num_rows;
+	
+	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
+	{
+		// validate and parse metadata; get metadata values or fall back to default values
+		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+		
+		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+		std::string metadata_string(metadata_char, metadata_length);
+		nlohmann::json subpop_metadata;
+		
+		try {
+			subpop_metadata = nlohmann::json::parse(metadata_string);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
+		}
+
+		if (subpop_metadata.is_null()) {
+			// 'null' rows in the population table correspond to unused subpop IDs; ignore them
+			// note that 'null' is required by tskit, it cannot just be empty; see _InstantiateSLiMObjectsFromTables(), WritePopulationTable()
+			continue;
+		}
+		
+		if (!subpop_metadata.is_object())
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
+		
+		slim_objectid_t subpop_id;
+		
+		if (!subpop_metadata.contains("slim_id"))
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
+		else if (!subpop_metadata["slim_id"].is_number_integer())
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+		else
+			subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
+		
+		// bounds-check the subpop id
+		if ((subpop_id < 0) || (subpop_id > SLIM_MAX_ID_VALUE))
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): subpopulation id out of range (" << subpop_id << "); ids must be >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
+		
+		// create the ts_subpop_info record for this subpop_id
+		if (p_subpopInfoMap.find(subpop_id) != p_subpopInfoMap.end())
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): subpopulation id (" << subpop_id << ") occurred twice in the subpopulation table." << EidosTerminate();
+		if (subpop_id != (int)pop_index)
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): slim_id value " << subpop_id << " occurred at the wrong index in the subpopulation table; entries must be at their corresponding index." << EidosTerminate();
+		
+		p_subpopInfoMap.emplace(subpop_id, ts_subpop_info());
+	}
+}
+
 void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type)
 {
 	size_t individual_count = p_ts->tables->individuals.num_rows;
@@ -6340,14 +6395,14 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		
 		IndividualMetadataRec *metadata = (IndividualMetadataRec *)(individual.metadata);
 		
-		// bounds-check the subpop id
+		// find the ts_subpop_info rec for this individual's subpop, created by __PrepareSubpopulationsFromTables()
 		slim_objectid_t subpop_id = metadata->subpopulation_id_;
-		if ((subpop_id < 0) || (subpop_id > SLIM_MAX_ID_VALUE))
-			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individuals loaded into a WF model must have subpop indices >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
+		auto subpop_info_iter = p_subpopInfoMap.find(subpop_id);
 		
-		// find the ts_subpop_info rec for this individual's subpop
-		auto subpop_info_insert = p_subpopInfoMap.emplace(subpop_id, ts_subpop_info());
-		ts_subpop_info &subpop_info = (subpop_info_insert.first)->second;
+		if (subpop_info_iter == p_subpopInfoMap.end())
+			EIDOS_TERMINATION << "ERROR (Species::__TabulateSubpopulationsFromTreeSequence): individual has a subpopulation id (" << subpop_id << ") that is not described by the population table." << EidosTerminate();
+		
+		ts_subpop_info &subpop_info = subpop_info_iter->second;
 		
 		// check and tabulate sex within each subpop
 		IndividualSex sex = metadata->sex_;
@@ -6627,36 +6682,18 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
 		// validate and parse metadata; get metadata values or fall back to default values
+		// note that __PrepareSubpopulationsFromTables() already did this work, so we skip checks
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
-		
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
 		std::string metadata_string(metadata_char, metadata_length);
-		nlohmann::json subpop_metadata;
-		
-		try {
-			subpop_metadata = nlohmann::json::parse(metadata_string);
-		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
-		}
+		nlohmann::json subpop_metadata = nlohmann::json::parse(metadata_string);
 
-        if (subpop_metadata.is_null()) {
-			// 'null' rows in the population table correspond to unused subpop IDs; ignore them
-			// note that 'null' is required by tskit, it cannot just be empty; see _InstantiateSLiMObjectsFromTables(), WritePopulationTable()
+        if (subpop_metadata.is_null())
 			continue;
-        }
 		
-		if (!subpop_metadata.is_object())
-			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
+		slim_objectid_t subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
 		
-		slim_objectid_t subpop_id;
-		
-		if (!subpop_metadata.contains("slim_id"))
-			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
-		else if (!subpop_metadata["slim_id"].is_number_integer())
-			EIDOS_TERMINATION << "ERROR (Species::__ConfigureSubpopulationsFromTables): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
-		else
-			subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
-		
+		// Now we get to new work not done by __PrepareSubpopulationsFromTables()
 		double metadata_selfing_fraction = 0.0;
 		double metadata_female_clone_fraction = 0.0;
 		double metadata_male_clone_fraction = 0.0;
@@ -7457,6 +7494,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	{
 		std::unordered_map<slim_objectid_t, ts_subpop_info> subpopInfoMap;
 		
+		__PrepareSubpopulationsFromTables(subpopInfoMap);
 		__TabulateSubpopulationsFromTreeSequence(subpopInfoMap, ts, p_file_model_type);
 		__CreateSubpopulationsFromTabulation(subpopInfoMap, p_interpreter, nodeToGenomeMap);
 		__ConfigureSubpopulationsFromTables(p_interpreter);
