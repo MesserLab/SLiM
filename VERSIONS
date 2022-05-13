@@ -96,6 +96,7 @@ development head (in the master branch):
 		add recipe 18.15, showing how to unique down to the ancestral state when that is desirable
 		add an "all" tab to the species bar, to see all species simultaneously in the UI
 		add a [No$ subpopMap = NULL] parameter to readFromPopulationFile() to allow remapping of subpopulation ids on load, for .trees
+		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
 		
 
 version 3.7.1 (Eidos version 2.7.1):
