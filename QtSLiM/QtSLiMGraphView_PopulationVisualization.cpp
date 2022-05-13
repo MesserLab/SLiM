@@ -348,13 +348,12 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 	return score;
 }
 
-#ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
 void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 {
-    Species *species = controller_->community->single_species_;
-	Population &pop = species->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	size_t subpopCount = pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -553,13 +552,13 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 	free(best_x);
 	free(best_y);
 }
-#endif	// SLIM_WF_ONLY
 
 void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect)
 {
     Species *graphSpecies = focalDisplaySpecies();
 	Population &pop = graphSpecies->population_;
 	int subpopCount = static_cast<int>(pop.subpops_.size());
+    Community &community = graphSpecies->community_;
 	
 	if (subpopCount == 0)
 	{
@@ -629,10 +628,8 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		}
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
-#ifdef SLIM_WF_ONLY
-		if ((community->ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
+		if ((community.ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
 			optimizePositions();
-#endif	// SLIM_WF_ONLY
 		
 		if (!allUserConfigured)
 		{
@@ -680,24 +677,23 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-#if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
 			for (auto destSubpopIter : pop.subpops_)
 			{
 				Subpopulation *destSubpop = destSubpopIter.second;
-				std::map<slim_objectid_t,double> &destMigrants = (community->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
+				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter : destMigrants)
 				{
 					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
-                    Subpopulation *sourceSubpop = species->SubpopulationWithID(sourceSubpopID);
+                    Subpopulation *sourceSubpop = graphSpecies->SubpopulationWithID(sourceSubpopID);
 					
 					if (sourceSubpop)
 					{
 						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
-						if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
+						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)
 						{
 							if (sourceSubpop->gui_premigration_size_ <= 0)
 								continue;
@@ -718,7 +714,6 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 				}
 			}
 		}
-#endif
 	}
 	
 	// We're done with our transformed coordinate system

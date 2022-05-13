@@ -107,13 +107,11 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
     const MutationIndex *registry_iter_end = registry + registry_size;
     
-#ifdef SLIM_WF_ONLY
     if (population.child_generation_valid_)
     {
         qDebug() << "child_generation_valid_ set in fetchDataForFinishedTick";
         return;
     }
-#endif	// SLIM_WF_ONLY
     
     // Check that the subpop and muttype we're supposed to be surveying exists; if not, bail.
     bool hasSubpop = true, hasMuttype = true;
