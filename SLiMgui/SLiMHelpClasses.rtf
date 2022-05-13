@@ -5810,13 +5810,16 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf0 \'96\'a0(integer$)readFromPopulationFile(string$\'a0filePath\cf2 , [No$\'a0subpopMap\'a0=\'a0NULL]\cf0 )\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Read from a population initialization file, whether in text or binary format as previously specified to 
+\f4\fs20 \cf2 Read from a population initialization file, whether in text or binary format as previously specified to 
 \f3\fs18 outputFull()
-\f5\fs20 ,
-\f4  and return the generation counter value represented by the file\'92s contents (i.e., the generation at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in generation 1, immediately after simulation initialization), it may be called in any Eidos event; the current state of all populations will be wiped and replaced by the state in the file at 
+\f4\fs20 , and return the tick counter value represented by the file\'92s contents (i.e., the tick at which the file was generated).  Although this is most commonly used to set up initial populations (often in an Eidos event set to run in tick 1, immediately after simulation initialization), it may be called in any 
+\f3\fs18 early()
+\f4\fs20  or 
+\f3\fs18 late()
+\f4\fs20  Eidos event; the current state of all populations in the target species will be wiped and replaced by the state in the file at 
 \f3\fs18 filePath
 \f4\fs20 .  All Eidos variables that are of type 
 \f3\fs18 object
@@ -5830,7 +5833,7 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f3\fs18 Individual
 \f4\fs20 , or 
 \f3\fs18 Substitution
-\f4\fs20  will be removed as a side effect of this method, since all such variables would refer to objects that no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
+\f4\fs20  will be removed as a side effect of this method if they contain any element that belongs to the target species, because those objects will no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.\
 If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
@@ -5856,10 +5859,12 @@ In SLiM 3.0 when using the nonWF model, calling
 \f4\fs20  event is almost always correct in nonWF models, so that fitness values can be automatically recalculated by SLiM at the usual time in the generation cycle without the need to force their recalculation (see comments on 
 \f3\fs18 recalculateFitness()
 \f4\fs20 ).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 2.1, this method changes the generation counter to the generation read from the file.  If you do not want the generation counter to be changed, you can change it back after reading, by setting 
-\f3\fs18 sim.generation
-\f4\fs20  to whatever value you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 2.1, this method changes the tick and cycle counters to the tick and cycle read from the file.  If you do not want these counters to be changed, you can change them back after reading, by setting 
+\f3\fs18 community.tick
+\f4\fs20  and 
+\f3\fs18 sim.cycle
+\f4\fs20  to whatever values you wish.  Note that restoring a saved past state and running forward again will not yield the same simulation results, because the random number generator\'92s state will not be the same; to ensure reproducibility from a given time point, 
 \f3\fs18 setSeed()
 \f4\fs20  can be used to establish a new seed value.  Any changes made to structure of the species (mutation types, genomic element types, etc.) will not be wiped and re-established by 
 \f3\fs18 readFromPopulationFile()
@@ -5889,19 +5894,60 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f4\i0  if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
-\expnd0\expndtw0\kerning0
-This method can also be used to read tree-sequence (
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This method can also be used to read tree-sequence (
 \f3\fs18 .trees
 \f4\fs20 ) files saved by 
 \f3\fs18 treeSeqOutput()
 \f4\fs20  or generated by the Python 
 \f3\fs18 pyslim
-\f4\fs20  package.  When loading a tree sequence, a crosscheck of the loaded data will be performed to ensure that the tree sequence was well-formed and was loaded correctly.  When running a Release build of SLiM, however, this crosscheck will only occur the first time that 
+\f4\fs20  package.  Beginning with SLiM 4, the 
+\f3\fs18 subpopMap
+\f4\fs20  parameter may be supplied to remap the subpopulation ids used in the 
+\f3\fs18 .trees
+\f4\fs20  file to different SLiM ids.  This parameter must have a value that is a 
+\f3\fs18 Dictionary
+\f4\fs20  (or a subclass of 
+\f3\fs18 Dictionary
+\f4\fs20 , such as 
+\f3\fs18 DataFrame
+\f4\fs20 ) with keys that are the 
+\f1\i new
+\f4\i0  subpopulation ids (as SLiM-style 
+\f3\fs18 string
+\f4\fs20  identifiers like 
+\f3\fs18 "p7"
+\f4\fs20 ), and values that are the 
+\f1\i old
+\f4\i0  subpopulation ids (as 
+\f3\fs18 integer
+\f4\fs20  values like 
+\f3\fs18 7
+\f4\fs20 ).  For example, if you pass 
+\f3\fs18 Dictionary("p3", 1)
+\f4\fs20  for 
+\f3\fs18 subpopMap
+\f4\fs20 , that requests that the subpopulation with an id of 
+\f3\fs18 1
+\f4\fs20  in the file should be loaded as subpopulation 
+\f3\fs18 p3
+\f4\fs20  in SLiM.  This makes it easier to load simulation data that was generated in Python, since that typically uses an id of 
+\f3\fs18 0
+\f4\fs20 .  Note that if 
+\f3\fs18 subpopMap
+\f4\fs20  is non-
+\f3\fs18 NULL
+\f4\fs20 , providing a remapping dictionary, then 
+\f1\i all
+\f4\i0  of the subpopulation ids referenced by the tree sequence must be explicitly remapped in that dictionary (although they can be remapped to their original value \'96 their ids need not all change).  The 
+\f3\fs18 subpopMap
+\f4\fs20  parameter may not be used with file formats other than tree-sequence files, at the present time; setting up the correct subpopulation ids is typically easier when working with those other formats.\
+When loading a tree sequence, a crosscheck of the loaded data will be performed to ensure that the tree sequence was well-formed and was loaded correctly.  When running a Release build of SLiM, however, this crosscheck will only occur the first time that 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted or read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL])\
+\f3\fs18 \cf0 \'96\'a0(void)recalculateFitness([Ni$\'a0tick\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Force an immediate recalculation of fitness values for all individuals in all subpopulations.  Normally fitness values are calculated at a fixed point in each generation, and those values are cached and used until the next recalculation.  If simulation parameters are changed in script in a way that affects fitness calculations, and if you wish those changes to take effect immediately rather than taking effect at the next automatic recalculation, you may call 

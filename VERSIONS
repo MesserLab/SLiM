@@ -95,6 +95,7 @@ development head (in the master branch):
 		modify recipe 18.14 to unique down nucleotide-based mutations regardless of their mutation type (mutation() rather than mutation(m1))
 		add recipe 18.15, showing how to unique down to the ancestral state when that is desirable
 		add an "all" tab to the species bar, to see all species simultaneously in the UI
+		add a [No$ subpopMap = NULL] parameter to readFromPopulationFile() to allow remapping of subpopulation ids on load, for .trees
 		
 
 version 3.7.1 (Eidos version 2.7.1):

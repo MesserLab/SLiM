@@ -368,7 +368,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 	}
 }
 
-slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter)
+slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap)
 {
 	SLiMFileFormat file_format = FormatOfPopulationFile(p_file_string);
 	
@@ -406,6 +406,9 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
     
 	if ((file_format == SLiMFileFormat::kFormatSLiMText) || (file_format == SLiMFileFormat::kFormatSLiMBinary))
 	{
+		if (p_subpop_remap.size() > 0)
+			EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): the subpopMap parameter is currently supported only when reading .trees files; for other file types it must be NULL (or an empty Dictionary)." << EidosTerminate();
+		
 		// TREE SEQUENCE RECORDING
 		if (RecordingTreeSequence())
 		{
@@ -432,9 +435,13 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 		}
 	}
 	else if (file_format == SLiMFileFormat::kFormatTskitText)
-		new_tick = _InitializePopulationFromTskitTextFile(file_cstr, p_interpreter);
+	{
+		new_tick = _InitializePopulationFromTskitTextFile(file_cstr, p_interpreter, p_subpop_remap);
+	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_kastore)
-		new_tick = _InitializePopulationFromTskitBinaryFile(file_cstr, p_interpreter);
+	{
+		new_tick = _InitializePopulationFromTskitBinaryFile(file_cstr, p_interpreter, p_subpop_remap);
+	}
 	else if (file_format == SLiMFileFormat::kFormatTskitBinary_HDF5)
 		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): msprime HDF5 binary files are not supported; that file format has been superseded by kastore." << EidosTerminate();
 	else
@@ -647,7 +654,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
 		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has not been defined for this species." << EidosTerminate();
 		
 		if (!Eidos_ApproximatelyEqual(mutation_type_ptr->dominance_coeff_, dominance_coeff))	// a reasonable tolerance to allow for I/O roundoff
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromTextFile): mutation type m"<< mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
@@ -1343,7 +1350,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		MutationType *mutation_type_ptr = MutationTypeWithID(mutation_type_id);
 		
 		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has not been defined for this species." << EidosTerminate();
 		
 		if (mutation_type_ptr->dominance_coeff_ != dominance_coeff)		// no tolerance, unlike _InitializePopulationFromTextFile(); should match exactly here since we used binary
 			EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): mutation type m" << mutation_type_id << " has dominance coefficient " << mutation_type_ptr->dominance_coeff_ << " that does not match the population file dominance coefficient of " << dominance_coeff << "." << EidosTerminate();
@@ -5419,15 +5426,16 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 		if (metadata["SLiM"].contains("stage"))
 			cycle_stage_str = metadata["SLiM"]["stage"];
 		
-		if (metadata["SLiM"].contains("name"))
+		/*if (metadata["SLiM"].contains("name"))
 		{
 			// If a species name is present, it must match our own name; can't load data across species, as a safety measure
 			// If users find this annoying, it can be relaxed; nothing really depends on it
+			// BCH 5/12/2022: OK, it is already annoying; disabling this check for now
 			std::string metadata_name = metadata["SLiM"]["name"];
 			
 			if (metadata_name != name_)
 				EIDOS_TERMINATION << "ERROR (Species::ReadTreeSequenceMetadata): this .trees file represents a species named " << metadata_name << ", which does not match the name of the target species, " << name_ << "; species names must match." << EidosTerminate();
-		}
+		}*/
 		
 		if (metadata["SLiM"].contains("description"))
 		{
@@ -6336,6 +6344,454 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	}
 }
 
+void Species::__RewriteOldIndividualsMetadata(int p_file_version)
+{
+	// rewrite individuals table metadata if it is in the old (pre-parent-pedigree-id) format; after this,
+	// the format is current, so all downstream code can just assume the current metadata format
+	if (p_file_version < 7)
+	{
+		size_t row_count = tables_.individuals.num_rows;
+
+		if (row_count > 0)
+		{
+			size_t old_metadata_rec_size = sizeof(IndividualMetadataRec_PREPARENT);
+			size_t new_metadata_rec_size = sizeof(IndividualMetadataRec);
+
+			if (row_count * old_metadata_rec_size != tables_.individuals.metadata_length)
+				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): unexpected individuals table metadata length when translating metadata from pre-parent format." << EidosTerminate();
+
+			size_t new_metadata_length = row_count * new_metadata_rec_size;
+			IndividualMetadataRec *new_metadata_buffer = (IndividualMetadataRec *)malloc(new_metadata_length);
+
+			if (!new_metadata_buffer)
+				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+
+			for (size_t row_index = 0; row_index < row_count; ++row_index)
+			{
+				IndividualMetadataRec_PREPARENT *old_metadata = ((IndividualMetadataRec_PREPARENT *)tables_.individuals.metadata) + row_index;
+				IndividualMetadataRec *new_metadata = new_metadata_buffer + row_index;
+
+				new_metadata->pedigree_id_ = old_metadata->pedigree_id_;
+				new_metadata->pedigree_p1_ = -1;
+				new_metadata->pedigree_p2_ = -1;
+				new_metadata->age_ = old_metadata->age_;
+				new_metadata->subpopulation_id_ = old_metadata->subpopulation_id_;
+				new_metadata->sex_ = old_metadata->sex_;
+				new_metadata->flags_ = old_metadata->flags_;
+			}
+
+			for (size_t row_index = 0; row_index <= row_count; ++row_index)
+				tables_.individuals.metadata_offset[row_index] = row_index * new_metadata_rec_size;
+
+			free(tables_.individuals.metadata);
+			tables_.individuals.metadata = (char *)new_metadata_buffer;
+			tables_.individuals.metadata_length = new_metadata_length;
+			tables_.individuals.max_metadata_length = new_metadata_length;
+		}
+
+		// replace the metadata schema; note that we don't check that the old schema is what we expect it to be
+		int ret = tsk_individual_table_set_metadata_schema(&tables_.individuals,
+				gSLiM_tsk_individual_metadata_schema.c_str(),
+				(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_individual_table_set_metadata_schema", ret);
+	}
+}
+
+void Species::__RewriteOrCheckPopulationMetadata(void)
+{
+	// check population table metadata
+	char *pop_schema_ptr = tables_.populations.metadata_schema;
+	tsk_size_t pop_schema_len = tables_.populations.metadata_schema_length;
+	std::string pop_schema(pop_schema_ptr, pop_schema_len);
+	
+	if (pop_schema == gSLiM_tsk_population_metadata_schema_PREJSON)
+	{
+		// The population table metadata is in the old (pre-JSON) format; rewrite it.  After this munging,
+		// the format is current, so all downstream code can just assume the current metadata format.
+		size_t row_count = tables_.populations.num_rows;
+		
+		if (row_count > 0)
+		{
+			std::string new_metadata;
+			tsk_size_t *new_metadata_offsets = (tsk_size_t *)malloc((tables_.populations.max_rows + 1) * sizeof(tsk_size_t));
+			
+			if (!new_metadata_offsets)
+				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			new_metadata_offsets[0] = 0;
+			
+			for (size_t row_index = 0; row_index < row_count; ++row_index)
+			{
+				SubpopulationMetadataRec_PREJSON *old_metadata = ((SubpopulationMetadataRec_PREJSON *)tables_.populations.metadata) + row_index;
+				tsk_size_t old_metadata_length = tables_.populations.metadata_offset[row_index + 1] - tables_.populations.metadata_offset[row_index];
+				
+				if (old_metadata_length)
+				{
+					if (old_metadata_length < sizeof(SubpopulationMetadataRec_PREJSON))
+						EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
+					
+					tsk_size_t old_metadata_expected_length = sizeof(SubpopulationMetadataRec_PREJSON) + old_metadata->migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec_PREJSON);
+					
+					if (old_metadata_length != old_metadata_expected_length)
+						EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
+					
+					nlohmann::json new_metadata_json = nlohmann::json::object();
+					
+					double bounds_x0 = old_metadata->bounds_x0_;		// need to use temporaries because some compilers don't like taking a reference inside a packed struct
+					double bounds_x1 = old_metadata->bounds_x1_;
+					double bounds_y0 = old_metadata->bounds_y0_;
+					double bounds_y1 = old_metadata->bounds_y1_;
+					double bounds_z0 = old_metadata->bounds_z0_;
+					double bounds_z1 = old_metadata->bounds_z1_;
+					slim_objectid_t subpopulation_id = old_metadata->subpopulation_id_;
+					double selfing_fraction = old_metadata->selfing_fraction_;
+					double female_clone_fraction = old_metadata->female_clone_fraction_;
+					double male_clone_fraction = old_metadata->male_clone_fraction_;
+					double sex_ratio = old_metadata->sex_ratio_;
+					
+					new_metadata_json["bounds_x0"] = bounds_x0;
+					new_metadata_json["bounds_x1"] = bounds_x1;
+					new_metadata_json["bounds_y0"] = bounds_y0;
+					new_metadata_json["bounds_y1"] = bounds_y1;
+					new_metadata_json["bounds_z0"] = bounds_z0;
+					new_metadata_json["bounds_z1"] = bounds_z1;
+					new_metadata_json["female_cloning_fraction"] = female_clone_fraction;
+					new_metadata_json["male_cloning_fraction"] = male_clone_fraction;
+					new_metadata_json["selfing_fraction"] = selfing_fraction;
+					new_metadata_json["sex_ratio"] = sex_ratio;
+					new_metadata_json["slim_id"] = subpopulation_id;
+					
+					if (old_metadata->migration_rec_count_ > 0)
+					{
+						SubpopulationMigrationMetadataRec_PREJSON *migration_base_ptr = (SubpopulationMigrationMetadataRec_PREJSON *)(old_metadata + 1);
+						nlohmann::json migration_records = nlohmann::json::array();
+						
+						for (size_t migration_index = 0; migration_index < old_metadata->migration_rec_count_; ++migration_index)
+						{
+							nlohmann::json migration_record = nlohmann::json::object();
+							
+							double migration_rate = migration_base_ptr[migration_index].migration_rate_;				// avoid compiler issues with packed structs
+							slim_objectid_t source_subpop_id = migration_base_ptr[migration_index].source_subpop_id_;
+							
+							migration_record["migration_rate"] = migration_rate;
+							migration_record["source_subpop"] = source_subpop_id;
+							
+							migration_records.emplace_back(std::move(migration_record));
+						}
+						
+						new_metadata_json["migration_records"] = std::move(migration_records);
+					}
+					
+					new_metadata_json["name"] = SLiMEidosScript::IDStringWithPrefix('p', old_metadata->subpopulation_id_);
+					
+					std::string new_metadata_record = new_metadata_json.dump();
+					
+					new_metadata.append(new_metadata_record);
+					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + new_metadata_record.length();
+				}
+				else
+				{
+					// The tskit JSON metadata parser expects a 4-byte "null" value for empty metadata; it can't just be empty.
+					// See also WritePopulationTable(), __ConfigureSubpopulationsFromTables() for interacting code.
+					new_metadata.append("null");
+					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + 4;
+				}
+			}
+			
+			size_t new_metadata_length = new_metadata.length();
+			char *new_metadata_buffer = (char *)malloc(new_metadata_length);
+			
+			if (!new_metadata_buffer)
+				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			
+			memcpy(new_metadata_buffer, new_metadata.c_str(), new_metadata_length);
+			
+			free(tables_.populations.metadata);
+			free(tables_.populations.metadata_offset);
+			tables_.populations.metadata = new_metadata_buffer;
+			tables_.populations.metadata_length = new_metadata_length;
+			tables_.populations.max_metadata_length = new_metadata_length;
+			tables_.populations.metadata_offset = new_metadata_offsets;
+		}
+		
+		// replace the metadata schema
+		int ret = tsk_population_table_set_metadata_schema(&tables_.populations,
+				gSLiM_tsk_population_metadata_schema.c_str(),
+				(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
+		if (ret != 0)
+			handle_error("tsk_population_table_set_metadata_schema", ret);
+	}
+	else
+	{
+		// If it is not in the pre-JSON format, check that it is JSON; we don't accept binary non-JSON metadata.
+		// This is necessary because we will carry this metadata over when we output a new population table on save;
+		// this metadata must be compatible with our schema, which is a JSON schema.  Technically (FIXME), we ought to
+		// confirm that this schema also considers `slim_id` to be a required key, I think, otherwise the data we
+		// carry over might be non-compliant with the schema we state for it; but for now we pend such checks.
+		// See https://github.com/MesserLab/SLiM/issues/169 for discussion about schema checking/compatibility.
+		nlohmann::json pop_schema_json;
+		
+		try {
+			pop_schema_json = nlohmann::json::parse(pop_schema);
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): the population metadata schema does not parse as a valid JSON string." << EidosTerminate(nullptr);
+		}
+		
+		if (pop_schema_json["codec"] != "json")
+			EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): the population metadata schema must be JSON, or must match the exact binary schema used by SLiM prior to 3.7." << EidosTerminate(nullptr);
+	}
+}
+
+// We need a reverse hash to construct the remapped population table
+#if EIDOS_ROBIN_HOOD_HASHING
+typedef robin_hood::unordered_flat_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
+#elif STD_UNORDERED_MAP_HASHING
+typedef std::unordered_map<slim_objectid_t, int64_t> SUBPOP_REMAP_REVERSE_HASH;
+#endif
+
+void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_file_version)
+{
+	// If we have been given a remapping table, this method munges all of the data
+	// and metadata in the treeseq tables to accomplish that remapping.  It is gross
+	// to have to do this on the raw table data, but we need that data to be corrected
+	// so that we can simulate forward from it.  Every subpop id referenced in the
+	// tables must be remapped; if a map is given, it must remap everything.  We have
+	// to check all metadata carefully, since this remap happens before other checks.
+	if (p_subpop_map.size() > 0)
+	{
+		SUBPOP_REMAP_REVERSE_HASH subpop_reverse_hash;	// from SLiM subpop id back to the table index read
+		slim_objectid_t remapped_row_count = 0;			// the number of rows we need in the remapped population table
+		int ret = 0;
+		
+		// First we will scan the population table metadata to assess the situation
+		{
+			tsk_population_table_t &pop_table = tables_.populations;
+			tsk_size_t pop_count = pop_table.num_rows;
+			
+			for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
+			{
+				// validate and parse metadata
+				size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
+				
+				char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+				std::string metadata_string(metadata_char, metadata_length);
+				nlohmann::json subpop_metadata;
+				slim_objectid_t subpop_id = (slim_objectid_t)pop_index, remapped_id;
+				
+				try {
+					subpop_metadata = nlohmann::json::parse(metadata_string);
+				} catch (...) {
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
+				}
+
+				if (subpop_metadata.is_null())
+				{
+					// 'null' rows in the population table correspond to unused subpop IDs
+					auto remap_iter = p_subpop_map.find(subpop_id);
+					
+					// null lines are usually not remapped, so we don't require a remap here, but if they
+					// are referenced by other data then they will have to be, so we allow it
+					if (remap_iter == p_subpop_map.end())
+						continue;
+					
+					remapped_id = remap_iter->second;
+				}
+				else
+				{
+					// fetch the slim_id from metadata
+					if (!subpop_metadata.is_object())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
+					
+					if (!subpop_metadata.contains("slim_id"))
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
+					else if (!subpop_metadata["slim_id"].is_number_integer())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+					
+					slim_objectid_t slim_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
+					
+					// enforce the slim_id == index invariant here; it is not clear that we really need this invariant,
+					// but I'm going to enforce it for now so I don't have to think about it
+					if (slim_id != subpop_id)
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata value for key 'slim_id' is not equal to the table index; this file cannot be read." << EidosTerminate(nullptr);
+					
+					// since the metadata is not null, a remap is required; check for it and fetch it
+					auto remap_iter = p_subpop_map.find(subpop_id);
+					
+					if (remap_iter == p_subpop_map.end())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): subpopulation id " << subpop_id << " is used in the population table, but is not remapped in subpopMap." << EidosTerminate();
+					
+					remapped_id = remap_iter->second;
+				}
+				
+				// this remap seems good; do the associated bookkeeping
+				if (remapped_id >= remapped_row_count)
+					remapped_row_count = remapped_id + 1;	// +1 so the count encompasses [0, remapped_id]
+				
+				subpop_reverse_hash.emplace(std::pair<slim_objectid_t, int64_t>(remapped_id, subpop_id));
+			}
+		}
+		
+		// Next we reorder the actual rows of the population table, using a copy of the table
+		{
+			tsk_id_t tsk_population_id;
+			tsk_population_table_t *population_table_copy;
+			population_table_copy = (tsk_population_table_t *)malloc(sizeof(tsk_population_table_t));
+			if (!population_table_copy)
+				EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			ret = tsk_population_table_copy(&tables_.populations, population_table_copy, 0);
+			if (ret != 0) handle_error("__RemapSubpopulationIDs tsk_population_table_copy()", ret);
+			ret = tsk_population_table_clear(&tables_.populations);
+			if (ret != 0) handle_error("__RemapSubpopulationIDs tsk_population_table_clear()", ret);
+			
+			for (slim_objectid_t remapped_row_index = 0; remapped_row_index < remapped_row_count; ++remapped_row_index)
+			{
+				auto reverse_iter = subpop_reverse_hash.find(remapped_row_index);
+				
+				if (reverse_iter == subpop_reverse_hash.end())
+				{
+					// No remap hash entry for this row index, so it must be an empty row
+					tsk_population_id = tsk_population_table_add_row(&tables_.populations, "null", 4);
+				}
+				else
+				{
+					// We have a remap entry; this could be an empty row or not
+					tsk_id_t original_row_index = (slim_objectid_t)reverse_iter->second;
+					size_t metadata_length = population_table_copy->metadata_offset[original_row_index + 1] - population_table_copy->metadata_offset[original_row_index];
+					char *metadata_char = population_table_copy->metadata + population_table_copy->metadata_offset[original_row_index];
+					std::string metadata_string(metadata_char, metadata_length);
+					nlohmann::json subpop_metadata = nlohmann::json::parse(metadata_string);
+
+					if (subpop_metadata.is_null())
+					{
+						// There is a remap entry for this, but it is an empty row; no slim_id
+						tsk_population_id = tsk_population_table_add_row(&tables_.populations, "null", 4);
+					}
+					else
+					{
+						// This is a non-empty row; we need to re-generate metadata to fix slim_id
+						subpop_metadata["slim_id"] = remapped_row_index;
+						
+						// We also need to fix the "name" metadata key when it equals the SLiM identifier
+						if (subpop_metadata.contains("name"))
+						{
+							nlohmann::json value = subpop_metadata["name"];
+							if (!value.is_string())
+								EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'name' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+							std::string metadata_name = value.get<std::string>();
+							std::string id_name = SLiMEidosScript::IDStringWithPrefix('p', original_row_index);
+							
+							if (metadata_name == id_name)
+								subpop_metadata["name"] = SLiMEidosScript::IDStringWithPrefix('p', remapped_row_index);;
+						}
+						
+						metadata_string = subpop_metadata.dump();
+						tsk_population_id = tsk_population_table_add_row(&tables_.populations, (char *)metadata_string.c_str(), (uint32_t)metadata_string.length());
+					}
+				}
+				
+				// check the tsk_population_id returned by tsk_population_table_add_row() above
+				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+				assert(tsk_population_id == remapped_row_index);
+			}
+			
+			ret = tsk_population_table_free(population_table_copy);
+			if (ret != 0) handle_error("tsk_population_table_free", ret);
+			free(population_table_copy);
+		}
+		
+		// Next we remap subpop_index_ in the mutation metadata, in place
+		{
+			std::size_t metadata_rec_size = ((p_file_version < 3) ? sizeof(MutationMetadataRec_PRENUC) : sizeof(MutationMetadataRec));
+			tsk_mutation_table_t &mut_table = tables_.mutations;
+			tsk_size_t num_rows = mut_table.num_rows;
+			
+			for (tsk_size_t mut_index = 0; mut_index < num_rows; ++mut_index)
+			{
+				char *metadata_bytes = mut_table.metadata + mut_table.metadata_offset[mut_index];
+				tsk_size_t metadata_length = mut_table.metadata_offset[mut_index + 1] - mut_table.metadata_offset[mut_index];
+				
+				if (metadata_length % metadata_rec_size != 0)
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected mutation metadata length; this file cannot be read." << EidosTerminate();
+				
+				int stack_count = (int)(metadata_length / metadata_rec_size);
+				
+				for (int stack_index = 0; stack_index < stack_count; ++stack_index)
+				{
+					// Here we have to deal with the metadata format, which could be old
+					if (p_file_version < 3)
+					{
+						MutationMetadataRec_PRENUC *prenuc_metadata = (MutationMetadataRec_PRENUC *)metadata_bytes + stack_index;
+						slim_objectid_t old_subpop = prenuc_metadata->subpop_index_;
+						auto remap_iter = p_subpop_map.find(old_subpop);
+						
+						if (remap_iter == p_subpop_map.end())
+							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+						
+						prenuc_metadata->subpop_index_ = remap_iter->second;
+					}
+					else
+					{
+						MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_bytes + stack_index;
+						slim_objectid_t old_subpop = metadata->subpop_index_;
+						auto remap_iter = p_subpop_map.find(old_subpop);
+						
+						if (remap_iter == p_subpop_map.end())
+							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+						
+						metadata->subpop_index_ = remap_iter->second;
+					}
+				}
+			}
+		}
+		
+		// Next we remap subpopulation_id_ in the individual metadata, in place
+		// Note tht __RewriteOldIndividualsMetadata() has already been called,
+		// so we only need to worry about the current metadata format
+		{
+			tsk_individual_table_t &ind_table = tables_.individuals;
+			tsk_size_t num_rows = ind_table.num_rows;
+			
+			for (tsk_size_t ind_index = 0; ind_index < num_rows; ++ind_index)
+			{
+				char *metadata_bytes = ind_table.metadata + ind_table.metadata_offset[ind_index];
+				tsk_size_t metadata_length = ind_table.metadata_offset[ind_index + 1] - ind_table.metadata_offset[ind_index];
+				
+				if (metadata_length != sizeof(IndividualMetadataRec))
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): unexpected individual metadata length; this file cannot be read." << EidosTerminate();
+				
+				IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
+				slim_objectid_t old_subpop = metadata->subpopulation_id_;
+				auto remap_iter = p_subpop_map.find(old_subpop);
+				
+				if (remap_iter == p_subpop_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+				
+				metadata->subpopulation_id_ = remap_iter->second;
+			}
+		}
+		
+		// Finally, we remap subpop ids in the population column of the node table, in place
+		{
+			tsk_node_table_t &node_table = tables_.nodes;
+			tsk_size_t num_rows = node_table.num_rows;
+			
+			for (tsk_size_t node_index = 0; node_index < num_rows; ++node_index)
+			{
+				tsk_id_t old_subpop = node_table.population[node_index];
+				auto remap_iter = p_subpop_map.find(old_subpop);
+				
+				if (remap_iter == p_subpop_map.end())
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+				
+				node_table.population[node_index] = remap_iter->second;
+			}
+		}
+		
+		// We do not use the migration table, so we do not remap it here
+	}
+}
+
 typedef struct ts_subpop_info {
 	slim_popsize_t countMH_ = 0, countF_ = 0;
 	std::vector<IndividualSex> sex_;
@@ -7148,7 +7604,7 @@ void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid
 		MutationType *mutation_type_ptr = MutationTypeWithID(metadata.mutation_type_id_);
 		
 		if (!mutation_type_ptr) 
-			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::__CreateMutationsFromTabulation): mutation type m" << metadata.mutation_type_id_ << " has not been defined for this species." << EidosTerminate();
 		
 		if ((mut_info.ref_count == fixation_count) && (mutation_type_ptr->convert_to_substitution_))
 		{
@@ -7297,7 +7753,7 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	free(vg);
 }
 
-void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version)
+void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
 {
 	// set the tick and cycle from the provenance data
 	if (tables_.sequence_length != chromosome_->last_position_ + 1)
@@ -7317,198 +7773,10 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	for (size_t mut_index = 0; mut_index < tables_.mutations.num_rows; ++mut_index)
 		tables_.mutations.time[mut_index] -= time_adjustment;
 	
-	// rewrite individuals table metadata if it is in the old (pre-parent-pedigree-id) format; after this,
-	// the format is current, so all downstream code can just assume the current metadata format
-	if (p_file_version < 7)
-	{
-		size_t row_count = tables_.individuals.num_rows;
-
-		if (row_count > 0)
-		{
-			size_t old_metadata_rec_size = sizeof(IndividualMetadataRec_PREPARENT);
-			size_t new_metadata_rec_size = sizeof(IndividualMetadataRec);
-
-			if (row_count * old_metadata_rec_size != tables_.individuals.metadata_length)
-				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): unexpected individuals table metadata length when translating metadata from pre-parent format." << EidosTerminate();
-
-			size_t new_metadata_length = row_count * new_metadata_rec_size;
-			IndividualMetadataRec *new_metadata_buffer = (IndividualMetadataRec *)malloc(new_metadata_length);
-
-			if (!new_metadata_buffer)
-				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-
-			for (size_t row_index = 0; row_index < row_count; ++row_index)
-			{
-				IndividualMetadataRec_PREPARENT *old_metadata = ((IndividualMetadataRec_PREPARENT *)tables_.individuals.metadata) + row_index;
-				IndividualMetadataRec *new_metadata = new_metadata_buffer + row_index;
-
-				new_metadata->pedigree_id_ = old_metadata->pedigree_id_;
-				new_metadata->pedigree_p1_ = -1;
-				new_metadata->pedigree_p2_ = -1;
-				new_metadata->age_ = old_metadata->age_;
-				new_metadata->subpopulation_id_ = old_metadata->subpopulation_id_;
-				new_metadata->sex_ = old_metadata->sex_;
-				new_metadata->flags_ = old_metadata->flags_;
-			}
-
-			for (size_t row_index = 0; row_index <= row_count; ++row_index)
-				tables_.individuals.metadata_offset[row_index] = row_index * new_metadata_rec_size;
-
-			free(tables_.individuals.metadata);
-			tables_.individuals.metadata = (char *)new_metadata_buffer;
-			tables_.individuals.metadata_length = new_metadata_length;
-			tables_.individuals.max_metadata_length = new_metadata_length;
-		}
-
-		// replace the metadata schema; note that we don't check that the old schema is what we expect it to be
-		int ret = tsk_individual_table_set_metadata_schema(&tables_.individuals,
-				gSLiM_tsk_individual_metadata_schema.c_str(),
-				(tsk_size_t)gSLiM_tsk_individual_metadata_schema.length());
-		if (ret != 0)
-			handle_error("tsk_individual_table_set_metadata_schema", ret);
-	}
-	
-	// check population table metadata
-	char *pop_schema_ptr = tables_.populations.metadata_schema;
-	tsk_size_t pop_schema_len = tables_.populations.metadata_schema_length;
-	std::string pop_schema(pop_schema_ptr, pop_schema_len);
-	
-	if (pop_schema == gSLiM_tsk_population_metadata_schema_PREJSON)
-	{
-		// The population table metadata is in the old (pre-JSON) format; rewrite it.  After this munging,
-		// the format is current, so all downstream code can just assume the current metadata format.
-		size_t row_count = tables_.populations.num_rows;
-		
-		if (row_count > 0)
-		{
-			std::string new_metadata;
-			tsk_size_t *new_metadata_offsets = (tsk_size_t *)malloc((tables_.populations.max_rows + 1) * sizeof(tsk_size_t));
-			
-			if (!new_metadata_offsets)
-				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			new_metadata_offsets[0] = 0;
-			
-			for (size_t row_index = 0; row_index < row_count; ++row_index)
-			{
-				SubpopulationMetadataRec_PREJSON *old_metadata = ((SubpopulationMetadataRec_PREJSON *)tables_.populations.metadata) + row_index;
-				tsk_size_t old_metadata_length = tables_.populations.metadata_offset[row_index + 1] - tables_.populations.metadata_offset[row_index];
-				
-				if (old_metadata_length)
-				{
-					if (old_metadata_length < sizeof(SubpopulationMetadataRec_PREJSON))
-						EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
-					
-					tsk_size_t old_metadata_expected_length = sizeof(SubpopulationMetadataRec_PREJSON) + old_metadata->migration_rec_count_ * sizeof(SubpopulationMigrationMetadataRec_PREJSON);
-					
-					if (old_metadata_length != old_metadata_expected_length)
-						EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): binary population metadata is not the expected length." << EidosTerminate(nullptr);
-					
-					nlohmann::json new_metadata_json = nlohmann::json::object();
-					
-					double bounds_x0 = old_metadata->bounds_x0_;		// need to use temporaries because some compilers don't like taking a reference inside a packed struct
-					double bounds_x1 = old_metadata->bounds_x1_;
-					double bounds_y0 = old_metadata->bounds_y0_;
-					double bounds_y1 = old_metadata->bounds_y1_;
-					double bounds_z0 = old_metadata->bounds_z0_;
-					double bounds_z1 = old_metadata->bounds_z1_;
-					slim_objectid_t subpopulation_id = old_metadata->subpopulation_id_;
-					double selfing_fraction = old_metadata->selfing_fraction_;
-					double female_clone_fraction = old_metadata->female_clone_fraction_;
-					double male_clone_fraction = old_metadata->male_clone_fraction_;
-					double sex_ratio = old_metadata->sex_ratio_;
-					
-					new_metadata_json["bounds_x0"] = bounds_x0;
-					new_metadata_json["bounds_x1"] = bounds_x1;
-					new_metadata_json["bounds_y0"] = bounds_y0;
-					new_metadata_json["bounds_y1"] = bounds_y1;
-					new_metadata_json["bounds_z0"] = bounds_z0;
-					new_metadata_json["bounds_z1"] = bounds_z1;
-					new_metadata_json["female_cloning_fraction"] = female_clone_fraction;
-					new_metadata_json["male_cloning_fraction"] = male_clone_fraction;
-					new_metadata_json["selfing_fraction"] = selfing_fraction;
-					new_metadata_json["sex_ratio"] = sex_ratio;
-					new_metadata_json["slim_id"] = subpopulation_id;
-					
-					if (old_metadata->migration_rec_count_ > 0)
-					{
-						SubpopulationMigrationMetadataRec_PREJSON *migration_base_ptr = (SubpopulationMigrationMetadataRec_PREJSON *)(old_metadata + 1);
-						nlohmann::json migration_records = nlohmann::json::array();
-						
-						for (size_t migration_index = 0; migration_index < old_metadata->migration_rec_count_; ++migration_index)
-						{
-							nlohmann::json migration_record = nlohmann::json::object();
-							
-							double migration_rate = migration_base_ptr[migration_index].migration_rate_;				// avoid compiler issues with packed structs
-							slim_objectid_t source_subpop_id = migration_base_ptr[migration_index].source_subpop_id_;
-							
-							migration_record["migration_rate"] = migration_rate;
-							migration_record["source_subpop"] = source_subpop_id;
-							
-							migration_records.emplace_back(std::move(migration_record));
-						}
-						
-						new_metadata_json["migration_records"] = std::move(migration_records);
-					}
-					
-					new_metadata_json["name"] = SLiMEidosScript::IDStringWithPrefix('p', old_metadata->subpopulation_id_);
-					
-					std::string new_metadata_record = new_metadata_json.dump();
-					
-					new_metadata.append(new_metadata_record);
-					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + new_metadata_record.length();
-				}
-				else
-				{
-					// The tskit JSON metadata parser expects a 4-byte "null" value for empty metadata; it can't just be empty.
-					// See also WritePopulationTable(), __ConfigureSubpopulationsFromTables() for interacting code.
-					new_metadata.append("null");
-					new_metadata_offsets[row_index + 1] = new_metadata_offsets[row_index] + 4;
-				}
-			}
-			
-			size_t new_metadata_length = new_metadata.length();
-			char *new_metadata_buffer = (char *)malloc(new_metadata_length);
-			
-			if (!new_metadata_buffer)
-				EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			memcpy(new_metadata_buffer, new_metadata.c_str(), new_metadata_length);
-			
-			free(tables_.populations.metadata);
-			free(tables_.populations.metadata_offset);
-			tables_.populations.metadata = new_metadata_buffer;
-			tables_.populations.metadata_length = new_metadata_length;
-			tables_.populations.max_metadata_length = new_metadata_length;
-			tables_.populations.metadata_offset = new_metadata_offsets;
-		}
-		
-		// replace the metadata schema
-		int ret = tsk_population_table_set_metadata_schema(&tables_.populations,
-				gSLiM_tsk_population_metadata_schema.c_str(),
-				(tsk_size_t)gSLiM_tsk_population_metadata_schema.length());
-		if (ret != 0)
-			handle_error("tsk_population_table_set_metadata_schema", ret);
-	}
-	else
-	{
-		// If it is not in the pre-JSON format, check that it is JSON; we don't accept binary non-JSON metadata.
-		// This is necessary because we will carry this metadata over when we output a new population table on save;
-		// this metadata must be compatible with our schema, which is a JSON schema.  Technically (FIXME), we ought to
-		// confirm that this schema also considers `slim_id` to be a required key, I think, otherwise the data we
-		// carry over might be non-compliant with the schema we state for it; but for now we pend such checks.
-		// See https://github.com/MesserLab/SLiM/issues/169 for discussion about schema checking/compatibility.
-		nlohmann::json pop_schema_json;
-		
-		try {
-			pop_schema_json = nlohmann::json::parse(pop_schema);
-		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): the population metadata schema does not parse as a valid JSON string." << EidosTerminate(nullptr);
-		}
-		
-		if (pop_schema_json["codec"] != "json")
-			EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): the population metadata schema must be JSON, or must match the exact binary schema used by SLiM prior to 3.7." << EidosTerminate(nullptr);
-	}
+	// rewrite the incoming tree-seq information in various ways
+	__RewriteOldIndividualsMetadata(p_file_version);
+	__RewriteOrCheckPopulationMetadata();
+	__RemapSubpopulationIDs(p_subpop_map, p_file_version);
 	
 	// allocate and set up the tree_sequence object
 	// note that this tree sequence is based upon whatever sample the file was saved with, and may contain in-sample individuals
@@ -7624,7 +7892,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	last_coalescence_state_ = false;
 }
 
-slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter)
+slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	std::string directory_path(p_file);
@@ -7676,7 +7944,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
 	
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!was_recording_tree)
@@ -7689,7 +7957,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	return metadata_tick;
 }
 
-slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
+slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	int ret;
@@ -7765,7 +8033,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	}
 
 	// make the corresponding SLiM objects
-	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version);
+	_InstantiateSLiMObjectsFromTables(p_interpreter, metadata_tick, metadata_cycle, file_model_type, file_version, p_subpop_map);
 	
 	// if tree-seq is not on, throw away the tree-seq data structures now that we're done loading SLiM state
 	if (!was_recording_tree)

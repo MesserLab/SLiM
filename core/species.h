@@ -221,9 +221,15 @@ private:
 	GenomeType modeled_chromosome_type_ = GenomeType::kAutosome;					// the chromosome type; other types might still be instantiated (Y, if X is modeled, e.g.)
 	
 	// private initialization methods
+#if EIDOS_ROBIN_HOOD_HASHING
+	typedef robin_hood::unordered_flat_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
+ #elif STD_UNORDERED_MAP_HASHING
+	typedef std::unordered_map<int64_t, slim_objectid_t> SUBPOP_REMAP_HASH;
+ #endif
+	
 	SLiMFileFormat FormatOfPopulationFile(const std::string &p_file_string);		// determine the format of a file/folder at the given path using leading bytes, etc.
 	void _CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter);				// clean up in anticipation of loading new species state
-	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter);	// initialize the population from the file
+	slim_tick_t InitializePopulationFromFile(const std::string &p_file_string, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from the file
 	slim_tick_t _InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter);				// initialize the population from a SLiM text file
 	slim_tick_t _InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);			// initialize the population from a SLiM binary file
 	
@@ -314,10 +320,8 @@ private:
 	
 #if EIDOS_ROBIN_HOOD_HASHING
 	typedef robin_hood::unordered_flat_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
-	typedef robin_hood::pair<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH_PAIR;
  #elif STD_UNORDERED_MAP_HASHING
 	typedef std::unordered_map<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH;
-	typedef std::pair<slim_pedigreeid_t, tsk_id_t> INDIVIDUALS_HASH_PAIR;
  #endif
 	INDIVIDUALS_HASH tabled_individuals_hash_;	// look up individuals table row numbers from pedigree IDs
 
@@ -511,6 +515,9 @@ public:
 	void CheckTreeSeqIntegrity(void);		// checks the tree sequence tables themselves
 	void CrosscheckTreeSeqIntegrity(void);	// checks the tree sequence tables against SLiM's data structures
 	
+	void __RewriteOldIndividualsMetadata(int p_file_version);
+	void __RewriteOrCheckPopulationMetadata(void);
+	void __RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_file_version);
 	void __PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap);
 	void __TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, tsk_treeseq_t *p_ts, SLiMModelType p_file_model_type);
 	void __CreateSubpopulationsFromTabulation(std::unordered_map<slim_objectid_t, ts_subpop_info> &p_subpopInfoMap, EidosInterpreter *p_interpreter, std::unordered_map<tsk_id_t, Genome *> &p_nodeToGenomeMap);
@@ -519,9 +526,9 @@ public:
 	void __TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
 	void __CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap);
 	void __AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts);
-	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version);	// given tree-seq tables, makes individuals, genomes, and mutations
-	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit text file
-	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter);	// initialize the population from an tskit binary file
+	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, genomes, and mutations
+	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map);	// initialize the population from an tskit text file
+	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
 	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
 	void TSXC_Enable(void);

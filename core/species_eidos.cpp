@@ -2410,7 +2410,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (integer$)readFromPopulationFile(string$ filePath)
+//	*********************	- (integer$)readFromPopulationFile(string$ filePath, [No<Dictionary>$ subpopMap = NULL])
 //
 EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -2445,7 +2445,48 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	std::string file_path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(filePath_value->StringAtIndex(0, nullptr)));
-	slim_tick_t file_tick = InitializePopulationFromFile(file_path, &p_interpreter);
+	
+	EidosValue *subpopMap_value = p_arguments[1].get();
+	SUBPOP_REMAP_HASH subpopRemap;
+	
+	if (subpopMap_value->Type() != EidosValueType::kValueNULL)
+	{
+		// This is not type-checked by Eidos, because we would have to declare the parameter as being of type "DictionaryBase",
+		// which is an implementation detail that we try to hide.  So we just declare it as No$ and type-check it here.
+		EidosObject *subpopMap_element = subpopMap_value->ObjectElementAtIndex(0, nullptr);
+		
+		if (!subpopMap_element->IsKindOfClass(gEidosDictionaryUnretained_Class))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() requires that subpopMap be a Dictionary or a subclass of Dictionary." << EidosTerminate();
+		
+		EidosDictionaryUnretained *subpopMap_dict = dynamic_cast<EidosDictionaryUnretained *>(subpopMap_element);
+		
+		if (!subpopMap_dict)
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): (internal) subpopMap object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
+		
+		const EidosDictionaryHashTable *subpopMap_hash = subpopMap_dict->DictionarySymbols();
+		
+		for (auto &subpopMap_pair : *subpopMap_hash)
+		{
+			std::string slim_id_string = subpopMap_pair.first;
+			slim_objectid_t slim_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(slim_id_string, 'p', nullptr);
+			EidosValue *table_id_value = subpopMap_pair.second.get();
+			
+			if ((table_id_value->Type() != EidosValueType::kValueInt) || (table_id_value->Count() != 1))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap values must be singleton integers." << EidosTerminate();
+			
+			int64_t table_id = table_id_value->IntAtIndex(0, nullptr);
+			
+			if ((table_id < 0) || (table_id > SLIM_MAX_ID_VALUE))
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap value (" << table_id << ") is out of range." << EidosTerminate();
+			
+			if (subpopRemap.find(table_id) != subpopRemap.end())
+				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap value (" << table_id << ") is not unique; more than one subpopulation id is mapped from it." << EidosTerminate();
+			
+			subpopRemap.emplace(std::pair<int64_t, slim_objectid_t>(table_id, slim_id));
+		}
+	}
+	
+	slim_tick_t file_tick = InitializePopulationFromFile(file_path, &p_interpreter, subpopRemap);
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(file_tick));
 }
@@ -3067,7 +3108,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFixedMutations, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputFull, kEidosValueMaskVOID))->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("binary", gStaticEidosValue_LogicalF)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("spatialPositions", gStaticEidosValue_LogicalT)->AddLogical_OS("ages", gStaticEidosValue_LogicalT)->AddLogical_OS("ancestralNucleotides", gStaticEidosValue_LogicalT)->AddLogical_OS("pedigreeIDs", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_readFromPopulationFile, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddString_S(gEidosStr_filePath)->AddObject_OSN("subpopMap", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_recalculateFitness, kEidosValueMaskVOID))->AddInt_OSN("tick", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerFitnessCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_SN("mutType", gSLiM_MutationType_Class)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_registerMateChoiceCallback, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SLiMEidosBlock_Class))->AddIntString_SN("id")->AddString_S(gEidosStr_source)->AddIntObject_OSN("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
