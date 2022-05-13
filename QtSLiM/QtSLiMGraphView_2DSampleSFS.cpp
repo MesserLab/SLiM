@@ -106,7 +106,7 @@ void QtSLiMGraphView_2DSampleSFS::subpopulation1PopupChanged(int /* index */)
     {
         selectedSubpopulation1ID_ = newSubpopID;
         xAxisLabel_ = QString("Count in p%1 sample").arg(selectedSubpopulation1ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -120,7 +120,7 @@ void QtSLiMGraphView_2DSampleSFS::subpopulation2PopupChanged(int /* index */)
     {
         selectedSubpopulation2ID_ = newSubpopID;
         yAxisLabel_ = QString("Count in p%1 sample").arg(selectedSubpopulation2ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -133,7 +133,7 @@ void QtSLiMGraphView_2DSampleSFS::mutationTypePopupChanged(int /* index */)
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -169,7 +169,7 @@ QString QtSLiMGraphView_2DSampleSFS::aboutString(void)
            "the action menu.  The 2D Population SFS graph provides an alternative that might also be useful.";
 }
 
-void QtSLiMGraphView_2DSampleSFS::invalidateDrawingCache(void)
+void QtSLiMGraphView_2DSampleSFS::invalidateCachedData(void)
 {
     if (sfs2dbuf_)
     {
@@ -177,7 +177,7 @@ void QtSLiMGraphView_2DSampleSFS::invalidateDrawingCache(void)
         sfs2dbuf_ = nullptr;
     }
     
-    QtSLiMGraphView::invalidateDrawingCache();
+    QtSLiMGraphView::invalidateCachedData();
 }
 
 void QtSLiMGraphView_2DSampleSFS::updateAfterTick(void)
@@ -188,7 +188,7 @@ void QtSLiMGraphView_2DSampleSFS::updateAfterTick(void)
     addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_, selectedSubpopulation1ID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
@@ -283,7 +283,7 @@ void QtSLiMGraphView_2DSampleSFS::changeZAxisScale(void)
         {
             zAxisMax_ = (double)newZMax;
             
-            invalidateDrawingCache();
+            invalidateCachedData();
             update();
         }
         else qApp->beep();
@@ -304,7 +304,7 @@ void QtSLiMGraphView_2DSampleSFS::changeSampleSize(void)
             histogramBinCount_ = newSampleSize + 1;
             xAxisMax_ = histogramBinCount_ - 1;
             yAxisMax_ = histogramBinCount_ - 1;
-            invalidateDrawingCache();
+            invalidateCachedData();
             update();
         }
         else qApp->beep();

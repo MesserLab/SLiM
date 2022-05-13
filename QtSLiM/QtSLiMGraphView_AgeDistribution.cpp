@@ -87,7 +87,7 @@ void QtSLiMGraphView_AgeDistribution::subpopulation1PopupChanged(int /* index */
         histogramBinCount_ = 10;
         xAxisMax_ = histogramBinCount_;
         
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -132,7 +132,7 @@ void QtSLiMGraphView_AgeDistribution::updateAfterTick(void)
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
@@ -167,7 +167,7 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_;
-            invalidateDrawingCache();
+            invalidateCachedData();
         }
         
         // rescale the y axis if needed

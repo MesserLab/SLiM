@@ -87,7 +87,7 @@ void QtSLiMGraphView_2DPopulationSFS::subpopulation1PopupChanged(int /* index */
     {
         selectedSubpopulation1ID_ = newSubpopID;
         xAxisLabel_ = QString("Frequency in p%1").arg(selectedSubpopulation1ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -101,7 +101,7 @@ void QtSLiMGraphView_2DPopulationSFS::subpopulation2PopupChanged(int /* index */
     {
         selectedSubpopulation2ID_ = newSubpopID;
         yAxisLabel_ = QString("Frequency in p%1").arg(selectedSubpopulation2ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -114,7 +114,7 @@ void QtSLiMGraphView_2DPopulationSFS::mutationTypePopupChanged(int /* index */)
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -159,7 +159,7 @@ void QtSLiMGraphView_2DPopulationSFS::updateAfterTick(void)
     addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_, selectedSubpopulation1ID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 

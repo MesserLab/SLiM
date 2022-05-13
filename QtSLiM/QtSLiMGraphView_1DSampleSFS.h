@@ -43,7 +43,7 @@ public:
     
 public slots:
     virtual void addedToWindow(void) override;
-    virtual void invalidateDrawingCache(void) override;
+    virtual void invalidateCachedData(void) override;
     virtual void controllerRecycled(void) override;
     virtual void updateAfterTick(void) override;
     void subpopulation1PopupChanged(int index);

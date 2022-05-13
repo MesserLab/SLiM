@@ -87,7 +87,7 @@ void QtSLiMGraphView_LifetimeReproduction::subpopulation1PopupChanged(int /* ind
         histogramBinCount_ = 11;
         xAxisMax_ = histogramBinCount_ - 1;
         
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -131,7 +131,7 @@ void QtSLiMGraphView_LifetimeReproduction::updateAfterTick(void)
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
@@ -163,7 +163,7 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_ - 1;
-            invalidateDrawingCache();
+            invalidateCachedData();
         }
         
         // rescale the y axis if needed

@@ -187,7 +187,7 @@ QtSLiMLegendSpec QtSLiMGraphView_1DPopulationSFS::legendKey(void)
 
 void QtSLiMGraphView_1DPopulationSFS::controllerChromosomeSelectionChanged(void)
 {
-    invalidateDrawingCache();
+    invalidateCachedData();
     update();
 }
 

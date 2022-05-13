@@ -302,7 +302,7 @@ void QtSLiMGraphView_FrequencyTrajectory::controllerTickFinished(void)
 	
 	if (lastTick_ != community->Tick() - 1)
 	{
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 	

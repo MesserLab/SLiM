@@ -121,6 +121,7 @@ QtSLiMGraphView::~QtSLiMGraphView()
 void QtSLiMGraphView::cleanup()
 {
     invalidateDrawingCache();
+    invalidateCachedData();
 }
 
 void QtSLiMGraphView::setFocalDisplaySpecies(Species *species)
@@ -857,6 +858,11 @@ void QtSLiMGraphView::paintEvent(QPaintEvent * /* p_paintEvent */)
     drawContents(painter);
 }
 
+void QtSLiMGraphView::invalidateCachedData()
+{
+    // GraphView has no cached data, but it supports the idea of it
+}
+
 void QtSLiMGraphView::invalidateDrawingCache(void)
 {
 	// GraphView has no drawing cache, but it supports the idea of one
@@ -879,6 +885,7 @@ void QtSLiMGraphView::controllerRecycled(void)
     updateSpeciesBadge();
     
 	invalidateDrawingCache();
+    invalidateCachedData();
     update();
     
     QPushButton *action = actionButton();
@@ -1113,6 +1120,7 @@ void QtSLiMGraphView::contextMenuEvent(QContextMenuEvent *p_event)
                     {
                         histogramBinCount_ = newBinCount;
                         invalidateDrawingCache();
+                        invalidateCachedData();
                         update();
                     }
                     else qApp->beep();

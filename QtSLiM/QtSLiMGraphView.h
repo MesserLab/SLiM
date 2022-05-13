@@ -65,6 +65,7 @@ public:
     
 public slots:
     virtual void addedToWindow(void);
+    virtual void invalidateCachedData(void);
     virtual void invalidateDrawingCache(void);
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);

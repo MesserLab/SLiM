@@ -49,7 +49,7 @@ public:
     
 public slots:
     virtual void addedToWindow(void) override;
-    void invalidateCachedData(void);
+    virtual void invalidateCachedData(void) override;
     virtual void controllerRecycled(void) override;
     virtual void controllerTickFinished(void) override;
     virtual void updateAfterTick(void) override;
