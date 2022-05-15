@@ -46,7 +46,7 @@ early() {
 	inds = sim.subpopulations.individuals;
 	inds[inds.age > 0].fitnessScaling = 0.0;
 	
-	// pre-migration density-dependent selection on each subpop
+	// pre-migration density-dependent fitness for each subpop
 	for (subpop in sim.subpopulations)
 	{
 		juvenileCount = sum(subpop.individuals.age == 0);
