@@ -617,10 +617,6 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
     double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
     slim_popsize_t subpopSize = subpop->parent_subpop_size_;
     int viewColumns = 0, viewRows = 0;
-    double subpopFitnessScaling = subpop->last_fitness_scaling_;
-    
-    if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-        subpopFitnessScaling = 1.0;
     
     // our square size is given from above (a consensus based on squareSizeForSubpopulationInArea(); calculate metrics from it
     viewColumns = static_cast<int>(floor((bounds.width() - 3) / squareSize));
@@ -700,11 +696,11 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
             else
             {
                 // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-                // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-                double fitness = individual.cached_fitness_UNSAFE_;
+                // we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
+                double fitness = individual.cached_unscaled_fitness_;
                 
                 if (!std::isnan(fitness))
-                    RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+                    RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
             }
             
             for (int j = 0; j < 4; ++j)
@@ -1330,10 +1326,6 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
 	
 	QRect individualArea(bounds.x(), bounds.y(), bounds.width() - 1, bounds.height() - 1);
 	
@@ -1488,11 +1480,11 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 		else
 		{
 			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			double fitness = individual.cached_fitness_UNSAFE_;
+			// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
+			double fitness = individual.cached_unscaled_fitness_;
 			
 			if (!std::isnan(fitness))
-				RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 		}
 		
 		for (int j = 0; j < 4; ++j)
