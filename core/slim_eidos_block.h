@@ -35,6 +35,8 @@
 #include "eidos_type_table.h"
 #include "eidos_type_interpreter.h"
 
+class Community;
+
 
 enum class SLiMEidosBlockType {
 	SLiMEidosEventFirst = 0,
@@ -204,6 +206,8 @@ public:
 	// Scan the tree for optimization purposes, called by the constructors
 	void _ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node);
 	void ScanTreeForIdentifiersUsed(void);
+	
+	void PrintDeclaration(std::ostream& p_out, Community *p_community);
 	
 	//
 	// Eidos support

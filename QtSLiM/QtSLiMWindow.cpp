@@ -1844,7 +1844,7 @@ void QtSLiMWindow::updateOutputViews(void)
 	}
     
     // BCH 2/9/2021: We now handle the error output here too, since we want to be in charge of how the
-    // debug windows shows itself, etc.  We follow the same strategy as above; comments have been removed.
+    // debug window shows itself, etc.  We follow the same strategy as above; comments have been removed.
     std::string &&newErrors = gSLiMError.str();
     
     if (!newErrors.empty())
@@ -1861,6 +1861,20 @@ void QtSLiMWindow::updateOutputViews(void)
         
         gSLiMError.clear();
         gSLiMError.str("");
+    }
+    
+    // BCH 5/15/2022: And now scheduling stream output happens here too, following the pattern above.
+    std::string &&newSchedulingOutput = gSLiMScheduling.str();
+    
+    if (!newSchedulingOutput.empty())
+    {
+        QString str = QString::fromStdString(newSchedulingOutput);
+        
+        if (debugWindow)
+            debugWindow->takeSchedulingOutput(str);
+        
+        gSLiMScheduling.clear();
+        gSLiMScheduling.str("");
     }
     
     // Scan through LogFile instances kept by the sim and flush them to the debug window
@@ -2244,9 +2258,9 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
     
     for (QtSLiMChromosomeWidget *zoomedWidget : chromosomeZoomedWidgets)
         zoomedWidget->stateChanged();
-	
-	if (fullUpdate)
-		updateTickCounter();
+    
+    if (fullUpdate)
+        updateTickCounter();
     
     if (fullUpdate)
     {

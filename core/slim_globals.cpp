@@ -167,6 +167,10 @@ void SLiM_WarmUp(void)
 std::ostringstream gSLiMOut;
 std::ostringstream gSLiMError;
 
+#ifdef SLIMGUI
+std::ostringstream gSLiMScheduling;
+#endif
+
 
 #pragma mark -
 #pragma mark Types and max values
@@ -422,8 +426,6 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 	
 	if (p_species && (found_block->species_spec_ != p_species))
 		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
-	if (!p_species && found_block->species_spec_)
-		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " is defined in a focal species, which is not allowed in this context." << EidosTerminate();
 	
 	return found_block;
 }

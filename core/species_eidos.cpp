@@ -2748,6 +2748,10 @@ EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, c
 	
 	if (species_active_)
 	{
+#ifdef SLIMGUI
+		gSLiMScheduling << "\t\tspecies " << name_ << " DEACTIVATED by skipTick()" << std::endl;
+#endif
+		
 		species_active_ = false;
 		
 		// deactivate all script blocks that have a "species" or "ticks" specifier in their declaration that refers to this species

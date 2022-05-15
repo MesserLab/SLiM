@@ -114,6 +114,16 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="QtSLiMTextEdit" name="schedulingOutputTextEdit">
+     <property name="undoRedoEnabled">
+      <bool>false</bool>
+     </property>
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <customwidgets>

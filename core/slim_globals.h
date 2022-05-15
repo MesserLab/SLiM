@@ -82,6 +82,11 @@ extern std::ostringstream gSLiMError;
 #define SLIM_OUTSTREAM		(gEidosTerminateThrows ? gSLiMOut : std::cout)
 #define SLIM_ERRSTREAM		(gEidosTerminateThrows ? gSLiMError : std::cerr)
 
+#ifdef SLIMGUI
+// When running under SLiMgui, we can have additional output streams that do not exist when running at the command line
+extern std::ostringstream gSLiMScheduling;		// information about scheduling in each tick
+#endif
+
 
 // *******************************************************************************************************************
 //
