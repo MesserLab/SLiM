@@ -97,6 +97,7 @@ development head (in the master branch):
 		add an "all" tab to the species bar, to see all species simultaneously in the UI
 		add a [No$ subpopMap = NULL] parameter to readFromPopulationFile() to allow remapping of subpopulation ids on load, for .trees
 		add a "Scheduling" tab in the output viewer that shows tick/cycle/event/callback scheduling in chronological order
+		relax the prohibition on calling cachedFitness() from late() in a WF model; it is now allowed IF recalculateFitness() has been called first
 		
 
 version 3.7.1 (Eidos version 2.7.1):

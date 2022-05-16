@@ -5809,6 +5809,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
 	
+	// This should never be hit, I think; there is no script execution opportunity while the child generation is active
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
 	
@@ -5816,8 +5817,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 	{
 		if (community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
+		
+		// We used to disallow calling cachedFitness() in late() events in WF models in all cases (since a commit on 5 March 2018),
+		// because the cached fitness values at that point are typically garbage.  However, it is useful to allow the user to call
+		// recalculateFitness() and then cachedFitness(); in that case the cached fitness values are valid.  This allows WF models
+		// to interpose logic that changes fitness values based upon fitness values (such as hard selection).
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species_.has_recalculated_fitness_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() generally cannot be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
 	}
 	else
 	{

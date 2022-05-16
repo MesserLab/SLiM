@@ -2513,6 +2513,9 @@ EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 	
 	population_.RecalculateFitness(tick);
 	
+	// Remember that we have recalculated fitness values; this unlocks the ability to call cachedFitness(), temporarily
+	has_recalculated_fitness_ = true;
+	
 	return gStaticEidosValueVOID;
 }
 

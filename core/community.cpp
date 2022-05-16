@@ -2070,6 +2070,7 @@ bool Community::_RunOneTickWF(void)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->WF_GenerateOffspring();
+				species->has_recalculated_fitness_ = false;
 			}
 		
 		// then all species switch generations; this prevents access to the child generation of one species while another is still generating offspring
@@ -2377,7 +2378,9 @@ bool Community::_RunOneTickNonWF(void)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->nonWF_GenerateOffspring();
+				species->has_recalculated_fitness_ = false;
 			}
+		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
 		
