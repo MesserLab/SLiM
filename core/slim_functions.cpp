@@ -41,6 +41,7 @@ extern const char *gSLiMSourceCode_calcVA;
 extern const char *gSLiMSourceCode_calcPairHeterozygosity;
 extern const char *gSLiMSourceCode_calcHeterozygosity;
 extern const char *gSLiMSourceCode_calcWattersonsTheta;
+extern const char *gSLiMSourceCode_calcInbreedingLoad;
 
 
 const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures(void)
@@ -67,6 +68,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("genome1", gSLiM_Genome_Class)->AddObject_S("genome2", gSLiM_Genome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcHeterozygosity", gSLiMSourceCode_calcHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcWattersonsTheta", gSLiMSourceCode_calcWattersonsTheta, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcInbreedingLoad", gSLiMSourceCode_calcInbreedingLoad, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes", gSLiM_Genome_Class)->AddObject_OSN("mutType", gSLiM_MutationType_Class, gStaticEidosValueNULL));
 		
 		// Other built-in SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
@@ -282,6 +284,57 @@ R"({
 	a_n = sum(1 / 1:(n-1));
 	theta = (k / a_n) / (species.chromosome.lastPosition + 1);
 	return theta;
+})";
+
+// (float$)calcInbreedingLoad(object<Genome> genomes, [No<MutationType>$ mutType = NULL])
+const char *gSLiMSourceCode_calcInbreedingLoad = 
+R"({
+	if (genomes.length() == 0)
+		stop("ERROR (calcInbreedingLoad()): genomes must be non-empty.");
+	if (community.allSpecies.length() > 1)
+	{
+		species = unique(genomes.individual.subpopulation.species, preserveOrder=F);
+		if (species.length() != 1)
+			stop("ERROR (calcInbreedingLoad()): genomes must all belong to the same species.");
+		if (!isNULL(mutType))
+			if (mutType.species != species)
+				stop("ERROR (calcInbreedingLoad()): mutType must belong to the same species as genomes.");
+	}
+	else
+	{
+		species = community.allSpecies;
+	}
+	
+	// get the focal mutations and narrow down to those that are deleterious
+	if (isNULL(mutType))
+		muts = species.mutations;
+	else
+		muts = species.mutationsOfType(mutType);
+	
+	muts = muts[muts.selectionCoeff < 0.0];
+	
+	// get frequencies and focus on those that are in the genomes
+	q = genomes.mutationFrequenciesInGenomes(muts);
+	inGenomes = (q > 0);
+	
+	muts = muts[inGenomes];
+	q = q[inGenomes];
+	
+	// fetch selection coefficients; note that we use the negation of
+	// SLiM's selection coefficient, following Morton et al. 1956's usage
+	s = -muts.selectionCoeff;
+	
+	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
+	// than lethal (this can happen when drawing from a gamma distribution)
+	s[s > 1.0] = 1.0;
+	
+	// get h for each mutation; note that this will not work if changing
+	// h using fitness callbacks or other scripted approaches to dominance
+	h = muts.mutationType.dominanceCoeff;
+	
+	// calculate number of haploid lethal equivalents (B or inbreeding load)
+	// this equation is from Morton et al. 1956
+	return (sum(q*s) - sum(q^2*s) - 2*sum(q*(1-q)*s*h));
 })";
 
 

@@ -100,6 +100,7 @@ development head (in the master branch):
 		relax the prohibition on calling cachedFitness() from late() in a WF model; it is now allowed IF recalculateFitness() has been called first
 		fix a bug that caused malformed metadata for (a) models where a subpop was removed, when (b) those subpops had a larger SLiM id than other subpops (and were thus at the end of the population table)
 		optimizations for several cases of sample() and sampleIndividuals() in the case of multiple draws without replacement
+		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
 		
 
 version 3.7.1 (Eidos version 2.7.1):
