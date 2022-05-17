@@ -71,7 +71,7 @@ early() {
 		}
 	}
 	
-	// post-migration density-dependent selection on each subpop
+	// post-migration density-dependent fitness for each subpop
 	for (subpop in sim.subpopulations)
 	{
 		juvenileCount = sum(subpop.individuals.age == 0);

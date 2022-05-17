@@ -1044,6 +1044,15 @@ void Community::AddScriptBlock(SLiMEidosBlock *p_script_block, EidosInterpreter 
 		std::cout << std::endl;
 	}
 #endif
+	
+#ifdef SLIMGUI
+	if (p_interpreter)		// not when initializing the community from script
+	{
+		gSLiMScheduling << "\t\tnew script block registered: ";
+		p_script_block->PrintDeclaration(gSLiMScheduling, this);
+		gSLiMScheduling << std::endl;
+	}
+#endif
 }
 
 void Community::DeregisterScheduledScriptBlocks(void)
@@ -1630,6 +1639,10 @@ bool Community::_RunOneTick(void)
 	// Activate all species at the beginning of the tick, according their modulo/phase
 	if (tick_ == 0)
 	{
+#ifdef SLIMGUI
+		gSLiMScheduling << "# initialize() callbacks executing:" << std::endl;
+#endif
+		
 		for (Species *species : all_species_)
 			species->SetActive(true);
 	}
@@ -1652,6 +1665,27 @@ bool Community::_RunOneTick(void)
 			
 			species->SetActive(false);
 		}
+		
+		
+#ifdef SLIMGUI
+		gSLiMScheduling << "# tick " << tick_ << ": ";
+		bool first_species = true;
+		
+		for (Species *species : all_species_)
+		{
+			if (!first_species)
+				gSLiMScheduling << ", ";
+			
+			if (species->Active())
+				gSLiMScheduling << "species " << species->name_ << " active (cycle " << species->cycle_ << ")";
+			else
+				gSLiMScheduling << "species " << species->name_ << " INACTIVE";
+			
+			first_species = false;
+		}
+		
+		gSLiMScheduling << std::endl;
+#endif
 	}
 	
 	// Activate registered script blocks at the beginning of the tick, unless the block's species/ticks specifier refers to an inactive species
@@ -1838,6 +1872,19 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	}
 #endif
 	
+#ifdef SLIMGUI
+	if ((p_script_block->type_ == SLiMEidosBlockType::SLiMEidosInitializeCallback) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
+		(p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+	{
+		// These four types of script blocks log out to the scheduling stream when executed in SLiMgui
+		gSLiMScheduling << "\tevent: ";
+		p_script_block->PrintDeclaration(gSLiMScheduling, this);
+		gSLiMScheduling << std::endl;
+	}
+#endif
+	
 	SLiMEidosBlockType old_executing_block_type = executing_block_type_;
 	executing_block_type_ = p_script_block->type_;
 	
@@ -2017,7 +2064,14 @@ bool Community::_RunOneTickWF(void)
 		// first all species generate offspring
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
+#endif
 				species->WF_GenerateOffspring();
+				species->has_recalculated_fitness_ = false;
+			}
 		
 		// then all species switch generations; this prevents access to the child generation of one species while another is still generating offspring
 		for (Species *species : all_species_)
@@ -2136,7 +2190,13 @@ bool Community::_RunOneTickWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
+#endif
 				species->RecalculateFitness();
+			}
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -2312,7 +2372,14 @@ bool Community::_RunOneTickNonWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
+#endif
 				species->nonWF_GenerateOffspring();
+				species->has_recalculated_fitness_ = false;
+			}
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
@@ -2375,7 +2442,13 @@ bool Community::_RunOneTickNonWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
+#endif
 				species->RecalculateFitness();
+			}
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
@@ -2409,7 +2482,13 @@ bool Community::_RunOneTickNonWF(void)
 		
 		for (Species *species : all_species_)
 			if (species->Active())
+			{
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\tviability/survival: species " << species->name_ << std::endl;
+#endif
 				species->nonWF_ViabilitySurvival();
+			}
 		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();

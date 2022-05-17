@@ -76,6 +76,8 @@ QtSLiMDebugOutputWindow::QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent) :
     ui->tabBar->setTabToolTip(0, "Debug Output");
     ui->tabBar->addTab("Run Output");
     ui->tabBar->setTabToolTip(1, "Run Output");
+    ui->tabBar->addTab("Scheduling");
+    ui->tabBar->setTabToolTip(2, "Scheduling");
     resetTabIcons();
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { resetTabIcons(); }); // adjust to dark mode change
     
@@ -104,6 +106,12 @@ QtSLiMDebugOutputWindow::QtSLiMDebugOutputWindow(QtSLiMWindow *p_parent) :
     ui->runOutputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
     ui->runOutputTextEdit->setReadOnly(true);
     
+    ui->schedulingOutputTextEdit->setOptionClickEnabled(false);
+    ui->schedulingOutputTextEdit->setCodeCompletionEnabled(false);
+    ui->schedulingOutputTextEdit->setScriptType(QtSLiMTextEdit::NoScriptType);
+    ui->schedulingOutputTextEdit->setSyntaxHighlightType(QtSLiMTextEdit::OutputHighlighting);
+    ui->schedulingOutputTextEdit->setReadOnly(true);
+    
     showDebugOutput();
     
     // make window actions for all global menu items
@@ -130,6 +138,7 @@ void QtSLiMDebugOutputWindow::hideAllViews(void)
 {
     ui->debugOutputTextEdit->setVisible(false);
     ui->runOutputTextEdit->setVisible(false);
+    ui->schedulingOutputTextEdit->setVisible(false);
     
     for (QTableWidget *logtable : logfileViews)
         logtable->setVisible(false);
@@ -148,6 +157,12 @@ void QtSLiMDebugOutputWindow::showRunOutput()
 {
     hideAllViews();
     ui->runOutputTextEdit->setVisible(true);
+}
+
+void QtSLiMDebugOutputWindow::showSchedulingOutput()
+{
+    hideAllViews();
+    ui->schedulingOutputTextEdit->setVisible(true);
 }
 
 void QtSLiMDebugOutputWindow::showLogFile(int logFileIndex)
@@ -196,6 +211,15 @@ void QtSLiMDebugOutputWindow::takeRunOutput(QString str)
     tabReceivedInput(1);
 }
 
+void QtSLiMDebugOutputWindow::takeSchedulingOutput(QString str)
+{
+    ui->schedulingOutputTextEdit->moveCursor(QTextCursor::End);
+    ui->schedulingOutputTextEdit->insertPlainText(str);
+    ui->schedulingOutputTextEdit->moveCursor(QTextCursor::End);
+    
+    tabReceivedInput(2);
+}
+
 void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path)
 {
     // First, find the index of the log file view we're taking input into
@@ -230,8 +254,8 @@ void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineEl
         QString filename = QString::fromStdString(Eidos_LastPathComponent(path));
         
         tableIndex = logfilePaths.size();
-        ui->tabBar->insertTab(tableIndex + 2, filename);
-        ui->tabBar->setTabToolTip(tableIndex + 2, filename);
+        ui->tabBar->insertTab(tableIndex + 3, filename);
+        ui->tabBar->setTabToolTip(tableIndex + 3, filename);
         
         // Add the new view's info
         logfilePaths.emplace_back(path);
@@ -296,7 +320,7 @@ void QtSLiMDebugOutputWindow::takeLogFileOutput(std::vector<std::string> &lineEl
     // but LogFile usually only fires once per tick or less, so hopefully not a big deal
     table->resizeColumnsToContents();
     
-    tabReceivedInput(tableIndex + 2);
+    tabReceivedInput(tableIndex + 3);
 }
 
 void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path)
@@ -356,21 +380,23 @@ void QtSLiMDebugOutputWindow::takeFileOutput(std::vector<std::string> &lines, bo
     
     fileview->moveCursor(QTextCursor::End);
     
-    tabReceivedInput(fileIndex + 2 + logfilePaths.size());
+    tabReceivedInput(fileIndex + 3 + logfilePaths.size());
 }
 
 void QtSLiMDebugOutputWindow::clearAllOutput(void)
 {
     ui->debugOutputTextEdit->setPlainText("");
     ui->runOutputTextEdit->setPlainText("");
+    ui->schedulingOutputTextEdit->setPlainText("");
     
-    // Remove all tabs but the base two completely; they may not exist again after recycling
-    while (ui->tabBar->count() > 2)
-        ui->tabBar->removeTab(2);
+    // Remove all tabs but the base three completely; they may not exist again after recycling
+    while (ui->tabBar->count() > 3)
+        ui->tabBar->removeTab(3);
     
-    // Reset the base two tabs to the default text color
+    // Reset the base three tabs to the default text color
     ui->tabBar->setTabTextColor(0, ui->tabBar->tabTextColor(-1));
     ui->tabBar->setTabTextColor(1, ui->tabBar->tabTextColor(-1));
+    ui->tabBar->setTabTextColor(2, ui->tabBar->tabTextColor(-1));
     
     logfilePaths.clear();
     logfileViews.clear();
@@ -386,6 +412,9 @@ void QtSLiMDebugOutputWindow::clearOutputClicked(void)
     
     if (ui->runOutputTextEdit->isVisible())
         ui->runOutputTextEdit->setPlainText("");
+    
+    if (ui->schedulingOutputTextEdit->isVisible())
+        ui->schedulingOutputTextEdit->setPlainText("");
     
     for (QTableWidget *table : logfileViews)
         if (table->isVisible())
@@ -412,9 +441,14 @@ void QtSLiMDebugOutputWindow::selectedTabChanged(void)
         showRunOutput();
         return;
     }
+    else if (tabIndex == 2)
+    {
+        showSchedulingOutput();
+        return;
+    }
     else
     {
-        tabIndex -= 2;                      // zero-base the index for logfilePaths
+        tabIndex -= 3;                      // zero-base the index for logfilePaths
         
         if ((tabIndex >= 0) && (tabIndex < (int)logfilePaths.size()))
         {

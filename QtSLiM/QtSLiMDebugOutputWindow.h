@@ -46,6 +46,7 @@ public:
     // Our various output views, which each collect output independently
     void takeDebugOutput(QString str);
     void takeRunOutput(QString str);
+    void takeSchedulingOutput(QString str);
     void takeLogFileOutput(std::vector<std::string> &lineElements, const std::string &path);
     void takeFileOutput(std::vector<std::string> &lines, bool append, const std::string &path);
     
@@ -55,6 +56,7 @@ public slots:
     
     void showDebugOutput(void);
     void showRunOutput(void);
+    void showSchedulingOutput(void);
     void showLogFile(int logFileIndex);
     void showFile(int fileIndex);
     

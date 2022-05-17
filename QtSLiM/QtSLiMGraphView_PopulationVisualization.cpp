@@ -101,15 +101,9 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
 	else
 	{
 		// calculate the color from the mean fitness of the population
-		double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
-		double totalFitness = subpop->parental_total_fitness_;
-		double subpopFitnessScaling = subpop->last_fitness_scaling_;
-		
-		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-			subpopFitnessScaling = 1.0;
-		
-		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		double fitness = ((subpopSize == 0) ? -10000.0 : (totalFitness / subpopFitnessScaling) / subpopSize);
+        // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+		const double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
+		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
 		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
 	}
 	

@@ -411,7 +411,6 @@
 		98ACDC9F253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
 		98ACDCA0253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
 		98ACDCA1253522B80038703F /* eidos_class_Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98ACDC9C253522B80038703F /* eidos_class_Object.cpp */; };
-		98ADD5B61ED2E4380027C27B /* PopulationViewOptionsSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */; };
 		98B40DFA1FB2DA8C0046F695 /* SLiMHaplotypeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */; };
 		98B40DFE1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */; };
 		98B40E011FB452440046F695 /* SLiMHaplotypeProgressSheet.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98B40DFF1FB452440046F695 /* SLiMHaplotypeProgressSheet.xib */; };
@@ -956,7 +955,6 @@
 		98ACDC9B2534CA120038703F /* eidos_class_Dictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_class_Dictionary.h; sourceTree = "<group>"; };
 		98ACDC9C253522B80038703F /* eidos_class_Object.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_class_Object.cpp; sourceTree = "<group>"; };
 		98ACDCA2253522D40038703F /* eidos_class_Object.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_class_Object.h; sourceTree = "<group>"; };
-		98ADD5B51ED2E4380027C27B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/PopulationViewOptionsSheet.xib; sourceTree = "<group>"; };
 		98AF84641CB307300030D1EB /* VERSIONS */ = {isa = PBXFileReference; lastKnownFileType = text; path = VERSIONS; sourceTree = "<group>"; };
 		98B40DF81FB2DA8C0046F695 /* SLiMHaplotypeManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLiMHaplotypeManager.h; sourceTree = "<group>"; };
 		98B40DF91FB2DA8C0046F695 /* SLiMHaplotypeManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMHaplotypeManager.mm; sourceTree = "<group>"; };
@@ -1813,7 +1811,6 @@
 				98D4C20B1A715F6100FFB083 /* AboutWindow.xib */,
 				98D4C2121A71838400FFB083 /* HelpWindow.xib */,
 				98EA965A1ECC2541006BA35B /* ProfileReport.xib */,
-				98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */,
 				98024740215D85880025D29C /* FindRecipePanel.xib */,
 				9825566E1BA4FAD00054CB3F /* SLiMHelpFunctions.rtf */,
 				982556A21BA5F0810054CB3F /* SLiMHelpClasses.rtf */,
@@ -2134,7 +2131,6 @@
 				98A4EC951B67C1D900CD92FD /* EidosConsoleWindow.xib in Resources */,
 				988794701EA8808000AE0C8D /* SLiMPDFWindow.xib in Resources */,
 				98D524661F2E6B0B005AD9A6 /* prettyprint.pdf in Resources */,
-				98ADD5B61ED2E4380027C27B /* PopulationViewOptionsSheet.xib in Resources */,
 				98453F451A75AABE00C058CB /* syntax_help.pdf in Resources */,
 				98D4C1E81A6FDE6E00FFB083 /* change_selfing_ratio.pdf in Resources */,
 				98DD5F022155B857009062EE /* change_folder.pdf in Resources */,
@@ -2828,14 +2824,6 @@
 				98A4EC931B67C1CD00CD92FD /* Base */,
 			);
 			name = EidosConsoleWindow.xib;
-			sourceTree = "<group>";
-		};
-		98ADD5B41ED2E4380027C27B /* PopulationViewOptionsSheet.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				98ADD5B51ED2E4380027C27B /* Base */,
-			);
-			name = PopulationViewOptionsSheet.xib;
 			sourceTree = "<group>";
 		};
 		98B40DFC1FB436120046F695 /* SLiMHaplotypeOptionsSheet.xib */ = {

@@ -4984,7 +4984,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		} else {
 			tsk_population_id = tsk_population_table_add_row(
 					&p_tables->populations,
-					NULL, 0);
+					"null", 4);
 			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 		}
 		assert(tsk_population_id == last_id_written);

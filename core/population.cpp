@@ -4402,42 +4402,36 @@ __attribute__((no_sanitize("integer-divide-by-zero")))
 void Population::SurveyPopulation(void)
 {
 	// Calculate mean fitness for this tick
-	double totalFitness = 0.0;
-	slim_popsize_t individualCount = 0;
+	double totalUnscaledFitness = 0.0;
+	slim_popsize_t totalPopSize = 0;
 	slim_tick_t historyIndex = community_.Tick() - 1;	// zero-base: the first tick we put something in is tick 1, and we put it at index 0
 	
-	slim_popsize_t totalPopSize = 0;
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
-		// first calculate the total fitness across the subpopulation; we used to do this during fitness calculations,
-		// but in nonWF models the population composition can change later in the cycle, due to mortality
-		// and migration, so we need to postpone this assessment to the end of the tick – now
-		double subpop_total = 0;
+		// calculate the total fitness across the subpopulation; in nonWF models the population composition can change
+		// late in the cycle, due to mortality and migration, so we postpone this assessment to the end of the tick
+		// we use the fitness without subpop fitnessScaling, to present individual fitness without density effects
+		double subpop_unscaled_total = 0;
 		
 		for (Individual *individual : subpop->parent_individuals_)
-			subpop_total += individual->cached_fitness_UNSAFE_;
+			subpop_unscaled_total += individual->cached_unscaled_fitness_;
 		
-		subpop->parental_total_fitness_ = subpop_total;
+		totalUnscaledFitness += subpop_unscaled_total;
+		totalPopSize += subpop_size;
 		
-		// then add the fitness total for the subpopulation in to our overall total; we use the fitness rescaled
-		// by the last fitnessScaling value, since we want to present individual fitness without density effects
-		double rescaled_fitness = (subpop->parental_total_fitness_ / subpop->last_fitness_scaling_);
+		double meanUnscaledFitness = subpop_unscaled_total / subpop_size;
 		
-		totalFitness += rescaled_fitness;
-		individualCount += subpop->parent_subpop_size_;
-		
-		RecordFitness(historyIndex, subpop_pair.first, rescaled_fitness / subpop->parent_subpop_size_);
-        
-        // Tally the subpop's size as well
-        RecordSubpopSize(historyIndex, subpop_pair.first, subpop->parent_subpop_size_);
-        
-        totalPopSize += subpop->parent_subpop_size_;
+		// Record for SLiMgui display
+		subpop->parental_mean_unscaled_fitness_ = meanUnscaledFitness;
+		RecordFitness(historyIndex, subpop_pair.first, meanUnscaledFitness);
+		RecordSubpopSize(historyIndex, subpop_pair.first, subpop_size);
 	}
 	
-	RecordFitness(historyIndex, -1, totalFitness / individualCount);
-    RecordSubpopSize(historyIndex, -1, totalPopSize);
+	RecordFitness(historyIndex, -1, totalUnscaledFitness / totalPopSize);
+	RecordSubpopSize(historyIndex, -1, totalPopSize);
 }
 #endif
 
@@ -4727,11 +4721,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
-#ifdef SLIMGUI
-		// in SLiMgui, remember the fitness_scaling_ value used in fitness calculations, to renormalize the display
-		subpop->last_fitness_scaling_ = subpop->fitness_scaling_;
-#endif
-		subpop->fitness_scaling_ = 1.0;
+		subpop->subpop_fitness_scaling_ = 1.0;
 		
 		// Reset fitness_scaling_ on individuals only if it has ever been changed
 		if (Individual::s_any_individual_fitness_scaling_set_)

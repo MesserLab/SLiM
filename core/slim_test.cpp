@@ -356,6 +356,11 @@ int RunSLiMTests(void)
 	gSLiMError.clear();
 	gSLiMError.str("");
 	
+#ifdef SLIMGUI
+	gSLiMScheduling.clear();
+	gSLiMScheduling.str("");
+#endif
+	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gSLiMTestFailureCount > 0) ? 1 : 0;
 }

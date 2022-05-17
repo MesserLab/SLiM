@@ -96,6 +96,10 @@ development head (in the master branch):
 		add recipe 18.15, showing how to unique down to the ancestral state when that is desirable
 		add an "all" tab to the species bar, to see all species simultaneously in the UI
 		add a [No$ subpopMap = NULL] parameter to readFromPopulationFile() to allow remapping of subpopulation ids on load, for .trees
+		add a "Scheduling" tab in the output viewer that shows tick/cycle/event/callback scheduling in chronological order
+		relax the prohibition on calling cachedFitness() from late() in a WF model; it is now allowed IF recalculateFitness() has been called first
+		fix a bug that caused malformed metadata for (a) models where a subpop was removed, when (b) those subpops had a larger SLiM id than other subpops (and were thus at the end of the population table)
+		optimizations for several cases of sample() and sampleIndividuals() in the case of multiple draws without replacement
 		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
 		
 

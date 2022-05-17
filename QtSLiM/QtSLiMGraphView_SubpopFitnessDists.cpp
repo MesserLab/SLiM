@@ -93,15 +93,10 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
         if (requestedSubpop && (subpop != requestedSubpop))
             continue;
         
-        double subpopFitnessScaling = subpop->last_fitness_scaling_;
-        if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-            subpopFitnessScaling = 1.0;
-        
         for (const Individual *individual : subpop->parent_individuals_)
         {
-            double fitness = individual->cached_fitness_UNSAFE_;    // always valid in SLiMgui
-            double rescaledFitness = fitness / subpopFitnessScaling;
-            int bin = (int)(((rescaledFitness - xAxisMin_) / (xAxisMax_ - xAxisMin_)) * binCount);
+            double fitness = individual->cached_unscaled_fitness_;
+            int bin = (int)(((fitness - xAxisMin_) / (xAxisMax_ - xAxisMin_)) * binCount);
             if (bin < 0) bin = 0;
             if (bin >= binCount) bin = binCount - 1;
             

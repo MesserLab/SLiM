@@ -682,6 +682,12 @@ EidosValue_SP Community::ExecuteMethod_deregisterScriptBlock(EidosGlobalStringID
 			std::cout << std::endl;
 #endif
 		}
+		
+#ifdef SLIMGUI
+		gSLiMScheduling << "\t\tderegisterScriptBlock() called for block: ";
+		block->PrintDeclaration(gSLiMScheduling, this);
+		gSLiMScheduling << std::endl;
+#endif
 	}
 	
 	return gStaticEidosValueVOID;
@@ -1220,7 +1226,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		slim_tick_t end = (end_null ? SLIM_MAX_TICK + 1 : SLiMCastToTickTypeOrRaise(end_value->IntAtIndex(0, nullptr)));
 		
 		if (start > end)
-			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): reschedule() requires start <= end." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires start <= end." << EidosTerminate();
 		
 		CheckScheduling(start, stage);
 		
@@ -1229,6 +1235,12 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		last_script_block_tick_cached_ = false;
 		script_block_types_cached_ = false;
 		scripts_changed_ = true;
+		
+#ifdef SLIMGUI
+		gSLiMScheduling << "\t\trescheduleScriptBlock() called (with start " << start << ", end " << end << ") for block: ";
+		block->PrintDeclaration(gSLiMScheduling, this);
+		gSLiMScheduling << std::endl;
+#endif
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(block, gSLiM_SLiMEidosBlock_Class));
 	}
@@ -1241,7 +1253,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 		int tick_count = ticks_value->Count();
 		
 		if (tick_count < 1)
-			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): reschedule() requires at least one tick; use deregisterScriptBlock() to remove a script block from the simulation." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires at least one tick; use deregisterScriptBlock() to remove a script block from the simulation." << EidosTerminate();
 		
 		ticks.reserve(tick_count);
 		
@@ -1280,7 +1292,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			}
 			else if (tick <= end)
 			{
-				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that the tick vector contain unique values; the same tick cannot be used twice." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that the tick vector contain unique values; the same tick cannot be used twice." << EidosTerminate();
 			}
 			
 			// make new block and move on to start the next sequence
@@ -1320,11 +1332,17 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 				break;
 		}
 		
+#ifdef SLIMGUI
+		gSLiMScheduling << "\t\trescheduleScriptBlock() called (with a ticks schedule) for block: ";
+		block->PrintDeclaration(gSLiMScheduling, this);
+		gSLiMScheduling << std::endl;
+#endif
+		
 		return result_SP;
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): reschedule() requires that either start/end or ticks be supplied, but not both." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): rescheduleScriptBlock() requires that either start/end or ticks be supplied, but not both." << EidosTerminate();
 	}
 }
 
@@ -1336,6 +1354,10 @@ EidosValue_SP Community::ExecuteMethod_simulationFinished(EidosGlobalStringID p_
 	
 	// Note that Species::ExecuteMethod_simulationFinished() calls this method to forward simulationFinished() on to us!
 	// This means that we need to have an identical Eidos method signature, etc., so the forwarding goes smoothly.
+	
+#ifdef SLIMGUI
+	gSLiMScheduling << "\t\tsimulationFinished() called" << std::endl;
+#endif
 	
 	sim_declared_finished_ = true;
 	

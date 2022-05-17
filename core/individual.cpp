@@ -46,9 +46,11 @@ bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
 Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
-	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
-	cached_fitness_UNSAFE_(p_fitness), genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age),
-	index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
+	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0), cached_fitness_UNSAFE_(p_fitness),
+#ifdef SLIMGUI
+	cached_unscaled_fitness_(p_fitness),
+#endif
+	genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
 {
 #if DEBUG
 	if (!p_genome1 || !p_genome2)

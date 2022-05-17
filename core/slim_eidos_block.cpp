@@ -1210,6 +1210,156 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 	}
 }
 
+#ifdef SLIMGUI
+// used by SLiMgui to generate the scheduling log's output
+void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_community)
+{
+	if (p_community->is_explicit_species_)
+	{
+		if ((type_ == SLiMEidosBlockType::SLiMEidosEventFirst) ||
+			(type_ == SLiMEidosBlockType::SLiMEidosEventEarly) ||
+			(type_ == SLiMEidosBlockType::SLiMEidosEventLate))
+		{
+			// events have ticks specifiers
+			if (ticks_spec_ == nullptr)
+				gSLiMScheduling << "ticks all ";
+			else
+				gSLiMScheduling << "ticks " << ticks_spec_->name_ << " ";
+		}
+		else if (type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
+		{
+			// callbacks have species specifiers
+			if (species_spec_ == nullptr)
+				gSLiMScheduling << "species all ";
+			else
+				gSLiMScheduling << "species " << species_spec_->name_ << " ";
+		}
+	}
+	
+	if (block_id_ != -1)
+		gSLiMScheduling << "s" << block_id_ << " ";
+	
+	if (type_ != SLiMEidosBlockType::SLiMEidosInitializeCallback)
+	{
+		if (start_tick_ != -1)
+			gSLiMScheduling << start_tick_;
+		if (end_tick_ != start_tick_)
+		{
+			if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
+				gSLiMScheduling << ":";
+			if (end_tick_ != SLIM_MAX_TICK + 1)
+				gSLiMScheduling << end_tick_;
+		}
+		if ((start_tick_ != -1) || (end_tick_ != SLIM_MAX_TICK + 1))
+			gSLiMScheduling << " ";
+	}
+	
+	switch (type_)
+	{
+		case SLiMEidosBlockType::SLiMEidosEventFirst:				p_out << "first()"; break;
+		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_out << "early()"; break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:				p_out << "late()"; break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_out << "initialize()"; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_out << "fitness(NULL)"; break;
+		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		p_out << "function"; break;
+		case SLiMEidosBlockType::SLiMEidosNoBlockType:				p_out << "NO BLOCK"; break;
+			
+		case SLiMEidosBlockType::SLiMEidosFitnessCallback:
+		{
+			// fitness(<mutTypeId> [, <subpopId>])
+			p_out << "fitness(m" << mutation_type_id_;
+			if (subpopulation_id_ != -1)
+				p_out << ", p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosInteractionCallback:
+		{
+			// interaction(<intTypeId> [, <subpopId>])
+			p_out << "interaction(i" << interaction_type_id_;
+			if (subpopulation_id_ != -1)
+				p_out << ", p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
+		{
+			// mateChoice([<subpopId>])
+			p_out << "mateChoice(";
+			if (subpopulation_id_ != -1)
+				p_out << "p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:
+		{
+			// modifyChild([<subpopId>])
+			p_out << "modifyChild(";
+			if (subpopulation_id_ != -1)
+				p_out << "p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:
+		{
+			// recombination([<subpopId>])
+			p_out << "recombination(";
+			if (subpopulation_id_ != -1)
+				p_out << "p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosMutationCallback:
+		{
+			// mutation([<mutTypeId> [, <subpopId>]])
+			p_out << "mutation(";
+			if (mutation_type_id_ != -1)
+				p_out << "m" << mutation_type_id_;
+			else if (subpopulation_id_ != -1)
+				p_out << "NULL";
+			if (subpopulation_id_ != -1)
+				p_out << ", p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosSurvivalCallback:
+		{
+			// survival([<subpopId>])
+			p_out << "survival(";
+			if (subpopulation_id_ != -1)
+				p_out << "p" << subpopulation_id_;
+			p_out << ")";
+			break;
+		}
+			
+		case SLiMEidosBlockType::SLiMEidosReproductionCallback:
+		{
+			// reproduction([<subpopId> [, <sex>]])
+			p_out << "reproduction(";
+			if (subpopulation_id_ != -1)
+				p_out << "p" << subpopulation_id_;
+			else if (sex_specificity_ != IndividualSex::kUnspecified)
+				p_out << "NULL";
+			if (sex_specificity_ != IndividualSex::kUnspecified)
+				p_out << ", \"" << sex_specificity_ << "\"";
+			p_out << ")";
+			break;
+		}
+	}
+	
+	int32_t token_line = root_node_->token_->token_line_;
+	
+	if (token_line != -1)
+		gSLiMScheduling << " [line " << (token_line + 1) << "]";
+}
+#endif
+
 
 //
 //	Eidos support

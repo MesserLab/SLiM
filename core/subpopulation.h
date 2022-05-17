@@ -224,19 +224,16 @@ public:
 	slim_popsize_t cached_fitness_size_ = 0;		// the size (number of entries used) of cached_parental_fitness_ and cached_male_fitness_
 	slim_popsize_t cached_fitness_capacity_ = 0;	// the capacity of the malloced buffers cached_parental_fitness_ and cached_male_fitness_
 	
-#if !defined(SLIMGUI)
 	// WF only:
 	// Optimized fitness caching at the Individual level.  Individual has an ivar named cached_fitness_UNSAFE_ that keeps a cached fitness value for each individual.
 	// When a model is neutral or nearly neutral, every individual may have the same fitness value, and we may know that.  In such cases, we want to avoid setting
 	// up the cached fitness value in each individual; instead, we set a flag here that overrides cached_fitness_UNSAFE_ and says it has the same value for all.
-	// This optimization only happens when we're not in SLiMgui, for simplicitly, since SLiMgui uses the Individual cached fitness values in various places.  And it
-	// happens only for the parental generation's cached fitness values (cached fitness values for the child generation should never be accessed by anyone anyway
+	// This happens only for the parental generation's cached fitness values (cached fitness values for the child generation should never be accessed by anyone
 	// since they are not valid).  And it happens only in WF models, since in nonWF models the generational overlap makes this scheme impossible.  A somewhat special
 	// case, then, but it seems worthwhile since the penalty for seting every cached fitness value, and then gathering them back up again in UpdateWFFitnessBuffers(),
 	// is large – almost 20% of total runtime for the full Gravel model, for example.  Neutral WF models are common and worth special-casing.
 	bool individual_cached_fitness_OVERRIDE_ = false;
 	double individual_cached_fitness_OVERRIDE_value_;
-#endif
 	
 	// SEX ONLY; the default values here are for the non-sex case
 	bool sex_enabled_ = false;										// the subpopulation needs to have easy reference to whether its individuals are sexual or not...
@@ -250,14 +247,11 @@ public:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
-	double fitness_scaling_ = 1.0;						// the fitnessScaling property value
-#ifdef SLIMGUI
-	double last_fitness_scaling_ = 1.0;					// the value for fitnessScaling before it was reset; used by SLiMgui
-#endif
+	double subpop_fitness_scaling_ = 1.0;				// the fitnessScaling property value
 	
 #ifdef SLIMGUI
 	bool gui_selected_ = false;							// keeps track of whether we are selected in SLiMgui's table of subpopulations
-	double parental_total_fitness_ = 0.0;				// updated in SurveyPopulation() when running under SLiMgui
+	double parental_mean_unscaled_fitness_ = 0.0;		// updated in SurveyPopulation() when running under SLiMgui
 	
 	bool gui_center_from_user_ = false;					// if this flag is true, the center below comes from the user and should not be modified
 	double gui_center_x_, gui_center_y_;				// the center used by GraphView_PopulationVisualization

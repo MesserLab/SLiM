@@ -90,8 +90,13 @@ public:
 	
 	double fitness_scaling_ = 1.0;		// the fitnessScaling property value
 	double cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
-										// this is marked UNSAFE because it can be overridden by a Subpopulation-level flag, which must be
-										// checked before using this cached value (except in SLiMgui, where this value is always good)
+										// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
+										// this value in neutral models; that flag must be checked before using this cached value
+#ifdef SLIMGUI
+	double cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
+										// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
+										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
+#endif
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
