@@ -305,33 +305,35 @@ R"({
 		species = community.allSpecies;
 	}
 	
-	// get the focal mutations
+	// get the focal mutations and narrow down to those that are deleterious
 	if (isNULL(mutType))
 		muts = species.mutations;
 	else
 		muts = species.mutationsOfType(mutType);
 	
-	// get frequencies and focus on those in the genomes
+	muts = muts[muts.selectionCoeff < 0.0];
+	
+	// get frequencies and focus on those that are in the genomes
 	q = genomes.mutationFrequenciesInGenomes(muts);
-	inSubpops = (q > 0);
+	inGenomes = (q > 0);
 	
-	muts = muts[inSubpops];
-	q = q[inSubpops];
+	muts = muts[inGenomes];
+	q = q[inGenomes];
 	
-	// fetch selection coefficients; note that this is the negation of
-	// SLiM's selection coefficient, following Morton et al 1956's usage
+	// fetch selection coefficients; note that we use the negation of
+	// SLiM's selection coefficient, following Morton et al. 1956's usage
 	s = -muts.selectionCoeff;
 	
-	// replace mutations with s>1.0 with 1.0; can't be more lethal
-	// than lethal (can happen when drawing from gamma distribution)
-	s[s>1.0] = 1.0;
+	// replace s > 1.0 with s == 1.0; a mutation can't be more lethal
+	// than lethal (this can happen when drawing from a gamma distribution)
+	s[s > 1.0] = 1.0;
 	
 	// get h for each mutation; note that this will not work if changing
 	// h using fitness callbacks or other scripted approaches to dominance
 	h = muts.mutationType.dominanceCoeff;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
-	// this equation is from Morton et al 1956
+	// this equation is from Morton et al. 1956
 	return (sum(q*s) - sum(q^2*s) - 2*sum(q*(1-q)*s*h));
 })";
 

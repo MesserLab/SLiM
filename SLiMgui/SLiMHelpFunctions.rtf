@@ -573,7 +573,6 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
@@ -1684,9 +1683,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1698,8 +1696,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
@@ -1783,14 +1780,14 @@ The implementation of
 \f3\i B
 \f2\i0 ) for a vector of genomes passed in 
 \f1\fs18 genomes
-\f2\fs20 . The calculation can be done only for a mutation type passed as 
+\f2\fs20 .  The calculation can be limited to a focal mutation type passed in 
 \f1\fs18 mutType
 \f2\fs20 ; if 
 \f1\fs18 mutType
 \f2\fs20  is 
 \f1\fs18 NULL
-\f2\fs20  (the default), all of the mutations for the focal species will be included in the calculation.\
-The inbreeding load is a measure of the quantity of recessive deleterious variation that is heterozygous in a population and can contribute to fitness declines under inbreeding. This function implements the following equation from Morton et al. (1956), which assumes no epistasis and random mating:\
+\f2\fs20  (the default), all of the mutations for the focal species will be considered.  In any case, only deleterious mutations (those with a negative selection coefficient) will be included in the final calculation.\
+The inbreeding load is a measure of the quantity of recessive deleterious variation that is heterozygous in a population and can contribute to fitness declines under inbreeding.  This function implements the following equation from Morton et al. (1956), which assumes no epistasis and random mating:\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\i\fs22 \cf2 B
@@ -1815,7 +1812,7 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i s
 \f2\i0  is the absolute value of the selection coefficient, and 
 \f3\i h
-\f2\i0  is its dominance coefficient.  Note that, by default, the implementation sets a maximum |
+\f2\i0  is its dominance coefficient.  Note that the implementation sets a maximum |
 \f3\i s
 \f2\i0 | of 
 \f1\fs18 1.0
@@ -1823,15 +1820,17 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f3\i s
 \f2\i0 | can sometimes be greater than 
 \f1\fs18 1.0
-\f2\fs20  when drawn from a distribution, but in practice an allele with |
+\f2\fs20  when 
 \f3\i s
-\f2\i0 |\'a0>\'a0
-\f1\fs18 1.0
+\f2\i0  is drawn from a distribution, but in practice an allele with 
+\f3\i s
+\f2\i0 \'a0<\'a0
+\f1\fs18 -1.0
 \f2\fs20  has the same lethal effect as when 
 \f3\i s
 \f2\i0 \'a0=\'a0
-\f1\fs18 1.0
-\f2\fs20 . Also note that this implementation will not work when changing the dominance coefficients of mutations using 
+\f1\fs18 -1.0
+\f2\fs20 .  Also note that this implementation will not work when the model changes the dominance coefficients of mutations using 
 \f1\fs18 fitness()
 \f2\fs20  callbacks, since it relies on the 
 \f1\fs18 dominanceCoeff
