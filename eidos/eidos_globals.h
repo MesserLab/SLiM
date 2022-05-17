@@ -564,6 +564,9 @@ std::string EidosStringForFloat(double p_value);
 // Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
 // see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
 // see also https://ideone.com/3A3cv for demo code using this
+// Note that this uses random(), not the GSL RNG.  This is actually desirable, because we use this
+// for doing haplotype display stuff; using random() avoids altering the simulation state.  For use
+// in a simulation, see the implementation of sample() for some useful approaches.
 template<class BidiIter>
 BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 {

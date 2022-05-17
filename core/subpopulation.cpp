@@ -6079,21 +6079,35 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// base case
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
-		std::vector<int> index_vector;
+		// see sample() for some discussion of this implementation
+		static int *index_buffer = nullptr;
+		static int buffer_capacity = 0;
+		
+		if (last_candidate_index > buffer_capacity)		// just make it big enough for last_candidate_index, not worth worrying
+		{
+			buffer_capacity = last_candidate_index * 2;		// double whenever we go over capacity, to avoid reallocations
+			if (index_buffer)
+				free(index_buffer);
+			index_buffer = (int *)malloc(buffer_capacity * sizeof(int));	// no need to realloc, we don't need the old data
+			if (!index_buffer)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		candidate_count = 0;	// we will count how many candidates we actually end up with
 		
 		if (!tag_specified && !ageMin_specified && !ageMax_specified && !migrant_specified)
 		{
 			if (excluded_index == -1)
 			{
 				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
-					index_vector.emplace_back(value_index);
+					index_buffer[candidate_count++] = value_index;
 			}
 			else
 			{
 				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
 				{
 					if (value_index != excluded_index)
-						index_vector.emplace_back(value_index);
+						index_buffer[candidate_count++] = value_index;
 				}
 			}
 		}
@@ -6114,11 +6128,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				if (value_index == excluded_index)
 					continue;
 				
-				index_vector.emplace_back(value_index);
+				index_buffer[candidate_count++] = value_index;
 			}
 		}
-		
-		candidate_count = (int)index_vector.size();
 		
 		if (candidate_count == 0)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
@@ -6128,25 +6140,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		// do the sampling
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
-		int64_t contender_count = candidate_count;
 		
 		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 		{
 #if DEBUG
 			// this error should never occur, since we checked the count above
-			if (contender_count <= 0)
+			if (candidate_count <= 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
+			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidate_count);
 			
-			result->set_object_element_no_check_NORR(parent_individuals_[index_vector[rose_index]], samples_generated);
+			result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
 			
 			if (!replace)
-			{
-				index_vector[rose_index] = index_vector.back();
-				index_vector.resize(--contender_count);
-			}
+				index_buffer[rose_index] = index_buffer[--candidate_count];
 		}
 	}
 	

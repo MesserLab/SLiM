@@ -7355,6 +7355,28 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	if (!replace && (sample_size == 1))
 		replace = true;
 	
+	// several algorithms below use a buffer of indexes; we share that here as static locals
+	// whenever sampling without replacement, we resize the buffer to the needed capacity here, too,
+	// and initialize the buffer; all the code paths below use it in essentially the same way
+	static int *index_buffer = nullptr;
+	static int buffer_capacity = 0;
+	
+	if (!replace)
+	{
+		if (x_count > buffer_capacity)
+		{
+			buffer_capacity = x_count * 2;		// double whenever we go over capacity, to avoid reallocations
+			if (index_buffer)
+				free(index_buffer);
+			index_buffer = (int *)malloc(buffer_capacity * sizeof(int));	// no need to realloc, we don't need the old data
+			if (!index_buffer)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			index_buffer[value_index] = value_index;
+	}
+	
 	// the algorithm used depends on whether weights were supplied
 	if (weights_value)
 	{
@@ -7422,12 +7444,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
-				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
-				std::vector<int> index_vector;
-				
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					index_vector.emplace_back(value_index);
-				
 				// do the sampling
 				int64_t contender_count = x_count;
 				
@@ -7442,17 +7458,18 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					
 					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
 					{
-						rose_sum += weights_float[index_vector[rose_index]];
+						rose_sum += weights_float[index_buffer[rose_index]];
 						
 						if (rose <= rose_sum)
 							break;
 					}
 					
-					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 					
-					// remove the sampled index since replace==F
-					weights_sum -= weights_float[index_vector[rose_index]];	// possible source of numerical error
-					index_vector.erase(index_vector.begin() + rose_index);
+					// remove the sampled index since replace==F; note this algorithm is terrible if we are sampling
+					// a large number of elements without replacement, with weights, but that seems unlikely to me...
+					weights_sum -= weights_float[index_buffer[rose_index]];	// possible source of numerical error
+					memmove(index_buffer + rose_index, index_buffer + rose_index + 1, (contender_count - rose_index - 1) * sizeof(int));
 					--contender_count;
 				}
 			}
@@ -7523,12 +7540,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
-				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
-				std::vector<int> index_vector;
-				
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					index_vector.emplace_back(value_index);
-				
 				// do the sampling
 				int64_t contender_count = x_count;
 				
@@ -7543,17 +7554,18 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					
 					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
 					{
-						rose_sum += weights_int[index_vector[rose_index]];
+						rose_sum += weights_int[index_buffer[rose_index]];
 						
 						if (rose <= rose_sum)
 							break;
 					}
 					
-					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 					
-					// remove the sampled index since replace==F
-					weights_sum -= weights_int[index_vector[rose_index]];
-					index_vector.erase(index_vector.begin() + rose_index);
+					// remove the sampled index since replace==F; note this algorithm is terrible if we are sampling
+					// a large number of elements without replacement, with weights, but that seems unlikely to me...
+					weights_sum -= weights_int[index_buffer[rose_index]];
+					memmove(index_buffer + rose_index, index_buffer + rose_index + 1, (contender_count - rose_index - 1) * sizeof(int));
 					--contender_count;
 				}
 			}
@@ -7584,6 +7596,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		else if ((sample_size == x_count) && (x_value->Type() != EidosValueType::kValueString))
 		{
 			// full shuffle; optimized case for everything but std::string, which is difficult as usual
+			// and is handled below, because gsl_ran_shuffle() can't move std::string safely
 			result_SP = x_value->CopyValues();
 			EidosValue *result = result_SP.get();
 			
@@ -7600,24 +7613,23 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				case EidosValueType::kValueFloat:
 					gsl_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count, sizeof(double));
 					break;
-				case EidosValueType::kValueString:
-					// handled below, because gsl_ran_shuffle() can't move std::string safely
-					break;
 				case EidosValueType::kValueObject:
 					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObject *));
 					break;
+				default:
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
 			}
 		}
 		else
 		{
 			// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
+			// this is generally faster than gsl_ran_choose(), which is O(n) in x_count with a large constant factor;
+			// we are O(n+m) in x_count and sample_size, but our constant factor is much, much smaller, because
+			// gsl_ran_choose() does a gsl_rng_uniform() call for every element in x_value()!  We only do one
+			// Eidos_rng_uniform_int() call per element in sample_size, at the price of a separate index buffer
+			// and a lack of re-entrancy and thread-safety.  This is a *lot* faster for sample_size << x_count.
 			result_SP = x_value->NewMatchingType();
 			EidosValue *result = result_SP.get();
-			
-			std::vector<int> index_vector;
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				index_vector.emplace_back(value_index);
 			
 			// do the sampling
 			int64_t contender_count = x_count;
@@ -7625,11 +7637,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
 				int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
-				
-				result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
-				
-				index_vector[rose_index] = index_vector.back();
-				index_vector.resize(--contender_count);
+				result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
+				index_buffer[rose_index] = index_buffer[--contender_count];
 			}
 		}
 	}
