@@ -4923,10 +4923,36 @@ void Species::FixAliveIndividuals(tsk_table_collection_t *p_tables)
 		p_tables->individuals.flags[j] &= (~SLIM_TSK_INDIVIDUAL_ALIVE);
 }
 
+// check whether population metadata is SLiM metadata or not, without raising; if it is, return the slim_id, >= 0, if not, return -1
+// see also Species::__PrepareSubpopulationsFromTables(), which does similar checks but raises if something is wrong
+static slim_objectid_t CheckSLiMPopulationMetadata(const char *p_metadata, size_t p_metadata_length)
+{
+	std::string metadata_string(p_metadata, p_metadata_length);
+	nlohmann::json subpop_metadata;
+	
+	try {
+		subpop_metadata = nlohmann::json::parse(metadata_string);
+	} catch (...) {
+		return -1;
+	}
+
+	if (subpop_metadata.is_null())
+		return -1;
+	if (!subpop_metadata.is_object())
+		return -1;
+	
+	if (!subpop_metadata.contains("slim_id"))
+		return -1;
+	if (!subpop_metadata["slim_id"].is_number_integer())
+		return -1;
+	
+	return subpop_metadata["slim_id"].get<slim_objectid_t>();
+}
+
 void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 {
 	int ret;
-	tsk_id_t tsk_population_id;
+	tsk_id_t tsk_population_id = -1;
 	tsk_population_table_t *population_table_copy;
 	population_table_copy = (tsk_population_table_t *)malloc(sizeof(tsk_population_table_t));
 	if (!population_table_copy)
@@ -4952,22 +4978,35 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		// binary metadata got translated to JSON by _InstantiateSLiMObjectsFromTables() on read
 		while (last_id_written < subpop_id - 1)
 		{
-			last_id_written++;
-			if (last_id_written < (slim_objectid_t) population_table_copy->num_rows) {
+			bool write_empty_row = true;
+			
+			if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
+			{
 				tsk_population_t tsk_population_object;
 				ret = tsk_population_table_get_row(population_table_copy, last_id_written, &tsk_population_object);
 				if (ret != 0) handle_error("WritePopulationTable tsk_population_table_get_row()", ret);
-				tsk_population_id = tsk_population_table_add_row(
-						&p_tables->populations,
-						tsk_population_object.metadata,
-						tsk_population_object.metadata_length);
-				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
-			} else {
+				
+				if (CheckSLiMPopulationMetadata(tsk_population_object.metadata, tsk_population_object.metadata_length) == -1)
+				{
+					// The metadata present, if any, is not SLiM metadata, so it should be carried over; note that
+					// SLiM metadata for non-extant subpops gets removed at write time for consistency.  See issue #317.
+					tsk_population_id = tsk_population_table_add_row(
+							&p_tables->populations,
+							tsk_population_object.metadata,
+							tsk_population_object.metadata_length);
+					if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+					write_empty_row = false;
+				}
+			}
+			
+			if (write_empty_row)
+			{
 				tsk_population_id = tsk_population_table_add_row(
 						&p_tables->populations,
 						"null", 4);
 				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 			}
+			
 			assert(tsk_population_id == last_id_written);
 		}
 		
@@ -5034,19 +5073,32 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
 	while (last_id_written < (slim_objectid_t) last_subpop_id)
 	{
-		last_id_written++;
-		if (last_id_written < (slim_objectid_t) population_table_copy->num_rows) {
+		bool write_empty_row = true;
+		
+		if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
+		{
 			tsk_population_t tsk_population_object;
 			tsk_population_table_get_row(population_table_copy, last_id_written, &tsk_population_object);
-			if (ret != 0) handle_error("WritePopulationTable  tsk_population_table_get_row()", ret);
-			tsk_population_id = tsk_population_table_add_row(&p_tables->populations, tsk_population_object.metadata, tsk_population_object.metadata_length);
-			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
-		} else {
+			if (ret != 0) handle_error("WritePopulationTable tsk_population_table_get_row()", ret);
+			
+			if (CheckSLiMPopulationMetadata(tsk_population_object.metadata, tsk_population_object.metadata_length) == -1)
+			{
+				// The metadata present, if any, is not SLiM metadata, so it should be carried over; note that
+				// SLiM metadata for non-extant subpops gets removed at write time for consistency.  See issue #317.
+				tsk_population_id = tsk_population_table_add_row(&p_tables->populations, tsk_population_object.metadata, tsk_population_object.metadata_length);
+				if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+				write_empty_row = false;
+			}
+		}
+		
+		if (write_empty_row)
+		{
 			tsk_population_id = tsk_population_table_add_row(
 					&p_tables->populations,
 					"null", 4);
 			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 		}
+		
 		assert(tsk_population_id == last_id_written);
 	}
 	ret = tsk_population_table_free(population_table_copy);
