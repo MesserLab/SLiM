@@ -304,6 +304,16 @@ private:
 	std::clock_t x_total_gen_clocks_ = 0;		// a counter of clocks accumulated for the current cycle's runtime (across measured code blocks)
 												// look at MUTRUNEXP_START_TIMING() / MUTRUNEXP_END_TIMING() usage to see which blocks are measured
 	
+	// Shuffle buffer.  This is a shared buffer of sequential values that can be used by client code to shuffle the order in which
+	// operations are performed.  The buffer always contains [0, 1, ..., N-1] shuffled into a new random order with each request
+	// if randomized callbacks are enabled (the default in SLiM 4), or [0, 1, ..., N-1] in sequence if they are disabled.
+	// Never access these ivars directly; always use BorrowShuffleBuffer() and ReturnShuffleBuffer().
+	slim_popsize_t *shuffle_buffer_ = nullptr;
+	slim_popsize_t shuffle_buf_capacity_ = 0;	// allocated capacity
+	slim_popsize_t shuffle_buf_size_ = 0;		// the number of entries actually usable
+	bool shuffle_buf_borrowed_ = false;			// a safeguard against re-entrancy
+	bool shuffle_buf_is_enabled_ = true;		// if false, the buffer is "pass-through" - just sequential integers
+	
 	// TREE SEQUENCE RECORDING
 #pragma mark -
 #pragma mark treeseq recording ivars
@@ -395,6 +405,11 @@ public:
 	
 	void AdvanceCycleCounter(void);
 	void SimulationHasFinished(void);
+	
+	// Shared shuffle buffer to save
+	inline bool RandomizingCallbackOrder(void) { return shuffle_buf_is_enabled_; }
+	slim_popsize_t *BorrowShuffleBuffer(slim_popsize_t p_buffer_size);
+	void ReturnShuffleBuffer(void);
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING

@@ -978,7 +978,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F])
+//	*********************	(void)initializeSLiMOptions([logical$ keepPedigrees = F], [string$ dimensionality = ""], [string$ periodicity = ""], [integer$ mutationRuns = 0], [logical$ preventIncidentalSelfing = F], [logical$ nucleotideBased = F], [logical$ randomizeCallbacks = T])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -989,6 +989,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 	EidosValue *arg_mutationRuns_value = p_arguments[3].get();
 	EidosValue *arg_preventIncidentalSelfing_value = p_arguments[4].get();
 	EidosValue *arg_nucleotideBased_value = p_arguments[5].get();
+	EidosValue *arg_randomizeCallbacks_value = p_arguments[6].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_options_declarations_ > 0)
@@ -1098,6 +1099,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		nucleotide_based_ = nucleotide_based;
 	}
 	
+	{
+		// [logical$ randomizeCallbacks = T]
+		bool randomize_callbacks = arg_randomizeCallbacks_value->LogicalAtIndex(0, nullptr);
+		
+		shuffle_buf_is_enabled_ = randomize_callbacks;
+	}
+	
 	if (SLiM_verbosity_level >= 1)
 	{
 		output_stream << "initializeSLiMOptions(";
@@ -1154,6 +1162,13 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSLiMOptions(const std::s
 		{
 			if (previous_params) output_stream << ", ";
 			output_stream << "nucleotideBased = " << (nucleotide_based_ ? "T" : "F");
+			previous_params = true;
+		}
+		
+		if (!shuffle_buf_is_enabled_)
+		{
+			if (previous_params) output_stream << ", ";
+			output_stream << "randomizeCallbacks = " << (shuffle_buf_is_enabled_ ? "T" : "F");
 			previous_params = true;
 			(void)previous_params;	// dead store above is deliberate
 		}

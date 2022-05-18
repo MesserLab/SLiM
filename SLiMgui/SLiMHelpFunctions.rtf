@@ -788,7 +788,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0nucleotideBased\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -952,7 +952,35 @@ If
 \f1\fs18 initializeHotspotMap()
 \f2\fs20 .  This choice has many consequences across SLiM. \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\cf2 \kerning1\expnd0\expndtw0 If 
+\f1\fs18 randomizeCallbacks
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), the order in which individuals are processed in callbacks will be randomized to make it easier to avoid order-dependency bugs.  This flag exists because the order of individuals in each subpopulation is non-random; most notably, females always come before males in the individuals vector, but non-random ordering may also occur with respect to things like migrant versus non-migrant status, origin by selfing versus cloning versus biparental mating, and other factors.  When this option is 
+\f1\fs18 F
+\f2\fs20 , individuals in a subpopulation are processed in the order of the individuals vector in each tick cycle stage, which may lead to order-dependency issues if there is an enabled callback whose behavior is not fully independent between calls.  Setting this option to 
+\f1\fs18 T
+\f2\fs20  will cause individuals to be processed in a randomized order in each tick cycle stage; specifically, this randomizes the order of calls to 
+\f1\fs18 fitness()
+\f2\fs20  callbacks in both WF and nonWF models, and calls to 
+\f1\fs18 reproduction()
+\f2\fs20  and 
+\f1\fs18 survival()
+\f2\fs20  callbacks in nonWF models.  This feature was added in SLiM 4, breaking backward compatibility; to recover the behavior of previous versions of SLiM, pass 
+\f1\fs18 F
+\f2\fs20  for this option (but then be very careful about order-dependency issues in your script).  The default of 
+\f1\fs18 T
+\f2\fs20  is the safe option, but a small speed penalty is incurred by the randomization of the processing order, so models that do not have any order-dependency issue may run somewhat faster if this is set to 
+\f1\fs18 F
+\f2\fs20 .  Note that anywhere that your script uses the 
+\f1\fs18 individuals
+\f2\fs20  property of 
+\f1\fs18 Subpopulation
+\f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
+\f1\fs18 sample()
+\f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)initializeSpecies([integer$\'a0tickModulo\'a0=\'a01], [integer$\'a0tickPhase\'a0=\'a01], [string$\'a0avatar\'a0=\'a0""], [string$\'a0color\'a0=\'a0""])\

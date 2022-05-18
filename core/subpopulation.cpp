@@ -1415,8 +1415,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
 			{
+				slim_popsize_t female_index = shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[female_index]->fitness_scaling_;
 				
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
@@ -1430,12 +1433,17 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFemaleFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		else
 		{
-			// general case for females
-			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			// general case for females; we use the shuffle buffer to randomize processing order
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
 			{
+				slim_popsize_t female_index = shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[female_index]->fitness_scaling_;
 				
 				if (fitness > 0.0)
@@ -1467,6 +1475,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFemaleFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		
 		totalFitness += totalFemaleFitness;
@@ -1519,8 +1529,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
 			{
+				slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[male_index]->fitness_scaling_;
 				
 				if (global_fitness_callbacks_exist && (fitness > 0.0))
@@ -1534,12 +1548,18 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				totalMaleFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		else
 		{
-			// general case for males
-			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			// general case for males; we use the shuffle buffer to randomize processing order
+			slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
 			{
+				slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[male_index]->fitness_scaling_;
 				
 				if (fitness > 0.0)
@@ -1571,6 +1591,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				totalMaleFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		
 		totalFitness += totalMaleFitness;
@@ -1629,8 +1651,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 			{
+				slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 				
 				// multiply in the effects of any global fitness callbacks (muttype==NULL)
@@ -1645,12 +1670,17 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		else
 		{
-			// general case for hermaphrodites
-			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			// general case for hermaphrodites; we use the shuffle buffer to randomize processing order
+			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+			
+			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 			{
+				slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 				double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 				
 				if (fitness > 0.0)
@@ -1682,6 +1712,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				totalFitness += fitness;
 			}
+			
+			species_.ReturnShuffleBuffer();
 		}
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -3091,8 +3123,24 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 // nonWF only:
 void Subpopulation::ReproduceSubpopulation(void)
 {
-	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
-		ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+	if (species_.RandomizingCallbackOrder())
+	{
+		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+		
+		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+		{
+			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+			
+			ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+		}
+		
+		species_.ReturnShuffleBuffer();
+	}
+	else
+	{
+		for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+			ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+	}
 }
 
 // nonWF only:
@@ -3336,6 +3384,18 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool no_callbacks = (p_survival_callbacks.size() == 0);
 	
+	// We keep a global static buffer that records survival decisions
+	static uint8_t *survival_buffer = nullptr;
+	static int survival_buf_capacity = 0;
+	
+	if (parent_subpop_size_ > survival_buf_capacity)
+	{
+		survival_buf_capacity = parent_subpop_size_ * 2;		// double capacity to avoid excessive reallocation
+		if (survival_buffer)
+			free(survival_buffer);
+		survival_buffer = (uint8_t *)malloc(survival_buf_capacity * sizeof(uint8_t));
+	}
+	
 	// clear lifetime reproductive outputs, in preparation for new values
 	if (pedigrees_enabled)
 	{
@@ -3343,28 +3403,50 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 		lifetime_reproductive_output_F_.clear();
 	}
 	
-	// do mortality
-	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+	// pre-plan mortality; this avoids issues with callbacks accessing the subpop state while buffers are being modified
+	if (no_callbacks)
 	{
-		Individual *individual = individual_data[individual_index];
-		double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
-		bool survived;
-		
-		if (no_callbacks)
+		// this is the simple case with no callbacks and thus no shuffle buffer
+		for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 		{
+			Individual *individual = individual_data[individual_index];
+			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+			uint8_t survived;
+			
 			if (fitness <= 0.0)			survived = false;
 			else if (fitness >= 1.0)	survived = true;
 			else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
-		}
-		else
-		{
-			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback; since fitness is usually in (0,1) this should have little impact
 			
-			survived = (draw < fitness);
+			survival_buffer[individual_index] = survived;
+		}
+	}
+	else
+	{
+		// this is the complex case with callbacks, and therefore a shuffle buffer to randomize processing order
+		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+		
+		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+		{
+			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+			Individual *individual = individual_data[individual_index];
+			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback
+			uint8_t survived = (draw < fitness);
 			
 			// run the survival() callbacks to allow the above decision to be modified
 			survived = ApplySurvivalCallbacks(p_survival_callbacks, individual, fitness, draw, survived);
+			
+			survival_buffer[individual_index] = survived;
 		}
+		
+		species_.ReturnShuffleBuffer();
+	}
+	
+	// execute the mortality plan; this never uses the shuffle buffer since we are no longer running callbacks
+	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+	{
+		Individual *individual = individual_data[individual_index];
+		uint8_t survived = survival_buffer[individual_index];
 		
 		if (survived)
 		{

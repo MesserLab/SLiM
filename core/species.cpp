@@ -139,6 +139,13 @@ Species::~Species(void)
 		x_previous_runtimes_ = nullptr;
 	}
 	
+	// Free the shuffle buffer
+	if (shuffle_buffer_)
+	{
+		free(shuffle_buffer_);
+		shuffle_buffer_ = nullptr;
+	}
+	
 	// TREE SEQUENCE RECORDING
 	if (RecordingTreeSequence())
 		FreeTreeSequence();
@@ -2899,6 +2906,59 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	// also missing: LogFile
 	
 	SumUpMemoryUsage_Species(*p_usage);
+}
+
+slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
+{
+	if (shuffle_buf_borrowed_)
+		EIDOS_TERMINATION << "ERROR (Species::BorrowShuffleBuffer): (internal error) shuffle buffer already borrowed." << EidosTerminate();
+	
+	if (p_buffer_size > shuffle_buf_capacity_)
+	{
+		if (shuffle_buffer_)
+			free(shuffle_buffer_);
+		shuffle_buf_capacity_ = p_buffer_size * 2;		// double capacity so we reallocate less often
+		shuffle_buffer_ = (slim_popsize_t *)malloc(shuffle_buf_capacity_ * sizeof(slim_popsize_t));
+		shuffle_buf_size_ = 0;
+	}
+	
+	if (shuffle_buf_is_enabled_)
+	{
+		// The shuffle buffer is enabled, so we need to reinitialize it with sequential values if it has
+		// changed size (unnecessary if it has not changed size, since the values are just rearranged),
+		// and then shuffle it into a new order.
+		if (p_buffer_size != shuffle_buf_size_)
+		{
+			for (slim_popsize_t i = 0; i < p_buffer_size; ++i)
+				shuffle_buffer_[i] = i;
+			
+			shuffle_buf_size_ = p_buffer_size;
+		}
+		
+		if (shuffle_buf_size_ > 0)
+			gsl_ran_shuffle(EIDOS_GSL_RNG, shuffle_buffer_, shuffle_buf_size_, sizeof(slim_popsize_t));
+	}
+	else
+	{
+		// The shuffle buffer is disabled, so we can assume that existing entries are already sequential,
+		// and we only need to "top off" the buffer with new sequential values if it has grown.
+		if (p_buffer_size > shuffle_buf_size_)
+		{
+			for (slim_popsize_t i = shuffle_buf_size_; i < p_buffer_size; ++i)
+				shuffle_buffer_[i] = i;
+		}
+	}
+	
+	shuffle_buf_borrowed_ = true;
+	return shuffle_buffer_;
+}
+
+void Species::ReturnShuffleBuffer(void)
+{
+	if (!shuffle_buf_borrowed_)
+		EIDOS_TERMINATION << "ERROR (Species::ReturnShuffleBuffer): (internal error) shuffle buffer was not borrowed." << EidosTerminate();
+	
+	shuffle_buf_borrowed_ = false;
 }
 
 
