@@ -6785,6 +6785,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 						subpop_metadata["slim_id"] = remapped_row_index;
 						
 						// We also need to fix the "name" metadata key when it equals the SLiM identifier
+						// We also fix msprime-style names like "pop_0", "pop_1", etc., to the remapped "pX" name; see issue #173
 						if (subpop_metadata.contains("name"))
 						{
 							nlohmann::json value = subpop_metadata["name"];
@@ -6792,9 +6793,10 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 								EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'name' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
 							std::string metadata_name = value.get<std::string>();
 							std::string id_name = SLiMEidosScript::IDStringWithPrefix('p', original_row_index);
+							std::string msprime_name = std::string("pop_").append(std::to_string(original_row_index));
 							
-							if (metadata_name == id_name)
-								subpop_metadata["name"] = SLiMEidosScript::IDStringWithPrefix('p', remapped_row_index);;
+							if ((metadata_name == id_name) || (metadata_name == msprime_name))
+								subpop_metadata["name"] = SLiMEidosScript::IDStringWithPrefix('p', remapped_row_index);
 						}
 						
 						metadata_string = subpop_metadata.dump();
