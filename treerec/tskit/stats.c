@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2021 Tskit Developers
+ * Copyright (c) 2018-2022 Tskit Developers
  * Copyright (c) 2016-2017 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -192,7 +192,7 @@ tsk_ld_calc_run_forward(tsk_ld_calc_t *self)
             }
         }
     }
-    while (((ret = tsk_tree_next(&self->tree)) == 1) && !done) {
+    while (((ret = tsk_tree_next(&self->tree)) == TSK_TREE_OK) && !done) {
         for (j = 0; j < self->tree.sites_length; j++) {
             ret = tsk_ld_calc_compute_and_append(self, &self->tree.sites[j], &done);
             if (ret != 0) {
@@ -229,7 +229,7 @@ tsk_ld_calc_run_reverse(tsk_ld_calc_t *self)
             }
         }
     }
-    while (((ret = tsk_tree_prev(&self->tree)) == 1) && !done) {
+    while (((ret = tsk_tree_prev(&self->tree)) == TSK_TREE_OK) && !done) {
         for (j = (tsk_id_t) self->tree.sites_length - 1; j >= 0; j--) {
             ret = tsk_ld_calc_compute_and_append(self, &self->tree.sites[j], &done);
             if (ret != 0) {

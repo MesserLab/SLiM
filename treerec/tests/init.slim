@@ -42,8 +42,8 @@ function (void)ongoingMarks(i$ num_marks)
 
 function (void)saveTreeSeqFormats(void) {
 	// create tree seq representation in various formats: this could overwrite any
-	// existing ones output in the same generation, but they should be identical
-	// if done in the same generation at the same point of the lifecycle
+	// existing ones output in the same cycle, but they should be identical
+	// if done in the same cycle at the same point of the lifecycle
 	sim.treeSeqOutput(".", simplify=T, _binary=F);
 	sim.treeSeqOutput("test_output.trees", simplify=T);
 	sim.treeSeqOutput("test_output.unsimplified.trees", simplify=F);
@@ -119,8 +119,8 @@ function (void)addIndividuals([No<Individual> individuals=NULL], [s$ store="reme
 }
 
 function (string$)setwdForGen(void) {
-	// change the working dir to a new subdir named by generation, and return the old subdir
-	saveDir = paste(sim.generation); // should probably append late or early
+	// change the working dir to a new subdir named by cycle, and return the old subdir
+	saveDir = paste(sim.cycle); // should probably append late or early
 	if(!fileExists(saveDir)) {
 		createDirectory(saveDir);
 	}
@@ -129,9 +129,9 @@ function (string$)setwdForGen(void) {
 
 function (string$)copyIntoNewWdForGen(s$ file) {
 	/* * *
-	 * Copy the file into a new working subdir named by generation, returning the old subdir
+	 * Copy the file into a new working subdir named by cycle, returning the old subdir
 	 * This allows us to take a stored output file in the parent dir (if it exists) and append 
-	 * stuff to a new version in a newly created subdir that's only relevant to that generation
+	 * stuff to a new version in a newly created subdir that's only relevant to that cycle
 	 * * */
 	if(fileExists(file)) {
 		fileContents = readFile(file);  // copy
@@ -146,7 +146,7 @@ function (string$)copyIntoNewWdForGen(s$ file) {
 function (void)outputMutationResult(void) {
 	/* * *
 	 * Take the existing data (in the current mutationsFile)
-	 * and make a copy, appending data from in the current generation
+	 * and make a copy, appending data from in the current cycle
 	 * * */
 	baseDir = copyIntoNewWdForGen(mutationsFile); // copy the current mutationsFile
 	saveTreeSeqFormats();
@@ -179,7 +179,7 @@ function (void)outputMutationResult(void) {
 			}
 		}
 	}
-	setwd(baseDir); // reset, so we can output in another generation
+	setwd(baseDir); // reset, so we can output in another cycle
 }
 
 function (void)outputIndividuals(void) {
@@ -189,7 +189,7 @@ function (void)outputIndividuals(void) {
 	for (pop in sim.subpopulations) {
 		addIndividuals(pop.individuals, "output");
 	}
-	setwd(baseDir); // reset, so we can output in another generation
+	setwd(baseDir); // reset, so we can output in another cycle
 }
 
 if (!exists("RUN_DIR")) defineGlobal("RUN_DIR", "."); 

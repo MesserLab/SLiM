@@ -158,6 +158,19 @@ And, these operations have the following properties:
 6.  `compute_parents` fills in the `mutation.parent` information by using property (1).
 
 
+## Population table state
+
+SLiM needs to be able to have an entry in the population table without individuals
+actually mean that there's an empty population (for nonWF models),
+and so we (now as of SLiM v4.0) have the requirement that all the populations
+in the population table that have valid SLiM metadata (which currently just means
+having a "slim_id" key) must represent actual extant subpopulation in SLiM.
+In other words, the state of the population table represents the state of things
+*at the time the tree sequence is written*, although it might have other,
+non-SLiM entries in it which got carried over by SLiM from a tree sequence
+that was read in.
+
+
 ## Metadata schemas
 
 tskit provides methods for structured metadata decoding using [JSON schemas](https://json-schema.org/understanding-json-schema/index.html),
@@ -187,7 +200,7 @@ and no-one else is using the top-level metadata yet.
 
 ### Top-level metadata:
 
-Here's an example of the top-level metadata:
+*Note: this is out of date.* Here's an example of the top-level metadata:
 ```
 {
  "SLiM" : {

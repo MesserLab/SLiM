@@ -94,7 +94,11 @@ Unknown flags were provided to open.
 /** @} */
 
 /* Flags for open */
-#define KAS_READ_ALL            1
+#define KAS_READ_ALL                       (1 << 0)
+#define KAS_GET_TAKES_OWNERSHIP            (1 << 1)
+
+/* Flags for put */
+#define KAS_BORROWS_ARRAY          (1 << 8)
 
 
 /**
@@ -148,12 +152,12 @@ sizes and types of externally visible structs.
 The library minor version. Incremented when non-breaking backward-compatible changes
 to the API or ABI are introduced, i.e., the addition of a new function.
 */
-#define KAS_VERSION_MINOR   0
+#define KAS_VERSION_MINOR   1
 /**
 The library patch version. Incremented when any changes not relevant to the
 to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 */
-#define KAS_VERSION_PATCH   2
+#define KAS_VERSION_PATCH   0
 /** @} */
 
 #define KAS_HEADER_SIZE             64
@@ -162,11 +166,35 @@ to the API or ABI are introduced, i.e., internal refactors of bugfixes.
 #define KAS_ARRAY_ALIGN             8
 // clang-format on
 
+#ifndef KAS_BUG_ASSERT_MESSAGE
+#define KAS_BUG_ASSERT_MESSAGE                                                          \
+    "If you are using kastore directly please open an issue on"                         \
+    " GitHub, ideally with a reproducible example."                                     \
+    " (https://github.com/tskit-dev/kastore/issues) If you are"                         \
+    " using software that uses kastore, please report an issue"                         \
+    " to that software's issue tracker, at least initially."
+#endif
+
+/**
+We often wish to assert a condition that is unexpected, but using the normal `assert`
+means compiling without NDEBUG. This macro still asserts when NDEBUG is defined.
+*/
+#define kas_bug_assert(condition)                                                       \
+    do {                                                                                \
+        if (!(condition)) {                                                             \
+            fprintf(stderr, "Bug detected in %s at line %d. %s\n", __FILE__, __LINE__,  \
+                KAS_BUG_ASSERT_MESSAGE);                                                \
+            abort();                                                                    \
+        }                                                                               \
+    } while (0)
+
 typedef struct {
     int type;
     size_t key_len;
     size_t array_len;
     char *key;
+    /* Used when KAS_BORROWS_ARRAY is set */
+    const void *borrowed_array;
     void *array;
     size_t key_start;
     size_t array_start;
@@ -184,7 +212,7 @@ typedef struct {
     FILE *file;
     size_t file_size;
     long file_offset;
-    char *read_buffer;
+    char *key_read_buffer;
 } kastore_t;
 
 /**
@@ -224,6 +252,16 @@ KAS_READ_ALL
     If this option is specified, read the entire file at
     open time. This will give slightly better performance as the file can
     be read sequentially in a single pass.
+
+KAS_GET_TAKES_OWNERSHIP
+    If this option is specified, all ``get`` operations will transfer
+    ownership of the array to the caller. ``kastore`` will not ``free``
+    the array memory and this is the responsibility of the caller.
+    If ``get`` is called on the same key multiple times, a new buffer will be
+    returned each time. Note that second and subsequent ``get`` calls
+    on a given key will result in ``seek`` operations even when the
+    KAS_READ_ALL flag is set, and will therefore fail on unseekable
+    streams.
 
 @endrst
 
@@ -394,12 +432,14 @@ int kastore_gets_float64(
 @rst
 A key with the specified length is inserted into the store and associated with
 an array of the specified type and number of elements. The contents of the
-specified key and array are copied. Keys can be any sequence of bytes but must
-be at least one byte long and be unique. There is no restriction on the
-contents of arrays. This is the most general form of ``put`` operation in
-kastore; when the type of the array is known and the keys are standard C
-strings, it is usually more convenient to use the :ref:`typed variants
-<sec_c_api_typed_put>` of this function.
+specified key and array are copied unless the KAS_BORROWS_ARRAY flag is specified.
+If KAS_BORROWS_ARRAY is specified the array buffer must persist until the
+kastore is closed.
+Keys can be any sequence of bytes but must be at least one byte long and be
+unique. There is no restriction on the contents of arrays. This is the most
+general form of ``put`` operation in kastore; when the type of the array
+is known and the keys are standard C strings, it is usually more convenient
+to use the :ref:`typed variants <sec_c_api_typed_put>` of this function.
 @endrst
 
 @param self A pointer to a kastore object.
@@ -408,7 +448,7 @@ strings, it is usually more convenient to use the :ref:`typed variants
 @param array The array.
 @param array_len The number of elements in the array.
 @param type The type of the array.
-@param flags The insertion flags. Currently unused.
+@param flags The insertion flags, only KAS_BORROWS_ARRAY or 0 is a valid.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_put(kastore_t *self, const char *key, size_t key_len, const void *array,
@@ -425,7 +465,7 @@ As for :c:func:`kastore_put` except the key must be NULL-terminated C string.
 @param array The array.
 @param array_len The number of elements in the array.
 @param type The type of the array.
-@param flags The insertion flags. Currently unused.
+@param flags The insertion flags, only KAS_BORROWS_ARRAY or 0 is a valid.
 @return Return 0 on success or a negative value on failure.
 */
 int kastore_puts(kastore_t *self, const char *key, const void *array, size_t array_len,

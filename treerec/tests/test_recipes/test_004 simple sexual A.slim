@@ -13,11 +13,11 @@ initialize() {
 	initializeGenomicElement(g1, 0, 9);
 	initializeRecombinationRate(1e-2);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 100);
 	addAncestralSamples(5);
 }
-50 {
+50 early() {
 	addAncestralSamples(5);
 }
 
