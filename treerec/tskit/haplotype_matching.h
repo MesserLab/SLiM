@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2020 Tskit Developers
+ * Copyright (c) 2019-2022 Tskit Developers
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,7 +92,7 @@ typedef struct _tsk_ls_hmm_t {
     double *mutation_rate;
     const char ***alleles;
     unsigned int precision;
-    uint8_t *num_alleles;
+    uint32_t *num_alleles;
     tsk_size_t num_samples;
     tsk_size_t num_sites;
     tsk_size_t num_nodes;
@@ -123,7 +123,7 @@ typedef struct _tsk_ls_hmm_t {
     tsk_id_t *transition_parent;
     /* The number of samples directly subtended by a transition */
     tsk_size_t *num_transition_samples;
-    int8_t *allelic_state;
+    int32_t *allelic_state;
     /* Algorithms set these values before they are run */
     int (*next_probability)(
         struct _tsk_ls_hmm_t *, tsk_id_t, double, bool, tsk_id_t, double *);
@@ -136,11 +136,11 @@ int tsk_ls_hmm_init(tsk_ls_hmm_t *self, tsk_treeseq_t *tree_sequence,
 int tsk_ls_hmm_set_precision(tsk_ls_hmm_t *self, unsigned int precision);
 int tsk_ls_hmm_free(tsk_ls_hmm_t *self);
 void tsk_ls_hmm_print_state(tsk_ls_hmm_t *self, FILE *out);
-int tsk_ls_hmm_forward(tsk_ls_hmm_t *self, int8_t *haplotype,
+int tsk_ls_hmm_forward(tsk_ls_hmm_t *self, int32_t *haplotype,
     tsk_compressed_matrix_t *output, tsk_flags_t options);
-int tsk_ls_hmm_viterbi(tsk_ls_hmm_t *self, int8_t *haplotype,
+int tsk_ls_hmm_viterbi(tsk_ls_hmm_t *self, int32_t *haplotype,
     tsk_viterbi_matrix_t *output, tsk_flags_t options);
-int tsk_ls_hmm_run(tsk_ls_hmm_t *self, int8_t *haplotype,
+int tsk_ls_hmm_run(tsk_ls_hmm_t *self, int32_t *haplotype,
     int (*next_probability)(tsk_ls_hmm_t *, tsk_id_t, double, bool, tsk_id_t, double *),
     double (*compute_normalisation_factor)(struct _tsk_ls_hmm_t *), void *output);
 

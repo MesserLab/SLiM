@@ -3819,8 +3819,8 @@ void Species::SimplifyTreeSequence(void)
 	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	
 	// simplify
-	flags = TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS;
-	if (!retain_coalescent_only_) flags |= TSK_KEEP_UNARY;
+	flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+	if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
 	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 	
@@ -3995,7 +3995,7 @@ void Species::AllocateTreeSequenceTables(void)
 	// Set up the table collection before loading a saved population or starting a simulation
 	
 	//INITIALIZE NODE AND EDGE TABLES.
-	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
+	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
 	
 	tables_initialized_ = true;
@@ -4293,7 +4293,7 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 	if (tables_initialized_)
 		EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): (internal error) tree sequence tables already initialized." << EidosTerminate();
 	
-	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
+	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
 	
 	ret = table_collection_load_text(&tables_,
@@ -6222,8 +6222,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			ret = tsk_table_collection_deduplicate_sites(tables_copy, 0);
 			if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 			
-			flags = TSK_FILTER_SITES | TSK_FILTER_INDIVIDUALS | TSK_KEEP_INPUT_ROOTS;
-			if (!retain_coalescent_only_) flags |= TSK_KEEP_UNARY;
+			flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+			if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
 			ret = tsk_table_collection_simplify(tables_copy, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 			if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 			
@@ -6245,7 +6245,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		if (!ts)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
-		ret = tsk_treeseq_init(ts, tables_copy, TSK_BUILD_INDEXES);
+		ret = tsk_treeseq_init(ts, tables_copy, TSK_TS_INIT_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
 		
 		// allocate and set up the vargen object we'll use to walk through variants
@@ -6255,7 +6255,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		if (!vg)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
-		ret = tsk_vargen_init(vg, ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
+		ret = tsk_vargen_init(vg, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_init()", ret);
 		
 		// crosscheck by looping through variants
@@ -6275,7 +6275,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
 				// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
 				// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
-				slim_position_t variant_pos_int = (slim_position_t)variant->site->position;		// should be no loss of precision, fingers crossed
+				slim_position_t variant_pos_int = (slim_position_t)variant->site.position;		// should be no loss of precision, fingers crossed
 				
 				// Get all the substitutions involved at this site, which should be present in every sample
 				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
@@ -6289,7 +6289,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 				{
 					GenomeWalker &genome_walker = genome_walkers[genome_index];
-					int16_t genome_variant = variant->genotypes.i16[genome_index];
+					int32_t genome_variant = variant->genotypes[genome_index];
 					tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 					
 					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
@@ -7587,26 +7587,24 @@ void Species::__TabulateMutationsFromTables(std::unordered_map<slim_mutationid_t
 
 void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutMap, std::unordered_map<tsk_id_t, Genome *> p_nodeToGenomeMap, tsk_treeseq_t *p_ts)
 {
-	// allocate and set up the vargen object we'll use to walk through variants
-	// BCH 1/25/2021: changing tsk_vargen_init() call from (p_ts->samples, p_ts->num_samples)
-	// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
-	tsk_vargen_t *vg;
-	
-	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	if (!vg)
+	// allocate and set up the tsk_variant object we'll use to walk through sites
+	tsk_variant_t *variant;
+	variant = (tsk_variant_t *)malloc(sizeof(tsk_variant_t));
+	if (!variant)
 		EIDOS_TERMINATION << "ERROR (Species::__TallyMutationReferencesWithTreeSequence): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
-	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_init()", ret);
+	int ret = tsk_variant_init(
+			variant, p_ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
+	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_init()", ret);
 	
-	// set up a map from sample indices in the vargen to Genome objects; the sample
+	// set up a map from sample indices in the variant to Genome objects; the sample
 	// may contain nodes that are ancestral and need to be excluded
 	std::vector<Genome *> indexToGenomeMap;
-	size_t sample_count = vg->num_samples;
+	size_t sample_count = variant->num_samples;
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
-		tsk_id_t sample_node_id = vg->samples[sample_index];
+		tsk_id_t sample_node_id = variant->samples[sample_index];
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
@@ -7616,64 +7614,58 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	}
 	
 	// add mutations to genomes by looping through variants
-	do
+	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
-		tsk_variant_t *variant;
+		ret = tsk_variant_decode(variant, i, 0);
+		if (ret < 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_decode()", ret);
 		
-		ret = tsk_vargen_next(vg, &variant);
-		if (ret < 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_next()", ret);
-		
-		if (ret == 1)
+		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
+		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
+		// in the sample are using them.  We want to find any mutations that are shared across all non-null genomes.
+		for (tsk_size_t allele_index = 0; allele_index < variant->num_alleles; ++allele_index)
 		{
-			// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
-			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-			// in the sample are using them.  We want to find any mutations that are shared across all non-null genomes.
-			for (tsk_size_t allele_index = 0; allele_index < variant->num_alleles; ++allele_index)
+			tsk_size_t allele_length = variant->allele_lengths[allele_index];
+			
+			if (allele_length > 0)
 			{
-				tsk_size_t allele_length = variant->allele_lengths[allele_index];
+				// Calculate the number of extant genomes that reference this allele
+				int32_t allele_refs = 0;
 				
-				if (allele_length > 0)
+				for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
+					if ((variant->genotypes[sample_index] == (int32_t)allele_index) && (indexToGenomeMap[sample_index] != nullptr))
+						allele_refs++;
+				
+				// If that count is greater than zero (might be zero if only non-extant nodes reference the allele), tally it
+				if (allele_refs)
 				{
-					// Calculate the number of extant genomes that reference this allele
-					int32_t allele_refs = 0;
+					if (allele_length % sizeof(slim_mutationid_t) != 0)
+						EIDOS_TERMINATION << "ERROR (Species::__TallyMutationReferencesWithTreeSequence): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+					allele_length /= sizeof(slim_mutationid_t);
 					
-					for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
-						if ((variant->genotypes.i16[sample_index] == (int16_t)allele_index) && (indexToGenomeMap[sample_index] != nullptr))
-							allele_refs++;
+					slim_mutationid_t *allele = (slim_mutationid_t *)variant->alleles[allele_index];
 					
-					// If that count is greater than zero (might be zero if only non-extant nodes reference the allele), tally it
-					if (allele_refs)
+					for (tsk_size_t mutid_index = 0; mutid_index < allele_length; ++mutid_index)
 					{
-						if (allele_length % sizeof(slim_mutationid_t) != 0)
-							EIDOS_TERMINATION << "ERROR (Species::__TallyMutationReferencesWithTreeSequence): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-						allele_length /= sizeof(slim_mutationid_t);
+						slim_mutationid_t mut_id = allele[mutid_index];
+						auto mut_info_iter = p_mutMap.find(mut_id);
 						
-						slim_mutationid_t *allele = (slim_mutationid_t *)variant->alleles[allele_index];
+						if (mut_info_iter == p_mutMap.end())
+							EIDOS_TERMINATION << "ERROR (Species::__TallyMutationReferencesWithTreeSequence): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
 						
-						for (tsk_size_t mutid_index = 0; mutid_index < allele_length; ++mutid_index)
-						{
-							slim_mutationid_t mut_id = allele[mutid_index];
-							auto mut_info_iter = p_mutMap.find(mut_id);
-							
-							if (mut_info_iter == p_mutMap.end())
-								EIDOS_TERMINATION << "ERROR (Species::__TallyMutationReferencesWithTreeSequence): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
-							
-							// Add allele_refs to the refcount for this mutation
-							ts_mut_info &mut_info = mut_info_iter->second;
-							
-							mut_info.ref_count += allele_refs;
-						}
+						// Add allele_refs to the refcount for this mutation
+						ts_mut_info &mut_info = mut_info_iter->second;
+						
+						mut_info.ref_count += allele_refs;
 					}
 				}
 			}
 		}
 	}
-	while (ret != 0);
 	
 	// free
-	ret = tsk_vargen_free(vg);
-	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_vargen_free()", ret);
-	free(vg);
+	ret = tsk_variant_free(variant);
+	if (ret != 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_free()", ret);
+	free(variant);
 }
 
 void Species::__CreateMutationsFromTabulation(std::unordered_map<slim_mutationid_t, ts_mut_info> &p_mutInfoMap, std::unordered_map<slim_mutationid_t, MutationIndex> &p_mutIndexMap)
@@ -7762,26 +7754,24 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	if (!recording_mutations_)
 		return;
 	
-	// allocate and set up the vargen object we'll use to walk through variants
-	// BCH 1/25/2021: changing tsk_vargen_init() call from (p_ts->samples, p_ts->num_samples)
-	// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
-	tsk_vargen_t *vg;
-	
-	vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-	if (!vg)
+	// allocate and set up the variant object we'll use to walk through sites
+	tsk_variant_t *variant;
+
+	variant = (tsk_variant_t *)malloc(sizeof(tsk_variant_t));
+	if (!variant)
 		EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	int ret = tsk_vargen_init(vg, p_ts, NULL, 0, NULL, TSK_16_BIT_GENOTYPES | TSK_ISOLATED_NOT_MISSING);
-	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_init()", ret);
+	int ret = tsk_variant_init(variant, p_ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
+	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_init()", ret);
 	
 	// set up a map from sample indices in the vargen to Genome objects; the sample
 	// may contain nodes that are ancestral and need to be excluded
 	std::vector<Genome *> indexToGenomeMap;
-	size_t sample_count = vg->num_samples;
+	size_t sample_count = variant->num_samples;
 	
 	for (size_t sample_index = 0; sample_index < sample_count; ++sample_index)
 	{
-		tsk_id_t sample_node_id = vg->samples[sample_index];
+		tsk_id_t sample_node_id = variant->samples[sample_index];
 		auto sample_nodeToGenome_iter = p_nodeToGenomeMap.find(sample_node_id);
 		
 		if (sample_nodeToGenome_iter != p_nodeToGenomeMap.end())
@@ -7797,72 +7787,66 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	}
 	
 	// add mutations to genomes by looping through variants
-	do
+	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
-		tsk_variant_t *variant;
+		ret = tsk_variant_decode(variant, i, 0);
+		if (ret < 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_decode()", ret);
 		
-		ret = tsk_vargen_next(vg, &variant);
-		if (ret < 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_next()", ret);
+		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
+		// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
+		// in the sample are using them.  We will then set all the genomes that the variant claims to involve to have
+		// the allele the variant attributes to them.  The variants are returned in sorted order by position, so we can
+		// always add new mutations to the ends of genomes.
+		slim_position_t variant_pos_int = (slim_position_t)variant->site.position;
 		
-		if (ret == 1)
+		for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
 		{
-			// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
-			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-			// in the sample are using them.  We will then set all the genomes that the variant claims to involve to have
-			// the allele the variant attributes to them.  The variants are returned in sorted order by position, so we can
-			// always add new mutations to the ends of genomes.
-			slim_position_t variant_pos_int = (slim_position_t)variant->site->position;
+			Genome *genome = indexToGenomeMap[sample_index];
 			
-			for (size_t sample_index = 0; sample_index < sample_count; sample_index++)
+			if (genome)
 			{
-				Genome *genome = indexToGenomeMap[sample_index];
+				int32_t genome_variant = variant->genotypes[sample_index];
+				tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 				
-				if (genome)
+				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
+					EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+				genome_allele_length /= sizeof(slim_mutationid_t);
+				
+				if (genome_allele_length > 0)
 				{
-					uint16_t genome_variant = variant->genotypes.i16[sample_index];
-					tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
+					if (genome->IsNull())
+						EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
 					
-					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
-						EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-					genome_allele_length /= sizeof(slim_mutationid_t);
+					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
+					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
 					
-					if (genome_allele_length > 0)
+					genome->WillModifyRun(run_index);
+					
+					MutationRun *mutrun = genome->mutruns_[run_index].get();
+					
+					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
 					{
-						if (genome->IsNull())
-							EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+						slim_mutationid_t mut_id = genome_allele[mutid_index];
+						auto mut_index_iter = p_mutIndexMap.find(mut_id);
 						
-						slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
-						slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
+						if (mut_index_iter == p_mutIndexMap.end())
+							EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
 						
-						genome->WillModifyRun(run_index);
+						// Add the mutation to the genome unless it is fixed (mut_index == -1)
+						MutationIndex mut_index = mut_index_iter->second;
 						
-						MutationRun *mutrun = genome->mutruns_[run_index].get();
-						
-						for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-						{
-							slim_mutationid_t mut_id = genome_allele[mutid_index];
-							auto mut_index_iter = p_mutIndexMap.find(mut_id);
-							
-							if (mut_index_iter == p_mutIndexMap.end())
-								EIDOS_TERMINATION << "ERROR (Species::__AddMutationsFromTreeSequenceToGenomes): mutation id " << mut_id << " was referenced but does not exist." << EidosTerminate();
-							
-							// Add the mutation to the genome unless it is fixed (mut_index == -1)
-							MutationIndex mut_index = mut_index_iter->second;
-							
-							if (mut_index != -1)
-								mutrun->emplace_back(mut_index);
-						}
+						if (mut_index != -1)
+							mutrun->emplace_back(mut_index);
 					}
 				}
 			}
 		}
 	}
-	while (ret != 0);
 	
 	// free
-	ret = tsk_vargen_free(vg);
-	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_vargen_free()", ret);
-	free(vg);
+	ret = tsk_variant_free(variant);
+	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_free()", ret);
+	free(variant);
 }
 
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
@@ -7901,7 +7885,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	if (!ts)
 		EIDOS_TERMINATION << "ERROR (Species::_InstantiateSLiMObjectsFromTables): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	ret = tsk_treeseq_init(ts, &tables_, TSK_BUILD_INDEXES);
+	ret = tsk_treeseq_init(ts, &tables_, TSK_TS_INIT_BUILD_INDEXES);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_init()", ret);
 	
 	std::unordered_map<tsk_id_t, Genome *> nodeToGenomeMap;

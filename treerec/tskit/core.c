@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2021 Tskit Developers
+ * Copyright (c) 2019-2022 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -374,6 +374,13 @@ tsk_strerror_internal(int err)
         case TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED:
             ret = "Silent mutations not supported by this operation";
             break;
+        case TSK_ERR_VARIANT_CANT_DECODE_COPY:
+            ret = "Can't decode a copy of a variant";
+            break;
+        case TSK_ERR_CANT_TAKE_OWNERSHIP_NO_EDGE_METADATA:
+            ret = "A tree sequence can't take ownership of tables with "
+                  "TSK_NO_EDGE_METADATA";
+            break;
 
         /* Stats errors */
         case TSK_ERR_BAD_NUM_WINDOWS:
@@ -454,7 +461,8 @@ tsk_strerror_internal(int err)
             ret = "Sequence lengths must be identical to compare.";
             break;
         case TSK_ERR_NO_SAMPLE_LISTS:
-            ret = "The sample_lists option must be enabled to perform this operation.";
+            ret = "The sample_lists option must be enabled on the tree to perform this "
+                  "operation.";
             break;
 
         /* Haplotype matching errors */

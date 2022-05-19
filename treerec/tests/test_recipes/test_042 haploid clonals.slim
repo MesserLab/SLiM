@@ -17,12 +17,12 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(0);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", N);
 	p1.setCloningRate(1.0);
 }
 modifyChild() {
-	childGenome2.removeMutations(childGenome2.mutations);
+	child.genome2.removeMutations(child.genome2.mutations);
 	return T;
 }
 late() {
@@ -30,7 +30,7 @@ late() {
 	freqs = sim.mutationFrequencies(NULL, muts);
 	sim.subpopulations.genomes.removeMutations(muts[freqs == 0.5], T);
 }
-5 {
+5 early() {
 	addAncestralSamples(5);
 }
 9 late() { 
