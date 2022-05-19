@@ -6638,9 +6638,8 @@ void Species::__RewriteOrCheckPopulationMetadata(void)
 	{
 		// If it is not in the pre-JSON format, check that it is JSON; we don't accept binary non-JSON metadata.
 		// This is necessary because we will carry this metadata over when we output a new population table on save;
-		// this metadata must be compatible with our schema, which is a JSON schema.  Technically (FIXME), we ought to
-		// confirm that this schema also considers `slim_id` to be a required key, I think, otherwise the data we
-		// carry over might be non-compliant with the schema we state for it; but for now we pend such checks.
+		// this metadata must be compatible with our schema, which is a JSON schema.  Note that we do not check that
+		// the schema exactly matches our current schema string, however; we are permissive about that, by design.
 		// See https://github.com/MesserLab/SLiM/issues/169 for discussion about schema checking/compatibility.
 		nlohmann::json pop_schema_json;
 		
@@ -6696,7 +6695,10 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				} catch (...) {
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
 				}
-
+				
+				// The logic here needs to take the possibility of carryover metadata into account; we cannot assume that
+				// non-null metadata is required to the SLiM-compliant metadata.  FIXME
+				
 				if (subpop_metadata.is_null())
 				{
 					// 'null' rows in the population table correspond to unused subpop IDs
@@ -6902,7 +6904,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 			}
 		}
 		
-		// We do not use the migration table, so we do not remap it here
+		// We should remap the migration table also; note that we do now import it, in __ConfigureSubpopulationsFromTables(),
+		// for WF models, and the "source_subpop" key in each migration_rec needs to be remapped here.  Punting for now;
+		// once a test case triggers a reproducible problem with this due to the lack of remapping, I will revisit it.  FIXME
 	}
 }
 
@@ -6930,38 +6934,18 @@ void Species::__PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid
 	
 	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
-		// validate and parse metadata; get metadata values or fall back to default values
+		// We want to allow "carryover" of metadata from other sources such as msprime, so we do not want to require
+		// that metadata is SLiM metadata.  We only prepare to receive individuals in subpopulations with SLiM metadata,
+		// though; other subpopulations must not contain any extant individuals.  See issue #318.
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
-		
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
-		std::string metadata_string(metadata_char, metadata_length);
-		nlohmann::json subpop_metadata;
+		slim_objectid_t subpop_id = CheckSLiMPopulationMetadata(metadata_char, metadata_length);
 		
-		try {
-			subpop_metadata = nlohmann::json::parse(metadata_string);
-		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
-		}
-
-		if (subpop_metadata.is_null()) {
-			// 'null' rows in the population table correspond to unused subpop IDs; ignore them
-			// note that 'null' is required by tskit, it cannot just be empty; see _InstantiateSLiMObjectsFromTables(), WritePopulationTable()
+		// -1 indicates that the metadata does not represent an extant SLiM subpopulation
+		if (subpop_id == -1)
 			continue;
-		}
 		
-		if (!subpop_metadata.is_object())
-			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
-		
-		slim_objectid_t subpop_id;
-		
-		if (!subpop_metadata.contains("slim_id"))
-			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
-		else if (!subpop_metadata["slim_id"].is_number_integer())
-			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
-		else
-			subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
-		
-		// bounds-check the subpop id
+		// bounds-check the subpop id; if a slim_id is present, we require it to be well-behaved
 		if ((subpop_id < 0) || (subpop_id > SLIM_MAX_ID_VALUE))
 			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): subpopulation id out of range (" << subpop_id << "); ids must be >= 0 and <= " << SLIM_MAX_ID_VALUE << "." << EidosTerminate();
 		
@@ -7287,17 +7271,20 @@ void Species::__ConfigureSubpopulationsFromTables(EidosInterpreter *p_interprete
 	for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 	{
 		// validate and parse metadata; get metadata values or fall back to default values
-		// note that __PrepareSubpopulationsFromTables() already did this work, so we skip checks
 		size_t metadata_length = pop_table.metadata_offset[pop_index + 1] - pop_table.metadata_offset[pop_index];
 		char *metadata_char = pop_table.metadata + pop_table.metadata_offset[pop_index];
+		slim_objectid_t subpop_id = CheckSLiMPopulationMetadata(metadata_char, metadata_length);
+		
+		// -1 indicates that the metadata does not represent an extant SLiM subpopulation, so we
+		// skip it entirely; this logic mirrors that in __PrepareSubpopulationsFromTables(), which has
+		// already created a ts_subpop_info record for every SLiM-compliant subpopulation
+		if (subpop_id == -1)
+			continue;
+		
+		// otherwise, the metadata is valid and we proceed; this design means we parse the JSON twice, but whatever
 		std::string metadata_string(metadata_char, metadata_length);
 		nlohmann::json subpop_metadata = nlohmann::json::parse(metadata_string);
 
-        if (subpop_metadata.is_null())
-			continue;
-		
-		slim_objectid_t subpop_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
-		
 		// Now we get to new work not done by __PrepareSubpopulationsFromTables()
 		double metadata_selfing_fraction = 0.0;
 		double metadata_female_clone_fraction = 0.0;
