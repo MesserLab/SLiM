@@ -102,6 +102,7 @@ development head (in the master branch):
 		optimizations for several cases of sample() and sampleIndividuals() in the case of multiple draws without replacement
 		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
 		add [logical$ randomizeCallbacks = T] to initializeSLiMOptions() to turn of randomization of the order individuals are processed with callbacks; T by default, breaks backward compatibility unless set to F
+		add new section 14.15 recipes: biallelic models showing how to use mutation() callbacks, unique down, and handle back-mutation
 		
 
 version 3.7.1 (Eidos version 2.7.1):

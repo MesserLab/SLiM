@@ -194,5 +194,7 @@
         <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
         <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
         <file>recipes/Recipe 18.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
+        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback I.txt</file>
+        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback II.txt</file>
     </qresource>
 </RCC>
