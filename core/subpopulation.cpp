@@ -1364,6 +1364,26 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	// the header for further comments on this mechanism.
 	individual_cached_fitness_OVERRIDE_ = false;
 	
+	// Decide whether we need to shuffle the order of operations.  This occurs only if (a) we have fitness() or fitness(NULL) callbacks
+	// that are enabled, and (b) at least one of them has no cached optimization set.  Otherwise, the order of operations doesn't matter.
+	bool needs_shuffle = false;
+	
+	if (!needs_shuffle)
+		for (SLiMEidosBlock *callback : p_global_fitness_callbacks)
+			if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+			{
+				needs_shuffle = true;
+				break;
+			}
+	
+	if (!needs_shuffle)
+		for (SLiMEidosBlock *callback : p_fitness_callbacks)
+			if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+			{
+				needs_shuffle = true;
+				break;
+			}
+	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
 	{
@@ -1415,47 +1435,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
+			if (!needs_shuffle)
 			{
-				slim_popsize_t female_index = shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[female_index]->fitness_scaling_;
-				
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
-				
-#ifdef SLIMGUI
-				parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
-#endif
-				
-				fitness *= subpop_fitness_scaling;
-				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFemaleFitness += fitness;
-			}
-			
-			species_.ReturnShuffleBuffer();
-		}
-		else
-		{
-			// general case for females; we use the shuffle buffer to randomize processing order
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
-			{
-				slim_popsize_t female_index = shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[female_index]->fitness_scaling_;
-				
-				if (fitness > 0.0)
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
 					if (global_fitness_callbacks_exist && (fitness > 0.0))
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
 					
@@ -1464,19 +1449,115 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 #endif
 					
 					fitness *= subpop_fitness_scaling;
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
 				}
-				else
+			}
+			else
+			{
+				// general case for females without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
 				{
+					slim_popsize_t female_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+					
 #ifdef SLIMGUI
 					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
 #endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
 				}
 				
-				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFemaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
-			
-			species_.ReturnShuffleBuffer();
+		}
+		else
+		{
+			if (!needs_shuffle)
+			{
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+				{
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for females; we use the shuffle buffer to randomize processing order
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
+				{
+					slim_popsize_t female_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
+				}
+				
+				species_.ReturnShuffleBuffer();
+			}
 		}
 		
 		totalFitness += totalFemaleFitness;
@@ -1529,49 +1610,12 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
+			if (!needs_shuffle)
 			{
-				slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[male_index]->fitness_scaling_;
-				
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
-				
-#ifdef SLIMGUI
-				parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
-#endif
-				
-				fitness *= subpop_fitness_scaling;
-				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-				totalMaleFitness += fitness;
-			}
-			
-			species_.ReturnShuffleBuffer();
-		}
-		else
-		{
-			// general case for males; we use the shuffle buffer to randomize processing order
-			slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
-			{
-				slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[male_index]->fitness_scaling_;
-				
-				if (fitness > 0.0)
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
 					if (global_fitness_callbacks_exist && (fitness > 0.0))
 						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
 					
@@ -1580,19 +1624,117 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 #endif
 					
 					fitness *= subpop_fitness_scaling;
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
 				}
-				else
+			}
+			else
+			{
+				// general case for females without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
 				{
+					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+					
 #ifdef SLIMGUI
 					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
 #endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
 				}
 				
-				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-				totalMaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
-			
-			species_.ReturnShuffleBuffer();
+		}
+		else
+		{
+			if (!needs_shuffle)
+			{
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+				{
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for males; we use the shuffle buffer to randomize processing order
+				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
+				{
+					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
+				}
+				
+				species_.ReturnShuffleBuffer();
+			}
 		}
 		
 		totalFitness += totalMaleFitness;
@@ -1651,46 +1793,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+			if (!needs_shuffle)
 			{
-				slim_popsize_t individual_index = shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
-				
-#ifdef SLIMGUI
-				parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
-#endif
-				
-				fitness *= subpop_fitness_scaling;
-				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFitness += fitness;
-			}
-			
-			species_.ReturnShuffleBuffer();
-		}
-		else
-		{
-			// general case for hermaphrodites; we use the shuffle buffer to randomize processing order
-			slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
-			
-			for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
-			{
-				slim_popsize_t individual_index = shuffle_buf[shuffle_index];
-				double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-				
-				if (fitness > 0.0)
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 					
 					// multiply in the effects of any global fitness callbacks (muttype==NULL)
 					if (global_fitness_callbacks_exist && (fitness > 0.0))
@@ -1701,19 +1808,116 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 #endif
 					
 					fitness *= subpop_fitness_scaling;
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
 				}
-				else
+			}
+			else
+			{
+				// general case for hermaphrodites without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 				{
+					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					// multiply in the effects of any global fitness callbacks (muttype==NULL)
+					if (global_fitness_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+					
 #ifdef SLIMGUI
 					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
 #endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
 				}
 				
-				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
-			
-			species_.ReturnShuffleBuffer();
+		}
+		else
+		{
+			if (!needs_shuffle)
+			{
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				{
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for hermaphrodites; we use the shuffle buffer to randomize processing order
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+				{
+					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!fitness_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+						else if (single_fitness_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+						
+						// multiply in the effects of any global fitness callbacks (muttype==NULL)
+						if (global_fitness_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
+				}
+				
+				species_.ReturnShuffleBuffer();
+			}
 		}
 		
 		if (model_type_ == SLiMModelType::kModelTypeWF)
