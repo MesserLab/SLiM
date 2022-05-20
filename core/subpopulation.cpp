@@ -1368,21 +1368,24 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	// that are enabled, and (b) at least one of them has no cached optimization set.  Otherwise, the order of operations doesn't matter.
 	bool needs_shuffle = false;
 	
-	if (!needs_shuffle)
-		for (SLiMEidosBlock *callback : p_global_fitness_callbacks)
-			if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
-			{
-				needs_shuffle = true;
-				break;
-			}
-	
-	if (!needs_shuffle)
-		for (SLiMEidosBlock *callback : p_fitness_callbacks)
-			if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
-			{
-				needs_shuffle = true;
-				break;
-			}
+	if (species_.RandomizingCallbackOrder())
+	{
+		if (!needs_shuffle)
+			for (SLiMEidosBlock *callback : p_global_fitness_callbacks)
+				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+				{
+					needs_shuffle = true;
+					break;
+				}
+		
+		if (!needs_shuffle)
+			for (SLiMEidosBlock *callback : p_fitness_callbacks)
+				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+				{
+					needs_shuffle = true;
+					break;
+				}
+	}
 	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
