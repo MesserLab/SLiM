@@ -5291,6 +5291,9 @@ void Species::WriteProvenanceTable(tsk_table_collection_t *p_tables, bool p_use_
 	j["slim"]["file_version"] = SLIM_TREES_FILE_VERSION;	// see declaration of SLIM_TREES_FILE_VERSION for comments on prior versions
 	j["slim"]["cycle"] = Cycle();
 	j["slim"]["tick"] = community_.Tick();
+	j["slim"]["name"] = name_;
+	if (description_.length())
+		j["slim"]["description"] = description_;
 	//j["slim"]["remembered_node_count"] = (long)remembered_genomes_.size();	// no longer writing this key!
 	
 	// compute the SHA-256 hash of the script string
