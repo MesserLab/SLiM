@@ -2936,7 +2936,7 @@ slim_popsize_t *Species::BorrowShuffleBuffer(slim_popsize_t p_buffer_size)
 		}
 		
 		if (shuffle_buf_size_ > 0)
-			gsl_ran_shuffle(EIDOS_GSL_RNG, shuffle_buffer_, shuffle_buf_size_, sizeof(slim_popsize_t));
+			Eidos_ran_shuffle(EIDOS_GSL_RNG, shuffle_buffer_, shuffle_buf_size_);
 	}
 	else
 	{

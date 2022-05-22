@@ -7605,16 +7605,16 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				case EidosValueType::kValueVOID: break;
 				case EidosValueType::kValueNULL: break;
 				case EidosValueType::kValueLogical:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count, sizeof(eidos_logical_t));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueInt:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count, sizeof(int64_t));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueFloat:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count, sizeof(double));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueObject:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObject *));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count);
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);

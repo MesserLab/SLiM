@@ -1076,7 +1076,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
 		// limited number of mating events, for example).  So in this code branch, we prepare an overall plan for migration and sex, and then execute
-		// that plan in an order randomized with gsl_ran_shuffle().  BCH 28 September 2016: When sex is enabled, we want to generate male and female
+		// that plan in an order randomized with Eidos_ran_shuffle().  BCH 28 September 2016: When sex is enabled, we want to generate male and female
 		// offspring in shuffled order.  However, the vector of child genomes is organized into females first, then males, so we need to fill that
 		// vector in an unshuffled order or we end up trying to generate a male offspring into a female slot, or vice versa.  See the usage of
 		// child_index_F, child_index_M, and child_index in the shuffle cases below.
@@ -1206,7 +1206,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					}
 				}
 				
-				gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
+				Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
 				
 				// Now we can run through our plan vector and generate each planned child in order.
 				slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1635,7 +1635,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				}
 			}
 			
-			gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
+			Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
 			
 			// Now we can run through our plan vector and generate each planned child in order.
 			slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1887,7 +1887,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	else
 	{
 		// NO CALLBACKS PRESENT: offspring can be generated in a fixed (i.e. predetermined) order.  This is substantially faster, since it avoids
-		// some setup overhead, including the gsl_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
+		// some setup overhead, including the Eidos_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
 		// the fact that the individuals might be in a non-random order, because of this code path.  BEWARE!
 		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
