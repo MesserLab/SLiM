@@ -7,7 +7,7 @@ ts = msprime.sim_ancestry(samples=5000, population_size=5000,
     sequence_length=1e8, recombination_rate=1e-8)
 
 tables = ts.dump_tables()
-pyslim.annotate_defaults_tables(tables, model_type="nonWF", slim_generation=1)
+pyslim.annotate_tables(tables, model_type="nonWF", tick=1)
 
 # add sexes and ages
 individual_metadata = [ind.metadata for ind in tables.individuals]
@@ -29,7 +29,7 @@ mut_metadata = {
               "mutation_type": 2,
               "selection_coeff": 0.1,
               "subpopulation": mut_node.population,
-              "slim_time": int(tables.metadata['SLiM']['generation'] - mut_node.time),
+              "slim_time": int(tables.metadata['SLiM']['tick'] - mut_node.time),
               "nucleotide": -1
             }
         ]
@@ -42,5 +42,5 @@ tables.mutations.add_row(
         time=mut_node.time,
         metadata=mut_metadata)
 
-slim_ts = pyslim.load_tables(tables)
+slim_ts = tables.tree_sequence()
 slim_ts.dump("recipe_17.9.trees")

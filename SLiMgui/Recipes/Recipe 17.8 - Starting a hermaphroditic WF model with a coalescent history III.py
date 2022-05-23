@@ -1,6 +1,6 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-import msprime, tskit
+import tskit
 
 ts = tskit.load("recipe_17.8_II.trees").simplify()
 
