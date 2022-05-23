@@ -1115,14 +1115,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					IndividualSex planned_sex;
 					uint8_t planned_cloned;
 					uint8_t planned_selfed;
-				} offspring_plan;
+				} offspring_plan_no_source;
 				
-				static offspring_plan *planned_offspring = nullptr;
+				static offspring_plan_no_source *planned_offspring = nullptr;
 				static int64_t planned_offspring_alloc_size = 0;
 				
 				if (planned_offspring_alloc_size < total_children)
 				{
-					planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+					planned_offspring = (offspring_plan_no_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_no_source));
 					if (!planned_offspring)
 						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 					planned_offspring_alloc_size = total_children;
@@ -1177,7 +1177,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						while (migrant_count < migrants_to_generate)
 						{
-							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							offspring_plan_no_source *offspring_plan_ptr = planned_offspring + child_count;
 							
 							offspring_plan_ptr->planned_sex = child_sex;
 							
@@ -1214,7 +1214,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				for (child_count = 0; child_count < total_children; ++child_count)
 				{
 					// Get the plan for this offspring from our shuffled plan vector
-					offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+					offspring_plan_no_source *offspring_plan_ptr = planned_offspring + child_count;
 					
 					IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 					bool selfed, cloned;
@@ -1529,14 +1529,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				IndividualSex planned_sex;
 				uint8_t planned_cloned;
 				uint8_t planned_selfed;
-			} offspring_plan;
+			} offspring_plan_with_source;
 			
-			static offspring_plan *planned_offspring = nullptr;
+			static offspring_plan_with_source *planned_offspring = nullptr;
 			static int64_t planned_offspring_alloc_size = 0;
 			
 			if (planned_offspring_alloc_size < total_children)
 			{
-				planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+				planned_offspring = (offspring_plan_with_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_with_source));
 				if (!planned_offspring)
 					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				planned_offspring_alloc_size = total_children;
@@ -1604,7 +1604,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						while (migrant_count < migrants_to_generate)
 						{
-							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							offspring_plan_with_source *offspring_plan_ptr = planned_offspring + child_count;
 							
 							offspring_plan_ptr->planned_source = &source_subpop;
 							offspring_plan_ptr->planned_sex = child_sex;
@@ -1643,7 +1643,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			for (child_count = 0; child_count < total_children; ++child_count)
 			{
 				// Get the plan for this offspring from our shuffled plan vector
-				offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+				offspring_plan_with_source *offspring_plan_ptr = planned_offspring + child_count;
 				
 				Subpopulation *source_subpop = offspring_plan_ptr->planned_source;
 				IndividualSex child_sex = offspring_plan_ptr->planned_sex;
