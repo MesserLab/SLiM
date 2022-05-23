@@ -322,6 +322,7 @@ private:
 	bool recording_mutations_ = false;			// true if we are recording mutations in our tree sequence tables
 	bool retain_coalescent_only_ = true;		// true if "retain" keeps only individuals for coalescent nodes, not also individuals for unary nodes
 	
+	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
 	tsk_table_collection_t tables_;
 	tsk_bookmark_t table_position_;
 	

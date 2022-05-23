@@ -1766,6 +1766,8 @@ void Species::RunInitializeCallbacks(void)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
 		if (nucleotide_based_)
 			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot be nucleotide-based; either add genetic initialization calls, or turn off nucleotides." << EidosTerminate();
+		if (preferred_mutrun_count_ > 0)
+			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot have a specified mutation run count (with initializeSLiMOptions()), since they do not use mutation runs." << EidosTerminate();
 		
 		has_genetics_ = false;
 		
@@ -3987,12 +3989,16 @@ void Species::AllocateTreeSequenceTables(void)
 		EIDOS_TERMINATION << "ERROR (Species::AllocateTreeSequenceTables): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
 #endif
 	
+	if (tables_initialized_)
+		EIDOS_TERMINATION << "ERROR (Species::AllocateTreeSequenceTables): (internal error) tree sequence tables already initialized." << EidosTerminate();
+	
 	// Set up the table collection before loading a saved population or starting a simulation
 	
 	//INITIALIZE NODE AND EDGE TABLES.
 	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
 	
+	tables_initialized_ = true;
 	tables_.sequence_length = (double)chromosome_->last_position_ + 1;
 	
 	RecordTablePosition();
@@ -4283,6 +4289,9 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 	FILE *MspTxtIndividualTable = fopen(IndividualsFileName.c_str(), "r");
 	FILE *MspTxtPopulationTable = fopen(PopulationFileName.c_str(), "r");
 	FILE *MspTxtProvenanceTable = fopen(ProvenanceFileName.c_str(), "r");
+	
+	if (tables_initialized_)
+		EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataFromAscii): (internal error) tree sequence tables already initialized." << EidosTerminate();
 	
 	int ret = tsk_table_collection_init(&tables_, TSK_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
@@ -5960,12 +5969,16 @@ void Species::FreeTreeSequence()
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::FreeTreeSequence): (internal error) FreeTreeSequence() called when tree-sequence recording is not enabled." << EidosTerminate();
 	
-	// Free any tree-sequence recording stuff that has been allocated; called when Species is getting deallocated,
-	// and also when we're wiping the slate clean with something like readFromPopulationFile().
-	tsk_table_collection_free(&tables_);
-	
-	remembered_genomes_.clear();
-	tabled_individuals_hash_.clear();
+	if (tables_initialized_)
+	{
+		// Free any tree-sequence recording stuff that has been allocated; called when Species is getting deallocated,
+		// and also when we're wiping the slate clean with something like readFromPopulationFile().
+		tsk_table_collection_free(&tables_);
+		tables_initialized_ = false;
+		
+		remembered_genomes_.clear();
+		tabled_individuals_hash_.clear();
+	}
 }
 
 void Species::RecordAllDerivedStatesFromSLiM(void)

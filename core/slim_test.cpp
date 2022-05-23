@@ -452,6 +452,33 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("ticks fox 1 early() {}", "no initialize() callback", __LINE__, false);
 	SLiMAssertScriptRaise("species fox fitness(m1) {}", "no initialize() callback", __LINE__, false);
 	SLiMAssertScriptRaise("ticks fox fitness(m1) {}", "may not be preceded", __LINE__);
+	
+	// Test no-genetics scripts; we just want to confirm that they can run without any null genome errors, consistency check errors, etc., especially in DEBUG
+	SLiMAssertScriptRaise("initialize() {initializeTreeSeq();} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot use tree-sequence recording", __LINE__, false);
+	SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(nucleotideBased=T);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot be nucleotide-based", __LINE__, false);
+	SLiMAssertScriptRaise("initialize() {initializeSLiMOptions(mutationRuns=5);} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot have a specified mutation run count", __LINE__, false);
+	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {} 1 early() {sim.addSubpop('p1', 10); p1.setSelfingRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('A');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('A');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('X');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('X');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('Y');} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSex('Y');} 1 early() {sim.addSubpop('p1', 10); p1.setCloningRate(0.5);} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addCrossed(individual, subpop.sampleIndividuals(1));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addSelfed(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('A');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('X');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 }
 
 #pragma mark Individual relatedness tests
