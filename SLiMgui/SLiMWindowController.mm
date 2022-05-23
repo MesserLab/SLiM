@@ -1892,6 +1892,17 @@ static int DisplayDigitsForIntegerPart(double x)
 	//
 	for (Species *focal_species : community->all_species_)
 	{
+		[content eidosAppendString:@"\n" attributes:menlo11_d];
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"MutationRun usage\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		if (!focal_species->HasGenetics())
+		{
+			[content eidosAppendString:@"(omitted for no-genetics species)" attributes:optima13i_d];
+			continue;
+		}
+		
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
 		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
 		
@@ -1904,11 +1915,6 @@ static int DisplayDigitsForIntegerPart(double x)
 			
 			power_tallies[power]++;
 		}
-		
-		[content eidosAppendString:@"\n" attributes:menlo11_d];
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"MutationRun usage\n" attributes:optima14b_d];
-		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
 		for (int power = 0; power < 20; ++power)
 		{

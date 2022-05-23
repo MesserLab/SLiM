@@ -363,32 +363,41 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 {
 	// We now have a final last position, so we can calculate our mutation run layout
 	
-	if (p_preferred_count != 0)
+	if (species_.HasGenetics())
 	{
-		// The user has given us a mutation run count, so use that count and divide the chromosome evenly
-		if (p_preferred_count < 1)
-			EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
-		
-		mutrun_count_ = p_preferred_count;
-		mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
-		
-		if (SLiM_verbosity_level >= 2)
-			SLIM_OUTSTREAM << std::endl << "// Override mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
+		if (p_preferred_count != 0)
+		{
+			// The user has given us a mutation run count, so use that count and divide the chromosome evenly
+			if (p_preferred_count < 1)
+				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
+			
+			mutrun_count_ = p_preferred_count;
+			mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
+			
+			if (SLiM_verbosity_level >= 2)
+				SLIM_OUTSTREAM << std::endl << "// Override mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
+		}
+		else
+		{
+			// The user has not supplied a count, so we will conduct experiments to find the best count;
+			// for simplicity we will just always start with a single run, since that is often best anyway
+			mutrun_count_ = 1;
+			mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
+			
+			// When we are running experiments, the mutation run length needs to be a power of two so that it can be divided evenly,
+			// potentially a fairly large number of times.  We impose a maximum mutrun count of SLIM_MUTRUN_MAXIMUM_COUNT, so
+			// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
+			mutrun_length_ = (slim_position_t)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
+			
+			if (SLiM_verbosity_level >= 2)
+				SLIM_OUTSTREAM << std::endl << "// Initial mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
+		}
 	}
 	else
 	{
-		// The user has not supplied a count, so we will conduct experiments to find the best count;
-		// for simplicity we will just always start with a single run, since that is often best anyway
-		mutrun_count_ = 1;
-		mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
-		
-		// When we are running experiments, the mutation run length needs to be a power of two so that it can be divided evenly,
-		// potentially a fairly large number of times.  We impose a maximum mutrun count of SLIM_MUTRUN_MAXIMUM_COUNT, so
-		// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
-		mutrun_length_ = (slim_position_t)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
-		
-		if (SLiM_verbosity_level >= 2)
-			SLIM_OUTSTREAM << std::endl << "// Initial mutation run count = " << mutrun_count_ << ", run length = " << mutrun_length_ << std::endl;
+		// No-genetics species use null genomes, and have no mutruns
+		mutrun_count_ = 0;
+		mutrun_length_ = 0;
 	}
 	
 	last_position_mutrun_ = mutrun_count_ * mutrun_length_ - 1;

@@ -1760,9 +1760,15 @@ void Species::RunInitializeCallbacks(void)
 		// little bits of several initialization functions excerpted here.  Note that the state achieved by this code path
 		// cannot be achieved any other way; in particular, we have no genomic element types, no mutation types, and no
 		// genomic elements; normally that is illegal, but we deliberately carve out this special case.
+		// BCH 22 May 2022: No-genetics species cannot use tree-sequence recording or be nucleotide-based, for simplicity.
+		// They always use null genomes, so any attempt to access their genetics is illegal.  They have no mutruns.
+		if (recording_tree_)
+			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot use tree-sequence recording; either add genetic initialization calls, or disable tree-sequence recording." << EidosTerminate();
+		if (nucleotide_based_)
+			EIDOS_TERMINATION << "ERROR (Species::RunInitializeCallbacks): no-genetics species cannot be nucleotide-based; either add genetic initialization calls, or turn off nucleotides." << EidosTerminate();
+		
 		has_genetics_ = false;
 		
-		if (!nucleotide_based_)
 		{
 			// initializeMutationRate(): initialize to zero
 			std::vector<slim_position_t> &positions = chromosome_->mutation_end_positions_H_;
@@ -1772,17 +1778,6 @@ void Species::RunInitializeCallbacks(void)
 			rates.emplace_back(0.0);
 			num_mutation_rates_++;
 		}
-		else
-		{
-			// initializeHotspotMap(): initialize to zero
-			std::vector<slim_position_t> &positions = chromosome_->hotspot_end_positions_H_;
-			std::vector<double> &multipliers = chromosome_->hotspot_multipliers_H_;
-			multipliers.clear();
-			positions.clear();
-			multipliers.emplace_back(0.0);
-			num_hotspot_maps_++;
-		}
-		
 		{
 			// initializeRecombinationRate(): initialize to zero
 			std::vector<slim_position_t> &positions = chromosome_->recombination_end_positions_H_;
@@ -2000,21 +1995,24 @@ void Species::PrepareForCycle(void)
 
 void Species::MaintainMutationRegistry(void)
 {
-	MUTRUNEXP_START_TIMING(x_clock0);
-	
-	population_.MaintainMutationRegistry();
-	
-	MUTRUNEXP_END_TIMING(x_clock0);
-	
-	// Every hundredth cycle we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
-	// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
-	// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
-	// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
-	// cycle would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
-	// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
-	// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
-	if (cycle_ % 100 == 0)
-		population_.UniqueMutationRuns();
+	if (has_genetics_)
+	{
+		MUTRUNEXP_START_TIMING(x_clock0);
+		
+		population_.MaintainMutationRegistry();
+		
+		MUTRUNEXP_END_TIMING(x_clock0);
+		
+		// Every hundredth cycle we unique mutation runs to optimize memory usage and efficiency.  The number 100 was
+		// picked out of a hat – often enough to perhaps be useful in keeping SLiM slim, but infrequent enough that if it
+		// is a time sink it won't impact the simulation too much.  This call is really quite fast, though – on the order
+		// of 0.015 seconds for a pop of 10000 with a 1e5 chromosome and lots of mutations.  So although doing this every
+		// cycle would seem like overkill – very few duplicates would be found per call – every 100 should be fine.
+		// Anyway, if we start seeing this call in performance analysis, we should probably revisit this; the benefit is
+		// likely to be pretty small for most simulations, so if the cost is significant then it may be a lose.
+		if (cycle_ % 100 == 0)
+			population_.UniqueMutationRuns();
+	}
 }
 
 void Species::RecalculateFitness(void)

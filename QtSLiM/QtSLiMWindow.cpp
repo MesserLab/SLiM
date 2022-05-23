@@ -3378,6 +3378,17 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
     for (Species *focal_species : community->all_species_)
 	{
+        tc.insertText(" \n", menlo11_d);
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("MutationRun usage\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+        if (!focal_species->HasGenetics())
+        {
+            tc.insertText("(omitted for no-genetics species)", optima13i_d);
+            continue;
+        }
+        
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
 		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
 		
@@ -3390,11 +3401,6 @@ void QtSLiMWindow::displayProfileResults(void)
 			
 			power_tallies[power]++;
 		}
-		
-		tc.insertText(" \n", menlo11_d);
-		tc.insertText(" \n", optima13_d);
-		tc.insertText("MutationRun usage\n", optima14b_d);
-		tc.insertText(" \n", optima3_d);
 		
 		for (int power = 0; power < 20; ++power)
 		{

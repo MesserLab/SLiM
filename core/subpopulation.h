@@ -300,6 +300,13 @@ public:
 	Genome *_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null);	// internal use only
 	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
 	{
+#if DEBUG
+		if ((p_mutrun_count == 0) && !p_is_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
+		if ((p_mutrun_count != 0) && p_is_null)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome): (internal error) mutrun count non-zero with p_is_null == true." << EidosTerminate();
+#endif
+		
 		if (p_is_null)
 		{
 			if (genome_junkyard_null.size())
@@ -372,7 +379,7 @@ public:
 	double ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index);
 	
 	// WF only:
-	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear);
+	void WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male);
 	void GenerateChildrenToFitWF(void);		// given the set subpop size and sex ratio, configure the child generation genomes and individuals to fit
 	void UpdateWFFitnessBuffers(bool p_pure_neutral);																					// update the WF model fitness buffers after UpdateFitness()
 	void TallyLifetimeReproductiveOutput(void);

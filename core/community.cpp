@@ -2581,7 +2581,8 @@ bool Community::_RunOneTickNonWF(void)
 		// user's model, because if they ask for mutation counts/frequences a call to TallyMutationReferences() will be made at that
 		// point anyway to synchronize; but in slim's code itself, not in Eidos, the tallies can definitely differ!  Beware!
 		for (Species *species : all_species_)
-			species->population_.TallyMutationReferences(nullptr, false);
+			if (species->HasGenetics())
+				species->population_.TallyMutationReferences(nullptr, false);
 #endif
 		
 		for (Species *species : all_species_)

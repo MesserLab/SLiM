@@ -4738,20 +4738,11 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 // Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 void Population::ClearParentalGenomes(void)
 {
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	if (species_.HasGenetics())
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-		
-		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			subpop_genomes[i]->clear_to_nullptr();
-	}
-	
-	// We have to clear out removed subpops, too, for as long as they stick around
-	for (Subpopulation *subpop : removed_subpops_)
-	{
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
+			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
@@ -4759,12 +4750,24 @@ void Population::ClearParentalGenomes(void)
 				subpop_genomes[i]->clear_to_nullptr();
 		}
 		
+		// We have to clear out removed subpops, too, for as long as they stick around
+		for (Subpopulation *subpop : removed_subpops_)
 		{
-			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+			{
+				slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+				std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->clear_to_nullptr();
+			}
 			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i]->clear_to_nullptr();
+			{
+				slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+				std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->clear_to_nullptr();
+			}
 		}
 	}
 }
