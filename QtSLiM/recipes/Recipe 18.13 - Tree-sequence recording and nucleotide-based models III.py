@@ -1,10 +1,10 @@
 # Keywords: Python, nucleotide-based, nucleotide sequence, sequence-based mutation rate
 
-import pyslim
+import tskit, pyslim
 import numpy as np
 
-ts = pyslim.load("recipe_nucleotides.trees")
-slim_gen = ts.metadata["SLiM"]["generation"]
+ts = tskit.load("recipe_nucleotides.trees")
+slim_gen = ts.metadata["SLiM"]["tick"]
 
 M = np.zeros((4,4,4,4), dtype='int')
 for mut in ts.mutations():
@@ -14,17 +14,9 @@ for mut in ts.mutations():
         mut_list = mut.metadata["mutation_list"]
         k = np.argmax([u["slim_time"] for u in mut_list])
         derived_nuc = mut_list[k]["nucleotide"]
-        left_nuc = ts.nucleotide_at(mut.node, pos - 1, 
-                time = slim_gen - mut_list[k]["slim_time"] - 1.0)
-        right_nuc = ts.nucleotide_at(mut.node, pos + 1,
-                time = slim_gen - mut_list[k]["slim_time"] - 1.0)
-        if mut.parent == -1:
-            acgt = ts.reference_sequence.data[int(ts.site(mut.site).position)]
-            parent_nuc = pyslim.NUCLEOTIDES.index(acgt)
-        else:
-            parent_mut = ts.mutation(mut.parent)
-            assert(parent_mut.site == mut.site)
-            parent_nuc = parent_mut.metadata["mutation_list"][0]["nucleotide"]
+        left_nuc = pyslim.nucleotide_at(ts, mut.node, pos - 1, time = mut.time)
+        right_nuc = pyslim.nucleotide_at(ts, mut.node, pos + 1, time = mut.time)
+        parent_nuc = pyslim.nucleotide_at(ts, mut.node, pos, time = mut.time + 1.0)
         M[left_nuc, parent_nuc, right_nuc, derived_nuc] += 1
 
 print("{}\t{}\t{}".format('ancestral', 'derived', 'count'))
