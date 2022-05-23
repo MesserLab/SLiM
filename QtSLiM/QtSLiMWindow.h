@@ -48,6 +48,7 @@ class QItemSelection;
 class SLiMgui;
 class QtSLiMGraphView;
 class QtSLiMScriptTextEdit;
+class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
 class QtSLiMChromosomeWidget;
 
@@ -176,6 +177,7 @@ public:
     void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     QtSLiMScriptTextEdit *scriptTextEdit(void);
+    QtSLiMTextEdit *outputTextEdit(void);
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     QtSLiMTablesDrawer *TablesDrawerController(void) { return tablesDrawerController; }
     

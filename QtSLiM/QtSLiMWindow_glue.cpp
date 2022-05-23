@@ -171,6 +171,8 @@ void QtSLiMWindow::glueUI(void)
 	connect(ui->actionCreate_Haplotype_Plot, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
+    connect(ui->actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
+    connect(ui->actionFocusOnConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnConsole);
     connect(ui->actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
     connect(ui->actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
     connect(ui->actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);

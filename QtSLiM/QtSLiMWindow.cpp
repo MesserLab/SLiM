@@ -749,6 +749,11 @@ QtSLiMScriptTextEdit *QtSLiMWindow::scriptTextEdit(void)
     return ui->scriptTextEdit;
 }
 
+QtSLiMTextEdit *QtSLiMWindow::outputTextEdit(void)
+{
+    return ui->outputTextEdit;
+}
+
 QtSLiMWindow::~QtSLiMWindow()
 {
     // Do this first, in case it uses any ivars that will be freed

@@ -139,6 +139,8 @@ public slots:
     void dispatch_jumpToSelection(void);
     void dispatch_jumpToLine(void);
     
+    void dispatch_focusOnScript(void);
+    void dispatch_focusOnConsole(void);
     void dispatch_checkScript(void);
     void dispatch_prettyprintScript(void);
     void dispatch_reformatScript(void);

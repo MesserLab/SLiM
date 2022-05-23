@@ -858,6 +858,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     
     {
+        QAction *actionFocusOnScript = new QAction("Focus on Script", this);
+        actionFocusOnScript->setShortcut(Qt::CTRL + Qt::Key_1);
+        connect(actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
+        window->addAction(actionFocusOnScript);
+    }
+    {
+        QAction *actionFocusOnConsole = new QAction("Focus on Console", this);
+        actionFocusOnConsole->setShortcut(Qt::CTRL + Qt::Key_2);
+        connect(actionFocusOnConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnConsole);
+        window->addAction(actionFocusOnConsole);
+    }
+    {
         QAction *actionCheckScript = new QAction("Check Script", this);
         actionCheckScript->setShortcut(Qt::CTRL + Qt::Key_Equal);
         connect(actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
@@ -1406,6 +1418,32 @@ void QtSLiMAppDelegate::dispatch_jumpToSelection(void)
 void QtSLiMAppDelegate::dispatch_jumpToLine(void)
 {
     QtSLiMFindPanel::instance().jumpToLine();
+}
+
+void QtSLiMAppDelegate::dispatch_focusOnScript(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : activeWindow());
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->scriptTextEdit()->setFocus();
+    else if (eidosConsole)
+        eidosConsole->scriptTextEdit()->setFocus();
+}
+
+void QtSLiMAppDelegate::dispatch_focusOnConsole(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : activeWindow());
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->outputTextEdit()->setFocus();
+    else if (eidosConsole)
+        eidosConsole->consoleTextEdit()->setFocus();
 }
 
 void QtSLiMAppDelegate::dispatch_checkScript(void)

@@ -1421,6 +1421,9 @@ QSlider::handle:horizontal:disabled {
     <addaction name="separator"/>
     <addaction name="actionExecuteSelection"/>
     <addaction name="actionExecuteAll"/>
+    <addaction name="separator"/>
+    <addaction name="actionFocusOnScript"/>
+    <addaction name="actionFocusOnConsole"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1983,6 +1986,22 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="toolTip">
     <string>Graph Multispecies Population Size ~ Time</string>
+   </property>
+  </action>
+  <action name="actionFocusOnScript">
+   <property name="text">
+    <string>Focus on Script</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+1</string>
+   </property>
+  </action>
+  <action name="actionFocusOnConsole">
+   <property name="text">
+    <string>Focus on Console</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+2</string>
    </property>
   </action>
  </widget>
