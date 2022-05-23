@@ -164,7 +164,7 @@ inline __attribute__((always_inline)) uint32_t Eidos_rng_uniform_int(gsl_rng *p_
 // as mentioned above.  This is essentially same code as gsl_ran_shuffle(), but calls Eidos_rng_uniform_int().
 // It is also templated, to take advantage of std::swap(), which is faster than the GSL's generalized
 // swap() function.
-template <class T> void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n)
+template <class T> inline void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n)
 {
 	for (uint32_t i = n - 1; i > 0; i--)
 	{
