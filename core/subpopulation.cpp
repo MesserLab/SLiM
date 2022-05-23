@@ -314,42 +314,43 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 #pragma mark Subpopulation
 #pragma mark -
 
-Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+// These get called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
+// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
+// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
+// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
+// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
+// junkyards are empty.
+
+Genome *Subpopulation::_NewSubpopGenome_NULL(GenomeType p_genome_type)
 {
-	// This gets called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
-	// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
-	// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
-	// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
-	// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
-	// junkyards are empty.
-	if (p_is_null)
+	if (genome_junkyard_nonnull.size())
 	{
-		if (genome_junkyard_nonnull.size())
-		{
-			Genome *back = genome_junkyard_nonnull.back();
-			genome_junkyard_nonnull.pop_back();
-			
-			// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
-			back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
-			
-			return back;
-		}
-	}
-	else
-	{
-		if (genome_junkyard_null.size())
-		{
-			Genome *back = genome_junkyard_null.back();
-			genome_junkyard_null.pop_back();
-			
-			// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
-			back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
-			
-			return back;
-		}
+		Genome *back = genome_junkyard_nonnull.back();
+		genome_junkyard_nonnull.pop_back();
+		
+		// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
+		back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
+		
+		return back;
 	}
 	
-	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+	return new (genome_pool_.AllocateChunk()) Genome(p_genome_type);
+}
+
+Genome *Subpopulation::_NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type)
+{
+	if (genome_junkyard_null.size())
+	{
+		Genome *back = genome_junkyard_null.back();
+		genome_junkyard_null.pop_back();
+		
+		// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
+		back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
+		
+		return back;
+	}
+	
+	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type);
 }
 
 // WF only:
@@ -448,8 +449,8 @@ void Subpopulation::GenerateChildrenToFitWF()
 				// genome we will eventually want at this position, and make the right kind up front; but that is a
 				// substantial hassle, and this should only matter in unusual models (very large-magnitude population size
 				// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
-				Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-				Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+				Genome *genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+				Genome *genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 				
 				child_genomes_.emplace_back(genome1);
@@ -462,8 +463,8 @@ void Subpopulation::GenerateChildrenToFitWF()
 			// In the no-genetics case we know we need null genomes, and we have to create them up front to avoid errors
 			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
 			{
-				Genome *genome1 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-				Genome *genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+				Genome *genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				Genome *genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
 				
 				child_genomes_.emplace_back(genome1);
@@ -579,47 +580,47 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				{
 					case GenomeType::kAutosome:
 					{
-						genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 						genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 						
 						if (p_haploid)
 						{
-							genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+							genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 						}
 						else
 						{
-							genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 							genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 						}
 						break;
 					}
 					case GenomeType::kXChromosome:
 					{
-						genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
+						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
 						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
 						
 						if (is_female)
 						{
-							genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
 							genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
 						}
 						else
 						{
-							genome2 = NewSubpopGenome(0, 0, GenomeType::kYChromosome, true);
+							genome2 = NewSubpopGenome_NULL(GenomeType::kYChromosome);
 						}
 						break;
 					}
 					case GenomeType::kYChromosome:
 					{
-						genome1 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
+						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
 						
 						if (is_female)
 						{
-							genome2 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
+							genome2 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
 						}
 						else
 						{
-							genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kYChromosome, false);
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kYChromosome);
 							genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
 						}
 						break;
@@ -633,15 +634,15 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				{
 					case GenomeType::kAutosome:
 					{
-						genome1 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-						genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+						genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+						genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 						break;
 					}
 					case GenomeType::kXChromosome:
 					case GenomeType::kYChromosome:
 					{
-						genome1 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
-						genome2 = NewSubpopGenome(0, 0, is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome, true);
+						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
+						genome2 = NewSubpopGenome_NULL(is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome);
 						break;
 					}
 				}
@@ -674,24 +675,24 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			
 			if (has_genetics)
 			{
-				genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+				genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 				genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 				
 				if (p_haploid)
 				{
-					genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+					genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 				}
 				else
 				{
-					genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
+					genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
 				}
 			}
 			else
 			{
 				// no-genetics species have null genomes
-				genome1 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
-				genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+				genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
 			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
@@ -4405,8 +4406,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
@@ -4530,8 +4531,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
@@ -4666,8 +4667,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
@@ -4917,8 +4918,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// Make the new individual as a candidate
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();
@@ -5235,8 +5236,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;

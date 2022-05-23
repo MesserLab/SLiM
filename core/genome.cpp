@@ -46,27 +46,6 @@ slim_mutrun_index_t Genome::s_bulk_operation_mutrun_index_ = -1;
 SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
 
 
-Genome::Genome(int p_mutrun_count, slim_position_t p_mutrun_length, enum GenomeType p_genome_type_, bool p_is_null) : genome_type_(p_genome_type_), individual_(nullptr), genome_id_(-1)
-{
-	// null genomes are now signalled with a mutrun_count_ of 0, rather than a separate flag
-	if (p_is_null)
-	{
-		mutrun_count_ = 0;
-		mutrun_length_ = 0;
-		mutruns_ = nullptr;
-	}
-	else
-	{
-		mutrun_count_ = p_mutrun_count;
-		mutrun_length_ = p_mutrun_length;
-		
-		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-			mutruns_ = run_buffer_;
-		else
-			mutruns_ = new MutationRun_SP[mutrun_count_];
-	}
-}
-
 Genome::~Genome(void)
 {
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)

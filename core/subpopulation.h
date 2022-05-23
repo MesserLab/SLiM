@@ -297,59 +297,57 @@ public:
 	slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
-	Genome *_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null);	// internal use only
-	inline __attribute__((always_inline)) Genome *NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+	Genome *_NewSubpopGenome_NULL(GenomeType p_genome_type);	// internal use only
+	Genome *_NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type);	// internal use only
+	inline __attribute__((always_inline)) Genome *NewSubpopGenome_NULL(GenomeType p_genome_type)
+	{
+		if (genome_junkyard_null.size())
+		{
+			Genome *back = genome_junkyard_null.back();
+			genome_junkyard_null.pop_back();
+			
+			back->genome_type_ = p_genome_type;
+			return back;
+		}
+		
+		return _NewSubpopGenome_NULL(p_genome_type);
+	}
+	inline __attribute__((always_inline)) Genome *NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type)
 	{
 #if DEBUG
-		if ((p_mutrun_count == 0) && !p_is_null)
+		if (p_mutrun_count == 0)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
-		if ((p_mutrun_count != 0) && p_is_null)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome): (internal error) mutrun count non-zero with p_is_null == true." << EidosTerminate();
 #endif
 		
-		if (p_is_null)
+		if (genome_junkyard_nonnull.size())
 		{
-			if (genome_junkyard_null.size())
+			Genome *back = genome_junkyard_nonnull.back();
+			genome_junkyard_nonnull.pop_back();
+			
+			// Conceptually, we want to call ReinitializeGenomeNoClear() to set the genome up with the
+			// current type, mutrun setup, etc.  But we know that the genome is nonnull, and that we
+			// want it to be nonnull, and we know that the genome has already been cleared to nullptr,
+			// so in practice we can do less work than ReinitializeGenomeNoClear(), inline.
+			back->genome_type_ = p_genome_type;
+			
+			if (back->mutrun_count_ != p_mutrun_count)
 			{
-				Genome *back = genome_junkyard_null.back();
-				genome_junkyard_null.pop_back();
+				// the number of mutruns has changed; need to reallocate
+				if (back->mutruns_ != back->run_buffer_)
+					delete[] back->mutruns_;
 				
-				back->genome_type_ = p_genome_type;
-				return back;
+				back->mutrun_count_ = p_mutrun_count;
+				back->mutrun_length_ = p_mutrun_length;
+				
+				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					back->mutruns_ = back->run_buffer_;
+				else
+					back->mutruns_ = new MutationRun_SP[p_mutrun_count];
 			}
-		}
-		else
-		{
-			if (genome_junkyard_nonnull.size())
-			{
-				Genome *back = genome_junkyard_nonnull.back();
-				genome_junkyard_nonnull.pop_back();
-				
-				// Conceptually, we want to call ReinitializeGenomeNoClear() to set the genome up with the
-				// current type, mutrun setup, etc.  But we know that the genome is nonnull, and that we
-				// want it to be nonnull, and we know that the genome has already been cleared to nullptr,
-				// so in practice we can do less work than ReinitializeGenomeNoClear(), inline.
-				back->genome_type_ = p_genome_type;
-				
-				if (back->mutrun_count_ != p_mutrun_count)
-				{
-					// the number of mutruns has changed; need to reallocate
-					if (back->mutruns_ != back->run_buffer_)
-						delete[] back->mutruns_;
-					
-					back->mutrun_count_ = p_mutrun_count;
-					back->mutrun_length_ = p_mutrun_length;
-					
-					if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-						back->mutruns_ = back->run_buffer_;
-					else
-						back->mutruns_ = new MutationRun_SP[p_mutrun_count];
-				}
-				return back;
-			}
+			return back;
 		}
 		
-		return _NewSubpopGenome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+		return _NewSubpopGenome_NONNULL(p_mutrun_count, p_mutrun_length, p_genome_type);
 	}
 	
 	// Frees a genome object (puts it in one of the junkyards), clearing it to nullptr to keep our bookkeeping straight
