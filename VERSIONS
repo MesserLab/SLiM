@@ -104,6 +104,8 @@ development head (in the master branch):
 		add [logical$ randomizeCallbacks = T] to initializeSLiMOptions() to turn of randomization of the order individuals are processed with callbacks; T by default, breaks backward compatibility unless set to F
 		add new section 14.15 recipes: biallelic models showing how to use mutation() callbacks, unique down, and handle back-mutation
 		add "Focus on Script" and "Focus on Console" keyboard shortcuts for keyboard warriors
+		revise Python recipes to match current usage: 17.2, 17.4 II, 17.5 II, 17.7 II, 17.8 I, 17.8 III, 17.9 I, 17.10 II, 18.13 III
+		merge in tskit C API 1.0 beta (will merge the release version when it is out)
 		
 
 version 3.7.1 (Eidos version 2.7.1):

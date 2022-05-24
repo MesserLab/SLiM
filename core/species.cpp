@@ -7619,7 +7619,7 @@ void Species::__TallyMutationReferencesWithTreeSequence(std::unordered_map<slim_
 	// add mutations to genomes by looping through variants
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
-		ret = tsk_variant_decode(variant, i, 0);
+		ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
 		if (ret < 0) handle_error("__TallyMutationReferencesWithTreeSequence tsk_variant_decode()", ret);
 		
 		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
@@ -7792,7 +7792,7 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	// add mutations to genomes by looping through variants
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
-		ret = tsk_variant_decode(variant, i, 0);
+		ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
 		if (ret < 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_decode()", ret);
 		
 		// We have a new variant; set it into SLiM.  A variant represents a site at which a tracked mutation exists.
