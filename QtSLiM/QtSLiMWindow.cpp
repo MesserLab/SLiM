@@ -1302,6 +1302,8 @@ void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, s
                 *p_selectionFirstBase = selRange.location;
             if (p_selectionLastBase)
                 *p_selectionLastBase = selRange.location + selRange.length - 1;
+            
+            return;
         }
     }
     

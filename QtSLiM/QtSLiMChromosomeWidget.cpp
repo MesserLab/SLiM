@@ -254,7 +254,7 @@ void QtSLiMChromosomeWidget::setReferenceChromosomeView(QtSLiMChromosomeWidget *
         referenceChromosomeView_ = p_ref_widget;
         
         if (referenceChromosomeView_)
-            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { update(); });
+            connect(referenceChromosomeView_, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { stateChanged(); });
 	}
 }
 
