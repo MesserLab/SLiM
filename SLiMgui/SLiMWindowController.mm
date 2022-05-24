@@ -1894,7 +1894,16 @@ static int DisplayDigitsForIntegerPart(double x)
 	{
 		[content eidosAppendString:@"\n" attributes:menlo11_d];
 		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"MutationRun usage\n" attributes:optima14b_d];
+		[content eidosAppendString:@"MutationRun usage" attributes:optima14b_d];
+		if (community->all_species_.size() > 1)
+		{
+			[content eidosAppendString:@" (" attributes:optima14b_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_species->avatar_.c_str()] attributes:optima14b_d];
+			[content eidosAppendString:@" " attributes:optima14b_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_species->name_.c_str()] attributes:optima14b_d];
+			[content eidosAppendString:@")" attributes:optima14b_d];
+		}
+		[content eidosAppendString:@"\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
 		if (!focal_species->HasGenetics())
@@ -2238,7 +2247,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.eidosValuePool / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.eidosValuePool total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:@" : EidosValue pool" attributes:optima13_d];
+		[content eidosAppendString:@" : EidosValue pool\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.fileBuffers / div total:average_total attributes:menlo11_d]];

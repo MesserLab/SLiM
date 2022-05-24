@@ -3385,7 +3385,16 @@ void QtSLiMWindow::displayProfileResults(void)
 	{
         tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
-		tc.insertText("MutationRun usage\n", optima14b_d);
+		tc.insertText("MutationRun usage", optima14b_d);
+        if (community->all_species_.size() > 1)
+        {
+            tc.insertText(" (", optima14b_d);
+            tc.insertText(QString::fromStdString(focal_species->avatar_), optima14b_d);
+            tc.insertText(" ", optima14b_d);
+            tc.insertText(QString::fromStdString(focal_species->name_), optima14b_d);
+            tc.insertText(")", optima14b_d);
+        }
+        tc.insertText("\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
         if (!focal_species->HasGenetics())
@@ -3731,7 +3740,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_C.eidosValuePool, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : EidosValue pool", optima13_d);
+		tc.insertText(" : EidosValue pool\n", optima13_d);
         
         tc.insertText("   ", menlo11_d);
         tc.insertText(attributedStringForByteCount(mem_tot_C.fileBuffers / div, average_total, colored_menlo), colored_menlo);
