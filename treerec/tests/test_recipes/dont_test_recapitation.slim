@@ -8,11 +8,11 @@ initialize()
     initializeRecombinationRate(1e-6);
 }
 1
-{
+early() {
     sim.addSubpop("p1", 1000);
 }
 500
-{
+early() {
     sim.treeSeqOutput("temp/decapitated.trees");
     sim.simulationFinished();
 }

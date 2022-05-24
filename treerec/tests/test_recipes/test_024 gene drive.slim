@@ -13,7 +13,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	for (i in 0:5)
 		sim.addSubpop(i, 100);
 	for (i in 1:5)
@@ -32,7 +32,7 @@ initialize() {
 	if (sim.countOfMutationsOfType(m2) == 0)
 	{
 		fixed = any(sim.substitutions.mutationType == m2);
-		cat(ifelse(fixed, "Outcome: FIXED ", "Outcome: LOST ") + sim.generation + "\n");
+		cat(ifelse(fixed, "Outcome: FIXED ", "Outcome: LOST ") + community.tick + "\n");
 		outputMutationResult();
 		sim.simulationFinished();
 	}
@@ -44,16 +44,16 @@ fitness(m2) {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 1)
 	{
-		hasMutOnChromosome1 = childGenome1.containsMutations(mut);
-		hasMutOnChromosome2 = childGenome2.containsMutations(mut);
+		hasMutOnChromosome1 = child.genome1.containsMutations(mut);
+		hasMutOnChromosome2 = child.genome2.containsMutations(mut);
 		if (hasMutOnChromosome1 & !hasMutOnChromosome2)
-			childGenome2.addMutations(mut);
+			child.genome2.addMutations(mut);
 		else if (hasMutOnChromosome2 & !hasMutOnChromosome1)
-			childGenome1.addMutations(mut);
+			child.genome1.addMutations(mut);
 	}
 	return T;
 }
-100 {
+100 early() {
 	addAncestralSamples(5);
 }
 500 late() { 
