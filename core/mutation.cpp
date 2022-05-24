@@ -30,6 +30,7 @@
 
 
 // All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()
+// Note this is shared by all species; the mutations for every species come out of the same shared block.
 Mutation *gSLiM_Mutation_Block = nullptr;
 MutationIndex gSLiM_Mutation_Block_Capacity = 0;
 MutationIndex gSLiM_Mutation_FreeIndex = -1;

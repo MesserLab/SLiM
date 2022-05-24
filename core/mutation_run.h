@@ -65,11 +65,12 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 
 // MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
 // This counter is used to do that; a client wishing to perform such an operation should increment the counter and then use it
-// in conjuction with operation_id_ below.
+// in conjuction with operation_id_ below.  Note this is shared by all species.
 extern int64_t gSLiM_MutationRun_OperationID;
 
 
 #if DEBUG_MUTATION_RUNS
+// Note this debugging facility uses globals, so it spans all active species
 extern int64_t gSLiM_ActiveMutrunCount;
 extern int64_t gSLiM_FreeMutrunCount;
 extern int64_t gSLiM_AllocatedMutrunCount;
@@ -175,6 +176,7 @@ public:
 	// objects, and we actually don't want that; we want the buffers in used MutationRun objects to stay allocated, for
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
+	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
 	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(void)
 	{
 		if (s_freed_mutation_runs_.size())

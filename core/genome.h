@@ -117,7 +117,7 @@ private:
 	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
-	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
+	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).  Note this is shared by all species.
 	static int64_t s_bulk_operation_id_;
 	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
 	static SLiMBulkOperationHashTable s_bulk_operation_runs_;

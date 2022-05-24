@@ -220,7 +220,7 @@ private:
 	double *clipped_integral_ = nullptr;
 	bool clipped_integral_valid_ = false;
 	
-	// We keep a pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity
+	// A pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity.  Note this is shared by all species.
 	static std::vector<SparseVector *> s_freed_sparse_vectors_;
 #if DEBUG
 	static int s_sparse_vector_count_;

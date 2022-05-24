@@ -343,6 +343,20 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  advantages of being able to keep Mutation objects long-term seemed to justify this; no similar advantages seem to
  exist for the other SLiM classes that would justify this additional overhead.
  
+ BCH 5/24/2022: Adding a new note regarding memory policy in multispecies SLiM.  The above points still apply, but
+ it is worth emphasizing that the shared global pools now apply across species.  Multiple species share a pool for
+ Mutation objects, and a pool for MutationRun objects, in other words; they do not share their pools of Individual
+ and Genome objects, however, as those are kept by the Population.  This is the simplest design, and seems to work
+ fine.  It might provide greater memory locality benefits for each species to have its own pool, but that would be
+ more than offset by the added complexity of having to walk up to the species to get the active pool.  This design
+ means that mutaton indexes and gSLiM_next_mutation_id are shared across species; a given mutation index is unique
+ not only within the species, but across species.  Similarly, the "bulk operation" facilities of MutationRun share
+ globals used by all species, so a bulk operation can only be in progress for one species at a time.  Other shared
+ globals include s_freed_sparse_vectors_ (which keeps freed SparseVector objects for reuse by InteractionType) and
+ gSLiM_next_pedigree_id (which keeps the next pedigree ID to be used).  This implies that pedigree IDs are uniqued
+ across species, like mutation IDs, which in turn implies that genome IDs used in tree-sequence recording are too,
+ given the invariant relationship between pedigree and genome IDs.
+ 
  */
 
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction

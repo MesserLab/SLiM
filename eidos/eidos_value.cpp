@@ -2116,7 +2116,7 @@ void EidosValue_Float_singleton::Sort(bool p_ascending)
 #pragma mark EidosValue_Object
 #pragma mark -
 
-// See comments on EidosValue_Object::EidosValue_Object() below
+// See comments on EidosValue_Object::EidosValue_Object() below.  Note this is shared by all species.
 std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;
 
 EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class) : EidosValue(EidosValueType::kValueObject, p_singleton), class_(p_class),
@@ -2131,6 +2131,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 	// is some way to do this without pushing the hack down into Eidos, but at the moment I'm not seeing it.
 	// On the bright side, this scheme actually seems pretty robust; the only way it fails is if somebody avoids
 	// using the constructor or the destructor for EidosValue_Object, I think, which seems unlikely.
+	// Note this is shared by all species, since the mutation block itself is shared by all species.
 	const std::string *element_type = &(class_->ClassName());
 										
 	if (element_type == &gEidosStr_Mutation)

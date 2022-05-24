@@ -44,7 +44,7 @@ class Subpopulation;
 
 extern EidosClass *gSLiM_Individual_Class;
 
-// A global counter used to assign all Individual objects a unique ID
+// A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;
 
 
@@ -250,6 +250,8 @@ public:
 	
 	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
+	// BCH 5/24/2022: Note that these globals are shared across species, so if one species uses a given facility, all
+	// species will suffer the associated speed penalty for it.  This is a bit unfortunate, but keeps the design simple.
 	static bool s_any_individual_color_set_;
 	static bool s_any_individual_dictionary_set_;
 	static bool s_any_individual_or_genome_tag_set_;
