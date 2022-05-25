@@ -2504,10 +2504,14 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     connect(this, SIGNAL(textChanged()), this, SLOT(updateDebugPoints()));
     
     // Watch for changes to the controller's change count, so we can disable debug points when the document needs recycling
+    // Also watch for the end of model initialization; species colors may have changed, necessitating an update
     QtSLiMWindow *controller = slimControllerForWindow();
     
     if (controller)
+    {
         connect(controller, &QtSLiMWindow::controllerChangeCountChanged, this, &QtSLiMScriptTextEdit::controllerChangeCountChanged);
+        connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMScriptTextEdit::controllerTickFinished);
+    }
 }
 
 QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
@@ -2894,6 +2898,15 @@ void QtSLiMScriptTextEdit::controllerChangeCountChanged(int changeCount)
     }
 }
 
+void QtSLiMScriptTextEdit::controllerTickFinished(void)
+{
+    // If we just finished initialize() callbacks, species colors may have changed
+    QtSLiMWindow *controller = slimControllerForWindow();
+    
+    if (controller && controller->community && (controller->community->Tick() == 1))
+        lineNumberArea->update();
+}
+
 // light appearance: standard blue highlight
 static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
 
@@ -2945,25 +2958,28 @@ void QtSLiMScriptTextEdit::lineNumberAreaToolTipEvent(QHelpEvent *p_helpEvent)
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    bool showBlockColors = true;
     bool showLineNumbers = prefsNotifier.showLineNumbersPref();
     int bugCount = (int)bugLines.set.size();
     
     // Fill the background with the appropriate colors
-    QRect bounds = contentsRect();
+    QRect overallRect = contentsRect();
     
-    if (bounds.width() <= 0)
+    if (overallRect.width() <= 0)
         return;
     
-    QRect bugRect = bounds;
-    QRect lineNumberRect = bounds;
+    overallRect.setWidth(lineNumberArea->width());
+    
+    QRect bugRect = overallRect;
+    QRect lineNumberRect = overallRect;
     bugRect.setWidth(lineNumberAreaBugWidth);
-    lineNumberRect.adjust(lineNumberAreaBugWidth, 0, -lineNumberAreaBugWidth, 0);
+    lineNumberRect.adjust(lineNumberAreaBugWidth, 0, 0, 0);
     
     bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
     
     // We now show slightly different background colors for the debug point gutter vs. the line number area
-    //painter.fillRect(bounds, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
+    //painter.fillRect(overallRect, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     painter.fillRect(bugRect, inDarkMode ? bugAreaBackground_DARK : bugAreaBackground);
     painter.fillRect(lineNumberRect, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     
@@ -2980,6 +2996,39 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     
     QIcon *bugIcon = (inDarkMode ? bugIcon_DARK : bugIcon_LIGHT);
     
+    // Prepare to show block colors in multispecies mode; we translate into line numbers and colors on demand
+    // We postpone this display until after initialize() so we don't show the default colors, which is weird
+    std::vector<int> blockColorStarts, blockColorEnds;
+    std::vector<QColor> blockColors;
+    QtSLiMWindow *controller = slimControllerForWindow();
+    int blockColorCount = 0;
+    
+    if (showBlockColors && controller && controller->community && (controller->community->Tick() >= 1) && blockCursors.size())
+    {
+        for (int index = 0; index < (int)blockCursors.size(); ++index)
+        {
+            QTextCursor &tc = blockCursors[index];
+            
+            if (tc.hasSelection())
+            {
+                QTextCursor start_tc(tc);
+                QTextCursor end_tc(tc);
+                start_tc.setPosition(start_tc.selectionStart(), QTextCursor::MoveAnchor);
+                end_tc.setPosition(end_tc.selectionEnd(), QTextCursor::MoveAnchor);
+                
+                blockColorStarts.emplace_back(start_tc.block().blockNumber());
+                blockColorEnds.emplace_back(end_tc.block().blockNumber());
+                blockColors.emplace_back(controller->qcolorForSpecies(blockSpecies[index]));
+            }
+        }
+        
+        blockColorCount = blockColors.size();
+    }
+    else
+    {
+        showBlockColors = false;
+    }
+    
     // Draw the numbers and bug symbols (displaying the current line number in col_1)
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
@@ -2995,6 +3044,29 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     {
         if (block.isVisible() && (bottom >= p_paintEvent->rect().top()))
         {
+            if (showBlockColors)
+            {
+                for (int index = 0; index < blockColorCount; ++index)
+                {
+                    int startBlockNumber = blockColorStarts[index];
+                    int endBlockNumber = blockColorEnds[index];
+                    
+                    if ((blockNumber >= startBlockNumber) && (blockNumber <= endBlockNumber))
+                    {
+                        QRect speciesHighlightBounds(lineNumberRect.left() + lineNumberRect.width() - 4, top, 2, bottom - top);
+                        
+                        if (blockNumber == startBlockNumber)
+                            speciesHighlightBounds.adjust(0, 1, 0, 0);
+                        if (blockNumber == endBlockNumber)
+                            speciesHighlightBounds.adjust(0, 0, 0, -1);
+                        
+                        speciesHighlightBounds = speciesHighlightBounds.intersected(overallRect);
+                        
+                        painter.fillRect(speciesHighlightBounds, blockColors[index]);
+                        break;
+                    }
+                }
+            }
             if (showLineNumbers)
             {
                 if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
@@ -3139,6 +3211,22 @@ void QtSLiMScriptTextEdit::clearDebugPoints(void)
 {
     bugCursors.clear();
     updateDebugPoints();
+}
+
+void QtSLiMScriptTextEdit::clearScriptBlockColoring(void)
+{
+    blockCursors.clear();
+    blockSpecies.clear();
+}
+
+void QtSLiMScriptTextEdit::addScriptBlockColoring(int startPos, int endPos, Species *species)
+{
+    QTextCursor tc(document());
+    tc.setPosition(startPos, QTextCursor::MoveAnchor);
+    tc.setPosition(endPos, QTextCursor::KeepAnchor);
+    
+    blockCursors.emplace_back(tc);
+    blockSpecies.emplace_back(species);
 }
 
 

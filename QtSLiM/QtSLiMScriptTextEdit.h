@@ -37,6 +37,8 @@ class QHelpEvent;
 class QPaintEvent;
 class QMouseEvent;
 
+class Species;
+
 
 // We define NSRange and NSNotFound because we want to be able to represent "no range",
 // which QTextCursor cannot do; there is no equivalent of NSNotFound for it.  We should
@@ -185,6 +187,9 @@ public:
     
     EidosInterpreterDebugPointsSet &debuggingPoints(void) { return enabledBugLines; }
     
+    void clearScriptBlockColoring(void);
+    void addScriptBlockColoring(int startPos, int endPos, Species *species);
+    
 public slots:
     void shiftSelectionLeft(void);
     void shiftSelectionRight(void);
@@ -220,10 +225,12 @@ private slots:
     void updateLineNumberArea(void);
     void updateDebugPoints(void);
     void controllerChangeCountChanged(int changeCount);
+    void controllerTickFinished(void);
 
 private:
     QWidget *lineNumberArea;
     
+    // Debug points
     int lineNumberAreaBugWidth = 0;
     std::vector<QTextCursor> bugCursors;                // we use QTextCursor to maintain the positions of debugging points across edits
     EidosInterpreterDebugPointsSet bugLines;            // line numbers for debug points; std::unordered_set<int> or equivalent
@@ -232,6 +239,10 @@ private:
     bool coloringDebugPointCursors = false;             // a flag to prevent re-entrancy
     
     void toggleDebuggingForLine(int lineNumber);
+    
+    // Species coloring
+    std::vector<QTextCursor> blockCursors;              // we use QTextCursor to maintain the positions of script blocks across edits
+    std::vector<Species *> blockSpecies;                // the corresponding Species object for each block
 };
 
 

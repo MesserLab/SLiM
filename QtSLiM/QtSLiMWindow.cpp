@@ -1659,6 +1659,9 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
         delete slimgui;
         slimgui = nullptr;
     }
+    
+    // forget any script block coloring
+    ui->scriptTextEdit->clearScriptBlockColoring();
 
     // Free the old simulation RNG and let SLiM make one for us
     Eidos_FreeRNG(sim_RNG);
@@ -1706,6 +1709,26 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
         // set up the "slimgui" symbol for it immediately
         community->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+    }
+    
+    if (community && community->simulation_valid_ && (community->all_species_.size() > 1))
+    {
+        // set up script block coloring
+        std::vector<SLiMEidosBlock*> &blocks = community->AllScriptBlocks();
+        
+        for (SLiMEidosBlock *block : blocks)
+        {
+            Species *species = (block->species_spec_ ? block->species_spec_ : (block->ticks_spec_ ? block->ticks_spec_ : nullptr));
+            
+            if (species && (block->user_script_line_offset_ != -1) && block->root_node_ && block->root_node_->token_)
+            {
+                EidosToken *block_root_token = block->root_node_->token_;
+                int startPos = block_root_token->token_UTF16_start_;
+                int endPos = block_root_token->token_UTF16_end_;
+                
+                ui->scriptTextEdit->addScriptBlockColoring(startPos, endPos, species);
+            }
+        }
     }
 }
 
