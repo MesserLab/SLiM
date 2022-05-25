@@ -970,7 +970,7 @@ If
 \f1\fs18 F
 \f2\fs20  for this option (but then be very careful about order-dependency issues in your script).  The default of 
 \f1\fs18 T
-\f2\fs20  is the safe option, but a small speed penalty is incurred by the randomization of the processing order, so models that do not have any order-dependency issue may run somewhat faster if this is set to 
+\f2\fs20  is the safe option, but a small speed penalty is incurred by the randomization of the processing order \'96 for most models the difference will be less than 1%, but in the worst case it may approach 10%.  Models that do not have any order-dependency issue may therefore run somewhat faster if this is set to 
 \f1\fs18 F
 \f2\fs20 .  Note that anywhere that your script uses the 
 \f1\fs18 individuals
