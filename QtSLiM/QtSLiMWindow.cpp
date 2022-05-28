@@ -2786,7 +2786,7 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
 		
 		QTextCursor colorCursor(doc);
         colorCursor.setPosition(start);
-        colorCursor.setPosition(end, QTextCursor::KeepAnchor); // +1?
+        colorCursor.setPosition(end + 1, QTextCursor::KeepAnchor);
         
         QColor backgroundColor = slimColorForFraction(Eidos_ElapsedProfileTime(count) / elapsedTime);
 		QTextCharFormat colorFormat = baseFormat;
