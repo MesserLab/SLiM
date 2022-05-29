@@ -108,6 +108,7 @@ development head (in the master branch):
 		merge in tskit C API 1.0 beta (will merge the release version when it is out)
 		add species color lines in the script editor in SLiMgui, in multispecies mode
 		relax call timing restrictions to allow species to operate upon each other within callbacks more broadly
+		add recipe 19.8: Within-host reproduction in a host–pathogen model
 		
 
 version 3.7.1 (Eidos version 2.7.1):
