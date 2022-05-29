@@ -168,7 +168,9 @@ public:
 	bool warned_readFromVCF_mutIDs_unused_ = false;
 	
 	// these ivars are set around callbacks so we know what type of callback we're in, to prevent illegal operations during callbacks
+	// to make them easier to find, such checks should always be marked with a comment: // TIMING RESTRICTION
 	SLiMEidosBlockType executing_block_type_ = SLiMEidosBlockType::SLiMEidosNoBlockType;	// the innermost callback type we're executing now
+	Species *executing_species_ = nullptr;													// the species executing in the tick cycle right now
 	Individual *focal_modification_child_;					// set during a modifyChild() callback to indicate the child being modified
 	
 	// change flags; used only by SLiMgui, to know that something has changed and a UI update is needed; start as true to provoke an initial display

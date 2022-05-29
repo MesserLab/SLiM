@@ -4027,6 +4027,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *subpops_value = p_arguments[0].get();
 	
+	// TIMING RESTRICTION
 	if ((community_.CycleStage() == SLiMCycleStage::kWFStage2GenerateOffspring) ||
 		(community_.CycleStage() == SLiMCycleStage::kNonWFStage1GenerateOffspring) ||
 		(community_.CycleStage() == SLiMCycleStage::kNonWFStage4SurvivalSelection))

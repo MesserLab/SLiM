@@ -2065,12 +2065,16 @@ bool Community::_RunOneTickWF(void)
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
+				executing_species_ = species;
+				
 #ifdef SLIMGUI
 				if (is_explicit_species_)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->WF_GenerateOffspring();
 				species->has_recalculated_fitness_ = false;
+				
+				executing_species_ = nullptr;
 			}
 		
 		// then all species switch generations; this prevents access to the child generation of one species while another is still generating offspring
@@ -2191,11 +2195,15 @@ bool Community::_RunOneTickWF(void)
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
+				executing_species_ = species;
+				
 #ifdef SLIMGUI
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
 				species->RecalculateFitness();
+				
+				executing_species_ = nullptr;
 			}
 		
 		// the stage is done, so deregister script blocks as requested
@@ -2373,12 +2381,16 @@ bool Community::_RunOneTickNonWF(void)
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
+				executing_species_ = species;
+				
 #ifdef SLIMGUI
 				if (is_explicit_species_)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->nonWF_GenerateOffspring();
 				species->has_recalculated_fitness_ = false;
+				
+				executing_species_ = nullptr;
 			}
 		
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
@@ -2443,11 +2455,15 @@ bool Community::_RunOneTickNonWF(void)
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
+				executing_species_ = species;
+				
 #ifdef SLIMGUI
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tfitness recalculation: species " << species->name_ << std::endl;
 #endif
 				species->RecalculateFitness();
+				
+				executing_species_ = nullptr;
 			}
 		
 		// the stage is done, so deregister script blocks as requested
@@ -2483,11 +2499,15 @@ bool Community::_RunOneTickNonWF(void)
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
+				executing_species_ = species;
+				
 #ifdef SLIMGUI
 				if (is_explicit_species_)
 					gSLiMScheduling << "\tviability/survival: species " << species->name_ << std::endl;
 #endif
 				species->nonWF_ViabilitySurvival();
+				
+				executing_species_ = nullptr;
 			}
 		
 		// the stage is done, so deregister script blocks as requested

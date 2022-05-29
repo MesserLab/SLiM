@@ -2142,6 +2142,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	
 	species->CheckMutationStackPolicy();
 	
+	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)
 	{
 		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
@@ -2162,30 +2163,34 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		}
 	}
 	
-	if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	// TIMING RESTRICTION
+	if (community.executing_species_ == species)
 	{
-		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
-		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
-		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
-		Individual *focal_modification_child = community.focal_modification_child_;
-		
-		if (focal_modification_child)
+		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			Individual *focal_modification_child = community.focal_modification_child_;
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			if (focal_modification_child)
 			{
-				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
 				
-				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				{
+					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+					
+					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				}
 			}
 		}
+		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
+				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
-	else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
-			 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): addMutations() cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
 	
 	// check that the same genome is not included more than once as a target, which we don't allow; we use patch_pointer as scratch
 	for (int target_index = 0; target_index < target_size; ++target_index)
@@ -2429,6 +2434,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	species->CheckMutationStackPolicy();
 	
+	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)
 	{
 		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
@@ -2449,30 +2455,34 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		}
 	}
 	
-	if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	// TIMING RESTRICTION
+	if (community.executing_species_ == species)
 	{
-		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
-		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
-		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
-		Individual *focal_modification_child = community.focal_modification_child_;
-		
-		if (focal_modification_child)
+		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			Individual *focal_modification_child = community.focal_modification_child_;
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			if (focal_modification_child)
 			{
-				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
 				
-				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				{
+					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+					
+					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				}
 			}
 		}
+		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
+				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
-	else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
-			 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
 	
 	// position and originSubpop can now be either singletons or vectors of matching length or NULL; check them all
 	int muttype_count = arg_muttype->Count();
@@ -3806,36 +3816,40 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	Genome *genome_0 = (Genome *)p_target->ObjectElementAtIndex(0, nullptr);
 	slim_position_t mutrun_length = genome_0->mutrun_length_;
 	
-	if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
+	// TIMING RESTRICTION
+	if (community.executing_species_ == species)
 	{
-		// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
-		// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
-		// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
-		// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
-		Individual *focal_modification_child = community.focal_modification_child_;
-		
-		if (focal_modification_child)
+		if (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback)
 		{
-			Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
+			// Check that we're not inside a modifyChild() callback, or if we are, that the only genomes being modified belong to the new child.
+			// This prevents problems with retracting the proposed child when tree-sequence recording is enabled; other extraneous changes must
+			// not be backed out, and it's hard to separate, e.g., what's a child-related new mutation from an extraneously added new mutation.
+			// Note that the other Genome methods that add/remove mutations perform the same check, and should be maintained in parallel.
+			Individual *focal_modification_child = community.focal_modification_child_;
 			
-			for (int genome_index = 0; genome_index < target_size; ++genome_index)
+			if (focal_modification_child)
 			{
-				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+				Genome *focal_genome_1 = focal_modification_child->genome1_, *focal_genome_2 = focal_modification_child->genome2_;
 				
-				if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
-					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				for (int genome_index = 0; genome_index < target_size; ++genome_index)
+				{
+					Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
+					
+					if ((target_genome != focal_genome_1) && (target_genome != focal_genome_2))
+						EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to modify any genomes except those of the focal child being generated." << EidosTerminate();
+				}
 			}
+			
+			// This is actually only a problem when tree recording is on, but for consistency we outlaw it in all cases.  When a substitution
+			// is created, it is added to the derived state of every genome, which is a side effect that can't be retracted if the modifyChild()
+			// callback rejects the proposed child, so it has to be prohibited up front.  Anyway it would be a very strange thing to do.
+			if (create_substitutions)
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a modifyChild() callback to create a substitution, because that would have side effects on genomes other than those of the focal child being generated." << EidosTerminate();
 		}
-		
-		// This is actually only a problem when tree recording is on, but for consistency we outlaw it in all cases.  When a substitution
-		// is created, it is added to the derived state of every genome, which is a side effect that can't be retracted if the modifyChild()
-		// callback rejects the proposed child, so it has to be prohibited up front.  Anyway it would be a very strange thing to do.
-		if (create_substitutions)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a modifyChild() callback to create a substitution, because that would have side effects on genomes other than those of the focal child being generated." << EidosTerminate();
+		else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
+				 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on the currently executing species from within a recombination() or mutation() callback." << EidosTerminate();
 	}
-	else if ((community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback) ||
-			 (community.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMutationCallback))
-		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called from within a recombination() or mutation() callback." << EidosTerminate();
 	
 	if (mutations_value->Type() == EidosValueType::kValueNULL)
 	{
@@ -4176,6 +4190,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		}
 	}
 	
+	// TIMING RESTRICTION
 	// issue a warning if removeMutations() was called at a questionable time, but only if the mutations removed were non-neutral
 	// BCH: added the !create_substitutions check; if a substitution is being created, then it can be assumed that the mutation is fixed
 	// in the model and is thus deemed by the model to make no difference to fitness outcomes (mutations that matter to fitness outcomes

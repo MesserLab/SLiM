@@ -1705,6 +1705,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, 
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
 	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpop): addSubpop() may only be called from an early() or late() event." << EidosTerminate();
@@ -1759,6 +1760,7 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
 	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
@@ -2142,13 +2144,15 @@ EidosValue_SP Species::ExecuteMethod_outputFixedMutations(EidosGlobalStringID p_
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// TIMING RESTRICTION
 	if (!community_.warned_early_output_)
 	{
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFixedMutations): outputFixedMutations() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2229,13 +2233,15 @@ EidosValue_SP Species::ExecuteMethod_outputFull(EidosGlobalStringID p_method_id,
 	EidosValue *ancestralNucleotides_value = p_arguments[5].get();
 	EidosValue *pedigreeIDs_value = p_arguments[6].get();
 	
+	// TIMING RESTRICTION
 	if (!community_.warned_early_output_)
 	{
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFull): outputFull() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputFull): outputFull() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2319,13 +2325,15 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
+	// TIMING RESTRICTION
 	if (!community_.warned_early_output_)
 	{
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputMutations): outputMutations() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_outputMutations): outputMutations() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
 				community_.warned_early_output_ = true;
 			}
 		}
@@ -2432,6 +2440,11 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
+	// readFromPopulationFile() is strictly limited to early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running fitness() callbacks, and those cannot nest inside
+	// the execution of a different species.
 	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
@@ -2513,6 +2526,11 @@ EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
+	// recalculateFitness() is strictly limited to early()/late() events; it cannot be called
+	// from other contexts even for a different species than executing_species_.  This is because
+	// it can have the side effect of running fitness() callbacks, and those cannot nest inside
+	// the execution of a different species.
 	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may only be called from an early() or late() event." << EidosTerminate();
@@ -2761,6 +2779,7 @@ EidosValue_SP Species::ExecuteMethod_skipTick(EidosGlobalStringID p_method_id, c
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
 	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_skipTick): skipTick() may only be called from a first() event; skipping ticks should be arranged before any portion of the cycle has occurred." << EidosTerminate();
 	
@@ -2961,6 +2980,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
 	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from a first(), early(), or late() event." << EidosTerminate();
@@ -2985,11 +3005,13 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may only be called when tree recording is enabled." << EidosTerminate();
 	
+	// TIMING RESTRICTION
 	// BCH 14 November 2018: removed a block on calling treeSeqRememberIndividuals() from fitness() callbacks,
 	// because it turns out that can be useful (see correspondence with Yan Wong)
 	// BCH 30 April 2019: also allowing mutation() callbacks, since I can see how that could be useful...
-	if ((community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback." << EidosTerminate();
+	if (community_.executing_species_ == this)
+		if ((community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosMateChoiceCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosModifyChildCallback) || (community_.executing_block_type_ == SLiMEidosBlockType::SLiMEidosRecombinationCallback))
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() may not be called from inside a mateChoice(), modifyChild(), or recombination() callback for the currently executing species." << EidosTerminate();
 	
 	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
 	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
@@ -3033,6 +3055,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
+	// TIMING RESTRICTION
 	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from a first(), early(), or late() event." << EidosTerminate();

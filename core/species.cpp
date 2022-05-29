@@ -953,6 +953,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		
 		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		community_.executing_species_ = this;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
@@ -965,6 +966,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
+		community_.executing_species_ = nullptr;
 		
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
@@ -1683,6 +1685,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		
 		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
 		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		community_.executing_species_ = this;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
@@ -1695,6 +1698,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
+		community_.executing_species_ = nullptr;
 		
 #ifdef SLIMGUI
 		// Let SLiMgui survey the population for mean fitness and such, if it is our target
@@ -5726,11 +5730,9 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	{
 		if (cycle_stage_str == "first")
 		{
-			// loading in a first() event is not currently allowed, so presumably such saves will be loaded in early()
+			// loading in a first() event is not currently allowed, so this will always warn
 			if ((community_.CycleStage() != SLiMCycleStage::kWFStage0ExecuteFirstScripts) &&
-				(community_.CycleStage() != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) &&
-				(community_.CycleStage() != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) &&
-				(community_.CycleStage() != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts))
+				(community_.CycleStage() != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
 				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the cycle stage of the .trees file ('first') does not match the current cycle stage." << std::endl;
 		}
 		else if (cycle_stage_str == "early")
