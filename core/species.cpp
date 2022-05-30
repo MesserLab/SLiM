@@ -6263,7 +6263,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		// crosscheck by looping through variants
 		for (tsk_size_t i = 0; i < ts->tables->sites.num_rows; i++)
 		{
-			ret = tsk_variant_decode(variant, i, 0);
+			ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
 			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
 			
 			// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
