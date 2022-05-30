@@ -6206,7 +6206,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		WritePopulationTable(tables_copy);
 		
 		// simplify before making our tree_sequence object; the sort and deduplicate and compute parents are required for the crosscheck, whereas the simplify
-		// could perhaps be removed, which would cause the tsk_vargen_t to visit a bunch of stuff unrelated to the current individuals.
+		// could perhaps be removed, which would cause the iteration over variants to visit a bunch of stuff unrelated to the current individuals.
 		// this code is adapted from Species::SimplifyTreeSequence(), but we don't need to update the TSK map table or the table position,
 		// and we simplify down to just the extant individuals since we can't cross-check older individuals anyway...
 		if (tables_copy->nodes.num_rows != 0)
@@ -6242,8 +6242,6 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		}
 		
 		// allocate and set up the tree_sequence object that contains all the tree sequences
-		// BCH 1/25/2021: changing tsk_vargen_init() call from (ts->samples, ts->num_samples)
-		// to (NULL, 0); they mean the same thing and it avoids a copy of the samples vector.
 		tsk_treeseq_t *ts;
 		
 		ts = (tsk_treeseq_t *)malloc(sizeof(tsk_treeseq_t));
@@ -6253,87 +6251,137 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		ret = tsk_treeseq_init(ts, tables_copy, TSK_TS_INIT_BUILD_INDEXES);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
 		
-		// allocate and set up the vargen object we'll use to walk through variants
-		tsk_vargen_t *vg;
-		
-		vg = (tsk_vargen_t *)malloc(sizeof(tsk_vargen_t));
-		if (!vg)
+		// allocate and set up the variant object we'll update as we walk along the sequence
+		tsk_variant_t *variant;
+		variant = (tsk_variant_t *)malloc(sizeof(tsk_variant_t));
+		if (!variant)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		ret = tsk_vargen_init(vg, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_init()", ret);
+		ret = tsk_variant_init(
+				variant, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_init()", ret);
 		
 		// crosscheck by looping through variants
-		do
+		for (tsk_size_t i = 0; i < ts->tables->sites.num_rows; i++)
 		{
-			tsk_variant_t *variant;
+			ret = tsk_variant_decode(variant, i, 0);
+			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
 			
-			ret = tsk_vargen_next(vg, &variant);
-			if (ret < 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_next()", ret);
+			// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
+			// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
+			// in the sample are using them.  We will then check that all the genomes that the variant claims to involve have
+			// the allele the variant attributes to them, and that no genomes contain any alleles at the position that are not
+			// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
+			// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
+			// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
+			slim_position_t variant_pos_int = (slim_position_t)variant->site.position;		// should be no loss of precision, fingers crossed
 			
-			if (ret == 1)
+			// Get all the substitutions involved at this site, which should be present in every sample
+			auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
+			static std::vector<slim_mutationid_t> fixed_mutids;
+			
+			fixed_mutids.clear();
+			for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
+				fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
+			
+			// Check all the genomes against the variant's belief about this site
+			for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 			{
-				// We have a new variant; check it against SLiM.  A variant represents a site at which a tracked mutation exists.
-				// The tsk_variant_t will tell us all the allelic states involved at that site, what the alleles are, and which genomes
-				// in the sample are using them.  We will then check that all the genomes that the variant claims to involve have
-				// the allele the variant attributes to them, and that no genomes contain any alleles at the position that are not
-				// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
-				// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
-				// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
-				slim_position_t variant_pos_int = (slim_position_t)variant->site.position;		// should be no loss of precision, fingers crossed
+				GenomeWalker &genome_walker = genome_walkers[genome_index];
+				int32_t genome_variant = variant->genotypes[genome_index];
+				tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
 				
-				// Get all the substitutions involved at this site, which should be present in every sample
-				auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
-				static std::vector<slim_mutationid_t> fixed_mutids;
+				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
+					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
+				genome_allele_length /= sizeof(slim_mutationid_t);
 				
-				fixed_mutids.clear();
-				for (auto substitution_iter = substitution_range_iter.first; substitution_iter != substitution_range_iter.second; ++substitution_iter)
-					fixed_mutids.emplace_back(substitution_iter->second->mutation_id_);
+				//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
 				
-				// Check all the genomes against the tsk_vargen_t's belief about this site
-				for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
+				// BCH 4/29/2018: null genomes shouldn't ever contain any mutations, including fixed mutations
+				if (genome_walker.WalkerGenome()->IsNull())
 				{
-					GenomeWalker &genome_walker = genome_walkers[genome_index];
-					int32_t genome_variant = variant->genotypes[genome_index];
-					tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
-					
-					if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
-					genome_allele_length /= sizeof(slim_mutationid_t);
-					
-					//std::cout << "variant for genome: " << (int)genome_variant << " (allele length == " << genome_allele_length << ")" << std::endl;
-					
-					// BCH 4/29/2018: null genomes shouldn't ever contain any mutations, including fixed mutations
-					if (genome_walker.WalkerGenome()->IsNull())
-					{
-						if (genome_allele_length == 0)
-							continue;
-						
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
-					}
-					
-					// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
-					// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
-					// check that the next mutation in the genome in question exists and has the right mutation id; (3) if the variant's
-					// allele has more than one mutation id, we have to check them all against all the mutations at the given position
-					// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
-					// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
-					// with the right ID.
-					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
-					
 					if (genome_allele_length == 0)
+						continue;
+					
+					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) null genome has non-zero treeseq allele length " << genome_allele_length << "." << EidosTerminate();
+				}
+				
+				// (1) if the variant's allele is zero-length, we do nothing (if it incorrectly claims that a genome contains no
+				// mutation, we'll catch that later)  (2) if the variant's allele is the length of one mutation id, we can simply
+				// check that the next mutation in the genome in question exists and has the right mutation id; (3) if the variant's
+				// allele has more than one mutation id, we have to check them all against all the mutations at the given position
+				// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
+				// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
+				// with the right ID.
+				slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
+				
+				if (genome_allele_length == 0)
+				{
+					// If there are no fixed mutations at this site, we can continue; genomes that have a mutation at this site will
+					// raise later when they realize they have been skipped over, so we don't have to check for that now...
+					if (fixed_mutids.size() == 0)
+						continue;
+					
+					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+				}
+				else if (genome_allele_length == 1)
+				{
+					// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
+					slim_mutationid_t allele_mutid = *genome_allele;
+					Mutation *current_mut = genome_walker.CurrentMutation();
+					
+					if (current_mut)
 					{
-						// If there are no fixed mutations at this site, we can continue; genomes that have a mutation at this site will
-						// raise later when they realize they have been skipped over, so we don't have to check for that now...
-						if (fixed_mutids.size() == 0)
-							continue;
+						slim_position_t current_mut_pos = current_mut->position_;
 						
-						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has 0 mutations at position " << variant_pos_int << ", SLiM has " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+						if (current_mut_pos < variant_pos_int)
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (single case)." << EidosTerminate();
+						if (current_mut->position_ > variant_pos_int)
+							current_mut = nullptr;	// not a candidate for this position, we'll see it again later
 					}
-					else if (genome_allele_length == 1)
+					
+					if (!current_mut && (fixed_mutids.size() == 1))
 					{
-						// The tree has just one mutation at this site; this is the common case, so we try to handle it quickly
-						slim_mutationid_t allele_mutid = *genome_allele;
+						// We have one fixed mutation and no segregating mutation, versus one mutation in the tree; crosscheck
+						if (allele_mutid != fixed_mutids[0])
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a fixed mutation of id " << fixed_mutids[0] << EidosTerminate();
+						
+						continue;	// the match was against a fixed mutation, so don't go to the next mutation
+					}
+					else if (current_mut && (fixed_mutids.size() == 0))
+					{
+						// We have one segregating mutation and no fixed mutation, versus one mutation in the tree; crosscheck
+						if (allele_mutid != current_mut->mutation_id_)
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a segregating mutation of id " << current_mut->mutation_id_ << EidosTerminate();
+					}
+					else
+					{
+						// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+					}
+					
+					genome_walker.NextMutation();
+					
+					// Check the next mutation to see if it's at this position as well, and is missing from the tree;
+					// this would get caught downstream, but for debugging it is clearer to catch it here
+					Mutation *next_mut = genome_walker.CurrentMutation();
+					
+					if (next_mut && next_mut->position_ == variant_pos_int)
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
+				}
+				else // (genome_allele_length > 1)
+				{
+					static std::vector<slim_mutationid_t> allele_mutids;
+					static std::vector<slim_mutationid_t> genome_mutids;
+					allele_mutids.clear();
+					genome_mutids.clear();
+					
+					// tabulate all tree mutations
+					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+						allele_mutids.emplace_back(genome_allele[mutid_index]);
+					
+					// tabulate segregating SLiM mutations
+					while (true)
+					{
 						Mutation *current_mut = genome_walker.CurrentMutation();
 						
 						if (current_mut)
@@ -6341,90 +6389,33 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 							slim_position_t current_mut_pos = current_mut->position_;
 							
 							if (current_mut_pos < variant_pos_int)
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (single case)." << EidosTerminate();
-							if (current_mut->position_ > variant_pos_int)
-								current_mut = nullptr;	// not a candidate for this position, we'll see it again later
-						}
-						
-						if (!current_mut && (fixed_mutids.size() == 1))
-						{
-							// We have one fixed mutation and no segregating mutation, versus one mutation in the tree; crosscheck
-							if (allele_mutid != fixed_mutids[0])
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a fixed mutation of id " << fixed_mutids[0] << EidosTerminate();
-							
-							continue;	// the match was against a fixed mutation, so don't go to the next mutation
-						}
-						else if (current_mut && (fixed_mutids.size() == 0))
-						{
-							// We have one segregating mutation and no fixed mutation, versus one mutation in the tree; crosscheck
-							if (allele_mutid != current_mut->mutation_id_)
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq has mutid " << allele_mutid << " at position " << variant_pos_int << ", SLiM has a segregating mutation of id " << current_mut->mutation_id_ << EidosTerminate();
-						}
-						else
-						{
-							// We have a count mismatch; there is one mutation in the tree, but we have !=1 in SLiM including substitutions
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has 1 mutation of mutid " << allele_mutid << ", SLiM has " << (current_mut ? 1 : 0) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
-						}
-						
-						genome_walker.NextMutation();
-						
-						// Check the next mutation to see if it's at this position as well, and is missing from the tree;
-						// this would get caught downstream, but for debugging it is clearer to catch it here
-						Mutation *next_mut = genome_walker.CurrentMutation();
-						
-						if (next_mut && next_mut->position_ == variant_pos_int)
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) the treeseq is missing a stacked mutation with mutid " << next_mut->mutation_id_ << " at position " << variant_pos_int << "." << EidosTerminate();
-					}
-					else // (genome_allele_length > 1)
-					{
-						static std::vector<slim_mutationid_t> allele_mutids;
-						static std::vector<slim_mutationid_t> genome_mutids;
-						allele_mutids.clear();
-						genome_mutids.clear();
-						
-						// tabulate all tree mutations
-						for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-							allele_mutids.emplace_back(genome_allele[mutid_index]);
-						
-						// tabulate segregating SLiM mutations
-						while (true)
-						{
-							Mutation *current_mut = genome_walker.CurrentMutation();
-							
-							if (current_mut)
+								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (bulk case)." << EidosTerminate();
+							else if (current_mut_pos == variant_pos_int)
 							{
-								slim_position_t current_mut_pos = current_mut->position_;
-								
-								if (current_mut_pos < variant_pos_int)
-									EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome mutation was not represented in trees (bulk case)." << EidosTerminate();
-								else if (current_mut_pos == variant_pos_int)
-								{
-									genome_mutids.emplace_back(current_mut->mutation_id_);
-									genome_walker.NextMutation();
-								}
-								else break;
+								genome_mutids.emplace_back(current_mut->mutation_id_);
+								genome_walker.NextMutation();
 							}
 							else break;
 						}
-						
-						// tabulate fixed SLiM mutations
-						genome_mutids.insert(genome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
-						
-						// crosscheck, sorting so there is no order-dependency
-						if (allele_mutids.size() != genome_mutids.size())
-							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (genome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
-						
-						std::sort(allele_mutids.begin(), allele_mutids.end());
-						std::sort(genome_mutids.begin(), genome_mutids.end());
-						
-						for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
-							if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
-								EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele bulk mutid mismatch." << EidosTerminate();
+						else break;
 					}
+					
+					// tabulate fixed SLiM mutations
+					genome_mutids.insert(genome_mutids.end(), fixed_mutids.begin(), fixed_mutids.end());
+					
+					// crosscheck, sorting so there is no order-dependency
+					if (allele_mutids.size() != genome_mutids.size())
+						EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele size mismatch at position " << variant_pos_int << ": the treeseq has " << allele_mutids.size() << " mutations, SLiM has " << (genome_mutids.size() - fixed_mutids.size()) << " segregating and " << fixed_mutids.size() << " fixed mutation(s)." << EidosTerminate();
+					
+					std::sort(allele_mutids.begin(), allele_mutids.end());
+					std::sort(genome_mutids.begin(), genome_mutids.end());
+					
+					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
+						if (allele_mutids[mutid_index] != genome_mutids[mutid_index])
+							EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) genome/allele bulk mutid mismatch." << EidosTerminate();
 				}
 			}
 		}
-		while (ret != 0);
 		
 		// we have finished all variants, so all the genomes we're tracking should be at their ends; any left-over mutations
 		// should have been in the trees but weren't, so this is an error
@@ -6433,9 +6424,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in genome beyond those in tree." << EidosTerminate();
 		
 		// free
-		ret = tsk_vargen_free(vg);
-		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_vargen_free()", ret);
-		free(vg);
+		ret = tsk_variant_free(variant);
+		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_free()", ret);
 		
 		ret = tsk_treeseq_free(ts);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_free()", ret);
@@ -7769,7 +7759,7 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	int ret = tsk_variant_init(variant, p_ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
 	if (ret != 0) handle_error("__AddMutationsFromTreeSequenceToGenomes tsk_variant_init()", ret);
 	
-	// set up a map from sample indices in the vargen to Genome objects; the sample
+	// set up a map from sample indices in the variant to Genome objects; the sample
 	// may contain nodes that are ancestral and need to be excluded
 	std::vector<Genome *> indexToGenomeMap;
 	size_t sample_count = variant->num_samples;
