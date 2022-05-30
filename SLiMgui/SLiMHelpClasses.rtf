@@ -5153,25 +5153,7 @@ If the model is being profiled, or is executing forward to a generation number e
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 active => (logical$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-
-\f4\fs20 \cf2 If this is 
-\f3\fs18 F
-\f4\fs20 , the species in active in the current tick: it will not execute its generation cycle, its callbacks will not be called, events with the species as their ticks specifier will not execute, and its generation counter will not increment at the end of the tick.  The default value of this property is set at the beginning of each tick according to the activation schedule defined for the species by its 
-\f3\fs18 tickModulo
-\f4\fs20  and 
-\f3\fs18 tickPhase
-\f4\fs20 , as passed to 
-\f3\fs18 initializeSpecies()
-\f4\fs20 .  This property is read-only; to deactivate a species that would otherwise be active in the current tick, call 
-\f3\fs18 skipTick()
-\f4\fs20  from a 
-\f3\fs18 first()
-\f4\fs20  event.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
-
-\f3\fs18 \cf2 avatar => (string$)\
+\f3\i0\fs18 \cf2 avatar => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The avatar string used to represent this species in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Avatars are typically one-character strings, often using an emoji that symbolizes the species.  This property is read-only; its value should be set with the 

@@ -1439,8 +1439,6 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 	switch (p_property_id)
 	{
 			// constants
-		case gID_active:
-			return (species_active_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_avatar:
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(avatar_));
@@ -3110,7 +3108,6 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	{
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,					true,	kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosome,				true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Chromosome_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_chromosomeType,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
