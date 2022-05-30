@@ -1453,6 +1453,9 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     if ((beforeSelection4String == "sim.") && terminationMessage.contains("property generationStage is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `generationStage` property has been moved to the Community class.", terminationMessage);
     
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property modelType is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `modelType` property has been moved to the Community class.", terminationMessage);
+    
     if ((beforeSelection4String == "sim.") && terminationMessage.contains("property verbosity is not defined for object element type Species"))
         return offerAndExecuteAutofix(beforeSelection4, "community.", "The `verbosity` property has been moved to the Community class.", terminationMessage);
     
