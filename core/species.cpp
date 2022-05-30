@@ -6675,6 +6675,8 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 	// so that we can simulate forward from it.  Every subpop id referenced in the
 	// tables must be remapped; if a map is given, it must remap everything.  We have
 	// to check all metadata carefully, since this remap happens before other checks.
+	// Note that __RewriteOrCheckPopulationMetadata() has already fixed pre-JSON metadata.
+	// We handle both SLiM metadata and non-SLiM metadata correctly here if we can.
 	if (p_subpop_map.size() > 0)
 	{
 		SUBPOP_REMAP_REVERSE_HASH subpop_reverse_hash;	// from SLiM subpop id back to the table index read
@@ -6696,42 +6698,59 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				nlohmann::json subpop_metadata;
 				slim_objectid_t subpop_id = (slim_objectid_t)pop_index, remapped_id;
 				
+				// we require that metadata for every row be valid JSON; we have no way of
+				// understanding, much less remapping, metadata in other (binary) formats
 				try {
 					subpop_metadata = nlohmann::json::parse(metadata_string);
 				} catch (...) {
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a valid JSON string; this file cannot be read." << EidosTerminate(nullptr);
 				}
 				
-				// The logic here needs to take the possibility of carryover metadata into account; we cannot assume that
-				// non-null metadata is required to the SLiM-compliant metadata.  FIXME
-				
 				if (subpop_metadata.is_null())
 				{
 					// 'null' rows in the population table correspond to unused subpop IDs
 					auto remap_iter = p_subpop_map.find(subpop_id);
 					
-					// null lines are usually not remapped, so we don't require a remap here, but if they
-					// are referenced by other data then they will have to be, so we allow it
+					// null lines are usually not remapped, so we don't require a remap here, but if
+					// they are referenced by other data then they will have to be, so we allow it
 					if (remap_iter == p_subpop_map.end())
 						continue;
 					
 					remapped_id = remap_iter->second;
 				}
+				else if (!subpop_metadata.is_object())
+				{
+					// if a row's metadata is not 'null', we require it to be a JSON "object"
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
+				}
+				else if (!subpop_metadata.contains("slim_id"))
+				{
+					// this row has JSON metadata that does not have a "slim_id" key, so it is
+					// not SLiM metadata; this is the "carryover" case and we will remap it
+					// without any attempt to fix the contents of the metadata
+					
+					// since the metadata is not null, a remap is required; check for it and fetch it
+					auto remap_iter = p_subpop_map.find(subpop_id);
+					
+					if (remap_iter == p_subpop_map.end())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): subpopulation id " << subpop_id << " is used in the population table (for a non-SLiM 'carryover' subpopulation), but is not remapped in subpopMap." << EidosTerminate();
+					
+					remapped_id = remap_iter->second;
+				}
+				else if (!subpop_metadata["slim_id"].is_number_integer())
+				{
+					// if a row has JSON metadata with a "slim_id" key, its value must be an integer
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'slim_id' is not the expected type (integer); this file cannot be read." << EidosTerminate(nullptr);
+				}
 				else
 				{
-					// fetch the slim_id from metadata
-					if (!subpop_metadata.is_object())
-						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata does not parse as a JSON object; this file cannot be read." << EidosTerminate(nullptr);
-					
-					if (!subpop_metadata.contains("slim_id"))
-						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): required population metadata key 'slim_id' is missing; this file cannot be read." << EidosTerminate(nullptr);
-					else if (!subpop_metadata["slim_id"].is_number_integer())
-						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'slim_id' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
-					
+					// This row has JSON metadata with an integer "slim_id" key; it is
+					// SLiM metadata so this row will end up being a SLiM subpopulation
+					// and we will remap it and fix up its metadata
 					slim_objectid_t slim_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
 					
-					// enforce the slim_id == index invariant here; it is not clear that we really need this invariant,
-					// but I'm going to enforce it for now so I don't have to think about it
+					// enforce the slim_id == index invariant here; it is not clear that we really need this
+					// invariant, but I'm going to enforce it for now so I don't have to think about it
 					if (slim_id != subpop_id)
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata value for key 'slim_id' is not equal to the table index; this file cannot be read." << EidosTerminate(nullptr);
 					
@@ -6775,25 +6794,46 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				}
 				else
 				{
-					// We have a remap entry; this could be an empty row or not
+					// We have a remap entry; this could be an empty row, a SLiM subpop row, or a carryover row
 					tsk_id_t original_row_index = (slim_objectid_t)reverse_iter->second;
 					size_t metadata_length = population_table_copy->metadata_offset[original_row_index + 1] - population_table_copy->metadata_offset[original_row_index];
 					char *metadata_char = population_table_copy->metadata + population_table_copy->metadata_offset[original_row_index];
 					std::string metadata_string(metadata_char, metadata_length);
 					nlohmann::json subpop_metadata = nlohmann::json::parse(metadata_string);
-
+					
 					if (subpop_metadata.is_null())
 					{
 						// There is a remap entry for this, but it is an empty row; no slim_id
 						tsk_population_id = tsk_population_table_add_row(&tables_.populations, "null", 4);
 					}
+					else if (!subpop_metadata.contains("slim_id"))
+					{
+						// There is a remap entry for this, with JSON metadata that has no slim_id;
+						// this is carryover metadata, typically from msprime but who knows
+						// We will remap msprime-style names like "pop_0", but *not* SLiM names like "p0"
+						// We also permit the name to not be a string, in this code path, since
+						// this metadata does not conform to our schema; we need to accept whatever it is
+						std::string msprime_name = std::string("pop_").append(std::to_string(original_row_index));
+						
+						if (subpop_metadata.contains("name") && subpop_metadata["name"].is_string() && (subpop_metadata["name"].get<std::string>() == msprime_name))
+						{
+							subpop_metadata["name"] = SLiMEidosScript::IDStringWithPrefix('p', remapped_row_index);
+							metadata_string = subpop_metadata.dump();
+							tsk_population_id = tsk_population_table_add_row(&tables_.populations, (char *)metadata_string.c_str(), (uint32_t)metadata_string.length());
+						}
+						else
+						{
+							tsk_population_id = tsk_population_table_add_row(&tables_.populations, metadata_char, metadata_length);
+						}
+					}
 					else
 					{
-						// This is a non-empty row; we need to re-generate metadata to fix slim_id
+						// There is a remap entry for this, with JSON metadata that has a slim_id;
+						// this is a SLiM subpop, so we need to re-generate the metadata to fix slim_id
 						subpop_metadata["slim_id"] = remapped_row_index;
 						
 						// We also need to fix the "name" metadata key when it equals the SLiM identifier
-						// We also fix msprime-style names like "pop_0", "pop_1", etc., to the remapped "pX" name; see issue #173
+						// We fix msprime-style names like "pop_0" to the remapped "pX" name; see issue #173
 						if (subpop_metadata.contains("name"))
 						{
 							nlohmann::json value = subpop_metadata["name"];
@@ -6807,6 +6847,44 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 								subpop_metadata["name"] = SLiMEidosScript::IDStringWithPrefix('p', remapped_row_index);
 						}
 						
+						// And finally, if there are migration records (for WF models) we need to remap them
+						// We check only what we need to check; __ConfigureSubpopulationsFromTables() does more
+						size_t migration_rec_count = 0;
+						nlohmann::json migration_records;
+						
+						if (subpop_metadata.contains("migration_records"))
+						{
+							nlohmann::json value = subpop_metadata["migration_records"];
+							if (!value.is_array())
+								EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata key 'migration_records' is not the expected type; this file cannot be read." << EidosTerminate(nullptr);
+							migration_records = value;
+							migration_rec_count = migration_records.size();
+						}
+						
+						if (migration_rec_count > 0)
+						{
+							for (size_t migration_index = 0; migration_index < migration_rec_count; ++migration_index)
+							{
+								nlohmann::json migration_rec = migration_records[migration_index];
+								
+								if (!migration_rec.is_object() || !migration_rec.contains("source_subpop") || !migration_rec["source_subpop"].is_number_integer())
+									EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata migration record does not obey the metadata schema; this file cannot be read." << EidosTerminate(nullptr);
+								
+								slim_objectid_t old_subpop = migration_rec["source_subpop"].get<slim_objectid_t>();
+								auto remap_iter = p_subpop_map.find(old_subpop);
+								
+								if (remap_iter == p_subpop_map.end())
+									EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (migration record) was not remapped." << EidosTerminate();
+								
+								slim_objectid_t new_subpop = remap_iter->second;
+								migration_rec["source_subpop"] = new_subpop;
+								migration_records[migration_index] = migration_rec;
+							}
+							
+							subpop_metadata["migration_records"] = migration_records;
+						}
+						
+						// We've done all the necessary metadata tweaks; write it out
 						metadata_string = subpop_metadata.dump();
 						tsk_population_id = tsk_population_table_add_row(&tables_.populations, (char *)metadata_string.c_str(), (uint32_t)metadata_string.length());
 					}
@@ -6822,7 +6900,18 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 			free(population_table_copy);
 		}
 		
-		// Next we remap subpop_index_ in the mutation metadata, in place
+		// BCH 30 May 2022: OK, now we deal with the other tables.  We have a few stakes here.  The metadata on those tables is
+		// guaranteed to be SLiM metadata.  I am told that it is not correct to check the schemas for the tables against known SLiM
+		// schemas; the incoming file has a SLiM file version on it, and that means that it is guaranteed by whoever made it to be
+		// SLiM-compliant, and that means SLiM metadata throughout (except in the population table itself, where the fact that our
+		// metadata is JSON means we can distinguish foreign metadata and carry it over intact, as in the code above; that is not
+		// possible in other tables because the metadata is binary).  The only compliance check we do is that the length of each chunk
+		// of metadata matches what we expect it to be (based upon SLiM's binary metadata formats and the file version); and if a
+		// length doesn't match, we throw.  That is not really for the benefit of the caller, or to validate the incoming data; it is
+		// only for our own debugging purposes, as an assert of what we already know is guaranteed to be true.  So, given this
+		// understanding, we will now go into the tables and munge all of their metadata to refer to the remapped subpopulation ids.
+		
+		// Remap subpop_index_ in the mutation metadata, in place
 		{
 			std::size_t metadata_rec_size = ((p_file_version < 3) ? sizeof(MutationMetadataRec_PRENUC) : sizeof(MutationMetadataRec));
 			tsk_mutation_table_t &mut_table = tables_.mutations;
@@ -6848,7 +6937,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 						auto remap_iter = p_subpop_map.find(old_subpop);
 						
 						if (remap_iter == p_subpop_map.end())
-							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 						
 						prenuc_metadata->subpop_index_ = remap_iter->second;
 					}
@@ -6859,7 +6948,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 						auto remap_iter = p_subpop_map.find(old_subpop);
 						
 						if (remap_iter == p_subpop_map.end())
-							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 						
 						metadata->subpop_index_ = remap_iter->second;
 					}
@@ -6868,7 +6957,7 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 		}
 		
 		// Next we remap subpopulation_id_ in the individual metadata, in place
-		// Note tht __RewriteOldIndividualsMetadata() has already been called,
+		// Note that __RewriteOldIndividualsMetadata() has already been called,
 		// so we only need to worry about the current metadata format
 		{
 			tsk_individual_table_t &ind_table = tables_.individuals;
@@ -6887,13 +6976,13 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				auto remap_iter = p_subpop_map.find(old_subpop);
 				
 				if (remap_iter == p_subpop_map.end())
-					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (individual metadata) was not remapped." << EidosTerminate();
 				
 				metadata->subpopulation_id_ = remap_iter->second;
 			}
 		}
 		
-		// Finally, we remap subpop ids in the population column of the node table, in place
+		// Next we remap subpop ids in the population column of the node table, in place
 		{
 			tsk_node_table_t &node_table = tables_.nodes;
 			tsk_size_t num_rows = node_table.num_rows;
@@ -6904,15 +6993,16 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				auto remap_iter = p_subpop_map.find(old_subpop);
 				
 				if (remap_iter == p_subpop_map.end())
-					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data was not remapped." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (node table) was not remapped." << EidosTerminate();
 				
 				node_table.population[node_index] = remap_iter->second;
 			}
 		}
 		
-		// We should remap the migration table also; note that we do now import it, in __ConfigureSubpopulationsFromTables(),
-		// for WF models, and the "source_subpop" key in each migration_rec needs to be remapped here.  Punting for now;
-		// once a test case triggers a reproducible problem with this due to the lack of remapping, I will revisit it.  FIXME
+		// We ignore the migration table, which SLiM does not use.  Note that we do translate
+		// over the SLiM migration records in the subpopulation metadata; we did that above.
+		{
+		}
 	}
 }
 
