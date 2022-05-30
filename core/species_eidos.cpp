@@ -3059,7 +3059,9 @@ EidosValue_SP Species::ExecuteMethod_treeSeqOutput(EidosGlobalStringID p_method_
 	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may only be called from a first(), early(), or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) &&
+		(community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) &&
+		(community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqOutput): treeSeqOutput() may not be called from inside a callback." << EidosTerminate();
 	
 	std::string path_string = path_value->StringAtIndex(0, nullptr);
