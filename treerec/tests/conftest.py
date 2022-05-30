@@ -5,7 +5,7 @@ import subprocess
 
 from filelock import FileLock
 import pytest
-import pyslim
+import tskit
 
 from recipe_specs import recipe_specs
 
@@ -49,12 +49,12 @@ class OutputResult:
             print("******* Text input.")
             yield text_ts
         # and binary
-        bin_ts = pyslim.load(os.path.join(self.dir, "test_output.trees"))
+        bin_ts = tskit.load(os.path.join(self.dir, "test_output.trees"))
         print("******** Binary input.")
         yield bin_ts
         # and nonsimplified binary
         print("******** Unsimplified binary.")
-        bin_nonsip_ts = pyslim.load(
+        bin_nonsip_ts = tskit.load(
             os.path.join(self.dir, "test_output.unsimplified.trees"))
         yield bin_nonsip_ts
 

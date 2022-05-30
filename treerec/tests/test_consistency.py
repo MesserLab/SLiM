@@ -1,4 +1,4 @@
-import tskit, msprime
+import tskit, msprime, pyslim
 import numpy as np
 import pytest
 
@@ -100,7 +100,7 @@ class TestIndividuals:
                 # this is a dict of tskit ID -> index in samples
                 # check that all the individual data lines up
                 ts_individuals = {i.metadata['pedigree_id']: i for i in ts.individuals()}
-                alive = {ts.individual(i).metadata['pedigree_id'] for i in ts.individuals_alive_at(0)}
+                alive = {ts.individual(i).metadata['pedigree_id'] for i in pyslim.individuals_alive_at(ts, 0)}
                 num_expected = 0
                 for ped_id, slim_ind in slim_individuals.items():
                     if slim_ind.type.startswith("retain"):

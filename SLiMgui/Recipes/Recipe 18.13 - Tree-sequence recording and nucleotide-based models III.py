@@ -14,8 +14,8 @@ for mut in ts.mutations():
         mut_list = mut.metadata["mutation_list"]
         k = np.argmax([u["slim_time"] for u in mut_list])
         derived_nuc = mut_list[k]["nucleotide"]
-        left_nuc = pyslim.nucleotide_at(ts, mut.node, pos - 1, time = mut.time)
-        right_nuc = pyslim.nucleotide_at(ts, mut.node, pos + 1, time = mut.time)
+        left_nuc = pyslim.nucleotide_at(ts, mut.node, pos - 1, time = mut.time + 1.0)
+        right_nuc = pyslim.nucleotide_at(ts, mut.node, pos + 1, time = mut.time + 1.0)
         parent_nuc = pyslim.nucleotide_at(ts, mut.node, pos, time = mut.time + 1.0)
         M[left_nuc, parent_nuc, right_nuc, derived_nuc] += 1
 
