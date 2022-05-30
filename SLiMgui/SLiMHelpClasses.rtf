@@ -5894,8 +5894,7 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f4\i0  if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 This method can also be used to read tree-sequence (
+This method can also be used to read tree-sequence (
 \f3\fs18 .trees
 \f4\fs20 ) files saved by 
 \f3\fs18 treeSeqOutput()
@@ -5903,42 +5902,49 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f3\fs18 pyslim
 \f4\fs20  package.  Beginning with SLiM 4, the 
 \f3\fs18 subpopMap
-\f4\fs20  parameter may be supplied to remap the subpopulation ids used in the 
-\f3\fs18 .trees
-\f4\fs20  file to different SLiM ids.  This parameter must have a value that is a 
+\f4\fs20  parameter may be supplied to re-order the populations of the input tree sequence when it is loaded in to SLiM.  This parameter must have a value that is a 
 \f3\fs18 Dictionary
-\f4\fs20  with keys that are the 
-\f1\i new
-\f4\i0  subpopulation ids (as SLiM-style 
+\f4\fs20 ; the keys of this dictionary should be SLiM population identifiers as 
 \f3\fs18 string
-\f4\fs20  identifiers like 
-\f3\fs18 "p7"
-\f4\fs20 ), and values that are the 
-\f1\i old
-\f4\i0  subpopulation ids (as 
-\f3\fs18 integer
-\f4\fs20  values like 
-\f3\fs18 7
-\f4\fs20 ).  For example, if you pass 
-\f3\fs18 Dictionary("p3", 1)
-\f4\fs20  for 
-\f3\fs18 subpopMap
-\f4\fs20 , that requests that the subpopulation with an id of 
-\f3\fs18 1
-\f4\fs20  in the file should be loaded as subpopulation 
-\f3\fs18 p3
-\f4\fs20  in SLiM.  This makes it easier to load simulation data that was generated in Python, since that typically uses an id of 
-\f3\fs18 0
-\f4\fs20 .  Note that if 
+\f4\fs20  values (e.g., 
+\f3\fs18 "p2"
+\f4\fs20 ), and the values should be indexes of populations in the input tree sequence; a key/value pair of 
+\f3\fs18 "p2", 4
+\f4\fs20  would mean that the fourth population in the input should become 
+\f3\fs18 p2
+\f4\fs20  on loading into SLiM.  If 
 \f3\fs18 subpopMap
 \f4\fs20  is non-
 \f3\fs18 NULL
-\f4\fs20 , providing a remapping dictionary, then 
+\f4\fs20 , 
 \f1\i all
-\f4\i0  of the subpopulation ids referenced by the tree sequence must be explicitly remapped in that dictionary (although they can be remapped to their original value \'96 their ids need not all change).  The 
+\f4\i0  populations in the tree sequence must be explicitly mapped, even if their index will not change and even if they will not be used by SLiM.  For instance, suppose we have a tree sequence in which population 
+\f3\fs18 0
+\f4\fs20  is unused, population 
+\f3\fs18 1
+\f4\fs20  is not a SLiM population (for example, an ancestral population produced by 
+\f3\fs18 msprime
+\f4\fs20 ), and population 2 is a SLiM population, and we want to load this in with population 2 as 
+\f3\fs18 p0
+\f4\fs20  in SLiM.  To do this, we could supply a value of 
+\f3\fs18 Dictionary("p0", 2, "p1", 1, "p2", 0)
+\f4\fs20  for 
+\f3\fs18 subpopMap
+\f4\fs20 .  Although this cannot be used to remove populations in the tree sequence, note that it may 
+\f1\i add
+\f4\i0  populations that will be visible when 
+\f3\fs18 treeSeqOutput()
+\f4\fs20  is called (although these will not be SLiM populations); if, in this example, we had used 
+\f3\fs18 Dictionary("p0", 0, "p1", 1, "p5", 2)
+\f4\fs20  and then we wrote the result out with 
+\f3\fs18 treeSeqOutput()
+\f4\fs20 , the resulting tree sequence would have six populations, although three of them would be empty and would not be used by SLiM.  The use of subpopMap makes it easier to load simulation data that was generated in Python, since that typically uses an id of 
+\f3\fs18 0
+\f4\fs20 .  The 
 \f3\fs18 subpopMap
 \f4\fs20  parameter may not be used with file formats other than tree-sequence files, at the present time; setting up the correct subpopulation ids is typically easier when working with those other formats.\
-When loading a tree sequence, a crosscheck of the loaded data will be performed to ensure that the tree sequence was well-formed and was loaded correctly.  When running a Release build of SLiM, however, this crosscheck will only occur the first time that 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 When loading a tree sequence, a crosscheck of the loaded data will be performed to ensure that the tree sequence was well-formed and was loaded correctly.  When running a Release build of SLiM, however, this crosscheck will only occur the first time that 
 \f3\fs18 readFromPopulationFile()
 \f4\fs20  is called to load a tree sequence; subsequent calls will not perform this crosscheck, for greater speed when running models that load saved population state many times (such as models that are conditional on fixation).  If you suspect that a tree sequence file might be corrupted or read incorrectly, running a Debug build of SLiM enables crosschecks after every load.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
