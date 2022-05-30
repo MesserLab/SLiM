@@ -6999,9 +6999,36 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 			}
 		}
 		
-		// We ignore the migration table, which SLiM does not use.  Note that we do translate
-		// over the SLiM migration records in the subpopulation metadata; we did that above.
+		// SLiM does not use the migration table, but we should remap it just
+		// to keep the internal state of the tree sequence consistent
 		{
+			tsk_migration_table_t &migration_table = tables_.migrations;
+			tsk_size_t num_rows = migration_table.num_rows;
+			
+			for (tsk_size_t node_index = 0; node_index < num_rows; ++node_index)
+			{
+				// remap source column
+				{
+					tsk_id_t old_source = migration_table.source[node_index];
+					auto remap_iter = p_subpop_map.find(old_source);
+					
+					if (remap_iter == p_subpop_map.end())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_source << ") used by the tree sequence data (migration table) was not remapped." << EidosTerminate();
+					
+					migration_table.source[node_index] = remap_iter->second;
+				}
+				
+				// remap dest column
+				{
+					tsk_id_t old_dest = migration_table.dest[node_index];
+					auto remap_iter = p_subpop_map.find(old_dest);
+					
+					if (remap_iter == p_subpop_map.end())
+						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_dest << ") used by the tree sequence data (migration table) was not remapped." << EidosTerminate();
+					
+					migration_table.dest[node_index] = remap_iter->second;
+				}
+			}
 		}
 	}
 }
