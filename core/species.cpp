@@ -5477,7 +5477,7 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 		((model_type_str == "nonWF") && (model_type_ != SLiMModelType::kModelTypeNonWF)))
 	{
 		if (!gEidosSuppressWarnings)
-			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the model type of the .trees file does not match the current model type." << std::endl;
+			SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the model type of the .trees file (" << model_type_str << ") does not match the current model type." << std::endl;
 	}
 	
 	if (model_type_str == "WF")
@@ -5730,7 +5730,6 @@ void Species::ReadTreeSequenceMetadata(tsk_table_collection_t *p_tables, slim_ti
 	{
 		if (cycle_stage_str == "first")
 		{
-			// loading in a first() event is not currently allowed, so this will always warn
 			if ((community_.CycleStage() != SLiMCycleStage::kWFStage0ExecuteFirstScripts) &&
 				(community_.CycleStage() != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts))
 				SLIM_ERRSTREAM << "#WARNING (Species::ReadTreeSequenceMetadata): the cycle stage of the .trees file ('first') does not match the current cycle stage." << std::endl;

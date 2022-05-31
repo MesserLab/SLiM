@@ -2145,22 +2145,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)
 	{
-		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from an early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a first() or early() event in a WF model; the added mutation(s) will not influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
-		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addMutations): addMutations() should probably not be called from a late() event in a nonWF model; the added mutation(s) will not influence fitness values until partway through the next cycle." << std::endl;
-				community.warned_early_mutation_add_ = true;
-			}
-		}
+		// Note that there is no equivalent problem in nonWF models, because fitness values are used for survival,
+		// not reproduction, and there is no event stage in the tick cycle that splits fitness from survival.
 	}
 	
 	// TIMING RESTRICTION
@@ -2437,22 +2432,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	// TIMING RESTRICTION
 	if (!community.warned_early_mutation_add_)
 	{
-		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from an early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a first() or early() event in a WF model; the added mutation will not influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_add_ = true;
 			}
 		}
-		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " should probably not be called from a late() event in a nonWF model; the added mutation will not influence fitness values until partway through the next cycle." << std::endl;
-				community.warned_early_mutation_add_ = true;
-			}
-		}
+		// Note that there is no equivalent problem in nonWF models, because fitness values are used for survival,
+		// not reproduction, and there is no event stage in the tick cycle that splits fitness from survival.
 	}
 	
 	// TIMING RESTRICTION
@@ -4198,22 +4188,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	// like haploid models and haplodiploid models, should not have to see/suppress this warning.
 	if (any_nonneutral_removed && !create_substitutions && !community.warned_early_mutation_remove_)
 	{
-		if (community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from a first() or early() event in a WF model; the removed mutation(s) will still influence fitness values during offspring generation." << std::endl;
 				community.warned_early_mutation_remove_ = true;
 			}
 		}
-		if (community.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Genome_Class::ExecuteMethod_removeMutations): removeMutations() should probably not be called from an late() event in a nonWF model; the removed mutation(s) will still influence fitness values until partway through the next cycle." << std::endl;
-				community.warned_early_mutation_remove_ = true;
-			}
-		}
+		// Note that there is no equivalent problem in nonWF models, because fitness values are used for survival,
+		// not reproduction, and there is no event stage in the tick cycle that splits fitness from survival.
 	}
 	
 	return gStaticEidosValueVOID;

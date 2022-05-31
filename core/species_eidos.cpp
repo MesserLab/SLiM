@@ -2439,34 +2439,35 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
-	// readFromPopulationFile() is strictly limited to early()/late() events; it cannot be called
+	// readFromPopulationFile() is strictly limited to first()/early()/late() events; it cannot be called
 	// from other contexts even for a different species than executing_species_.  This is because
 	// it can have the side effect of running fitness() callbacks, and those cannot nest inside
 	// the execution of a different species.
-	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
-		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from an early() or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) &&
+		(cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) &&
+		(cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may only be called from a first(), early(), or late() event." << EidosTerminate();
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) &&
+		(community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) &&
+		(community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() may not be called from inside a callback." << EidosTerminate();
 	
 	if (!community_.warned_early_read_)
 	{
-		if (community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts)
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts) ||
+			(community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from an early() event in a WF model; fitness values will not be recalculated prior to generating offspring unless recalculateFitness() is called." << std::endl;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a first() or early() event in a WF model; fitness values will not be recalculated prior to generating offspring unless recalculateFitness() is called." << std::endl;
 				community_.warned_early_read_ = true;
 			}
 		}
-		if (community_.CycleStage() == SLiMCycleStage::kNonWFStage6ExecuteLateScripts)
-		{
-			if (!gEidosSuppressWarnings)
-			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Species::ExecuteMethod_readFromPopulationFile): readFromPopulationFile() should probably not be called from a late() event in a nonWF model; fitness values will not be recalculated prior to generating offspring unless recalculateFitness() is called." << std::endl;
-				community_.warned_early_read_ = true;
-			}
-		}
+		// Note that there is no equivalent problem in nonWF models, because fitness values are used for survival,
+		// not reproduction, and there is no event stage in the tick cycle that splits fitness from survival.
 	}
 	
 	EidosValue *filePath_value = p_arguments[0].get();
