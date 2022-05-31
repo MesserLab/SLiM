@@ -6683,6 +6683,16 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 		slim_objectid_t remapped_row_count = 0;			// the number of rows we need in the remapped population table
 		int ret = 0;
 		
+		// When remapping, we may encounter -1 as a subpopulation id.  This is actually TSK_NULL,
+		// which is used in various contexts to represent "unknown" - as a source in the migration
+		// table, as the subpop of origin for a mutation, etc.  Whenever we encounter such a
+		// TSK_NULL, we just want to map it back to itself; so we will map -1 to -1.  This is
+		// necessary because we raise when we see an unmapped subpopulation id.  We make a copy
+		// of p_subpop_map so we don't modify the caller's map.
+		SUBPOP_REMAP_HASH subpop_map = p_subpop_map;
+		
+		subpop_map.emplace(-1, -1);
+		
 		// First we will scan the population table metadata to assess the situation
 		{
 			tsk_population_table_t &pop_table = tables_.populations;
@@ -6709,11 +6719,11 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				if (subpop_metadata.is_null())
 				{
 					// 'null' rows in the population table correspond to unused subpop IDs
-					auto remap_iter = p_subpop_map.find(subpop_id);
+					auto remap_iter = subpop_map.find(subpop_id);
 					
 					// null lines are usually not remapped, so we don't require a remap here, but if
 					// they are referenced by other data then they will have to be, so we allow it
-					if (remap_iter == p_subpop_map.end())
+					if (remap_iter == subpop_map.end())
 						continue;
 					
 					remapped_id = remap_iter->second;
@@ -6730,9 +6740,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 					// without any attempt to fix the contents of the metadata
 					
 					// since the metadata is not null, a remap is required; check for it and fetch it
-					auto remap_iter = p_subpop_map.find(subpop_id);
+					auto remap_iter = subpop_map.find(subpop_id);
 					
-					if (remap_iter == p_subpop_map.end())
+					if (remap_iter == subpop_map.end())
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): subpopulation id " << subpop_id << " is used in the population table (for a non-SLiM 'carryover' subpopulation), but is not remapped in subpopMap." << EidosTerminate();
 					
 					remapped_id = remap_iter->second;
@@ -6755,9 +6765,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata value for key 'slim_id' is not equal to the table index; this file cannot be read." << EidosTerminate(nullptr);
 					
 					// since the metadata is not null, a remap is required; check for it and fetch it
-					auto remap_iter = p_subpop_map.find(subpop_id);
+					auto remap_iter = subpop_map.find(subpop_id);
 					
-					if (remap_iter == p_subpop_map.end())
+					if (remap_iter == subpop_map.end())
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): subpopulation id " << subpop_id << " is used in the population table, but is not remapped in subpopMap." << EidosTerminate();
 					
 					remapped_id = remap_iter->second;
@@ -6871,9 +6881,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 									EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata migration record does not obey the metadata schema; this file cannot be read." << EidosTerminate(nullptr);
 								
 								slim_objectid_t old_subpop = migration_rec["source_subpop"].get<slim_objectid_t>();
-								auto remap_iter = p_subpop_map.find(old_subpop);
+								auto remap_iter = subpop_map.find(old_subpop);
 								
-								if (remap_iter == p_subpop_map.end())
+								if (remap_iter == subpop_map.end())
 									EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (migration record) was not remapped." << EidosTerminate();
 								
 								slim_objectid_t new_subpop = remap_iter->second;
@@ -6934,9 +6944,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 					{
 						MutationMetadataRec_PRENUC *prenuc_metadata = (MutationMetadataRec_PRENUC *)metadata_bytes + stack_index;
 						slim_objectid_t old_subpop = prenuc_metadata->subpop_index_;
-						auto remap_iter = p_subpop_map.find(old_subpop);
+						auto remap_iter = subpop_map.find(old_subpop);
 						
-						if (remap_iter == p_subpop_map.end())
+						if (remap_iter == subpop_map.end())
 							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 						
 						prenuc_metadata->subpop_index_ = remap_iter->second;
@@ -6945,9 +6955,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 					{
 						MutationMetadataRec *metadata = (MutationMetadataRec *)metadata_bytes + stack_index;
 						slim_objectid_t old_subpop = metadata->subpop_index_;
-						auto remap_iter = p_subpop_map.find(old_subpop);
+						auto remap_iter = subpop_map.find(old_subpop);
 						
-						if (remap_iter == p_subpop_map.end())
+						if (remap_iter == subpop_map.end())
 							EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (mutation metadata) was not remapped." << EidosTerminate();
 						
 						metadata->subpop_index_ = remap_iter->second;
@@ -6973,9 +6983,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				
 				IndividualMetadataRec *metadata = (IndividualMetadataRec *)metadata_bytes;
 				slim_objectid_t old_subpop = metadata->subpopulation_id_;
-				auto remap_iter = p_subpop_map.find(old_subpop);
+				auto remap_iter = subpop_map.find(old_subpop);
 				
-				if (remap_iter == p_subpop_map.end())
+				if (remap_iter == subpop_map.end())
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (individual metadata) was not remapped." << EidosTerminate();
 				
 				metadata->subpopulation_id_ = remap_iter->second;
@@ -6990,9 +7000,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 			for (tsk_size_t node_index = 0; node_index < num_rows; ++node_index)
 			{
 				tsk_id_t old_subpop = node_table.population[node_index];
-				auto remap_iter = p_subpop_map.find(old_subpop);
+				auto remap_iter = subpop_map.find(old_subpop);
 				
-				if (remap_iter == p_subpop_map.end())
+				if (remap_iter == subpop_map.end())
 					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_subpop << ") used by the tree sequence data (node table) was not remapped." << EidosTerminate();
 				
 				node_table.population[node_index] = remap_iter->second;
@@ -7010,9 +7020,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				// remap source column
 				{
 					tsk_id_t old_source = migration_table.source[node_index];
-					auto remap_iter = p_subpop_map.find(old_source);
+					auto remap_iter = subpop_map.find(old_source);
 					
-					if (remap_iter == p_subpop_map.end())
+					if (remap_iter == subpop_map.end())
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_source << ") used by the tree sequence data (migration table) was not remapped." << EidosTerminate();
 					
 					migration_table.source[node_index] = remap_iter->second;
@@ -7021,9 +7031,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 				// remap dest column
 				{
 					tsk_id_t old_dest = migration_table.dest[node_index];
-					auto remap_iter = p_subpop_map.find(old_dest);
+					auto remap_iter = subpop_map.find(old_dest);
 					
-					if (remap_iter == p_subpop_map.end())
+					if (remap_iter == subpop_map.end())
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): a subpopulation index (" << old_dest << ") used by the tree sequence data (migration table) was not remapped." << EidosTerminate();
 					
 					migration_table.dest[node_index] = remap_iter->second;
