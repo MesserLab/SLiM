@@ -80,7 +80,7 @@ The above
 \f3\fs18 fox
 \f2\fs22 ; the term \'93multispecies\'94, in SLiM parlance, really means \'93explicitly declared species\'94, but multispecies models almost always 
 \f0\i do
-\f2\i0  contain multiple species, so the distinction is unimportant).  See section 1.9 and chapter 19 for further discussion of multispecies models; in most respects they work identically to single-species models, so we will tend to focus on the single-species case in the reference documentation, with a species name of 
+\f2\i0  contain multiple species, so the distinction is unimportant).  In most respects multispecies models work identically to single-species models, so we will tend to focus on the single-species case in the reference documentation, with a species name of 
 \f3\fs18 sim
 \f2\fs22 , for simplicity and clarity.\
 In single-species models all initialization can be done in a single 
@@ -525,6 +525,19 @@ One caveat to be aware of in WF models is that
 \f2\fs22  were calculated at the end of tick 
 \f3\fs18 9
 \f2\fs22 .  (This is primarily so that SLiMgui, which refreshes its display in between ticks, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  This is not an issue in nonWF models, since fitness values are used in the same tick in which they are calculated.\
+If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which the fitness of individuals is evaluated will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
+\f3\fs18 fitness()
+\f2\fs22  callback are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , the fitness of individuals will be evaluated in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
 Many other possibilities can be implemented with a 
 \f3\fs18 fitness()
 \f2\fs22  callback, and/or with the 
@@ -982,7 +995,7 @@ An
 \f2\fs22  was called, may be dangerous.\
 When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the 
 \f3\fs18 InteractionType
-\f2\fs22  (see section 24.8).  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
+\f2\fs22 .  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
 \f3\fs18 InteractionType
 \f2\fs22 , the interaction strength is also always zero.  In these cases, 
 \f3\fs18 interaction()
@@ -1199,6 +1212,21 @@ It is possible, of course, to do actions unrelated to reproduction inside
 \f2\fs22  event phase of the current tick provides an opportunity for actions immediately after reproduction, so only actions that are intertwined with reproduction itself should occur in 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to reproduction should usually not influence or be influenced by the dynamics of reproduction.\
+If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which individuals are given an opportunity to reproduce with a call to 
+\f3\fs18 reproduction()
+\f2\fs22  callbacks will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
+\f3\fs18 reproduction()
+\f2\fs22  callback are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , individuals will be given their opportunity to reproduce in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
 As with the other callback types, multiple 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each individual, in the order that the callbacks were registered.\expnd0\expndtw0\kerning0
@@ -1481,7 +1509,19 @@ While
 \f3\fs18 survival()
 \f2\fs22  callback, but it should be understood that previously made decisions about the fates of other individuals will not yet have any visible effect.  It is generally a good idea for the decisions rendered by 
 \f3\fs18 survival()
-\f2\fs22  callbacks to be independent anyway, to avoid biases due to order-dependency, since the order in which individuals are evaluated is not guaranteed to be random.\
+\f2\fs22  callbacks to be independent anyway, to avoid biases due to order-dependency.  If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which 
+\f3\fs18 survival()
+\f2\fs22  callbacks are called on individuals will be randomized within each subpopulation; nevertheless, order-dependency issues can occur if callback effects are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , the order in which individuals are evaluated within each subpopulation is not guaranteed to be random, and order-dependency problems are thus even more likely.\
 It is worth noting that if 
 \f3\fs18 survival()
 \f2\fs22  callbacks are used, \'93fitness\'94 in the model is then no longer really fitness; the model is making its own decisions about which individuals live and die, and those decisions are the true determinant of fitness in the biological sense.  A 

@@ -366,7 +366,7 @@ The
 \f1\fs18 F
 \f2\fs20 , the interaction is not guaranteed to be reciprocal and each interaction will be computed independently.  The built-in interaction formulas are all reciprocal, but if you implement an 
 \f1\fs18 interaction()
-\f2\fs20  callback (see section 25.6), you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
+\f2\fs20  callback, you must consider whether the callback you have implemented preserves reciprocality or not.  For this reason, the default is 
 \f1\fs18 reciprocal=F
 \f2\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
 \f1\fs18 sexSegregation
@@ -417,7 +417,7 @@ By default, the interaction strength is
 \f1\fs18 setInteractionFunction()
 \f2\fs20 ; modifying interaction strengths can also be achieved with 
 \f1\fs18 interaction()
-\f2\fs20  callbacks if necessary (see section 25.6).  In any case, interactions beyond 
+\f2\fs20  callbacks if necessary.  In any case, interactions beyond 
 \f1\fs18 maxDistance
 \f2\fs20  always have a strength of 
 \f1\fs18 0.0
@@ -573,6 +573,7 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
@@ -960,13 +961,13 @@ If
 \f1\fs18 F
 \f2\fs20 , individuals in a subpopulation are processed in the order of the individuals vector in each tick cycle stage, which may lead to order-dependency issues if there is an enabled callback whose behavior is not fully independent between calls.  Setting this option to 
 \f1\fs18 T
-\f2\fs20  will cause individuals to be processed in a randomized order in each tick cycle stage; specifically, this randomizes the order of calls to 
+\f2\fs20  will cause individuals within each subpopulation to be processed in a randomized order in each tick cycle stage; specifically, this randomizes the order of calls to 
 \f1\fs18 fitness()
 \f2\fs20  callbacks in both WF and nonWF models, and calls to 
 \f1\fs18 reproduction()
 \f2\fs20  and 
 \f1\fs18 survival()
-\f2\fs20  callbacks in nonWF models.  This feature was added in SLiM 4, breaking backward compatibility; to recover the behavior of previous versions of SLiM, pass 
+\f2\fs20  callbacks in nonWF models.  Each subpopulation is still processed separately, in sequential order, so order-dependency issues between subpopulations are still possible if callbacks have effects that are not fully independent.  This feature was added in SLiM 4, breaking backward compatibility; to recover the behavior of previous versions of SLiM, pass 
 \f1\fs18 F
 \f2\fs20  for this option (but then be very careful about order-dependency issues in your script).  The default of 
 \f1\fs18 T
@@ -1711,8 +1712,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1724,7 +1726,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
