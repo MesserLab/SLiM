@@ -35,7 +35,7 @@ extern "C" {
 #define TSK_ISOLATED_NOT_MISSING (1 << 1)
 
 /**
-@brief A variant at a specfic site.
+@brief A variant at a specific site.
 
 @rst
 Used to generate the genotypes for a given set of samples at a given

@@ -1264,7 +1264,7 @@ tsk_compressed_matrix_store_site(tsk_compressed_matrix_t *self, tsk_id_t site,
     tsk_size_t j;
 
     if (site < 0 || site >= (tsk_id_t) self->num_sites) {
-        ret = TSK_ERR_OUT_OF_BOUNDS;
+        ret = TSK_ERR_SITE_OUT_OF_BOUNDS;
         goto out;
     }
 

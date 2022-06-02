@@ -155,6 +155,9 @@ typedef struct {
     const char *metadata;
     /** @brief Size of the metadata in bytes. */
     tsk_size_t metadata_length;
+    /** @brief The ID of the edge that this mutation lies on, or TSK_NULL
+      if there is no corresponding edge.*/
+    tsk_id_t edge;
 } tsk_mutation_t;
 
 /**
@@ -738,12 +741,12 @@ specific flags.
 */
 /** Check edge ordering constraints for a tree sequence. */
 #define TSK_CHECK_EDGE_ORDERING (1 << 0)
-/** Check that sites are in nondecreasing position order. */
+/** Check that sites are in non-decreasing position order. */
 #define TSK_CHECK_SITE_ORDERING (1 << 1)
 /**Check for any duplicate site positions. */
 #define TSK_CHECK_SITE_DUPLICATES (1 << 2)
 /**
-Check contraints on the ordering of mutations. Any non-null
+Check constraints on the ordering of mutations. Any non-null
 mutation parents and known times are checked for ordering
 constraints.
 */
@@ -1101,7 +1104,7 @@ Copies the metadata schema string to this table, replacing any existing.
 @endrst
 
 @param self A pointer to a tsk_individual_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -1144,11 +1147,6 @@ int tsk_individual_table_set_columns(tsk_individual_table_t *self, tsk_size_t nu
     const tsk_flags_t *flags, const double *location, const tsk_size_t *location_offset,
     const tsk_id_t *parents, const tsk_size_t *parents_offset, const char *metadata,
     const tsk_size_t *metadata_offset);
-
-int tsk_individual_table_takeset_columns(tsk_individual_table_t *self,
-    tsk_size_t num_rows, tsk_flags_t *flags, double *location,
-    tsk_size_t *location_offset, tsk_id_t *parents, tsk_size_t *parents_offset,
-    char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Extends this table by copying from a set of column arrays
@@ -1450,7 +1448,7 @@ int tsk_node_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_node_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -1491,10 +1489,6 @@ The metadata schema is not affected.
 int tsk_node_table_set_columns(tsk_node_table_t *self, tsk_size_t num_rows,
     const tsk_flags_t *flags, const double *time, const tsk_id_t *population,
     const tsk_id_t *individual, const char *metadata, const tsk_size_t *metadata_offset);
-
-int tsk_node_table_takeset_columns(tsk_node_table_t *self, tsk_size_t num_rows,
-    tsk_flags_t *flags, double *time, tsk_id_t *population, tsk_id_t *individual,
-    char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Extends this table by copying from a set of column arrays
@@ -1828,10 +1822,6 @@ int tsk_edge_table_append_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
     const double *left, const double *right, const tsk_id_t *parent,
     const tsk_id_t *child, const char *metadata, const tsk_size_t *metadata_offset);
 
-int tsk_edge_table_takeset_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
-    double *left, double *right, tsk_id_t *parent, tsk_id_t *child, char *metadata,
-    tsk_size_t *metadata_offset);
-
 /**
 @brief Controls the pre-allocation strategy for this table
 
@@ -2102,7 +2092,7 @@ int tsk_migration_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_migration_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2172,10 +2162,6 @@ int tsk_migration_table_append_columns(tsk_migration_table_t *self, tsk_size_t n
     const double *left, const double *right, const tsk_id_t *node,
     const tsk_id_t *source, const tsk_id_t *dest, const double *time,
     const char *metadata, const tsk_size_t *metadata_offset);
-
-int tsk_migration_table_takeset_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
-    double *left, double *right, tsk_id_t *node, tsk_id_t *source, tsk_id_t *dest,
-    double *time, char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Controls the pre-allocation strategy for this table
@@ -2394,6 +2380,12 @@ int tsk_site_table_copy(
 
 @rst
 Updates the specified site struct to reflect the values in the specified row.
+
+This function always sets the ``mutations`` and ``mutations_length``
+fields in the parameter :c:struct:`tsk_site_t` to ``NULL`` and ``0`` respectively.
+To get access to the mutations for a particular site, please use the
+tree sequence method, :c:func:`tsk_treeseq_get_site`.
+
 Pointers to memory within this struct are handled by the table and should **not**
 be freed by client code. These pointers are guaranteed to be valid until the
 next operation that modifies the table (e.g., by adding a new row), but not afterwards.
@@ -2414,7 +2406,7 @@ int tsk_site_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_site_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2480,10 +2472,6 @@ int tsk_site_table_append_columns(tsk_site_table_t *self, tsk_size_t num_rows,
     const double *position, const char *ancestral_state,
     const tsk_size_t *ancestral_state_offset, const char *metadata,
     const tsk_size_t *metadata_offset);
-
-int tsk_site_table_takeset_columns(tsk_site_table_t *self, tsk_size_t num_rows,
-    double *position, char *ancestral_state, tsk_size_t *ancestral_state_offset,
-    char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Controls the pre-allocation strategy for this table
@@ -2728,6 +2716,12 @@ int tsk_mutation_table_copy(
 
 @rst
 Updates the specified mutation struct to reflect the values in the specified row.
+
+This function always sets the ``edge`` field in parameter
+:c:struct:`tsk_mutation_t` to ``TSK_NULL``. To determine the ID of
+the edge associated with a particular mutation, please use the
+tree sequence method, :c:func:`tsk_treeseq_get_mutation`.
+
 Pointers to memory within this struct are handled by the table and should **not**
 be freed by client code. These pointers are guaranteed to be valid until the
 next operation that modifies the table (e.g., by adding a new row), but not afterwards.
@@ -2748,7 +2742,7 @@ int tsk_mutation_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_mutation_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2822,10 +2816,6 @@ int tsk_mutation_table_append_columns(tsk_mutation_table_t *self, tsk_size_t num
     const double *time, const char *derived_state,
     const tsk_size_t *derived_state_offset, const char *metadata,
     const tsk_size_t *metadata_offset);
-
-int tsk_mutation_table_takeset_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
-    tsk_id_t *site, tsk_id_t *node, tsk_id_t *parent, double *time, char *derived_state,
-    tsk_size_t *derived_state_offset, char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Controls the pre-allocation strategy for this table
@@ -3076,7 +3066,7 @@ int tsk_population_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_population_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3130,9 +3120,6 @@ metadata schema is not affected.
 */
 int tsk_population_table_append_columns(tsk_population_table_t *self,
     tsk_size_t num_rows, const char *metadata, const tsk_size_t *metadata_offset);
-
-int tsk_population_table_takeset_columns(tsk_population_table_t *self,
-    tsk_size_t num_rows, char *metadata, tsk_size_t *metadata_offset);
 
 /**
 @brief Controls the pre-allocation strategy for this table
@@ -3417,10 +3404,6 @@ int tsk_provenance_table_append_columns(tsk_provenance_table_t *self,
     tsk_size_t num_rows, const char *timestamp, const tsk_size_t *timestamp_offset,
     const char *record, const tsk_size_t *record_offset);
 
-int tsk_provenance_table_takeset_columns(tsk_provenance_table_t *self,
-    tsk_size_t num_rows, char *timestamp, tsk_size_t *timestamp_offset, char *record,
-    tsk_size_t *record_offset);
-
 /**
 @brief Controls the pre-allocation strategy for this table
 
@@ -3497,15 +3480,13 @@ are initialised and freed.
 
 **Options**
 
-Options can be specified by providing one or more of the following bitwise
-flags:
+Options can be specified by providing bitwise flags:
 
 - :c:macro:`TSK_TC_NO_EDGE_METADATA`
 @endrst
 
 @param self A pointer to an uninitialised tsk_table_collection_t object.
-@param options Allocation time options. Currently unused; should be
-    set to zero to ensure compatibility with later versions of tskit.
+@param options Allocation time options as above.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_init(tsk_table_collection_t *self, tsk_flags_t options);
@@ -3524,7 +3505,7 @@ this table collection.
 
 @rst
 By default this operation clears all tables except the provenance table, retaining
-table metadata schemas and the tree-sequnce level metadata and schema.
+table metadata schemas and the tree-sequence level metadata and schema.
 
 No memory is freed as a result of this operation; please use
 :c:func:`tsk_table_collection_free` to free internal resources.
@@ -3540,7 +3521,7 @@ flags:
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
-@param options Bitwise clearing options
+@param options Bitwise clearing options.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_clear(tsk_table_collection_t *self, tsk_flags_t options);
@@ -3589,6 +3570,8 @@ destination is already initialised, the :c:macro:`TSK_NO_INIT` option should
 be supplied to avoid leaking memory.
 
 **Options**
+
+Options can be specified by providing bitwise flags:
 
 :c:macro:`TSK_COPY_FILE_UUID`
 @endrst
@@ -3818,10 +3801,10 @@ int tsk_table_collection_truncate(
 @rst
 Some of the tables in a table collection must satisfy specific sortedness requirements
 in order to define a :ref:`valid tree sequence <sec_valid_tree_sequence_requirements>`.
-This method sorts the ``edge``, ``site`` and ``mutation`` tables such that
-these requirements are guaranteed to be fulfilled. The ``individual``,
-``node``, ``population`` and ``provenance`` tables do not have any sortedness
-requirements, and are therefore ignored by this method.
+This method sorts the ``edge``, ``site``, ``mutation`` and ``individual`` tables such
+that these requirements are guaranteed to be fulfilled. The ``node``, ``population``
+and ``provenance`` tables do not have any sortedness requirements, and are therefore
+ignored by this method.
 
 .. note:: The current implementation **may** sort in such a way that exceeds
     these requirements, but this behaviour should not be relied upon and later
@@ -3834,16 +3817,16 @@ requirements, and are therefore ignored by this method.
 The specified :c:type:`tsk_bookmark_t` allows us to specify a start position
 for sorting in each of the tables; rows before this value are assumed to already be
 in sorted order and this information is used to make sorting more efficient.
-Positions in tables that are not sorted (``individual``, ``node``, ``population``
+Positions in tables that are not sorted (``node``, ``population``
 and ``provenance``) are ignored and can be set to arbitrary values.
 
 .. warning:: The current implementation only supports specifying a start
     position for the ``edge`` table and in a limited form for the
-    ``site`` and ``mutation`` tables. Specifying a non-zero ``migration``,
-    start position results in an error. The start positions for the
-    ``site`` and ``mutation`` tables can either be 0 or the length of the
-    respective tables, allowing these tables to either be fully sorted, or
-    not sorted at all.
+    ``site``, ``mutation`` and ``individual`` tables. Specifying a non-zero
+    ``migration``, start position results in an error. The start positions for the
+    ``site``, ``mutation`` and ``individual`` tables can either be 0 or the length of the
+    respective tables, allowing these tables to either be fully sorted, or not sorted at
+    all.
 
 The table collection will always be unindexed after sort successfully completes.
 
@@ -4066,7 +4049,7 @@ int tsk_table_collection_union(tsk_table_collection_t *self,
 Copies the time_units string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param time_units A pointer to a char array
+@param time_units A pointer to a char array.
 @param time_units_length The size of the time units string in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -4079,15 +4062,12 @@ int tsk_table_collection_set_time_units(
 Copies the metadata string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param metadata A pointer to a char array
+@param metadata A pointer to a char array.
 @param metadata_length The size of the metadata in bytes.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_set_metadata(
     tsk_table_collection_t *self, const char *metadata, tsk_size_t metadata_length);
-
-int tsk_table_collection_takeset_metadata(
-    tsk_table_collection_t *self, char *metadata, tsk_size_t metadata_length);
 
 /**
 @brief Set the metadata schema
@@ -4095,7 +4075,7 @@ int tsk_table_collection_takeset_metadata(
 Copies the metadata schema string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -4123,8 +4103,6 @@ life-cycle.
 */
 bool tsk_table_collection_has_index(
     const tsk_table_collection_t *self, tsk_flags_t options);
-
-bool tsk_table_collection_has_reference_sequence(const tsk_table_collection_t *self);
 
 /**
 @brief Deletes the indexes for this table collection.
@@ -4159,12 +4137,6 @@ collection. Any existing index is first dropped using
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_build_index(tsk_table_collection_t *self, tsk_flags_t options);
-
-int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
-    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
-
-int tsk_table_collection_takeset_indexes(tsk_table_collection_t *self,
-    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
 
 /**
 @brief Runs integrity checks on this table collection.
@@ -4247,6 +4219,39 @@ int tsk_table_collection_compute_mutation_parents(
 int tsk_table_collection_compute_mutation_times(
     tsk_table_collection_t *self, double *random, tsk_flags_t TSK_UNUSED(options));
 
+int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
+    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
+
+int tsk_table_collection_takeset_metadata(
+    tsk_table_collection_t *self, char *metadata, tsk_size_t metadata_length);
+int tsk_table_collection_takeset_indexes(tsk_table_collection_t *self,
+    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
+int tsk_individual_table_takeset_columns(tsk_individual_table_t *self,
+    tsk_size_t num_rows, tsk_flags_t *flags, double *location,
+    tsk_size_t *location_offset, tsk_id_t *parents, tsk_size_t *parents_offset,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_node_table_takeset_columns(tsk_node_table_t *self, tsk_size_t num_rows,
+    tsk_flags_t *flags, double *time, tsk_id_t *population, tsk_id_t *individual,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_edge_table_takeset_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
+    double *left, double *right, tsk_id_t *parent, tsk_id_t *child, char *metadata,
+    tsk_size_t *metadata_offset);
+int tsk_migration_table_takeset_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
+    double *left, double *right, tsk_id_t *node, tsk_id_t *source, tsk_id_t *dest,
+    double *time, char *metadata, tsk_size_t *metadata_offset);
+int tsk_site_table_takeset_columns(tsk_site_table_t *self, tsk_size_t num_rows,
+    double *position, char *ancestral_state, tsk_size_t *ancestral_state_offset,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_mutation_table_takeset_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
+    tsk_id_t *site, tsk_id_t *node, tsk_id_t *parent, double *time, char *derived_state,
+    tsk_size_t *derived_state_offset, char *metadata, tsk_size_t *metadata_offset);
+int tsk_population_table_takeset_columns(tsk_population_table_t *self,
+    tsk_size_t num_rows, char *metadata, tsk_size_t *metadata_offset);
+int tsk_provenance_table_takeset_columns(tsk_provenance_table_t *self,
+    tsk_size_t num_rows, char *timestamp, tsk_size_t *timestamp_offset, char *record,
+    tsk_size_t *record_offset);
+
+bool tsk_table_collection_has_reference_sequence(const tsk_table_collection_t *self);
 int tsk_reference_sequence_init(tsk_reference_sequence_t *self, tsk_flags_t options);
 int tsk_reference_sequence_free(tsk_reference_sequence_t *self);
 bool tsk_reference_sequence_is_null(const tsk_reference_sequence_t *self);

@@ -4355,6 +4355,7 @@ tsk_mutation_table_get_row_unsafe(
     row->metadata_length
         = self->metadata_offset[index + 1] - self->metadata_offset[index];
     row->metadata = self->metadata + self->metadata_offset[index];
+    row->edge = TSK_NULL;
 }
 
 int

@@ -113,7 +113,7 @@ variant_init_samples_and_index_map(tsk_variant_t *self,
     for (j = 0; j < num_samples; j++) {
         u = samples[j];
         if (u < 0 || u >= (tsk_id_t) num_nodes) {
-            ret = TSK_ERR_OUT_OF_BOUNDS;
+            ret = TSK_ERR_NODE_OUT_OF_BOUNDS;
             goto out;
         }
         if (self->alt_sample_index_map[u] != TSK_NULL) {
