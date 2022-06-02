@@ -164,7 +164,7 @@ typedef struct {
     tsk_id_t *right_child;
     /**
      @brief The sibling to the left of node u is left_sib[u]. Equal to
-     TSK_NULL if node u has no siblings to its left.
+     ``TSK_NULL`` if node u has no siblings to its left.
      */
     tsk_id_t *left_sib;
     /**
@@ -291,6 +291,9 @@ This must be called before any operations are performed on the tree sequence.
 See the :ref:`sec_c_api_overview_structure` for details on how objects
 are initialised and freed.
 
+If specified, TSK_TAKE_OWNERSHIP takes immediate ownership of the tables, regardless
+of error conditions.
+
 **Options**
 
 - :c:macro:`TSK_TS_INIT_BUILD_INDEXES`
@@ -298,7 +301,7 @@ are initialised and freed.
 @endrst
 
 @param self A pointer to an uninitialised tsk_table_collection_t object.
-@param tables A pointer to a tsk_table_collection_t
+@param tables A pointer to a tsk_table_collection_t object.
 @param options Allocation time options. See above for details.
 @return Return 0 on success or a negative value on failure.
 */
@@ -897,90 +900,90 @@ typedef int general_stat_func_t(tsk_size_t state_dim, const double *state,
 
 int tsk_treeseq_general_stat(const tsk_treeseq_t *self, tsk_size_t K, const double *W,
     tsk_size_t M, general_stat_func_t *f, void *f_params, tsk_size_t num_windows,
-    const double *windows, double *sigma, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 
 /* One way weighted stats */
 
 typedef int one_way_weighted_method(const tsk_treeseq_t *self, tsk_size_t num_weights,
-    const double *weights, tsk_size_t num_windows, const double *windows, double *result,
-    tsk_flags_t options);
+    const double *weights, tsk_size_t num_windows, const double *windows,
+    tsk_flags_t options, double *result);
 
 int tsk_treeseq_trait_covariance(const tsk_treeseq_t *self, tsk_size_t num_weights,
-    const double *weights, tsk_size_t num_windows, const double *windows, double *result,
-    tsk_flags_t options);
+    const double *weights, tsk_size_t num_windows, const double *windows,
+    tsk_flags_t options, double *result);
 int tsk_treeseq_trait_correlation(const tsk_treeseq_t *self, tsk_size_t num_weights,
-    const double *weights, tsk_size_t num_windows, const double *windows, double *result,
-    tsk_flags_t options);
+    const double *weights, tsk_size_t num_windows, const double *windows,
+    tsk_flags_t options, double *result);
 
 /* One way weighted stats with covariates */
 
 typedef int one_way_covariates_method(const tsk_treeseq_t *self, tsk_size_t num_weights,
     const double *weights, tsk_size_t num_covariates, const double *covariates,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 
 int tsk_treeseq_trait_linear_model(const tsk_treeseq_t *self, tsk_size_t num_weights,
     const double *weights, tsk_size_t num_covariates, const double *covariates,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 
 /* One way sample set stats */
 
 typedef int one_way_sample_stat_method(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_windows, const double *windows,
-    double *result, tsk_flags_t options);
+    tsk_flags_t options, double *result);
 
 int tsk_treeseq_diversity(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_segregating_sites(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_Y1(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_allele_frequency_spectrum(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_windows, const double *windows,
-    double *result, tsk_flags_t options);
+    tsk_flags_t options, double *result);
 
 typedef int general_sample_stat_method(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_indexes, const tsk_id_t *indexes,
-    tsk_size_t num_windows, const double *windows, double *result, tsk_flags_t options);
+    tsk_size_t num_windows, const double *windows, tsk_flags_t options, double *result);
 
 int tsk_treeseq_divergence(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_Y2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_f2(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_genetic_relatedness(const tsk_treeseq_t *self,
     tsk_size_t num_sample_sets, const tsk_size_t *sample_set_sizes,
     const tsk_id_t *sample_sets, tsk_size_t num_index_tuples,
     const tsk_id_t *index_tuples, tsk_size_t num_windows, const double *windows,
-    double *result, tsk_flags_t options);
+    tsk_flags_t options, double *result);
 
 /* Three way sample set stats */
 int tsk_treeseq_Y3(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 int tsk_treeseq_f3(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 
 /* Four way sample set stats */
 int tsk_treeseq_f4(const tsk_treeseq_t *self, tsk_size_t num_sample_sets,
     const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets,
     tsk_size_t num_index_tuples, const tsk_id_t *index_tuples, tsk_size_t num_windows,
-    const double *windows, double *result, tsk_flags_t options);
+    const double *windows, tsk_flags_t options, double *result);
 
 /****************************************************************************/
 /* Tree */
@@ -1033,7 +1036,7 @@ int tsk_tree_free(tsk_tree_t *self);
 By default (``options`` = 0) the method initialises the specified destination
 tree by calling :c:func:`tsk_tree_init`. If the destination is already
 initialised, the :c:macro:`TSK_NO_INIT` option should be supplied to avoid
-leaking memory. If `TSK_NO_INIT` is supplied and the tree sequence associated
+leaking memory. If :c:macro:`TSK_NO_INIT` is supplied and the tree sequence associated
 with the ``dest`` tree is not equal to the tree sequence associated
 with ``self``, an error is raised.
 
@@ -1470,7 +1473,7 @@ node is :c:macro:`TSK_NULL`.
 @param self A pointer to a tsk_tree_t object.
 @param u A tree node.
 @param v A tree node.
-@param mrca A tsk_id_t pointer to store the returned most recent cmomon ancestor node.
+@param mrca A tsk_id_t pointer to store the returned most recent common ancestor node.
 @return 0 on success or a negative value on failure.
 */
 int tsk_tree_get_mrca(const tsk_tree_t *self, tsk_id_t u, tsk_id_t v, tsk_id_t *mrca);
@@ -1669,6 +1672,10 @@ int tsk_tree_map_mutations(tsk_tree_t *self, int32_t *genotypes, double *cost_ma
 
 int tsk_tree_kc_distance(
     const tsk_tree_t *self, const tsk_tree_t *other, double lambda, double *result);
+
+/* Don't document these balance metrics for now so it doesn't get in the way of
+ * C API 1.0, but should be straightforward to document based on Python docs. */
+int tsk_tree_sackin_index(const tsk_tree_t *self, tsk_size_t *result);
 
 /* Things to consider removing: */
 
