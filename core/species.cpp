@@ -4989,8 +4989,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		// binary metadata got translated to JSON by _InstantiateSLiMObjectsFromTables() on read
 		while (last_id_written < subpop_id - 1)
 		{
-			const char *new_metadata_str = "null";
-			uint32_t new_metadata_length = 4;
+			std::string new_metadata_string("null");
 			
 			if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
 			{
@@ -5001,8 +5000,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 				if (CheckSLiMPopulationMetadata(tsk_population_object.metadata, tsk_population_object.metadata_length) == -1)
 				{
 					// The metadata present, if any, is not SLiM metadata, so it should be carried over.
-					new_metadata_str = tsk_population_object.metadata;
-					new_metadata_length = tsk_population_object.metadata_length;
+					new_metadata_string = std::string(tsk_population_object.metadata, tsk_population_object.metadata_length);
 				}
 				else
 				{
@@ -5023,19 +5021,17 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 							tsk_population_object.metadata_length);
 					nlohmann::json old_metadata;
 					old_metadata = nlohmann::json::parse(metadata_string);
-					nlohmann::json new_metadata = nlohmann::json::object();
 					if (old_metadata.contains("name")) {
+						nlohmann::json new_metadata = nlohmann::json::object();
 						new_metadata["name"] = old_metadata["name"];
-						std::string metadata_rec = new_metadata.dump();
-						new_metadata_str = (const char *)metadata_rec.c_str();
-						new_metadata_length = (uint32_t)metadata_rec.length();
+						new_metadata_string = new_metadata.dump();
 					}
 				}
 			}
 			tsk_population_id = tsk_population_table_add_row(
 					&p_tables->populations,
-					new_metadata_str,
-					new_metadata_length
+					new_metadata_string.data(),
+					new_metadata_string.length()
 			);
 			if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 			
@@ -5095,18 +5091,17 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 		std::string metadata_rec = pop_metadata.dump();
 		
 		tsk_population_id = tsk_population_table_add_row(&p_tables->populations, (char *)metadata_rec.c_str(), (uint32_t)metadata_rec.length());
+		if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
+		
 		last_id_written++;
 		assert(tsk_population_id == last_id_written);
-		
-		if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
 	}
 	
 	// finally, write out empty entries for the rest of the table; empty entries are needed
 	// up to largest_subpop_id_ because there could be ancestral nodes that reference them
 	while (last_id_written < (slim_objectid_t) last_subpop_id)
 	{
-		const char *new_metadata_str = "null";
-		uint32_t new_metadata_length = 4;
+		std::string new_metadata_string("null");
 		
 		if (++last_id_written < (slim_objectid_t) population_table_copy->num_rows)
 		{
@@ -5117,8 +5112,7 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 			if (CheckSLiMPopulationMetadata(tsk_population_object.metadata, tsk_population_object.metadata_length) == -1)
 			{
 				// The metadata present, if any, is not SLiM metadata, so it should be carried over; note that
-				new_metadata_str = tsk_population_object.metadata;
-				new_metadata_length = tsk_population_object.metadata_length;
+				new_metadata_string = std::string(tsk_population_object.metadata, tsk_population_object.metadata_length);
 			}
 			else
 			{
@@ -5128,23 +5122,21 @@ void Species::WritePopulationTable(tsk_table_collection_t *p_tables)
 						tsk_population_object.metadata_length);
 				nlohmann::json old_metadata;
 				old_metadata = nlohmann::json::parse(metadata_string);
-				nlohmann::json new_metadata = nlohmann::json::object();
 				if (old_metadata.contains("name")) {
+					nlohmann::json new_metadata = nlohmann::json::object();
 					new_metadata["name"] = old_metadata["name"];
-					std::string metadata_rec = new_metadata.dump();
-					new_metadata_str = (const char *)metadata_rec.c_str();
-					new_metadata_length = (uint32_t)metadata_rec.length();
+					new_metadata_string = new_metadata.dump();
 				}
 			}
 		}
-
+		
 		tsk_population_id = tsk_population_table_add_row(
 				&p_tables->populations,
-				new_metadata_str,
-				new_metadata_length
+				new_metadata_string.data(),
+				new_metadata_string.length()
 		);
 		if (tsk_population_id < 0) handle_error("tsk_population_table_add_row", tsk_population_id);
-			
+		
 		assert(tsk_population_id == last_id_written);
 	}
 	ret = tsk_population_table_free(population_table_copy);
