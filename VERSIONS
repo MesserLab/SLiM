@@ -105,11 +105,11 @@ development head (in the master branch):
 		add new section 14.15 recipes: biallelic models showing how to use mutation() callbacks, unique down, and handle back-mutation
 		add "Focus on Script" and "Focus on Console" keyboard shortcuts for keyboard warriors
 		revise Python recipes to match current usage: 17.2, 17.4 II, 17.5 II, 17.7 II, 17.8 I, 17.8 III, 17.9 I, 17.10 II, 18.13 III
-		merge in tskit C API 1.0 beta (will merge the release version when it is out)
 		add species color lines in the script editor in SLiMgui, in multispecies mode
 		relax call timing restrictions to allow species to operate upon each other within callbacks more broadly
 		add recipe 19.8: Within-host reproduction in a host–pathogen model
 		remove the `active` property of Species, at least for now; I decided that the existence of this might paint me into a corner with respect to possible extensions to the skipTick() mechanism
+		merge in tskit C API 1.0 final
 		
 
 version 3.7.1 (Eidos version 2.7.1):
