@@ -54,7 +54,7 @@ jobs:
             /usr/share/miniconda/envs/anaconda-client-env
             ~/osx-conda
             ~/.profile
-          key: ${{ runner.os }}-${{ matrix.python}}-conda-v12-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
+          key: ${{ runner.os }}-${{ matrix.python }}-conda-v13-${{ hashFiles('treerec/tests/conda-requirements.txt') }}-${{ hashFiles('treerec/tests/pip-requirements.txt') }}
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v2
@@ -90,10 +90,15 @@ jobs:
           sudo cp -r ~/osx-conda /usr/local/miniconda/envs/anaconda-client-env
 
       - name: Install pyslim
+        shell: bash -l {0}
         run: |
+          # TODO: uncomment when pyslim 1.0 on conda
           source ~/.profile
-          conda activate anaconda-client-env
-          pip install pyslim
+          # conda activate anaconda-client-env
+          # pip install pyslim
+          git clone https://github.com/tskit-dev/pyslim.git
+          cd pyslim
+          pip3 install .
 
       - name: Build (Debug)
         run: |
@@ -258,7 +263,11 @@ jobs:
     - name: Install pyslim
       shell: bash -l {0}
       run: |
-        conda install -c conda-forge pyslim
+        # TODO: uncomment when pyslim 1.0 is on conda
+        # conda install -c conda-forge pyslim
+        git clone https://github.com/tskit-dev/pyslim.git
+        cd pyslim
+        pip3 install .
 
     - name: Debug
       run: |
