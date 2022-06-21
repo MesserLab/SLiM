@@ -171,7 +171,7 @@ QString QtSLiMGraphView_1DSampleSFS::disableMessage(void)
         Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
         MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
-        qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
+        //qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
         
         //if (!subpop1 || !muttype)
         //    return "no\ndata";
