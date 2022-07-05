@@ -421,6 +421,12 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 		{
 			FreeTreeSequence();
 			AllocateTreeSequenceTables();
+			
+			if (!community_.warned_no_ancestry_read_ && !gEidosSuppressWarnings)
+			{
+				p_interpreter->ErrorOutputStream() << "#WARNING (Species::InitializePopulationFromFile): when tree-sequence recording is enabled, it is usually desirable to call readFromPopulationFile() with a tree-sequence file to provide ancestry; such a file can be produced with treeSeqOutput(), or from msprime/tskit in Python." << std::endl;
+				community_.warned_no_ancestry_read_ = true;
+			}
 		}
 		
 		if (file_format == SLiMFileFormat::kFormatSLiMText)
