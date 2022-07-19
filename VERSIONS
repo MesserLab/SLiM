@@ -110,6 +110,7 @@ development head (in the master branch):
 		add recipe 19.8: Within-host reproduction in a host–pathogen model
 		remove the `active` property of Species, at least for now; I decided that the existence of this might paint me into a corner with respect to possible extensions to the skipTick() mechanism
 		merge in tskit C API 1.0 final
+		relax unnecessary restrictions on reading, writing, addSubpop(), addSubpopSplit(), treeSeqRememberIndividuals(), treeSeqSimplify(), etc. being done in first() events
 		
 
 version 3.7.1 (Eidos version 2.7.1):

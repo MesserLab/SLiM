@@ -1759,10 +1759,10 @@ EidosValue_SP Species::ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
-	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
-		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from an early() or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may only be called from a first(), early(), or late() event." << EidosTerminate();
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_addSubpopSplit): addSubpopSplit() may not be called from inside a callback." << EidosTerminate();
 	
 	EidosValue *subpopID_value = p_arguments[0].get();
@@ -2526,14 +2526,14 @@ EidosValue_SP Species::ExecuteMethod_recalculateFitness(EidosGlobalStringID p_me
 	SLiMCycleStage cycle_stage = community_.CycleStage();
 	
 	// TIMING RESTRICTION
-	// recalculateFitness() is strictly limited to early()/late() events; it cannot be called
+	// recalculateFitness() is strictly limited to first()/early()/late() events; it cannot be called
 	// from other contexts even for a different species than executing_species_.  This is because
 	// it can have the side effect of running fitness() callbacks, and those cannot nest inside
 	// the execution of a different species.
-	if ((cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
-		(cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may only be called from an early() or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
+		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may only be called from a first(), early(), or late() event." << EidosTerminate();
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_recalculateFitness): recalculateFitness() may not be called from inside a callback." << EidosTerminate();
 	
 	EidosValue *tick_value = p_arguments[0].get();
@@ -2983,7 +2983,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqSimplify(EidosGlobalStringID p_metho
 	if ((cycle_stage != SLiMCycleStage::kWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kWFStage1ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kWFStage5ExecuteLateScripts) &&
 		(cycle_stage != SLiMCycleStage::kNonWFStage0ExecuteFirstScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts) && (cycle_stage != SLiMCycleStage::kNonWFStage6ExecuteLateScripts))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may only be called from a first(), early(), or late() event." << EidosTerminate();
-	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+	if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqSimplify): treeSeqSimplify() may not be called from inside a callback." << EidosTerminate();
 	
 	SimplifyTreeSequence();
