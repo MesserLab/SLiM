@@ -24,6 +24,13 @@
 #include <utility>
 
 
+EidosTypeTable::EidosTypeTable(const EidosTypeTable &originalTable)
+{
+	// Construct a derived table that copies all symbols from an original table
+	// This is useful for setting up scoping, where the local scope's type table is based on the global scope
+	hash_symbols_ = originalTable.hash_symbols_;
+}
+
 EidosTypeTable::EidosTypeTable(void)
 {
 	// Construct a base table for Eidos containing the standard constants

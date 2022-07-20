@@ -4090,6 +4090,12 @@ static int DisplayDigitsForIntegerPart(double x)
 									(*typeTable)->SetTypeForSymbol(species_symbol, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
 								}
 							}
+							else
+							{
+								// We don't have a community object, so we don't have a vector of species; this is usually because of a failed parse
+								// In this case, we try to keep things functional by just assuming the single-species case and defining "sim"
+								(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+							}
 						}
 						
 						// The slimgui symbol is always available within a block, but not at the top level
@@ -4232,12 +4238,18 @@ static int DisplayDigitsForIntegerPart(double x)
 						{
 							// This is not the block we're completing in.  We want to add symbols for any constant-defining calls
 							// in this block; apart from that, this block cannot affect the completion block, due to scoping.
+							// However, constant-defining calls might use the types of variables, like defineConstant("foo", bar)
+							// where the type of foo comes from the type of bar; so we need to keep track of all symbols even
+							// though they will fall out of scope.  We therefore use a separate local type table with a reference
+							// upward to our main type table.
+							EidosTypeTable scopedTypeTable(**typeTable);
 							
 							// Make a type interpreter and add symbols to our type table using it
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
-							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, **callTypeTable, true);
+							SLiMTypeInterpreter typeInterpreter(block_statement_root, scopedTypeTable, **functionMap, **callTypeTable);
 							
-							typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+							typeInterpreter.SetExternalTypeTable(*typeTable);		// defined constants/variables should also go into the global scope
+							typeInterpreter.TypeEvaluateInterpreterBlock();			// result not used
 						}
 					}
 				}
