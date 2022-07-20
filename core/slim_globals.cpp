@@ -1432,11 +1432,14 @@ const std::string &gStr_addPopulationSexRatio = EidosRegisteredString("addPopula
 const std::string &gStr_addPopulationSize = EidosRegisteredString("addPopulationSize", gID_addPopulationSize);
 const std::string &gStr_addSubpopulationSexRatio = EidosRegisteredString("addSubpopulationSexRatio", gID_addSubpopulationSexRatio);
 const std::string &gStr_addSubpopulationSize = EidosRegisteredString("addSubpopulationSize", gID_addSubpopulationSize);
+const std::string &gStr_addSuppliedColumn = EidosRegisteredString("addSuppliedColumn", gID_addSuppliedColumn);
 const std::string &gStr_addTick = EidosRegisteredString("addTick", gID_addTick);
 const std::string &gStr_flush = EidosRegisteredString("flush", gID_flush);
 const std::string &gStr_logRow = EidosRegisteredString("logRow", gID_logRow);
 const std::string &gStr_setLogInterval = EidosRegisteredString("setLogInterval", gID_setLogInterval);
 const std::string &gStr_setFilePath = EidosRegisteredString("setFilePath", gID_setFilePath);
+const std::string &gStr_setSuppliedValue = EidosRegisteredString("setSuppliedValue", gID_setSuppliedValue);
+const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_willAutolog);
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings

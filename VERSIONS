@@ -111,6 +111,8 @@ development head (in the master branch):
 		remove the `active` property of Species, at least for now; I decided that the existence of this might paint me into a corner with respect to possible extensions to the skipTick() mechanism
 		merge in tskit C API 1.0 final
 		relax unnecessary restrictions on reading, writing, addSubpop(), addSubpopSplit(), treeSeqRememberIndividuals(), treeSeqSimplify(), etc. being done in first() events
+		add willAutolog() method to LogFile to find out whether it will log automatically at the end of the current tick
+		add addSuppliedColumn() and setSuppliedValue() methods to LogFile, to support columns that are supplied their value by script, rather than generating them
 		
 
 version 3.7.1 (Eidos version 2.7.1):

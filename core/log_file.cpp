@@ -435,6 +435,9 @@ void LogFile::AppendNewRow(void)
 
 					break;
 				}
+				case LogFileGeneratorType::kGenerator_SuppliedColumn:
+					generated_value = supplied_values_.GetValueForKey(column_names_[column_index]);
+					break;
 			}
 			
 			// Emit the generated value and add it to our Dictionary state
@@ -462,6 +465,8 @@ void LogFile::AppendNewRow(void)
 		emitted_lines_.emplace_back(std::move(gui_line));
 #endif
 	}
+	
+	supplied_values_.RemoveAllKeys();
 	
 	ContentsChanged("LogFile::AppendNewRow()");
 	
@@ -598,11 +603,14 @@ EidosValue_SP LogFile::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 		case gID_addPopulationSize:				return ExecuteMethod_addPopulationSize(p_method_id, p_arguments, p_interpreter);
 		case gID_addSubpopulationSexRatio:		return ExecuteMethod_addSubpopulationSexRatio(p_method_id, p_arguments, p_interpreter);
 		case gID_addSubpopulationSize:			return ExecuteMethod_addSubpopulationSize(p_method_id, p_arguments, p_interpreter);
+		case gID_addSuppliedColumn:				return ExecuteMethod_addSuppliedColumn(p_method_id, p_arguments, p_interpreter);
 		case gID_addTick:						return ExecuteMethod_addTick(p_method_id, p_arguments, p_interpreter);
 		case gID_flush:							return ExecuteMethod_flush(p_method_id, p_arguments, p_interpreter);
 		case gID_logRow:						return ExecuteMethod_logRow(p_method_id, p_arguments, p_interpreter);
 		case gID_setLogInterval:				return ExecuteMethod_setLogInterval(p_method_id, p_arguments, p_interpreter);
 		case gID_setFilePath:					return ExecuteMethod_setFilePath(p_method_id, p_arguments, p_interpreter);
+		case gID_setSuppliedValue:				return ExecuteMethod_setSuppliedValue(p_method_id, p_arguments, p_interpreter);
+		case gID_willAutolog:					return ExecuteMethod_willAutolog(p_method_id, p_arguments, p_interpreter);
 			
 			// overrides from Dictionary
 		case gEidosID_addKeysAndValuesFrom:		return ExecuteMethod_addKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
@@ -866,6 +874,22 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)addSuppliedColumn(string$ columnName)
+EidosValue_SP LogFile::ExecuteMethod_addSuppliedColumn(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	if (header_logged_)
+		RaiseForLockedHeader("LogFile::ExecuteMethod_addSuppliedColumn");
+	
+	EidosValue_String *columnName_value = (EidosValue_String *)p_arguments[0].get();
+	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
+	
+	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SuppliedColumn, nullptr, -1, EidosValue_SP()});
+	column_names_.emplace_back(column_name);
+	
+	return gStaticEidosValueVOID;
+}
+
 //	*********************	- (void)addTick()
 EidosValue_SP LogFile::ExecuteMethod_addTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -962,6 +986,51 @@ EidosValue_SP LogFile::ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	- (void)setSuppliedValue(string$ columnName, +$ value)
+EidosValue_SP LogFile::ExecuteMethod_setSuppliedValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue_String *columnName_value = (EidosValue_String *)p_arguments[0].get();
+	EidosValue_SP value = p_arguments[1];
+	
+	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
+	
+	// check that the column name exists and is a supplied column
+	auto col_iter = std::find(column_names_.begin(), column_names_.end(), column_name);
+	
+	if (col_iter == column_names_.end())
+		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setSuppliedValue): column name " << column_name << " is not a column in the LogFile." << EidosTerminate();
+	
+	size_t col_index = std::distance(column_names_.begin(), col_iter);
+	
+	LogFileGeneratorInfo &generator = generator_info_[col_index];
+	
+	if (generator.type_ != LogFileGeneratorType::kGenerator_SuppliedColumn)
+		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setSuppliedValue): column name " << column_name << " is not a supplied column; use addSuppliedColumn() to create a column whose value can be supplied to LogFile." << EidosTerminate();
+	
+	// remember the supplied value
+	supplied_values_.SetKeyValue(column_name, value);
+	
+	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (logical$)willAutolog(void)
+EidosValue_SP LogFile::ExecuteMethod_willAutolog(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	bool will_autolog = false;
+	
+	if (autologging_enabled_)
+	{
+		slim_tick_t tick = community_.Tick();
+		
+		if ((tick - autolog_start_) % log_interval_ == 0)
+			will_autolog = true;
+	}
+	
+	return (will_autolog ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+}
+
 EidosValue_SP LogFile::ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
@@ -1033,11 +1102,14 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addPopulationSize, kEidosValueMaskVOID))->AddObject_OSN("species", gSLiM_Species_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSexRatio, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopulationSize, kEidosValueMaskVOID))->AddIntObject_S(gStr_subpop, gSLiM_Subpopulation_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSuppliedColumn, kEidosValueMaskVOID))->AddString_S("columnName"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addTick, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_flush, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_logRow, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setLogInterval, kEidosValueMaskVOID))->AddInt_OSN("logInterval", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setFilePath, kEidosValueMaskVOID))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OSN("compress", gStaticEidosValueNULL)->AddString_OSN("sep", gStaticEidosValueNULL));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSuppliedValue, kEidosValueMaskVOID))->AddString_S("columnName")->AddAnyBase_S("value")));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_willAutolog, kEidosValueMaskLogical | kEidosValueMaskSingleton)));
 		
 		// overrides of Dictionary methods; these should not be declared again, to avoid a duplicate in the methods table
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));

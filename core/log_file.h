@@ -43,7 +43,8 @@ enum class LogFileGeneratorType
 	kGenerator_SubpopulationSize,
 	kGenerator_Tick,
 	kGenerator_CustomScript,
-	kGenerator_CustomMeanAndSD			// results in two columns!
+	kGenerator_CustomMeanAndSD,			// results in two columns!
+	kGenerator_SuppliedColumn
 };
 
 struct LogFileGeneratorInfo
@@ -91,6 +92,9 @@ private:
 	
 	// Columns; note that one generator can generate more than one column!
 	std::vector<std::string> column_names_;
+	
+	// A dictionary of supplied values, for kGenerator_SuppliedColumn
+	EidosDictionaryUnretained supplied_values_;
 	
 #ifdef SLIMGUI
 	// For SLiMgui, LogFile keeps a record of all of the output it generates, which SLiMgui pulls out of it
@@ -146,11 +150,14 @@ public:
 	EidosValue_SP ExecuteMethod_addPopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_addSuppliedColumn(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addTick(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_flush(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_logRow(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setLogInterval(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setFilePath(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setSuppliedValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_willAutolog(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	
 	// Overrides of Dictionary methods, since we have a special Dictionary behavior
 	EidosValue_SP ExecuteMethod_addKeysAndValuesFrom(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

@@ -1005,11 +1005,14 @@ extern const std::string &gStr_addPopulationSexRatio;
 extern const std::string &gStr_addPopulationSize;
 extern const std::string &gStr_addSubpopulationSexRatio;
 extern const std::string &gStr_addSubpopulationSize;
+extern const std::string &gStr_addSuppliedColumn;
 extern const std::string &gStr_addTick;
 extern const std::string &gStr_flush;
 extern const std::string &gStr_logRow;
 extern const std::string &gStr_setLogInterval;
 extern const std::string &gStr_setFilePath;
+extern const std::string &gStr_setSuppliedValue;
+extern const std::string &gStr_willAutolog;
 extern const std::string &gStr_context;
 
 extern const std::string &gStr_A;
@@ -1363,11 +1366,14 @@ enum _SLiMGlobalStringID : int {
 	gID_addPopulationSize,
 	gID_addSubpopulationSexRatio,
 	gID_addSubpopulationSize,
+	gID_addSuppliedColumn,
 	gID_addTick,
 	gID_flush,
 	gID_logRow,
 	gID_setLogInterval,
 	gID_setFilePath,
+	gID_setSuppliedValue,
+	gID_willAutolog,
 	gID_context,
 	
 	gID_A,

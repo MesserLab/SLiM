@@ -4125,6 +4125,24 @@ See
 \f4\fs20  will be written.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)addSuppliedColumn(string$\'a0columnName)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds a new data column with its name provided by 
+\f3\fs18 columnName
+\f4\fs20 .  The value for the column is initially undefined, and will be written as 
+\f3\fs18 NA
+\f4\fs20 .  A different value may (optionally) be provided by calling 
+\f3\fs18 setSuppliedValue()
+\f4\fs20  with a value for 
+\f3\fs18 columnName
+\f4\fs20 .  That value will be used for the column the next time a row is generated (whether automatically or by a call to 
+\f3\fs18 logRow()
+\f4\fs20 ), and the column\'92s value will subsequently be undefined again.  In other words, for any given logged row the default of 
+\f3\fs18 NA
+\f4\fs20  may be kept, or a different value may be supplied.  This allows the value for the column to be set at any point during the tick cycle, which can be convenient if the column\'92s value depends upon transient state that is no longer available at the time the row is logged.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)addTick(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4178,7 +4196,7 @@ You can get the
 \f4\fs20  instance, in order to call 
 \f3\fs18 logRow()
 \f4\fs20  on it, from 
-\f3\fs18 sim.logFiles
+\f3\fs18 community.logFiles
 \f4\fs20 , or you can remember it in a global constant with 
 \f3\fs18 defineConstant()
 \f4\fs20 .\
@@ -4195,7 +4213,7 @@ You can get the
 \f3\fs18 logRow()
 \f4\fs20  were called) at the end of every 
 \f3\fs18 logInterval
-\f4\fs20  generations (just before the generation count increment, in both WF and nonWF models), starting at the end of the generation in which 
+\f4\fs20  ticks (just before the tick count increment, in both WF and nonWF models), starting at the end of the tick in which 
 \f3\fs18 setLogInterval()
 \f4\fs20  was called.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -4226,6 +4244,26 @@ You can get the
 \f4\fs20  object.  The new file will be created (or appended) synchronously, with the specified initial contents.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)setSuppliedValue(string$\'a0columnName, +$\'a0value)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Registers a value, passed in 
+\f3\fs18 value
+\f4\fs20 , to be used for the supplied column named 
+\f3\fs18 columnName
+\f4\fs20  when a row is next logged.  This column must have been added with 
+\f3\fs18 addSuppliedColumn()
+\f4\fs20 .  A value of 
+\f3\fs18 NULL
+\f4\fs20  may be passed to log 
+\f3\fs18 NA
+\f4\fs20 , but logging 
+\f3\fs18 NA
+\f4\fs20  is the default behavior for supplied columns in any case.  Otherwise, the value must be a singleton, and its type should match the values previously supplied for the column (otherwise the log file may be difficult to parse, since the values within the column will not be of one consistent type).  See 
+\f3\fs18 addSuppliedColumn()
+\f4\fs20  for further details.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4238,6 +4276,16 @@ You can get the
 \f4\fs20  manages its 
 \f3\fs18 Dictionary
 \f4\fs20  entries.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(logical$)willAutolog(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns 
+\f3\fs18 T
+\f4\fs20  if the log file is configured to log a new row automatically at the end of the current tick; otherwise, returns 
+\f3\fs18 F
+\f4\fs20 .  This is useful for calculating a value that will be logged only in ticks when the value is needed.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.10  Class Mutation\
