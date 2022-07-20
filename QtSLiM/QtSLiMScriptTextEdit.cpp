@@ -541,7 +541,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
             return;
         
         QTextCursor charCursor(document());
-        charCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked);
+        charCursor.setPosition(characterPositionClicked, QTextCursor::MoveAnchor);
         charCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
         
         QString characterString = charCursor.selectedText();
@@ -573,9 +573,9 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
             // the character clicked might be part of a multicharacter symbol: // == <= >= !=
             // we will look at two-character groups anchored in the clicked character to test this
             QTextCursor leftPairCursor(document()), rightPairCursor(document());
-            leftPairCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked - 1);
+            leftPairCursor.setPosition(characterPositionClicked - 1, QTextCursor::MoveAnchor);
             leftPairCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
-            rightPairCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked);
+            rightPairCursor.setPosition(characterPositionClicked, QTextCursor::MoveAnchor);
             rightPairCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
             
             QString leftPairString = leftPairCursor.selectedText(), rightPairString = rightPairCursor.selectedText();
