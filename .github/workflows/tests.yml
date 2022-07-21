@@ -36,9 +36,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Choose GCC
         if: startsWith(matrix.os, 'ubuntu')
         run: |
@@ -130,6 +127,9 @@ jobs:
           ./eidos -testEidos
           ./slim -testEidos
           ./slim -testSLiM
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Treesequence tests
         run: |
