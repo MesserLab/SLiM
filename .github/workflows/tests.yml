@@ -36,10 +36,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-actor: false
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       - name: Choose GCC
         if: startsWith(matrix.os, 'ubuntu')
