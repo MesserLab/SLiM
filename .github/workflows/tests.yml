@@ -100,33 +100,12 @@ jobs:
           cd pyslim
           pip3 install .
 
-      - name: Build (Debug)
-        run: |
-          mkdir Debug
-          cd Debug
-          cmake -D CMAKE_BUILD_TYPE=Debug ..
-          make -j 2
-
-      - name: Test (Debug)
-        run: |
-          cd Debug
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
-
       - name: Build (Release)
         run: |
           mkdir Release
           cd Release
           cmake -D CMAKE_BUILD_TYPE=Release ..
           make -j 2
-
-      - name: Test (Release)
-        run: |
-          cd Release
-          ./eidos -testEidos
-          ./slim -testEidos
-          ./slim -testSLiM
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
