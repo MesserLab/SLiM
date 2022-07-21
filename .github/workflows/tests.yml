@@ -36,6 +36,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Setup upterm session
+        # see https://github.com/lhotari/action-upterm
+        uses: lhotari/action-upterm@v1
+
       - name: Choose GCC
         if: startsWith(matrix.os, 'ubuntu')
         run: |
