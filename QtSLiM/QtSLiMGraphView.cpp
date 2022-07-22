@@ -161,8 +161,17 @@ bool QtSLiMGraphView::missingFocalDisplaySpecies(void)
 
 void QtSLiMGraphView::updateSpeciesBadge(void)
 {
+    // graphs that do not have a focal species, such as QtSLiMGraphView_MultispeciesPopSizeOverTime, have no species badge
+    if (focalSpeciesName_.length() == 0)
+        return;
+    
+    // if we do not have a button layout, punt; in some cases we get called by updateAfterTick() before we have been placed in our window
     QHBoxLayout *enclosingLayout = buttonLayout();
-    int layoutCount = enclosingLayout ? enclosingLayout->count() : 0;
+    
+    if (!enclosingLayout)
+        return;
+    
+    int layoutCount = enclosingLayout->count();
     QLayoutItem *labelItem = (layoutCount > 0) ? enclosingLayout->itemAt(0) : nullptr;
     QWidget *labelWidget = labelItem ? labelItem->widget() : nullptr;
     QLabel *speciesLabel = qobject_cast<QLabel *>(labelWidget);
