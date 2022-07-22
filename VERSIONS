@@ -113,6 +113,7 @@ development head (in the master branch):
 		relax unnecessary restrictions on reading, writing, addSubpop(), addSubpopSplit(), treeSeqRememberIndividuals(), treeSeqSimplify(), etc. being done in first() events
 		add willAutolog() method to LogFile to find out whether it will log automatically at the end of the current tick
 		add addSuppliedColumn() and setSuppliedValue() methods to LogFile, to support columns that are supplied their value by script, rather than generating them
+		remove the removeConstants parameter from rm(); it is no longer possible to remove defined constants, use defineGlobal() instead if you want to change a global value
 		
 
 version 3.7.1 (Eidos version 2.7.1):

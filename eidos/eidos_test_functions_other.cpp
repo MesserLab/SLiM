@@ -802,9 +802,7 @@ void _RunFunctionMiscTests(std::string temp_path)
 	EidosAssertScriptRaise("rm(E);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm(PI);", 0, "cannot be type");
 	EidosAssertScriptRaise("rm('PI');", 0, "intrinsic Eidos constant");
-	EidosAssertScriptRaise("rm('PI', T);", 0, "intrinsic Eidos constant");
 	EidosAssertScriptRaise("defineConstant('foo', 1:10); rm('foo'); foo;", 29, "is a constant");
-	EidosAssertScriptRaise("defineConstant('foo', 1:10); rm('foo', T); foo;", 43, "undefined identifier");
 	
 	// setSeed()
 	EidosAssertScriptSuccess_L("setSeed(5); x=runif(10); setSeed(5); y=runif(10); all(x==y);", true);

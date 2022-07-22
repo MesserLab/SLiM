@@ -368,7 +368,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSource",	Eidos_ExecuteFunction_functionSource,	kEidosValueMaskVOID))->AddString_S("functionName"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID))->AddLogical_OS("showSymbolTables", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
@@ -12629,13 +12629,12 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 	return gStaticEidosValueVOID;
 }
 
-//	(void)rm([Ns variableNames = NULL], [logical$ removeConstants = F])
+//	(void)rm([Ns variableNames = NULL])		// [logical$ removeConstants = F] removed in SLiM 4
 EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *variableNames_value = p_arguments[0].get();
-	bool removeConstants = p_arguments[1]->LogicalAtIndex(0, nullptr);
 	std::vector<std::string> symbols_to_remove;
 	
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -12650,12 +12649,8 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_argum
 			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex(value_index, nullptr));
 	}
 	
-	if (removeConstants)
-		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveConstantForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
-	else
-		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveValueForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
+	for (std::string &symbol : symbols_to_remove)
+		symbols.RemoveValueForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
 	
 	return gStaticEidosValueVOID;
 }

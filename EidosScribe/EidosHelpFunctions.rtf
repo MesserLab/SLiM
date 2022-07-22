@@ -4910,6 +4910,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -5481,11 +5482,7 @@ The name cannot previously be defined in any way (i.e., as either a variable or 
 \f1\fs18 apply()
 \f3\fs20 , 
 \f1\fs18 sapply()
-\f3\fs20 , or a Context-defined script block.  Note that defined constants can be undefined by 
-\f1\fs18 rm(removeConstants=T)
-\f3\fs20 , but if you find yourself taking advantage of that feature, you may wish to use 
-\f1\fs18 defineGlobal()
-\f3\fs20  instead.\
+\f3\fs20 , or a Context-defined script block.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)defineGlobal(string$\'a0symbol, *\'a0value)\
@@ -5693,7 +5690,7 @@ Returns a
 \f3\fs20  to request full information on the current symbol table chain.  This will show which symbol table a given symbol is defined in, as well as revealing whether there are other symbols with the same name that have been masked by a local definition.  This is mostly useful for debugging.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL], [logical$\'a0removeConstants\'a0=\'a0F])\
+\f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Removes variables
@@ -5708,19 +5705,15 @@ Returns a
 \f3\fs20  (the default), 
 \f7\i all
 \f3\i0  variables will be removed (be careful!).\
-If the optional parameter 
+In SLiM 3, there was an optional parameter 
 \f1\fs18 removeConstants
-\f3\fs20  is 
-\f1\fs18 F
-\f3\fs20  (the default), then attempting to remove a constant is an error; if 
-\f1\fs18 removeConstants
-\f3\fs20  is 
+\f3\fs20  that, if 
 \f1\fs18 T
-\f3\fs20 , constants defined with 
-\f1\fs18 defineConstant()
-\f3\fs20  may be removed, but attempting to remove intrinsic Eidos constants is still an error.  However, if you find yourself redefining constants, 
+\f3\fs20 , allowed you to remove defined constants (and then potentially redefine them to have a different value).  The 
+\f1\fs18 removeConstants
+\f3\fs20  parameter was removed in SLiM 4, since the 
 \f1\fs18 defineGlobal()
-\f3\fs20  might be better suited.\
+\f3\fs20  function now provides the ability to define (and redefine) global variables that are not constant.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (*)sapply(*\'a0x, string$\'a0lambdaSource, [string$\'a0simplify\'a0=\'a0"vector"])\
@@ -5759,8 +5752,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 
