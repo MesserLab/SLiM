@@ -2018,7 +2018,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 		// note that we do not change the subpopulation_ pointer, even though we have removed it from the subpopulation!  this is a similar state to
 		// new offspring, which also get an index of -1 and are not added to the subpopulation's main data structures yet; the reason not to set
 		// the subpopulation_ to nullptr is that we still need to be able to use subpopulation_ to get to species_ and community_ for various purposes
-		// we hide this from the user, though; accessing the subpopulation proerty on a killed individual raises an error
+		// we hide this from the user, though; accessing the subpopulation property on a killed individual raises an error
 		doomed->killed_ = true;
 		doomed->index_ = -1;
 		
@@ -2042,6 +2042,9 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the deaths that occurred
 		community_.InvalidateInteractionsForSpecies(this);
+		
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		population_.cached_tally_genome_count_ = 0;
 	}
 	
 	return gStaticEidosValueVOID;

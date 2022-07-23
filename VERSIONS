@@ -115,6 +115,10 @@ development head (in the master branch):
 		add addSuppliedColumn() and setSuppliedValue() methods to LogFile, to support columns that are supplied their value by script, rather than generating them
 		remove the removeConstants parameter from rm(); it is no longer possible to remove defined constants, use defineGlobal() instead if you want to change a global value
 		add killIndividuals() method on Species, for nonWF models only, to kill a given vector of individuals, immediately removing them from their subpopulations
+		bug fix: add mutation frequency/count invalidation in more spots: addSubpop()/addSubpopSplit(), setSubpopulationSize(0) (WF), removeSubpopulation(), killIndividuals(), takeMigrants()
+			the results from sim.mutationFrequencies() / sim.mutationCounts() could be incorrect after one of those calls, for a complete tick cycle (test: test_freqCountChange_*.slim)
+			SLiM's internal tally never produced incorrect fixation/loss, so the bug should manifest only in script, only when those methods are used (test: test_fixloss_*.slim)
+			it could also result in (harmless) incorrect display of frequencies in SLiMgui at the end of a tick in which a subpopulation was removed (test: test_subpopRemoved_*.slim)
 		
 
 version 3.7.1 (Eidos version 2.7.1):

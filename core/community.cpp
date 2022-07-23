@@ -1972,6 +1972,21 @@ void Community::AllSpecies_CheckIntegrity(void)
 #endif
 }
 
+void Community::AllSpecies_PurgeRemovedObjects(void)
+{
+	// Purge removed subpopulations and killed individuals in all subpopulations.  This doesn't have
+	// to happen at any particular frequency, really, but it frees up memory, and it also allows
+	// frequency/count tallying to use MutationRun refcounts to run faster, so we do it after every
+	// stage of the tick cycle in nonWF models.  In WF models, individuals can't be killed so that
+	// is a non-issue, and removal of subpops is generally infrequent, so we purge removed subpops
+	// with PurgeRemovedSubpopulations() only in Population::SwapGenerations().
+	for (Species *species : all_species_)
+	{
+		species->population_.PurgeRemovedSubpopulations();
+		species->EmptyGraveyard();
+	}
+}
+
 //
 //		_RunOneTickWF() : runs all the stages for one cycle of a WF model
 //
@@ -2327,6 +2342,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2405,6 +2421,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2424,10 +2441,6 @@ bool Community::_RunOneTickNonWF(void)
 		for (auto script_block : early_blocks)
 			ExecuteEidosEvent(script_block);
 		
-		// dispose of any freed subpops; we do this before fitness calculation so tallies are correct
-		for (Species *species : all_species_)
-			species->population_.PurgeRemovedSubpopulations();
-		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
@@ -2437,6 +2450,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2483,6 +2497,9 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
+	AllSpecies_CheckIntegrity();
+	
 	
 	// ******************************************************************
 	//
@@ -2510,12 +2527,6 @@ bool Community::_RunOneTickNonWF(void)
 				executing_species_ = nullptr;
 			}
 		
-		// dispose of graveyard individuals from killIndividuals() here too, just because we're killing
-		// individuals now anyway; this could be done at other points in the tick cycle too, to decrease
-		// the memory footprint, but maybe it's nice for the overhead to appear in profiling here?
-		for (Species *species : all_species_)
-			species->EmptyGraveyard();
-		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
@@ -2525,6 +2536,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2550,6 +2562,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2583,6 +2596,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
 	

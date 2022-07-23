@@ -117,6 +117,9 @@ Species::~Species(void)
 {
 	//EIDOS_ERRSTREAM << "Species::~Species" << std::endl;
 	
+	// There shouldn't be any individuals in the graveyard here, but just in case
+	EmptyGraveyard();
+	
 	population_.RemoveAllSubpopulationInfo();
 	
 	for (auto mutation_type : mutation_types_)
@@ -2403,6 +2406,9 @@ void Species::nonWF_ViabilitySurvival(void)
 		if (any_moved)
 			population_.ResolveSurvivalPhaseMovement();
 	}
+	
+	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+	population_.cached_tally_genome_count_ = 0;
 	
 	MUTRUNEXP_END_TIMING(x_clock0);
 }

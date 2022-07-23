@@ -217,6 +217,9 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	subpops_.emplace(p_subpop_id, new_subpop);
 	species_.subpop_ids_.emplace(p_subpop_id);
 	
+	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+	cached_tally_genome_count_ = 0;
+	
 	return new_subpop;
 }
 
@@ -319,6 +322,9 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		}
 	}
 	
+	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+	cached_tally_genome_count_ = 0;
+	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
 	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this cycle.
 	
@@ -353,6 +359,9 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 			
 			// remember the subpop for later disposal
 			removed_subpops_.emplace_back(&p_subpop);
+			
+			// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+			cached_tally_genome_count_ = 0;
 		}
 	}
 	else
@@ -386,6 +395,9 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 		
 		// and let it know that it is invalid
 		p_subpop.has_been_removed_ = true;
+		
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		cached_tally_genome_count_ = 0;
 	}
 }
 
@@ -5388,12 +5400,35 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
 	if (!p_force_recache && (cached_tally_genome_count_ != 0))
 	{
-		if ((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0))
+		if (((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0)) ||
+			(p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally)))
 		{
-			return cached_tally_genome_count_;
-		}
-		else if (p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
-		{
+			// we can use our cached data; return the cached genome count, which should not have changed
+			
+#if DEBUG
+			// check that the cached genome count is correct; note that it includes only non-null genomes
+			slim_refcount_t total_genome_count = 0;
+			
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+			{
+				Subpopulation *subpop = subpop_pair.second;
+				
+				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+						total_genome_count++;
+				}
+			}
+			
+			if (total_genome_count != cached_tally_genome_count_)
+				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
+#endif
+			
 			return cached_tally_genome_count_;
 		}
 	}
@@ -5455,6 +5490,16 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// To tally using MutationRun, we should be at the point in the cycle where the registry is
 		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
 		if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+			can_tally_runs = false;
+		
+		// If we have any removed subpopulations waiting to be disposed of, we can't use the MutationRun tallies
+		// because the removed subpopulations are still boosting the refcounts of the MutationRuns
+		if (removed_subpops_.size() > 0)
+			can_tally_runs = false;
+		
+		// If we have any killed individuals in the graveyard, we can't use the MutationRun tallies
+		// because the killed individuals are still boosting the refcounts of the MutationRuns
+		if (species_.graveyard_.size() > 0)
 			can_tally_runs = false;
 		
 #ifdef SLIMGUI

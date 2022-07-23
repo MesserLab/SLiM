@@ -5466,6 +5466,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
 		community_.InvalidateInteractionsForSpecies(&species_);
+		
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		population_.cached_tally_genome_count_ = 0;
 	}
 	
 	return gStaticEidosValueVOID;

@@ -248,6 +248,7 @@ public:
 	void AllSpecies_RunInitializeCallbacks(void);									// run initialize() callbacks and check for complete initialization
 	void RunInitializeCallbacks(void);												// run `species all` initialize() callbacks
 	void AllSpecies_CheckIntegrity(void);
+	void AllSpecies_PurgeRemovedObjects(void);
 	
 	bool _RunOneTickWF(void);														// called by _RunOneTick() to run a tick (WF models)
 	bool _RunOneTickNonWF(void);													// called by _RunOneTick() to run a tick (nonWF models)
