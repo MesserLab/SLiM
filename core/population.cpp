@@ -5499,7 +5499,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		
 		// If we have any killed individuals in the graveyard, we can't use the MutationRun tallies
 		// because the killed individuals are still boosting the refcounts of the MutationRuns
-		if (species_.graveyard_.size() > 0)
+		if (species_.GraveyardSize() > 0)
 			can_tally_runs = false;
 		
 #ifdef SLIMGUI

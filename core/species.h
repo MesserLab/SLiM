@@ -452,6 +452,7 @@ public:
 	inline __attribute__((always_inline)) bool HasGenetics(void)															{ return has_genetics_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
+	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);
