@@ -1262,6 +1262,7 @@
 						  @"–\u00A0addRecombinant()",
 						  @"–\u00A0addSelfed()",
 						  @"–\u00A0removeSubpopulation()",
+						  @"–\u00A0killIndividuals()",
 						  @"–\u00A0takeMigrants()",
 						  @"8. reproduction() callbacks",
 						  @"10. survival() callbacks"

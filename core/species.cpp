@@ -2064,6 +2064,48 @@ void Species::MaintainTreeSequence(void)
 	}
 }
 
+void Species::EmptyGraveyard(void)
+{
+	// Individuals end up in graveyard_ due to killIndividuals(); they get disposed of here.
+	// Since graveyard individuals don't belong to any subpopulation, we use the population junkyards directly.
+	std::vector<Genome *> &genome_junkyard_null = population_.species_genome_junkyard_null;
+	std::vector<Genome *> &genome_junkyard_nonnull = population_.species_genome_junkyard_nonnull;
+	
+	for (Individual *individual : graveyard_)
+	{
+		// Free genome1; this is the same logic as Subpopulation::FreeSubpopGenome()
+		{
+			Genome *genome1 = individual->genome1_;
+			
+			if (genome1->IsNull())
+				genome_junkyard_null.emplace_back(genome1);
+			else
+			{
+				genome1->clear_to_nullptr();
+				genome_junkyard_nonnull.emplace_back(genome1);
+			}
+		}
+		
+		// Free genome2; this is the same logic as Subpopulation::FreeSubpopGenome()
+		{
+			Genome *genome2 = individual->genome2_;
+			
+			if (genome2->IsNull())
+				genome_junkyard_null.emplace_back(genome2);
+			else
+			{
+				genome2->clear_to_nullptr();
+				genome_junkyard_nonnull.emplace_back(genome2);
+			}
+		}
+		
+		individual->~Individual();
+		population_.species_individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
+	}
+	
+	graveyard_.clear();
+}
+
 void Species::WF_GenerateOffspring(void)
 {
 	slim_tick_t tick = community_.Tick();

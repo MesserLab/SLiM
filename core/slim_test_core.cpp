@@ -434,6 +434,9 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 early() { i1 = p1.individuals; ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 early() { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
 	
+	// Test sim - (void)killIndividuals(object<Individual> individuals)
+	// this is done in the test script killIndividuals_test.slim, in Miscellaneous; too complex to test here
+	
 	// Test sim - (float)mutationFrequencies(Nio<Subpopulation> subpops, [object<Mutation> mutations])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 early() { sim.mutationFrequencies(p1); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 early() { sim.mutationFrequencies(c(p1, p2)); }", __LINE__);

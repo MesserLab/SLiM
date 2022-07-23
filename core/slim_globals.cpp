@@ -1287,6 +1287,7 @@ const std::string &gStr_scriptBlocksWithIDs = EidosRegisteredString("scriptBlock
 const std::string &gStr_speciesWithIDs = EidosRegisteredString("speciesWithIDs", gID_speciesWithIDs);
 const std::string &gStr_subpopulationsWithIDs = EidosRegisteredString("subpopulationsWithIDs", gID_subpopulationsWithIDs);
 const std::string &gStr_individualsWithPedigreeIDs = EidosRegisteredString("individualsWithPedigreeIDs", gID_individualsWithPedigreeIDs);
+const std::string &gStr_killIndividuals = EidosRegisteredString("killIndividuals", gID_killIndividuals);
 const std::string &gStr_mutationCounts = EidosRegisteredString("mutationCounts", gID_mutationCounts);
 const std::string &gStr_mutationCountsInGenomes = EidosRegisteredString("mutationCountsInGenomes", gID_mutationCountsInGenomes);
 const std::string &gStr_mutationFrequencies = EidosRegisteredString("mutationFrequencies", gID_mutationFrequencies);

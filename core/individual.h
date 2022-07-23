@@ -105,6 +105,7 @@ public:
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
 	eidos_logical_t migrant_;			// T if the individual has migrated in the current cycle, F otherwise
+	eidos_logical_t killed_;			// T if the individual has been killed by killIndividuals(), F otherwise
 	uint8_t scratch_;					// available for use by algorithms
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.

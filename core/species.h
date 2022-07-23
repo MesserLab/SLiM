@@ -249,6 +249,9 @@ private:
 	
 	slim_position_t last_genomic_element_position_ = -1;	// used to check new genomic elements for consistency
 	
+	// a "temporary graveyard" for keeping individuals that have been killed by killIndividuals(), until they can be freed
+	std::vector<Individual *> graveyard_;
+	
 	// pedigree tracking: off by default, optionally turned on at init time to enable calls to TrackParentage_X()
 	bool pedigrees_enabled_ = false;
 	bool pedigrees_enabled_by_user_ = false;		// pedigree tracking was turned on by the user, which is user-visible
@@ -395,6 +398,7 @@ public:
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(void);
 	void MaintainTreeSequence(void);
+	void EmptyGraveyard(void);
 	void FinishMutationRunExperimentTiming(void);
 	
 	void WF_GenerateOffspring(void);
@@ -584,6 +588,7 @@ public:
 	EidosValue_SP ExecuteMethod_addSubpop(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_addSubpopSplit(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_killIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

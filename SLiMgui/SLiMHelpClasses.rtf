@@ -5540,6 +5540,24 @@ To find individuals within all subpopulations, pass the default of
 \f4\fs20  IDs, or as 
 \f3\fs18 Subpopulation
 \f4\fs20  objects.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)killIndividuals(object<Individual>\'a0individuals)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Immediately kills the individuals in 
+\f3\fs18 individuals
+\f4\fs20 .  This removes them from their subpopulation and gives them an 
+\f3\fs18 index
+\f4\fs20  value of 
+\f3\fs18 -1
+\f4\fs20 .  The 
+\f3\fs18 Individual
+\f4\fs20  objects are not freed immediately, since references to them could still exist in local Eidos variables; instead, the individuals are kept in a temporary \'93graveyard\'94 until they can be freed safely.  It therefore continues to be safe to use them and their genomes, except that accessing their 
+\f3\fs18 subpopulation
+\f4\fs20  property will raise an error since they no longer have a subpopulation.\
+Note that the indices and order of individuals and genomes in all source subpopulations will change unpredictably as a side effect of this method.  All evaluated interactions are invalidated as a side effect of calling this method.\
+Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(integer)mutationCounts(Nio<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\

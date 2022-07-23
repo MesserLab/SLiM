@@ -1669,6 +1669,7 @@ EidosValue_SP Species::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, co
 			
 		case gID_addSubpop:						return ExecuteMethod_addSubpop(p_method_id, p_arguments, p_interpreter);
 		case gID_individualsWithPedigreeIDs:	return ExecuteMethod_individualsWithPedigreeIDs(p_method_id, p_arguments, p_interpreter);
+		case gID_killIndividuals:				return ExecuteMethod_killIndividuals(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationFrequencies:
 		case gID_mutationCounts:				return ExecuteMethod_mutationFreqsCounts(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationsOfType:				return ExecuteMethod_mutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -1916,6 +1917,134 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 		
 		return EidosValue_SP(result);
 	}
+}
+
+//	*********************	- (void)killIndividuals(object<Individual> individuals)
+//
+EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() is not available in WF models." << EidosTerminate();
+	
+	// TIMING RESTRICTION
+	if (community_.executing_species_ == this)
+		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
+	
+	EidosValue_Object *individuals_value = (EidosValue_Object *)p_arguments[0].get();
+	int individuals_count = individuals_value->Count();
+	int killed_count = 0;
+	
+	if (individuals_count == 0)
+		return gStaticEidosValueVOID;
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(individuals_value);
+	
+	if (species != this)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): killIndividuals() requires that all individuals belong to the same species as the target species." << EidosTerminate();
+	
+	// Loop over the individuals and kill them one by one; since there might be references to them in script, we can't actually
+	// free the objects now, so we move them to a temporary "graveyard" which we dispose of between tick cycle stages
+	for (int individual_index = 0; individual_index < individuals_count; ++individual_index)
+	{
+		Individual *doomed = (Individual *)individuals_value->ObjectElementAtIndex(individual_index, nullptr);
+		slim_popsize_t source_subpop_index = doomed->index_;
+		
+		if (source_subpop_index < 0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_killIndividuals): method -killIndividuals() may not kill an individual that is not visible in a subpopulation.  This error will occur if you try to kill the same individual more than once." << EidosTerminate();
+		
+		Subpopulation *source_subpop = doomed->subpopulation_;
+		slim_popsize_t source_subpop_size = source_subpop->parent_subpop_size_;
+		
+		// remove the originals from source_subpop's vectors
+		if (doomed->sex_ == IndividualSex::kFemale)
+		{
+			// females have to be backfilled by the last female, and then that hole is backfilled by a male, and the first male index changes
+			slim_popsize_t source_first_male = source_subpop->parent_first_male_index_;
+			
+			if (source_subpop_index < source_first_male - 1)
+			{
+				Individual *backfill = source_subpop->parent_individuals_[source_first_male - 1];
+				
+				source_subpop->parent_individuals_[source_subpop_index] = backfill;
+				backfill->index_ = source_subpop_index;
+				
+				source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_first_male - 1) * 2];
+				source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1];
+			}
+			
+			if (source_first_male - 1 < source_subpop_size - 1)
+			{
+				Individual *backfill = source_subpop->parent_individuals_[source_subpop_size - 1];
+				
+				source_subpop->parent_individuals_[source_first_male - 1] = backfill;
+				backfill->index_ = source_first_male - 1;
+				
+				source_subpop->parent_genomes_[(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
+				source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+			}
+			
+			source_subpop->parent_subpop_size_ = --source_subpop_size;
+			source_subpop->parent_individuals_.resize(source_subpop_size);
+			source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+			
+			source_subpop->parent_first_male_index_ = --source_first_male;
+		}
+		else
+		{
+			// males and hermaphrodites can be removed with a simple backfill from the end of the vector
+			if (source_subpop_index < source_subpop_size - 1)
+			{
+				Individual *backfill = source_subpop->parent_individuals_[source_subpop_size - 1];
+				
+				source_subpop->parent_individuals_[source_subpop_index] = backfill;
+				backfill->index_ = source_subpop_index;
+				
+				source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
+				source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+			}
+			
+			source_subpop->parent_subpop_size_ = --source_subpop_size;
+			source_subpop->parent_individuals_.resize(source_subpop_size);
+			source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+		}
+		
+		// add the doomed individual to our temporary graveyard
+		graveyard_.push_back(doomed);
+		
+		// it gets killed_ of true and an index of -1; we need to be careful about these possible values where we need to distinguish killed individuals
+		// note that we do not change the subpopulation_ pointer, even though we have removed it from the subpopulation!  this is a similar state to
+		// new offspring, which also get an index of -1 and are not added to the subpopulation's main data structures yet; the reason not to set
+		// the subpopulation_ to nullptr is that we still need to be able to use subpopulation_ to get to species_ and community_ for various purposes
+		// we hide this from the user, though; accessing the subpopulation proerty on a killed individual raises an error
+		doomed->killed_ = true;
+		doomed->index_ = -1;
+		
+		killed_count++;
+	}
+	
+	if (killed_count)
+	{
+		// First, clear our genome and individual caches in all subpopulations; any subpops involved in
+		// this method would be invalidated anyway so this probably isn't even that much overkill in
+		// most models.  Note that the child genomes/individuals caches don't need to be thrown away,
+		// because they aren't used in nonWF models and this is a nonWF-only method.
+		for (auto subpop_pair : population_.subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			subpop->cached_parent_genomes_value_.reset();
+			subpop->cached_parent_individuals_value_.reset();
+		}
+		
+		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
+		// selectively invalidate only the subpops involved in the deaths that occurred
+		community_.InvalidateInteractionsForSpecies(this);
+	}
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	– (float)mutationFrequencies(Nio<Subpopulation> subpops, [No<Mutation> mutations = NULL])
@@ -3147,6 +3276,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpopSplit, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddIntObject_S("sourceSubpop", gSLiM_Subpopulation_Class)->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_individualsWithPedigreeIDs, kEidosValueMaskObject, gSLiM_Individual_Class))->AddInt("pedigreeIDs")->AddIntObject_ON("subpops", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_killIndividuals, kEidosValueMaskVOID))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationCounts, kEidosValueMaskInt))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationFrequencies, kEidosValueMaskFloat))->AddIntObject_N("subpops", gSLiM_Subpopulation_Class)->AddObject_ON("mutations", gSLiM_Mutation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

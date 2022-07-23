@@ -2510,6 +2510,12 @@ bool Community::_RunOneTickNonWF(void)
 				executing_species_ = nullptr;
 			}
 		
+		// dispose of graveyard individuals from killIndividuals() here too, just because we're killing
+		// individuals now anyway; this could be done at other points in the tick cycle too, to decrease
+		// the memory footprint, but maybe it's nice for the overhead to appear in profiling here?
+		for (Species *species : all_species_)
+			species->EmptyGraveyard();
+		
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		

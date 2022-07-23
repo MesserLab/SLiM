@@ -50,7 +50,7 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 #ifdef SLIMGUI
 	cached_unscaled_fitness_(p_fitness),
 #endif
-	genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false)
+	genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false), killed_(false)
 {
 #if DEBUG
 	if (!p_genome1 || !p_genome2)
@@ -268,7 +268,10 @@ const EidosClass *Individual::Class(void) const
 
 void Individual::Print(std::ostream &p_ostream) const
 {
-	p_ostream << Class()->ClassName() << "<p" << subpopulation_->subpopulation_id_ << ":i" << index_ << ">";
+	if (killed_)
+		p_ostream << Class()->ClassName() << "<KILLED>";
+	else
+		p_ostream << Class()->ClassName() << "<p" << subpopulation_->subpopulation_id_ << ":i" << index_ << ">";
 }
 
 EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
@@ -279,6 +282,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// constants
 		case gID_subpopulation:		// ACCELERATED
 		{
+			if (killed_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property subpopulation is not available for individuals that have been killed; they have no subpopulation." << EidosTerminate();
+			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(subpopulation_, gSLiM_Subpopulation_Class));
 		}
 		case gID_index:				// ACCELERATED
@@ -804,6 +810,9 @@ EidosValue *Individual::GetProperty_Accelerated_subpopulation(EidosObject **p_va
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (value->killed_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property subpopulation is not available for individuals that have been killed; they have no subpopulation." << EidosTerminate();
 		
 		object_result->set_object_element_no_check_NORR(value->subpopulation_, value_index);
 	}

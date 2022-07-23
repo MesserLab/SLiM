@@ -114,6 +114,7 @@ development head (in the master branch):
 		add willAutolog() method to LogFile to find out whether it will log automatically at the end of the current tick
 		add addSuppliedColumn() and setSuppliedValue() methods to LogFile, to support columns that are supplied their value by script, rather than generating them
 		remove the removeConstants parameter from rm(); it is no longer possible to remove defined constants, use defineGlobal() instead if you want to change a global value
+		add killIndividuals() method on Species, for nonWF models only, to kill a given vector of individuals, immediately removing them from their subpopulations
 		
 
 version 3.7.1 (Eidos version 2.7.1):

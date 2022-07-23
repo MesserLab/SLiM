@@ -157,6 +157,7 @@ void QtSLiMHelpOutlineDelegate::paint(QPainter *painter, const QStyleOptionViewI
                               "– addRecombinant()",
                               "– addSelfed()",
                               "– removeSubpopulation()",
+                              "– killIndividuals()",
                               "– takeMigrants()",
                               "reproduction() callbacks",
                               "survival() callbacks"

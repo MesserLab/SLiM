@@ -864,6 +864,7 @@ extern const std::string &gStr_scriptBlocksWithIDs;
 extern const std::string &gStr_speciesWithIDs;
 extern const std::string &gStr_subpopulationsWithIDs;
 extern const std::string &gStr_individualsWithPedigreeIDs;
+extern const std::string &gStr_killIndividuals;
 extern const std::string &gStr_mutationCounts;
 extern const std::string &gStr_mutationCountsInGenomes;
 extern const std::string &gStr_mutationFrequencies;
@@ -1225,6 +1226,7 @@ enum _SLiMGlobalStringID : int {
 	gID_speciesWithIDs,
 	gID_subpopulationsWithIDs,
 	gID_individualsWithPedigreeIDs,
+	gID_killIndividuals,
 	gID_mutationCounts,
 	gID_mutationCountsInGenomes,
 	gID_mutationFrequencies,
