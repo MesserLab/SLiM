@@ -5557,7 +5557,19 @@ To find individuals within all subpopulations, pass the default of
 \f3\fs18 subpopulation
 \f4\fs20  property will raise an error since they no longer have a subpopulation.\
 Note that the indices and order of individuals and genomes in all source subpopulations will change unpredictably as a side effect of this method.  All evaluated interactions are invalidated as a side effect of calling this method.\
-Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.\
+Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.  In nonWF models, mortality normally occurs during the survival stage of the tick cycle (see section 23.4), based upon the fitness values calculated by SLiM, and 
+\f3\fs18 survival()
+\f4\fs20  callbacks can influence the outcome of that survival stage.  Calls to 
+\f3\fs18 killIndividuals()
+\f4\fs20 , on the other hand, can be made at any time during 
+\f3\fs18 first()
+\f4\fs20 , 
+\f3\fs18 early()
+\f4\fs20 , or 
+\f3\fs18 late()
+\f4\fs20  events, and the result cannot be modified by 
+\f3\fs18 survival()
+\f4\fs20  callbacks; the given individuals are simply immediately killed.  This method therefore provides an alternative, and relatively rarely used, mortality mechanism that is disconnected from fitness.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(integer)mutationCounts(Nio<Subpopulation>\'a0subpops, [No<Mutation>\'a0mutations\'a0=\'a0NULL])\
