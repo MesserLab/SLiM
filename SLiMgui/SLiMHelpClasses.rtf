@@ -781,7 +781,7 @@ The recombination intervals are normally a constant in simulations, so be sure y
 
 \f4\fs20 \cf2 The current cycle stage, as a 
 \f3\fs18 string
-\f4\fs20 .  The values of this property essentially mirror the cycle stages of WF and nonWF models (see chapters 22 and 23).  Common values include 
+\f4\fs20 .  The values of this property essentially mirror the cycle stages of WF and nonWF models.  Common values include 
 \f3\fs18 "first"
 \f4\fs20  (during execution of 
 \f3\fs18 first()
@@ -2579,7 +2579,7 @@ fitnessScaling <\'96> (float$)\
 \f4\fs20 \cf2 A 
 \f3\fs18 float
 \f4\fs20  scaling factor applied to the individual\'92s fitness (i.e., the fitness value computed for the individual will be multiplied by this value).  This provides a simple, fast way to modify the fitness of an individual; conceptually it is similar to returning a fitness effect for the individual from a 
-\f3\fs18 fitness(NULL)
+\f3\fs18 fitnessEffect()
 \f4\fs20  callback, but without the complexity and performance overhead of implementing such a callback.  To scale the fitness of all individuals in a subpopulation by the same factor, see the 
 \f3\fs18 fitnessScaling
 \f4\fs20  property of 
@@ -3472,7 +3472,7 @@ You must explicitly call
 \f3\fs18 evaluate()
 \f4\fs20  at an appropriate time in the generation cycle before the interaction is used, but after any relevant changes have been made to the population.  SLiM will invalidate any existing interactions after any portion of the generation cycle in which new individuals have been born or existing individuals have died.  In a WF model, this occurs just before 
 \f3\fs18 late()
-\f4\fs20  events execute (see the WF generation cycle diagram in chapter 22), so 
+\f4\fs20  events execute (see the WF generation cycle diagram), so 
 \f3\fs18 late()
 \f4\fs20  events are often the appropriate place to put 
 \f3\fs18 evaluate()
@@ -3484,7 +3484,7 @@ You must explicitly call
 \f3\fs18 early()
 \f4\fs20  events and then individuals die just before 
 \f3\fs18 late()
-\f4\fs20  events (see the nonWF generation cycle diagram in chapter 23), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
+\f4\fs20  events (see the nonWF generation cycle diagram), so interactions will be invalidated twice during each generation cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
 \f3\fs18 first()
 \f4\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f3\fs18 early()
@@ -4493,7 +4493,7 @@ In nucleotide-based models, a restriction applies: nucleotide-based mutations ma
 \f3\fs18 Mutation
 \f4\fs20  object (note that the dominance coefficient will remain unchanged, as it is determined by the mutation type).\
 This is normally a constant in simulations, so be sure you know what you are doing; often setting up a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f4\fs20  callback is preferable, in order to modify the selection coefficient in a more limited and controlled fashion.  Changing this will normally affect the fitness values calculated at the end of the current generation; if you want current fitness values to be affected, you can call the 
 \f3\fs18 Species
 \f4\fs20  method 
@@ -4555,15 +4555,15 @@ In WF models this property is
 \f4\fs20  objects provides large speed benefits; it should be set to 
 \f3\fs18 F
 \f4\fs20  only if necessary, and only on the mutation types for which it is necessary.  This might be needed, for example, if you are using a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f4\fs20  callback to implement an epistatic relationship between mutations; a mutation epistatically influencing the fitness of other mutations through a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f4\fs20  callback would need to continue having that influence even after reaching fixation, but if the simulation were to replace the fixed mutation with a 
 \f3\fs18 Substitution
 \f4\fs20  object the mutation would no longer be considered in fitness calculations (unless the callback explicitly consulted the list of 
 \f3\fs18 Substitution
 \f4\fs20  objects kept by the simulation).  Other script-defined behaviors in 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f4\fs20 , 
 \f3\fs18 interaction()
 \f4\fs20 , 
@@ -5106,20 +5106,32 @@ The species to which the target object belongs.\
 \f3\fs18 \cf0 type => (string$)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The type of the script block; this will be 
+\f4\fs20 \cf2 The type of the script block; this will be 
+\f3\fs18 "first"
+\f4\fs20 , 
 \f3\fs18 "early"
-\f4\fs20  or 
+\f4\fs20 , or 
 \f3\fs18 "late"
-\f4\fs20  for the two types of Eidos events, or 
+\f4\fs20  for the three types of Eidos events, or 
 \f3\fs18 "initialize"
 \f4\fs20 , 
-\f3\fs18 "fitness"
+\f3\fs18 "fitnessEffect"
+\f4\fs20 , 
+\f3\fs18 "interaction"
 \f4\fs20 , 
 \f3\fs18 "mateChoice"
 \f4\fs20 , 
 \f3\fs18 "modifyChild"
-\f4\fs20 , or 
+\f4\fs20 , 
+\f3\fs18 "mutation"
+\f4\fs20 , 
+\f3\fs18 "mutationEffect"
+\f4\fs20 , 
 \f3\fs18 "recombination"
+\f4\fs20 , 
+\f3\fs18 "reproduction"
+\f4\fs20 , or 
+\f3\fs18 "survival"
 \f4\fs20  for the respective types of Eidos callbacks.
 \f3\fs18 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
@@ -5557,7 +5569,7 @@ To find individuals within all subpopulations, pass the default of
 \f3\fs18 subpopulation
 \f4\fs20  property will raise an error since they no longer have a subpopulation.\
 Note that the indices and order of individuals and genomes in all source subpopulations will change unpredictably as a side effect of this method.  All evaluated interactions are invalidated as a side effect of calling this method.\
-Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.  In nonWF models, mortality normally occurs during the survival stage of the tick cycle (see section 23.4), based upon the fitness values calculated by SLiM, and 
+Note that this method is only for use in nonWF models, in which mortality is managed manually by the model script.  In WF models, mortality is managed automatically by the SLiM core when the new offspring generation becomes the parental generation and the previous parental generation dies; mortality does not otherwise occur in WF models.  In nonWF models, mortality normally occurs during the survival stage of the tick cycle, based upon the fitness values calculated by SLiM, and 
 \f3\fs18 survival()
 \f4\fs20  callbacks can influence the outcome of that survival stage.  Calls to 
 \f3\fs18 killIndividuals()
@@ -5820,7 +5832,8 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -5896,8 +5909,11 @@ In SLiM 3.3 and later, the output format includes the nucleotides associated wit
 \f4\fs20  will be removed as a side effect of this method if they contain any element that belongs to the target species, because those objects will no longer exist in the SLiM simulation; if you want to preserve any of that state, you should output it or save it to a file prior to this call.  New symbols will be defined to refer to the new 
 \f3\fs18 Subpopulation
 \f4\fs20  objects loaded from the file.\
-If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
-\f3\fs18 fitness()
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If the file being read was written by a version of SLiM prior to 2.3, then for backward compatibility fitness values will be calculated immediately for any new subpopulations created by this call, which will trigger the calling of any activated and applicable 
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
 \f4\fs20  callbacks.  When reading files written by SLiM 2.3 or later, fitness values are not calculated as a side effect of this call (because the simulation will often need to evaluate interactions or modify other state prior to doing so).\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
@@ -5947,7 +5963,8 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -6018,7 +6035,9 @@ This method can also be used to read tree-sequence (
 The optional parameter 
 \f3\fs18 tick
 \f4\fs20  provides the tick for which 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
 \f4\fs20  callbacks should be selected; if it is 
 \f3\fs18 NULL
 \f4\fs20  (the default), the current tick value for the simulation, 
@@ -6030,7 +6049,9 @@ The optional parameter
 \f4\fs20  event in a WF model, you may wish this to be 
 \f3\fs18 community.tick - 1
 \f4\fs20  in order to utilize the 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
 \f4\fs20  callbacks for the previous tick, as if the changes that you have made to fitness-influencing parameters were already in effect at the end of the previous tick when the new generation was first created and evaluated (usually it is simpler to just make such changes in a 
 \f3\fs18 late()
 \f4\fs20  event instead, however, in which case calling 
@@ -6039,40 +6060,32 @@ The optional parameter
 \f3\fs18 tick
 \f4\fs20  here, 
 \f3\fs18 community.tick
-\f4\fs20  inside 
-\f3\fs18 fitness()
-\f4\fs20  callbacks will report the true tick number, so if your callbacks consult that parameter in order to create tick-specific fitness effects you will need to handle the discrepancy somehow.  (Similar considerations apply for nonWF models that call 
+\f4\fs20  inside callbacks will report the true tick number, so if your callbacks consult that parameter in order to create tick-specific fitness effects you will need to handle the discrepancy somehow.  (Similar considerations apply for nonWF models that call 
 \f3\fs18 recalculateFitness()
 \f4\fs20  in a 
 \f3\fs18 late()
 \f4\fs20  event, which is also not advisable in general.)\
 After this call, the fitness values used for all purposes in SLiM will be the newly calculated values.  Calling this method will trigger the calling of any enabled and applicable 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
 \f4\fs20  callbacks, so this is quite a heavyweight operation; you should think carefully about what side effects might result (which is why fitness recalculation does not just occur automatically after changes that might affect fitness values).\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessCallback(Nis$\'a0id, string$\'a0source, Nio<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop
+\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerFitnessEffectCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
 \f5 \'a0
 \f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
+\f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
 \f3\fs18 string
 \f4\fs20  singleton 
 \f3\fs18 source
 \f4\fs20 , as an Eidos 
-\f3\fs18 fitness()
-\f4\fs20  callback in the current simulation\cf2  (specific to the target species)\cf0 , with a required mutation type 
-\f3\fs18 mutType
-\f4\fs20  (which may be an 
-\f3\fs18 integer
-\f4\fs20  mutation type identifier, or 
-\f3\fs18 NULL
-\f4\fs20  to indicate a global 
-\f3\fs18 fitness()
-\f4\fs20  callback), optional subpopulation 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callback in the current simulation (specific to the target species), with an optional subpopulation 
 \f3\fs18 subpop
-\f4\fs20  (which may also be an 
+\f4\fs20  (which may be an 
 \f3\fs18 integer
 \f4\fs20  identifier, or 
 \f3\fs18 NULL
@@ -6096,8 +6109,7 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f1\i may
 \f4\i0  be eligible to execute in the current generation.  The new 
 \f3\fs18 SLiMEidosBlock
-\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.
-\f5 \
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerMateChoiceCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
@@ -6225,7 +6237,49 @@ After this call, the fitness values used for all purposes in SLiM will be the ne
 \f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerMutationEffectCallback(Nis$\'a0id, string$\'a0source, io<MutationType>$\'a0mutType, [Nio<Subpopulation>$\'a0subpop\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Register a block of Eidos source code, represented as the 
+\f3\fs18 string
+\f4\fs20  singleton 
+\f3\fs18 source
+\f4\fs20 , as an Eidos 
+\f3\fs18 mutationEffect()
+\f4\fs20  callback in the current simulation (specific to the target species), with a required mutation type 
+\f3\fs18 mutType
+\f4\fs20  (which may be an 
+\f3\fs18 integer
+\f4\fs20  mutation type identifier), optional subpopulation 
+\f3\fs18 subpop
+\f4\fs20  (which may also be an 
+\f3\fs18 integer
+\f4\fs20  identifier, or 
+\f3\fs18 NULL
+\f4\fs20 , the default, to indicate all subpopulations), and optional 
+\f3\fs18 start
+\f4\fs20  and 
+\f3\fs18 end
+\f4\fs20  generations all limiting its applicability.  The script block will be given identifier 
+\f3\fs18 id
+\f4\fs20  (specified as an 
+\f3\fs18 integer
+\f4\fs20 , or as a 
+\f3\fs18 string
+\f4\fs20  symbolic name such as 
+\f3\fs18 "s5"
+\f4\fs20 ); this may be 
+\f3\fs18 NULL
+\f4\fs20  if there is no need to be able to refer to the block later.  The registered callback is added to the end of the list of registered 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  objects, and is active immediately; it 
+\f1\i may
+\f4\i0  be eligible to execute in the current generation.  The new 
+\f3\fs18 SLiMEidosBlock
+\f4\fs20  will be defined as a global variable immediately by this method, and will also be returned by this method.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerRecombinationCallback(Nis$\'a0id, string$\'a0source, [Nio<Subpopulation>$\'a0subpop
 \f5 \'a0
 \f3 =\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -6690,7 +6744,7 @@ fitnessScaling <\'96> (float$)\
 \f4\fs20 \cf2 A 
 \f3\fs18 float
 \f4\fs20  scaling factor applied to the fitness of all individuals in this subpopulation (i.e., the fitness value computed for each individual will be multiplied by this value).  This is primarily of use in nonWF models, where fitness is absolute, rather than in WF models, where fitness is relative (and thus a constant factor multiplied into the fitness of every individual will make no difference); however, it may be used in either type of model.  This provides a simple, fast way to modify the fitness of all individuals in a subpopulation; conceptually it is similar to returning the same fitness effect for all individuals in the subpopulation from a 
-\f3\fs18 fitness(NULL)
+\f3\fs18 fitnessEffect()
 \f4\fs20  callback, but without the complexity and performance overhead of implementing such a callback.  To scale the fitness of individuals by different (individual-specific) factors, see the 
 \f3\fs18 fitnessScaling
 \f4\fs20  property of 
@@ -7266,15 +7320,18 @@ Note that this method is only for use in nonWF models.  See
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The fitness values calculated for the individuals at the indices given are returned.  If 
+\f4\fs20 \cf2 The fitness values calculated for the individuals at the indices given are returned.  If 
 \f3\fs18 NULL
 \f4\fs20  is passed, fitness values for all individuals in the subpopulation are returned.  The fitness values returned are cached values; 
-\f3\fs18 fitness()
-\f4\fs20  callbacks are therefore not called as a side effect of this method.\cf2 \expnd0\expndtw0\kerning0
-  It is always an error to call 
+\f3\fs18 mutationEffect()
+\f4\fs20  and 
+\f3\fs18 fitnessEffect()
+\f4\fs20  callbacks are therefore not called as a side effect of this method.  It is always an error to call 
 \f3\fs18 cachedFitness()
 \f4\fs20  from inside a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f4\fs20  or 
+\f3\fs18 fitnessEffect()
 \f4\fs20  callback, since fitness values are in the middle of being set up.  In WF models, it is also an error to call 
 \f3\fs18 cachedFitness()
 \f4\fs20  from a 
@@ -7287,8 +7344,7 @@ Note that this method is only for use in nonWF models.  See
 \f3\fs18 addSubpopSplit()
 \f4\fs20 , the fitness of all of the newly created individuals is considered to be 
 \f3\fs18 1.0
-\f4\fs20  until fitness values are recalculated.
-\f5 \cf0 \kerning1\expnd0\expndtw0 \
+\f4\fs20  until fitness values are recalculated.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -7446,7 +7502,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the example recipes for an illustration of its use.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 

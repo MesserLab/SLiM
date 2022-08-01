@@ -119,6 +119,11 @@ development head (in the master branch):
 			the results from sim.mutationFrequencies() / sim.mutationCounts() could be incorrect after one of those calls, for a complete tick cycle (test: test_freqCountChange_*.slim)
 			SLiM's internal tally never produced incorrect fixation/loss, so the bug should manifest only in script, only when those methods are used (test: test_fixloss_*.slim)
 			it could also result in (harmless) incorrect display of frequencies in SLiMgui at the end of a tick in which a subpopulation was removed (test: test_subpopRemoved_*.slim)
+		fitness() callback redesign (breaks in backward compatibility):
+			change fitness() callbacks to be called mutationEffect() callbacks
+			change relFitness to effect, inside mutationEffect() callbacks
+			change fitness(NULL) callbacks to be called fitnessEffect() callbacks
+			split registerFitnessCallback() into registerMutationEffectCallback() and registerFitnessEffectCallback()
 		
 
 version 3.7.1 (Eidos version 2.7.1):

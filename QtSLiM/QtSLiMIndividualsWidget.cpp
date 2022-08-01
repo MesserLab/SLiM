@@ -695,7 +695,7 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
             }
             else
             {
-                // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+                // use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
                 // we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
                 double fitness = individual.cached_unscaled_fitness_;
                 
@@ -1479,7 +1479,7 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
         }
 		else
 		{
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
 			// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
 			double fitness = individual.cached_unscaled_fitness_;
 			

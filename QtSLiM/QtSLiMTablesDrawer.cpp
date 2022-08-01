@@ -1114,8 +1114,8 @@ QVariant QtSLiMEidosBlockTableModel::data(const QModelIndex &p_index, int role) 
                     case SLiMEidosBlockType::SLiMEidosEventEarly:				return QVariant("early()");
                     case SLiMEidosBlockType::SLiMEidosEventLate:				return QVariant("late()");
                     case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return QVariant("initialize()");
-                    case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return QVariant("fitness()");
-                    case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return QVariant("fitness()");
+                    case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return QVariant("mutationEffect()");
+                    case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return QVariant("fitnessEffect()");
                     case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return QVariant("interaction()");
                     case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return QVariant("mateChoice()");
                     case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return QVariant("modifyChild()");

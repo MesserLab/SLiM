@@ -1,4 +1,4 @@
-// Keywords: dominance coefficients, mutation(), fitness()
+// Keywords: dominance coefficients, mutation()
 
 initialize() {
 	initializeMutationRate(1e-8);
@@ -15,7 +15,7 @@ mutation(m2) {
 	mut.setValue("dom", runif(1));
 	return T;
 }
-fitness(m2) {
+mutationEffect(m2) {
    if (homozygous)
       return 1.0 + mut.selectionCoeff;
    else

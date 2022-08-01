@@ -1,4 +1,4 @@
-// Keywords: fitness(), death, survival
+// Keywords: death, survival
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -17,7 +17,7 @@ late() {
 	// here be dragons
 	sample(sim.subpopulations.individuals, 100).tag = 0;
 }
-fitness(NULL) {
+fitnessEffect() {
 	// individuals tagged for death die here
 	if (individual.tag == 1)
 		return 1.0;

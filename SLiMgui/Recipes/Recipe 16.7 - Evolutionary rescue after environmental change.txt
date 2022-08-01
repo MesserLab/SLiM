@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, QTL, quantitative trait loci, fitness()
+// Keywords: nonWF, non-Wright-Fisher, QTL, quantitative trait loci
 
 initialize() {
 	initializeSLiMModelType("nonWF");
@@ -33,7 +33,7 @@ early() {
 	// density-dependence with a maximum benefit at low density
 	p1.fitnessScaling = min(K / p1.individualCount, 1.5);
 }
-fitness(m1) { return 1.0; }
+mutationEffect(m1) { return 1.0; }
 late() {
 	if (p1.individualCount == 0)
 	{

@@ -1,4 +1,4 @@
-// Keywords: fitness(), death, survival
+// Keywords: death, survival
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -14,10 +14,10 @@ initialize() {
 1 early() {
 	sim.addSubpop("p1", 500);
 }
-fitness(m2)
+mutationEffect(m2)
 {
 	// convert fecundity-based selection to survival-based selection
-	if (runif(1) < relFitness)
+	if (runif(1) < effect)
 		return 1.0;
 	else
 		return 0.0;

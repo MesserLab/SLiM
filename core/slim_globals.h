@@ -880,12 +880,13 @@ extern const std::string &gStr_recalculateFitness;
 extern const std::string &gStr_registerFirstEvent;
 extern const std::string &gStr_registerEarlyEvent;
 extern const std::string &gStr_registerLateEvent;
-extern const std::string &gStr_registerFitnessCallback;
+extern const std::string &gStr_registerFitnessEffectCallback;
 extern const std::string &gStr_registerInteractionCallback;
 extern const std::string &gStr_registerMateChoiceCallback;
 extern const std::string &gStr_registerModifyChildCallback;
 extern const std::string &gStr_registerRecombinationCallback;
 extern const std::string &gStr_registerMutationCallback;
+extern const std::string &gStr_registerMutationEffectCallback;
 extern const std::string &gStr_registerSurvivalCallback;
 extern const std::string &gStr_registerReproductionCallback;
 extern const std::string &gStr_rescheduleScriptBlock;
@@ -963,12 +964,13 @@ extern const std::string &gStr_isCloning;
 extern const std::string &gStr_isSelfing;
 extern const std::string &gStr_parent2;
 extern const std::string &gStr_mut;
-extern const std::string &gStr_relFitness;
+extern const std::string &gStr_effect;
 extern const std::string &gStr_homozygous;
 extern const std::string &gStr_breakpoints;
 extern const std::string &gStr_receiver;
 extern const std::string &gStr_exerter;
 extern const std::string &gStr_originalNuc;
+extern const std::string &gStr_fitness;
 extern const std::string &gStr_surviving;
 extern const std::string &gStr_draw;
 
@@ -1037,7 +1039,8 @@ extern const std::string &gStr_first;
 extern const std::string &gStr_early;
 extern const std::string &gStr_late;
 extern const std::string &gStr_initialize;
-extern const std::string &gStr_fitness;
+extern const std::string &gStr_fitnessEffect;
+extern const std::string &gStr_mutationEffect;
 extern const std::string &gStr_interaction;
 extern const std::string &gStr_mateChoice;
 extern const std::string &gStr_modifyChild;
@@ -1242,12 +1245,13 @@ enum _SLiMGlobalStringID : int {
 	gID_registerFirstEvent,
 	gID_registerEarlyEvent,
 	gID_registerLateEvent,
-	gID_registerFitnessCallback,
+	gID_registerFitnessEffectCallback,
 	gID_registerInteractionCallback,
 	gID_registerMateChoiceCallback,
 	gID_registerModifyChildCallback,
 	gID_registerRecombinationCallback,
 	gID_registerMutationCallback,
+	gID_registerMutationEffectCallback,
 	gID_registerSurvivalCallback,
 	gID_registerReproductionCallback,
 	gID_rescheduleScriptBlock,
@@ -1325,12 +1329,13 @@ enum _SLiMGlobalStringID : int {
 	gID_isSelfing,
 	gID_parent2,
 	gID_mut,
-	gID_relFitness,
+	gID_effect,
 	gID_homozygous,
 	gID_breakpoints,
 	gID_receiver,
 	gID_exerter,
 	gID_originalNuc,
+	gID_fitness,
 	gID_surviving,
 	gID_draw,
 	
@@ -1396,7 +1401,8 @@ enum _SLiMGlobalStringID : int {
 	gID_early,
 	gID_late,
 	gID_initialize,
-	gID_fitness,
+	gID_fitnessEffect,
+	gID_mutationEffect,
 	gID_interaction,
 	gID_mateChoice,
 	gID_modifyChild,

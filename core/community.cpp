@@ -460,9 +460,9 @@ void Community::ValidateScriptBlockCaches(void)
 		cached_early_events_.clear();
 		cached_late_events_.clear();
 		cached_initialize_callbacks_.clear();
-		cached_fitness_callbacks_.clear();
-		cached_fitnessglobal_callbacks_onetick_.clear();
-		cached_fitnessglobal_callbacks_multitick_.clear();
+		cached_mutationEffect_callbacks_.clear();
+		cached_fitnessEffect_callbacks_onetick_.clear();
+		cached_fitnessEffect_callbacks_multitick_.clear();
 		cached_interaction_callbacks_.clear();
 		cached_matechoice_callbacks_.clear();
 		cached_modifychild_callbacks_.clear();
@@ -492,10 +492,10 @@ void Community::ValidateScriptBlockCaches(void)
 				case SLiMEidosBlockType::SLiMEidosEventEarly:				cached_early_events_.emplace_back(script_block);				break;
 				case SLiMEidosBlockType::SLiMEidosEventLate:				cached_late_events_.emplace_back(script_block);					break;
 				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		cached_initialize_callbacks_.emplace_back(script_block);		break;
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			cached_fitness_callbacks_.emplace_back(script_block);			break;
-				case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	cached_mutationEffect_callbacks_.emplace_back(script_block);	break;
+				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:
 				{
-					// Global fitness callbacks are not order-dependent, so we don't have to preserve their order
+					// Note fitnessEffect() callbacks are not order-dependent, so we don't have to preserve their order
 					// of declaration the way we do with other types of callbacks.  This allows us to be very efficient
 					// in how we look them up, which is good since sometimes we have a very large number of them.
 					// We put those that are registered for just a single tick in a separate vector, which we sort
@@ -505,11 +505,11 @@ void Community::ValidateScriptBlockCaches(void)
 					
 					if (start == end)
 					{
-						cached_fitnessglobal_callbacks_onetick_.emplace(start, script_block);
+						cached_fitnessEffect_callbacks_onetick_.emplace(start, script_block);
 					}
 					else
 					{
-						cached_fitnessglobal_callbacks_multitick_.emplace_back(script_block);
+						cached_fitnessEffect_callbacks_multitick_.emplace_back(script_block);
 					}
 					break;
 				}
@@ -548,20 +548,20 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 	
 	switch (p_event_type)
 	{
-		case SLiMEidosBlockType::SLiMEidosEventFirst:				block_list = &cached_first_events_;						break;
-		case SLiMEidosBlockType::SLiMEidosEventEarly:				block_list = &cached_early_events_;						break;
-		case SLiMEidosBlockType::SLiMEidosEventLate:				block_list = &cached_late_events_;						break;
-		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		block_list = &cached_initialize_callbacks_;				break;
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			block_list = &cached_fitness_callbacks_;				break;
-		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	block_list = &cached_fitnessglobal_callbacks_multitick_;	break;
-		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		block_list = &cached_interaction_callbacks_;			break;
-		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		block_list = &cached_matechoice_callbacks_;				break;
-		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;			break;
-		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;			break;
-		case SLiMEidosBlockType::SLiMEidosMutationCallback:			block_list = &cached_mutation_callbacks_;				break;
-		case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			block_list = &cached_survival_callbacks_;				break;
-		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;			break;
-		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;				break;
+		case SLiMEidosBlockType::SLiMEidosEventFirst:				block_list = &cached_first_events_;							break;
+		case SLiMEidosBlockType::SLiMEidosEventEarly:				block_list = &cached_early_events_;							break;
+		case SLiMEidosBlockType::SLiMEidosEventLate:				block_list = &cached_late_events_;							break;
+		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		block_list = &cached_initialize_callbacks_;					break;
+		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	block_list = &cached_mutationEffect_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	block_list = &cached_fitnessEffect_callbacks_multitick_;	break;
+		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		block_list = &cached_interaction_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		block_list = &cached_matechoice_callbacks_;					break;
+		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		block_list = &cached_modifychild_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosRecombinationCallback:	block_list = &cached_recombination_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosMutationCallback:			block_list = &cached_mutation_callbacks_;					break;
+		case SLiMEidosBlockType::SLiMEidosSurvivalCallback:			block_list = &cached_survival_callbacks_;					break;
+		case SLiMEidosBlockType::SLiMEidosReproductionCallback:		block_list = &cached_reproduction_callbacks_;				break;
+		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		block_list = &cached_userdef_functions_;					break;
 		case SLiMEidosBlockType::SLiMEidosNoBlockType:				break;	// never hit
 	}
 	
@@ -578,21 +578,10 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		//	continue;
 		
 		// check that the mutation type id matches, if requested
-		// this is now a bit tricky, with the NULL mut-type option, indicated by -2.  The rules now are:
-		//
-		// * if -2 is requested, -2 callbacks are all you get
-		// * if anything other than -2 is requested (including -1), -2 callbacks will not be returned
-		//
-		// so -2 callbacks are treated in a completely separate manner; they are never returned with other callbacks
-		slim_objectid_t mutation_type_id = script_block->mutation_type_id_;
-		
-		if ((p_mutation_type_id == -2) && (mutation_type_id != -2))
-			continue;
-		if ((p_mutation_type_id != -2) && (mutation_type_id == -2))
-			continue;
-		
 		if (p_mutation_type_id != -1)
 		{
+			slim_objectid_t mutation_type_id = script_block->mutation_type_id_;
+			
 			if ((mutation_type_id != -1) && (p_mutation_type_id != mutation_type_id))
 				continue;
 		}
@@ -623,10 +612,10 @@ std::vector<SLiMEidosBlock*> Community::ScriptBlocksMatching(slim_tick_t p_tick,
 		matches.emplace_back(script_block);
 	}
 	
-	// add in any single-tick global fitness callbacks
-	if (p_event_type == SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)
+	// add in any single-tick fitnessEffect() callbacks
+	if (p_event_type == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)
 	{
-		auto find_range = cached_fitnessglobal_callbacks_onetick_.equal_range(p_tick);
+		auto find_range = cached_fitnessEffect_callbacks_onetick_.equal_range(p_tick);
 		auto find_start = find_range.first;
 		auto find_end = find_range.second;
 		
@@ -678,7 +667,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 	// we're not going to do this for very many cases, but sometimes it is worth it.
 	if (!p_script_block->has_cached_optimization_)
 	{
-		if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)
+		if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)
 		{
 			const EidosASTNode *base_node = p_script_block->compound_statement_node_;
 			
@@ -868,7 +857,7 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 //			else
 //				std::cout << "NOT OPTIMIZED:" << std::endl << "   " << base_node->token_->token_string_ << std::endl;
 		}
-		else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosFitnessCallback)
+		else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosMutationEffectCallback)
 		{
 			const EidosASTNode *base_node = p_script_block->compound_statement_node_;
 			
@@ -890,9 +879,9 @@ void Community::OptimizeScriptBlock(SLiMEidosBlock *p_script_block)
 						{
 							double numerator = numerator_node->CachedNumericValue();
 							
-							if ((denominator_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (denominator_node->token_->token_string_ == "relFitness"))
+							if ((denominator_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (denominator_node->token_->token_string_ == "effect"))
 							{
-								// callback of the form { return A/relFitness; }
+								// callback of the form { return A/effect; }
 								p_script_block->has_cached_optimization_ = true;
 								p_script_block->has_cached_opt_reciprocal = true;
 								p_script_block->cached_opt_A_ = numerator;

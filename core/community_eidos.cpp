@@ -1181,8 +1181,8 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kWFStage1ExecuteEarlyScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kWFStage5ExecuteLateScripts; break;
 			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kWFStage6CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kWFStage7AdvanceTickCounter; break;
 			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kWFStage2GenerateOffspring; break;
@@ -1203,8 +1203,8 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 			case SLiMEidosBlockType::SLiMEidosEventEarly:				stage = SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts; break;
 			case SLiMEidosBlockType::SLiMEidosEventLate:				stage = SLiMCycleStage::kNonWFStage6ExecuteLateScripts; break;
 			case SLiMEidosBlockType::SLiMEidosInitializeCallback:		stage = SLiMCycleStage::kStagePreCycle; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessCallback:			stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
-			case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
+			case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	stage = SLiMCycleStage::kNonWFStage3CalculateFitness; break;
 			case SLiMEidosBlockType::SLiMEidosInteractionCallback:		stage = SLiMCycleStage::kNonWFStage7AdvanceTickCounter; break;
 			case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;			// never hit
 			case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		stage = SLiMCycleStage::kNonWFStage1GenerateOffspring; break;

@@ -298,7 +298,7 @@ void QtSLiMScriptHighlighter::highlightBlock(__attribute__((__unused__)) const Q
                     setFormat(token_start, token_end - token_start + 1, identifierFormat);
                 // -[SLiMWindowController eidosConsoleWindowController:tokenStringIsSpecialIdentifier:] has code
                 // here to give a special color (contextKeywordFormat) to the various keywords for callbacks, like
-                // "fitness", "initialize", etc.; it is commented out and I don't think we want it
+                // "mutationEffect", "initialize", etc.; it is commented out and I don't think we want it
                 else
                 {
                     int token_length = static_cast<int>(token_string.length());

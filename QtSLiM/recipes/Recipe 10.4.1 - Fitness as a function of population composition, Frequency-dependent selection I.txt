@@ -1,4 +1,4 @@
-// Keywords: fitness()
+// Keywords: 
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -10,6 +10,6 @@ initialize() {
 }
 1 early() { sim.addSubpop("p1", 500); }
 10000 early() { sim.simulationFinished(); }
-fitness(m2) {
+mutationEffect(m2) {
 	return 1.5 - sim.mutationFrequencies(p1, mut);
 }

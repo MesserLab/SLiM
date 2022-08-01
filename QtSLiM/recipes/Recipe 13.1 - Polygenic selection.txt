@@ -1,4 +1,4 @@
-// Keywords: quantitative trait, polygenic selection, fitness(), global fitness callback
+// Keywords: quantitative trait, polygenic selection
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -14,7 +14,7 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 early() { sim.addSubpop("p1", 500); }
-fitness(NULL) {
+fitnessEffect() {
 	phenotype = sum(individual.genomes.countOfMutationsOfType(m2));
 	return 1.5 - (phenotype - 10.0)^2 * 0.005;
 }

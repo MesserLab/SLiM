@@ -4508,21 +4508,21 @@ void Population::ValidateMutationFitnessCaches(void)
 
 void Population::RecalculateFitness(slim_tick_t p_tick)
 {
-	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
+	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> fitness_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> global_fitness_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, -1);
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1);
 	bool no_active_callbacks = true;
 	
-	for (SLiMEidosBlock *callback : fitness_callbacks)
+	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
 		if (callback->block_active_)
 		{
 			no_active_callbacks = false;
 			break;
 		}
 	if (no_active_callbacks)
-		for (SLiMEidosBlock *callback : global_fitness_callbacks)
+		for (SLiMEidosBlock *callback : fitnessEffect_callbacks)
 			if (callback->block_active_)
 			{
 				no_active_callbacks = false;
@@ -4548,22 +4548,22 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			MutationType *muttype = muttype_iter.second;
 			
 			muttype->previous_set_neutral_by_global_active_callback_ = muttype->set_neutral_by_global_active_callback_;
-			muttype->previous_subject_to_fitness_callback_ = muttype->subject_to_fitness_callback_;
+			muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
 		}
 		
-		// Then we assess which muttypes are being made globally neutral by a constant-value fitness callback
+		// Then we assess which muttypes are being made globally neutral by a constant-value mutationEffect() callback
 		bool all_active_callbacks_are_global_neutral_effects = true;
 		
 		for (auto muttype_iter : mut_types)
 			(muttype_iter.second)->set_neutral_by_global_active_callback_ = false;
 		
-		for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
 		{
-			if (fitness_callback->block_active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				if (fitness_callback->subpopulation_id_ == -1)
+				if (mutationEffect_callback->subpopulation_id_ == -1)
 				{
-					const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+					const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 					
 					if (compound_statement_node->cached_return_value_)
 					{
@@ -4575,7 +4575,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 							if (result->FloatAtIndex(0, nullptr) == 1.0)
 							{
 								// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-								slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+								slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 								
 								if (mutation_type_id != -1)
 								{
@@ -4614,18 +4614,18 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			current_regime = 3;
 			
 			for (auto muttype_iter : mut_types)
-				(muttype_iter.second)->subject_to_fitness_callback_ = false;
+				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
 			
-			for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
 			{
-				slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+				slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 				
 				if (mutation_type_id != -1)
 				{
                     MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
 					
 					if (found_muttype)
-						found_muttype->subject_to_fitness_callback_ = true;
+						found_muttype->subject_to_mutationEffect_callback_ = true;
 				}
 			}
 		}
@@ -4643,7 +4643,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		else
 		{
 			// If we are in regime 2 this cycle and were last cycle as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this cycle as it was last
+			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
 			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
@@ -4666,7 +4666,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		else
 		{
 			// If we are in regime 3 this cycle and were last cycle as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this cycle as it was last
+			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
 			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
@@ -4674,7 +4674,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
-				if (muttype->subject_to_fitness_callback_ != muttype->previous_subject_to_fitness_callback_)
+				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
 					callback_state_identical = false;
 			}
 			
@@ -4687,14 +4687,15 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	species_.last_nonneutral_regime_ = current_regime;
 	
 	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
+																							// FIXME this will get cleaned up when multiple phenotypes is done
 	
 	if (no_active_callbacks)
 	{
-		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
+		std::vector<SLiMEidosBlock*> no_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			subpop_pair.second->UpdateFitness(no_fitness_callbacks, no_fitness_callbacks);
+			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks);
 	}
 	else
 	{
@@ -4702,27 +4703,27 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
-			std::vector<SLiMEidosBlock*> subpop_global_fitness_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_fitnessEffect_callbacks;
 			
-			// Get fitness callbacks that apply to this subpopulation
-			for (SLiMEidosBlock *callback : fitness_callbacks)
+			// Get mutationEffect() and fitnessEffect() callbacks that apply to this subpopulation
+			for (SLiMEidosBlock *callback : mutationEffect_callbacks)
 			{
 				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-					subpop_fitness_callbacks.emplace_back(callback);
+					subpop_mutationEffect_callbacks.emplace_back(callback);
 			}
-			for (SLiMEidosBlock *callback : global_fitness_callbacks)
+			for (SLiMEidosBlock *callback : fitnessEffect_callbacks)
 			{
 				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-					subpop_global_fitness_callbacks.emplace_back(callback);
+					subpop_fitnessEffect_callbacks.emplace_back(callback);
 			}
 			
 			// Update fitness values, using the callbacks
-			subpop->UpdateFitness(subpop_fitness_callbacks, subpop_global_fitness_callbacks);
+			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks);
 		}
 	}
 	

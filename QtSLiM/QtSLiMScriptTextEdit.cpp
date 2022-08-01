@@ -494,7 +494,8 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
     else if (searchString == "first")			searchString = "Eidos events";
     else if (searchString == "early")			searchString = "Eidos events";
 	else if (searchString == "late")			searchString = "Eidos events";
-	else if (searchString == "fitness")         searchString = "fitness() callbacks";
+	else if (searchString == "mutationEffect")  searchString = "mutationEffect() callbacks";
+	else if (searchString == "fitnessEffect")   searchString = "fitnessEffect() callbacks";
 	else if (searchString == "interaction")     searchString = "interaction() callbacks";
 	else if (searchString == "mateChoice")      searchString = "mateChoice() callbacks";
 	else if (searchString == "modifyChild")     searchString = "modifyChild() callbacks";
@@ -928,10 +929,16 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
-            else if (callName == "fitness")
+            else if (callName == "mutationEffect")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
-                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                signature = callbackSig;
+            }
+            else if (callName == "fitnessEffect")
+            {
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitnessEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "interaction")
@@ -1915,18 +1922,19 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                     {
                         const std::string &child_string = child_token->token_string_;
                         
-                        if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
-                        else if (child_string.compare(gStr_early) == 0)         block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
-                        else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
-                        else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
-                        else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
-                        else if (child_string.compare(gStr_interaction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
-                        else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-                        else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-                        else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
-                        else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
-                        else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
-                        else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+                        if (child_string.compare(gStr_first) == 0)					block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+                        else if (child_string.compare(gStr_early) == 0)         	block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+                        else if (child_string.compare(gStr_late) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventLate;
+                        else if (child_string.compare(gStr_initialize) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+                        else if (child_string.compare(gStr_fitnessEffect) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+                        else if (child_string.compare(gStr_mutationEffect) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+                        else if (child_string.compare(gStr_interaction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
+                        else if (child_string.compare(gStr_mateChoice) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+                        else if (child_string.compare(gStr_modifyChild) == 0)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+                        else if (child_string.compare(gStr_recombination) == 0)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+                        else if (child_string.compare(gStr_mutation) == 0)			block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+                        else if (child_string.compare(gStr_survival) == 0)			block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+                        else if (child_string.compare(gStr_reproduction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
                         
                         // Check for an sX designation on a script block and, if found, add a symbol for it
                         else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -2037,11 +2045,14 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         case SLiMEidosBlockType::SLiMEidosInitializeCallback:
                             (*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
                             break;
-                        case SLiMEidosBlockType::SLiMEidosFitnessCallback:
-                        case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+                        case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:
+                            (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+                            break;
+                        case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
-                            (*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             break;
@@ -2165,15 +2176,17 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
     // existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
     // This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-    // keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination",
-    // "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for multispecies models.
+    // keywords like "first", "early", "late", "mutationEffect", "fitnessEffect", "interaction", "mateChoice", "modifyChild",
+    // "recombination", "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for
+    // multispecies models.
     // Note that the strings here are display strings; they are fixed to contain newlines in insertCompletion()
     keywords->clear();
     (*keywords) << "initialize() { }";
     (*keywords) << "first() { }";
     (*keywords) << "early() { }";
     (*keywords) << "late() { }";
-    (*keywords) << "fitness() { }";
+    (*keywords) << "mutationEffect() { }";
+    (*keywords) << "fitnessEffect() { }";
     (*keywords) << "interaction() { }";
     (*keywords) << "mateChoice() { }";
     (*keywords) << "modifyChild() { }";

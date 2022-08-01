@@ -329,7 +329,7 @@ R"({
 	s[s > 1.0] = 1.0;
 	
 	// get h for each mutation; note that this will not work if changing
-	// h using fitness callbacks or other scripted approaches to dominance
+	// h using mutationEffect() callbacks or other scripted approaches
 	h = muts.mutationType.dominanceCoeff;
 	
 	// calculate number of haploid lethal equivalents (B or inbreeding load)

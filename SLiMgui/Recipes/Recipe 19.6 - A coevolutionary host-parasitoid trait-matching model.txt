@@ -37,8 +37,8 @@ species parasitoid initialize() {
 	initializeMutationRate(1e-7);
 	initializeRecombinationRate(1e-8);
 }
-species host fitness(m1) { return 1.0; }
-species parasitoid fitness(m2) { return 1.0; }
+species host mutationEffect(m1) { return 1.0; }
+species parasitoid mutationEffect(m2) { return 1.0; }
 
 ticks all 2: first()
 {

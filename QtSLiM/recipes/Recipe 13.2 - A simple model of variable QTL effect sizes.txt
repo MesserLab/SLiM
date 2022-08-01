@@ -1,4 +1,4 @@
-// Keywords: quantitative trait, fitness()
+// Keywords: quantitative trait
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -12,7 +12,7 @@ initialize() {
 	initializeGenomicElement(g1, 30001, 99999);
 	initializeRecombinationRate(1e-8);
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1 early() { sim.addSubpop("p1", 500); }
 1: late() {
 	inds = sim.subpopulations.individuals;

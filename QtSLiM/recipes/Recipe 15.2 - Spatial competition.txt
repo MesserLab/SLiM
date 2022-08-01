@@ -1,4 +1,4 @@
-// Keywords: continuous space, continuous spatial landscape, reprising boundaries, spatial competition, fitness()
+// Keywords: continuous space, continuous spatial landscape, reprising boundaries, spatial competition
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -23,7 +23,7 @@ initialize() {
 	// evaluate interactions before fitness calculations
 	i1.evaluate(p1);
 }
-fitness(NULL) {
+fitnessEffect() {
 	// spatial competition
 	totalStrength = i1.totalOfNeighborStrengths(individual);
 	return 1.1 - totalStrength / p1.individualCount;

@@ -1,4 +1,4 @@
-// Keywords: nucleotide-based, fitness()
+// Keywords: nucleotide-based
 
 initialize() {
 	defineConstant("L", 1e4);
@@ -20,7 +20,7 @@ late() {
 	if (sum(sim.mutations.position == 100) == 0)
 		s1.active = 0;
 }
-s1 fitness(NULL) {
+s1 fitnessEffect() {
 	nuc1 = individual.genome1.nucleotides(100, 100, format="integer");
 	nuc2 = individual.genome2.nucleotides(100, 100, format="integer");
 	return EFF[nuc1] * EFF[nuc2];

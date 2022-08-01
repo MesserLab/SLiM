@@ -1,4 +1,4 @@
-// Keywords: continuous space, continuous spatial landscape, reprising boundaries, QTL, quantitative trait loci, spatial competition, phenotypic competition, spatial mate choice, fitness()
+// Keywords: continuous space, continuous spatial landscape, reprising boundaries, QTL, quantitative trait loci, spatial competition, phenotypic competition, spatial mate choice
 
 initialize() {
 	defineConstant("sigma_C", 0.1);
@@ -23,7 +23,7 @@ initialize() {
 	initializeInteractionType(2, "xyz", reciprocal=T, maxDistance=sigma_M * 3);     // mate choice
 	i2.setInteractionFunction("n", 1.0, sigma_M);
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", N);
 	p1.setSpatialBounds(c(0.0, 0.0, -slope, 1.0, 1.0, slope));

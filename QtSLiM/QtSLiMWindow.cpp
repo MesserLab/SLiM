@@ -1580,7 +1580,46 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
         }
     }
     
-    // other deprecated APIs, unrelated to multispecies
+    // API changes in anticipation of multi-phenotype
+    if (terminationMessage.contains("unexpected identifier @fitness; expected an event declaration"))
+    {
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 14);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(NULL, ")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect(", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 13);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(NULL,")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect(", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+            if (callbackDeclString == "fitness(NULL)")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect()", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 9);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(m")
+                return offerAndExecuteAutofix(callbackDecl, "mutationEffect(m", "The fitness() callback type is now called a mutationEffect() callback.", terminationMessage);
+        }
+    }
+    
+    if (terminationMessage.contains("undefined identifier relFitness"))
+        return offerAndExecuteAutofix(selection, "effect", "The `relFitness` pseudo-parameter has been renamed to `effect`.", terminationMessage);
+    
+    // other deprecated APIs, unrelated to multispecies and multi-phenotype
     if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
     {
         QTextCursor simAndSelection = beforeSelection4;
@@ -3056,8 +3095,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		double elapsedTime_early = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
 		double elapsedTime_late = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
 		double elapsedTime_initialize = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
-		double elapsedTime_fitness = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
-		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
+		double elapsedTime_mutationEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationEffectCallback]);
+		double elapsedTime_fitnessEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessEffectCallback]);
 		double elapsedTime_interaction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
 		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
 		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
@@ -3140,10 +3179,10 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(" : late() events\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_interaction, fw, 'f', 2).arg(percent_interaction, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : interaction() callbacks\n", optima13_d);
@@ -3172,10 +3211,10 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(" : early() events\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
             tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_survival, fw, 'f', 2).arg(percent_survival, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : survival() callbacks\n", optima13_d);
@@ -3471,7 +3510,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		for (int regime = 0; regime < 3; ++regime)
 		{
 			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no fitness callbacks" : (regime == 1 ? "constant neutral fitness callbacks only" : "unpredictable fitness callbacks present")), optima13_d);
+			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
 		}
 		
 		
@@ -3807,8 +3846,8 @@ void QtSLiMWindow::startProfiling(void)
     community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
 	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
 	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
 	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
 	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
 	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;

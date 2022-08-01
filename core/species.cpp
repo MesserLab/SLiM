@@ -935,12 +935,12 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
 	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the cycle,
 	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current
-	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
+	// cycle stage anyway) or done twice (which could be particularly problematic for mutationEffect() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
-	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
+	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, mutationEffect() callbacks often depend on
 	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
-	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
+	// user's script a chance to evaluate the interactions.  This was always a problem, really; mutationEffect() callbacks might have needed
 	// some external state to be set up that would be on the population state.  But now it is a glaring problem, and forces us to revise
 	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
 	// weird, but probably nobody will ever even notice...
@@ -958,20 +958,20 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
 		
 		for (auto muttype_iter : mutation_types_)
-			(muttype_iter.second)->subject_to_fitness_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
+			(muttype_iter.second)->subject_to_mutationEffect_callback_ = true;			// we're not doing RecalculateFitness()'s work, so play it safe
 		
 		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
 		community_.executing_species_ = this;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> fitness_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-			std::vector<SLiMEidosBlock*> global_fitness_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id);
 			
-			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
+			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;
@@ -1667,12 +1667,12 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	// The safest avenue seems to be to just do all the bookkeeping we can think of: tally frequencies, calculate fitnesses, and
 	// survey the population for SLiMgui.  This will lead to some of these actions being done at an unusual time in the cycle,
 	// though, and will cause some things to be done unnecessarily (because they are not normally up-to-date at the current
-	// cycle stage anyway) or done twice (which could be particularly problematic for fitness() callbacks).  Nevertheless, this seems
+	// cycle stage anyway) or done twice (which could be particularly problematic for mutationEffect() callbacks).  Nevertheless, this seems
 	// like the best policy, at least until shown otherwise...  BCH 11 June 2016
 	
-	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, fitness() callbacks often depend on
+	// BCH 5 April 2017: Well, it has been shown otherwise.  Now that interactions have been added, mutationEffect() callbacks often depend on
 	// them, which means the interactions need to be evaluated, which means we can't evaluate fitness values yet; we need to give the
-	// user's script a chance to evaluate the interactions.  This was always a problem, really; fitness() callbacks might have needed
+	// user's script a chance to evaluate the interactions.  This was always a problem, really; mutationEffect() callbacks might have needed
 	// some external state to be set up that would be on the population state.  But now it is a glaring problem, and forces us to revise
 	// our policy.  For backward compatibility, we will keep the old behavior if reading a file that is version 2 or earlier; a bit
 	// weird, but probably nobody will ever even notice...
@@ -1690,20 +1690,20 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		last_nonneutral_regime_ = 3;			// this means "unpredictable callbacks", will trigger a recache next cycle
 		
 		for (auto muttype_iter : mutation_types_)
-			(muttype_iter.second)->subject_to_fitness_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
+			(muttype_iter.second)->subject_to_mutationEffect_callback_ = true;	// we're not doing RecalculateFitness()'s work, so play it safe
 		
 		SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
-		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+		community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
 		community_.executing_species_ = this;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> fitness_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, subpop_id);
-			std::vector<SLiMEidosBlock*> global_fitness_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> mutationEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, subpop_id);
+			std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = CallbackBlocksMatching(community_.Tick(), SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, subpop_id);
 			
-			subpop->UpdateFitness(fitness_callbacks, global_fitness_callbacks);
+			subpop->UpdateFitness(mutationEffect_callbacks, fitnessEffect_callbacks);
 		}
 		
 		community_.executing_block_type_ = old_executing_block_type;

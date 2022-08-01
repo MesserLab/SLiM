@@ -573,7 +573,6 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
@@ -962,7 +961,7 @@ If
 \f2\fs20 , individuals in a subpopulation are processed in the order of the individuals vector in each tick cycle stage, which may lead to order-dependency issues if there is an enabled callback whose behavior is not fully independent between calls.  Setting this option to 
 \f1\fs18 T
 \f2\fs20  will cause individuals within each subpopulation to be processed in a randomized order in each tick cycle stage; specifically, this randomizes the order of calls to 
-\f1\fs18 fitness()
+\f1\fs18 mutationEffect()
 \f2\fs20  callbacks in both WF and nonWF models, and calls to 
 \f1\fs18 reproduction()
 \f2\fs20  and 
@@ -1712,9 +1711,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1726,8 +1724,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
@@ -1862,7 +1859,7 @@ The inbreeding load is a measure of the quantity of recessive deleterious variat
 \f2\i0 \'a0=\'a0
 \f1\fs18 -1.0
 \f2\fs20 .  Also note that this implementation will not work when the model changes the dominance coefficients of mutations using 
-\f1\fs18 fitness()
+\f1\fs18 mutationEffect()
 \f2\fs20  callbacks, since it relies on the 
 \f1\fs18 dominanceCoeff
 \f2\fs20  property of 

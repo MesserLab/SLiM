@@ -1,4 +1,4 @@
-// Keywords: recombination suppression, inversion, gamete generation, meiosis, fitness()
+// Keywords: recombination suppression, inversion, gamete generation, meiosis
 
 initialize() {
 	defineConstant("L", 1000000);
@@ -26,7 +26,7 @@ initialize() {
 	inverted.addNewDrawnMutation(m2, INV_START);
 	inverted.addNewDrawnMutation(m3, INV_END);
 }
-fitness(m2) {
+mutationEffect(m2) {
 	// fitness of the inversion is frequency-dependent
 	f = sim.mutationFrequencies(NULL, mut);
 	return 1.0 - (f - 0.5) * 0.2;

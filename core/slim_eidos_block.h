@@ -44,8 +44,8 @@ enum class SLiMEidosBlockType {
 	SLiMEidosEventLate,
 	
 	SLiMEidosInitializeCallback,
-	SLiMEidosFitnessCallback,
-	SLiMEidosFitnessGlobalCallback,
+	SLiMEidosMutationEffectCallback,
+	SLiMEidosFitnessEffectCallback,
 	SLiMEidosInteractionCallback,
 	SLiMEidosMateChoiceCallback,
 	SLiMEidosModifyChildCallback,
@@ -135,7 +135,7 @@ public:
 	slim_tick_t start_tick_ = -1, end_tick_ = SLIM_MAX_TICK + 1;		// the tick range to which the block is limited
 	Species *species_spec_ = nullptr;							// NOT OWNED: the species to which the block is limited; nullptr if not limited by this
 	Species *ticks_spec_ = nullptr;								// NOT OWNED: the species to which the block is synchronized (only active when that species is active)
-	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this; -2 indicates a NULL mutation-type id
+	slim_objectid_t mutation_type_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t subpopulation_id_ = -1;						// -1 if not limited by this
 	slim_objectid_t interaction_type_id_ = -1;					// -1 if not limited by this
 	IndividualSex sex_specificity_ = IndividualSex::kUnspecified;	// IndividualSex::kUnspecified if not limited by this
@@ -152,15 +152,15 @@ public:
 	// Flags indicating what identifiers this script block uses; identifiers that are not used do not need to be added.
 	bool contains_wildcard_ = false;			// "apply", "sapply", "executeLambda", "_executeLambda_OUTER", "ls", "rm"; all other contains_ flags will be T if this is T
 	bool contains_self_ = false;				// "self"
-	bool contains_mut_ = false;					// "mut" (fitness/mutation callback parameter)
-	bool contains_relFitness_ = false;			// "relFitness" (fitness callback parameter)
-	bool contains_individual_ = false;			// "individual" (fitness/mateChoice/recombination/survival/reproduction callback parameter)
+	bool contains_mut_ = false;					// "mut" (mutationEffect/mutation callback parameter)
+	bool contains_effect_ = false;				// "effect" (mutationEffect callback parameter)
+	bool contains_individual_ = false;			// "individual" (fitnessEffect/mutationEffect/mateChoice/recombination/survival/reproduction callback parameter)
 	bool contains_element_ = false;				// "element" (mutation callback parameter)
 	bool contains_genome_ = false;				// "genome" (mutation callback parameter)
-	bool contains_genome1_ = false;				// "genome1" (fitness/mateChoice/recombination/reproduction callback parameter)
-	bool contains_genome2_ = false;				// "genome2" (fitness/mateChoice/recombination/reproduction callback parameter)
-	bool contains_subpop_ = false;				// "subpop" (fitness/interaction/mateChoice/modifyChild/recombination/survival/reproduction/mutation callback parameter)
-	bool contains_homozygous_ = false;			// "homozygous" (fitness callback parameter)
+	bool contains_genome1_ = false;				// "genome1" (recombination callback parameter)
+	bool contains_genome2_ = false;				// "genome2" (recombination callback parameter)
+	bool contains_subpop_ = false;				// "subpop" (fitnessEffect/mutationEffect/interaction/mateChoice/modifyChild/recombination/survival/reproduction/mutation callback parameter)
+	bool contains_homozygous_ = false;			// "homozygous" (mutationEffect callback parameter)
 	bool contains_sourceSubpop_ = false;		// "sourceSubpop" (mateChoice/modifyChild callback parameter)
 	bool contains_weights_ = false;				// "weights" (mateChoice callback parameter)
 	bool contains_child_ = false;				// "child" (modifyChild callback parameter)

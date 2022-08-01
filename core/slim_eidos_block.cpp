@@ -33,8 +33,8 @@ std::ostream& operator<<(std::ostream& p_out, SLiMEidosBlockType p_block_type)
 		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_out << "early()"; break;
 		case SLiMEidosBlockType::SLiMEidosEventLate:				p_out << "late()"; break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_out << "initialize()"; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			p_out << "fitness()"; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_out << "fitness(NULL)"; break;
+		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	p_out << "mutationEffect()"; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	p_out << "fitnessEffect()"; break;
 		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		p_out << "interaction()"; break;
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		p_out << "mateChoice()"; break;
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		p_out << "modifyChild()"; break;
@@ -203,7 +203,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 		else
 		{
 			// The first element is an optional script identifier like s1; we check here that an identifier matches the
-			// pattern sX before eating it, since an identifier here could also be a callback tag like "fitness".
+			// pattern sX before eating it, since an identifier here could also be a callback tag like "mutationEffect".
 			if ((current_token_type_ == EidosTokenType::kTokenIdentifier) && SLiMEidosScript::StringIsIDWithPrefix(current_token_->token_string_, 's'))
 			{
 				// a script identifier like s1 is present; add it
@@ -286,25 +286,43 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					Match(EidosTokenType::kTokenLParen, "SLiM initialize() callback");
 					Match(EidosTokenType::kTokenRParen, "SLiM initialize() callback");
 				}
-				else if (current_token_->token_string_.compare(gStr_fitness) == 0)
+				else if (current_token_->token_string_.compare(gStr_fitnessEffect) == 0)
 				{
 					EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 					slim_script_block_node->AddChild(callback_info_node);
 					
-					Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
-					Match(EidosTokenType::kTokenLParen, "SLiM fitness() callback");
+					Match(EidosTokenType::kTokenIdentifier, "SLiM fitnessEffect() callback");
+					Match(EidosTokenType::kTokenLParen, "SLiM fitnessEffect() callback");
+					
+					// A (optional) subpopulation id is present; add it
+					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
+					{
+						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
+						
+						Match(EidosTokenType::kTokenIdentifier, "SLiM fitnessEffect() callback");
+					}
+					
+					Match(EidosTokenType::kTokenRParen, "SLiM fitnessEffect() callback");
+				}
+				else if (current_token_->token_string_.compare(gStr_mutationEffect) == 0)
+				{
+					EidosASTNode *callback_info_node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
+					slim_script_block_node->AddChild(callback_info_node);
+					
+					Match(EidosTokenType::kTokenIdentifier, "SLiM mutationEffect() callback");
+					Match(EidosTokenType::kTokenLParen, "SLiM mutationEffect() callback");
 					
 					if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 					{
-						// A (required) mutation type id (or NULL) is present; add it
+						// A (required) mutation type id is present; add it
 						callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 						
-						Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
+						Match(EidosTokenType::kTokenIdentifier, "SLiM mutationEffect() callback");
 					}
 					else
 					{
 						if (!parse_make_bad_nodes_)
-							EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in fitness() callback definitions." << EidosTerminate(current_token_);
+							EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; a mutation type id is required in mutationEffect() callback definitions." << EidosTerminate(current_token_);
 						
 						// Make a placeholder bad node, to be error-tolerant
 						EidosToken *bad_token = new EidosToken(EidosTokenType::kTokenBad, gEidosStr_empty_string, 0, 0, 0, 0, -1);
@@ -315,13 +333,13 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 					if (current_token_type_ == EidosTokenType::kTokenComma)
 					{
 						// A (optional) subpopulation id is present; add it
-						Match(EidosTokenType::kTokenComma, "SLiM fitness() callback");
+						Match(EidosTokenType::kTokenComma, "SLiM mutationEffect() callback");
 						
 						if (current_token_type_ == EidosTokenType::kTokenIdentifier)
 						{
 							callback_info_node->AddChild(new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_));
 							
-							Match(EidosTokenType::kTokenIdentifier, "SLiM fitness() callback");
+							Match(EidosTokenType::kTokenIdentifier, "SLiM mutationEffect() callback");
 						}
 						else
 						{
@@ -335,7 +353,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 						}
 					}
 					
-					Match(EidosTokenType::kTokenRParen, "SLiM fitness() callback");
+					Match(EidosTokenType::kTokenRParen, "SLiM mutationEffect() callback");
 				}
 				else if (current_token_->token_string_.compare(gStr_mutation) == 0)
 				{
@@ -551,7 +569,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 				else
 				{
 					if (!parse_make_bad_nodes_)
-						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitness, interaction, mateChoice, modifyChild, recombination, mutation, survival, or reproduction), or a function declaration." << EidosTerminate(current_token_);
+						EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected identifier " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), or a function declaration." << EidosTerminate(current_token_);
 					
 					// Consume the stray identifier, to be error-tolerant
 					Consume();
@@ -560,7 +578,7 @@ EidosASTNode *SLiMEidosScript::Parse_SLiMEidosBlock(void)
 			else
 			{
 				if (!parse_make_bad_nodes_)
-					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitness, interaction, mateChoice, modifyChild, recombination, mutation, survival, or reproduction), or a function declaration.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
+					EIDOS_TERMINATION << "ERROR (SLiMEidosScript::Parse_SLiMEidosBlock): unexpected token " << *current_token_ << "; expected an event declaration (first, early, late), a callback declaration (initialize, fitnessEffect, interaction, mateChoice, modifyChild, mutation, mutationEffect, recombination, reproduction, or survival), or a function declaration.  Note that early() is no longer a default script block type that may be omitted; it must now be specified explicitly." << EidosTerminate(current_token_);
 				
 				// Consume the stray identifier, to be error-tolerant
 				Consume();
@@ -694,7 +712,7 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_node)
 {
 	// Get the block type for a node without actually constructing the block.  This is parallel to the constructor code below,
-	// and the two much be maintained in parallel when new callback types, etc., are added.  Note that we don't do any bounds-
+	// and the two must be maintained in parallel when new callback types, etc., are added.  Note that we don't do any bounds-
 	// or error-checking here; we just need to know the *intended* block type, if we can figure it out.
 	const std::vector<EidosASTNode *> &block_children = p_root_node->children_;
 	int child_index = 0, n_children = (int)block_children.size();
@@ -740,8 +758,10 @@ SLiMEidosBlockType SLiMEidosBlock::BlockTypeForRootNode(EidosASTNode *p_root_nod
 					return SLiMEidosBlockType::SLiMEidosEventLate;
 				else if (callback_name.compare(gStr_initialize) == 0)
 					return SLiMEidosBlockType::SLiMEidosInitializeCallback;
-				else if (callback_name.compare(gStr_fitness) == 0)
-					return SLiMEidosBlockType::SLiMEidosFitnessCallback;	// could also be SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback but we gloss over that here
+				else if (callback_name.compare(gStr_fitnessEffect) == 0)
+					return SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+				else if (callback_name.compare(gStr_mutationEffect) == 0)
+					return SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 				else if (callback_name.compare(gStr_mutation) == 0)
 					return SLiMEidosBlockType::SLiMEidosMutationCallback;
 				else if (callback_name.compare(gStr_interaction) == 0)
@@ -907,23 +927,29 @@ SLiMEidosBlock::SLiMEidosBlock(EidosASTNode *p_root_node) :
 					end_tick_ = 0;
 					type_ = SLiMEidosBlockType::SLiMEidosInitializeCallback;
 				}
-				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitness) == 0))
+				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_fitnessEffect) == 0))
+				{
+					if ((n_callback_children != 0) && (n_callback_children != 1))
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitnessEffect() callback needs 0 or 1 parameter." << EidosTerminate(callback_token);
+					
+					type_ = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+					
+					if (n_callback_children == 1)
+					{
+						EidosToken *subpop_id_token = callback_children[0]->token_;
+						
+						subpopulation_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_token->token_string_, 'p', subpop_id_token);
+					}
+				}
+				else if ((callback_type == EidosTokenType::kTokenIdentifier) && (callback_name.compare(gStr_mutationEffect) == 0))
 				{
 					if ((n_callback_children != 1) && (n_callback_children != 2))
-						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): fitness() callback needs 1 or 2 parameters." << EidosTerminate(callback_token);
+						EIDOS_TERMINATION << "ERROR (SLiMEidosBlock::SLiMEidosBlock): mutationEffect() callback needs 1 or 2 parameters." << EidosTerminate(callback_token);
 					
 					EidosToken *mutation_type_id_token = callback_children[0]->token_;
 					
-					if (mutation_type_id_token->token_string_ == gEidosStr_NULL)
-					{
-						mutation_type_id_ = -2;	// special placeholder that indicates a NULL mutation type identifier
-						type_ = SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback;
-					}
-					else
-					{
-						mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
-						type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;
-					}
+					mutation_type_id_ = SLiMEidosScript::ExtractIDFromStringWithPrefix(mutation_type_id_token->token_string_, 'm', mutation_type_id_token);
+					type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
 					
 					if (n_callback_children == 2)
 					{
@@ -1144,7 +1170,7 @@ void SLiMEidosBlock::_ScanNodeForIdentifiersUsed(const EidosASTNode *p_scan_node
 		if (token_string.compare(gStr_self) == 0)				contains_self_ = true;
 		
 		if (token_string.compare(gStr_mut) == 0)				contains_mut_ = true;
-		if (token_string.compare(gStr_relFitness) == 0)			contains_relFitness_ = true;
+		if (token_string.compare(gStr_effect) == 0)				contains_effect_ = true;
 		if (token_string.compare(gStr_individual) == 0)			contains_individual_ = true;
 		if (token_string.compare(gStr_element) == 0)			contains_element_ = true;
 		if (token_string.compare(gStr_genome) == 0)				contains_genome_ = true;
@@ -1182,7 +1208,7 @@ void SLiMEidosBlock::ScanTreeForIdentifiersUsed(void)
 	{
 		contains_self_ = true;
 		contains_mut_ = true;
-		contains_relFitness_ = true;
+		contains_effect_ = true;
 		contains_individual_ = true;
 		contains_element_ = true;
 		contains_genome_ = true;
@@ -1260,14 +1286,14 @@ void SLiMEidosBlock::PrintDeclaration(std::ostream& p_out, Community *p_communit
 		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_out << "early()"; break;
 		case SLiMEidosBlockType::SLiMEidosEventLate:				p_out << "late()"; break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_out << "initialize()"; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_out << "fitness(NULL)"; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	p_out << "fitnessEffect()"; break;
 		case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:		p_out << "function"; break;
 		case SLiMEidosBlockType::SLiMEidosNoBlockType:				p_out << "NO BLOCK"; break;
 			
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:
+		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 		{
-			// fitness(<mutTypeId> [, <subpopId>])
-			p_out << "fitness(m" << mutation_type_id_;
+			// mutationEffect(<mutTypeId> [, <subpopId>])
+			p_out << "mutationEffect(m" << mutation_type_id_;
 			if (subpopulation_id_ != -1)
 				p_out << ", p" << subpopulation_id_;
 			p_out << ")";
@@ -1393,8 +1419,8 @@ void SLiMEidosBlock::Print(std::ostream &p_ostream) const
 		case SLiMEidosBlockType::SLiMEidosEventEarly:				p_ostream << gStr_early; break;
 		case SLiMEidosBlockType::SLiMEidosEventLate:				p_ostream << gStr_late; break;
 		case SLiMEidosBlockType::SLiMEidosInitializeCallback:		p_ostream << gStr_initialize; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessCallback:			p_ostream << gStr_fitness; break;
-		case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	p_ostream << gStr_fitness; break;
+		case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	p_ostream << gStr_mutationEffect; break;
+		case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	p_ostream << gStr_fitnessEffect; break;
 		case SLiMEidosBlockType::SLiMEidosInteractionCallback:		p_ostream << gStr_interaction; break;
 		case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		p_ostream << gStr_mateChoice; break;
 		case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		p_ostream << gStr_modifyChild; break;
@@ -1433,8 +1459,8 @@ EidosValue_SP SLiMEidosBlock::GetProperty(EidosGlobalStringID p_property_id)
 				case SLiMEidosBlockType::SLiMEidosEventEarly:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_early));
 				case SLiMEidosBlockType::SLiMEidosEventLate:				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_late));
 				case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_initialize));
-				case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
-				case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitness));
+				case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mutationEffect));
+				case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_fitnessEffect));
 				case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_interaction));
 				case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_mateChoice));
 				case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_modifyChild));
@@ -1762,7 +1788,11 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			
 			const std::string &function_name = p_method_signature->call_name_;
 			
-			if (((function_name == "registerFirstEvent") || (function_name == "registerEarlyEvent") || (function_name == "registerInteractionCallback") || (function_name == "registerLateEvent") || (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
+			if (((function_name == "registerFirstEvent") ||
+				 (function_name == "registerEarlyEvent") ||
+				 (function_name == "registerInteractionCallback") ||
+				 (function_name == "registerLateEvent") ||
+				 (function_name == "rescheduleScriptBlock")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}
@@ -1777,7 +1807,14 @@ EidosTypeSpecifier SLiMTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const 
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 'p', gSLiM_Subpopulation_Class);
 			}
-			if (((function_name == "registerFitnessCallback") || (function_name == "registerMateChoiceCallback") || (function_name == "registerModifyChildCallback") || (function_name == "registerRecombinationCallback") || (function_name == "registerMutationCallback") || (function_name == "registerSurvivalCallback") || (function_name == "registerReproductionCallback")) && (argument_count >= 1))
+			if (((function_name == "registerFitnessEffectCallback") ||
+				 (function_name == "registerMutationEffectCallback") ||
+				 (function_name == "registerMateChoiceCallback") ||
+				 (function_name == "registerModifyChildCallback") ||
+				 (function_name == "registerRecombinationCallback") ||
+				 (function_name == "registerMutationCallback") ||
+				 (function_name == "registerSurvivalCallback") ||
+				 (function_name == "registerReproductionCallback")) && (argument_count >= 1))
 			{
 				_SetTypeForISArgumentOfClass(p_arguments[0], 's', gSLiM_SLiMEidosBlock_Class);
 			}

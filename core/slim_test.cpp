@@ -423,8 +423,8 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeRecombinationRate(0.0); } initialize() {} 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox 1 early() {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox 1 early() {}", "preceded by a species", __LINE__);
-	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox fitness(m1) {}", "preceded by a ticks", __LINE__);
-	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox fitness(m1) {}", "undeclared species", __LINE__);
+	SLiMAssertScriptRaise("initialize() {} initialize() {} ticks fox mutationEffect(m1) {}", "preceded by a ticks", __LINE__);
+	SLiMAssertScriptRaise("initialize() {} initialize() {} species fox mutationEffect(m1) {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species all initialize() {} species fox initialize() {} 1 early() {}", "preceded by a ticks", __LINE__);
 	SLiMAssertScriptRaise("species all initialize() {} ticks all 1 early() { stop(); }", "no species-specific initialize() callback found", __LINE__, false);
@@ -437,10 +437,10 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks all 1 early() {}", "mutation rate interval", __LINE__, false);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} ticks bear 1 early() {}", "undeclared species", __LINE__);
 	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } ticks fox 1 early() {}", "mutation rate interval", __LINE__, false);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species all fitness(m1) {}", "fitness() callbacks may not be declared with 'species all'", __LINE__);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species bear fitness(m1) {}", "undeclared species", __LINE__);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } species fox fitness(m1) {}", "mutation rate interval", __LINE__, false);
-	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} fitness(m1) {}", "must be preceded", __LINE__);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species all mutationEffect(m1) {}", "mutationEffect() callbacks may not be declared with 'species all'", __LINE__);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} species bear mutationEffect(m1) {}", "undeclared species", __LINE__);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() { initializeRecombinationRate(0.0); } species fox mutationEffect(m1) {}", "mutation rate interval", __LINE__, false);
+	SLiMAssertScriptRaise("species mouse initialize() {} species fox initialize() {} mutationEffect(m1) {}", "must be preceded", __LINE__);
 	SLiMAssertScriptRaise("species mouse species mouse", "must be followed by a callback", __LINE__);
 	SLiMAssertScriptRaise("ticks mouse ticks mouse", "must be followed by an event", __LINE__);
 	SLiMAssertScriptRaise("foo", "unexpected identifier", __LINE__);
@@ -450,8 +450,8 @@ void _RunBasicTests(void)
 	SLiMAssertScriptRaise("ticks fox function (void)foo(void) {}", "may not be preceded", __LINE__);
 	SLiMAssertScriptRaise("species fox 1 early() {}", "may not be preceded", __LINE__);
 	SLiMAssertScriptRaise("ticks fox 1 early() {}", "no initialize() callback", __LINE__, false);
-	SLiMAssertScriptRaise("species fox fitness(m1) {}", "no initialize() callback", __LINE__, false);
-	SLiMAssertScriptRaise("ticks fox fitness(m1) {}", "may not be preceded", __LINE__);
+	SLiMAssertScriptRaise("species fox mutationEffect(m1) {}", "no initialize() callback", __LINE__, false);
+	SLiMAssertScriptRaise("ticks fox mutationEffect(m1) {}", "may not be preceded", __LINE__);
 	
 	// Test no-genetics scripts; we just want to confirm that they can run without any null genome errors, consistency check errors, etc., especially in DEBUG
 	SLiMAssertScriptRaise("initialize() {initializeTreeSeq();} 1 early() {sim.addSubpop('p1', 10);} 5 late() {stop();}", "cannot use tree-sequence recording", __LINE__, false);

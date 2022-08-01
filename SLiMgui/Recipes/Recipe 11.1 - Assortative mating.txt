@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal, fitness()
+// Keywords: migration, dispersal
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -19,7 +19,7 @@ initialize() {
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
-fitness(m2, p2) { return 0.2; }
+mutationEffect(m2, p2) { return 0.2; }
 2000: early() {
 	// tag all individuals with their m2 mutation count
 	inds = sim.subpopulations.individuals;

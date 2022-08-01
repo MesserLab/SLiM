@@ -1211,7 +1211,7 @@ void Subpopulation::SetName(const std::string &p_name)
 	name_ = p_name;
 }
 
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks)
 {
 	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
 	
@@ -1229,14 +1229,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithGenomeIndices_NoCallbacks(),
 	// for more info on this complication.  Here we just figure out which version to call and set up for it.
-	int fitness_callback_count = (int)p_fitness_callbacks.size();
-	bool fitness_callbacks_exist = (fitness_callback_count > 0);
-	bool single_fitness_callback = false;
+	int mutationEffect_callback_count = (int)p_mutationEffect_callbacks.size();
+	bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
+	bool single_mutationEffect_callback = false;
 	MutationType *single_callback_mut_type = nullptr;
 	
-	if (fitness_callback_count == 1)
+	if (mutationEffect_callback_count == 1)
 	{
-		slim_objectid_t mutation_type_id = p_fitness_callbacks[0]->mutation_type_id_;
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
         MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
 		
 		if (found_muttype)
@@ -1244,7 +1244,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			if (mut_types.size() > 1)
 			{
 				// We have a single callback that applies to a known mutation type among more than one defined type; we can optimize that
-				single_fitness_callback = true;
+				single_mutationEffect_callback = true;
 				single_callback_mut_type = found_muttype;
 			}
 			// else there is only one mutation type, so the callback applies to all mutations in the simulation
@@ -1252,35 +1252,35 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		else
 		{
 			// The only callback refers to a mutation type that doesn't exist, so we effectively have no callbacks; we probably never hit this
-			fitness_callback_count = 0;
-			(void)fitness_callback_count;		// tell the static analyzer that we know we just did a dead store
-			fitness_callbacks_exist = false;
+			mutationEffect_callback_count = 0;
+			(void)mutationEffect_callback_count;		// tell the static analyzer that we know we just did a dead store
+			mutationEffect_callbacks_exist = false;
 		}
 	}
 	
-	// Can we skip chromosome-based fitness calculations altogether, and just call global fitness() callbacks if any?
+	// Can we skip chromosome-based fitness calculations altogether, and just call fitnessEffect() callbacks if any?
 	// We can do this if (a) all mutation types either use a neutral DFE, or have been made neutral with a "return 1.0;"
-	// fitness callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
-	// selection coefficient changed, and (c) no fitness() callbacks are active apart from "return 1.0;" type callbacks.
+	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
+	// selection coefficient changed, and (c) no mutationEffect() callbacks are active apart from "return 1.0;" type callbacks.
 	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
-	// so we do a pre-check here for this case.  Note that we can ignore global fitness callbacks in this situation,
-	// because they are explicitly documented as potentially being executed after all non-global fitness callbacks, so
-	// they are not allowed, as a matter of policy, to alter the operation of non-global fitness callbacks.
+	// so we do a pre-check here for this case.  Note that we can ignore fitnessEffect() callbacks in this situation,
+	// because they are explicitly documented as potentially being executed after mutationEffect() callbacks, so
+	// they are not allowed, as a matter of policy, to alter the operation of mutationEffect() callbacks.
 	bool skip_chromosomal_fitness = true;
 	
 	// Looping through all of the mutation types and setting flags can be very expensive, so as a first pass we check
 	// whether it is even conceivable that we will be able to have skip_chromosomal_fitness == true.  If the simulation
-	// is not pure neutral and we have no fitness callback that could change that, it is a no-go without checking the
+	// is not pure neutral and we have no mutationEffect() callback that could change that, it is a no-go without checking the
 	// mutation types at all.
 	if (!species_.pure_neutral_)
 	{
 		skip_chromosomal_fitness = false;	// we're not pure neutral, so we have to prove that it is possible
 		
-		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 		{
-			if (fitness_callback->block_active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -1291,7 +1291,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					{
 						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
-							// we have a fitness callback that is neutral-making, so it could conceivably work;
+							// we have a mutationEffect() callback that is neutral-making, so it could conceivably work;
 							// change our minds but keep checking
 							skip_chromosomal_fitness = true;
 							continue;
@@ -1308,19 +1308,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// At this point it appears conceivable that we could skip, but we don't yet know.  We need to do a more thorough
 	// check, actually tracking precisely which mutation types are neutral and non-neutral, and which are made neutral
-	// by fitness() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
+	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
 	if (skip_chromosomal_fitness)
 	{
 		// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
 		for (auto &mut_type_iter : mut_types)
 			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
 		
-		// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
-		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
+		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 		{
-			if (fitness_callback->block_active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -1332,7 +1332,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
 							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-							slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+							slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 							
 							if (mutation_type_id == -1)
 							{
@@ -1384,26 +1384,26 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
 	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
-	int global_fitness_callback_count = (int)p_global_fitness_callbacks.size();
-	bool global_fitness_callbacks_exist = (global_fitness_callback_count > 0);
+	int fitnessEffect_callback_count = (int)p_fitnessEffect_callbacks.size();
+	bool fitnessEffect_callbacks_exist = (fitnessEffect_callback_count > 0);
 	
-	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
+	// We optimize the pure neutral case, as long as no mutationEffect() or fitnessEffect() callbacks are defined; fitness values are then simply 1.0, for everybody.
 	// BCH 12 Jan 2018: now fitness_scaling_ modifies even pure_neutral_ models, but the framework here remains valid
-	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && species_.pure_neutral_);
+	bool pure_neutral = (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist && species_.pure_neutral_);
 	double subpop_fitness_scaling = subpop_fitness_scaling_;
 	
 	// Reset our override of individual cached fitness values; we make this decision afresh with each UpdateFitness() call.  See
 	// the header for further comments on this mechanism.
 	individual_cached_fitness_OVERRIDE_ = false;
 	
-	// Decide whether we need to shuffle the order of operations.  This occurs only if (a) we have fitness() or fitness(NULL) callbacks
+	// Decide whether we need to shuffle the order of operations.  This occurs only if (a) we have mutationEffect() or fitnessEffect() callbacks
 	// that are enabled, and (b) at least one of them has no cached optimization set.  Otherwise, the order of operations doesn't matter.
 	bool needs_shuffle = false;
 	
 	if (species_.RandomizingCallbackOrder())
 	{
 		if (!needs_shuffle)
-			for (SLiMEidosBlock *callback : p_global_fitness_callbacks)
+			for (SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
 				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
 				{
 					needs_shuffle = true;
@@ -1411,7 +1411,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				}
 		
 		if (!needs_shuffle)
-			for (SLiMEidosBlock *callback : p_fitness_callbacks)
+			for (SLiMEidosBlock *callback : p_mutationEffect_callbacks)
 				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
 				{
 					needs_shuffle = true;
@@ -1476,8 +1476,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = parent_individuals_[female_index]->fitness_scaling_;
 					
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1498,8 +1498,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					slim_popsize_t female_index = shuffle_buf[shuffle_index];
 					double fitness = parent_individuals_[female_index]->fitness_scaling_;
 					
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1523,16 +1523,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1563,16 +1563,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
@@ -1651,8 +1651,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = parent_individuals_[male_index]->fitness_scaling_;
 					
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1674,8 +1674,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
 					double fitness = parent_individuals_[male_index]->fitness_scaling_;
 					
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1699,16 +1699,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1740,16 +1740,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
@@ -1834,9 +1834,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 				{
 					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+					// multiply in the effects of any fitnessEffect() callbacks
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -1857,9 +1857,9 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+					// multiply in the effects of any fitnessEffect() callbacks
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
 					
 #ifdef SLIMGUI
 					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -1883,16 +1883,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -1923,16 +1923,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					
 					if (fitness > 0.0)
 					{
-						if (!fitness_callbacks_exist)
+						if (!mutationEffect_callbacks_exist)
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-						else if (single_fitness_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
 						
-						// multiply in the effects of any global fitness callbacks (muttype==NULL)
-						if (global_fitness_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
 						
 #ifdef SLIMGUI
 						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
@@ -2087,7 +2087,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 }
 
-double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual)
+double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -2096,11 +2096,11 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 	
 	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
 	
-	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
-		if (fitness_callback->block_active_)
+		if (mutationEffect_callback->block_active_)
 		{
-			slim_objectid_t callback_mutation_type_id = fitness_callback->mutation_type_id_;
+			slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
@@ -2113,18 +2113,18 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				
 				{
 					EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
-					EidosToken *decl_token = fitness_callback->root_node_->token_;
+					EidosToken *decl_token = mutationEffect_callback->root_node_->token_;
 					
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(m" << fitness_callback->mutation_type_id_;
-						if (fitness_callback->subpopulation_id_ != -1)
-							SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutationEffect(m" << mutationEffect_callback->mutation_type_id_;
+						if (mutationEffect_callback->subpopulation_id_ != -1)
+							SLIM_ERRSTREAM << ", p" << mutationEffect_callback->subpopulation_id_;
 						SLIM_ERRSTREAM << ")";
 						
-						if (fitness_callback->block_id_ != -1)
-							SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
+						if (mutationEffect_callback->block_id_ != -1)
+							SLIM_ERRSTREAM << " s" << mutationEffect_callback->block_id_;
 						
 						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 						indenter.indent();
@@ -2134,7 +2134,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -2143,69 +2143,69 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					EidosValue *result = result_SP.get();
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 					
 					p_computed_fitness = result->FloatAtIndex(0, nullptr);
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
 				}
-				else if (fitness_callback->has_cached_optimization_)
+				else if (mutationEffect_callback->has_cached_optimization_)
 				{
 					// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 					// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 					// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
 					// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
 					// for comments on the specific cases optimized here.
-					if (fitness_callback->has_cached_opt_reciprocal)
+					if (mutationEffect_callback->has_cached_opt_reciprocal)
 					{
-						double A = fitness_callback->cached_opt_A_;
+						double A = mutationEffect_callback->cached_opt_A_;
 						
-						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is relFitness
+						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is effect
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(mutationEffect_callback->identifier_token_);
 					}
 				}
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 					EidosValue_Object_singleton local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Float_singleton local_relFitness(p_computed_fitness);
+					EidosValue_Float_singleton local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
 						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 						EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 						EidosFunctionMap &function_map = community_.FunctionMap();
-						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+						EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 						
-						if (fitness_callback->contains_self_)
-							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
+						if (mutationEffect_callback->contains_self_)
+							callback_symbols.InitializeConstantSymbolEntry(mutationEffect_callback->SelfSymbolTableEntry());		// define "self"
 						
 						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of
 						// the value objects, and we know that the values we are setting here will not change (the objects
 						// referred to by the values may change, but the values themselves will not change).
-						if (fitness_callback->contains_mut_)
+						if (mutationEffect_callback->contains_mut_)
 						{
 							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 						}
-						if (fitness_callback->contains_relFitness_)
+						if (mutationEffect_callback->contains_effect_)
 						{
-							local_relFitness.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, EidosValue_SP(&local_relFitness));
+							local_effect.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+							callback_symbols.InitializeConstantSymbolEntry(gID_effect, EidosValue_SP(&local_effect));
 						}
-						if (fitness_callback->contains_individual_)
+						if (mutationEffect_callback->contains_individual_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
-						if (fitness_callback->contains_subpop_)
+						if (mutationEffect_callback->contains_subpop_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
-						if (fitness_callback->contains_homozygous_)
+						if (mutationEffect_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)
 								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
@@ -2216,11 +2216,11 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 						try
 						{
 							// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitness_callback->script_);
+							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutationEffect_callback->script_);
 							EidosValue *result = result_SP.get();
 							
 							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 							
 							p_computed_fitness = result->FloatAtIndex(0, nullptr);
 						}
@@ -2237,14 +2237,13 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)]);
 #endif
 	
 	return p_computed_fitness;
 }
 
-// This calculates the effects of global fitness callbacks, i.e. those with muttype==NULL and which therefore do not reference any mutation
-double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index)
+double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -2254,9 +2253,9 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	double computed_fitness = 1.0;
 	Individual *individual = parent_individuals_[p_individual_index];
 	
-	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	for (SLiMEidosBlock *fitnessEffect_callback : p_fitnessEffect_callbacks)
 	{
-		if (fitness_callback->block_active_)
+		if (fitnessEffect_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
@@ -2264,18 +2263,18 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 			
 			{
 				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
-				EidosToken *decl_token = fitness_callback->root_node_->token_;
+				EidosToken *decl_token = fitnessEffect_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(NULL";
-					if (fitness_callback->subpopulation_id_ != -1)
-						SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitnessEffect(";
+					if (fitnessEffect_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << fitnessEffect_callback->subpopulation_id_;
 					SLIM_ERRSTREAM << ")";
 					
-					if (fitness_callback->block_id_ != -1)
-						SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
+					if (fitnessEffect_callback->block_id_ != -1)
+						SLIM_ERRSTREAM << " s" << fitnessEffect_callback->block_id_;
 					
 					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
@@ -2285,7 +2284,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 						
 			// The callback is active, so we need to execute it
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+			const EidosASTNode *compound_statement_node = fitnessEffect_callback->compound_statement_node_;
 			
 			if (compound_statement_node->cached_return_value_)
 			{
@@ -2294,32 +2293,32 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				
 				computed_fitness *= result->FloatAtIndex(0, nullptr);
 				
 				// the cached value is owned by the tree, so we do not dispose of it
 				// there is also no script output to handle
 			}
-			else if (fitness_callback->has_cached_optimization_)
+			else if (fitnessEffect_callback->has_cached_optimization_)
 			{
 				// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
 				// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
 				// for comments on the specific cases optimized here.
-				if (fitness_callback->has_cached_opt_dnorm1_)
+				if (fitnessEffect_callback->has_cached_opt_dnorm1_)
 				{
-					double A = fitness_callback->cached_opt_A_;
-					double B = fitness_callback->cached_opt_B_;
-					double C = fitness_callback->cached_opt_C_;
-					double D = fitness_callback->cached_opt_D_;
+					double A = fitnessEffect_callback->cached_opt_A_;
+					double B = fitnessEffect_callback->cached_opt_B_;
+					double C = fitnessEffect_callback->cached_opt_C_;
+					double D = fitnessEffect_callback->cached_opt_D_;
 					
 					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C));
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				}
 			}
 			else
@@ -2329,34 +2328,28 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
 					EidosFunctionMap &function_map = community_.FunctionMap();
-					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosInterpreter interpreter(fitnessEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 					
-					if (fitness_callback->contains_self_)
-						callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
+					if (fitnessEffect_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(fitnessEffect_callback->SelfSymbolTableEntry());		// define "self"
 					
 					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
-					if (fitness_callback->contains_mut_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_mut, gStaticEidosValueNULL);
-					if (fitness_callback->contains_relFitness_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, gStaticEidosValue_Float1);
-					if (fitness_callback->contains_individual_)
+					if (fitnessEffect_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-					if (fitness_callback->contains_subpop_)
+					if (fitnessEffect_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
-					if (fitness_callback->contains_homozygous_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
 					
 					try
 					{
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitness_callback->script_);
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitnessEffect_callback->script_);
 						EidosValue *result = result_SP.get();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 						
 						computed_fitness *= result->FloatAtIndex(0, nullptr);
 					}
@@ -2379,20 +2372,20 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)]);
 #endif
 	
 	return computed_fitness;
 }
 
 // FitnessOfParentWithGenomeIndices has three versions, for no callbacks, a single callback, and multiple callbacks.  This is for two reasons.  First,
-// it allows the case without fitness() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
+// it allows the case without mutationEffect() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
 // is exactly 0.0f, as an optimization; but that optimization would be invalid in the callback case, since callbacks can change the relative fitness
 // of ostensibly neutral mutations.  For reasons of maintainability, the three versions should be kept in synch as closely as possible.
 //
 // When there is just a single callback, it usually refers to a mutation type that is relatively uncommon.  The model might have neutral mutations in most
 // cases, plus a rare (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common case substantially
-// by making the callout to ApplyFitnessCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
+// by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
 // are many common mutations with no callback, plus one rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a
 // high mutation rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would hit this case hard and
 // see a speedup of as much as 25%, so the additional complexity seems worth it (since that's quite a realistic and common case).
@@ -2599,7 +2592,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 
 // This version of FitnessOfParentWithGenomeIndices assumes multiple callbacks exist.  It doesn't optimize neutral mutations since they might be modified by callbacks.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
+double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
@@ -2647,7 +2640,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome_mutation = *genome_iter;
 				
-				w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual);
+				w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2694,7 +2687,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+						w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2709,7 +2702,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+						w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2738,7 +2731,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual);
+									w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
 									
 									goto homozygousExit3;
 								}
@@ -2747,7 +2740,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 						homozygousExit3:
 							
@@ -2780,7 +2773,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2810,7 +2803,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome1_mutation = *genome1_iter;
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+				w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2823,7 +2816,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome2_mutation = *genome2_iter;
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+				w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2838,7 +2831,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 
 // This version of FitnessOfParentWithGenomeIndices assumes a single callback exists, modifying the given mutation type.  It is a hybrid of the previous two versions.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type)
+double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
@@ -2888,7 +2881,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual);
+					w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2944,7 +2937,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2968,7 +2961,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -3006,7 +2999,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual);
+										w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
 										
 										goto homozygousExit5;
 									}
@@ -3015,7 +3008,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+								w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 								
 							homozygousExit5:
 								
@@ -3076,7 +3069,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+								w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -3133,7 +3126,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome1_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+					w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -3154,7 +3147,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome2_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual);
+					w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;

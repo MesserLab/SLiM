@@ -326,7 +326,7 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.cycleStage == 'early') stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 late() { if (community.cycleStage == 'late') stop(); } ", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "modifyChild(p1) { if (community.cycleStage == 'reproduction') stop(); } 2 early() {}", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1 + "fitness(m1) { if (community.cycleStage == 'fitness') stop(); } 100 early() {}", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "mutationEffect(m1) { if (community.cycleStage == 'fitness') stop(); } 100 early() {}", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { community.cycleStage = 'early'; } ", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.genomicElementTypes == g1) stop(); } ", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.genomicElementTypes = g1; } ", "read-only property", __LINE__);
@@ -554,25 +554,35 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { community.registerLateEvent(1, '{ stop(); }', 0, 0); }", "out of range", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { community.registerLateEvent(1, '{ $; }', 2, 2); }", "unexpected token '$'", __LINE__);
 	
-	// Test sim - (object<SLiMEidosBlock>)registerFitnessCallback(Nis$ id, string$ source, Nio<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', m1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }', NULL); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerFitnessCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessCallback(1, '{ $; }', m1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
+	// Test sim - (object<SLiMEidosBlock>)registerFitnessEffectCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(NULL, '{ stop(); }', NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(NULL, '{ stop(); }', p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(NULL, '{ stop(); }'); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback('s1', '{ stop(); }', NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerFitnessEffectCallback('s1', '{ stop(); }', NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, 2, 2); sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, 3, 2); }", "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, -1, -1); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(1, '{ stop(); }', NULL, 0, 0); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerFitnessEffectCallback(1, '{ $; }', NULL, 2, 2); }", "unexpected token '$'", __LINE__);
+	
+	// Test sim - (object<SLiMEidosBlock>)registerMutationEffectCallback(Nis$ id, string$ source, io<MutationType>$ mutType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', m1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', m1, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }', m1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback('s1', '{ stop(); }', m1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerMutationEffectCallback('s1', '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { s1 = 7; sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, 2, 2); sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, 3, 2); }", "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, -1, -1); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ stop(); }', m1, NULL, 0, 0); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ $; }', m1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
 	// Test community - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
@@ -1835,49 +1845,52 @@ void _RunSLiMEidosBlockTests(void)
 	// Their actual functionality gets tested by the R test suite and the recipes; we want to probe error cases here, more
 	// Things to be careful of: declaration syntax, return value types, special optimized cases, pseudo-parameter definitions
 	
-	// fitness() callbacks
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { return relFitness; } 100 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL) { return relFitness; } 100 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1, p1) { return relFitness; } 100 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL, p1) { return relFitness; } 100 early() { stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(NULL, p1) { stop(); } 100 early() { ; }", __LINE__);
+	// fitnessEffect() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect() { return 1.0; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect() { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect(p1) { return 1.0; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitnessEffect(p1) { stop(); } 100 early() { ; }", __LINE__);
+
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitnessEffect(p4) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitnessEffect(p1) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitnessEffect(m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
 	
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m2) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m2, p1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(m1, p4) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitness(NULL, p4) { stop(); } 100 early() { ; }", __LINE__);
+	// mutationEffect() callbacks
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { return effect; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1, p1) { return effect; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(m1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitness(NULL, p1) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutationEffect(m2) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutationEffect(m2, p1) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "mutationEffect(m1, p4) { stop(); } 100 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness() { stop(); } 100 early() { ; }", "mutation type id is required", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(p1) { stop(); } 100 early() { ; }", "identifier prefix \"m\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(NULL, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutationEffect(m1) { stop(); } 100 early() { ; }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutationEffect(m1, p1) { stop(); } 100 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return F; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return T; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return 1; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return 'a'; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { return mut; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect() { stop(); } 100 early() { ; }", "mutation type id is required", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(p1) { stop(); } 100 early() { ; }", "identifier prefix \"m\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; ; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return NULL; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return F; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return T; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return 1; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitness(m1) { mut; return mut; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { ; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return F; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return T; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return 1; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return 'a'; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return mut; } 100 early() { ; }", "return value", __LINE__);
 	
-	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "fitness(m1) { mut; homozygous; individual; subpop; return relFitness; } 100 early() { stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; ; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return NULL; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return F; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return T; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return 1; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return 'a'; } 100 early() { ; }", "return value", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; return mut; } 100 early() { ; }", "return value", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { mut; homozygous; individual; subpop; return effect; } 100 early() { stop(); }", __LINE__);
 	
 	// mateChoice() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mateChoice() { return weights; } 10 early() { stop(); }", __LINE__);

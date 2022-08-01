@@ -80,9 +80,9 @@ private:
 	std::vector<SLiMEidosBlock*> cached_early_events_;
 	std::vector<SLiMEidosBlock*> cached_late_events_;
 	std::vector<SLiMEidosBlock*> cached_initialize_callbacks_;
-	std::vector<SLiMEidosBlock*> cached_fitness_callbacks_;
-	std::unordered_multimap<slim_tick_t, SLiMEidosBlock*> cached_fitnessglobal_callbacks_onetick_;	// see ValidateScriptBlockCaches() for details
-	std::vector<SLiMEidosBlock*> cached_fitnessglobal_callbacks_multitick_;
+	std::vector<SLiMEidosBlock*> cached_mutationEffect_callbacks_;
+	std::unordered_multimap<slim_tick_t, SLiMEidosBlock*> cached_fitnessEffect_callbacks_onetick_;	// see ValidateScriptBlockCaches() for details
+	std::vector<SLiMEidosBlock*> cached_fitnessEffect_callbacks_multitick_;
 	std::vector<SLiMEidosBlock*> cached_interaction_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_matechoice_callbacks_;
 	std::vector<SLiMEidosBlock*> cached_modifychild_callbacks_;

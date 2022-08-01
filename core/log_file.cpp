@@ -207,7 +207,7 @@ EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_genera
 
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
 {
-	// See, e.g., Subpopulation::ApplyGlobalFitnessCallbacks() for comments on running scripts
+	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};
@@ -244,7 +244,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 
 void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_generator_info, EidosValue_SP *p_generated_value_1, EidosValue_SP *p_generated_value_2)
 {
-	// See, e.g., Subpopulation::ApplyGlobalFitnessCallbacks() for comments on running scripts
+	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};
@@ -640,7 +640,7 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
 	const std::string &source = source_value->StringRefAtIndex(0, nullptr);
 	
-	// See, e.g., Subpopulation::ApplyGlobalFitnessCallbacks() for comments on parsing/running script blocks
+	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on parsing/running script blocks
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	EidosScript *source_script = new EidosScript(source, -1);
 	

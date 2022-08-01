@@ -447,7 +447,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 7: chapterName = "Mutation types, genomic elements, and chromosome structure";         break;
                     case 8: chapterName = "SLiMgui visualizations for polymorphism patterns";					break;
                     case 9:	chapterName = "Selective sweeps";													break;
-                    case 10:chapterName = "Context-dependent selection using fitness() callbacks";				break;
+                    case 10:chapterName = "Context-dependent selection using mutationEffect() callbacks";		break;
                     case 11:chapterName = "Complex mating schemes using mateChoice() callbacks";				break;
                     case 12:chapterName = "Direct child modifications using modifyChild() callbacks";			break;
                     case 13:chapterName = "Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
@@ -1169,7 +1169,7 @@ QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const
 
 void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
 {
-    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.3);
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.32);
     
     if (imageWindow)
     {
@@ -1181,7 +1181,7 @@ void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
 
 void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
 {
-    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.3);
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.32);
     
     if (imageWindow)
     {

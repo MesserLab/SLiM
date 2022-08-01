@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, phenotypic competition, fitness(), interaction()
+// Keywords: QTL, quantitative trait loci, phenotypic competition, interaction()
 
 initialize() {
 	defineConstant("optimum", 5.0);
@@ -18,7 +18,7 @@ initialize() {
 	initializeInteractionType(1, "", reciprocal=T);     // competition
 	i1.setInteractionFunction("f", 1.0);
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", 500);
 }

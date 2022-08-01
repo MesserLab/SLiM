@@ -200,7 +200,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			}
 			else
 			{
-				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
 				// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
 				double fitness = individual.cached_unscaled_fitness_;
 				
@@ -1151,7 +1151,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		}
 		else
 		{
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
 			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
 			double fitness = individual.cached_unscaled_fitness_;
 			

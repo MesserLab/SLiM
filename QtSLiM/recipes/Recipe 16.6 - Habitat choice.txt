@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, migration, dispersal, fitness()
+// Keywords: nonWF, non-Wright-Fisher, migration, dispersal
 
 initialize() {
 	initializeSLiMModelType("nonWF");
@@ -44,8 +44,8 @@ early() {
 	p1.fitnessScaling = K / p1.individualCount;
 	p2.fitnessScaling = K / p2.individualCount;
 }
-fitness(m2, p2) { return 1/relFitness; }
-fitness(m3, p1) { return 1/relFitness; }
+mutationEffect(m2, p2) { return 1/effect; }
+mutationEffect(m3, p1) { return 1/effect; }
 1000 late() {
 	for (id in 1:2)
 	{

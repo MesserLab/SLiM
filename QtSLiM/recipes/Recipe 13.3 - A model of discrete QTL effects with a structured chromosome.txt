@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal, QTL, quantitative trait loci, fitness()
+// Keywords: migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
 	initializeMutationRate(1e-6);
@@ -61,7 +61,7 @@ initialize() {
 		g[!isPlus].addNewMutation(m2, -1.0, q);
 	}
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1: late() {
 	// evaluate and save the additive effects of QTLs
 	for (subpop in c(p1,p2))

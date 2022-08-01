@@ -1533,8 +1533,8 @@ static int DisplayDigitsForIntegerPart(double x)
 		double elapsedTime_early = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
 		double elapsedTime_late = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
 		double elapsedTime_initialize = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
-		double elapsedTime_fitness = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
-		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
+		double elapsedTime_mutationEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationEffectCallback]);
+		double elapsedTime_fitnessEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessEffectCallback]);
 		double elapsedTime_interaction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
 		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
 		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
@@ -1617,10 +1617,10 @@ static int DisplayDigitsForIntegerPart(double x)
 			[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
+			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
+			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_interaction, fw2, percent_interaction] attributes:menlo11_d];
 			[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
@@ -1649,10 +1649,10 @@ static int DisplayDigitsForIntegerPart(double x)
 			[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
+			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
+			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_survival, fw2, percent_survival] attributes:menlo11_d];
 			[content eidosAppendString:@" : survival() callbacks\n" attributes:optima13_d];
@@ -1952,7 +1952,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		for (int regime = 0; regime < 3; ++regime)
 		{
 			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no fitness callbacks" : (regime == 1 ? @"constant neutral fitness callbacks only" : @"unpredictable fitness callbacks present"))] attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
 		}
 		
 		
@@ -2322,8 +2322,8 @@ static int DisplayDigitsForIntegerPart(double x)
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
 	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
@@ -3755,7 +3755,9 @@ static int DisplayDigitsForIntegerPart(double x)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("late") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
-	if (token_string.compare("fitness") == 0)
+	if (token_string.compare("mutationEffect") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("fitnessEffect") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("mateChoice") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
@@ -3800,17 +3802,18 @@ static int DisplayDigitsForIntegerPart(double x)
 {
 	// A few strings which, when option-clicked, should result in more targeted searches.
 	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
-	if ([clickedText isEqualToString:@"first"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"early"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"late"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
-	if ([clickedText isEqualToString:@"interaction"])	return @"interaction() callbacks";
-	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
-	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
-	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
-	if ([clickedText isEqualToString:@"mutation"])		return @"mutation() callbacks";
-	if ([clickedText isEqualToString:@"survival"])		return @"survival() callbacks";
-	if ([clickedText isEqualToString:@"reproduction"])	return @"reproduction() callbacks";
+	if ([clickedText isEqualToString:@"first"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"early"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"late"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"mutationEffect"])	return @"mutationEffect() callbacks";
+	if ([clickedText isEqualToString:@"fitnessEffect"])		return @"fitnessEffect() callbacks";
+	if ([clickedText isEqualToString:@"interaction"])		return @"interaction() callbacks";
+	if ([clickedText isEqualToString:@"mateChoice"])		return @"mateChoice() callbacks";
+	if ([clickedText isEqualToString:@"modifyChild"])		return @"modifyChild() callbacks";
+	if ([clickedText isEqualToString:@"recombination"])		return @"recombination() callbacks";
+	if ([clickedText isEqualToString:@"mutation"])			return @"mutation() callbacks";
+	if ([clickedText isEqualToString:@"survival"])			return @"survival() callbacks";
+	if ([clickedText isEqualToString:@"reproduction"])		return @"reproduction() callbacks";
 	
 	return nil;
 }
@@ -4012,18 +4015,19 @@ static int DisplayDigitsForIntegerPart(double x)
 						{
 							const std::string &child_string = child_token->token_string_;
 							
-							if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
-							else if (child_string.compare(gStr_early) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
-							else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
-							else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
-							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
-							else if (child_string.compare(gStr_interaction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
-							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
-							else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
-							else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
-							else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+							if (child_string.compare(gStr_first) == 0)					block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+							else if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+							else if (child_string.compare(gStr_late) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventLate;
+							else if (child_string.compare(gStr_initialize) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+							else if (child_string.compare(gStr_fitnessEffect) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+							else if (child_string.compare(gStr_mutationEffect) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+							else if (child_string.compare(gStr_interaction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
+							else if (child_string.compare(gStr_mateChoice) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+							else if (child_string.compare(gStr_modifyChild) == 0)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+							else if (child_string.compare(gStr_recombination) == 0)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+							else if (child_string.compare(gStr_mutation) == 0)			block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+							else if (child_string.compare(gStr_survival) == 0)			block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+							else if (child_string.compare(gStr_reproduction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
 							else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -4132,11 +4136,14 @@ static int DisplayDigitsForIntegerPart(double x)
 								case SLiMEidosBlockType::SLiMEidosInitializeCallback:
 									(*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
 									break;
-								case SLiMEidosBlockType::SLiMEidosFitnessCallback:
-								case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+								case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:
+									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									break;
+								case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
-									(*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									break;
@@ -4260,10 +4267,27 @@ static int DisplayDigitsForIntegerPart(double x)
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
-		// "survival", and "reproduction" are.  We also add "species" and "ticks" here for multispecies models.
+		// keywords like "first", "early", "late", "mutationEffect", "fitnessEffect", "interaction", "mateChoice", "modifyChild",
+		// "recombination", "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for
+		// multispecies models.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"first() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"mutation() {\n\n}\n", @"survival() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n", @"species", @"ticks"]];
+		[keywords addObjectsFromArray:@[
+			@"initialize() {\n\n}\n",
+			@"first() {\n\n}\n",
+			@"early() {\n\n}\n",
+			@"late() {\n\n}\n",
+			@"mutationEffect() {\n\n}\n",
+			@"fitnessEffect() {\n\n}\n",
+			@"interaction() {\n\n}\n",
+			@"mateChoice() {\n\n}\n",
+			@"modifyChild() {\n\n}\n",
+			@"recombination() {\n\n}\n",
+			@"mutation() {\n\n}\n",
+			@"survival() {\n\n}\n",
+			@"reproduction() {\n\n}\n",
+			@"function (void)name(void) {\n\n}\n",
+			@"species",
+			@"ticks"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
@@ -4425,12 +4449,21 @@ static int DisplayDigitsForIntegerPart(double x)
 			
 			sig = callbackSig.get();
 		}
-		else if ([signatureString hasPrefix:@"fitness()"])
+		else if ([signatureString hasPrefix:@"mutationEffect()"])
 		{
 			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+			
+			sig = callbackSig.get();
+		}
+		else if ([signatureString hasPrefix:@"fitnessEffect()"])
+		{
+			static EidosCallSignature_CSP callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitnessEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
 			sig = callbackSig.get();
 		}
@@ -4928,8 +4961,8 @@ static int DisplayDigitsForIntegerPart(double x)
 						case SLiMEidosBlockType::SLiMEidosEventEarly:				return @"early()";
 						case SLiMEidosBlockType::SLiMEidosEventLate:				return @"late()";
 						case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return @"initialize()";
-						case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return @"fitness()";
-						case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return @"fitness()";
+						case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return @"mutationEffect()";
+						case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return @"fitnessEffect()";
 						case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return @"interaction()";
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";

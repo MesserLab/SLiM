@@ -186,7 +186,7 @@ public:
 	// An internal method that validates cached fitness values kept by Mutation objects
 	void ValidateMutationFitnessCaches(void);
 	
-	// Recalculate all fitness values for the parental generation, including the use of fitness() callbacks
+	// Recalculate all fitness values for the parental generation, including the use of mutationEffect() callbacks
 	void RecalculateFitness(slim_tick_t p_tick);
 	
 	// Scan through all mutation runs in the simulation and unique them

@@ -17,7 +17,7 @@
 \f2\i0 \cf2 Before a SLiM simulation can be run, the various classes underlying the simulation need to be set up with an initial configuration.  Simulation configuration in SLiM is done in 
 \f1\i\fs18 initialize()
 \f0\fs22  callbacks
-\f2\i0  that run prior to the beginning of simulation execution.  Eidos callbacks are discussed more broadly in chapter 25, but for our present purposes, the idea is very simple.  In your input file, you can simply write something like this:\
+\f2\i0  that run prior to the beginning of simulation execution.  For our present purposes, the idea is very simple; in your input file, you can simply write something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 initialize()\uc0\u8232 \{\u8232 	...\u8232 \}\
@@ -179,7 +179,7 @@ Then comes a tick or a range of ticks, and then a block of Eidos code enclosed i
 \f2\fs22  would similarly specify that the event should run in the first tick executed, and every subsequent tick, up to and including tick 
 \f3\fs18 1000
 \f2\fs22 .\
-In fact, you can omit specifying a tick altogether, in which case the Eidos event runs every tick.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of ticks possible; however, that is more of a concern with the callbacks we will look at later in this chapter, since they might be called many time in every tick, whereas 
+In fact, you can omit specifying a tick altogether, in which case the Eidos event runs every tick.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of ticks possible; however, that is more of a concern with callbacks, since they might be called many time in every tick, whereas 
 \f3\fs18 first()
 \f2\fs22 , 
 \f3\fs18 early()
@@ -275,14 +275,16 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.2  ITEM: 3. 
-\f1\fs18 fitness()
+\f1\fs18 mutationEffect()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 An Eidos callback is a block of Eidos code that is called by SLiM in specific circumstances, to allow the customization of particular actions taken by SLiM while running the simulation of a species.  Eight types of callbacks are presently supported (in addition to 
+\f2\i0 \cf2 An Eidos callback is a block of Eidos code that is called by SLiM in specific circumstances, to allow the customization of particular actions taken by SLiM while running the simulation of a species.  Nine types of callbacks are presently supported (in addition to 
 \f3\fs18 initialize()
-\f2\fs22  callbacks: 
-\f3\fs18 fitness()
+\f2\fs22  callbacks): 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, discussed here, and 
+\f3\fs18 fitnessEffect()
 \f2\fs22 , 
 \f3\fs18 mateChoice()
 \f2\fs22 , 
@@ -299,7 +301,7 @@ When Eidos events are executed, several global variables are defined by SLiM for
 \f3\fs18 survival()
 \f2\fs22  callbacks.\
 A 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback is called by SLiM when it is determining the fitness effect of a mutation carried by an individual.  Normally, the fitness effect of a mutation is determined by the selection coefficient 
 \f0\i s
 \f2\i0  of the mutation and the dominance coefficient 
@@ -336,7 +338,7 @@ A
 \f3\fs18 MutationType
 \f2\fs22  is used instead.\
 That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
@@ -344,11 +346,11 @@ That is the standard behavior of SLiM, reviewed here to provide a conceptual bas
 \f2\i0  = 
 \f0\i w
 \f2\i0  * 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22 \
 \pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 \cf2 where 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  is the value returned by your callback.  This value is a multiplicative fitness effect, so 
 \f3\fs18 1.0
 \f2\fs22  is neutral, unlike the selection coefficient scale where 
@@ -356,18 +358,18 @@ That is the standard behavior of SLiM, reviewed here to provide a conceptual bas
 \f2\fs22  is neutral; be careful with this distinction!\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 Like Eidos events, 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callbacks are defined as script blocks in the input file, but they use a variation of the syntax for defining an Eidos event:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 [id] [t1 [: t2]] fitness(<mut-type-id> [, <subpop-id>]) \{ ... \}\
+\f3\fs18 \cf2 [id] [t1 [: t2]] mutationEffect(<mut-type-id> [, <subpop-id>]) \{ ... \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 For example, if the callback were defined as:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 1000:2000 fitness(m2, p3) \{ 1.0; \}\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 1000:2000 mutationEffect(m2, p3) \{ 1.0; \}\
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 then a relative fitness of 
 \f3\fs18 1.0
@@ -384,12 +386,13 @@ That is the standard behavior of SLiM, reviewed here to provide a conceptual bas
 \f2\fs22  was neutral in subpopulation 
 \f3\fs18 p3
 \f2\fs22  but under selection in other subpopulations, for the range of ticks given.\
-In multispecies models, callbacks must be defined with a 
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 In multispecies models, callbacks must be defined with a 
 \f3\fs18 species
 \f2\fs22  specifier that states the species with which species the callback is associated.  Such a definition looks like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 species species_name [id] [t1 [: t2]] fitness(...) \{ ... \}\
+\f3\fs18 \cf2 species species_name [id] [t1 [: t2]] mutationEffect(...) \{ ... \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 It is the same syntax, in other words, except for the 
@@ -400,7 +403,7 @@ In multispecies models, callbacks must be defined with a
 \f3\fs18 species
 \f2\fs22  specifier goes further, making that species the focal species for the callback.\
 In addition to the standard SLiM globals, a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94, variables that are defined by SLiM within the context of the callback\'92s code to supply the callback with relevant information:\
 \pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0
 
@@ -418,7 +421,7 @@ In addition to the standard SLiM globals, a
 \f3\fs18 NULL
 \f2\fs22  (it is\uc0\u8232 paired with a null chromosome, and is thus hemizygous or haploid)\
 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22 	The default relative fitness value calculated by SLiM\
 
 \f3\fs18 individual
@@ -431,11 +434,11 @@ In addition to the standard SLiM globals, a
 \f2\fs22 	The subpopulation in which that individual lives\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null genomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 fitness(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 As mentioned above, a relative fitness of 
@@ -445,73 +448,29 @@ In addition to the standard SLiM globals, a
 \f2\fs22  is neutral); the 
 \f3\fs18 1.0 +
 \f2\fs22  in these calculations converts between the selection coefficient scale and the relative fitness scale, and is therefore essential.  However, the 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  global variable mentioned above would already contain this value, precomputed by SLiM, so you could simply return 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  to get that behavior when you want it:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 fitness(m1) \{\uc0\u8232 	if (<conditions>)\u8232 		<custom fitness calculations...>;\u8232 	else\u8232 		return relFitness;\u8232 \}\
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (<conditions>)\u8232 		<custom fitness calculations...>;\u8232 	else\u8232 		return effect;\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 This would return a modified fitness value in certain conditions, but would return the standard fitness value otherwise.\
 More than one 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback may be defined to operate in the same tick.  As with Eidos events, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  value returned by the previous callback \'96 so the value of 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  is not necessarily the default value, in fact, but is the result of all previous 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callbacks for that individual in that tick.  In this way, the effects of multiple callbacks can \'93stack\'94.\
-In SLiM version 2.3 and later, it is possible to define 
-\f0\i global
-\f2\i0  
-\f3\fs18 fitness()
-\f2\fs22  callbacks, which are applied exactly once to every individual (within a given subpopulation, if the 
-\f3\fs18 fitness()
-\f2\fs22  callback is declared to be limited to one subpopulation, as usual).  Global 
-\f3\fs18 fitness()
-\f2\fs22  callbacks do not reference a particular mutation type, and are not called in reference to any specific mutation in the individual; instead, they provide an opportunity for the model script to define fitness effects that are independent of specific mutations (although their fitness effects may still depend upon some aggregate genetic state).  For example, they are useful for defining the fitness effect of an individual\'92s overall phenotype (perhaps determined by multiple loci, and perhaps by developmental noise, phenotypic plasticity, etc.), or for defining the fitness effects of behavioral interactions between individuals such as competition or altruism.  A global 
-\f3\fs18 fitness()
-\f2\fs22  callback is defined by giving 
-\f3\fs18 NULL
-\f2\fs22  as the mutation type identifier in the callback\'92s declaration.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.  When a global 
-\f3\fs18 fitness()
-\f2\fs22  callback is running, the 
-\f3\fs18 mut
-\f2\fs22  and 
-\f3\fs18 homozygous
-\f2\fs22  variables are defined to be 
-\f3\fs18 NULL
-\f2\fs22  (since there is no focal mutation), and 
-\f3\fs18 relFitness
-\f2\fs22  is defined to be 
-\f3\fs18 1.0
-\f2\fs22 .  The fitness effect for the callback is simply returned as a singleton 
-\f3\fs18 float
-\f2\fs22  value, as usual.\
-Beginning in SLiM 3.0, it is also possible to set the 
-\f3\fs18 fitnessScaling
-\f2\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 
-\f3\fs18 fitnessScaling
-\f2\fs22  property on an individual to scale the fitness value of that specific individual.  These scaling factors are multiplied together with all other fitness effects for an individual to produce the individual\'92s final fitness value.  The 
-\f3\fs18 fitnessScaling
-\f2\fs22  properties of 
-\f3\fs18 Subpopulation
-\f2\fs22  and 
-\f3\fs18 Individual
-\f2\fs22  can often provide similar functionality to 
-\f3\fs18 fitness(NULL)
-\f2\fs22  callbacks with greater efficiency and simplicity.  They are reset to 
-\f3\fs18 1.0
-\f2\fs22  in every tick for which a given species is active, immediately after fitness values are calculated, so they only need to be set when a value other than 
-\f3\fs18 1.0
-\f2\fs22  is desired.\
 One caveat to be aware of in WF models is that 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  If you have a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback defined for tick 
 \f3\fs18 10
 \f2\fs22 , for example, it will actually be called at the very end of tick 
@@ -532,27 +491,136 @@ If the
 \f2\fs22  is 
 \f3\fs18 T
 \f2\fs22  (the default), the order in which the fitness of individuals is evaluated will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback are not independent.  If 
 \f3\fs18 randomizeCallbacks
 \f2\fs22  is 
 \f3\fs18 F
 \f2\fs22 , the fitness of individuals will be evaluated in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
-Many other possibilities can be implemented with a 
-\f3\fs18 fitness()
-\f2\fs22  callback, and/or with the 
+Many other possibilities can be implemented with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks.  However, since 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the tick range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f0\i \cf0 5.13.3  ITEM: 4. 
+\f1\fs18 fitnessEffect()
+\f0\fs22  callbacks\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\i0 \cf2 We have already seen 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, which modify the effect of a given mutation in a focal individual.  Sometimes it is desirable to model effects upon individual fitness that are not governed by particular mutations (or not directly, at least); fitness effects due to spatial position, or resource acquisition, or behavior such as competitive or altruistic interactions, for example.  Another situation of this type is when fitness depends upon the overall phenotype of an individual \'96 the height of a tree, say \'96 which might be influenced by genetics, but also by environmental effects, climate, and so forth.  For these sorts of situations, SLiM provides 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks.\
+A 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback is called by SLiM when it is determining the fitness of an individual \'96 typically, but not always, once per tick during the fitness calculation tick cycle stage.  Normally, the fitness of a given individual is determined by multiplying together the fitness effects of all mutations possessed by that individual.  Supplying a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback allows you to add another multiplicative fitness effect into that calculation.  As with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, the value returned by 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks is a fitness effect, so 
+\f3\fs18 1.0
+\f2\fs22  is neutral.\
+The syntax for declaring 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks is similar to that for 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, but simpler since no mutation type is needed:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 [id] [t1 [: t2]] fitnessEffect([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
+For example, if the callback were defined as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 1000:2000 fitnessEffect(p3) \{ 0.75; \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 then a fitness effect of 
+\f3\fs18 0.75
+\f2\fs22  would be multiplied into the fitness values of all individuals in subpopulation 
+\f3\fs18 p3
+\f2\fs22  from tick 
+\f3\fs18 1000
+\f2\fs22  to tick 
+\f3\fs18 2000
+\f2\fs22 .\
+Much more interesting, of course, are 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks that return different fitness effects for different individuals, depending upon their state!  In addition to the standard SLiM globals, a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94, variables that are defined by SLiM within the context of the callback\'92s code to supply the callback with relevant information:\
+\pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0
+
+\f3\fs18 \cf2 individual
+\f2\fs22 	The focal individual (an object of class 
+\f3\fs18 Individual
+\f2\fs22 )\
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
+
+\f3\fs18 \cf2 subpop
+\f2\fs22 	The subpopulation in which that individual lives\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 These may be used in the 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback to compute a fitness effect that depends upon the state of the focal individual.  The fitness effect for the callback is simply returned as a singleton 
+\f3\fs18 float
+\f2\fs22  value, as usual.\
+More than one 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback may be defined to operate in the same tick.  Each such callback will provide an independent fitness effect for the focal individual; the results of each 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback will be multiplied in to the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.\
+Beginning in SLiM 3.0, it is also possible to set the 
+\f3\fs18 fitnessScaling
+\f2\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 
+\f3\fs18 fitnessScaling
+\f2\fs22  property on an individual to scale the fitness value of that specific individual.  These scaling factors are multiplied together with all other fitness effects for an individual to produce the individual\'92s final fitness value.  The 
 \f3\fs18 fitnessScaling
 \f2\fs22  properties of 
 \f3\fs18 Subpopulation
 \f2\fs22  and 
 \f3\fs18 Individual
-\f2\fs22 .  However, since 
-\f3\fs18 fitness()
-\f2\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the tick range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.\expnd0\expndtw0\kerning0
-\
+\f2\fs22  can often provide similar functionality to 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks with greater efficiency and simplicity.  They are reset to 
+\f3\fs18 1.0
+\f2\fs22  in every tick for which a given species is active, immediately after fitness values are calculated, so they only need to be set when a value other than 
+\f3\fs18 1.0
+\f2\fs22  is desired.\
+As with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  Also, as with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, the order in which 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks are called will be shuffled when 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is enabled, as it is by default, partially mitigating order-dependency issues.\
+The 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback mechanism is quite flexible and useful, although it has been considerably eclipsed by the modern modern and efficient 
+\f3\fs18 fitnessScaling
+\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive paradigm for modeling individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per generation, whereas a 
+\f3\fs18 mutationEffect()
+\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per generation (once per mutation of that type possessed by the focal individual).  The performance penalty typically becomes severe only when the 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback needs to perform calculations, once per focal individual, that would vectorize well if performed across a whole vector of individuals.  In such cases, 
+\f3\fs18 fitnessScaling
+\f2\fs22  should be used.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.3  ITEM: 4. 
+\f0\i \cf0 5.13.4  ITEM: 5. 
 \f1\fs18 mateChoice()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -563,19 +631,18 @@ Many other possibilities can be implemented with a
 A 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is established in the input file with a syntax very similar to that of 
-\f3\fs18 fitness()
+\f3\fs18 fitnessEffect()
 \f2\fs22  callbacks:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 [id] [t1 [: t2]] mateChoice([<subpop-id>]) \{ ... \}\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 The only difference between the two definition is that the 
-\f3\fs18 mateChoice()
-\f2\fs22  callback does not allow you to specify a mutation type to which the callback applies, since that makes no sense.  (In multispecies models, the definition must be preceded by a 
+\f2\fs22 \cf2 (In multispecies models, the definition must be preceded by a 
 \f3\fs18 species
 \f2\fs22  specification as usual.)\
-Note that if a subpopulation is given to which the 
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 Note that if a subpopulation is given to which the 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is to apply, the callback is used for all matings that will generate a 
 \f0\i child
@@ -585,7 +652,9 @@ Note that if a subpopulation is given to which the
 When a 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is defined, the first parent in a mating is still chosen proportionally according to fitness (if you wish to influence that choice, you can use a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f2\fs22  or 
+\f3\fs18 fitnessEffect()
 \f2\fs22  callback).  In a sexual (rather than hermaphroditic) simulation, this will be the female parent; SLiM does not currently support males as the choosy sex.  The second parent \'96 the male parent, in a sexual simulation \'96 will then be chosen based upon the results of the 
 \f3\fs18 mateChoice()
 \f2\fs22  callback.\
@@ -699,7 +768,7 @@ A wide variety of mate choice algorithms can easily be implemented with
 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.4  ITEM: 5. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.5  ITEM: 6. 
 \f1\fs18 modifyChild()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -836,7 +905,7 @@ There are many different ways in which a
 \f2\fs22  callback anyway; but they may be used if desired.\cf0 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 5.13.5  ITEM: 6. 
+\f0\i \cf0 5.13.6  ITEM: 7. 
 \f1\fs18 recombination()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -966,14 +1035,14 @@ As with the other callback types, multiple
 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.6  ITEM: 7. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.7  ITEM: 8. 
 \f1\fs18 interaction()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\i0 \cf2 The 
 \f3\fs18 InteractionType
-\f2\fs22  class (section 24.8) provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
+\f2\fs22  class provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
 \f3\fs18 interaction()
 \f2\fs22  callbacks to be defined that modify the standard interaction strength calculated by 
 \f3\fs18 InteractionType
@@ -1135,7 +1204,7 @@ The
 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.7  ITEM: 8. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.8  ITEM: 9. 
 \f1\fs18 reproduction()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -1233,7 +1302,7 @@ As with the other callback types, multiple
 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.8  ITEM: 9. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.9  ITEM: 10. 
 \f1\fs18 mutation()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
@@ -1429,7 +1498,7 @@ As with the other callback types, multiple
 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.9  ITEM: 10. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.10  ITEM: 11. 
 \f1\fs18 survival()
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0

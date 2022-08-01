@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal, fitness()
+// Keywords: migration, dispersal
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -14,5 +14,5 @@ initialize() {
 	p1.setMigrationRates(p2, 0.1);   // weak migration p2 -> p1
 	p2.setMigrationRates(p1, 0.5);   // strong migration p1 -> p2
 }
-fitness(m2, p2) { return 1/relFitness; }
+mutationEffect(m2, p2) { return 1/effect; }
 10000 early() { sim.simulationFinished(); }

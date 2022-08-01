@@ -107,11 +107,11 @@ private:
 	// neutral mutations in many simulations.  This simple idea is complicated by a few factors.  First of all, if
 	// the mutation run changes, the cache needs to be invalidated.  Second, if the external information that the
 	// cache relies upon changes, the cache needs to be invalidated.  That external information consists of (a) the
-	// selection coefficients of mutations, and (b) the existence and state of fitness() callbacks.  There are
-	// three separate regimes in which these caches are used:
+	// selection coefficients of mutations, and (b) the existence and state of mutationEffect() callbacks.  There
+	// are three separate regimes in which these caches are used:
 	//
-	//	1. No fitness callbacks defined.  Here caches depend solely upon mutation selection coefficients, and can
-	//		be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
+	//	1. No mutationEffect() callbacks defined.  Here caches depend solely upon mutation selection coefficients,
+	//		and can be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
 	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
@@ -132,8 +132,8 @@ private:
 	//		non-constant callbacks, as long as the non-constant callbacks were "well-behaved" – no use of the
 	//		active property, no executeLambda, etc. – so that SLiM could know that the constant callbacks would
 	//		apply if they were active.  This could be pretty useful for models that have a mix of QTLs (using
-	//		a constant neutral callbacks) and other loci that are governed by fitness callbacks.  This strikes
-	//		me as a pretty edge case, though; mostly models are either QTL models or non-QTL models, I think.
+	//		a constant neutral callbacks) and other loci that are governed by mutationEffect() callbacks.  This
+	//		strikes me as an edge case, though; mostly models are either QTL models or non-QTL models, I think.
 	//
 	// When models switch between one regime and another, they generally need to recache, since the criteria
 	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
