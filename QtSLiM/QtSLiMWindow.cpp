@@ -504,7 +504,7 @@ void QtSLiMWindow::interpolateSplitters(void)
 #endif
 }
 
-void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *layout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
+void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
 {
     overviewWidget->setController(this);
 	overviewWidget->setReferenceChromosomeView(nullptr);
@@ -518,7 +518,7 @@ void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *layout, QtSLiMChromosomeWid
     connect(overviewWidget, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerChromosomeSelectionChanged(); });
 
     // Add these widgets to our vectors of chromosome widgets
-    chromosomeWidgetLayouts.push_back(layout);
+    chromosomeWidgetLayouts.push_back(chromosomeLayout);
     chromosomeOverviewWidgets.push_back(overviewWidget);
     chromosomeZoomedWidgets.push_back(zoomedWidget);
 }
@@ -3108,8 +3108,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_mutationEffect / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessEffect / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
@@ -3123,8 +3123,8 @@ void QtSLiMWindow::displayProfileResults(void)
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_early));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_late));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_initialize));
-		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitness));
-		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessglobal));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutationEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessEffect));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_interaction));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_matechoice));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_modifychild));
@@ -3178,10 +3178,10 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_late, fw, 'f', 2).arg(percent_late, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : late() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutationEffect, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessEffect, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_interaction, fw, 'f', 2).arg(percent_interaction, fw2, 'f', 2), menlo11_d);
@@ -3210,10 +3210,10 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_early, fw, 'f', 2).arg(percent_early, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : early() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutationEffect, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessEffect, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
             tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_survival, fw, 'f', 2).arg(percent_survival, fw2, 'f', 2), menlo11_d);

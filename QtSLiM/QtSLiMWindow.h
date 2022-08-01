@@ -361,7 +361,7 @@ protected:
     std::vector<QtSLiMChromosomeWidget *> chromosomeZoomedWidgets;
     
     void removeExtraChromosomeViews(void);
-    void addChromosomeWidgets(QVBoxLayout *layout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
+    void addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
     void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
     
 private:

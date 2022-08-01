@@ -3112,13 +3112,13 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
                     // enforce square bounds for drawing
                     if (bugIconBounds.width() != bugIconBounds.height())
                     {
-                        int width = bugIconBounds.width();
-                        int height = bugIconBounds.height();
-                        int adjust = std::abs(width - height);
+                        int iconWidth = bugIconBounds.width();
+                        int iconHeight = bugIconBounds.height();
+                        int adjust = std::abs(iconWidth - iconHeight);
                         int halfAdjust = adjust / 2;
                         int remainder = adjust - halfAdjust;
                         
-                        if (width > height)
+                        if (iconWidth > iconHeight)
                             bugIconBounds.adjust(halfAdjust, 0, -remainder, 0);
                         else
                             bugIconBounds.adjust(0, halfAdjust, 0, -remainder);

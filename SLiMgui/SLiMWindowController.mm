@@ -1546,8 +1546,8 @@ static int DisplayDigitsForIntegerPart(double x)
 		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_mutationEffect / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessEffect / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1561,8 +1561,8 @@ static int DisplayDigitsForIntegerPart(double x)
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_early));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_late));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_initialize));
-		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitness));
-		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessglobal));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutationEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessEffect));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_interaction));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_matechoice));
 		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_modifychild));
@@ -1616,10 +1616,10 @@ static int DisplayDigitsForIntegerPart(double x)
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_late, fw2, percent_late] attributes:menlo11_d];
 			[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutationEffect, fw2, percent_fitness] attributes:menlo11_d];
 			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessEffect, fw2, percent_fitnessglobal] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_interaction, fw2, percent_interaction] attributes:menlo11_d];
@@ -1648,10 +1648,10 @@ static int DisplayDigitsForIntegerPart(double x)
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_early, fw2, percent_early] attributes:menlo11_d];
 			[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutationEffect, fw2, percent_fitness] attributes:menlo11_d];
 			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessEffect, fw2, percent_fitnessglobal] attributes:menlo11_d];
 			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_survival, fw2, percent_survival] attributes:menlo11_d];
