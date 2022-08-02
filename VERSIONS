@@ -124,6 +124,7 @@ development head (in the master branch):
 			change relFitness to effect, inside mutationEffect() callbacks
 			change fitness(NULL) callbacks to be called fitnessEffect() callbacks
 			split registerFitnessCallback() into registerMutationEffectCallback() and registerFitnessEffectCallback()
+		add display of the Git SHA-1 hash in slim and SLiMgui, to aid in debugging; works for builds under cmake and qmake, not under Xcode
 		
 
 version 3.7.1 (Eidos version 2.7.1):
