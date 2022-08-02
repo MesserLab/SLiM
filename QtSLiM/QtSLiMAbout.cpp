@@ -25,6 +25,9 @@
 
 #include "slim_globals.h"
 
+// Get our Git commit SHA-1, as C string "g_GIT_SHA1"
+#include "../cmake/GitSHA1.h"
+
 
 QtSLiMAbout::QtSLiMAbout(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMAbout)
 {
@@ -40,8 +43,18 @@ QtSLiMAbout::QtSLiMAbout(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSL
     layout()->setSizeConstraint(QLayout::SetFixedSize);
     setSizeGripEnabled(false);
     
-    // fix version number; FIXME would be nice to figure out a way to get the build number on Linux...
-    ui->versionLabel->setText("version " + QString(SLIM_VERSION_STRING) + " (Qt " + QT_VERSION_STR + ")");
+    // fix version number; we incorporate the Git commit number here too, if we can
+    QString versionString("version " + QString(SLIM_VERSION_STRING) + " (Qt " + QT_VERSION_STR + ", Git SHA-1 ");
+    QString gitSHA(g_GIT_SHA1);
+    
+    if (gitSHA.startsWith("unknown"))
+        versionString.append("unknown");
+    else
+        versionString.append(gitSHA.left(7));  // standard truncation is the last seven hex digits of the SHA-1
+    
+    versionString.append(")");
+    
+    ui->versionLabel->setText(versionString);
     
     // make window actions for all global menu items
     qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);

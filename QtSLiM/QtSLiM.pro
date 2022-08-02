@@ -33,6 +33,13 @@ QMAKE_BUNDLE_DATA += docIconFiles
 #CONFIG += sanitizer sanitize_address sanitize_undefined
 
 
+# Get the current Git SHA-1 and put it into a define; see https://stackoverflow.com/questions/27041573/print-git-hash-in-qt-as-macro-created-at-compile-time
+# Note that this only runs when qmake runs!  It would be nice to have a solution more like the one we use under CMake.
+GIT_HASH="\\\"$$system(git -C \""$$_PRO_FILE_PWD_"\" rev-parse HEAD)\\\""
+DEFINES += GIT_SHA1=$$GIT_HASH
+#message(Git SHA-1 == $$GIT_HASH)
+
+
 # Warn and error on usage of deprecated Qt APIs; see also -Wno-deprecated-declarations below
 # DEFINES += QT_DEPRECATED_WARNINGS					# uncomment this to get warnings about deprecated APIs
 DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x050900    # disables all the APIs deprecated before Qt 5.9.0
@@ -141,6 +148,7 @@ macx: LIBS += -lobjc.A
 
 
 SOURCES += \
+    ../cmake/GitSHA1_qmake.cpp \
     QtSLiMDebugOutputWindow.cpp \
     QtSLiMGraphView_1DPopulationSFS.cpp \
     QtSLiMGraphView_1DSampleSFS.cpp \
