@@ -613,6 +613,7 @@
 		98DB3D6F1E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D701E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
 		98DB3D711E6122AE00E2C200 /* interaction_type.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */; };
+		98DC9841289986B300160DD8 /* GitSHA1_Xcode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DC983D289986B300160DD8 /* GitSHA1_Xcode.cpp */; };
 		98DD5F022155B857009062EE /* change_folder.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F002155B857009062EE /* change_folder.pdf */; };
 		98DD5F032155B857009062EE /* change_folder_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 98DD5F012155B857009062EE /* change_folder_H.pdf */; };
 		98DDAED6221765480038C133 /* slim_functions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98DDAED4221765480038C133 /* slim_functions.cpp */; };
@@ -1081,6 +1082,16 @@
 		98D524681F2EB4DD005AD9A6 /* EidosPrettyprinter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosPrettyprinter.mm; sourceTree = "<group>"; };
 		98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = interaction_type.cpp; sourceTree = "<group>"; };
 		98DB3D6E1E6122AE00E2C200 /* interaction_type.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = interaction_type.h; sourceTree = "<group>"; };
+		98DC9838289986B300160DD8 /* GitSHA1.cpp.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GitSHA1.cpp.in; sourceTree = "<group>"; };
+		98DC9839289986B300160DD8 /* GetGitRevisionDescription.cmake */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GetGitRevisionDescription.cmake; sourceTree = "<group>"; };
+		98DC983A289986B300160DD8 /* GetGitRevisionDescription.cmake.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GetGitRevisionDescription.cmake.in; sourceTree = "<group>"; };
+		98DC983B289986B300160DD8 /* AboutTheseModules.cmake */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AboutTheseModules.cmake; sourceTree = "<group>"; };
+		98DC983C289986B300160DD8 /* GitSHA1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GitSHA1.h; sourceTree = "<group>"; };
+		98DC983D289986B300160DD8 /* GitSHA1_Xcode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GitSHA1_Xcode.cpp; sourceTree = "<group>"; };
+		98DC983E289986B300160DD8 /* LICENSE_1_0.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE_1_0.txt; sourceTree = "<group>"; };
+		98DC983F289986B300160DD8 /* README.markdown */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.markdown; sourceTree = "<group>"; };
+		98DC9840289986B300160DD8 /* _README.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = _README.txt; sourceTree = "<group>"; };
+		98DC98512899919A00160DD8 /* GitSHA1_qmake.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GitSHA1_qmake.cpp; sourceTree = "<group>"; };
 		98DD5F002155B857009062EE /* change_folder.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder.pdf; sourceTree = "<group>"; };
 		98DD5F012155B857009062EE /* change_folder_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_folder_H.pdf; sourceTree = "<group>"; };
 		98DDAED4221765480038C133 /* slim_functions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = slim_functions.cpp; sourceTree = "<group>"; };
@@ -1223,6 +1234,7 @@
 				98E9A6B21A3CE299000AD4FC /* TO_DO */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				98AF84641CB307300030D1EB /* VERSIONS */,
+				98DC9837289986B300160DD8 /* cmake */,
 				98C820E01C7A980000548839 /* gsl */,
 				98BCF14F200C5FDB00CB2837 /* treerec */,
 				98076601244934A800F6CBB4 /* eidos_zlib */,
@@ -1881,6 +1893,23 @@
 			path = buttons;
 			sourceTree = "<group>";
 		};
+		98DC9837289986B300160DD8 /* cmake */ = {
+			isa = PBXGroup;
+			children = (
+				98DC9838289986B300160DD8 /* GitSHA1.cpp.in */,
+				98DC9839289986B300160DD8 /* GetGitRevisionDescription.cmake */,
+				98DC983A289986B300160DD8 /* GetGitRevisionDescription.cmake.in */,
+				98DC983B289986B300160DD8 /* AboutTheseModules.cmake */,
+				98DC983C289986B300160DD8 /* GitSHA1.h */,
+				98DC983D289986B300160DD8 /* GitSHA1_Xcode.cpp */,
+				98DC98512899919A00160DD8 /* GitSHA1_qmake.cpp */,
+				98DC983E289986B300160DD8 /* LICENSE_1_0.txt */,
+				98DC983F289986B300160DD8 /* README.markdown */,
+				98DC9840289986B300160DD8 /* _README.txt */,
+			);
+			path = cmake;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -2387,6 +2416,7 @@
 				9809DFA02550F32500C4E82D /* log_file.cpp in Sources */,
 				989A5BE92525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
 				98C92AED1D0B07A6001C82BC /* individual.cpp in Sources */,
+				98DC9841289986B300160DD8 /* GitSHA1_Xcode.cpp in Sources */,
 				98ACDC9D253522B80038703F /* eidos_class_Object.cpp in Sources */,
 				98235682252FDCF50096A745 /* lodepng.cpp in Sources */,
 				98606AEE1DED0DCD00821CFF /* mutation_run.cpp in Sources */,
