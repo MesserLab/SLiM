@@ -51,7 +51,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	{
 		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl;
 		
-		if (g_GIT_SHA1 == "GITDIR-NOTFOUND")
+		if (strcmp(g_GIT_SHA1, "GITDIR-NOTFOUND") == 0)
 			SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl << std::endl;
 		else
 			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl << std::endl;
@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 		{
 			SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
 			
-			if (g_GIT_SHA1 == "GITDIR-NOTFOUND")
+			if (strcmp(g_GIT_SHA1, "GITDIR-NOTFOUND") == 0)
 				SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl;
 			else
 				SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
