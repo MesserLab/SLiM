@@ -41,12 +41,16 @@
 #include "slim_test.h"
 #include "eidos_symbol_table.h"
 
+// Get our Git commit SHA-1, as C string "g_GIT_SHA1"
+#include "../cmake/GitSHA1.h"
+
 
 static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 {
 	if (p_print_header)
 	{
-		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl << std::endl;
+		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl;
+		SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
 		SLIM_OUTSTREAM << "Copyright 2013-2022 Philipp Messer.  All rights reserved." << std::endl << std::endl;
@@ -268,6 +272,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--version") == 0 || strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
 			SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
+			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
 			exit(0);
 		}
 		
