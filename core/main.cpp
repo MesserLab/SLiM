@@ -50,7 +50,11 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	if (p_print_header)
 	{
 		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl;
-		SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl << std::endl;
+		
+		if (g_GIT_SHA1 == "GITDIR-NOTFOUND")
+			SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl << std::endl;
+		else
+			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
 		SLIM_OUTSTREAM << "Copyright 2013-2022 Philipp Messer.  All rights reserved." << std::endl << std::endl;
@@ -272,7 +276,12 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--version") == 0 || strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
 			SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
-			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
+			
+			if (g_GIT_SHA1 == "GITDIR-NOTFOUND")
+				SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl;
+			else
+				SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
+			
 			exit(0);
 		}
 		

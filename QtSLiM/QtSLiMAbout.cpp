@@ -49,6 +49,8 @@ QtSLiMAbout::QtSLiMAbout(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSL
     
     if (gitSHA.startsWith("unknown"))
         versionString.append("unknown");
+    else if (gitSHA == "GITDIR-NOTFOUND")
+        versionString.append("not available");
     else
         versionString.append(gitSHA.left(7));  // standard truncation is the last seven hex digits of the SHA-1
     
