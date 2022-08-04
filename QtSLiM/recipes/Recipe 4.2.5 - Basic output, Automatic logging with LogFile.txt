@@ -12,7 +12,7 @@ initialize() {
 	sim.addSubpop("p2", 1000);
 	p1.setMigrationRates(p2, 0.001);
 	p2.setMigrationRates(p1, 0.001);
-	log = community.createLogFile("~/Desktop/sim_log.txt", logInterval=10);
+	log = community.createLogFile("sim_log.txt", logInterval=10);
 	log.addCycle();
 	log.addCustomColumn("FST", "calcFST(p1.genomes, p2.genomes);");
 }

@@ -26,6 +26,6 @@ initialize() {
 	nonSeg = BACKGROUND[!BACKGROUND.isSegregating];
 	fixed = nonSeg[nonSeg.isFixed];
 	lost = nonSeg[!nonSeg.isFixed];
-	writeFile("~/Desktop/fixed.txt", paste(fixed.position, sep=", "));
-	writeFile("~/Desktop/lost.txt", paste(lost.position, sep=", "));
+	writeFile("fixed.txt", paste(fixed.position, sep=", "));
+	writeFile("lost.txt", paste(lost.position, sep=", "));
 }

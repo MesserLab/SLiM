@@ -8,7 +8,7 @@ initialize() {
 	
 	// read Drosophila 2L map from Comeron et al. 2012
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	lines = readFile("~/Desktop/Comeron_100kb_chr2L.txt");
+	lines = readFile("Comeron_100kb_chr2L.txt");
 	rates = NULL;
 	ends = NULL;
 	

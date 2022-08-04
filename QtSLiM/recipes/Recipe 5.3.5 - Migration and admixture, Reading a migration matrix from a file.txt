@@ -13,7 +13,7 @@ initialize() {
 	subpops = sim.subpopulations;
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	lines = readFile("~/Desktop/migration.csv");
+	lines = readFile("migration.csv");
 	lines = lines[substr(lines, 0, 1) != "//"];
 	
 	for (line in lines)

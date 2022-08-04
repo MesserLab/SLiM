@@ -21,8 +21,8 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	
 	// read in the pedigree log files
-	defineConstant("M", readIntTable("~/Desktop/mating.txt"));
-	defineConstant("D", readIntTable("~/Desktop/death.txt"));
+	defineConstant("M", readIntTable("mating.txt"));
+	defineConstant("D", readIntTable("death.txt"));
 	
 	// extract the ticks for quick lookup
 	defineConstant("Mt", drop(M[,0]));

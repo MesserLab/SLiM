@@ -11,7 +11,7 @@ initialize() {
 	sim.addSubpop("p1", 1000);
 	
 	// READ MS FORMAT INITIAL STATE
-	lines = readFile("~/Desktop/ms.txt");
+	lines = readFile("ms.txt");
 	index = 0;
 	
 	// skip lines until reaching the // line, then skip that line

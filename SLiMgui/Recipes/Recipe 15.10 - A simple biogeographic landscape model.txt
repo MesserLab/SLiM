@@ -22,7 +22,7 @@ initialize() {
 	p1.setSpatialBounds(c(0.0, 0.0, 539.0, 216.0));
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	mapImage = Image("~/Desktop/world_map_540x217.png");
+	mapImage = Image("world_map_540x217.png");
 	p1.defineSpatialMap("world", "xy", 1.0 - mapImage.floatK,
 		valueRange=c(0.0, 1.0), colors=c("#0000CC", "#55FF22"));
 	
