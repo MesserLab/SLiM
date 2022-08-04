@@ -634,7 +634,7 @@ Set the recombination rate per base position per generation along the chromosome
 \f1\fs18 0.5
 \f2\fs20 ].  A rate of 
 \f1\fs18 0.5
-\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  Unlike the mutational process in SLiM, then, which can generate more than one mutation at a given site (in one generation/genome), the recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
+\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
 \f1\fs18 0.5
 \f2\fs20  will therefore result in an actual probability of 
 \f1\fs18 0.5
@@ -1077,7 +1077,7 @@ The
 \f1\fs18 NULL
 \f2\fs20  value for 
 \f1\fs18 simplificationInterval
-\f2\fs20 , SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
+\f2\fs20 , SLiM will try to find an optimal tick interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
 \f1\fs18 10
 \f2\fs20  (used if both 
 \f1\fs18 simplificationRatio
@@ -1085,17 +1085,17 @@ The
 \f1\fs18 simplificationInterval
 \f2\fs20  are 
 \f1\fs18 NULL
-\f2\fs20 ) thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
+\f2\fs20 ) thus requests that SLiM try to find a tick interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
 \f1\fs18 INF
 \f2\fs20  may be supplied to indicate that automatic simplification should never occur; 
 \f1\fs18 0
-\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.  Alternatively \'96 the second option \'96 
+\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every tick.  Alternatively \'96 the second option \'96 
 \f1\fs18 simplificationRatio
 \f2\fs20  may be 
 \f1\fs18 NULL
 \f2\fs20  and 
 \f1\fs18 simplificationInterval
-\f2\fs20  may be set to the interval, in generations, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  The 
+\f2\fs20  may be set to the interval, in ticks, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  The 
 \f1\fs18 simplificationInterval
 \f2\fs20  value may be a very large number to specify that simplification should never occur (not 
 \f1\fs18 INF
@@ -1103,7 +1103,7 @@ The
 \f1\fs18 integer
 \f2\fs20  value), or 
 \f1\fs18 1
-\f2\fs20  to simplify every generation.  Finally \'96 the third option \'96 both parameters may be non-
+\f2\fs20  to simplify every tick.  Finally \'96 the third option \'96 both parameters may be non-
 \f1\fs18 NULL
 \f2\fs20 , in which case 
 \f1\fs18 simplificationRatio

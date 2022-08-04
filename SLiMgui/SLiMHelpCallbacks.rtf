@@ -17,7 +17,7 @@
 \f2\i0 \cf2 Before a SLiM simulation can be run, the various classes underlying the simulation need to be set up with an initial configuration.  Simulation configuration in SLiM is done in 
 \f1\i\fs18 initialize()
 \f0\fs22  callbacks
-\f2\i0  that run prior to the beginning of simulation execution.  For our present purposes, the idea is very simple; in your input file, you can simply write something like this:\
+\f2\i0  that run prior to the beginning of simulation execution.  For our present purposes, the idea is very simple; in your input file, you can write something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 initialize()\uc0\u8232 \{\u8232 	...\u8232 \}\
@@ -57,7 +57,7 @@ One thing worth mentioning is that in the context of an
 \f3\fs18 initialize()
 \f2\fs22  callback, the 
 \f3\fs18 sim
-\f2\fs22  global for the simulation itself is not defined.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  (Similarly, in multispecies models, the 
+\f2\fs22  global representing the species being simulated is not defined.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  (Similarly, in multispecies models, the 
 \f3\fs18 community
 \f2\fs22  object and the objects representing individual species are not yet defined.)\
 The above 
@@ -85,7 +85,7 @@ The above
 \f2\fs22 , for simplicity and clarity.\
 In single-species models all initialization can be done in a single 
 \f3\fs18 initialize()
-\f2\fs22  callback (or you can have more than one, if you wish).  In multispecies models, each species must be initialized with its own callback, as shown above.  In addition, multispecies models also support an optional community-level initialization callback that is declared as follows:\
+\f2\fs22  callback (or you can have more than one, if you wish).  In multispecies models, each species must be initialized with its own callback(s), as shown above.  In addition, multispecies models also support an optional community-level initialization callback that is declared as follows:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
 \f3\fs18 \cf2 species all initialize() \{ ... \}\
@@ -108,7 +108,7 @@ In single-species models all initialization can be done in a single
 \f2\fs22  callback for simplicity and backward compatibility.\
 Once all 
 \f3\fs18 initialize()
-\f2\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The generation number at which it starts is determined by the Eidos events you have defined; the first generation in which an Eidos event is scheduled to execute is the generation at which the simulation starts.  Similarly, the simulation will terminate after the last generation for which a script block (either an event or a callback) is registered to execute, unless the 
+\f2\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The tick number at which it starts is determined by the Eidos events you have defined; the first tick in which an Eidos event is scheduled to execute is the tick at which the simulation starts.  Similarly, the simulation will terminate after the last tick for which a script block (either an event or a callback) is registered to execute, unless the 
 \f3\fs18 stop()
 \f2\fs22  function or the 
 \f3\fs18 simulationFinished()
@@ -130,11 +130,11 @@ Once all
 
 \f2\fs22 \cf2 The first declaration declares a 
 \f3\fs18 first()
-\f2\fs22  event that executes first thing in the generation cycle.  The second declaration declares an 
+\f2\fs22  event that executes first thing in the tick cycle.  The second declaration declares an 
 \f3\fs18 early()
-\f2\fs22  event that executes relatively early in the generation cycle.  The third declaration declares a 
+\f2\fs22  event that executes relatively early in the tick cycle.  The third declaration declares a 
 \f3\fs18 late()
-\f2\fs22  event that executes near the end of the generation cycle.  Exactly when these events run depends upon whether the model is a WF model or a nonWF model.\
+\f2\fs22  event that executes near the end of the tick cycle.  Exactly when these events run depends upon whether the model is a WF model or a nonWF model; see the tick cycle diagrams for those model types.\
 The 
 \f3\fs18 id
 \f2\fs22  is an optional identifier like 
@@ -611,9 +611,9 @@ The
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback mechanism is quite flexible and useful, although it has been considerably eclipsed by the modern modern and efficient 
 \f3\fs18 fitnessScaling
-\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive paradigm for modeling individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per generation, whereas a 
+\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive paradigm for modeling individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per tick, whereas a 
 \f3\fs18 mutationEffect()
-\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per generation (once per mutation of that type possessed by the focal individual).  The performance penalty typically becomes severe only when the 
+\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per tick (once per mutation of that type possessed by the focal individual).  The performance penalty typically becomes severe only when the 
 \f3\fs18 fitnessEffect()
 \f2\fs22  callback needs to perform calculations, once per focal individual, that would vectorize well if performed across a whole vector of individuals.  In such cases, 
 \f3\fs18 fitnessScaling
@@ -1057,9 +1057,9 @@ An
 \f3\fs18 InteractionType
 \f2\fs22 , as a side effect of serving that query.  This means that 
 \f3\fs18 interaction()
-\f2\fs22  callbacks may be called at a variety of points in the generation cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
+\f2\fs22  callbacks may be called at a variety of points in the tick cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
 \f3\fs18 interaction()
-\f2\fs22  callback, you need to take this into account; assuming that the generation cycle is at a particular stage, or even that the tick or generation is the same as it was when 
+\f2\fs22  callback, you need to take this into account; assuming that the tick cycle is at a particular stage, or even that the tick or cycle is the same as it was when 
 \f3\fs18 evaluate()
 \f2\fs22  was called, may be dangerous.\
 When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the 
@@ -1103,7 +1103,7 @@ Otherwise, SLiM will then call
 \f3\fs18 p3
 \f2\fs22 , for the above example, then the 
 \f3\fs18 interaction()
-\f2\fs22  callback will be called regardless of the receiver\'92s subpopulation (assuming other preconditions are also met, such as the generation range and the interaction type id).  This means that 
+\f2\fs22  callback will be called regardless of the receiver\'92s subpopulation (assuming other preconditions are also met, such as the tick range and the interaction type id).  This means that 
 \f3\fs18 interaction()
 \f2\fs22  callbacks are not species-specific, unlike other callback types; even if an 
 \f3\fs18 interaction()
@@ -1209,7 +1209,7 @@ The
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 In WF models (the default model type in SLiM), the SLiM core manages the reproduction of individuals in each generation.  In nonWF models, however, reproduction is managed by the model script, in 
+\f2\i0 \cf2 In WF models (the default model type in SLiM), the SLiM core manages the reproduction of individuals in each tick.  In nonWF models, however, reproduction is managed by the model script, in 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks.  These callbacks may only be defined in nonWF models.\
 A 
@@ -1443,7 +1443,7 @@ The proposed mutation will not appear in the
 \f3\fs18 sim.mutations
 \f2\fs22  vector of segregating mutations until it has been added to a genome; it will therefore not be visible in that vector within its own 
 \f3\fs18 mutation()
-\f2\fs22  callback invocation, and indeed, may not be visible in subsequent callbacks during the reproduction generation cycle stage until such time as the offspring individual being generated has been completed.  If that offspring is ultimately rejected, in particular by a 
+\f2\fs22  callback invocation, and indeed, may not be visible in subsequent callbacks during the reproduction tick cycle stage until such time as the offspring individual being generated has been completed.  If that offspring is ultimately rejected, in particular by a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback, the proposed mutation may not be used by SLiM at all.  It may therefore be unwise to assume, in a 
 \f3\fs18 mutation()
@@ -1503,7 +1503,7 @@ As with the other callback types, multiple
 \f0\fs22  callbacks\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 In nonWF models, a selection phase in the generation cycle results in mortality; individuals survive or die based upon their fitness.  In most cases this standard behavior is sufficient; but occasionally it can be useful to observe the survival decisions SLiM makes (to log out information about dying individuals, for example), to modify those decisions (influencing which individuals live and which die, perhaps based upon factors other than genetics), or even to short-circuit mortality completely (moving dead individuals into a \'93cold storage\'94 subpopulation for later use, perhaps).  To accomplish such goals, one can the 
+\f2\i0 \cf2 In nonWF models, a selection phase in the tick cycle results in mortality; individuals survive or die based upon their fitness.  In most cases this standard behavior is sufficient; but occasionally it can be useful to observe the survival decisions SLiM makes (to log out information about dying individuals, for example), to modify those decisions (influencing which individuals live and which die, perhaps based upon factors other than genetics), or even to short-circuit mortality completely (moving dead individuals into a \'93cold storage\'94 subpopulation for later use, perhaps).  To accomplish such goals, one can the 
 \f3\fs18 survival()
 \f2\fs22  callback mechanism to override SLiM\'92s default behavior.  Note that in WF models, since they always model non-overlapping generations, the entire parental generation dies in each tick regardless of fitness; 
 \f3\fs18 survival()
@@ -1518,7 +1518,7 @@ A
 
 \f2\fs22 \cf2 The 
 \f3\fs18 survival()
-\f2\fs22  callback will be called during the selection phase of the generation cycle of nonWF models, during the tick(s) in which it is active.  By default it will be called once per individual in the entire population (whether slated for survival or not); it may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
+\f2\fs22  callback will be called during the selection phase of the tick cycle of nonWF models, during the tick(s) in which it is active.  By default it will be called once per individual in the entire population (whether slated for survival or not); it may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
 \f3\fs18 <subpop-id>
 \f2\fs22  specifier.  (In multispecies models, the definition must be preceded by a 
 \f3\fs18 species
