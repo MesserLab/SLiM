@@ -1,6 +1,6 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-import msprime, pyslim
+import tskit, pyslim
 import numpy as np
 import matplotlib.pyplot as plt
 

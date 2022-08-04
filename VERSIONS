@@ -26,7 +26,7 @@ development head (in the master branch):
 		generation parameter to recalculateFitness() renamed to tick
 		generations parameter to rescheduleScriptBlock() renamed to ticks
 		new addTick() method added to LogFile
-		new output formats include both the tick and generation, for outputFull(), outputMutations(), outputFixedMutations()
+		new output formats include both the tick and cycle, for outputFull(), outputMutations(), outputFixedMutations()
 		top-level tree-sequence metadata produced by outputTreeSeq() now includes both the tick ("tick") and generation ("generation")
 		tree-sequence metadata for mutations has changed the sense of "slim_time" to be in ticks, not generations
 		tree-sequence metadata for individuals has changed the sense of "SLIM_INDIVIDUAL_METADATA_MIGRATED" to indicate migration in the last tick, not the last generation
@@ -101,7 +101,7 @@ development head (in the master branch):
 		fix a bug that caused malformed metadata for (a) models where a subpop was removed, when (b) those subpops had a larger SLiM id than other subpops (and were thus at the end of the population table)
 		optimizations for several cases of sample() and sampleIndividuals() in the case of multiple draws without replacement
 		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
-		add [logical$ randomizeCallbacks = T] to initializeSLiMOptions() to turn of randomization of the order individuals are processed with callbacks; T by default, breaks backward compatibility unless set to F
+		add [logical$ randomizeCallbacks = T] to initializeSLiMOptions() to turn of randomization of the order individuals are processed with callbacks; T by default, breaks backward reproducibility unless set to F
 		add new section 14.15 recipes: biallelic models showing how to use mutation() callbacks, unique down, and handle back-mutation
 		add "Focus on Script" and "Focus on Console" keyboard shortcuts for keyboard warriors
 		revise Python recipes to match current usage: 17.2, 17.4 II, 17.5 II, 17.7 II, 17.8 I, 17.8 III, 17.9 I, 17.10 II, 18.13 III
