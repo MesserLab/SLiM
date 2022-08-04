@@ -5398,33 +5398,64 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		}
 	}
 	
+	//std::cout << "TallyMutationReferences() in tick " << species_.community_.tick_ << " :" << std::endl;
+	//std::cout << "   p_subpops_to_tally == " << p_subpops_to_tally << ", count == " << (p_subpops_to_tally == nullptr ? 0 : p_subpops_to_tally->size()) << std::endl;
+	//std::cout << "   p_force_recache == " << (p_force_recache ? "T" : "F") << std::endl;
+	//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
+	
 	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
 	if (!p_force_recache && (cached_tally_genome_count_ != 0))
 	{
+		//std::cout << "   last_tallied_subpops_.size() == " << last_tallied_subpops_.size() << std::endl;
+		
 		if (((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0)) ||
 			(p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally)))
 		{
 			// we can use our cached data; return the cached genome count, which should not have changed
+			//std::cout << "   REUSING CACHE" << std::endl;
 			
 #if DEBUG
 			// check that the cached genome count is correct; note that it includes only non-null genomes
 			slim_refcount_t total_genome_count = 0;
 			
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+			if (p_subpops_to_tally)
 			{
-				Subpopulation *subpop = subpop_pair.second;
-				
-				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-				
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				// tallying across the specified set of subpops
+				for (Subpopulation *subpop : *p_subpops_to_tally)
 				{
-					Genome &genome = *subpop_genomes[i];
+					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 					
-					if (!genome.IsNull())
-						total_genome_count++;
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					{
+						Genome &genome = *subpop_genomes[i];
+						
+						if (!genome.IsNull())
+							total_genome_count++;
+					}
 				}
 			}
+			else
+			{
+				// tallying across all subpops
+				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+				{
+					Subpopulation *subpop = subpop_pair.second;
+					
+					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+					
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					{
+						Genome &genome = *subpop_genomes[i];
+						
+						if (!genome.IsNull())
+							total_genome_count++;
+					}
+				}
+			}
+			
+			//std::cout << "   total_genome_count == " << total_genome_count << std::endl;
 			
 			if (total_genome_count != cached_tally_genome_count_)
 				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
@@ -5433,6 +5464,8 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			return cached_tally_genome_count_;
 		}
 	}
+	
+	//std::cout << "   CALCULATING FRESH" << std::endl;
 	
 	// Now do the actual tallying, since apparently it is necessary
 	if (p_subpops_to_tally)
@@ -5479,6 +5512,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// set up the cache info
 		last_tallied_subpops_ = *p_subpops_to_tally;
 		cached_tally_genome_count_ = total_genome_count;
+		//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 		
 		return total_genome_count;
 	}
@@ -5591,6 +5625,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			gui_total_genome_count_ = total_genome_count;
 #endif
 			
+			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 			return total_genome_count;
 		}
 		else
@@ -5759,6 +5794,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			gui_total_genome_count_ = gui_total_genome_count;
 #endif
 			
+			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 			return total_genome_count;
 		}
 	}
