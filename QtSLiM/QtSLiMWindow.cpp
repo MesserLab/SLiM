@@ -298,8 +298,13 @@ void QtSLiMWindow::init(void)
     connect(this, &QtSLiMWindow::controllerChangeCountChanged, this, [this]() { updateRecycleButtonIcon(false); });
     
     // Ensure that the tick lineedit does not have the initial keyboard focus and has no selection; hard to do!
+    // BCH 5 August 2022: this code is no longer working, the tick lineedit still has initial focus, sigh; I added
+    // the call to ui->scriptTextEdit->setFocus() and that seems to do it, not sure why I didn't do that before;
+    // but since this seems to be fragile, I'm going to leave *both* approaches in the code here, maybe which
+    // approach works depends on the Qt version or the platform or something.  Forward in all directions!
     ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
     QTimer::singleShot(0, [this]() { ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    ui->scriptTextEdit->setFocus();
     
     // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMWindow::applicationPaletteChanged);
@@ -2040,11 +2045,25 @@ void QtSLiMWindow::updateTickCounter(void)
          ui->cycleLineEdit->setText(QString::number(displaySpecies->Cycle()));
     
     if (!community)
+    {
         ui->tickLineEdit->setText("");
+        ui->tickLineEdit->setProgress(0.0);
+    }
     else if (community->Tick() == 0)
+    {
         ui->tickLineEdit->setText("initialize()");
+        ui->tickLineEdit->setProgress(0.0);
+    }
     else
-        ui->tickLineEdit->setText(QString::number(community->Tick()));
+    {
+        slim_tick_t tick = community->Tick();
+        slim_tick_t lastTick = community->EstimatedLastTick();
+        
+        double progress = (lastTick > 0) ? (tick / (double)lastTick) : 0.0;
+        
+        ui->tickLineEdit->setText(QString::number(tick));
+        ui->tickLineEdit->setProgress(progress);
+    }
 }
 
 void QtSLiMWindow::updateSpeciesBar(void)
@@ -2480,9 +2499,25 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->recycleButton->setEnabled(!continuousPlayOn_);
     
     ui->playSpeedSlider->setEnabled(!invalidSimulation_);
-    ui->tickLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
-    ui->cycleLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
-
+    
+    if (invalidSimulation_)
+    {
+        // when an error occurs, we want these textfields to have a dimmed/disabled appearance
+        ui->tickLineEdit->setAppearance(/* enabled */ false, /* dimmed */ true);
+        ui->cycleLineEdit->setAppearance(/* enabled */ false, /* dimmed */ true);
+    }
+    else
+    {
+        // otherwise, we want an enabled _appearance_ at all times, but we have to disable them
+        // to prevent editing during play; so we set the text color to prevent it from dimming
+        // note that the cycle lineedit is always disabled, but follows the appearance of the tick lineedit;
+        // the "editable but dimmed" visual appearance is actually a little different so hopefully this is clear
+        bool editingAllowed = (!reachedSimulationEnd_ && !continuousPlayOn_);
+        
+        ui->tickLineEdit->setAppearance(/* enabled */ editingAllowed, /* dimmed */ false);
+        ui->cycleLineEdit->setAppearance(/* enabled */ false, /* dimmed */ false);
+    }
+    
     ui->toggleDrawerButton->setEnabled(true);
     
     ui->clearDebugButton->setEnabled(true);

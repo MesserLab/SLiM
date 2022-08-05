@@ -42,6 +42,7 @@
 #include <cmath>
 
 #include "QtSLiMPreferences.h"
+#include "QtSLiMAppDelegate.h"
 
 #include "eidos_value.h"
 
@@ -208,8 +209,18 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
 // thanks to https://stackoverflow.com/a/51807268/2752221
-QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(const QString &contents, QWidget *p_parent) : QLineEdit(contents, p_parent) { }
-QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(QWidget *p_parent) : QLineEdit(p_parent) { }
+QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(const QString &contents, QWidget *p_parent) : QLineEdit(contents, p_parent)
+{
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { _ReconfigureAppearance(); });
+    _ReconfigureAppearance();
+}
+
+QtSLiMGenerationLineEdit::QtSLiMGenerationLineEdit(QWidget *p_parent) : QLineEdit(p_parent)
+{
+    connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, [this]() { _ReconfigureAppearance(); });
+    _ReconfigureAppearance();
+}
+
 QtSLiMGenerationLineEdit::~QtSLiMGenerationLineEdit() {}
 
 void QtSLiMGenerationLineEdit::focusInEvent(QFocusEvent *p_event)
@@ -220,6 +231,103 @@ void QtSLiMGenerationLineEdit::focusInEvent(QFocusEvent *p_event)
     // Then select the text by a single shot timer, so that everything will
     // be processed before (calling selectAll() directly won't work)
     QTimer::singleShot(0, this, &QLineEdit::selectAll);
+}
+
+void QtSLiMGenerationLineEdit::setProgress(double p_progress)
+{
+    double newProgress = std::min(std::max(p_progress, 0.0), 1.0);
+    
+    if (newProgress != progress)
+    {
+        progress = newProgress;
+        update();
+    }
+}
+
+void QtSLiMGenerationLineEdit::_ReconfigureAppearance()
+{
+    // Eight states, based on three binary flags; but two states never happen in practice
+    bool darkMode = QtSLiMInDarkMode();
+    bool enabled = isEnabled();
+    
+    if (darkMode)
+    {
+        if (enabled)
+        {
+            if (dimmed)
+                setStyleSheet("color: red;  background-color: black");                  // doesn't happen
+            else
+                setStyleSheet("color: rgb(255, 255, 255);  background-color: black");   // not playing
+        }
+        else
+        {
+            if (dimmed)
+                setStyleSheet("color: rgb(40, 40, 40);  background-color: black");      // error state (not normally visible)
+            else
+                setStyleSheet("color: rgb(170, 170, 170);  background-color: black");   // playing
+        }
+    }
+    else
+    {
+        if (enabled)
+        {
+            if (dimmed)
+                setStyleSheet("color: red;  background-color: white");                  // doesn't happen
+            else
+                setStyleSheet("color: rgb(0, 0, 0);  background-color: white");         // not playing
+        }
+        else
+        {
+            if (dimmed)
+                setStyleSheet("color: rgb(192, 192, 192);  background-color: white");   // error state (not normally visible)
+            else
+                setStyleSheet("color: rgb(120, 120, 120);  background-color: white");   // playing
+        }
+    }
+    
+    update();
+}
+
+void QtSLiMGenerationLineEdit::setAppearance(bool p_enabled, bool p_dimmed)
+{
+    if ((isEnabled() != p_enabled) || (dimmed != p_dimmed))
+    {
+        setEnabled(p_enabled);
+        dimmed = p_dimmed;
+        
+        _ReconfigureAppearance();
+    }
+}
+
+void QtSLiMGenerationLineEdit::paintEvent(QPaintEvent *p_paintEvent)
+{
+    // first let super draw
+    QLineEdit::paintEvent(p_paintEvent);
+    
+    // then overlay a progress bar on top, if requested, and if we are not disabled & dimmed (error state)
+    bool enabled = isEnabled();
+    
+    if (!enabled && dimmed)
+        return;
+    
+    if (progress > 0.0)
+    {
+        bool darkMode = QtSLiMInDarkMode();
+        QPainter painter(this);
+        QRect bounds = rect().adjusted(2, 2, -2, -2);
+        
+        bounds.setWidth(round(bounds.width() * progress));
+        
+        if (darkMode) {
+            // lighten the black background to a dark green; text is unaffected since it's light
+            painter.setCompositionMode(QPainter::CompositionMode_Lighten);
+            painter.fillRect(bounds, QColor(0, 120, 0));
+        } else {
+            // darken the white background to a light green; text is unaffected since it's dark
+            painter.setCompositionMode(QPainter::CompositionMode_Darken);
+            painter.fillRect(bounds, QColor(180, 255, 180));
+        }
+    }
 }
 
 void ColorizePropertySignature(const EidosPropertySignature *property_signature, double pointSize, QTextCursor lineCursor)

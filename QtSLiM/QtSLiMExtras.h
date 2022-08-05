@@ -62,6 +62,8 @@ QString QtSLiMImagePath(QString baseName, bool highlighted);
 
 
 // A subclass of QLineEdit that selects all its text when it receives keyboard focus
+// It also supports showing a "progress bar" under its text, and it has a modified
+// appearance that can be disabled but still show fairly dark text for readability
 class QtSLiMGenerationLineEdit : public QLineEdit
 {
     Q_OBJECT
@@ -71,13 +73,25 @@ public:
     QtSLiMGenerationLineEdit(QWidget *p_parent = nullptr);
     virtual	~QtSLiMGenerationLineEdit() override;
     
+    // can optionally display "progress" in the background of the lineedit
+    void setProgress(double p_progress);
+    
+    // set its appearance/behavior; do not use setEnabled(), use this!
+    void setAppearance(bool p_enabled, bool p_dimmed);
+    
 protected:
     virtual void focusInEvent(QFocusEvent *p_event) override;
+    virtual void paintEvent(QPaintEvent *p_paintEvent) override;
     
 private:
     QtSLiMGenerationLineEdit() = delete;
     QtSLiMGenerationLineEdit(const QtSLiMGenerationLineEdit&) = delete;
     QtSLiMGenerationLineEdit& operator=(const QtSLiMGenerationLineEdit&) = delete;
+    
+    void _ReconfigureAppearance(void);
+    
+    double progress = 0.0;
+    bool dimmed = false;
 };
 
 void ColorizePropertySignature(const EidosPropertySignature *property_signature, double pointSize, QTextCursor lineCursor);

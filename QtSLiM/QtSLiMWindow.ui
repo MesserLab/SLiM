@@ -517,7 +517,7 @@ QSlider::handle:horizontal:disabled {
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="cycleLineEdit">
+             <widget class="QtSLiMGenerationLineEdit" name="cycleLineEdit">
               <property name="maximumSize">
                <size>
                 <width>100</width>
