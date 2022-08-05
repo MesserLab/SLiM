@@ -5807,7 +5807,8 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
         
         // then loop through subpops and update their selected state
         auto subpopIter = subpops.begin();
-        bool all_selected = true, none_selected = true;
+        //bool all_selected = true;
+        bool none_selected = true;
         
         for (size_t i = 0; i < subpopCount; ++i)
         {
@@ -5815,8 +5816,8 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
             
             if ((*subpopIter)->gui_selected_)
                 none_selected = false;
-            else
-                all_selected = false;
+            //else
+            //    all_selected = false;
             
             subpopIter++;
         }

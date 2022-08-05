@@ -508,8 +508,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	// As of SLiM 2.1, we change the generation as a side effect of loading; otherwise we can't correctly update our state here!
 	// As of SLiM 3, we set the generation up here, before making any individuals, because we need it to be correct for the tree-seq recording code.
-	// As of SLiM 4, we save and read the tick instead, and do not touch the cycle counter for the species; this decision may need to be revisited
+	// As of SLiM 4, we set both the tick and the cycle, which are both saved to the file for version 7 and after.
 	community_.SetTick(file_tick);
+	SetCycle(file_cycle);
 	
 	// Read and ignore initial stuff until we hit the Populations section
 	int64_t file_version = 0;	// initially unknown; we will leave this as 0 for versions < 3, for now
