@@ -182,7 +182,7 @@ The
 \f1\fs18 0
 \f2\fs20 \'96
 \f1\fs18 3
-\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
+\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  The mutation rates in this matrix are absolute rates, per nucleotide per gamete; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
 \f1\fs18 initializeHotspotMap()
 \f2\fs20 ).  Rates in 
 \f1\fs18 mutationMatrix
@@ -438,7 +438,7 @@ The global symbol for the new interaction type is immediately available; the ret
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the mutation rate per base position per generation along the chromosome.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per generation (per new offspring genome being generated); note that this is different from how the recombination rate is defined (see 
+Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
 \f1\fs18 initializeRecombinationRate()
 \f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring genome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
 There are two ways to call this function.  If the optional 
@@ -626,7 +626,7 @@ See the documentation for
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the recombination rate per base position per generation along the chromosome.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
+Set the recombination rate per base position per gamete.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
 \f1\fs18 initializeMutationRate()
 \f2\fs20 ).  All rates must be in the interval [
 \f1\fs18 0.0
