@@ -40,7 +40,7 @@ early() {
 	for (subpop in sim.subpopulations)
 	{
 		if (runif(1) < e)
-			subpop.fitnessScaling = 0.0;
+			sim.killIndividuals(subpop.individuals);
 		else
 			subpop.fitnessScaling = K / subpop.individualCount;
 	}

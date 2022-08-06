@@ -49,7 +49,6 @@ species pathogen reproduction() {
 
 ticks all 1 early() {
 	monkey.addSubpop("p1", K_MONKEY);
-	monkey.addSubpop("p2", 0);   // temporary graveyard
 	
 	// choose initial hosts carrying the infection
 	initial_hosts = p1.sampleIndividuals(5, replace=F);
@@ -128,10 +127,9 @@ ticks all early() {
 		}
 		else if (runif(1) < P_death)
 		{
-			// the host has died; move to the graveyard until the next monkey cycle
+			// the host has died; kill it and its pathogens
 			host = monkey.individualsWithPedigreeIDs(pathogenSubpop.tag);
-			host.color = "black";
-			p2.takeMigrants(host);
+			monkey.killIndividuals(host);
 			pathogenSubpop.removeSubpopulation();
 		}
 	}
@@ -166,10 +164,6 @@ species monkey survival(p1) {
 		pathogenSubpop.removeSubpopulation();
 	}
 	return NULL;
-}
-species monkey survival(p2) {
-	// all monkeys in the temporary graveyard are dead
-	return F;
 }
 
 ticks all 2000 late() { }
