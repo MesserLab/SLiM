@@ -5838,8 +5838,7 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -5969,8 +5968,7 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
+\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
@@ -6835,7 +6833,7 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all individuals in the subpopulation that died in the last selection/mortality tick cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.  If pedigree tracking is not on, this property is unavailable.\
+\f4\fs20  for all individuals in the subpopulation that died in the last viability/survival tick cycle stage (or, for WF models, immediately after reproduction).  This allows access to the lifetime reproductive output of individuals in the subpopulation at the end of their lives.  If pedigree tracking is not on, this property is unavailable.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 lifetimeReproductiveOutputF => (integer)\
@@ -6849,7 +6847,7 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all female individuals in the subpopulation that died in the last selection/mortality tick cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
+\f4\fs20  for all female individuals in the subpopulation that died in the last viability/survival tick cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 lifetimeReproductiveOutputM => (integer)\
@@ -6863,7 +6861,7 @@ fitnessScaling <\'96> (float$)\
 \f3\fs18 Individual
 \f4\fs20  property 
 \f3\fs18 reproductiveOutput
-\f4\fs20  for all male individuals in the subpopulation that died in the last selection/mortality tick cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
+\f4\fs20  for all male individuals in the subpopulation that died in the last viability/survival tick cycle stage (or, for WF models, immediately after reproduction).  This property is undefined if separate sexes have not been enabled, or if pedigree tracking is not on.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 name <\'96> (string$)\

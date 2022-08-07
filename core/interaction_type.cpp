@@ -4031,7 +4031,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 	if ((community_.CycleStage() == SLiMCycleStage::kWFStage2GenerateOffspring) ||
 		(community_.CycleStage() == SLiMCycleStage::kNonWFStage1GenerateOffspring) ||
 		(community_.CycleStage() == SLiMCycleStage::kNonWFStage4SurvivalSelection))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during the offspring generation or selection/mortality cycle stages." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_evaluate): evaluate() may not be called during the offspring generation or viability/survival cycle stages." << EidosTerminate();
 	
 	// Get the requested subpops
 	int requested_subpop_count = subpops_value->Count();

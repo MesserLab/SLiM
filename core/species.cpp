@@ -2368,7 +2368,7 @@ void Species::nonWF_ViabilitySurvival(void)
 		std::vector<SLiMEidosBlock*> no_survival_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			subpop_pair.second->ViabilitySelection(no_survival_callbacks);
+			subpop_pair.second->ViabilitySurvival(no_survival_callbacks);
 	}
 	else
 	{
@@ -2389,7 +2389,7 @@ void Species::nonWF_ViabilitySurvival(void)
 			}
 			
 			// Handle survival, using the callbacks
-			subpop->ViabilitySelection(subpop_survival_callbacks);
+			subpop->ViabilitySurvival(subpop_survival_callbacks);
 		}
 		
 		// Callbacks could have requested that individuals move rather than dying; check for that

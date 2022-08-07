@@ -3604,7 +3604,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	return p_surviving;
 }
 
-void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
+void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();

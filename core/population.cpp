@@ -405,7 +405,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 // move individuals as requested by survival() callbacks
 void Population::ResolveSurvivalPhaseMovement(void)
 {
-	// So, we have a survival() callback that has requested that some individuals move during the selection/viability phase.
+	// So, we have a survival() callback that has requested that some individuals move during the viability/survival phase.
 	// We want to handle this as efficiently as we can; we could have many individuals moving between subpops in arbitrary
 	// ways.  We will remove all moving individuals from their current subpops in a single pass, and then add them to their
 	// new subpops in a single pass.  If just one individual is moving, this will be inefficient since the algorithm is O(N)
@@ -422,7 +422,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 		for (Individual *individual : (subpop_pair.second)->nonWF_survival_moved_individuals_)
 			individual->scratch_ = 1;
 	
-	// loop through subpops and remove all individuals that are leaving, compacting downwards; similar to Subpopulation::ViabilitySelection()
+	// loop through subpops and remove all individuals that are leaving, compacting downwards; similar to Subpopulation::ViabilitySurvival()
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
