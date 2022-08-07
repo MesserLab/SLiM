@@ -45,7 +45,6 @@ public:
 public slots:
     virtual void invalidateDrawingCache(void) override;
     virtual void controllerRecycled(void) override;
-    virtual void controllerSelectionChanged(void) override;
     virtual void updateAfterTick(void) override;
     void toggleShowSubpopulations(void);
     void toggleDrawLines(void);
@@ -58,7 +57,7 @@ private:
     bool drawLines_ = false;
     
     QPixmap *drawingCache_ = nullptr;
-	slim_generation_t drawingCacheGeneration_ = 0;
+	slim_tick_t drawingCacheTick_ = 0;
     
     void setDefaultYAxisRange(void);
     

@@ -56,6 +56,7 @@
 #include "slim_eidos_block.h"
 #include "subpopulation.h"
 #include "eidos_interpreter.h"
+#include "interaction_type.h"
 
 
 //
@@ -280,7 +281,7 @@ QtSLiMEidosConsole *QtSLiMTextEdit::slimEidosConsoleForWindow(void)
 
 bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResponse)
 {
-	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
+	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
 	QString currentScriptString = toPlainText();
     QByteArray utf8bytes = currentScriptString.toUtf8();
@@ -493,7 +494,8 @@ void QtSLiMTextEdit::scriptHelpOptionClick(QString searchString)
     else if (searchString == "first")			searchString = "Eidos events";
     else if (searchString == "early")			searchString = "Eidos events";
 	else if (searchString == "late")			searchString = "Eidos events";
-	else if (searchString == "fitness")         searchString = "fitness() callbacks";
+	else if (searchString == "mutationEffect")  searchString = "mutationEffect() callbacks";
+	else if (searchString == "fitnessEffect")   searchString = "fitnessEffect() callbacks";
 	else if (searchString == "interaction")     searchString = "interaction() callbacks";
 	else if (searchString == "mateChoice")      searchString = "mateChoice() callbacks";
 	else if (searchString == "modifyChild")     searchString = "modifyChild() callbacks";
@@ -540,7 +542,7 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
             return;
         
         QTextCursor charCursor(document());
-        charCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked);
+        charCursor.setPosition(characterPositionClicked, QTextCursor::MoveAnchor);
         charCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
         
         QString characterString = charCursor.selectedText();
@@ -572,9 +574,9 @@ void QtSLiMTextEdit::mousePressEvent(QMouseEvent *p_event)
             // the character clicked might be part of a multicharacter symbol: // == <= >= !=
             // we will look at two-character groups anchored in the clicked character to test this
             QTextCursor leftPairCursor(document()), rightPairCursor(document());
-            leftPairCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked - 1);
+            leftPairCursor.setPosition(characterPositionClicked - 1, QTextCursor::MoveAnchor);
             leftPairCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
-            rightPairCursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, characterPositionClicked);
+            rightPairCursor.setPosition(characterPositionClicked, QTextCursor::MoveAnchor);
             rightPairCursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
             
             QString leftPairString = leftPairCursor.selectedText(), rightPairString = rightPairCursor.selectedText();
@@ -712,14 +714,14 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &scr
     // This lower-level function takes a tokenized script object and works from there, allowing reuse of work
     // in the case of attributedSignatureForScriptString:...
     QtSLiMWindow *windowSLiMController = slimControllerForWindow();
-    SLiMSim *sim = (windowSLiMController ? windowSLiMController->sim : nullptr);
+    Community *community = (windowSLiMController ? windowSLiMController->community : nullptr);
     bool invalidSimulation = (windowSLiMController ? windowSLiMController->invalidSimulation() : true);
     
     // start with all the functions that are available in the current simulation context
     EidosFunctionMap *functionMapPtr = nullptr;
     
-    if (sim && !invalidSimulation)
-        functionMapPtr = new EidosFunctionMap(sim->FunctionMap());
+    if (community && !invalidSimulation)
+        functionMapPtr = new EidosFunctionMap(community->FunctionMap());
     else
         functionMapPtr = new EidosFunctionMap(*EidosInterpreter::BuiltInFunctionMap());
     
@@ -730,8 +732,8 @@ EidosFunctionMap *QtSLiMTextEdit::functionMapForTokenizedScript(EidosScript &scr
     if (includingOptionalFunctions)
     {
         // add SLiM functions that are context-dependent
-        SLiMSim::AddZeroGenerationFunctionsToMap(*functionMapPtr);
-        SLiMSim::AddSLiMFunctionsToMap(*functionMapPtr);
+        Community::AddZeroTickFunctionsToMap(*functionMapPtr);
+        Community::AddSLiMFunctionsToMap(*functionMapPtr);
     }
     
     // OK, now we have a starting point.  We now want to use the type-interpreter to add any functions that are declared
@@ -927,10 +929,16 @@ void QtSLiMTextEdit::updateStatusFieldFromSelection(void)
                 if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("late", nullptr, kEidosValueMaskVOID)));
                 signature = callbackSig;
             }
-            else if (callName == "fitness")
+            else if (callName == "mutationEffect")
             {
                 static EidosCallSignature_CSP callbackSig = nullptr;
-                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+                signature = callbackSig;
+            }
+            else if (callName == "fitnessEffect")
+            {
+                static EidosCallSignature_CSP callbackSig = nullptr;
+                if (!callbackSig) callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitnessEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
                 signature = callbackSig;
             }
             else if (callName == "interaction")
@@ -1871,7 +1879,7 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // all functions that are defined, even if below the completion point, end up in the function map.
     *functionMap = functionMapForScriptString(toPlainText(), false);
     
-    SLiMSim::AddSLiMFunctionsToMap(**functionMap);
+    Community::AddSLiMFunctionsToMap(**functionMap);
     
     // Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
     // script block is the one we are actually completing inside, but we also want to do a quick scan of any other
@@ -1896,11 +1904,15 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
         {
             for (EidosASTNode *script_block_node : script_root->children_)
             {
-                // script_block_node can have various children, such as an sX identifier, start and end generations, a block type
+                // skip species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+                if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+                    continue;
+                
+                // script_block_node can have various children, such as an sX identifier, start and end ticks, a block type
                 // identifier like late(), and then the root node of the compound statement for the script block.  We want to
                 // decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
                 EidosASTNode *block_statement_root = nullptr;
-                SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosEventEarly;	// assume early() by default
+                SLiMEidosBlockType block_type = SLiMEidosBlockType::SLiMEidosNoBlockType;
                 
                 for (EidosASTNode *block_child : script_block_node->children_)
                 {
@@ -1910,18 +1922,19 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                     {
                         const std::string &child_string = child_token->token_string_;
                         
-                        if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
-                        else if (child_string.compare(gStr_early) == 0)         block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
-                        else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
-                        else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
-                        else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
-                        else if (child_string.compare(gStr_interaction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
-                        else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-                        else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-                        else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
-                        else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
-                        else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
-                        else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+                        if (child_string.compare(gStr_first) == 0)					block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+                        else if (child_string.compare(gStr_early) == 0)         	block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+                        else if (child_string.compare(gStr_late) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventLate;
+                        else if (child_string.compare(gStr_initialize) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+                        else if (child_string.compare(gStr_fitnessEffect) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+                        else if (child_string.compare(gStr_mutationEffect) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+                        else if (child_string.compare(gStr_interaction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
+                        else if (child_string.compare(gStr_mateChoice) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+                        else if (child_string.compare(gStr_modifyChild) == 0)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+                        else if (child_string.compare(gStr_recombination) == 0)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+                        else if (child_string.compare(gStr_mutation) == 0)			block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+                        else if (child_string.compare(gStr_survival) == 0)			block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+                        else if (child_string.compare(gStr_reproduction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
                         
                         // Check for an sX designation on a script block and, if found, add a symbol for it
                         else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -1960,26 +1973,56 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                 // Now we know the type of the node, and the root node of its compound statement; extract what we want
                 if (block_statement_root)
                 {
-                    // The symbol sim is defined in all blocks except initialize() blocks; we need to add and remove it
-                    // dynamically so that each block has it defined or not defined as necessary.  Since the completion block
-                    // is last, the sim symbol will be correctly defined at the end of this process.
+                    // The species/community symbols are  defined in all blocks except initialize() blocks; we need to add
+                    // and remove them dynamically so that each block has it defined or not defined as necessary.  Since
+                    // the completion block is last, the symbols will be correctly defined at the end of this process.
                     if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-                        (*typeTable)->RemoveTypeForSymbol(gID_sim);
+                    {
+                        std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
+                        
+                        for (EidosGlobalStringID symbol_id : symbol_ids)
+                        {
+                            EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+                            
+                            if ((typeSpec.type_mask == kEidosValueMaskObject) && ((typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_Species_Class)))
+                                (*typeTable)->RemoveTypeForSymbol(symbol_id);
+                        }
+                    }
                     else
-                        (*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+                    {
+                        Community *community = (windowSLiMController ? windowSLiMController->community : nullptr);
+                        
+                        (*typeTable)->SetTypeForSymbol(gID_community, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Community_Class});
+                        
+                        if (community)
+                        {
+                            for (Species *species : community->AllSpecies())
+                            {
+                                EidosGlobalStringID species_symbol = species->self_symbol_.first;
+                                
+                                (*typeTable)->SetTypeForSymbol(species_symbol, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+                            }
+                        }
+                        else
+                        {
+                            // We don't have a community object, so we don't have a vector of species; this is usually because of a failed parse
+                            // In this case, we try to keep things functional by just assuming the single-species case and defining "sim"
+                            (*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+                        }
+                    }
                     
                     // The slimgui symbol is always available within a block, but not at the top level
                     (*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
                     
-                    // Do the same for the zero-generation functions, which should be defined in initialization() blocks and
+                    // Do the same for the zero-tick functions, which should be defined in initialization() blocks and
                     // not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
                     // to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
                     // Note that we consider the zero-gen functions to always be defined inside function blocks, since the
                     // function might be called from the zero gen (we have no way of knowing definitively).
                     if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
-                        SLiMSim::AddZeroGenerationFunctionsToMap(**functionMap);
+                        Community::AddZeroTickFunctionsToMap(**functionMap);
                     else
-                        SLiMSim::RemoveZeroGenerationFunctionsFromMap(**functionMap);
+                        Community::RemoveZeroTickFunctionsFromMap(**functionMap);
                     
                     if (script_block_node == completion_block)
                     {
@@ -2002,14 +2045,15 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                         case SLiMEidosBlockType::SLiMEidosInitializeCallback:
                             (*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
                             break;
-                        case SLiMEidosBlockType::SLiMEidosFitnessCallback:
-                        case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+                        case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:
+                            (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+                            (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+                            break;
+                        case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
                             (*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
-                            (*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+                            (*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             break;
                         case SLiMEidosBlockType::SLiMEidosInteractionCallback:
@@ -2021,25 +2065,16 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             break;
                         case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gEidosID_weights,	EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
                             break;
                         case SLiMEidosBlockType::SLiMEidosModifyChildCallback:
                             (*typeTable)->SetTypeForSymbol(gID_child,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_childGenome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_childGenome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_childIsFemale,	EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_parent1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_parent1Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_parent1Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_isCloning,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_isSelfing,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
                             (*typeTable)->SetTypeForSymbol(gID_parent2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_parent2Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_parent2Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             (*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             break;
@@ -2067,8 +2102,6 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                             break;
                         case SLiMEidosBlockType::SLiMEidosReproductionCallback:
                             (*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-                            (*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
                             (*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
                             break;
                         case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
@@ -2121,12 +2154,18 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
                     {
                         // This is not the block we're completing in.  We want to add symbols for any constant-defining calls
                         // in this block; apart from that, this block cannot affect the completion block, due to scoping.
+                        // However, constant-defining calls might use the types of variables, like defineConstant("foo", bar)
+                        // where the type of foo comes from the type of bar; so we need to keep track of all symbols even
+                        // though they will fall out of scope.  We therefore use a separate local type table with a reference
+                        // upward to our main type table.
+                        EidosTypeTable scopedTypeTable(**typeTable);
                         
                         // Make a type interpreter and add symbols to our type table using it
                         // We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
-                        SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, **callTypeTable, true);
+                        SLiMTypeInterpreter typeInterpreter(block_statement_root, scopedTypeTable, **functionMap, **callTypeTable);
                         
-                        typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+                        typeInterpreter.SetExternalTypeTable(*typeTable);		// defined constants/variables should also go into the global scope
+                        typeInterpreter.TypeEvaluateInterpreterBlock();         // result not used
                     }
                 }
             }
@@ -2137,15 +2176,17 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     // have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
     // existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
     // This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-    // keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination",
-    // "mutation", "survival", and "reproduction" are.
+    // keywords like "first", "early", "late", "mutationEffect", "fitnessEffect", "interaction", "mateChoice", "modifyChild",
+    // "recombination", "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for
+    // multispecies models.
     // Note that the strings here are display strings; they are fixed to contain newlines in insertCompletion()
     keywords->clear();
     (*keywords) << "initialize() { }";
     (*keywords) << "first() { }";
     (*keywords) << "early() { }";
     (*keywords) << "late() { }";
-    (*keywords) << "fitness() { }";
+    (*keywords) << "mutationEffect() { }";
+    (*keywords) << "fitnessEffect() { }";
     (*keywords) << "interaction() { }";
     (*keywords) << "mateChoice() { }";
     (*keywords) << "modifyChild() { }";
@@ -2154,16 +2195,22 @@ void QtSLiMTextEdit::slimSpecificCompletion(QString completionScriptString, NSRa
     (*keywords) << "survival() { }";
     (*keywords) << "reproduction() { }";
     (*keywords) << "function (void)name(void) { }";
+    (*keywords) << "species";
+    (*keywords) << "ticks";
     
     // At the outer level, functions are also not legal
     (*functionMap)->clear();
     
-    // And no variables exist except SLiM objects like pX, gX, mX, sX
+    // And no variables exist except SLiM objects like pX, gX, mX, sX and species symbols
     std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
     
     for (EidosGlobalStringID symbol_id : symbol_ids)
-        if (((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject) || (symbol_id == gID_sim) || (symbol_id == gID_slimgui))
+    {
+        EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+        
+        if ((typeSpec.type_mask != kEidosValueMaskObject) || (typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_SLiMgui_Class))
             (*typeTable)->RemoveTypeForSymbol(symbol_id);
+    }
 }
 
 //- (void)_completionHandlerWithRangeForCompletion:(NSRange *)baseRange completions:(NSArray **)completions
@@ -2482,10 +2529,14 @@ void QtSLiMScriptTextEdit::initializeLineNumbers(void)
     connect(this, SIGNAL(textChanged()), this, SLOT(updateDebugPoints()));
     
     // Watch for changes to the controller's change count, so we can disable debug points when the document needs recycling
+    // Also watch for the end of model initialization; species colors may have changed, necessitating an update
     QtSLiMWindow *controller = slimControllerForWindow();
     
     if (controller)
+    {
         connect(controller, &QtSLiMWindow::controllerChangeCountChanged, this, &QtSLiMScriptTextEdit::controllerChangeCountChanged);
+        connect(controller, &QtSLiMWindow::controllerTickFinished, this, &QtSLiMScriptTextEdit::controllerTickFinished);
+    }
 }
 
 QtSLiMScriptTextEdit::~QtSLiMScriptTextEdit()
@@ -2872,6 +2923,15 @@ void QtSLiMScriptTextEdit::controllerChangeCountChanged(int changeCount)
     }
 }
 
+void QtSLiMScriptTextEdit::controllerTickFinished(void)
+{
+    // If we just finished initialize() callbacks, species colors may have changed
+    QtSLiMWindow *controller = slimControllerForWindow();
+    
+    if (controller && controller->community && (controller->community->Tick() == 1))
+        lineNumberArea->update();
+}
+
 // light appearance: standard blue highlight
 static QColor lineHighlightColor = QtSLiMColorWithHSV(3.6/6.0, 0.1, 1.0, 1.0);
 
@@ -2923,25 +2983,28 @@ void QtSLiMScriptTextEdit::lineNumberAreaToolTipEvent(QHelpEvent *p_helpEvent)
 void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
 {
     QtSLiMPreferencesNotifier &prefsNotifier = QtSLiMPreferencesNotifier::instance();
+    bool showBlockColors = true;
     bool showLineNumbers = prefsNotifier.showLineNumbersPref();
     int bugCount = (int)bugLines.set.size();
     
     // Fill the background with the appropriate colors
-    QRect bounds = contentsRect();
+    QRect overallRect = contentsRect();
     
-    if (bounds.width() <= 0)
+    if (overallRect.width() <= 0)
         return;
     
-    QRect bugRect = bounds;
-    QRect lineNumberRect = bounds;
+    overallRect.setWidth(lineNumberArea->width());
+    
+    QRect bugRect = overallRect;
+    QRect lineNumberRect = overallRect;
     bugRect.setWidth(lineNumberAreaBugWidth);
-    lineNumberRect.adjust(lineNumberAreaBugWidth, 0, -lineNumberAreaBugWidth, 0);
+    lineNumberRect.adjust(lineNumberAreaBugWidth, 0, 0, 0);
     
     bool inDarkMode = QtSLiMInDarkMode();
     QPainter painter(lineNumberArea);
     
     // We now show slightly different background colors for the debug point gutter vs. the line number area
-    //painter.fillRect(bounds, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
+    //painter.fillRect(overallRect, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     painter.fillRect(bugRect, inDarkMode ? bugAreaBackground_DARK : bugAreaBackground);
     painter.fillRect(lineNumberRect, inDarkMode ? lineAreaBackground_DARK : lineAreaBackground);
     
@@ -2958,6 +3021,39 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     
     QIcon *bugIcon = (inDarkMode ? bugIcon_DARK : bugIcon_LIGHT);
     
+    // Prepare to show block colors in multispecies mode; we translate into line numbers and colors on demand
+    // We postpone this display until after initialize() so we don't show the default colors, which is weird
+    std::vector<int> blockColorStarts, blockColorEnds;
+    std::vector<QColor> blockColors;
+    QtSLiMWindow *controller = slimControllerForWindow();
+    int blockColorCount = 0;
+    
+    if (showBlockColors && controller && controller->community && (controller->community->Tick() >= 1) && blockCursors.size())
+    {
+        for (int index = 0; index < (int)blockCursors.size(); ++index)
+        {
+            QTextCursor &tc = blockCursors[index];
+            
+            if (tc.hasSelection())
+            {
+                QTextCursor start_tc(tc);
+                QTextCursor end_tc(tc);
+                start_tc.setPosition(start_tc.selectionStart(), QTextCursor::MoveAnchor);
+                end_tc.setPosition(end_tc.selectionEnd(), QTextCursor::MoveAnchor);
+                
+                blockColorStarts.emplace_back(start_tc.block().blockNumber());
+                blockColorEnds.emplace_back(end_tc.block().blockNumber());
+                blockColors.emplace_back(controller->qcolorForSpecies(blockSpecies[index]));
+            }
+        }
+        
+        blockColorCount = blockColors.size();
+    }
+    else
+    {
+        showBlockColors = false;
+    }
+    
     // Draw the numbers and bug symbols (displaying the current line number in col_1)
     QTextBlock block = firstVisibleBlock();
     int blockNumber = block.blockNumber();
@@ -2973,6 +3069,29 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
     {
         if (block.isVisible() && (bottom >= p_paintEvent->rect().top()))
         {
+            if (showBlockColors)
+            {
+                for (int index = 0; index < blockColorCount; ++index)
+                {
+                    int startBlockNumber = blockColorStarts[index];
+                    int endBlockNumber = blockColorEnds[index];
+                    
+                    if ((blockNumber >= startBlockNumber) && (blockNumber <= endBlockNumber))
+                    {
+                        QRect speciesHighlightBounds(lineNumberRect.left() + lineNumberRect.width() - 4, top, 2, bottom - top);
+                        
+                        if (blockNumber == startBlockNumber)
+                            speciesHighlightBounds.adjust(0, 1, 0, 0);
+                        if (blockNumber == endBlockNumber)
+                            speciesHighlightBounds.adjust(0, 0, 0, -1);
+                        
+                        speciesHighlightBounds = speciesHighlightBounds.intersected(overallRect);
+                        
+                        painter.fillRect(speciesHighlightBounds, blockColors[index]);
+                        break;
+                    }
+                }
+            }
             if (showLineNumbers)
             {
                 if (cursorBlockNumber == blockNumber) painter.setPen(inDarkMode ? lineAreaNumberCurrent_DARK : lineAreaNumberCurrent);
@@ -2993,13 +3112,13 @@ void QtSLiMScriptTextEdit::lineNumberAreaPaintEvent(QPaintEvent *p_paintEvent)
                     // enforce square bounds for drawing
                     if (bugIconBounds.width() != bugIconBounds.height())
                     {
-                        int width = bugIconBounds.width();
-                        int height = bugIconBounds.height();
-                        int adjust = std::abs(width - height);
+                        int iconWidth = bugIconBounds.width();
+                        int iconHeight = bugIconBounds.height();
+                        int adjust = std::abs(iconWidth - iconHeight);
                         int halfAdjust = adjust / 2;
                         int remainder = adjust - halfAdjust;
                         
-                        if (width > height)
+                        if (iconWidth > iconHeight)
                             bugIconBounds.adjust(halfAdjust, 0, -remainder, 0);
                         else
                             bugIconBounds.adjust(0, halfAdjust, 0, -remainder);
@@ -3117,6 +3236,22 @@ void QtSLiMScriptTextEdit::clearDebugPoints(void)
 {
     bugCursors.clear();
     updateDebugPoints();
+}
+
+void QtSLiMScriptTextEdit::clearScriptBlockColoring(void)
+{
+    blockCursors.clear();
+    blockSpecies.clear();
+}
+
+void QtSLiMScriptTextEdit::addScriptBlockColoring(int startPos, int endPos, Species *species)
+{
+    QTextCursor tc(document());
+    tc.setPosition(startPos, QTextCursor::MoveAnchor);
+    tc.setPosition(endPos, QTextCursor::KeepAnchor);
+    
+    blockCursors.emplace_back(tc);
+    blockSpecies.emplace_back(species);
 }
 
 

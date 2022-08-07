@@ -44,7 +44,8 @@ initialize() {
 	// nucleotide fixed at each locus in the chromosome
 	geTypes = sim.chromosome.genomicElements.genomicElementType;
 
-	if (isNULL(version()))	// backward compatibility		mutTypes = apply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
+	if (isNULL(version()))	// backward compatibility		
+	   mutTypes = apply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
 	else
 		mutTypes = sapply(geTypes, "sample(applyValue.mutationTypes, 1, weights=applyValue.mutationFractions);");
 	
@@ -62,13 +63,13 @@ initialize() {
 	// optionally, we can unique new mutations onto existing mutations
 	// this runs only in 2: - it is assumed the gen. 1 setup is uniqued
 	allMuts = sim.mutations;
-	newMuts = allMuts[allMuts.originGeneration == sim.generation];
+	newMuts = allMuts[allMuts.originTick == community.tick];
 	
 	if (size(newMuts))
 	{
 		genomes = sim.subpopulations.genomes;
 		
-		oldMuts = allMuts[allMuts.originGeneration != sim.generation];
+		oldMuts = allMuts[allMuts.originTick != community.tick];
 		oldMutsPositions = oldMuts.position;
 		
 		newMutsPositions = newMuts.position;
@@ -101,7 +102,7 @@ initialize() {
 	}
 }
 
-100 {
+100 early() {
 	addAncestralSamples(5);
 }
 

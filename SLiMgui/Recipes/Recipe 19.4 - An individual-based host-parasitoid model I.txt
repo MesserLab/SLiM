@@ -1,0 +1,91 @@
+// Keywords: multispecies, interaction
+
+species all initialize() {
+	defineConstant("K", 100);
+	defineConstant("R", log(20));
+	defineConstant("A", 0.015);
+	defineConstant("S", 10^2);    // larger is more stable, but slower
+	defineConstant("N0_host", asInteger((135.6217 + 0.01) * S));
+	defineConstant("N0_parasitoid", asInteger((109.3010 + 0.01) * S));
+	
+	initializeSLiMModelType("nonWF");
+}
+species host initialize() {
+	initializeSpecies(avatar="🐛", color="cornflowerblue");
+	// tag values in host indicate survival (0) or death (1)
+}
+species parasitoid initialize() {
+	initializeSpecies(avatar="🦟", color="red");
+	// tag values in parasitoid count successful hunts
+}
+
+ticks all first()
+{
+	hosts = host.subpopulations.individuals;
+	parasitoids  = parasitoid.subpopulations.individuals;
+	
+	// assess densities
+	x1 = hosts.size() / S;          // host density
+	x2 = parasitoids.size() / S;    // parasitoid density
+	
+	// hunt: each parasitoid counts its successes, and
+	// each host tracks whether it was killed
+	parasitoids.tag = 0;
+	P_parasitized = 1 - exp(-A * x2);
+	killed = rbinom(hosts.size(), 1, P_parasitized);
+	hosts.tag = killed;	// 1 means killed
+	hunters = sample(parasitoids, sum(killed), replace=T);
+	for (hunter in hunters)
+		hunter.tag = hunter.tag + 1;
+	survivors = hosts[killed == 0];
+	
+	// competition: kill a fraction of survivors; note
+	// that this is based on pre-parasitism density
+	P_survives = exp(-x1 / K);
+	survived = rbinom(survivors.size(), 1, P_survives);
+	dead = survivors[survived == 0];	// 1 means survived
+	dead.tag = 1;						// mark as dead
+}
+
+species host reproduction() {
+	// only hosts tagged 0 (survived) get to reproduce
+	if (individual.tag != 0)
+		return;
+	
+	// reproduce each host with a mean of exp(r) offspring
+	litterSize = rpois(1, exp(R));
+	
+	if (litterSize > 0)
+	{
+		mate = subpop.sampleIndividuals(1, exclude=individual);
+		for (i in seqLen(litterSize))
+			subpop.addCrossed(individual, mate);
+	}
+}
+species parasitoid reproduction() {
+	// reproduce each parasitoid as many times as it parasitized
+	litterSize = individual.tag;
+	
+	if (litterSize > 0)
+	{
+		mate = subpop.sampleIndividuals(1, exclude=individual);
+		for (i in seqLen(litterSize))
+			subpop.addCrossed(individual, mate);
+	}
+}
+
+ticks all 1 early() {
+	host.addSubpop("p1", N0_host);
+	parasitoid.addSubpop("p2", N0_parasitoid);
+}
+
+// non-overlapping generations: parents die, offspring live
+species host survival() {
+	return (individual.age == 0);
+}
+species parasitoid survival() {
+	return (individual.age == 0);
+}
+
+ticks all 250 late() {
+}

@@ -26,15 +26,15 @@ initialize() {
 	mut = sim.mutationsOfType(m2);
 	if (mut.size()) {
 		f = sim.mutationFrequencies(p1, mut);
-		catn(sim.generation + ": " + sim.mutations.size() + ", f = " + f);
+		catn(sim.cycle + ": " + sim.mutations.size() + ", f = " + f);
 		
 		if (f == 1.0) {
-			catn("\nFIXED in generation " + sim.generation);
+			catn("\nFIXED in cycle " + sim.cycle);
 			catn(sim.substitutions.size() + " substitutions.");
 			catn(paste(sim.substitutions.nucleotide));
 			sim.simulationFinished();
 		}
 	} else {
-		catn(sim.generation + ": " + sim.mutations.size());
+		catn(sim.cycle + ": " + sim.mutations.size());
 	}
 }

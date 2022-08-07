@@ -56,15 +56,16 @@
 
 - (double *)fixationTimeDataWithController:(SLiMWindowController *)controller
 {
+	Species *displaySpecies = [self focalDisplaySpecies];
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
-	slim_generation_t *histogram = controller->sim->population_.mutation_fixation_times_;
-	int64_t histogramBins = (int64_t)controller->sim->population_.mutation_fixation_gen_slots_;	// fewer than binCount * mutationTypeCount may exist
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
+	slim_tick_t *histogram = displaySpecies->population_.mutation_fixation_times_;
+	int64_t histogramBins = (int64_t)displaySpecies->population_.mutation_fixation_tick_slots_;	// fewer than binCount * mutationTypeCount may exist
 	static double *rebin = NULL;
 	static uint32_t rebinBins = 0;
 	uint32_t usedRebinBins = binCount * mutationTypeCount;
 	
-	// re-bin for display; SLiM bins every 10 generations, but right now we want to plot every 100 generations as a bin
+	// re-bin for display; SLiM bins every 10 ticks, but right now we want to plot every 100 ticks as a bin
 	if (!rebin || (rebinBins < usedRebinBins))
 	{
 		rebinBins = usedRebinBins;
@@ -110,9 +111,10 @@
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
+	Species *displaySpecies = [self focalDisplaySpecies];
 	double *plotData = [self fixationTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
 	// plot our histogram bars
 	[self drawGroupedBarplotInInteriorRect:interiorRect withController:controller buffer:plotData subBinCount:mutationTypeCount mainBinCount:binCount firstBinValue:0.0 mainBinWidth:100.0];
@@ -130,12 +132,12 @@
 	[string appendString:[self dateline]];
 	[string appendString:@"\n\n"];
 	
+	Species *displaySpecies = [self focalDisplaySpecies];
 	double *plotData = [self fixationTimeDataWithController:controller];
 	int binCount = [self histogramBinCount];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

@@ -24,7 +24,7 @@ initialize() {
 		sim.simulationFinished();
 	}
 }
-2000 { sim.simulationFinished(); }
+2000 early() { sim.simulationFinished(); }
 
 // Part III of this recipe, which is a Python script, may be found in
 // the Recipes archive downloadable at https://messerlab.org/slim/

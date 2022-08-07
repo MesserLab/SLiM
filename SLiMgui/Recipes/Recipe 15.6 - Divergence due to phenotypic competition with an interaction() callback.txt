@@ -1,4 +1,4 @@
-// Keywords: QTL, quantitative trait loci, phenotypic competition, fitness(), interaction()
+// Keywords: QTL, quantitative trait loci, phenotypic competition, interaction()
 
 initialize() {
 	defineConstant("optimum", 5.0);
@@ -18,7 +18,7 @@ initialize() {
 	initializeInteractionType(1, "", reciprocal=T);     // competition
 	i1.setInteractionFunction("f", 1.0);
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1 late() {
 	sim.addSubpop("p1", 500);
 }
@@ -31,7 +31,7 @@ fitness(m2) { return 1.0; }
 	inds.tagF = phenotypes;
 	
 	// evaluate phenotypic competition
-	i1.evaluate();
+	i1.evaluate(p1);
 	competition = sapply(inds, "sum(i1.strength(applyValue));");
 	effects = 1.0 - competition / size(inds);
 	inds.fitnessScaling = inds.fitnessScaling * effects;
@@ -40,13 +40,13 @@ interaction(i1) {
 	return dnorm(exerter.tagF, receiver.tagF, sigma_C) / NORM;
 }
 1:2001 late() {
-	if (sim.generation == 1)
-		cat("  gen    mean      sd\n");
+	if (sim.cycle == 1)
+		cat("  cyc    mean      sd\n");
 	
-	if (sim.generation % 100 == 1)
+	if (sim.cycle % 100 == 1)
 	{
 		phenotypes = p1.individuals.tagF;
-		cat(format("%5d  ", sim.generation));
+		cat(format("%5d  ", sim.cycle));
 		cat(format("%6.2f  ", mean(phenotypes)));
 		cat(format("%6.2f\n", sd(phenotypes)));
 	}

@@ -65,11 +65,12 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 
 // MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
 // This counter is used to do that; a client wishing to perform such an operation should increment the counter and then use it
-// in conjuction with operation_id_ below.
+// in conjuction with operation_id_ below.  Note this is shared by all species.
 extern int64_t gSLiM_MutationRun_OperationID;
 
 
 #if DEBUG_MUTATION_RUNS
+// Note this debugging facility uses globals, so it spans all active species
 extern int64_t gSLiM_ActiveMutrunCount;
 extern int64_t gSLiM_FreeMutrunCount;
 extern int64_t gSLiM_AllocatedMutrunCount;
@@ -106,17 +107,17 @@ private:
 	// neutral mutations in many simulations.  This simple idea is complicated by a few factors.  First of all, if
 	// the mutation run changes, the cache needs to be invalidated.  Second, if the external information that the
 	// cache relies upon changes, the cache needs to be invalidated.  That external information consists of (a) the
-	// selection coefficients of mutations, and (b) the existence and state of fitness() callbacks.  There are
-	// three separate regimes in which these caches are used:
+	// selection coefficients of mutations, and (b) the existence and state of mutationEffect() callbacks.  There
+	// are three separate regimes in which these caches are used:
 	//
-	//	1. No fitness callbacks defined.  Here caches depend solely upon mutation selection coefficients, and can
-	//		be carried forward through generations with impunity.  If any mutation's selcoeff is changed between
-	//		zero and non-zero, a global flag in SLiMSim (nonneutral_change_counter_) marks all caches as invalid.
+	//	1. No mutationEffect() callbacks defined.  Here caches depend solely upon mutation selection coefficients,
+	//		and can be carried forward through cycles with impunity.  If any mutation's selcoeff is changed between
+	//		zero and non-zero, a global flag in Species (nonneutral_change_counter_) marks all caches as invalid.
 	//
 	//	2. Only constant-effect neutral callbacks are defined: "return 0.0;".  RecalculateFitness() runs through
 	//		mutation types and callbacks, and figures this state out and sets a flag in each mutation type as to
 	//		whether it is effectively neutral, after considering these constant-effect callbacks, or not.  This
-	//		state changes in every generation, so caches cannot be carried forward from generation to generation
+	//		state changes in every cycle, so caches cannot be carried forward from cycle to cycle
 	//		in this regime unless the state of the callbacks, with respect to making mutation types neutral, is
 	//		unchanged.  If RecalculateFitness() detects a callback change, it sets the global all-invalid flag.
 	//
@@ -131,12 +132,12 @@ private:
 	//		non-constant callbacks, as long as the non-constant callbacks were "well-behaved" – no use of the
 	//		active property, no executeLambda, etc. – so that SLiM could know that the constant callbacks would
 	//		apply if they were active.  This could be pretty useful for models that have a mix of QTLs (using
-	//		a constant neutral callbacks) and other loci that are governed by fitness callbacks.  This strikes
-	//		me as a pretty edge case, though; mostly models are either QTL models or non-QTL models, I think.
+	//		a constant neutral callbacks) and other loci that are governed by mutationEffect() callbacks.  This
+	//		strikes me as an edge case, though; mostly models are either QTL models or non-QTL models, I think.
 	//
 	// When models switch between one regime and another, they generally need to recache, since the criteria
 	// for inclusion in the cache differs from regime to regime.  This is handled by RecalculateFitness().
-	// The last regime used (for the previous generation) is remembered in sim.last_nonneutral_regime_.
+	// The last regime used (for the previous cycle) is remembered in sim.last_nonneutral_regime_.
 	//
 	// Mutation runs are considered to be immutable in SLiM if they are referred to by more than one genome.
 	// If they are referred to only once, however, they can be changed.  What that occurs, their nonneutral
@@ -175,6 +176,7 @@ public:
 	// objects, and we actually don't want that; we want the buffers in used MutationRun objects to stay allocated, for
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
+	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
 	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(void)
 	{
 		if (s_freed_mutation_runs_.size())

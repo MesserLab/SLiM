@@ -21,6 +21,8 @@
 #import "GraphView_PopulationVisualization.h"
 #import "SLiMWindowController.h"
 
+#include "community.h"
+
 
 @implementation GraphView_PopulationVisualization
 
@@ -99,16 +101,10 @@
 	else
 	{
 		// calculate the color from the mean fitness of the population
-		double scalingFactor = controller->fitnessColorScale;
-		double totalFitness = subpop->parental_total_fitness_;
-		double subpopFitnessScaling = subpop->last_fitness_scaling_;
-		
-		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-			subpopFitnessScaling = 1.0;
-		
 		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		double fitness = (totalFitness / subpopFitnessScaling) / subpopSize;
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+		const double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
+		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
+		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
 	}
 	
 	NSColor *color = [NSColor colorWithDeviceRed:colorRed green:colorGreen blue:colorBlue alpha:1.0];	// device, to match OpenGL
@@ -372,13 +368,12 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	return score;
 }
 
-#ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
 - (void)optimizeSubpopPositionsWithController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -577,12 +572,12 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	free(best_x);
 	free(best_y);
 }
-#endif	// SLIM_WF_ONLY
 
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Community &community = *controller->community;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	int subpopCount = (int)pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -644,10 +639,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
-#ifdef SLIM_WF_ONLY
-		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
+		if ((community.ModelType() == SLiMModelType::kModelTypeWF) && _optimizePositions && (subpopCount > 2))
 			[self optimizeSubpopPositionsWithController:controller];
-#endif	// SLIM_WF_ONLY
 		
 		if (!allUserConfigured)
 		{
@@ -695,12 +688,11 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-#if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
 			for (auto destSubpopIter = pop.subpops_.begin(); destSubpopIter != pop.subpops_.end(); ++destSubpopIter)
 			{
 				Subpopulation *destSubpop = (*destSubpopIter).second;
-				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
+				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter = destMigrants.begin(); sourceSubpopIter != destMigrants.end(); ++sourceSubpopIter)
 				{
@@ -713,7 +705,7 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 						double migrantFraction = (*sourceSubpopIter).second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
-						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)
 						{
 							if (sourceSubpop->gui_premigration_size_ <= 0)
 								continue;
@@ -731,7 +723,6 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 				}
 			}
 		}
-#endif
 	}
 	
 	// We're done with our transformed coordinate system
@@ -762,8 +753,8 @@ BOOL is_line_intersection(double p0_x, double p0_y, double p1_x, double p1_y, do
 	if (!controller)
 		return NO;
 	
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	
 	if (sel == @selector(toggleOptimizedPositions:))
 	{

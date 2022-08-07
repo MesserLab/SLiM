@@ -46,7 +46,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, mutation_ptr_->mutation_type_ptr_->dominance_coeff_);		// necessary precision for non-lossiness
 	p_out << double_buf;
 	
-	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_generation_ << " " << prevalence_;
+	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
@@ -61,7 +61,7 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Note that Print_ID() now outputs selcoeff and domcoeff in full precision, whereas here we do not; BCH 22 March 2019
-	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_generation_ << " " << prevalence_;
+	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
 	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};

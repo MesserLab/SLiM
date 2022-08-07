@@ -12,12 +12,12 @@ initialize() {
 	initializeRecombinationRate(1e-5);
 	initializeGeneConversion(0.7, 1500, 0.80, 0.10);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
-1:500001 {
-	if (sim.generation % 1000 == 1) {
-		cat(sim.generation + ": ");
+1:500001 early() {
+	if (sim.cycle % 1000 == 1) {
+		cat(sim.cycle + ": ");
 		print(nucleotideFrequencies(sim.chromosome.ancestralNucleotides()));
 	}
 }

@@ -160,6 +160,19 @@ inline __attribute__((always_inline)) uint32_t Eidos_rng_uniform_int(gsl_rng *p_
 	return k;
 }
 
+// The gsl_ran_shuffle() function leans very heavily on gsl_rng_uniform_int(), which is very slow
+// as mentioned above.  This is essentially same code as gsl_ran_shuffle(), but calls Eidos_rng_uniform_int().
+// It is also templated, to take advantage of std::swap(), which is faster than the GSL's generalized
+// swap() function.
+template <class T> inline void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n)
+{
+	for (uint32_t i = n - 1; i > 0; i--)
+	{
+		uint32_t j = Eidos_rng_uniform_int(r, (uint32_t)(i+1));
+		
+		std::swap(base[i], base[j]);
+	}
+}
 
 
 // Fast Poisson drawing, usable when mu is small; algorithm from Wikipedia, referenced to Luc Devroye,

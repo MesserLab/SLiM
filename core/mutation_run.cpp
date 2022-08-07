@@ -465,8 +465,8 @@ void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_h
 void MutationRun::cache_nonneutral_mutations_REGIME_1()
 {
 	//
-	//	Regime 1 means there are no fitness callbacks at all, so neutrality can be assessed simply
-	//	by looking at selection_coeff_ != 0.0.  The mutation type is irrelevant.
+	//	Regime 1 means there are no mutationEffect() callbacks at all, so neutrality can be assessed
+	//	simply by looking at selection_coeff_ != 0.0.  The mutation type is irrelevant.
 	//
 	zero_out_nonneutral_buffer();
 	
@@ -485,8 +485,8 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1()
 void MutationRun::cache_nonneutral_mutations_REGIME_2()
 {
 	//
-	//	Regime 2 means the only fitness callbacks are (a) constant-effect, (b) neutral (i.e. make
-	//	their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
+	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
+	//	make their mutation type become neutral), and (c) global (i.e. apply to all subpopulations).
 	//	Here neutrality is assessed by first consulting the set_neutral_by_global_active_callback
 	//	flag of MutationType, which is set up by RecalculateFitness() for us.  If that is true,
 	//	the mutation is neutral; if false, selection_coeff_ is reliable.  Note the code below uses
@@ -513,12 +513,12 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2()
 void MutationRun::cache_nonneutral_mutations_REGIME_3()
 {
 	//
-	//	Regime 3 means that there are fitness callbacks that go beyond the constant neutral global
-	//	callbacks of regime 2, so if a mutation's mutation type is subject to any fitness callbacks
+	//	Regime 3 means that there are mutationEffect() callbacks beyond the constant neutral global
+	//	callbacks of regime 2, so if a mutation's muttype is subject to any mutationEffect() callbacks
 	//	at all, whether active or not, that mutation must be considered to be non-neutral (because
 	//	a rogue callback could enable/disable other callbacks).  This is determined by consulting
-	//	the subject_to_fitness_callback flag of MutationType, set up by RecalculateFitness() for
-	//	us.  If that flag is not set, then the selection_coeff_ is reliable as usual.
+	//	the subject_to_mutationEffect_callback flag of MutationType, set up by RecalculateFitness()
+	//	for us.  If that flag is not set, then the selection_coeff_ is reliable as usual.
 	//
 	zero_out_nonneutral_buffer();
 	
@@ -532,7 +532,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3()
 		
 		// The result of || is not order-dependent, but the first condition is checked first.
 		// I have reordered this to put the fast test first; or I'm guessing it's the fast test.
-		if ((mutptr->selection_coeff_ != 0.0) || (mutptr->mutation_type_ptr_->subject_to_fitness_callback_))
+		if ((mutptr->selection_coeff_ != 0.0) || (mutptr->mutation_type_ptr_->subject_to_mutationEffect_callback_))
 			add_to_nonneutral_buffer(mutindex);
 	}
 }

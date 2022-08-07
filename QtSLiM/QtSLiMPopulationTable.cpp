@@ -39,12 +39,7 @@ QtSLiMPopulationTableModel::~QtSLiMPopulationTableModel()
 
 int QtSLiMPopulationTableModel::rowCount(const QModelIndex & /* parent */) const
 {
-    QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
-    
-    if (controller && !controller->invalidSimulation())
-        return static_cast<int>(controller->sim->population_.subpops_.size());
-    
-    return 0;
+    return static_cast<int>(displaySubpops.size());
 }
 
 int QtSLiMPopulationTableModel::columnCount(const QModelIndex & /* parent */) const
@@ -58,33 +53,36 @@ QVariant QtSLiMPopulationTableModel::data(const QModelIndex &p_index, int role) 
         return QVariant();
     
     QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    Community *community = controller->community;
     
-    if (!controller || controller->invalidSimulation())
+    int subpopCount = static_cast<int>(displaySubpops.size());
+    
+    if (subpopCount == 0)
         return QVariant();
     
     if (role == Qt::DisplayRole)
     {
-        SLiMSim *sim = controller->sim;
-        Population &population = sim->population_;
-        int subpopCount = static_cast<int>(population.subpops_.size());
-        
         if (p_index.row() < subpopCount)
         {
-            auto popIter = population.subpops_.begin();
+            auto popIter = displaySubpops.begin();
             
             std::advance(popIter, p_index.row());
-            slim_objectid_t subpop_id = popIter->first;
-            Subpopulation *subpop = popIter->second;
+            Subpopulation *subpop = *popIter;
             
             if (p_index.column() == 0)
             {
-                return QVariant(QString("p%1").arg(subpop_id));
+                QString idString = QString("p%1").arg(subpop->subpopulation_id_);
+                
+                if (community->all_species_.size() > 1)
+                    idString.append(" ").append(QString::fromStdString(subpop->species_.avatar_));
+                
+                return QVariant(idString);
             }
             else if (p_index.column() == 1)
             {
                 return QVariant(QString("%1").arg(subpop->parent_subpop_size_));
             }
-            else if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+            else if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
             {
                 // in nonWF models selfing/cloning/sex rates/ratios are emergent, calculated from collected metrics
                 double total_offspring = subpop->gui_offspring_cloned_M_ + subpop->gui_offspring_crossed_ + subpop->gui_offspring_empty_ + subpop->gui_offspring_selfed_;
@@ -215,6 +213,15 @@ QVariant QtSLiMPopulationTableModel::headerData(int section,
 void QtSLiMPopulationTableModel::reloadTable(void)
 {
     beginResetModel();
+    
+    // recache the list of subpopulations we display
+    displaySubpops.clear();
+    
+    QtSLiMWindow *controller = static_cast<QtSLiMWindow *>(parent());
+    
+    if (controller)
+        displaySubpops = controller->listedSubpopulations();
+    
     endResetModel();
 }
 

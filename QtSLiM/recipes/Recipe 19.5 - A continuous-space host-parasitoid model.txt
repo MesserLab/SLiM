@@ -1,0 +1,140 @@
+// Keywords: multispecies, interaction
+
+species all initialize() {
+	defineConstant("K", 100);
+	defineConstant("R", log(20));
+	defineConstant("A", 0.015);
+	defineConstant("SIDE", 10);	// one side length; square root of S
+	defineConstant("S", SIDE*SIDE);
+	defineConstant("N0_host", asInteger((135.6217 + 0.01) * S));
+	defineConstant("N0_parasitoid", asInteger((109.3010 + 0.01) * S));
+	
+	defineConstant("S_P", 0.5);	// parasitoid hunting/mating kernel width
+	defineConstant("S_H", 0.2);	// host competition/mating kernel width
+	defineConstant("D_H", 0.2);	// host dispersal kernel width
+	defineConstant("CROSS_SCRIPT", "subpop.addCrossed(individual, mate);");
+	
+	initializeSLiMModelType("nonWF");
+	
+	// parasitoids looking for things (long search distance)
+	initializeInteractionType(1, "xy", maxDistance=S_P);
+	i1.setInteractionFunction("l", 1.0);
+	
+	// hosts looking for things (short search distance)
+	initializeInteractionType(2, "xy", maxDistance=S_H);
+	i2.setInteractionFunction("l", 1.0);
+}
+species host initialize() {
+	initializeSpecies(avatar="🐛", color="cornflowerblue");
+	initializeSLiMOptions(dimensionality="xy");
+	// tag values in host indicate survival (0) or death (1)
+}
+species parasitoid initialize() {
+	initializeSpecies(avatar="🦟", color="red");
+	initializeSLiMOptions(dimensionality="xy");
+	// tag values in parasitoid count successful hunts
+}
+
+ticks all 2: first()
+{
+	host_pop = host.subpopulations;
+	hosts = host_pop.individuals;
+	parasitoid_pop  = parasitoid.subpopulations;
+	parasitoids  = parasitoid_pop.individuals;
+	
+	// assess densities, per individual
+	i1.evaluate(c(host_pop, parasitoid_pop));
+	i2.evaluate(host_pop);
+	parasitoid_density_byhost = i1.localPopulationDensity(hosts, parasitoid_pop);
+	
+	// hunt: each parasitoid counts its successes,
+	// and remembers the positions of its prey;
+	// each host tracks whether it was killed
+	parasitoids.tag = 0;
+	parasitoids.setValue("PREY_POS", NULL);
+	P_parasitized_byhost = 1 - exp(-A * parasitoid_density_byhost);
+	killed = (runif(hosts.size()) < P_parasitized_byhost);
+	hosts.tag = asInteger(killed);           // T/1 means killed
+	preys = hosts[killed];
+	for (prey in preys)
+	{
+		hunter = i1.drawByStrength(prey, 1, parasitoid_pop);
+		preyPos = prey.spatialPosition;
+		preyPos = c(hunter.getValue("PREY_POS"), preyPos);
+		hunter.tag = hunter.tag + 1;
+		hunter.setValue("PREY_POS", preyPos);
+	}
+	unhunted = hosts[!killed];
+	
+	// competition: kill a fraction of unhunted; note
+	// that this is based on pre-parasitism density
+	host_density_by_unhunted = i2.localPopulationDensity(unhunted, host_pop);
+	P_survives_by_unhunted = exp(-host_density_by_unhunted / K);
+	survived = (runif(unhunted.size()) < P_survives_by_unhunted);
+	dead = unhunted[!survived];	// T means survived
+	dead.tag = 1;						// mark as dead
+}
+
+species host reproduction() {
+	// only hosts tagged 0 (survived) get to reproduce
+	if (individual.tag != 0)
+		return;
+	
+	// reproduce each host with a mean of exp(r) offspring
+	mate = i2.drawByStrength(individual);
+		
+	if (mate.size())
+	{
+		litterSize = rpois(1, exp(R));
+	
+		if (litterSize > 0)
+		{
+			offspring = sapply(seqLen(litterSize), CROSS_SCRIPT);
+			
+			// vectorized set of offspring spatial positions, based
+			// on the first parent position plus dispersal D_H
+			positions = rep(individual.spatialPosition, litterSize);
+			positions = positions + rnorm(litterSize * 2, 0, D_H);
+			positions = p1.pointReflected(positions);
+			offspring.setSpatialPosition(positions);
+		}
+	}
+}
+species parasitoid reproduction() {
+	// reproduce each parasitoid as many times as it parasitized
+	litterSize = individual.tag;
+	
+	if (litterSize > 0)
+	{
+		mate = i1.drawByStrength(individual);
+		
+		if (mate.size())
+		{
+			offspring = sapply(seqLen(litterSize), CROSS_SCRIPT);
+			
+			// vectorized set of offspring positions to prey positions
+			offspring.setSpatialPosition(individual.getValue("PREY_POS"));
+		}
+	}
+}
+
+ticks all 1 early() {
+	host.addSubpop("p1", N0_host);
+	p1.setSpatialBounds(c(0, 0, SIDE, SIDE));
+	p1.individuals.setSpatialPosition(p1.pointUniform(N0_host));
+	
+	parasitoid.addSubpop("p2", N0_parasitoid);
+	p2.setSpatialBounds(c(0, 0, SIDE, SIDE));
+	p2.individuals.setSpatialPosition(p2.pointUniform(N0_parasitoid));
+}
+
+// non-overlapping generations: parents die, offspring live
+species host survival() {
+	return (individual.age == 0);
+}
+species parasitoid survival() {
+	return (individual.age == 0);
+}
+
+ticks all 250 late() {
+}

@@ -28,13 +28,15 @@
 #include <unordered_map>
 #include <ctime>
 
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "slim_globals.h"
 #include "eidos_script.h"
 #include "eidos_interpreter.h"
 #include "eidos_symbol_table.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "interaction_type.h"
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -45,7 +47,7 @@
 
 
 // the initial capacities for the genome and individual pools here are just guesses at balancing low default memory usage, maximizing locality, and minimization of additional allocs
-Population::Population(SLiMSim &p_sim) : sim_(p_sim), species_genome_pool_(sizeof(Genome), 16384), species_individual_pool_(sizeof(Individual), 8192)
+Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_genome_pool_(sizeof(Genome), 16384), species_individual_pool_(sizeof(Individual), 8192)
 {
 }
 
@@ -133,12 +135,12 @@ void Population::RemoveAllSubpopulationInfo(void)
 	// If we're keeping any separate registries inside mutation types, clear those now as well
     // NOTE: The access of sim_ here is permissible because it will not happen after sim_ has been
     // destructed, due to the clearing of keeping_muttype_registries_ at the end of this block.
-    // This block will execute when this method is called directly by SLiMSim::~SLiMSim(), and
+    // This block will execute when this method is called directly by Species::~Species(), and
     // then it will not execute again when this method is called by Population::~Population().
     // This design could probably stand to get cleaned up.  FIXME
 	if (keeping_muttype_registries_)
 	{
-		for (auto muttype_iter : sim_.MutationTypes())
+		for (auto muttype_iter : species_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -159,16 +161,16 @@ void Population::RemoveAllSubpopulationInfo(void)
 	{
 		free(mutation_loss_times_);
 		mutation_loss_times_ = nullptr;
-		mutation_loss_gen_slots_ = 0;
+		mutation_loss_tick_slots_ = 0;
 	}
 	if (mutation_fixation_times_)
 	{
 		free(mutation_fixation_times_);
 		mutation_fixation_times_ = nullptr;
-		mutation_fixation_gen_slots_ = 0;
+		mutation_fixation_tick_slots_ = 0;
 	}
 	// Don't throw away the fitness history; it is perfectly valid even if the population has just been changed completely.  It happened.
-	// If the read is followed by setting the generation backward, individual fitness history entries will be invalidated in response.
+	// If the read is followed by setting the cycle backward, individual fitness history entries will be invalidated in response.
 //	if (fitness_history_)
 //	{
 //		free(fitness_history_);
@@ -181,41 +183,51 @@ void Population::RemoveAllSubpopulationInfo(void)
 // add new empty subpopulation p_subpop_id of size p_subpop_size
 Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size, double p_initial_sex_ratio, bool p_haploid) 
 { 
-	if (sim_.SubpopulationIDInUse(p_subpop_id))
+	if (community_.SubpopulationIDInUse(p_subpop_id))
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " has been used already, and cannot be used again (to prevent conflicts)." << EidosTerminate();
-	if ((p_subpop_size < 1) && (sim_.ModelType() == SLiMModelType::kModelTypeWF))	// allowed in nonWF models
+	if ((p_subpop_size < 1) && (model_type_ == SLiMModelType::kModelTypeWF))	// allowed in nonWF models
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulation): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
 	
 	// make and add the new subpopulation
 	Subpopulation *new_subpop = nullptr;
 	
-	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, sim_.ModeledChromosomeType(), p_haploid);	// SEX ONLY
+	if (species_.SexEnabled())
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_initial_sex_ratio, species_.ModeledChromosomeType(), p_haploid);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, true, p_haploid);
 	
-#ifdef SLIM_WF_ONLY
 	new_subpop->child_generation_valid_ = child_generation_valid_;	// synchronize its stage with ours
-#endif
 	
 #ifdef SLIMGUI
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
 	// to SLiMgui's next update, because then mutation tallies are not kept properly up to date, resulting in a bad GUI refresh.
 	// The rule is: if all currently existing subpops are selected, then the new subpop comes in selected as well.
-	new_subpop->gui_selected_ = gui_all_selected_;
+    bool gui_all_selected = true;
+    
+    for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+        if (!subpop_pair.second->gui_selected_)
+        {
+            gui_all_selected = false;
+            break;
+        }
+    
+    new_subpop->gui_selected_ = gui_all_selected;
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
-	sim_.subpop_ids_.emplace(p_subpop_id);
+	species_.subpop_ids_.emplace(p_subpop_id);
+	
+	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+	cached_tally_genome_count_ = 0;
 	
 	return new_subpop;
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // add new subpopulation p_subpop_id of size p_subpop_size individuals drawn from source subpopulation p_source_subpop_id
 Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Subpopulation &p_source_subpop, slim_popsize_t p_subpop_size, double p_initial_sex_ratio)
 {
-	if (sim_.SubpopulationIDInUse(p_subpop_id))
+	if (community_.SubpopulationIDInUse(p_subpop_id))
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " has been used already, and cannot be used again (to prevent conflicts)." << EidosTerminate();
 	if (p_subpop_size < 1)
 		EIDOS_TERMINATION << "ERROR (Population::AddSubpopulationSplit): subpopulation p" << p_subpop_id << " empty." << EidosTerminate();
@@ -223,8 +235,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	// make and add the new subpopulation; note that we tell Subpopulation::Subpopulation() not to record tree-seq information
 	Subpopulation *new_subpop = nullptr;
  
-	if (sim_.SexEnabled())
-		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, sim_.ModeledChromosomeType(), false);	// SEX ONLY
+	if (species_.SexEnabled())
+		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, p_initial_sex_ratio, species_.ModeledChromosomeType(), false);	// SEX ONLY
 	else
 		new_subpop = new Subpopulation(*this, p_subpop_id, p_subpop_size, false, false);
 	
@@ -234,15 +246,24 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	// When running under SLiMgui, we need to decide whether this subpopulation comes in selected or not.  We can't defer that
 	// to SLiMgui's next update, because then mutation tallies are not kept properly up to date, resulting in a bad GUI refresh.
 	// The rule is: if all currently existing subpops are selected, then the new subpop comes in selected as well.
-	new_subpop->gui_selected_ = gui_all_selected_;
+    bool gui_all_selected = true;
+    
+    for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+        if (!subpop_pair.second->gui_selected_)
+        {
+            gui_all_selected = false;
+            break;
+        }
+    
+    new_subpop->gui_selected_ = gui_all_selected;
 #endif
 	
 	subpops_.emplace(p_subpop_id, new_subpop);
-	sim_.subpop_ids_.emplace(p_subpop_id);
+	species_.subpop_ids_.emplace(p_subpop_id);
 	
 	// then draw parents from the source population according to fitness, obeying the new subpop's sex ratio
 	Subpopulation &subpop = *new_subpop;
-	bool recording_tree_sequence = sim_.RecordingTreeSequence();
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
 	
 	// TREE SEQUENCE RECORDING
 	if (recording_tree_sequence)
@@ -251,12 +272,12 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		// arrive in the tree-seq tables stamped with a later time than their parents, but as far as SLiM is concerned they
 		// were created at the same time as the parents; they exist at the same point in time, and it's WF, therefore they
 		// were created at the same time, Q.E.D.  So to get the tree-seq code not to object, we add a small offset to the
-		// generation counter.  Since addSubpopSplit() could be called multiple times in sequence, splitting a new subpop off
+		// tick counter.  Since addSubpopSplit() could be called multiple times in sequence, splitting a new subpop off
 		// from each previous one in a linear fashion, each call to addSubpopSplit() needs to increase this offset slightly.
-		// The offset is reset to zero each time the tree sequence's generation counter advances.  This is similar to the
-		// timing problem that made us create tree_seq_generation_ in the first place, due to children arriving in the same
-		// SLiM generation as their parents, but at least that only happens once per generation in a predictable fashion.
-		sim_.AboutToSplitSubpop();
+		// The offset is reset to zero each time the tree sequence's tick counter advances.  This is similar to the timing
+		// problem that made us create tree_seq_tick_ in the first place, due to children arriving in the same SLiM tick as
+		// their parents, but at least that only happens once per tick in a predictable fashion.
+		species_.AboutToSplitSubpop();
 	}
 	
 	for (slim_popsize_t parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
@@ -271,7 +292,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		// matter.
 		slim_popsize_t migrant_index;
 		
-		if (sim_.SexEnabled())
+		if (species_.SexEnabled())
 		{
 			if (parent_index < subpop.parent_first_male_index_)
 				migrant_index = p_source_subpop.DrawFemaleParentUsingFitness();
@@ -295,20 +316,22 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		// TREE SEQUENCE RECORDING
 		if (recording_tree_sequence)
 		{
-			sim_.SetCurrentNewIndividual(subpop.parent_individuals_[parent_index]);
-			sim_.RecordNewGenome(nullptr, dest_genome1, source_genome1, nullptr);
-			sim_.RecordNewGenome(nullptr, dest_genome2, source_genome2, nullptr);
+			species_.SetCurrentNewIndividual(subpop.parent_individuals_[parent_index]);
+			species_.RecordNewGenome(nullptr, dest_genome1, source_genome1, nullptr);
+			species_.RecordNewGenome(nullptr, dest_genome2, source_genome2, nullptr);
 		}
 	}
 	
+	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+	cached_tally_genome_count_ = 0;
+	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
-	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this generation.
+	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this cycle.
 	
 	return new_subpop;
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // set size of subpopulation p_subpop_id to p_subpop_size
 void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 {
@@ -324,9 +347,9 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		// only remove if we have not already removed
 		if (subpops_.count(subpop_id))
 		{
-			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+			// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the cycle and then free it
 			// First we remove the symbol for the subpop
-			sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
+			community_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 			
 			// Then we immediately remove the subpop from our list of subpops
 			subpops_.erase(subpop_id);
@@ -336,6 +359,9 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 			
 			// remember the subpop for later disposal
 			removed_subpops_.emplace_back(&p_subpop);
+			
+			// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+			cached_tally_genome_count_ = 0;
 		}
 	}
 	else
@@ -345,9 +371,8 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 		p_subpop.GenerateChildrenToFitWF();
 	}
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 // remove subpopulation p_subpop_id from the model entirely
 void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 {
@@ -356,27 +381,36 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 	// only remove if we have not already removed
 	if (subpops_.count(subpop_id))
 	{
-		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the generation and then free it
+		// Note that we don't free the subpopulation here, because there may be live references to it; instead we keep it to the end of the cycle and then free it
+		community_.InvalidateInteractionsForSubpopulation(&p_subpop);
+		
 		// First we remove the symbol for the subpop
-		sim_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
+		community_.SymbolTable().RemoveConstantForSymbol(p_subpop.SymbolTableEntry().first);
 		
 		// Then we immediately remove the subpop from our list of subpops
 		subpops_.erase(subpop_id);
 		
 		// remember the subpop for later disposal
 		removed_subpops_.emplace_back(&p_subpop);
+		
+		// and let it know that it is invalid
+		p_subpop.has_been_removed_ = true;
+		
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		cached_tally_genome_count_ = 0;
 	}
 }
 
+// nonWF only:
 // move individuals as requested by survival() callbacks
 void Population::ResolveSurvivalPhaseMovement(void)
 {
-	// So, we have a survival() callback that has requested that some individuals move during the selection/viability phase.
+	// So, we have a survival() callback that has requested that some individuals move during the viability/survival phase.
 	// We want to handle this as efficiently as we can; we could have many individuals moving between subpops in arbitrary
 	// ways.  We will remove all moving individuals from their current subpops in a single pass, and then add them to their
 	// new subpops in a single pass.  If just one individual is moving, this will be inefficient since the algorithm is O(N)
 	// in the number of individuals, but I think it makes sense to optimize for the many-moving case for now.
-	bool sex_enabled = sim_.SexEnabled();
+	bool sex_enabled = species_.SexEnabled();
 	
 	// mark all individuals in all subpops as not-moving
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -388,7 +422,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 		for (Individual *individual : (subpop_pair.second)->nonWF_survival_moved_individuals_)
 			individual->scratch_ = 1;
 	
-	// loop through subpops and remove all individuals that are leaving, compacting downwards; similar to Subpopulation::ViabilitySelection()
+	// loop through subpops and remove all individuals that are leaving, compacting downwards; similar to Subpopulation::ViabilitySurvival()
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
@@ -458,7 +492,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome1_);
 			subpop->nonWF_offspring_genomes_.emplace_back(individual->genome2_);
 			
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 			// tally this as an incoming migrant for SLiMgui
 			++subpop->gui_migrants_[individual->subpopulation_->subpopulation_id_];
 #endif
@@ -472,12 +506,8 @@ void Population::ResolveSurvivalPhaseMovement(void)
 	
 	// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 	// selectively invalidate only the subpops involved in the migrations that occurred
-	auto &interactionTypes = sim_.InteractionTypes();
-	
-	for (auto int_type : interactionTypes)
-		int_type.second->Invalidate();
+	community_.InvalidateInteractionsForSpecies(&species_);
 }
-#endif  // SLIM_NONWF_ONLY
 
 void Population::PurgeRemovedSubpopulations(void)
 {
@@ -490,8 +520,8 @@ void Population::PurgeRemovedSubpopulations(void)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
-// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per generation  
+// WF only:
+// set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per cycle  
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
 { 
 	if (subpops_.count(p_source_subpop_id) == 0)
@@ -505,73 +535,8 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 	if (p_migrant_fraction > 0.0)	// BCH 4 March 2015: Added this if so we don't put a 0.0 migration rate into the table; harmless but looks bad in SLiMgui...
 		p_subpop.migrant_fractions_.emplace(p_source_subpop_id, p_migrant_fraction); 
 }
-#endif	// SLIM_WF_ONLY
 
-// execute a script event in the population; the script is assumed to be due to trigger
-void Population::ExecuteScript(SLiMEidosBlock *p_script_block, slim_generation_t p_generation, const Chromosome &p_chromosome)
-{
-#pragma unused(p_generation, p_chromosome)
-	
-#ifndef DEBUG_POINTS_ENABLED
-#error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
-#endif
-#if DEBUG_POINTS_ENABLED
-	// SLiMgui debugging point
-	EidosDebugPointIndent indenter;
-	
-	{
-		EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
-		EidosToken *decl_token = p_script_block->root_node_->token_;
-		
-		if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
-			(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
-		{
-			SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG ";
-			
-			if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventFirst)
-				SLIM_ERRSTREAM << "first()";
-			else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventEarly)
-				SLIM_ERRSTREAM << "early()";
-			else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosEventLate)
-				SLIM_ERRSTREAM << "late()";
-			else if (p_script_block->type_ == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-				SLIM_ERRSTREAM << "initialize()";
-			else
-				SLIM_ERRSTREAM << "???";
-			
-			if (p_script_block->block_id_ != -1)
-				SLIM_ERRSTREAM << " s" << p_script_block->block_id_;
-			
-			SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim_.DebugPointInfo() << ")" << std::endl;
-			indenter.indent();
-		}
-	}
-#endif
-	
-	EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
-	EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-	EidosFunctionMap &function_map = sim_.FunctionMap();
-	
-	EidosInterpreter interpreter(p_script_block->compound_statement_node_, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
-	
-	if (p_script_block->contains_self_)
-		callback_symbols.InitializeConstantSymbolEntry(p_script_block->SelfSymbolTableEntry());		// define "self"
-	
-	try
-	{
-		// Interpret the script; the result from the interpretation is not used for anything and must be void
-		EidosValue_SP result = interpreter.EvaluateInternalBlock(p_script_block->script_);
-		
-		if (result->Type() != EidosValueType::kValueVOID)
-			EIDOS_TERMINATION << "ERROR (Population::ExecuteScript): " << p_script_block->type_ << " callbacks must not return a value; use a \"return;\" statement to explicitly return void if desired." << EidosTerminate(p_script_block->identifier_token_);
-	}
-	catch (...)
-	{
-		throw;
-	}
-}
-
-#ifdef SLIM_WF_ONLY
+// WF only:
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
@@ -580,8 +545,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
-	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
 	
 	// We start out using standard weights taken from the source subpopulation.  If, when we are done handling callbacks, we are still
 	// using those standard weights, then we can do a draw using our fast lookup tables.  Otherwise, we will do a draw the hard way.
@@ -596,14 +561,14 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	
 	for (SLiMEidosBlock *mate_choice_callback : p_mate_choice_callbacks)
 	{
-		if (mate_choice_callback->active_)
+		if (mate_choice_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 				EidosToken *decl_token = mate_choice_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -617,7 +582,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 					if (mate_choice_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << mate_choice_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim_.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
@@ -647,10 +612,10 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 			// The callback is active, so we need to execute it; we start a block here to manage the lifetime of the symbol table
 			{
-				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+				EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 				EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-				EidosFunctionMap &function_map = sim_.FunctionMap();
-				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+				EidosFunctionMap &function_map = community_.FunctionMap();
+				EidosInterpreter interpreter(mate_choice_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 				
 				if (mate_choice_callback->contains_self_)
 					callback_symbols.InitializeConstantSymbolEntry(mate_choice_callback->SelfSymbolTableEntry());		// define "self"
@@ -663,18 +628,6 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				{
 					Individual *parent1 = p_source_subpop->parent_individuals_[p_parent1_index];
 					callback_symbols.InitializeConstantSymbolEntry(gID_individual, parent1->CachedEidosValue());
-				}
-				
-				if (mate_choice_callback->contains_genome1_)
-				{
-					Genome *parent1_genome1 = p_source_subpop->parent_genomes_[p_parent1_index * 2];
-					callback_symbols.InitializeConstantSymbolEntry(gID_genome1, parent1_genome1->CachedEidosValue());
-				}
-				
-				if (mate_choice_callback->contains_genome2_)
-				{
-					Genome *parent1_genome2 = p_source_subpop->parent_genomes_[p_parent1_index * 2 + 1];
-					callback_symbols.InitializeConstantSymbolEntry(gID_genome2, parent1_genome2->CachedEidosValue());
 				}
 				
 				if (mate_choice_callback->contains_subpop_)
@@ -775,11 +728,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				if (weights_modified)
 					free(current_weights);
 				
-				sim_.executing_block_type_ = old_executing_block_type;
+				community_.executing_block_type_ = old_executing_block_type;
 				
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 				// PROFILING
-				SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
+				SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 				
 				return -1;
@@ -801,11 +754,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
-		sim_.executing_block_type_ = old_executing_block_type;
+		community_.executing_block_type_ = old_executing_block_type;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
+		SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 		
 		return drawn_parent;
@@ -848,11 +801,11 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			if (weights_modified)
 				free(current_weights);
 			
-			sim_.executing_block_type_ = old_executing_block_type;
+			community_.executing_block_type_ = old_executing_block_type;
 			
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 			// PROFILING
-			SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
+			SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 			
 			return -1;
@@ -922,30 +875,29 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): second parent chosen by mateChoice() callback is female." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
 		}
 		
-		sim_.executing_block_type_ = old_executing_block_type;
+		community_.executing_block_type_ = old_executing_block_type;
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// PROFILING
-		SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
+		SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 		
 		return drawn_parent;
 	}
 	
-	sim_.executing_block_type_ = old_executing_block_type;
+	community_.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
 	
 	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
 	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness() : p_source_subpop->DrawParentUsingFitness());
 }
-#endif	// SLIM_WF_ONLY
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
-bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_genome1, Genome *p_child_genome2, IndividualSex p_child_sex, Individual *p_parent1, Genome *p_parent1Genome1, Genome *p_parent1Genome2, Individual *p_parent2, Genome *p_parent2Genome1, Genome *p_parent2Genome2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
+bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -953,20 +905,20 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 #endif
 	
 	// note the focal child during the callback, so we can prevent illegal operations during the callback
-	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
-	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-	sim_.focal_modification_child_ = p_child;
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+	community_.focal_modification_child_ = p_child;
 	
 	for (SLiMEidosBlock *modify_child_callback : p_modify_child_callbacks)
 	{
-		if (modify_child_callback->active_)
+		if (modify_child_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 				EidosToken *decl_token = modify_child_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -980,17 +932,17 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 					if (modify_child_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << modify_child_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim_.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
 #endif
 			
 			// The callback is active, so we need to execute it
-			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-			EidosFunctionMap &function_map = sim_.FunctionMap();
-			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+			EidosFunctionMap &function_map = community_.FunctionMap();
+			EidosInterpreter interpreter(modify_child_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 			
 			if (modify_child_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(modify_child_callback->SelfSymbolTableEntry());		// define "self"
@@ -1002,28 +954,8 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			if (modify_child_callback->contains_child_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_child, p_child->CachedEidosValue());
 			
-			if (modify_child_callback->contains_childGenome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome1, p_child_genome1->CachedEidosValue());
-			
-			if (modify_child_callback->contains_childGenome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_childGenome2, p_child_genome2->CachedEidosValue());
-			
-			if (modify_child_callback->contains_childIsFemale_)
-			{
-				if (p_child_sex == IndividualSex::kHermaphrodite)
-					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, gStaticEidosValueNULL);
-				else
-					callback_symbols.InitializeConstantSymbolEntry(gID_childIsFemale, (p_child_sex == IndividualSex::kFemale) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
-			}
-			
 			if (modify_child_callback->contains_parent1_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent1, p_parent1 ? p_parent1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent1Genome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome1, p_parent1Genome1 ? p_parent1Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent1Genome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent1Genome2, p_parent1Genome2 ? p_parent1Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_isSelfing_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_isSelfing, p_is_selfing ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -1033,12 +965,6 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 			
 			if (modify_child_callback->contains_parent2_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_parent2, p_parent2 ? p_parent2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent2Genome1_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome1, p_parent2Genome1 ? p_parent2Genome1->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
-			
-			if (modify_child_callback->contains_parent2Genome2_)
-				callback_symbols.InitializeConstantSymbolEntry(gID_parent2Genome2, p_parent2Genome2 ? p_parent2Genome2->CachedEidosValue() : (EidosValue_SP)gStaticEidosValueNULL);
 			
 			if (modify_child_callback->contains_subpop_)
 				callback_symbols.InitializeConstantSymbolEntry(gID_subpop, p_target_subpop->SymbolTableEntry().second);
@@ -1060,12 +986,12 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 				// If this callback told us not to generate the child, we do not call the rest of the callback chain; we're done
 				if (!generate_child)
 				{
-					sim_.executing_block_type_ = old_executing_block_type;
-					sim_.focal_modification_child_ = nullptr;
+					community_.executing_block_type_ = old_executing_block_type;
+					community_.focal_modification_child_ = nullptr;
 					
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 					// PROFILING
-					SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
+					SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
 					
 					return false;
@@ -1078,24 +1004,24 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Genome *p_child_
 		}
 	}
 	
-	sim_.executing_block_type_ = old_executing_block_type;
-	sim_.focal_modification_child_ = nullptr;
+	community_.executing_block_type_ = old_executing_block_type;
+	community_.focal_modification_child_ = nullptr;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
 	
 	return true;
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
-	bool pedigrees_enabled = sim_.PedigreesEnabled();
-	bool recording_tree_sequence = sim_.RecordingTreeSequence();
-	bool prevent_incidental_selfing = sim_.PreventIncidentalSelfing();
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	bool prevent_incidental_selfing = species_.PreventIncidentalSelfing();
 	bool sex_enabled = p_subpop.sex_enabled_;
 	slim_popsize_t total_children = p_subpop.child_subpop_size_;
 	
@@ -1114,7 +1040,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		for (const std::pair<const slim_objectid_t,double> &fractions_pair : p_subpop.migrant_fractions_)
 		{
 			slim_objectid_t migrant_source_id = fractions_pair.first;
-            Subpopulation *migrant_source = sim_.SubpopulationWithID(migrant_source_id);
+            Subpopulation *migrant_source = species_.SubpopulationWithID(migrant_source_id);
 			
 			if (!migrant_source)
 				EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): no migrant source subpopulation p" << migrant_source_id << "." << EidosTerminate();
@@ -1162,7 +1088,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
 		// limited number of mating events, for example).  So in this code branch, we prepare an overall plan for migration and sex, and then execute
-		// that plan in an order randomized with gsl_ran_shuffle().  BCH 28 September 2016: When sex is enabled, we want to generate male and female
+		// that plan in an order randomized with Eidos_ran_shuffle().  BCH 28 September 2016: When sex is enabled, we want to generate male and female
 		// offspring in shuffled order.  However, the vector of child genomes is organized into females first, then males, so we need to fill that
 		// vector in an unshuffled order or we end up trying to generate a male offspring into a female slot, or vice versa.  See the usage of
 		// child_index_F, child_index_M, and child_index in the shuffle cases below.
@@ -1201,14 +1127,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					IndividualSex planned_sex;
 					uint8_t planned_cloned;
 					uint8_t planned_selfed;
-				} offspring_plan;
+				} offspring_plan_no_source;
 				
-				static offspring_plan *planned_offspring = nullptr;
+				static offspring_plan_no_source *planned_offspring = nullptr;
 				static int64_t planned_offspring_alloc_size = 0;
 				
 				if (planned_offspring_alloc_size < total_children)
 				{
-					planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+					planned_offspring = (offspring_plan_no_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_no_source));
 					if (!planned_offspring)
 						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 					planned_offspring_alloc_size = total_children;
@@ -1263,7 +1189,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						while (migrant_count < migrants_to_generate)
 						{
-							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							offspring_plan_no_source *offspring_plan_ptr = planned_offspring + child_count;
 							
 							offspring_plan_ptr->planned_sex = child_sex;
 							
@@ -1292,7 +1218,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					}
 				}
 				
-				gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
+				Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
 				
 				// Now we can run through our plan vector and generate each planned child in order.
 				slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1300,7 +1226,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				for (child_count = 0; child_count < total_children; ++child_count)
 				{
 					// Get the plan for this offspring from our shuffled plan vector
-					offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+					offspring_plan_no_source *offspring_plan_ptr = planned_offspring + child_count;
 					
 					IndividualSex child_sex = offspring_plan_ptr->planned_sex;
 					bool selfed, cloned;
@@ -1395,9 +1321,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
 						{
-							sim_.SetCurrentNewIndividual(new_child);
-							sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
-							sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
+							species_.SetCurrentNewIndividual(new_child);
+							species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+							species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 						}
 						
 						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
@@ -1468,7 +1394,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
-							sim_.SetCurrentNewIndividual(new_child);
+							species_.SetCurrentNewIndividual(new_child);
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
@@ -1483,7 +1409,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, selfed, cloned, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 							// we need to even change the source subpop for our next attempt.  In this case, however, we have no migration.
@@ -1494,7 +1420,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
-								sim_.RetractNewIndividual();
+								species_.RetractNewIndividual();
 							
 							if (pedigrees_enabled)
 							{
@@ -1555,7 +1481,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
-						sim_.SetCurrentNewIndividual(new_child);
+						species_.SetCurrentNewIndividual(new_child);
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
@@ -1569,7 +1495,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
-						if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, IndividualSex::kHermaphrodite, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, &p_subpop, &source_subpop, *modify_child_callbacks))
+						if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, /* p_is_selfing */ false, /* p_is_cloning */ false, &p_subpop, &source_subpop, *modify_child_callbacks))
 						{
 							// back out child state we created; we could back out the assigned pedigree ID too, and cancel the tree recording
 							child_genome1->clear_to_nullptr();
@@ -1577,7 +1503,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence)
-								sim_.RetractNewIndividual();
+								species_.RetractNewIndividual();
 							
 							if (pedigrees_enabled)
 								child->RevokeParentage_Biparental(*parent1_ind, *parent2_ind);
@@ -1615,14 +1541,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				IndividualSex planned_sex;
 				uint8_t planned_cloned;
 				uint8_t planned_selfed;
-			} offspring_plan;
+			} offspring_plan_with_source;
 			
-			static offspring_plan *planned_offspring = nullptr;
+			static offspring_plan_with_source *planned_offspring = nullptr;
 			static int64_t planned_offspring_alloc_size = 0;
 			
 			if (planned_offspring_alloc_size < total_children)
 			{
-				planned_offspring = (offspring_plan *)realloc(planned_offspring, total_children * sizeof(offspring_plan));
+				planned_offspring = (offspring_plan_with_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_with_source));
 				if (!planned_offspring)
 					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				planned_offspring_alloc_size = total_children;
@@ -1690,7 +1616,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						while (migrant_count < migrants_to_generate)
 						{
-							offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+							offspring_plan_with_source *offspring_plan_ptr = planned_offspring + child_count;
 							
 							offspring_plan_ptr->planned_source = &source_subpop;
 							offspring_plan_ptr->planned_sex = child_sex;
@@ -1721,7 +1647,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				}
 			}
 			
-			gsl_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children, sizeof(offspring_plan));
+			Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
 			
 			// Now we can run through our plan vector and generate each planned child in order.
 			slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1729,7 +1655,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			for (child_count = 0; child_count < total_children; ++child_count)
 			{
 				// Get the plan for this offspring from our shuffled plan vector
-				offspring_plan *offspring_plan_ptr = planned_offspring + child_count;
+				offspring_plan_with_source *offspring_plan_ptr = planned_offspring + child_count;
 				
 				Subpopulation *source_subpop = offspring_plan_ptr->planned_source;
 				IndividualSex child_sex = offspring_plan_ptr->planned_sex;
@@ -1844,9 +1770,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
 					{
-						sim_.SetCurrentNewIndividual(new_child);
-						sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
-						sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
+						species_.SetCurrentNewIndividual(new_child);
+						species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+						species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 					}
 					
 					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
@@ -1917,7 +1843,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
-						sim_.SetCurrentNewIndividual(new_child);
+						species_.SetCurrentNewIndividual(new_child);
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
@@ -1932,7 +1858,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					Individual *parent1_ind = source_subpop->parent_individuals_[parent1];
 					Individual *parent2_ind = source_subpop->parent_individuals_[parent2];
 					
-					if (!ApplyModifyChildCallbacks(child, child_genome1, child_genome2, child_sex, parent1_ind, parent1_ind->genome1_, parent1_ind->genome2_, parent2_ind, parent2_ind->genome1_, parent2_ind->genome2_, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
+					if (!ApplyModifyChildCallbacks(child, parent1_ind, parent2_ind, selfed, cloned, &p_subpop, source_subpop, *modify_child_callbacks))
 					{
 						// The modifyChild() callbacks suppressed the child altogether; this is juvenile migrant mortality, basically, so
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different
@@ -1953,7 +1879,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
-							sim_.RetractNewIndividual();
+							species_.RetractNewIndividual();
 						
 						if (pedigrees_enabled)
 						{
@@ -1973,7 +1899,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 	else
 	{
 		// NO CALLBACKS PRESENT: offspring can be generated in a fixed (i.e. predetermined) order.  This is substantially faster, since it avoids
-		// some setup overhead, including the gsl_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
+		// some setup overhead, including the Eidos_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
 		// the fact that the individuals might be in a non-random order, because of this code path.  BEWARE!
 		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
@@ -2058,7 +1984,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-									sim_.SetCurrentNewIndividual(new_child);
+									species_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
@@ -2087,7 +2013,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-									sim_.SetCurrentNewIndividual(new_child);
+									species_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
@@ -2131,9 +2057,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
 								{
-									sim_.SetCurrentNewIndividual(new_child);
-									sim_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
-									sim_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
+									species_.SetCurrentNewIndividual(new_child);
+									species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+									species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 								}
 								
 								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
@@ -2188,7 +2114,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence)
-									sim_.SetCurrentNewIndividual(new_child);
+									species_.SetCurrentNewIndividual(new_child);
 								
 								// recombination, gene-conversion, mutation
 								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr, nullptr);
@@ -2205,7 +2131,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
@@ -2216,22 +2141,22 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 #endif
 	
 	// note the focal child during the callback, so we can prevent illegal operations during the callback
-	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
-	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
 	
 	bool crossovers_changed = false;
 	EidosValue_SP local_crossovers_ptr;
 	
 	for (SLiMEidosBlock *recombination_callback : p_recombination_callbacks)
 	{
-		if (recombination_callback->active_)
+		if (recombination_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim_.DebugPoints();
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 				EidosToken *decl_token = recombination_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -2245,17 +2170,17 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 					if (recombination_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << recombination_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim_.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
 #endif
 			
 			// The callback is active, so we need to execute it
-			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim_.SymbolTable());
+			EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 			EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-			EidosFunctionMap &function_map = sim_.FunctionMap();
-			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &sim_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+			EidosFunctionMap &function_map = community_.FunctionMap();
+			EidosInterpreter interpreter(recombination_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 			
 			if (recombination_callback->contains_self_)
 				callback_symbols.InitializeConstantSymbolEntry(recombination_callback->SelfSymbolTableEntry());		// define "self"
@@ -2344,11 +2269,11 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 		breakpoints_changed = true;
 	}
 	
-	sim_.executing_block_type_ = old_executing_block_type;
+	community_.executing_block_type_ = old_executing_block_type;
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)]);
 #endif
 	
 	return breakpoints_changed;
@@ -2493,8 +2418,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// a null strand cannot cross over and cannot mutate, so we are done
 		
 		// TREE SEQUENCE RECORDING
-		if (sim_.RecordingTreeSequence())
-			sim_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
+		if (species_.RecordingTreeSequence())
+			species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
 		
 		return;
 	}
@@ -2513,7 +2438,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	//
 	
 	// determine how many mutations and breakpoints we have
-	Chromosome &chromosome = sim_.TheChromosome();
+	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
@@ -2621,11 +2546,11 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	}
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence = sim_.RecordingTreeSequence();
-	bool recording_tree_sequence_mutations = sim_.RecordingTreeSequenceMutations();
+	bool recording_tree_sequence = species_.RecordingTreeSequence();
+	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
-		sim_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
+		species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2767,7 +2692,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
+			if (species_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -2775,7 +2700,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, sim_.Generation(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -2788,7 +2713,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, sim_.Generation());
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick());
 					
 					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
@@ -2882,7 +2807,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
@@ -3024,7 +2949,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
-											sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 									}
 									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
@@ -3065,7 +2990,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
@@ -3207,7 +3132,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
@@ -3275,9 +3200,9 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// since new mutations could be stacked with other pre-existing mutations that should be
 	// subject to heteroduplex repair.  Anyway this is such an edge case that our chosen policy
 	// on it shouldn't matter for practical purposes.
-	double gBGC_coeff_scaled = (sim_.TheChromosome().mismatch_repair_bias_ + 1.0) / 2.0;
-	bool repairs_biased = (sim_.IsNucleotideBased() && (gBGC_coeff_scaled != 0.5));
-	NucleotideArray *ancestral_sequence = (repairs_biased ? sim_.TheChromosome().AncestralSequence() : nullptr);
+	double gBGC_coeff_scaled = (species_.TheChromosome().mismatch_repair_bias_ + 1.0) / 2.0;
+	bool repairs_biased = (species_.IsNucleotideBased() && (gBGC_coeff_scaled != 0.5));
+	NucleotideArray *ancestral_sequence = (repairs_biased ? species_.TheChromosome().AncestralSequence() : nullptr);
 	int heteroduplex_tract_count = (int)(p_heteroduplex.size() / 2);
 	
 	if (heteroduplex_tract_count * 2 != (int)p_heteroduplex.size())
@@ -3608,7 +3533,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	}
 	
 	// TREE SEQUENCE RECORDING
-	if (sim_.RecordingTreeSequenceMutations())
+	if (species_.RecordingTreeSequenceMutations())
 	{
 		// We repurpose repair_removals here as a vector of all positions that changed due to heteroduplex repair.
 		// We therefore add in the positions for each entry in repair_additions, then sort and unique.
@@ -3620,7 +3545,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		
 		// Then we record the new derived state at every position that changed
 		for (slim_position_t changed_pos : repair_removals)
-			sim_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
+			species_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
 	}
 }
 
@@ -3648,14 +3573,14 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 #endif
 	
 	// determine how many mutations and breakpoints we have
-	Chromosome &chromosome = sim_.TheChromosome();
+	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations = chromosome.DrawMutationCount(p_parent_sex);
 	
 	// we need a defined end breakpoint, so we add it now
 	p_breakpoints.emplace_back(chromosome.last_position_mutrun_ + 1);
 	
 	// TREE SEQUENCE RECORDING
-	bool recording_tree_sequence_mutations = sim_.RecordingTreeSequenceMutations();
+	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -3786,7 +3711,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
+			if (species_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -3794,7 +3719,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -3807,7 +3732,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation());
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());
 					
 					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
@@ -3947,7 +3872,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
@@ -3988,7 +3913,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
-									sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 							}
 							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
@@ -4130,7 +4055,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							sim_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
@@ -4182,7 +4107,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
 #endif
 	
-	bool recording_tree_sequence_mutations = sim_.RecordingTreeSequenceMutations();
+	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
 	GenomeType child_genome_type = p_child_genome.Type();
 	GenomeType parent_genome_type = p_parent_genome.Type();
@@ -4204,7 +4129,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 	}
 	
 	// determine how many mutations and breakpoints we have
-	Chromosome &chromosome = sim_.TheChromosome();
+	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations = chromosome.DrawMutationCount(p_child_sex);	// the parent sex is the same as the child sex
 	
 	// mutations are usually rare, so let's streamline the case where none occur
@@ -4230,7 +4155,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		try {
-			if (sim_.IsNucleotideBased() || p_mutation_callbacks)
+			if (species_.IsNucleotideBased() || p_mutation_callbacks)
 			{
 				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
 				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
@@ -4238,7 +4163,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
 					
 					if (new_mutation != -1)
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
@@ -4260,7 +4185,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
 				for (int k = 0; k < num_mutations; k++)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, sim_.Generation());	// the parent sex is the same as the child sex
+					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
 					
 					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 					
@@ -4334,7 +4259,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								sim_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+								species_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
@@ -4383,7 +4308,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 }
 
 #ifdef SLIMGUI
-void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value)
+void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, double p_fitness_value)
 {
 	FitnessHistory *history_rec_ptr = nullptr;
 	
@@ -4411,16 +4336,16 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 	if (history_rec_ptr)
 	{
 		double *history = history_rec_ptr->history_;
-		slim_generation_t history_length = history_rec_ptr->history_length_;
+		slim_tick_t history_length = history_rec_ptr->history_length_;
 		
 		if (p_history_index >= history_length)
 		{
-			slim_generation_t oldHistoryLength = history_length;
+			slim_tick_t oldHistoryLength = history_length;
 			
 			history_length = p_history_index + 1000;			// give some elbow room for expansion
 			history = (double *)realloc(history, history_length * sizeof(double));
 			
-			for (slim_generation_t i = oldHistoryLength; i < history_length; ++i)
+			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
 				history[i] = NAN;
 			
 			// Copy the new values back into the history record
@@ -4432,7 +4357,7 @@ void Population::RecordFitness(slim_generation_t p_history_index, slim_objectid_
 	}
 }
 
-void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size)
+void Population::RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p_subpop_id, slim_popsize_t p_subpop_size)
 {
     SubpopSizeHistory *history_rec_ptr = nullptr;
 	
@@ -4460,16 +4385,16 @@ void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_object
 	if (history_rec_ptr)
 	{
 		slim_popsize_t *history = history_rec_ptr->history_;
-		slim_generation_t history_length = history_rec_ptr->history_length_;
+		slim_tick_t history_length = history_rec_ptr->history_length_;
 		
 		if (p_history_index >= history_length)
 		{
-			slim_generation_t oldHistoryLength = history_length;
+			slim_tick_t oldHistoryLength = history_length;
 			
 			history_length = p_history_index + 1000;			// give some elbow room for expansion
 			history = (slim_popsize_t *)realloc(history, history_length * sizeof(slim_popsize_t));
 			
-			for (slim_generation_t i = oldHistoryLength; i < history_length; ++i)
+			for (slim_tick_t i = oldHistoryLength; i < history_length; ++i)
 				history[i] = 0;
 			
 			// Copy the new values back into the history record
@@ -4481,61 +4406,55 @@ void Population::RecordSubpopSize(slim_generation_t p_history_index, slim_object
 	}
 }
 
-// This method is used to record population statistics that are kept per generation for SLiMgui
+// This method is used to record population statistics that are kept per tick for SLiMgui
 #if defined(__clang__)
 __attribute__((no_sanitize("float-divide-by-zero")))
 __attribute__((no_sanitize("integer-divide-by-zero")))
 #endif
 void Population::SurveyPopulation(void)
 {
-	// Calculate mean fitness for this generation
-	double totalFitness = 0.0;
-	slim_popsize_t individualCount = 0;
-	slim_generation_t historyIndex = sim_.generation_ - 1;	// zero-base: the first generation we put something in is generation 1, and we put it at index 0
-	
+	// Calculate mean fitness for this tick
+	double totalUnscaledFitness = 0.0;
 	slim_popsize_t totalPopSize = 0;
+	slim_tick_t historyIndex = community_.Tick() - 1;	// zero-base: the first tick we put something in is tick 1, and we put it at index 0
+	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{ 
 		Subpopulation *subpop = subpop_pair.second;
+		slim_popsize_t subpop_size = subpop->parent_subpop_size_;
 		
-		// first calculate the total fitness across the subpopulation; we used to do this during fitness calculations,
-		// but in nonWF models the population composition can change later in the generation cycle, due to mortality
-		// and migration, so we need to postpone this assessment to the end of the generation – now
-		double subpop_total = 0;
+		// calculate the total fitness across the subpopulation; in nonWF models the population composition can change
+		// late in the cycle, due to mortality and migration, so we postpone this assessment to the end of the tick
+		// we use the fitness without subpop fitnessScaling, to present individual fitness without density effects
+		double subpop_unscaled_total = 0;
 		
 		for (Individual *individual : subpop->parent_individuals_)
-			subpop_total += individual->cached_fitness_UNSAFE_;
+			subpop_unscaled_total += individual->cached_unscaled_fitness_;
 		
-		subpop->parental_total_fitness_ = subpop_total;
+		totalUnscaledFitness += subpop_unscaled_total;
+		totalPopSize += subpop_size;
 		
-		// then add the fitness total for the subpopulation in to our overall total; we use the fitness rescaled
-		// by the last fitnessScaling value, since we want to present individual fitness without density effects
-		double rescaled_fitness = (subpop->parental_total_fitness_ / subpop->last_fitness_scaling_);
+		double meanUnscaledFitness = subpop_unscaled_total / subpop_size;
 		
-		totalFitness += rescaled_fitness;
-		individualCount += subpop->parent_subpop_size_;
-		
-		RecordFitness(historyIndex, subpop_pair.first, rescaled_fitness / subpop->parent_subpop_size_);
-        
-        // Tally the subpop's size as well
-        RecordSubpopSize(historyIndex, subpop_pair.first, subpop->parent_subpop_size_);
-        
-        totalPopSize += subpop->parent_subpop_size_;
+		// Record for SLiMgui display
+		subpop->parental_mean_unscaled_fitness_ = meanUnscaledFitness;
+		RecordFitness(historyIndex, subpop_pair.first, meanUnscaledFitness);
+		RecordSubpopSize(historyIndex, subpop_pair.first, subpop_size);
 	}
 	
-	RecordFitness(historyIndex, -1, totalFitness / individualCount);
-    RecordSubpopSize(historyIndex, -1, totalPopSize);
+	RecordFitness(historyIndex, -1, totalUnscaledFitness / totalPopSize);
+	RecordSubpopSize(historyIndex, -1, totalPopSize);
 }
 #endif
 
 #ifdef SLIMGUI
 // This method is used to tally up histogram metrics that are kept per mutation type for SLiMgui
-void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_generation_t p_bin_number, slim_generation_t **p_buffer, uint32_t *p_bufferBins)
+void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, int p_mutation_type_count, slim_tick_t p_bin_number, slim_tick_t **p_buffer, uint32_t *p_bufferBins)
 {
-	slim_generation_t *buffer = *p_buffer;
+	slim_tick_t *buffer = *p_buffer;
 	uint32_t bufferBins = *p_bufferBins;
 	
-	// A negative bin number can occur if the user is using the origin generation of mutations for their own purposes, as a tag field.  To protect against
+	// A negative bin number can occur if the user is using the origin tick of mutations for their own purposes, as a tag field.  To protect against
 	// crashing, we therefore clamp the bin number into [0, 1000000].  The upper bound is somewhat arbitrary, but we don't really want to allocate a larger
 	// buffer than that anyway, and having values that large get clamped is not the end of the world, since these tallies are just for graphing.
 	if (p_bin_number < 0)
@@ -4550,7 +4469,7 @@ void Population::AddTallyForMutationTypeAndBinNumber(int p_mutation_type_index, 
 		bufferBins = static_cast<uint32_t>(ceil((p_bin_number + 1) / 128.0) * 128.0);			// give ourselves some headroom so we're not reallocating too often
 		int newEntryCount = bufferBins * p_mutation_type_count;
 		
-		buffer = (slim_generation_t *)realloc(buffer, newEntryCount * sizeof(slim_generation_t));
+		buffer = (slim_tick_t *)realloc(buffer, newEntryCount * sizeof(slim_tick_t));
 		
 		// Zero out the new entries; the compiler should be smart enough to optimize this...
 		for (int i = oldEntryCount; i < newEntryCount; ++i)
@@ -4587,24 +4506,24 @@ void Population::ValidateMutationFitnessCaches(void)
 	}
 }
 
-void Population::RecalculateFitness(slim_generation_t p_generation)
+void Population::RecalculateFitness(slim_tick_t p_tick)
 {
-	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the fitness() callbacks
+	// calculate the fitnesses of the parents and make lookup tables; the main thing we do here is manage the mutationEffect() callbacks
 	// as per the SLiM design spec, we get the list of callbacks once, and use that list throughout this stage, but we construct
 	// subsets of it for each subpopulation, so that UpdateFitness() can just use the callback list as given to it
-	std::vector<SLiMEidosBlock*> fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessCallback, -1, -1, -1);
-	std::vector<SLiMEidosBlock*> global_fitness_callbacks = sim_.ScriptBlocksMatching(p_generation, SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback, -2, -1, -1);
+	std::vector<SLiMEidosBlock*> mutationEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosMutationEffectCallback, -1, -1, -1);
+	std::vector<SLiMEidosBlock*> fitnessEffect_callbacks = species_.CallbackBlocksMatching(p_tick, SLiMEidosBlockType::SLiMEidosFitnessEffectCallback, -1, -1, -1);
 	bool no_active_callbacks = true;
 	
-	for (SLiMEidosBlock *callback : fitness_callbacks)
-		if (callback->active_)
+	for (SLiMEidosBlock *callback : mutationEffect_callbacks)
+		if (callback->block_active_)
 		{
 			no_active_callbacks = false;
 			break;
 		}
 	if (no_active_callbacks)
-		for (SLiMEidosBlock *callback : global_fitness_callbacks)
-			if (callback->active_)
+		for (SLiMEidosBlock *callback : fitnessEffect_callbacks)
+			if (callback->block_active_)
 			{
 				no_active_callbacks = false;
 				break;
@@ -4613,8 +4532,8 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	// Figure out how we are going to handle MutationRun nonneutral mutation caches; see mutation_run.h.  We need to assess
 	// the state of callbacks and decide which of the three "regimes" we are in, and then depending upon that and what
 	// regime we were in in the previous generation, invalidate nonneutral caches or allow them to persist.
-	const std::map<slim_objectid_t,MutationType*> &mut_types = sim_.MutationTypes();
-	int32_t last_regime = sim_.last_nonneutral_regime_;
+	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
+	int32_t last_regime = species_.last_nonneutral_regime_;
 	int32_t current_regime;
 	
 	if (no_active_callbacks)
@@ -4629,22 +4548,22 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			MutationType *muttype = muttype_iter.second;
 			
 			muttype->previous_set_neutral_by_global_active_callback_ = muttype->set_neutral_by_global_active_callback_;
-			muttype->previous_subject_to_fitness_callback_ = muttype->subject_to_fitness_callback_;
+			muttype->previous_subject_to_mutationEffect_callback_ = muttype->subject_to_mutationEffect_callback_;
 		}
 		
-		// Then we assess which muttypes are being made globally neutral by a constant-value fitness callback
+		// Then we assess which muttypes are being made globally neutral by a constant-value mutationEffect() callback
 		bool all_active_callbacks_are_global_neutral_effects = true;
 		
 		for (auto muttype_iter : mut_types)
 			(muttype_iter.second)->set_neutral_by_global_active_callback_ = false;
 		
-		for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+		for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				if (fitness_callback->subpopulation_id_ == -1)
+				if (mutationEffect_callback->subpopulation_id_ == -1)
 				{
-					const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+					const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 					
 					if (compound_statement_node->cached_return_value_)
 					{
@@ -4656,11 +4575,11 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 							if (result->FloatAtIndex(0, nullptr) == 1.0)
 							{
 								// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-								slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+								slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 								
 								if (mutation_type_id != -1)
 								{
-                                    MutationType *found_muttype = sim_.MutationTypeWithID(mutation_type_id);
+                                    MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
 									
 									if (found_muttype)
 										found_muttype->set_neutral_by_global_active_callback_ = true;
@@ -4695,18 +4614,18 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			current_regime = 3;
 			
 			for (auto muttype_iter : mut_types)
-				(muttype_iter.second)->subject_to_fitness_callback_ = false;
+				(muttype_iter.second)->subject_to_mutationEffect_callback_ = false;
 			
-			for (SLiMEidosBlock *fitness_callback : fitness_callbacks)
+			for (SLiMEidosBlock *mutationEffect_callback : mutationEffect_callbacks)
 			{
-				slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+				slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 				
 				if (mutation_type_id != -1)
 				{
-                    MutationType *found_muttype = sim_.MutationTypeWithID(mutation_type_id);
+                    MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
 					
 					if (found_muttype)
-						found_muttype->subject_to_fitness_callback_ = true;
+						found_muttype->subject_to_mutationEffect_callback_ = true;
 				}
 			}
 		}
@@ -4714,18 +4633,18 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	
 	// trigger a recache of nonneutral mutation lists for some regime transitions; see mutation_run.h
 	if (last_regime == 0)
-		sim_.nonneutral_change_counter_++;
+		species_.nonneutral_change_counter_++;
 	else if ((current_regime == 1) && ((last_regime == 2) || (last_regime == 3)))
-		sim_.nonneutral_change_counter_++;
+		species_.nonneutral_change_counter_++;
 	else if (current_regime == 2)
 	{
 		if (last_regime != 2)
-			sim_.nonneutral_change_counter_++;
+			species_.nonneutral_change_counter_++;
 		else
 		{
-			// If we are in regime 2 this generation and were last generation as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this generation as it was last
-			// generation, we can actually carry over our nonneutral buffers.
+			// If we are in regime 2 this cycle and were last cycle as well, then if the way that
+			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
+			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
 			for (auto muttype_iter : mut_types)
@@ -4737,45 +4656,46 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 			}
 			
 			if (!callback_state_identical)
-				sim_.nonneutral_change_counter_++;
+				species_.nonneutral_change_counter_++;
 		}
 	}
 	else if (current_regime == 3)
 	{
 		if (last_regime != 3)
-			sim_.nonneutral_change_counter_++;
+			species_.nonneutral_change_counter_++;
 		else
 		{
-			// If we are in regime 3 this generation and were last generation as well, then if the way that
-			// fitness callbacks are influencing mutation types is the same this generation as it was last
-			// generation, we can actually carry over our nonneutral buffers.
+			// If we are in regime 3 this cycle and were last cycle as well, then if the way that
+			// mutationEffect() callbacks are influencing mutation types is the same this cycle as it was last
+			// cycle, we can actually carry over our nonneutral buffers.
 			bool callback_state_identical = true;
 			
 			for (auto muttype_iter : mut_types)
 			{
 				MutationType *muttype = muttype_iter.second;
 				
-				if (muttype->subject_to_fitness_callback_ != muttype->previous_subject_to_fitness_callback_)
+				if (muttype->subject_to_mutationEffect_callback_ != muttype->previous_subject_to_mutationEffect_callback_)
 					callback_state_identical = false;
 			}
 			
 			if (!callback_state_identical)
-				sim_.nonneutral_change_counter_++;
+				species_.nonneutral_change_counter_++;
 		}
 	}
 	
 	// move forward to the regime we just chose; UpdateFitness() can consult this to get the current regime
-	sim_.last_nonneutral_regime_ = current_regime;
+	species_.last_nonneutral_regime_ = current_regime;
 	
-	SLiMEidosBlockType old_executing_block_type = sim_.executing_block_type_;
-	sim_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// used for both fitness() and fitness(NULL) for simplicity
+	SLiMEidosBlockType old_executing_block_type = community_.executing_block_type_;
+	community_.executing_block_type_ = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;	// used for both mutationEffect() and fitnessEffect() for simplicity
+																							// FIXME this will get cleaned up when multiple phenotypes is done
 	
 	if (no_active_callbacks)
 	{
-		std::vector<SLiMEidosBlock*> no_fitness_callbacks;
+		std::vector<SLiMEidosBlock*> no_callbacks;
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			subpop_pair.second->UpdateFitness(no_fitness_callbacks, no_fitness_callbacks);
+			subpop_pair.second->UpdateFitness(no_callbacks, no_callbacks);
 	}
 	else
 	{
@@ -4783,42 +4703,38 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 		{
 			slim_objectid_t subpop_id = subpop_pair.first;
 			Subpopulation *subpop = subpop_pair.second;
-			std::vector<SLiMEidosBlock*> subpop_fitness_callbacks;
-			std::vector<SLiMEidosBlock*> subpop_global_fitness_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_mutationEffect_callbacks;
+			std::vector<SLiMEidosBlock*> subpop_fitnessEffect_callbacks;
 			
-			// Get fitness callbacks that apply to this subpopulation
-			for (SLiMEidosBlock *callback : fitness_callbacks)
+			// Get mutationEffect() and fitnessEffect() callbacks that apply to this subpopulation
+			for (SLiMEidosBlock *callback : mutationEffect_callbacks)
 			{
 				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-					subpop_fitness_callbacks.emplace_back(callback);
+					subpop_mutationEffect_callbacks.emplace_back(callback);
 			}
-			for (SLiMEidosBlock *callback : global_fitness_callbacks)
+			for (SLiMEidosBlock *callback : fitnessEffect_callbacks)
 			{
 				slim_objectid_t callback_subpop_id = callback->subpopulation_id_;
 				
 				if ((callback_subpop_id == -1) || (callback_subpop_id == subpop_id))
-					subpop_global_fitness_callbacks.emplace_back(callback);
+					subpop_fitnessEffect_callbacks.emplace_back(callback);
 			}
 			
 			// Update fitness values, using the callbacks
-			subpop->UpdateFitness(subpop_fitness_callbacks, subpop_global_fitness_callbacks);
+			subpop->UpdateFitness(subpop_mutationEffect_callbacks, subpop_fitnessEffect_callbacks);
 		}
 	}
 	
-	sim_.executing_block_type_ = old_executing_block_type;
+	community_.executing_block_type_ = old_executing_block_type;
 	
 	// reset fitness_scaling_ to 1.0 on subpops and individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
 		Subpopulation *subpop = subpop_pair.second;
 		
-#ifdef SLIMGUI
-		// in SLiMgui, remember the fitness_scaling_ value used in fitness calculations, to renormalize the display
-		subpop->last_fitness_scaling_ = subpop->fitness_scaling_;
-#endif
-		subpop->fitness_scaling_ = 1.0;
+		subpop->subpop_fitness_scaling_ = 1.0;
 		
 		// Reset fitness_scaling_ on individuals only if it has ever been changed
 		if (Individual::s_any_individual_fitness_scaling_set_)
@@ -4831,24 +4747,15 @@ void Population::RecalculateFitness(slim_generation_t p_generation)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 // Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
 void Population::ClearParentalGenomes(void)
 {
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	if (species_.HasGenetics())
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-		std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-		
-		for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			subpop_genomes[i]->clear_to_nullptr();
-	}
-	
-	// We have to clear out removed subpops, too, for as long as they stick around
-	for (Subpopulation *subpop : removed_subpops_)
-	{
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
+			Subpopulation *subpop = subpop_pair.second;
 			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 			
@@ -4856,16 +4763,27 @@ void Population::ClearParentalGenomes(void)
 				subpop_genomes[i]->clear_to_nullptr();
 		}
 		
+		// We have to clear out removed subpops, too, for as long as they stick around
+		for (Subpopulation *subpop : removed_subpops_)
 		{
-			slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+			{
+				slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+				std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->clear_to_nullptr();
+			}
 			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i]->clear_to_nullptr();
+			{
+				slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+				std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->clear_to_nullptr();
+			}
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // Scan through all mutation runs in the simulation and unique them
 void Population::UniqueMutationRuns(void)
@@ -4979,8 +4897,7 @@ void Population::UniqueMutationRuns(void)
 #ifndef __clang_analyzer__
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 {
-#ifdef SLIM_WF_ONLY
-	if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5022,7 +4939,6 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs split into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -5178,8 +5094,7 @@ struct slim_pair_hash {
 #ifndef __clang_analyzer__
 void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 {
-#ifdef SLIM_WF_ONLY
-	if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5221,7 +5136,6 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	// make a map to keep track of which mutation runs join into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -5345,12 +5259,10 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 #endif
 
 // Tally mutations and remove fixed/lost mutations
-void Population::MaintainRegistry(void)
+void Population::MaintainMutationRegistry(void)
 {
-#ifdef SLIM_WF_ONLY
-	if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-		EIDOS_TERMINATION << "ERROR (Population::MaintainRegistry): (internal error) MaintainRegistry() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
 	
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	TallyMutationReferences(nullptr, true);
@@ -5380,14 +5292,12 @@ void Population::MaintainRegistry(void)
 // assess usage patterns of mutation runs across the simulation
 void Population::AssessMutationRuns(void)
 {
-#ifdef SLIM_WF_ONLY
-	if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::AssessMutationRuns): (internal error) AssessMutationRuns() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
-	slim_generation_t gen = sim_.Generation();
+	slim_tick_t tick = community_.Tick();
 	
-	if (gen % 1000 == 0)
+	if (tick % 1000 == 0)
 	{
 		// First, unique our runs; this is just for debugging the uniquing, and should be removed.  FIXME
 		slim_refcount_t total_genome_count = 0, total_mutrun_count = 0, total_shared_mutrun_count = 0;
@@ -5436,7 +5346,7 @@ void Population::AssessMutationRuns(void)
 			}
 		}
 		
-		std::cout << "***** Generation " << gen << ":" << std::endl;
+		std::cout << "***** Tick " << tick << ":" << std::endl;
 		std::cout << "   Mutation count: " << mutation_registry_.size() << std::endl;
 		std::cout << "   Genome count: " << total_genome_count << " (divided into " << mutrun_count << " mutation runs of length " << mutrun_length << ")" << std::endl;
 		
@@ -5452,8 +5362,8 @@ void Population::AssessMutationRuns(void)
 	}
 }
 
-#ifdef SLIM_WF_ONLY
-// step forward a generation: make the children become the parents
+// WF only:
+// step forward to the next generation: make the children become the parents
 void Population::SwapGenerations(void)
 {
 	// record lifetime reproductive outputs for all parents before swapping, including in subpops being removed
@@ -5465,14 +5375,13 @@ void Population::SwapGenerations(void)
 	// dispose of any freed subpops
 	PurgeRemovedSubpopulations();
 	
-	// make children the new parents; each subpop flips its child_generation_valid flag at the end of this call
+	// make children the new parents; each subpop flips its child_generation_valid_ flag at the end of this call
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		subpop_pair.second->SwapChildAndParentGenomes();
 	
 	// flip our flag to indicate that the good genomes are now in the parental generation, and the next child generation is ready to be produced
 	child_generation_valid_ = false;
 }
-#endif	// SLIM_WF_ONLY
 
 // count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
@@ -5489,18 +5398,74 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		}
 	}
 	
+	//std::cout << "TallyMutationReferences() in tick " << species_.community_.tick_ << " :" << std::endl;
+	//std::cout << "   p_subpops_to_tally == " << p_subpops_to_tally << ", count == " << (p_subpops_to_tally == nullptr ? 0 : p_subpops_to_tally->size()) << std::endl;
+	//std::cout << "   p_force_recache == " << (p_force_recache ? "T" : "F") << std::endl;
+	//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
+	
 	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
 	if (!p_force_recache && (cached_tally_genome_count_ != 0))
 	{
-		if ((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0))
+		//std::cout << "   last_tallied_subpops_.size() == " << last_tallied_subpops_.size() << std::endl;
+		
+		if (((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0)) ||
+			(p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally)))
 		{
-			return cached_tally_genome_count_;
-		}
-		else if (p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
-		{
+			// we can use our cached data; return the cached genome count, which should not have changed
+			//std::cout << "   REUSING CACHE" << std::endl;
+			
+#if DEBUG
+			// check that the cached genome count is correct; note that it includes only non-null genomes
+			slim_refcount_t total_genome_count = 0;
+			
+			if (p_subpops_to_tally)
+			{
+				// tallying across the specified set of subpops
+				for (Subpopulation *subpop : *p_subpops_to_tally)
+				{
+					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+					
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					{
+						Genome &genome = *subpop_genomes[i];
+						
+						if (!genome.IsNull())
+							total_genome_count++;
+					}
+				}
+			}
+			else
+			{
+				// tallying across all subpops
+				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+				{
+					Subpopulation *subpop = subpop_pair.second;
+					
+					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+					
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					{
+						Genome &genome = *subpop_genomes[i];
+						
+						if (!genome.IsNull())
+							total_genome_count++;
+					}
+				}
+			}
+			
+			//std::cout << "   total_genome_count == " << total_genome_count << std::endl;
+			
+			if (total_genome_count != cached_tally_genome_count_)
+				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
+#endif
+			
 			return cached_tally_genome_count_;
 		}
 	}
+	
+	//std::cout << "   CALCULATING FRESH" << std::endl;
 	
 	// Now do the actual tallying, since apparently it is necessary
 	if (p_subpops_to_tally)
@@ -5547,6 +5512,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// set up the cache info
 		last_tallied_subpops_ = *p_subpops_to_tally;
 		cached_tally_genome_count_ = total_genome_count;
+		//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 		
 		return total_genome_count;
 	}
@@ -5556,12 +5522,20 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		// mutation in each Genome; our first order of business is to figure out which case we are using.
 		bool can_tally_runs = true;
 		
-		// To tally using MutationRun, we should be at the point in the generation cycle where the registry is
+		// To tally using MutationRun, we should be at the point in the cycle where the registry is
 		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
-#ifdef SLIM_WF_ONLY
-		if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+		if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 			can_tally_runs = false;
-#endif	// SLIM_WF_ONLY
+		
+		// If we have any removed subpopulations waiting to be disposed of, we can't use the MutationRun tallies
+		// because the removed subpopulations are still boosting the refcounts of the MutationRuns
+		if (removed_subpops_.size() > 0)
+			can_tally_runs = false;
+		
+		// If we have any killed individuals in the graveyard, we can't use the MutationRun tallies
+		// because the killed individuals are still boosting the refcounts of the MutationRuns
+		if (species_.GraveyardSize() > 0)
+			can_tally_runs = false;
 		
 #ifdef SLIMGUI
 		// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
@@ -5606,7 +5580,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				}
 			}
 			
-			int mutrun_count = sim_.TheChromosome().mutrun_count_;
+			int mutrun_count = species_.TheChromosome().mutrun_count_;
 			
 			if (total_genome_count * mutrun_count != tally_mutrun_ref_count)
 				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count." << EidosTerminate();
@@ -5651,6 +5625,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			gui_total_genome_count_ = total_genome_count;
 #endif
 			
+			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 			return total_genome_count;
 		}
 		else
@@ -5819,6 +5794,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			gui_total_genome_count_ = gui_total_genome_count;
 #endif
 			
+			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
 			return total_genome_count;
 		}
 	}
@@ -5883,7 +5859,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 		
-		if ((sim_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
 		{
 			// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
 			// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
@@ -6094,19 +6070,17 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 // TallyMutationReferences() must have cached tallies across the whole population before this is called, or it will malfunction!
 void Population::RemoveAllFixedMutations(void)
 {
-#ifdef SLIM_WF_ONLY
-	if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::RemoveAllFixedMutations): (internal error) RemoveAllFixedMutations() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	// We use stack-local MutationRun objects so they get disposed of properly via RAII; non-optimal
 	// from a performance perspective, since they will do reallocs to reach their needed size, but
-	// since this method is only called once per generation it shouldn't matter.
+	// since this method is only called once per cycle it shouldn't matter.
 	MutationRun removed_mutation_accumulator;
 	MutationRun fixed_mutation_accumulator;
 	
 #ifdef SLIMGUI
-	int mutation_type_count = static_cast<int>(sim_.mutation_types_.size());
+	int mutation_type_count = static_cast<int>(species_.mutation_types_.size());
 #endif
 	
 	// remove Mutation objects that are no longer referenced, freeing them; avoid using an iterator since it would be invalidated
@@ -6138,15 +6112,15 @@ void Population::RemoveAllFixedMutations(void)
 					
 #ifdef SLIMGUI
 					// If we're running under SLiMgui, make a note of the fixation time of the mutation
-					slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
+					slim_tick_t fixation_time = community_.Tick() - mutation->origin_tick_;
 					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 					
-					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_tick_slots_);
 #endif
 					
 					// fix the refcount of record; we want user-substituted mutations to have a full refcount, not 0
 					// actually, this doesn't work, because the denominator – what total_genome_count_ is – depends
-					// on what the user asks; so now SLiMSim::ExecuteMethod_mutationFreqsCounts() handles this
+					// on what the user asks; so now Species::ExecuteMethod_mutationFreqsCounts() handles this
 					// the same issue would have bitten SLiM-substituted mutations if the population size changed
 					//*(refcount_block_ptr + mutation_index) = total_genome_count_;
 					
@@ -6161,10 +6135,10 @@ void Population::RemoveAllFixedMutations(void)
 					
 #ifdef SLIMGUI
 					// If we're running under SLiMgui, make a note of the lifetime of the mutation
-					slim_generation_t loss_time = sim_.generation_ - mutation->origin_generation_;
+					slim_tick_t loss_time = community_.Tick() - mutation->origin_tick_;
 					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 					
-					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_gen_slots_);
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, loss_time / 10, &mutation_loss_times_, &mutation_loss_tick_slots_);
 #endif
 					
 					mutation->state_ = MutationState::kLostAndRemoved;			// marked in anticipation of removal below
@@ -6183,10 +6157,10 @@ void Population::RemoveAllFixedMutations(void)
 					
 #ifdef SLIMGUI
 					// If we're running under SLiMgui, make a note of the fixation time of the mutation
-					slim_generation_t fixation_time = sim_.generation_ - mutation->origin_generation_;
+					slim_tick_t fixation_time = community_.Tick() - mutation->origin_tick_;
 					int mutation_type_index = mutation->mutation_type_ptr_->mutation_type_index_;
 					
-					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_gen_slots_);
+					AddTallyForMutationTypeAndBinNumber(mutation_type_index, mutation_type_count, fixation_time / 10, &mutation_fixation_times_, &mutation_fixation_tick_slots_);
 #endif
 					
 					// add the fixed mutation to a vector, to be converted to a Substitution object below
@@ -6227,7 +6201,7 @@ void Population::RemoveAllFixedMutations(void)
 	// the main registry is in charge of all bookkeeping, substitution, removal, etc.
 	if (keeping_muttype_registries_ && removed_mutation_accumulator.size())
 	{
-		for (auto muttype_iter : sim_.MutationTypes())
+		for (auto muttype_iter : species_.MutationTypes())
 		{
 			MutationType *muttype = muttype_iter.second;
 			
@@ -6304,17 +6278,17 @@ void Population::RemoveAllFixedMutations(void)
 			}
 		}
 		
-		slim_generation_t generation = sim_.Generation();
+		slim_tick_t tick = community_.Tick();
 		
 		// TREE SEQUENCE RECORDING
-		if (sim_.RecordingTreeSequence())
+		if (species_.RecordingTreeSequence())
 		{
 			// When doing tree recording, we additionally keep all fixed mutations (their ids) in a multimap indexed by their position
 			// This allows us to find all the fixed mutations at a given position quickly and easily, for calculating derived states
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			{
 				Mutation *mut_to_remove = mut_block_ptr + fixed_mutation_accumulator[i];
-				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation);
+				Substitution *sub = new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick);
 				
 				treeseq_substitutions_map_.emplace(mut_to_remove->position_, sub);
 				substitutions_.emplace_back(sub);
@@ -6324,13 +6298,13 @@ void Population::RemoveAllFixedMutations(void)
 		{
 			// When not doing tree recording, we just create substitutions and keep them in a vector
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
-				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), generation));
+				substitutions_.emplace_back(new Substitution(*(mut_block_ptr + fixed_mutation_accumulator[i]), tick));
 		}
 		
 		// Nucleotide-based models also need to modify the ancestral sequence when a mutation fixes
-		if (sim_.IsNucleotideBased())
+		if (species_.IsNucleotideBased())
 		{
-			NucleotideArray *ancestral_seq = sim_.TheChromosome().ancestral_seq_buffer_;
+			NucleotideArray *ancestral_seq = species_.TheChromosome().ancestral_seq_buffer_;
 			
 			for (int i = 0; i < fixed_mutation_accumulator.size(); i++)
 			{
@@ -6365,10 +6339,8 @@ void Population::RemoveAllFixedMutations(void)
 
 void Population::CheckMutationRegistry(bool p_check_genomes)
 {
-#ifdef SLIM_WF_ONLY
-	if ((sim_.ModelType() == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
+	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::CheckMutationRegistry): (internal error) CheckMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
 	Mutation *mutation_block_ptr = gSLiM_Mutation_Block;
 #if DEBUG_MUTATION_ZOMBIES
@@ -6439,7 +6411,7 @@ void Population::CheckMutationRegistry(bool p_check_genomes)
 // print all mutations and all genomes to a stream
 void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This method is written to be able to print the population whether child_generation_valid is true or false.
+	// This method is written to be able to print the population whether child_generation_valid_ is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
 #if DO_MEMORY_CHECKS
@@ -6453,10 +6425,10 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
-	int spatial_output_count = (p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
+	int spatial_output_count = (p_output_spatial_positions ? species_.SpatialDimensionality() : 0);
 	
 	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
-	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
+	int age_output_count = (p_output_ages && (model_type_ == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
 	// Starting in SLiM 2.3, we output a version indicator at the top of the file so we can decode different versions, etc.
 	// BEWARE: we no longer use the same version numbers used in PrintAllBinary().  It has moved to version 5, with a flags
@@ -6481,13 +6453,11 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		double subpop_sex_ratio;
 		
-#ifdef SLIM_WF_ONLY
-		if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			// We want to output empty (but not removed) subpops, so we use a sex ratio of 0.0 to prevent div by 0
 			if (subpop->parent_subpop_size_ == 0)
@@ -6623,11 +6593,9 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 				}
 			}
 			
-#ifdef SLIM_NONWF_ONLY
 			// output ages if requested
 			if (age_output_count)
 				p_out << " " << individual.age_;
-#endif  // SLIM_NONWF_ONLY
 			
 			p_out << std::endl;
 			
@@ -6699,31 +6667,31 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 	}
 	
 	// print ancestral sequence
-	if (sim_.IsNucleotideBased() && p_output_ancestral_nucs)
+	if (species_.IsNucleotideBased() && p_output_ancestral_nucs)
 	{
 		p_out << "Ancestral sequence:" << std::endl;
-		p_out << *(sim_.TheChromosome().AncestralSequence());
+		p_out << *(species_.TheChromosome().AncestralSequence());
 	}
 }
 
 // print all mutations and all genomes to a stream in binary, for maximum reading speed
 void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_positions, bool p_output_ages, bool p_output_ancestral_nucs, bool p_output_pedigree_ids) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	// This is a little tricky, so be careful when modifying this code!
 	
 	// Figure out spatial position output.  If it was not requested, then we don't do it, and that's fine.  If it
 	// was requested, then we output the number of spatial dimensions we're configured for (which might be zero).
-	int32_t spatial_output_count = (int32_t)(p_output_spatial_positions ? sim_.SpatialDimensionality() : 0);
+	int32_t spatial_output_count = (int32_t)(p_output_spatial_positions ? species_.SpatialDimensionality() : 0);
 	
 	// Figure out age output.  If it was not requested, don't do it; if it was requested, do it if we use a nonWF model.
-	int age_output_count = (p_output_ages && (sim_.ModelType() == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
+	int age_output_count = (p_output_ages && (model_type_ == SLiMModelType::kModelTypeNonWF)) ? 1 : 0;
 	
 	// Figure out pedigree ID output
 	int pedigree_output_count = (p_output_pedigree_ids ? 1 : 0);
 	
 	// We will output nucleotides for all mutations, and an ancestral sequence at the end, if we are nucleotide-based.
-	bool has_nucleotides = sim_.IsNucleotideBased();
+	bool has_nucleotides = species_.IsNucleotideBased();
 	
 	int32_t section_end_tag = 0xFFFF0000;
 	
@@ -6735,11 +6703,12 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&endianness_tag), sizeof endianness_tag);
 		
 		// Write a format version tag
-		int32_t version_tag = 6;													// version 2 started with SLiM 2.1
+		int32_t version_tag = 7;													// version 2 started with SLiM 2.1
 																					// version 3 started with SLiM 2.3
 																					// version 4 started with SLiM 3.0, only when individual age is output
 																					// version 5 started with SLiM 3.3, adding a "flags" field and nucleotide support
 																					// version 6 started with SLiM 3.5, adding optional pedigree ID output with a new flag
+																					// version 7 started with SLiM 4.0, changing generation to ticks and adding cycle
 		p_out.write(reinterpret_cast<char *>(&version_tag), sizeof version_tag);
 		
 		// Write the size of a double
@@ -6764,7 +6733,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		}
 		
 		// Write the sizes of the various SLiM types
-		int32_t slim_generation_t_size = sizeof(slim_generation_t);
+		int32_t slim_tick_t_size = sizeof(slim_tick_t);
 		int32_t slim_position_t_size = sizeof(slim_position_t);
 		int32_t slim_objectid_t_size = sizeof(slim_objectid_t);
 		int32_t slim_popsize_t_size = sizeof(slim_popsize_t);
@@ -6776,7 +6745,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		int32_t slim_pedigreeid_t_size = sizeof(slim_pedigreeid_t);													// Added in version 6
 		int32_t slim_genomeid_t_size = sizeof(slim_genomeid_t);														// Added in version 6
 		
-		p_out.write(reinterpret_cast<char *>(&slim_generation_t_size), sizeof slim_generation_t_size);
+		p_out.write(reinterpret_cast<char *>(&slim_tick_t_size), sizeof slim_tick_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_position_t_size), sizeof slim_position_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_objectid_t_size), sizeof slim_objectid_t_size);
 		p_out.write(reinterpret_cast<char *>(&slim_popsize_t_size), sizeof slim_popsize_t_size);
@@ -6788,10 +6757,12 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&slim_pedigreeid_t_size), sizeof slim_pedigreeid_t_size);				// Added in version 6
 		p_out.write(reinterpret_cast<char *>(&slim_genomeid_t_size), sizeof slim_genomeid_t_size);					// Added in version 6
 		
-		// Write the generation
-		slim_generation_t generation = sim_.Generation();
+		// Write the tick and cycle
+		slim_tick_t tick = community_.Tick();																		// Changed from generation to tick in version 7
+		slim_tick_t cycle = species_.Cycle();																		// Added in version 7
 		
-		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
+		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
+		p_out.write(reinterpret_cast<char *>(&cycle), sizeof cycle);
 		
 		// Write the number of spatial coordinates we will write per individual.  Added in version 3.
 		p_out.write(reinterpret_cast<char *>(&spatial_output_count), sizeof spatial_output_count);
@@ -6808,13 +6779,11 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_popsize_t subpop_size = subpop->CurrentSubpopSize();
 		double subpop_sex_ratio;
 		
-#ifdef SLIM_WF_ONLY
-		if (sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			subpop_sex_ratio = (child_generation_valid_ ? subpop->child_sex_ratio_ : subpop->parent_sex_ratio_);
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			if (subpop->parent_subpop_size_ == 0)
 				subpop_sex_ratio = 0.0;
@@ -6893,7 +6862,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		slim_selcoeff_t dominance_coeff = mutation_type_ptr->dominance_coeff_;
 		// BCH 9/22/2021: Note that mutation_type_ptr->haploid_dominance_coeff_ is not saved; too edge to be bothered...
 		slim_objectid_t subpop_index = mutation_ptr->subpop_index_;
-		slim_generation_t generation = mutation_ptr->origin_generation_;
+		slim_tick_t tick = mutation_ptr->origin_tick_;
 		slim_refcount_t prevalence = polymorphism.prevalence_;
 		int8_t nucleotide = mutation_ptr->nucleotide_;
 		
@@ -6910,7 +6879,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 		p_out.write(reinterpret_cast<char *>(&selection_coeff), sizeof selection_coeff);
 		p_out.write(reinterpret_cast<char *>(&dominance_coeff), sizeof dominance_coeff);
 		p_out.write(reinterpret_cast<char *>(&subpop_index), sizeof subpop_index);
-		p_out.write(reinterpret_cast<char *>(&generation), sizeof generation);
+		p_out.write(reinterpret_cast<char *>(&tick), sizeof tick);
 		p_out.write(reinterpret_cast<char *>(&prevalence), sizeof prevalence);
 		
 		if (has_nucleotides)
@@ -6966,7 +6935,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				p_out.write(reinterpret_cast<char *>(&pedigree_id), sizeof pedigree_id);
 			}
 			
-#ifdef SLIM_NONWF_ONLY
 			// Output individual age information before the mutation list.  Added in version 4.
 			if (age_output_count && ((i % 2) == 0))
 			{
@@ -6975,7 +6943,6 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 				
 				p_out.write(reinterpret_cast<char *>(&individual.age_), sizeof individual.age_);
 			}
-#endif  // SLIM_NONWF_ONLY
 			
 			// Write out the mutation list
 			if (genome.IsNull())
@@ -7059,7 +7026,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 	// Ancestral sequence section, for nucleotide-based models, when requested
 	if (has_nucleotides && p_output_ancestral_nucs)
 	{
-		sim_.TheChromosome().AncestralSequence()->WriteCompressedNucleotides(p_out);
+		species_.TheChromosome().AncestralSequence()->WriteCompressedNucleotides(p_out);
 		
 		p_out.write(reinterpret_cast<char *>(&section_end_tag), sizeof section_end_tag);
 	}
@@ -7068,7 +7035,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 // print sample of p_sample_size genomes from subpopulation p_subpop_id
 void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
@@ -7116,7 +7083,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 // print sample of p_sample_size genomes from subpopulation p_subpop_id, using "ms" format
 void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, const Chromosome &p_chromosome, bool p_filter_monomorphic) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
@@ -7164,7 +7131,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 // print sample of p_sample_size *individuals* (NOT genomes) from subpopulation p_subpop_id
 void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, slim_popsize_t p_sample_size, bool p_replace, IndividualSex p_requested_sex, bool p_output_multiallelics, bool p_simplify_nucs, bool p_output_nonnucs) const
 {
-	// This function is written to be able to print the population whether child_generation_valid is true or false.
+	// This function is written to be able to print the population whether child_generation_valid_ is true or false.
 	
 	std::vector<Genome *> &subpop_genomes = p_subpop.CurrentGenomes();
 	slim_popsize_t subpop_size = p_subpop.CurrentSubpopSize();
@@ -7213,7 +7180,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 	}
 	
 	// print the sample using Genome's static member function
-	Genome::PrintGenomes_VCF(p_out, sample, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, sim_.IsNucleotideBased(), sim_.TheChromosome().AncestralSequence());
+	Genome::PrintGenomes_VCF(p_out, sample, p_output_multiallelics, p_simplify_nucs, p_output_nonnucs, species_.IsNucleotideBased(), species_.TheChromosome().AncestralSequence());
 }
 
 

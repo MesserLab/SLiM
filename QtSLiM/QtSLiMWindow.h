@@ -29,11 +29,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <ctime>
 
 #include "eidos_globals.h"
 #include "slim_globals.h"
 #include "eidos_rng.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMPopulationTable.h"
 
@@ -46,7 +48,9 @@ class QItemSelection;
 class SLiMgui;
 class QtSLiMGraphView;
 class QtSLiMScriptTextEdit;
+class QtSLiMTextEdit;
 class QtSLiMDebugOutputWindow;
+class QtSLiMChromosomeWidget;
 
 
 namespace Ui {
@@ -75,14 +79,14 @@ private:
     std::string sim_working_dir;			// the current working dir that we will return to when executing SLiM/Eidos code
     std::string sim_requested_working_dir;	// the last working dir set by the user with the SLiMgui button/menu; we return to it on recycle
 
-    // play-related variables; note that continuousPlayOn covers profiling play, generation play, and normal play, whereas profilePlayOn,
-    // generationPlayOn_, and nonProfilePlayOn_ cover those cases individually; this is for simplicity in enable bindings in the nib
+    // play-related variables; note that continuousPlayOn covers profiling play, tick play, and normal play, whereas profilePlayOn,
+    // tickPlayOn_, and nonProfilePlayOn_ cover those cases individually; this is for simplicity in enable bindings in the nib
     bool invalidSimulation_ = true, continuousPlayOn_ = false, profilePlayOn_ = false, nonProfilePlayOn_ = false;
-    bool generationPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
-    slim_generation_t targetGeneration_ = 0;
+    bool tickPlayOn_ = false, reachedSimulationEnd_ = false, hasImported_ = false;
+    slim_tick_t targetTick_ = 0;
     QElapsedTimer continuousPlayElapsedTimer_;
     QTimer continuousPlayInvocationTimer_;
-    uint64_t continuousPlayGenerationsCompleted_ = 0;
+    uint64_t continuousPlayTicksCompleted_ = 0;
     QTimer continuousProfileInvocationTimer_;
     QTimer playOneStepInvocationTimer_;
     int partialUpdateCount_ = 0;
@@ -94,7 +98,7 @@ private:
     QDateTime profileEndDate_;
     std::clock_t profileElapsedCPUClock = 0;
     eidos_profile_t profileElapsedWallClock = 0;
-    slim_generation_t profileStartGeneration = 0;
+    slim_tick_t profileStartTick = 0;
 #endif
     
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
@@ -116,13 +120,24 @@ public:
     QString currentFile;
     
     std::string scriptString;	// the script string that we are running on right now; not the same as the script textview!
-    SLiMSim *sim = nullptr;		// the simulation instance for this window
+    Community *community = nullptr;		// the simulation instance for this window
+    Species *focalSpecies = nullptr;    // NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
+    std::string focalSpeciesName;       // the name of the focal species (or "all"), for persistence across recycles
     SLiMgui *slimgui = nullptr;			// the SLiMgui Eidos class instance for this window
 
     // display-related variables
-    //double fitnessColorScale, selectionColorScale;
     std::unordered_map<slim_objectid_t, QColor> genomicElementColorRegistry;
     bool reloadingSubpopTableview = false;
+    bool reloadingSpeciesBar = false;
+    
+    // chromosome view configuration, kept by us because it applies to all chromosome views in multispecies models
+    bool chromosome_shouldDrawMutations_ = true;
+    bool chromosome_shouldDrawFixedSubstitutions_ = false;
+    bool chromosome_shouldDrawGenomicElements_ = false;
+    bool chromosome_shouldDrawRateMaps_ = false;
+    
+    bool chromosome_display_haplotypes_ = false;                // if false, displaying frequencies; if true, displaying haplotypes
+    std::vector<slim_objectid_t> chromosome_display_muttypes_;  // if empty, display all mutation types; otherwise, display only the muttypes chosen
 
 public:
     typedef enum {
@@ -144,9 +159,12 @@ public:
     static const QColor &blackContrastingColorForIndex(int index);
     static const QColor &whiteContrastingColorForIndex(int index);
     void colorForGenomicElementType(GenomicElementType *elementType, slim_objectid_t elementTypeID, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    void colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha);
+    QColor qcolorForSpecies(Species *species);
     
+    std::vector<Subpopulation *> listedSubpopulations(void);
     std::vector<Subpopulation*> selectedSubpopulations(void);
-    void chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
+    void chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase);
     const std::vector<slim_objectid_t> &chromosomeDisplayMuttypes(void);
     
     inline bool invalidSimulation(void) { return invalidSimulation_; }
@@ -155,10 +173,11 @@ public:
     void setReachedSimulationEnd(bool p_reachedEnd);
     inline bool isPlaying(void) { return continuousPlayOn_; }
     void setContinuousPlayOn(bool p_flag);
-    void setGenerationPlayOn(bool p_flag);
+    void setTickPlayOn(bool p_flag);
     void setProfilePlayOn(bool p_flag);
     void setNonProfilePlayOn(bool p_flag);
     QtSLiMScriptTextEdit *scriptTextEdit(void);
+    QtSLiMTextEdit *outputTextEdit(void);
     QtSLiMEidosConsole *ConsoleController(void) { return consoleController; }
     QtSLiMTablesDrawer *TablesDrawerController(void) { return tablesDrawerController; }
     
@@ -171,8 +190,11 @@ public:
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
     
+    Species *focalDisplaySpecies(void);
     void updateOutputViews(void);
-    void updateGenerationCounter(void);
+    void updateTickCounter(void);
+    void updateSpeciesBar(void);
+    void updateChromosomeViewSetup(void);
     void updateAfterTickFull(bool p_fullUpdate);
     void updatePlayButtonIcon(bool pressed);
     void updateProfileButtonIcon(bool pressed);
@@ -190,7 +212,7 @@ public:
     
     void willExecuteScript(void);
     void didExecuteScript(void);
-    bool runSimOneGeneration(void);
+    bool runSimOneTick(void);
     void _continuousPlay(void);
     void _continuousProfile(void);
     void _playOneStep(void);
@@ -198,7 +220,7 @@ public:
     enum PlayType {
         kNormalPlay = 0,
         kProfilePlay,
-        kGenerationPlay,
+        kTickPlay,
     };
     void playOrProfile(PlayType playType);
     
@@ -208,7 +230,10 @@ public:
     void resetSLiMChangeCount(void);
     void scriptTexteditChanged(void);
     
-    bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);    
+    bool checkScriptSuppressSuccessResponse(bool suppressSuccessResponse);   
+    
+    bool offerAndExecuteAutofix(QTextCursor target, QString replacement, QString explanation, QString terminationMessage);
+    bool checkTerminationForAutofix(QString terminationMessage);
     
     //	Eidos SLiMgui method forwards
     void eidos_openDocument(QString path);
@@ -220,15 +245,15 @@ signals:
     void controllerChangeCountChanged(int changeCount);
     
     void controllerUpdatedAfterTick(void);
-    void controllerSelectionChanged(void);
-    void controllerGenerationFinished(void);
+    void controllerChromosomeSelectionChanged(void);
+    void controllerTickFinished(void);
     void controllerRecycled(void);
     
 public slots:
     void showTerminationMessage(QString terminationMessage);
     
     void playOneStepClicked(void);
-    void generationChanged(void);
+    void tickChanged(void);
     void recycleClicked(void);
     void playSpeedChanged(void);
 
@@ -246,6 +271,7 @@ public slots:
     void changeDirectoryClicked(void);
     void displayGraphClicked(void);
 
+    void selectedSpeciesChanged(void);
     void subpopSelectionDidChange(const QItemSelection &selected, const QItemSelection &deselected);
     
     //
@@ -328,6 +354,15 @@ protected:
     QSplitter *bottomSplitter = nullptr;
     
     void interpolateSplitters(void);
+    
+    // multispecies chromosome view support
+    std::vector<QVBoxLayout *> chromosomeWidgetLayouts;
+    std::vector<QtSLiMChromosomeWidget *> chromosomeOverviewWidgets;
+    std::vector<QtSLiMChromosomeWidget *> chromosomeZoomedWidgets;
+    
+    void removeExtraChromosomeViews(void);
+    void addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget);
+    void runChromosomeContextMenuAtPoint(QPoint p_globalPoint);
     
 private:
     void glueUI(void);

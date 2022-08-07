@@ -1,30 +1,14 @@
 This directory, and subdirectories, contains code related to the tree
-sequence recording facility of SLiM 3.
+sequence recording facility of SLiM.
 
 
-Tree sequence recording works by the following hooks:
+The code in `tskit/` is from [tskit/tree/main/c/tskit](https://github.com/tskit-dev/tskit/tree/main/c/tskit)
 
-- `SetCurrentNewIndividual` :
-- `RecordNewGenome` : 
-- `RecordNewDerivedState` :
-- `RetractNewIndividual` :
-
-Management:
-
-- `StartTreeRecording` :
-- `FreeTreeSequence` :
-
-Simplification interval:
-
-- `CheckAutoSimplification` :
-
-
-The code in `tskit/` is from [tskit/tree/main/c/tskit](https://github.com/tskit-dev/tskit/tree/main/c/tskit), release C_0.99.15.
-
-The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kastore/tree/master/c), release `C 2.0.2`.
+The code in `tskit/kastore` is from [kastore/c](https://github.com/tskit-dev/kastore/tree/master/c)
 
 **Changelog:**
 
+- *2 June 2022*: updated to tskit C_1.0.0 and kastore C_2.1.1
 - *5 September 2020*: updated to tskit C_0.99.5
 - *27 August 2020*: updated to tskit C_0.99.5
 - *12 August 2020*: updated to tskit C_0.99.4 and kastore 0.3.0.

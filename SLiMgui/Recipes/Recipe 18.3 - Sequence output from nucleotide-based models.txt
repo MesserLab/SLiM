@@ -9,7 +9,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	c = sim.chromosome;
 	catn("Ancestral: " + c.ancestralNucleotides());
 	catn("Ancestral: " + paste(c.ancestralNucleotides(format="char")));

@@ -58,8 +58,8 @@ initialize() {
 	// single recombination rate
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.chromosome.colorSubstitution = "";
 	sim.addSubpop("p1", 5000);
 }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }

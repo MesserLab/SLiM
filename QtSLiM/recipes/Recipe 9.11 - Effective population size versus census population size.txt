@@ -19,8 +19,8 @@ initialize() {
 	sim.addSubpop("p1", N);
 	p1.setValue("previous_N", p1.individualCount);
 	
-	defineConstant("LOG", sim.createLogFile("Ne_log.csv"));
-	LOG.addGeneration();
+	defineConstant("LOG", community.createLogFile("Ne_log.csv"));
+	LOG.addCycle();
 	LOG.addCustomColumn("N(t-1)", "p1.getValue('previous_N');");
 	LOG.addCustomColumn("N(t)", "p1.individualCount;");
 	LOG.addCustomColumn("freq", "mutTypeFrequency(m2);");

@@ -45,7 +45,7 @@
 
 // If provided, this context object will be handed to EidosInterpreter objects created by the console
 // controller when interpreting Eidos code; the context can then be obtained by Context implementations
-// of functions and method using GetEidosContext(), to recover the context object for their own use
+// of functions and method using EidosInterpreter::Context(), to recover the context object for their own use
 - (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController;
 
 // This allows the Context to append its own welcome message to the console window on startup

@@ -37,13 +37,13 @@
 #pragma mark EidosTypeInterpreter
 #pragma mark -
 
-EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
-: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
+EidosTypeInterpreter::EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types)
+: root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types)
 {
 }
 
-EidosTypeInterpreter::EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only)
-: root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types), defines_only_(p_defines_only)
+EidosTypeInterpreter::EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types)
+: root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), call_type_map_(p_call_types)
 {
 }
 
@@ -217,6 +217,12 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 					EidosTypeSpecifier &constant_type = argument_types[1];
 					
 					global_symbols_->SetTypeForSymbol(constant_id, constant_type);
+					
+					// When a global constant or variable is defined, we want to record it not only in our local
+					// scope (confusingly named global_symbols_), but also in the global scope (external_symbols_).
+					// We never consult external_symbols_ at all; we just tell it about global definitions.
+					if (external_type_table_)
+						external_type_table_->SetTypeForSymbol(constant_id, constant_type);
 				}
 			}
 		}
@@ -828,8 +834,7 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_Assign(const EidosASTNode 
 		
 		EidosGlobalStringID identifier_name = lvalue_node->cached_stringID_;
 		
-		if (!defines_only_)
-			global_symbols_->SetTypeForSymbol(identifier_name, rvalue_type);
+		global_symbols_->SetTypeForSymbol(identifier_name, rvalue_type);
 	}
 	
 	return result_type;
@@ -980,12 +985,9 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_For(const EidosASTNode *p_
 		// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
 		if (identifier_child->token_->token_type_ == EidosTokenType::kTokenIdentifier)
 		{
-			if (!defines_only_)
-			{
-				EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
-				
-				global_symbols_->SetTypeForSymbol(identifier_name, range_type);
-			}
+			EidosGlobalStringID identifier_name = identifier_child->cached_stringID_;
+			
+			global_symbols_->SetTypeForSymbol(identifier_name, range_type);
 		}
 	}
 	
@@ -1164,11 +1166,11 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 			{
 				// The EOF was not hit while parsing the function body, so we're supposed to leave the type table alone in the end.
 				// We do this by creating a separate type table that we just use temporarily, inside the function body.  We could
-				// almost skip type-interpreting the function body entirely, except that it might define a constant.
-				EidosTypeTable typeTable;
+				// almost skip type-interpreting the function body entirely, except that it might define a constant.  We base our
+				// local table on our global table, and give the scoped type interpreter a pointer to the global table; that way,
+				// define constants and globals will make it to the outside scope.
+				EidosTypeTable typeTable(*global_symbols_);
 				EidosCallTypeTable callTypeTable;
-				
-				gEidosConstantsSymbolTable->AddSymbolsToTypeTable(&typeTable);
 				
 				for (EidosASTNode *param_node : param_nodes)
 				{
@@ -1186,7 +1188,8 @@ EidosTypeSpecifier EidosTypeInterpreter::TypeEvaluate_FunctionDecl(const EidosAS
 				
 				EidosTypeInterpreter typeInterpreter(body_node, typeTable, function_map_, callTypeTable);
 				
-				typeInterpreter.TypeEvaluateNode(body_node);	// result not used
+				typeInterpreter.SetExternalTypeTable(global_symbols_);		// defined constants/variables should also go into the global scope
+				typeInterpreter.TypeEvaluateNode(body_node);				// result not used
 			}
 		}
 	}

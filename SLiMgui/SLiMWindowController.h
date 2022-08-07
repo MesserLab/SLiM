@@ -21,7 +21,7 @@
 #import <Cocoa/Cocoa.h>
 
 #include "eidos_rng.h"
-#include "slim_sim.h"
+#include "species.h"
 #include "slim_gui.h"
 #import "ChromosomeView.h"
 #import "PopulationView.h"
@@ -33,16 +33,22 @@
 #import "EidosConsoleWindowController.h"
 #import "EidosConsoleWindowControllerDelegate.h"
 
+#include <ctime>
+
 
 @class SLiMHaplotypeGraphView;
+
+class Community;
 
 
 @interface SLiMWindowController : NSWindowController <NSTableViewDelegate, NSTableViewDataSource, NSSplitViewDelegate, NSTextViewDelegate, EidosConsoleWindowControllerDelegate, EidosTextViewDelegate>
 {
 @public
-	NSString *scriptString;		// the script string that we are running on right now; not the same as the script textview!
-	SLiMSim *sim;				// the simulation instance for this window
-	SLiMgui *slimgui;			// the SLiMgui Eidos class instance for this window
+	NSString *scriptString;					// the script string that we are running on right now; not the same as the script textview!
+	Community *community;					// the simulation instance for this window
+	Species *focalSpecies;					// NOT OWNED: a pointer to the focal species in community; do not use, call focalDisplaySpecies()
+	std::string focalSpeciesName;			// the name of the focal species, for persistence across recycles
+	SLiMgui *slimgui;						// the SLiMgui Eidos class instance for this window
 	
 	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	Eidos_RNG_State sim_RNG;
@@ -54,10 +60,10 @@
 	
 	// play-related variables; note that continuousPlayOn covers both profiling and non-profiling runs, whereas profilePlayOn
 	// and nonProfilePlayOn cover those cases individually; this is for simplicity in enable bindings in the nib
-	BOOL invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, generationPlayOn, reachedSimulationEnd, hasImported;
-	slim_generation_t targetGeneration;
+	BOOL invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, tickPlayOn, reachedSimulationEnd, hasImported;
+	slim_tick_t targetTick;
 	NSDate *continuousPlayStartDate;
-	uint64_t continuousPlayGenerationsCompleted;
+	uint64_t continuousPlayTicksCompleted;
 	int partialUpdateCount;
 	SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 	
@@ -66,17 +72,17 @@
 	NSDate *profileEndDate;
 	std::clock_t profileElapsedCPUClock;
 	eidos_profile_t profileElapsedWallClock;
-	slim_generation_t profileStartGeneration;
+	slim_tick_t profileStartTick;
 #endif
 	
 	// display-related variables
-	double fitnessColorScale, selectionColorScale;
 	NSMutableDictionary *genomicElementColorRegistry;
 	BOOL zoomedChromosomeShowsRateMaps;
 	BOOL zoomedChromosomeShowsGenomicElements;
 	BOOL zoomedChromosomeShowsMutations;
 	BOOL zoomedChromosomeShowsFixedSubstitutions;
 	BOOL reloadingSubpopTableview;
+	BOOL reloadingSpeciesBar;
 	
 	// outlets
 	IBOutlet NSButton *buttonForDrawer;
@@ -112,20 +118,14 @@
 	IBOutlet NSLayoutConstraint *overallTopViewConstraint3;
 	IBOutlet NSLayoutConstraint *overallTopViewConstraint4;
 	
-	IBOutlet NSTextField *fitnessTitleTextField;
-	IBOutlet SLiMColorStripeView *fitnessColorStripe;
-	IBOutlet NSSlider *fitnessColorSlider;
-	IBOutlet NSTextField *selectionTitleTextField;
-	IBOutlet SLiMColorStripeView *selectionColorStripe;
-	IBOutlet NSSlider *selectionColorSlider;
-	
 	IBOutlet NSButton *playOneStepButton;
 	IBOutlet NSButton *playButton;
 	IBOutlet NSButton *profileButton;
 	IBOutlet NSButton *recycleButton;
 	IBOutlet NSSlider *playSpeedSlider;
-	IBOutlet NSTextField *generationTextField;
-	IBOutlet NSProgressIndicator *generationProgressIndicator;
+	IBOutlet NSTextField *tickTextField;
+	IBOutlet NSProgressIndicator *tickProgressIndicator;
+	IBOutlet NSTextField *cycleTextField;
 	
 	IBOutlet NSSplitView *bottomSplitView;
 	IBOutlet EidosTextView *scriptTextView;
@@ -133,6 +133,9 @@
 	IBOutlet EidosTextView *outputTextView;
 	IBOutlet NSButton *consoleButton;
 	IBOutlet NSButton *browserButton;
+	
+	IBOutlet NSSegmentedControl *speciesBar;
+	IBOutlet NSLayoutConstraint *speciesBarBottomConstraint;
 	
 	IBOutlet NSTableView *subpopTableView;
 	IBOutlet NSTableColumn *subpopIDColumn;
@@ -152,14 +155,8 @@
 	IBOutlet NSButton *showMutationsButton;
 	IBOutlet NSButton *showFixedSubstitutionsButton;
 	
-	IBOutlet SLiMMenuButton *outputCommandsButton;
-	IBOutlet NSMenu *outputCommandsMenu;
-	
 	IBOutlet SLiMMenuButton *graphCommandsButton;
 	IBOutlet NSMenu *graphCommandsMenu;
-	
-	IBOutlet SLiMMenuButton *genomeCommandsButton;
-	IBOutlet NSMenu *genomeCommandsMenu;
 	
 	// Graph window ivars
 	IBOutlet NSWindow *graphWindow;				// outlet for GraphWindow.xib; note this does not stay wired up, it is just used transiently
@@ -211,12 +208,11 @@
 
 - (void)setScriptStringAndInitializeSimulation:(NSString *)string;
 
+- (Species *)focalDisplaySpecies;
 - (std::vector<Subpopulation*>)selectedSubpopulations;
 - (void)updatePopulationViewHiding;
 
 - (NSColor *)colorForGenomicElementType:(GenomicElementType *)elementType withID:(slim_objectid_t)elementTypeID;
-
-- (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock;
 
 - (void)updateRecycleHighlightForChangeCount:(int)changeCount;
 
@@ -229,7 +225,7 @@
 @property (nonatomic) BOOL continuousPlayOn;
 @property (nonatomic) BOOL profilePlayOn;
 @property (nonatomic) BOOL nonProfilePlayOn;
-@property (nonatomic) BOOL generationPlayOn;
+@property (nonatomic) BOOL tickPlayOn;
 @property (nonatomic) BOOL reachedSimulationEnd;
 @property (nonatomic, readonly) NSColor *colorForWindowLabels;
 
@@ -240,24 +236,7 @@
 //	Actions
 //
 
-- (IBAction)buttonChangeSubpopSize:(id)sender;
-- (IBAction)buttonRemoveSubpop:(id)sender;
-- (IBAction)buttonAddSubpop:(id)sender;
-- (IBAction)buttonSplitSubpop:(id)sender;
-- (IBAction)buttonChangeMigrationRates:(id)sender;
-- (IBAction)buttonChangeSelfingRates:(id)sender;
-- (IBAction)buttonChangeCloningRates:(id)sender;
-- (IBAction)buttonChangeSexRatio:(id)sender;
-
-- (IBAction)addMutationType:(id)sender;
-- (IBAction)addGenomicElementType:(id)sender;
-- (IBAction)addGenomicElementToChromosome:(id)sender;
-- (IBAction)addRecombinationInterval:(id)sender;
-- (IBAction)addSexConfiguration:(id)sender;
-
-- (IBAction)outputFullPopulationState:(id)sender;
-- (IBAction)outputPopulationSample:(id)sender;
-- (IBAction)outputFixedMutations:(id)sender;
+- (IBAction)speciesBarChanged:(id)sender;
 
 - (IBAction)graphMutationFrequencySpectrum:(id)sender;
 - (IBAction)graphMutationFrequencyTrajectories:(id)sender;
@@ -272,10 +251,7 @@
 - (IBAction)profile:(id)sender;
 - (IBAction)recycle:(id)sender;
 - (IBAction)playSpeedChanged:(id)sender;
-- (IBAction)generationChanged:(id)sender;
-
-- (IBAction)fitnessColorSliderChanged:(id)sender;
-- (IBAction)selectionColorSliderChanged:(id)sender;
+- (IBAction)tickChanged:(id)sender;
 
 - (IBAction)checkScript:(id)sender;
 - (IBAction)prettyprintScript:(id)sender;

@@ -11,7 +11,7 @@ initialize() {
 	sim.addSubpop("p1", 1000);
 	
 	// READ MS FORMAT INITIAL STATE
-	lines = readFile("~/Desktop/ms.txt");
+	lines = readFile("ms.txt");
 	index = 0;
 	
 	// skip lines until reaching the // line, then skip that line
@@ -56,7 +56,8 @@ initialize() {
 	// remove the dummy subpopulation
 	p2.setSubpopulationSize(0);
 	
-	// (optional) set the generation to match the save point
-	sim.generation = 20000;
+	// (optional) set the tick and cycle to match the save point
+	community.tick = 20000;
+	sim.cycle = 20000;
 }
 30000 late() { sim.outputFixedMutations(); }

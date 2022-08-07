@@ -1,6 +1,6 @@
 # Keywords: Python, tree-sequence recording, tree sequence recording
 
-import msprime, tskit, pyslim
+import tskit, pyslim
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,7 +12,7 @@ def tree_heights(ts):
     heights = np.zeros(ts.num_trees + 1)
     for tree in ts.trees():
         if tree.num_roots > 1:  # not fully coalesced
-            heights[tree.index] = ts.metadata['SLiM']['generation']
+            heights[tree.index] = ts.metadata['SLiM']['tick']
         else:
             children = tree.children(tree.root)
             real_root = tree.root if len(children) > 1 else children[0]

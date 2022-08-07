@@ -8,6 +8,6 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	initializeSex("A");
 }
-1 { sim.addSubpop("p1", 500); }
-1: { p1.setSexRatio(runif(1, 0.3, 0.7)); }
-10000 { sim.simulationFinished(); }
+1 early() { sim.addSubpop("p1", 500); }
+1: early() { p1.setSexRatio(runif(1, 0.3, 0.7)); }
+10000 early() { sim.simulationFinished(); }

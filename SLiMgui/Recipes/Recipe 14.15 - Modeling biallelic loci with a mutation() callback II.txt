@@ -1,0 +1,69 @@
+// Keywords: identity by state, uniquing, unique down, back mutation, two alleles
+
+initialize() {
+	// m2 models a biallelic locus; an m2 mutation is "A",
+	// absence of an m2 mutation is "a"; "aa" is neutral
+	initializeMutationType("m2", 0.5, "f", 0.0);
+	m2.convertToSubstitution = F;
+	m2.color = "red";
+	
+	// m3 is used for new mutations; new m3 mutations get
+	// uniqued down to the correct biallelic m2 state
+	initializeMutationType("m3", 0.5, "f", 0.0);
+	m3.convertToSubstitution = F;
+	m3.color = "cornflowerblue";
+	
+	initializeGenomicElementType("g1", m3, 1.0);
+	initializeGenomicElement(g1, 0, 99);
+	initializeMutationRate(1e-4);
+	initializeRecombinationRate(0.5);
+}
+1 early() {
+	sim.addSubpop("p1", 100);
+	
+	// create the permanent m2 mutation objects we will use
+	target = p1.genomes[0];
+	target.addNewDrawnMutation(m2, 0:99);
+	defineConstant("MUT", target.mutations);
+	
+	// then remove them; start with "aa" for all individuals
+	target.removeMutations();
+	
+	// log results
+	log = community.createLogFile("freq.csv", logInterval=10);
+	log.addTick();
+	log.addMeanSDColumns("freq", "sim.mutationFrequencies(NULL, MUT);");
+}
+mutation(m3) {
+	// if we already have an m2 mutation at the site, allow
+	// the new m3 mutation; we will remove the stack below
+	if (genome.containsMarkerMutation(m2, mut.position))
+		return T;
+	
+	// no m2 mutation is present, so unique down
+	return MUT[mut.position];
+}
+late() {
+	// implement back-mutations from A to a
+	m3muts = sim.mutationsOfType(m3);
+	
+	// do we have any m3 mutations segregating?
+	// if so, we have m2/m3 stacked mutations to remove
+	if (m3muts.length() > 0)
+	{
+		genomes = sim.subpopulations.genomes;
+		counts = genomes.countOfMutationsOfType(m3);
+		hasStacked = genomes[counts > 0];
+		
+		for (genome in hasStacked)
+		{
+			stacked_m3 = genome.mutationsOfType(m3);
+			stackPositions = stacked_m3.position;
+			all_m2 = genome.mutationsOfType(m2);
+			s = (match(all_m2.position, stackPositions) >= 0);
+			stacked_m2 = all_m2[s];
+			genome.removeMutations(c(stacked_m3, stacked_m2));
+		}
+	}
+}
+50000 late() { }

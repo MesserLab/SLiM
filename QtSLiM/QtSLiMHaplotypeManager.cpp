@@ -34,6 +34,7 @@
 #include <QMimeData>
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <QLabel>
 #include <QDebug>
 
 #include <vector>
@@ -41,6 +42,7 @@
 
 #include "eidos_globals.h"
 #include "subpopulation.h"
+#include "species.h"
 
 
 
@@ -48,6 +50,7 @@
 // This class method runs a plot options dialog, and then produces a haplotype plot with a progress panel as it is being constructed
 void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 {
+    Species *displaySpecies = controller->focalDisplaySpecies();
     QtSLiMHaplotypeOptions optionsPanel(controller);
     
     int result = optionsPanel.exec();
@@ -60,7 +63,7 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
         
         // First generate the haplotype plot data, with a progress panel
         QtSLiMHaplotypeManager *haplotypeManager = new QtSLiMHaplotypeManager(nullptr, clusteringMethod, clusteringOptimization,
-                                                                              controller, genomeSampleSize, true);
+                                                                              controller, displaySpecies, genomeSampleSize, true);
         
         if (haplotypeManager->valid_)
         {
@@ -96,6 +99,14 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
                 buttonLayout->setMargin(5);
                 buttonLayout->setSpacing(5);
                 topLayout->addLayout(buttonLayout);
+                
+                if (controller->community->all_species_.size() > 1)
+                {
+                    // make our species avatar badge
+                    QLabel *speciesLabel = new QLabel();
+                    speciesLabel->setText(QString::fromStdString(displaySpecies->avatar_));
+                    buttonLayout->addWidget(speciesLabel);
+                }
                 
                 QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
                 buttonLayout->addItem(rightSpacer);
@@ -138,13 +149,15 @@ void QtSLiMHaplotypeManager::CreateHaplotypePlot(QtSLiMWindow *controller)
 }
 
 QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                                               QtSLiMWindow *controller, size_t sampleSize, bool showProgress) :
+                                               QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress) :
     QObject(p_parent)
 {
     controller_ = controller;
+    focalSpeciesName_ = displaySpecies->name_;
     
-    SLiMSim *sim = controller_->sim;
-    Population &population = sim->population_;
+    Community *community = controller_->community;
+    Species *graphSpecies = focalDisplaySpecies();
+    Population &population = graphSpecies->population_;
     
     clusterMethod = clusteringMethod;
     clusterOptimization = optimizationMethod;
@@ -162,7 +175,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     
     // Figure out whether we're analyzing / displaying a subrange; gross that we go right into the ChromosomeView, I know...
     
-    controller_->chromosomeSelection(&usingSubrange, &subrangeFirstBase, &subrangeLastBase);
+    controller_->chromosomeSelection(graphSpecies, &usingSubrange, &subrangeFirstBase, &subrangeLastBase);
     
     // Also dig to find out whether we're displaying all mutation types or just a subset; if a subset, each MutationType has a display flag
     displayingMuttypeSubset = (controller_->chromosomeDisplayMuttypes().size() != 0);
@@ -193,7 +206,7 @@ QtSLiMHaplotypeManager::QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMeth
     if (usingSubrange)
         title.append(QString(", positions %1:%2").arg(subrangeFirstBase).arg(subrangeLastBase));
     
-    title.append(QString(", generation %1").arg(sim->generation_));
+    title.append(QString(", tick %1").arg(community->Tick()));
     
     titleString = title;
     subpopCount = static_cast<int>(selected_subpops.size());
@@ -268,6 +281,16 @@ QtSLiMHaplotypeManager::~QtSLiMHaplotypeManager(void)
 	}
 }
 
+Species *QtSLiMHaplotypeManager::focalDisplaySpecies(void)
+{
+    // We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+    // Before initialize() is done species have not been created, so we return nullptr in that case
+	if (controller_ && controller_->community && (controller_->community->Tick() >= 1))
+		return controller_->community->SpeciesWithName(focalSpeciesName_);
+	
+	return nullptr;
+}
+
 void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 {
 	// Work out an approximate best sort order
@@ -294,9 +317,13 @@ void QtSLiMHaplotypeManager::finishClusteringAnalysis(void)
 
 void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 {
-    SLiMSim *sim = controller_->sim;
-	Population &population = sim->population_;
-	double scalingFactor = 0.8; //controller_->selectionColorScale;
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (!graphSpecies)
+        return;
+    
+    Population &population = graphSpecies->population_;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
     int registry_size;
     const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_end_ptr = registry + registry_size;
@@ -347,7 +374,7 @@ void QtSLiMHaplotypeManager::configureMutationInfoBuffer()
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_->last_position_;
+	mutationLastPosition = graphSpecies->chromosome_->last_position_;
 }
 
 void QtSLiMHaplotypeManager::sortGenomes(void)

@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
-\f6\fnil\fcharset0 Menlo-Bold;}
+\f6\fnil\fcharset0 Menlo-Bold;\f7\fnil\fcharset0 AppleColorEmoji;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
@@ -182,7 +182,7 @@ The
 \f1\fs18 0
 \f2\fs20 \'96
 \f1\fs18 3
-\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  The mutation rates in this matrix are absolute rates, per nucleotide per generation; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
+\f2\fs20  representing A/C/G/T) to each of the four possible derived nucleotide states (columns, with the same meaning).  The mutation rates in this matrix are absolute rates, per nucleotide per gamete; they will be used by SLiM directly unless they are multiplied by a factor from the hotspot map (see 
 \f1\fs18 initializeHotspotMap()
 \f2\fs20 ).  Rates in 
 \f1\fs18 mutationMatrix
@@ -300,9 +300,9 @@ If the optional
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<InteractionType>$)initializeInteractionType(is$\'a0id, string$\'a0spatiality, [logical$\'a0reciprocal\'a0=\'a0F], [numeric$\'a0maxDistance\'a0=\'a0INF], [string$\'a0sexSegregation\'a0=\'a0"**"])
 \f4 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add an interaction type at initialization time.  The 
+\f2\fs20 \cf2 Add an interaction type at initialization time.  The 
 \f1\fs18 id
 \f2\fs20  must not already be used for any interaction type in the simulation.  The 
 \f1\fs18 id
@@ -313,15 +313,13 @@ If the optional
 \f2\fs20  giving the name of the new interaction type (such as 
 \f1\fs18 "i5"
 \f2\fs20  to specify an ID of 5).\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+The 
 \f1\fs18 spatiality
 \f2\fs20  may be 
 \f1\fs18 ""
 \f2\fs20 , for non-spatial interactions (i.e., interactions that do not depend upon the distance between individuals); 
 \f1\fs18 "x"
-\f4\fs20 ,
-\f2  
+\f2\fs20 , 
 \f1\fs18 "y"
 \f2\fs20 , or 
 \f1\fs18 "z"
@@ -333,7 +331,7 @@ If the optional
 \f1\fs18 "yz"
 \f2\fs20  for two-dimensional interactions; or 
 \f1\fs18 "xyz"
-\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must have been previously defined as spatial dimensions with 
+\f2\fs20  for three-dimensional interactions.  The dimensions referenced by spatiality must be defined as spatial dimensions with 
 \f1\fs18 initializeSLiMOptions()
 \f2\fs20 ; if the simulation has dimensionality 
 \f1\fs18 "xy"
@@ -353,18 +351,16 @@ If the optional
 \f1\fs18 "yz"
 \f2\fs20 , or 
 \f1\fs18 "xyz"
-\f4\fs20 .
-\f2   If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+\f2\fs20 .  If no spatial dimensions have been configured, only non-spatial interactions may be defined.\
+The 
 \f1\fs18 reciprocal
 \f2\fs20  flag may be 
 \f1\fs18 T
 \f2\fs20 , in which case the interaction is guaranteed by the user to be 
 \f3\i reciprocal
-\f2\i0 : whatever the interaction strength is for individual B upon individual A, it will be equal (in magnitude and sign) for A upon B.  This allows the 
+\f2\i0 : whatever the interaction strength is for exerter B upon receiver A, it will be equal (in magnitude and sign) for exerter A upon receiver B.  In principle, this allows the 
 \f1\fs18 InteractionType
-\f2\fs20  to reduce the amount of computation necessary by up to a factor of two.  If 
+\f2\fs20  to reduce the amount of computation necessary by up to a factor of two (although it may or may not be used).  If 
 \f1\fs18 reciprocal
 \f2\fs20  is 
 \f1\fs18 F
@@ -375,33 +371,14 @@ If the optional
 \f2\fs20 , so that bugs are not inadvertently introduced by an invalid assumption of reciprocality.  See below for a note regarding reciprocality in sexual simulations when using the 
 \f1\fs18 sexSegregation
 \f2\fs20  flag.\
-Note that even if an interaction is reciprocal, it may occasionally be slightly faster for 
-\f1\fs18 reciprocal
-\f2\fs20  to be set to 
-\f1\fs18 F
-\f2\fs20 .  This is most likely when the amount of computation per interaction is very small (particularly if no 
-\f1\fs18 interaction()
-\f2\fs20  callbacks are involved), and when it is unlikely that the reciprocal of a queried interaction will also be queried.  Even in such cases, however, the slowdown for 
-\f1\fs18 reciprocal=T
-\f2\fs20  should be fairly small.  In most usage cases, setting 
-\f1\fs18 reciprocal
-\f2\fs20  to 
-\f1\fs18 T
-\f2\fs20  (when the interaction is in fact reciprocal) will result in at least equal performance, if not better; with a very slow 
-\f1\fs18 interaction()
-\f2\fs20  callback, the performance can be as much as double, making it generally worthwhile to use 
-\f1\fs18 reciprocal=T
-\f2\fs20  when possible.  However, for maximal performance one might wish to time and compare runs with reciprocality enabled and disabled (using the same random number seed).\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+The 
 \f1\fs18 maxDistance
 \f2\fs20  parameter supplies the maximum distance over which interactions of this type will be evaluated; at greater distances, the interaction strength is considered to be zero (for efficiency).  The default value of 
 \f1\fs18 maxDistance
 \f2\fs20 , 
 \f1\fs18 INF
-\f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 The 
+\f2\fs20  (positive infinity), indicates that there is no maximum interaction distance; note that this can make some interaction queries much less efficient, and is therefore not recommended.  In SLiM 3.1 and later, a warning will be issued if a spatial interaction type is defined with no maximum distance to encourage a maximum distance to be defined.\
+The 
 \f1\fs18 sexSegregation
 \f2\fs20  parameter governs the applicability of the interaction to each sex, in sexual simulations.  It does not affect distance calculations in any way; it only modifies the way in which interaction strengths are calculated.  The default, 
 \f1\fs18 "**"
@@ -417,12 +394,11 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f1\fs18 "MM"
 \f2\fs20  would indicate a male-male interaction, such as male-male competition, whereas 
 \f1\fs18 "FM"
-\f2\fs20  would indicate an interaction influencing only females that is influenced only by males, such as male mating displays that influence female attraction.  This parameter may be set only to 
+\f2\fs20  would indicate an interaction influencing only female receivers that is influenced only by male exerters, such as male mating displays that influence female attraction.  This parameter may be set only to 
 \f1\fs18 "**"
 \f2\fs20  unless sex has been enabled with 
 \f1\fs18 initializeSex()
-\f4\fs20 .
-\f2   Note that a value of 
+\f2\fs20 .  Note that a value of 
 \f1\fs18 sexSegregation
 \f2\fs20  other than 
 \f1\fs18 "**"
@@ -433,8 +409,7 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f2\fs20  for this reason; SLiM will take the sex-segregation of the interaction into account for you.  The value of 
 \f1\fs18 reciprocal
 \f2\fs20  may therefore be interpreted as meaning: in those cases, if any, in which A interacts with B and B interacts with A, is the interaction strength guaranteed to be the same in both directions?\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 By default, the interaction strength is 
+By default, the interaction strength is 
 \f1\fs18 1.0
 \f2\fs20  for all interactions within 
 \f1\fs18 maxDistance
@@ -449,7 +424,13 @@ Note that even if an interaction is reciprocal, it may occasionally be slightly 
 \f2\fs20 , and the interaction strength of an individual with itself is always 
 \f1\fs18 0.0
 \f2\fs20 , regardless of the interaction function or callbacks.\
-The global symbol for the new interaction type is immediately available; the return value also provides the new object.\
+The global symbol for the new interaction type is immediately available; the return value also provides the new object.  Note that in multispecies models, 
+\f1\fs18 initializeInteractionType()
+\f2\fs20  must be called from a non-species-specific 
+\f1\fs18 interaction()
+\f2\fs20  callback (declared as 
+\f1\fs18 species all initialize()
+\f2\fs20 ), since interactions are managed at the community level.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (void)initializeMutationRate(numeric\'a0rates, [Ni\'a0ends\'a0=\'a0NULL], [string$\'a0sex\'a0=\'a0"*"])
@@ -457,7 +438,7 @@ The global symbol for the new interaction type is immediately available; the ret
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the mutation rate per base position per generation along the chromosome.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per generation (per new offspring genome being generated); note that this is different from how the recombination rate is defined (see 
+Set the mutation rate per base position per gamete.  To be precise, this mutation rate is the expected mean number of mutations that will occur per base position per gamete; note that this is different from how the recombination rate is defined (see 
 \f1\fs18 initializeRecombinationRate()
 \f2\fs20 ).  The number of mutations that actually occurs at a given base position when generating an offspring genome is, in effect, drawn from a Poisson distribution with that expected mean (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  It is possible for this Poisson draw to indicate that two or more new mutations have arisen at the same base position, particularly when the mutation rate is very high; in this case, the new mutations will be added to the site one at a time, and as always the mutation stacking policy will be followed.\
 There are two ways to call this function.  If the optional 
@@ -592,7 +573,6 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
@@ -646,7 +626,7 @@ See the documentation for
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 \expnd0\expndtw0\kerning0
-Set the recombination rate per base position per generation along the chromosome.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
+Set the recombination rate per base position per gamete.  To be precise, this recombination rate is the probability that a breakpoint will occur between one base and the next base; note that this is different from how the mutation rate is defined (see 
 \f1\fs18 initializeMutationRate()
 \f2\fs20 ).  All rates must be in the interval [
 \f1\fs18 0.0
@@ -654,7 +634,7 @@ Set the recombination rate per base position per generation along the chromosome
 \f1\fs18 0.5
 \f2\fs20 ].  A rate of 
 \f1\fs18 0.5
-\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  Unlike the mutational process in SLiM, then, which can generate more than one mutation at a given site (in one generation/genome), the recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
+\f2\fs20  implies complete independence between the adjacent bases, which might be used to implement independent assortment of loci located on different chromosomes (see the example below).  Whether a breakpoint occurs between two bases is then, in effect, determined by a binomial draw with a single trial and the given rate as probability (but under the hood SLiM uses a mathematically equivalent but much more efficient strategy).  The recombinational process in SLiM will never generate more then one crossover between one base and the next (in one generation/genome), and a supplied rate of 
 \f1\fs18 0.5
 \f2\fs20  will therefore result in an actual probability of 
 \f1\fs18 0.5
@@ -808,7 +788,7 @@ If
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (void)initializeSLiMOptions([logical$\'a0keepPedigrees\'a0=\'a0F], [string$\'a0dimensionality\'a0=\'a0""], [string$\'a0periodicity\'a0=\'a0""], [integer$\'a0mutationRuns\'a0=\'a00], [logical$\'a0preventIncidentalSelfing\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
-, [logical$\'a0nucleotideBased\'a0=\'a0F]\cf0 \kerning1\expnd0\expndtw0 )
+, [logical$\'a0nucleotideBased\'a0=\'a0F], [logical$\'a0randomizeCallbacks\'a0=\'a0T]\cf0 \kerning1\expnd0\expndtw0 )
 \f4 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -851,11 +831,11 @@ Configure options for the simulation.  If
 \f1\fs18 reproductiveOutput
 \f2\fs20  property of 
 \f1\fs18 Individual
-\f2\fs20  (see section 24.6.1) and the 
+\f2\fs20  and the 
 \f1\fs18 lifetimeReproductiveOutput
 \f2\fs20  property of 
 \f1\fs18 Subpopulation
-\f2\fs20  (see section 24.14.1).\
+\f2\fs20 .\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 If 
 \f1\fs18 dimensionality
@@ -972,7 +952,96 @@ If
 \f1\fs18 initializeHotspotMap()
 \f2\fs20 .  This choice has many consequences across SLiM. \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf0 \kerning1\expnd0\expndtw0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\cf2 \kerning1\expnd0\expndtw0 If 
+\f1\fs18 randomizeCallbacks
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20  (the default), the order in which individuals are processed in callbacks will be randomized to make it easier to avoid order-dependency bugs.  This flag exists because the order of individuals in each subpopulation is non-random; most notably, females always come before males in the individuals vector, but non-random ordering may also occur with respect to things like migrant versus non-migrant status, origin by selfing versus cloning versus biparental mating, and other factors.  When this option is 
+\f1\fs18 F
+\f2\fs20 , individuals in a subpopulation are processed in the order of the individuals vector in each tick cycle stage, which may lead to order-dependency issues if there is an enabled callback whose behavior is not fully independent between calls.  Setting this option to 
+\f1\fs18 T
+\f2\fs20  will cause individuals within each subpopulation to be processed in a randomized order in each tick cycle stage; specifically, this randomizes the order of calls to 
+\f1\fs18 mutationEffect()
+\f2\fs20  callbacks in both WF and nonWF models, and calls to 
+\f1\fs18 reproduction()
+\f2\fs20  and 
+\f1\fs18 survival()
+\f2\fs20  callbacks in nonWF models.  Each subpopulation is still processed separately, in sequential order, so order-dependency issues between subpopulations are still possible if callbacks have effects that are not fully independent.  This feature was added in SLiM 4, breaking backward compatibility; to recover the behavior of previous versions of SLiM, pass 
+\f1\fs18 F
+\f2\fs20  for this option (but then be very careful about order-dependency issues in your script).  The default of 
+\f1\fs18 T
+\f2\fs20  is the safe option, but a small speed penalty is incurred by the randomization of the processing order \'96 for most models the difference will be less than 1%, but in the worst case it may approach 10%.  Models that do not have any order-dependency issue may therefore run somewhat faster if this is set to 
+\f1\fs18 F
+\f2\fs20 .  Note that anywhere that your script uses the 
+\f1\fs18 individuals
+\f2\fs20  property of 
+\f1\fs18 Subpopulation
+\f2\fs20 , the order of individuals returned will be non-random (regardless of the setting of this option); you should use 
+\f1\fs18 sample()
+\f2\fs20  to shuffle the order of the individuals vector if necessary to avoid order-dependency issues in your script.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf0 This function will likely be extended with further options in the future, added on to the end of the argument list.  Using named arguments with this call is recommended for readability.  Note that turning on optional features may increase the runtime and memory footprint of SLiM.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)initializeSpecies([integer$\'a0tickModulo\'a0=\'a01], [integer$\'a0tickPhase\'a0=\'a01], [string$\'a0avatar\'a0=\'a0""], [string$\'a0color\'a0=\'a0""])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Configure options for the species being initialized.  This initialization function may only be called in multispecies models (i.e., models with explicit species declarations); in single-species models, the default values are assumed and cannot be changed.\
+The 
+\f1\fs18 tickModulo
+\f2\fs20  and 
+\f1\fs18 tickPhase
+\f2\fs20  parameters determine the activation schedule for the species.  The 
+\f1\fs18 active
+\f2\fs20  property of the species will be set to 
+\f1\fs18 T
+\f2\fs20  (thus activating the species) every 
+\f1\fs18 tickModulo
+\f2\fs20  ticks, beginning in tick 
+\f1\fs18 tickPhase
+\f2\fs20 .  (However, when the species is activated in a given tick, the 
+\f1\fs18 skipTick()
+\f2\fs20  method may still be called in a 
+\f1\fs18 first()
+\f2\fs20  event to deactivate it.)  See the 
+\f1\fs18 active
+\f2\fs20  property of 
+\f1\fs18 Species
+\f2\fs20  for more details.\
+The 
+\f1\fs18 avatar
+\f2\fs20  parameter, if not 
+\f1\fs18 ""
+\f2\fs20 , sets a 
+\f1\fs18 string
+\f2\fs20  value used to represent the species graphically, particularly in SLiMgui but perhaps in other contexts also.  The 
+\f1\fs18 avatar
+\f2\fs20  should generally be a single character \'96 usually an emoji corresponding to the species, such as 
+\f1\fs18 "
+\f7\fs14 \uc0\u55358 \u56714 
+\f1\fs18 "
+\f2\fs20  for foxes or 
+\f1\fs18 "
+\f7\fs14 \uc0\u55357 \u56365 
+\f1\fs18 "
+\f2\fs20  for mice.  If 
+\f1\fs18 avatar
+\f2\fs20  is the empty string, 
+\f1\fs18 ""
+\f2\fs20 , SLiMgui will choose a default avatar.\
+The 
+\f1\fs18 color
+\f2\fs20  parameter, if not 
+\f1\fs18 ""
+\f2\fs20 , sets a 
+\f1\fs18 string
+\f2\fs20  color value used to represent the species in SLiMgui.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f1\fs18 "#RRGGBB"
+\f2\fs20  (see the Eidos manual for details).  If 
+\f1\fs18 color
+\f2\fs20  is the empty string, 
+\f1\fs18 ""
+\f2\fs20 , SLiMgui will choose a default color.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -1008,7 +1077,7 @@ The
 \f1\fs18 NULL
 \f2\fs20  value for 
 \f1\fs18 simplificationInterval
-\f2\fs20 , SLiM will try to find an optimal generation interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
+\f2\fs20 , SLiM will try to find an optimal tick interval for simplification such that the ratio of the memory used by the tree sequence tables, (before:after) simplification, is close to the requested ratio. The default of 
 \f1\fs18 10
 \f2\fs20  (used if both 
 \f1\fs18 simplificationRatio
@@ -1016,17 +1085,17 @@ The
 \f1\fs18 simplificationInterval
 \f2\fs20  are 
 \f1\fs18 NULL
-\f2\fs20 ) thus requests that SLiM try to find a generation interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
+\f2\fs20 ) thus requests that SLiM try to find a tick interval such that the maximum size of the stored tree sequences is ten times the size after simplification. 
 \f1\fs18 INF
 \f2\fs20  may be supplied to indicate that automatic simplification should never occur; 
 \f1\fs18 0
-\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every generation.  Alternatively \'96 the second option \'96 
+\f2\fs20  may be supplied to indicate that automatic simplification should be performed at the end of every tick.  Alternatively \'96 the second option \'96 
 \f1\fs18 simplificationRatio
 \f2\fs20  may be 
 \f1\fs18 NULL
 \f2\fs20  and 
 \f1\fs18 simplificationInterval
-\f2\fs20  may be set to the interval, in generations, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  The 
+\f2\fs20  may be set to the interval, in ticks, between simplifications.  This may provide more reliable performance, but the interval must be chosen carefully to avoid exceeding the available memory.  The 
 \f1\fs18 simplificationInterval
 \f2\fs20  value may be a very large number to specify that simplification should never occur (not 
 \f1\fs18 INF
@@ -1034,7 +1103,7 @@ The
 \f1\fs18 integer
 \f2\fs20  value), or 
 \f1\fs18 1
-\f2\fs20  to simplify every generation.  Finally \'96 the third option \'96 both parameters may be non-
+\f2\fs20  to simplify every tick.  Finally \'96 the third option \'96 both parameters may be non-
 \f1\fs18 NULL
 \f2\fs20 , in which case 
 \f1\fs18 simplificationRatio
@@ -1638,13 +1707,12 @@ The calculation can be narrowed to apply to only a window \'96 a subrange of the
 \fs20 \nosupersub , which is often used to assess the overall level of genetic divergence between sister species or allopatric subpopulations.\
 The code for 
 \f1\fs18 calcFST()
-\f2\fs20  is just an Eidos implementation of Wright\'92s definition of 
+\f2\fs20  is, roughly, an Eidos implementation of Wright\'92s definition of 
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
-\fs20 \nosupersub :\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\fs20 \nosupersub  (but see below for further discussion and clarification):\
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1656,23 +1724,37 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub S
-\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \nosupersub  is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.\
+\kerning1\expnd0\expndtw0 where 
+\f3\i H
+\fs13\fsmilli6667 \sub S
+\f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 
+\f3\i H
+\fs13\fsmilli6667 \sub T 
+\f2\i0\fs20 \nosupersub is the total heterozygosity when both subpopulations are combined.  In this implementation, the two genome vectors are weighted equally, not weighted by their size.  In SLiM 3, the implementation followed Wright\'92s definition closely, and returned the 
+\f3\i average of ratios
+\f2\i0 : 
+\f1\fs18 mean(1.0 - H_s/H_t)
+\f2\fs20 , in the Eidos code.  In SLiM 4, it returns the 
+\f3\i ratio of averages
+\f2\i0  instead: 
+\f1\fs18 1.0 - mean(H_s)/mean(H_t)
+\f2\fs20 .  In other words, the 
+\f3\i F
+\f2\i0\fs13\fsmilli6667 \sub ST
+\fs20 \nosupersub  value reported by SLiM 4 is an average across the specified mutations in the two sets of genomes, where 
+\f1\fs18 H_s
+\f2\fs20  and 
+\f1\fs18 H_t
+\f2\fs20  are first averaged across all specified mutations prior to taking the ratio of the two.  This ratio of averages is less biased than the average of ratios, and and is generally considered to be best practice (see, e.g., Bhatia et al., 2013).  This means that the behavior of 
+\f1\fs18 calcFST()
+\f2\fs20  differs between SLiM 3 and SLiM 4.\
 The implementation of 
 \f1\fs18 calcFST()
 \f2\fs20 , viewable with 
 \f1\fs18 functionSource()
 \f2\fs20 , treats every mutation in 
 \f1\fs18 muts
-\f2\fs20  as independent in the heterozygosity calculations.  If mutations are stacked, the heterozygosity calculated is 
+\f2\fs20  as independent in the heterozygosity calculations; in other words, if mutations are stacked, the heterozygosity calculated is 
 \f3\i by mutation
 \f2\i0 , not 
 \f3\i by site
@@ -1681,15 +1763,6 @@ The implementation of
 \f2\fs20  objects exist in different genomes at the same site (whether representing different genetic states, or multiple mutational lineages for the same genetic state), each 
 \f1\fs18 Mutation
 \f2\fs20  object is treated separately for purposes of the heterozygosity calculation, just as if they were at different sites.  One could regard these choices as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of these choices will be negligible; however, in some models these distinctions may be important.\
-It is also worth noting that mutations that are at a frequency of 
-\f1\fs18 0.0
-\f2\fs20  or 
-\f1\fs18 1.0
-\f2\fs20  across the two subpopulations are excluded from the calculation, because 
-\f3\i \expnd0\expndtw0\kerning0
-H
-\f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
-\fs20 \nosupersub  for such mutations is zero and the result is therefore undefined.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcHeterozygosity(object<Genome>\'a0genomes, [No<Mutation>\'a0muts\'a0=\'a0NULL], [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL])\
@@ -1726,6 +1799,75 @@ The implementation of
 \f2\fs20 , treats every mutation as independent in the heterozygosity calculations.  One could regard this choice as embodying an infinite-sites interpretation of the segregating mutations.  In most biologically realistic models, such genetic states will be quite rare, and so the impact of this choice will be negligible; however, in some models this distinction may be important.  See 
 \f1\fs18 calcPairHeterozygosity()
 \f2\fs20  for further discussion.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (float$)calcInbreedingLoad(object<Genome>\'a0genomes, [No<MutationType>$\'a0mutType\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f2\fs20 \cf2 Calculates inbreeding load (the haploid number of lethal equivalents, or 
+\f3\i B
+\f2\i0 ) for a vector of genomes passed in 
+\f1\fs18 genomes
+\f2\fs20 .  The calculation can be limited to a focal mutation type passed in 
+\f1\fs18 mutType
+\f2\fs20 ; if 
+\f1\fs18 mutType
+\f2\fs20  is 
+\f1\fs18 NULL
+\f2\fs20  (the default), all of the mutations for the focal species will be considered.  In any case, only deleterious mutations (those with a negative selection coefficient) will be included in the final calculation.\
+The inbreeding load is a measure of the quantity of recessive deleterious variation that is heterozygous in a population and can contribute to fitness declines under inbreeding.  This function implements the following equation from Morton et al. (1956), which assumes no epistasis and random mating:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\i\fs22 \cf2 B
+\f2\i0  = sum(
+\f3\i qs
+\f2\i0 ) \uc0\u8722  sum(
+\f3\i q
+\f2\i0\fs14\fsmilli7333 \super 2
+\f3\i\fs22 \nosupersub s
+\f2\i0 ) \uc0\u8722  2sum(
+\f3\i q
+\f2\i0 (1\uc0\u8722 
+\f3\i q
+\f2\i0 )
+\f3\i sh
+\f2\i0 )\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\fs20 \cf2 where 
+\f3\i q
+\f2\i0  is the frequency of a given deleterious allele, 
+\f3\i s
+\f2\i0  is the absolute value of the selection coefficient, and 
+\f3\i h
+\f2\i0  is its dominance coefficient.  Note that the implementation sets a maximum |
+\f3\i s
+\f2\i0 | of 
+\f1\fs18 1.0
+\f2\fs20  (i.e., a lethal allele); |
+\f3\i s
+\f2\i0 | can sometimes be greater than 
+\f1\fs18 1.0
+\f2\fs20  when 
+\f3\i s
+\f2\i0  is drawn from a distribution, but in practice an allele with 
+\f3\i s
+\f2\i0 \'a0<\'a0
+\f1\fs18 -1.0
+\f2\fs20  has the same lethal effect as when 
+\f3\i s
+\f2\i0 \'a0=\'a0
+\f1\fs18 -1.0
+\f2\fs20 .  Also note that this implementation will not work when the model changes the dominance coefficients of mutations using 
+\f1\fs18 mutationEffect()
+\f2\fs20  callbacks, since it relies on the 
+\f1\fs18 dominanceCoeff
+\f2\fs20  property of 
+\f1\fs18 MutationType
+\f2\fs20 . Finally, note that, to estimate the diploid number of lethal equivalents (2
+\f3\i B
+\f2\i0 ), the result from this function can simply be multiplied by two.\
+This function was contributed by Chris Kyriazis; thanks, Chris!\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (float$)calcPairHeterozygosity(object<Genome>$\'a0genome1, object<Genome>$\'a0genome2, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL], [logical$\'a0infiniteSites\'a0=\'a0T])\
@@ -1882,9 +2024,9 @@ This function assumes that mutations of type
 \f1\fs18 defineSpatialMap()
 \f2\fs20  method of 
 \f1\fs18 Subpopulation
-\f2\fs20 .  For further discussion of dimensionality and spatiality, see section 24.1 on 
+\f2\fs20 .  For further discussion of dimensionality and spatiality, see 
 \f1\fs18 initializeInteractionType()
-\f2\fs20 , and section 24.7 on 
+\f2\fs20  and 
 \f1\fs18 InteractionType
 \f2\fs20 .\
 The 
@@ -1911,7 +2053,7 @@ The
 \f3\i centers
 \f2\i0  of the edge and corner grid squares are aligned with the limits of the spatial bounds.  This matches the way that 
 \f1\fs18 defineSpatialMap()
-\f2\fs20  defines its maps; see section 15.11 for illustration.\
+\f2\fs20  defines its maps.\
 The particular summary produced depends upon the parameters 
 \f1\fs18 operation
 \f2\fs20  and 

@@ -153,6 +153,8 @@
 	// Draw haplotypes by delegating to our haplotype manager
 	[haplotypeManager glDrawHaplotypesInRect:interior displayBlackAndWhite:[self displayBlackAndWhite] showSubpopStrips:[self showSubpopulationStrips] eraseBackground:YES previousFirstBincounts:NULL];
 	
+	// would be nice to overdraw the species avatar in a corner or something, but since this is an NSOpenGLView that's hard...
+	
 	// Flush
 	[[self openGLContext] flushBuffer];
 }

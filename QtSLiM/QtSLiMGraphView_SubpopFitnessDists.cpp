@@ -20,7 +20,7 @@
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
 
 #include "QtSLiMWindow.h"
-#include "slim_sim.h"
+#include "species.h"
 #include "population.h"
 #include "subpopulation.h"
 #include "individual.h"
@@ -83,8 +83,8 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 		bins[i] = 0.0;
 	
     // bin fitness values from one subpop or from across the population
-    SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+    Population &pop = graphSpecies->population_;
     
     for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : pop.subpops_)
     {
@@ -93,15 +93,10 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
         if (requestedSubpop && (subpop != requestedSubpop))
             continue;
         
-        double subpopFitnessScaling = subpop->last_fitness_scaling_;
-        if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-            subpopFitnessScaling = 1.0;
-        
         for (const Individual *individual : subpop->parent_individuals_)
         {
-            double fitness = individual->cached_fitness_UNSAFE_;    // always valid in SLiMgui
-            double rescaledFitness = fitness / subpopFitnessScaling;
-            int bin = (int)(((rescaledFitness - xAxisMin_) / (xAxisMax_ - xAxisMin_)) * binCount);
+            double fitness = individual->cached_unscaled_fitness_;
+            int bin = (int)(((fitness - xAxisMin_) / (xAxisMax_ - xAxisMin_)) * binCount);
             if (bin < 0) bin = 0;
             if (bin >= binCount) bin = binCount - 1;
             
@@ -126,8 +121,8 @@ double *QtSLiMGraphView_SubpopFitnessDists::subpopulationFitnessData(const Subpo
 
 void QtSLiMGraphView_SubpopFitnessDists::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
     bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop
     int binCount = histogramBinCount_;
@@ -184,8 +179,8 @@ bool QtSLiMGraphView_SubpopFitnessDists::providesStringForData(void)
 
 void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
     bool showSubpops = true;
     int binCount = histogramBinCount_;
 	
@@ -219,8 +214,8 @@ void QtSLiMGraphView_SubpopFitnessDists::appendStringForData(QString &string)
 
 QtSLiMLegendSpec QtSLiMGraphView_SubpopFitnessDists::legendKey(void)
 {
-	SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+    Population &pop = graphSpecies->population_;
 	bool showSubpops = true;
 	bool drawSubpopsGray = (showSubpops && (pop.subpops_.size() > 8));	// 7 subpops + pop
 	

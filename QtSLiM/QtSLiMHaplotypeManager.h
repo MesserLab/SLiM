@@ -30,10 +30,13 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 
+#include <string>
+
 #include "slim_globals.h"
 #include "mutation.h"
 
 class QtSLiMWindow;
+class Species;
 class Genome;
 class QtSLiMHaplotypeProgress;
 class QtSLiMPushButton;
@@ -58,7 +61,7 @@ public:
     
     // Constructing a QtSLiMHaplotypeManager directly is also allowing, if you don't want options or progress
     QtSLiMHaplotypeManager(QObject *p_parent, ClusteringMethod clusteringMethod, ClusteringOptimization optimizationMethod,
-                           QtSLiMWindow *controller, size_t sampleSize, bool showProgress);
+                           QtSLiMWindow *controller, Species *displaySpecies, size_t sampleSize, bool showProgress);
     ~QtSLiMHaplotypeManager(void);
     
     void glDrawHaplotypes(QRect interior, bool displayBW, bool showSubpopStrips, bool eraseBackground, int64_t **previousFirstBincounts);
@@ -70,6 +73,10 @@ public:
 
 private:
     QtSLiMWindow *controller_ = nullptr;
+    std::string focalSpeciesName_;                          // we keep the name of our focal species, since a pointer would be unsafe
+    
+    Species *focalDisplaySpecies(void);
+    
     QtSLiMHaplotypeProgress *progressPanel_ = nullptr;
     
     ClusteringMethod clusterMethod;

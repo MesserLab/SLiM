@@ -11,7 +11,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 1 late() {
@@ -19,11 +19,10 @@ initialize() {
 	sample(p1.genomes, 20).addNewDrawnMutation(m3, 20000);  // add B
 }
 modifyChild() {
-	childGenomes = c(childGenome1, childGenome2);
-	mutACount = sum(childGenomes.countOfMutationsOfType(m2));
-	mutBCount = sum(childGenomes.countOfMutationsOfType(m3));
+	mutACount = sum(child.genomes.countOfMutationsOfType(m2));
+	mutBCount = sum(child.genomes.countOfMutationsOfType(m3));
 	if ((mutACount == 2) & (mutBCount == 2))
 		return F;
 	return T;
 }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2021 Tskit Developers
+ * Copyright (c) 2019-2022 Tskit Developers
  * Copyright (c) 2017-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -72,7 +72,9 @@ typedef struct {
     const char *metadata;
     /** @brief Size of the metadata in bytes. */
     tsk_size_t metadata_length;
+    /** @brief An array of the nodes associated with this individual */
     const tsk_id_t *nodes;
+    /** @brief The number of nodes associated with this individual*/
     tsk_size_t nodes_length;
 } tsk_individual_t;
 
@@ -153,6 +155,9 @@ typedef struct {
     const char *metadata;
     /** @brief Size of the metadata in bytes. */
     tsk_size_t metadata_length;
+    /** @brief The ID of the edge that this mutation lies on, or TSK_NULL
+      if there is no corresponding edge.*/
+    tsk_id_t edge;
 } tsk_mutation_t;
 
 /**
@@ -176,7 +181,9 @@ typedef struct {
     const char *metadata;
     /** @brief Metadata length in bytes. */
     tsk_size_t metadata_length;
+    /** @brief An array of this site's mutations */
     const tsk_mutation_t *mutations;
+    /** @brief The number of mutations at this site */
     tsk_size_t mutations_length;
 } tsk_site_t;
 
@@ -668,87 +675,211 @@ typedef struct {
 /****************************************************************************/
 
 /**
-@defgroup TABLES_API_FUNCTION_OPTIONS Common function options in tables API
+@defgroup API_FLAGS_SIMPLIFY_GROUP :c:func:`tsk_table_collection_simplify` and
+:c:func:`tsk_treeseq_simplify` specific flags.
 @{
 */
+/** Remove sites from the output if there are no mutations that reference them.*/
+#define TSK_SIMPLIFY_FILTER_SITES (1 << 0)
+/** Remove populations from the output if there are no nodes or migrations that
+reference them. */
+#define TSK_SIMPLIFY_FILTER_POPULATIONS (1 << 1)
+/** Remove individuals from the output if there are no nodes that reference them.*/
+#define TSK_SIMPLIFY_FILTER_INDIVIDUALS (1 << 2)
+/**
+Reduce the topological information in the tables to the minimum necessary to
+represent the trees that contain sites. If there are zero sites this will
+result in an zero output edges. When the number of sites is greater than zero,
+every tree in the output tree sequence will contain at least one site.
+For a given site, the topology of the tree containing that site will be
+identical (up to node ID remapping) to the topology of the corresponding tree
+in the input.
+*/
+#define TSK_SIMPLIFY_REDUCE_TO_SITE_TOPOLOGY (1 << 3)
+/**
+By default simplify removes unary nodes (i.e., nodes with exactly one child)
+along the path from samples to root. If this option is specified such unary
+nodes will be preserved in the output.
+*/
+#define TSK_SIMPLIFY_KEEP_UNARY (1 << 4)
+/**
+By default simplify removes all topology ancestral the MRCAs of the samples.
+This option inserts edges from these MRCAs back to the roots of the input
+trees.
+*/
+#define TSK_SIMPLIFY_KEEP_INPUT_ROOTS (1 << 5)
+/**
+@rst
+This acts like :c:macro:`TSK_SIMPLIFY_KEEP_UNARY` (and is mutually exclusive with that
+flag). It keeps unary nodes, but only if the unary node is referenced from an individual.
+@endrst
+*/
+#define TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS (1 << 6)
+/** @} */
 
-/* Start the commmon options at the top of the space; this way we can start
- * options for individual functions at the bottom without worrying about
- * clashing with the common options */
+/**
+@defgroup API_FLAGS_SUBSET_GROUP :c:func:`tsk_table_collection_subset` specific flags.
+@{
+*/
+/**If this flag is provided, the population table will not be changed in any way.*/
+#define TSK_SUBSET_NO_CHANGE_POPULATIONS (1 << 0)
+/**
+@rst
+If this flag is provided, then unreferenced sites, individuals, and populations
+will not be removed. If so, the site and individual tables will not be changed,
+and (unless :c:macro:`TSK_SUBSET_NO_CHANGE_POPULATIONS` is also provided) unreferenced
+populations will be placed last, in their original order.
+@endrst
+*/
+#define TSK_SUBSET_KEEP_UNREFERENCED (1 << 1)
+/** @} */
 
-/** @brief Turn on debugging output. Not supported by all functions. */
-#define TSK_DEBUG (1u << 31)
-
-/** @brief Do not initialise the parameter object. */
-#define TSK_NO_INIT (1u << 30)
-
-/** @brief Do not run integrity checks before performing an operation. */
-#define TSK_NO_CHECK_INTEGRITY (1u << 29)
-
-/**@} */
-
-/* Flags for simplify() */
-#define TSK_FILTER_SITES (1 << 0)
-#define TSK_FILTER_POPULATIONS (1 << 1)
-#define TSK_FILTER_INDIVIDUALS (1 << 2)
-#define TSK_REDUCE_TO_SITE_TOPOLOGY (1 << 3)
-#define TSK_KEEP_UNARY (1 << 4)
-#define TSK_KEEP_INPUT_ROOTS (1 << 5)
-#define TSK_KEEP_UNARY_IN_INDIVIDUALS (1 << 6)
-
-/* Flags for subset() */
-#define TSK_NO_CHANGE_POPULATIONS (1 << 0)
-#define TSK_KEEP_UNREFERENCED (1 << 1)
-
-/* Flags for check_integrity */
+/**
+@defgroup API_FLAGS_CHECK_INTEGRITY_GROUP :c:func:`tsk_table_collection_check_integrity`
+specific flags.
+@{
+*/
+/** Check edge ordering constraints for a tree sequence. */
 #define TSK_CHECK_EDGE_ORDERING (1 << 0)
+/** Check that sites are in non-decreasing position order. */
 #define TSK_CHECK_SITE_ORDERING (1 << 1)
+/**Check for any duplicate site positions. */
 #define TSK_CHECK_SITE_DUPLICATES (1 << 2)
+/**
+Check constraints on the ordering of mutations. Any non-null
+mutation parents and known times are checked for ordering
+constraints.
+*/
 #define TSK_CHECK_MUTATION_ORDERING (1 << 3)
+/**Check individual parents are before children, where specified. */
 #define TSK_CHECK_INDIVIDUAL_ORDERING (1 << 4)
+/**Check migrations are ordered by time. */
 #define TSK_CHECK_MIGRATION_ORDERING (1 << 5)
+/**Check that the table indexes exist, and contain valid edge references. */
 #define TSK_CHECK_INDEXES (1 << 6)
+/**
+All checks needed to define a valid tree sequence. Note that
+this implies all of the above checks.
+*/
 #define TSK_CHECK_TREES (1 << 7)
 
 /* Leave room for more positive check flags */
+/**
+Do not check integrity of references to populations. This
+can be safely combined with the other checks.
+*/
 #define TSK_NO_CHECK_POPULATION_REFS (1 << 12)
+/** @} */
 
-/* Flags for load tables */
-#define TSK_BUILD_INDEXES (1 << 0)
+/**
+@defgroup API_FLAGS_LOAD_INIT_GROUP Flags used by load and init methods.
+@{
+*/
+/* These flags are for table collection load or init, or used as
+   flags on table collection or individual tables.
+ * As flags are passed though from load to init they share a namespace */
+/** Skip reading tables, and only load top-level information. */
+#define TSK_LOAD_SKIP_TABLES (1 << 0)
+/** Do not load reference sequence. */
+#define TSK_LOAD_SKIP_REFERENCE_SEQUENCE (1 << 1)
+/**
+@rst
+Do not allocate space to store metadata in this table. Operations
+attempting to add non-empty metadata to the table will fail
+with error TSK_ERR_METADATA_DISABLED.
+@endrst
+*/
+#define TSK_TABLE_NO_METADATA (1 << 2)
+/**
+@rst
+Do not allocate space to store metadata in the edge table. Operations
+attempting to add non-empty metadata to the edge table will fail
+with error TSK_ERR_METADATA_DISABLED.
+@endrst
+*/
+#define TSK_TC_NO_EDGE_METADATA (1 << 3)
+/** @} */
 
 /* Flags for dump tables */
 /* We may not want to document this flag, but it's useful for testing
- * so we put it high up in the bit space */
-#define TSK_DUMP_FORCE_OFFSET_64 (1 << 30)
+ * so we put it high up in the bit space, below the common options */
+#define TSK_DUMP_FORCE_OFFSET_64 (1 << 27)
 
-/* Flags for table collection init */
-#define TSK_NO_EDGE_METADATA (1 << 0)
+/**
+@defgroup API_FLAGS_COPY_GROUP Flags used by :c:func:`tsk_table_collection_copy`.
+@{
+*/
+/** Copy the file uuid, by default this is not copied. */
+#define TSK_COPY_FILE_UUID (1 << 0)
+/** @} */
 
-/* Flags for table collection load */
-/* This shares an interface with table collection init.
-   TODO: review as part of #1720 */
-#define TSK_LOAD_SKIP_TABLES (1 << 1)
-#define TSK_LOAD_SKIP_REFERENCE_SEQUENCE (1 << 2)
-
-/* Flags for table init. */
-#define TSK_NO_METADATA (1 << 0)
-
-/* Flags for union() */
+/**
+@defgroup API_FLAGS_UNION_GROUP Flags used by :c:func:`tsk_table_collection_union`.
+@{
+*/
+/**
+By default, union checks that the portion of shared history between
+``self`` and ``other``, as implied by ``other_node_mapping``, are indeed
+equivalent. It does so by subsetting both ``self`` and ``other`` on the
+equivalent nodes specified in ``other_node_mapping``, and then checking for
+equality of the subsets.
+*/
 #define TSK_UNION_NO_CHECK_SHARED (1 << 0)
+/**
+ By default, all nodes new to ``self`` are assigned new populations. If this
+option is specified, nodes that are added to ``self`` will retain the
+population IDs they have in ``other``.
+ */
 #define TSK_UNION_NO_ADD_POP (1 << 1)
+/** @} */
 
-/* Flags for table collection equals */
+/**
+@defgroup API_FLAGS_CMP_GROUP Flags used by :c:func:`tsk_table_collection_equals`.
+@{
+*/
+/**
+Do not include the top-level tree sequence metadata and metadata schemas
+in the comparison.
+*/
 #define TSK_CMP_IGNORE_TS_METADATA (1 << 0)
+/** Do not include the provenance table in comparison. */
 #define TSK_CMP_IGNORE_PROVENANCE (1 << 1)
+/**
+@rst
+Do not include metadata when comparing the table collections.
+This includes both the top-level tree sequence metadata as well as the
+metadata for each of the tables (i.e, :c:macro:`TSK_CMP_IGNORE_TS_METADATA` is implied).
+All metadata schemas are also ignored.
+@endrst
+*/
 #define TSK_CMP_IGNORE_METADATA (1 << 2)
+/**
+@rst
+Do not include the timestamp information when comparing the provenance
+tables. This has no effect if :c:macro:`TSK_CMP_IGNORE_PROVENANCE` is specified.
+@endrst
+*/
 #define TSK_CMP_IGNORE_TIMESTAMPS (1 << 3)
+/**
+Do not include any tables in the comparison, thus comparing only the
+top-level information of the table collections being compared.
+*/
 #define TSK_CMP_IGNORE_TABLES (1 << 4)
+/** Do not include the reference sequence in the comparison. */
 #define TSK_CMP_IGNORE_REFERENCE_SEQUENCE (1 << 5)
+/** @} */
 
-/* Flags for table collection clear */
+/**
+@defgroup API_FLAGS_CLEAR_GROUP Flags used by :c:func:`tsk_table_collection_clear`.
+@{
+*/
+/** Additionally clear the table metadata schemas*/
 #define TSK_CLEAR_METADATA_SCHEMAS (1 << 0)
+/** Additionally clear the tree-sequence metadata and schema*/
 #define TSK_CLEAR_TS_METADATA_AND_SCHEMA (1 << 1)
+/** Additionally clear the provenance table*/
 #define TSK_CLEAR_PROVENANCE (1 << 2)
+/** @} */
 
 /****************************************************************************/
 /* Function signatures */
@@ -914,9 +1045,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_individual_table_t object.
@@ -939,9 +1068,9 @@ Indexes that are present are also copied to the destination table.
 @endrst
 
 @param self A pointer to a tsk_individual_table_t object.
-@param dest A pointer to a tsk_individual_table_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised individual table. If not, it must
-    be an uninitialised individual table.
+@param dest A pointer to a tsk_individual_table_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised individual table. If not, it must be an
+uninitialised individual table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -975,7 +1104,7 @@ Copies the metadata schema string to this table, replacing any existing.
 @endrst
 
 @param self A pointer to a tsk_individual_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -1160,8 +1289,10 @@ for details of the columns in this table.
 @param self A pointer to a tsk_node_table_t object.
 @param flags The bitwise flags for the new node.
 @param time The time for the new node.
-@param population The population for the new node. Set to TSK_NULL if not known.
-@param individual The individual for the new node. Set to TSK_NULL if not known.
+@param population The population for the new node. Set to TSK_NULL if not
+known.
+@param individual The individual for the new node. Set to TSK_NULL if not
+known.
 @param metadata The metadata to be associated with the new node. This
     is a pointer to arbitrary memory. Can be ``NULL`` if ``metadata_length`` is 0.
 @param metadata_length The size of the metadata array in bytes.
@@ -1262,9 +1393,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_node_table_t object.
@@ -1280,7 +1409,7 @@ bool tsk_node_table_equals(
 
 @rst
 By default the method initialises the specified destination table. If the
-destination is already initialised, the :c:macro:`TSK_NO_INIT` option should
+destination is already initialised, the TSK_NO_INIT option should
 be supplied to avoid leaking memory.
 @endrst
 
@@ -1319,7 +1448,7 @@ int tsk_node_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_node_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -1443,11 +1572,7 @@ are initialised and freed.
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_NO_METADATA
-    Do not allocate space to store metadata in this table. Operations
-    attempting to add non-empty metadata to the table will fail
-    with error TSK_ERR_METADATA_DISABLED.
-
+- :c:macro:`TSK_TABLE_NO_METADATA`
 @endrst
 
 @param self A pointer to an uninitialised tsk_edge_table_t object.
@@ -1548,9 +1673,9 @@ int tsk_edge_table_truncate(tsk_edge_table_t *self, tsk_size_t num_rows);
 
 @rst
 Appends the rows at the specified indexes from the table ``other`` to the end of this
-table. Row indexes can be repeated and in any order. If ``row_indexes`` is NULL, append
-the first ``num_rows`` from ``other`` to this table. Note that metadata is copied as-is
-and is not checked for compatibility with any existing schema on this table.
+table. Row indexes can be repeated and in any order. If ``row_indexes`` is ``NULL``,
+append the first ``num_rows`` from ``other`` to this table. Note that metadata is copied
+as-is and is not checked for compatibility with any existing schema on this table.
 @endrst
 
 @param self A pointer to a tsk_edge_table_t object where rows are to be added.
@@ -1578,9 +1703,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_edge_table_t object.
@@ -1733,13 +1856,35 @@ the default doubling strategy.
 int tsk_edge_table_set_max_metadata_length_increment(
     tsk_edge_table_t *self, tsk_size_t max_metadata_length_increment);
 
+/**
+@brief Squash adjacent edges in-place
+
+@rst
+Sorts, then condenses the table into the smallest possible number of rows by
+combining any adjacent edges. A pair of edges is said to be `adjacent` if
+they have the same parent and child nodes, and if the left coordinate of
+one of the edges is equal to the right coordinate of the other edge.
+This process is performed in-place so that any set of adjacent edges is
+replaced by a single edge. The new edge will have the same parent and child
+node, a left coordinate equal to the smallest left coordinate in the set,
+and a right coordinate equal to the largest right coordinate in the set.
+The new edge table will be sorted in the canonical order (P, C, L, R).
+
+.. note::
+    Note that this method will fail if any edges have non-empty metadata.
+
+@endrst
+
+@param self A pointer to a tsk_edge_table_t object.
+@return Return 0 on success or a negative value on failure.
+*/
+int tsk_edge_table_squash(tsk_edge_table_t *self);
+
 /** @} */
 
 /* Undocumented methods */
 
 int tsk_edge_table_dump_text(const tsk_edge_table_t *self, FILE *out);
-
-int tsk_edge_table_squash(tsk_edge_table_t *self);
 
 /**
 @defgroup MIGRATION_TABLE_API_GROUP Migration table API.
@@ -1892,9 +2037,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_migration_table_t object.
@@ -1915,9 +2058,9 @@ be supplied to avoid leaking memory.
 @endrst
 
 @param self A pointer to a tsk_migration_table_t object.
-@param dest A pointer to a tsk_migration_table_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised migration table. If not, it must
-    be an uninitialised migration table.
+@param dest A pointer to a tsk_migration_table_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised migration table. If not, it must be an
+uninitialised migration table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -1949,7 +2092,7 @@ int tsk_migration_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_migration_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2202,9 +2345,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_site_table_t object.
@@ -2239,6 +2380,12 @@ int tsk_site_table_copy(
 
 @rst
 Updates the specified site struct to reflect the values in the specified row.
+
+This function always sets the ``mutations`` and ``mutations_length``
+fields in the parameter :c:struct:`tsk_site_t` to ``NULL`` and ``0`` respectively.
+To get access to the mutations for a particular site, please use the
+tree sequence method, :c:func:`tsk_treeseq_get_site`.
+
 Pointers to memory within this struct are handled by the table and should **not**
 be freed by client code. These pointers are guaranteed to be valid until the
 next operation that modifies the table (e.g., by adding a new row), but not afterwards.
@@ -2259,7 +2406,7 @@ int tsk_site_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_site_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2534,9 +2681,7 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata or metadata schemas in the comparison.
-
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
 @endrst
 
 @param self A pointer to a tsk_mutation_table_t object.
@@ -2557,9 +2702,9 @@ be supplied to avoid leaking memory.
 @endrst
 
 @param self A pointer to a tsk_mutation_table_t object.
-@param dest A pointer to a tsk_mutation_table_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised mutation table. If not, it must
-    be an uninitialised mutation table.
+@param dest A pointer to a tsk_mutation_table_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised mutation table. If not, it must be an
+uninitialised mutation table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2571,6 +2716,12 @@ int tsk_mutation_table_copy(
 
 @rst
 Updates the specified mutation struct to reflect the values in the specified row.
+
+This function always sets the ``edge`` field in parameter
+:c:struct:`tsk_mutation_t` to ``TSK_NULL``. To determine the ID of
+the edge associated with a particular mutation, please use the
+tree sequence method, :c:func:`tsk_treeseq_get_mutation`.
+
 Pointers to memory within this struct are handled by the table and should **not**
 be freed by client code. These pointers are guaranteed to be valid until the
 next operation that modifies the table (e.g., by adding a new row), but not afterwards.
@@ -2591,7 +2742,7 @@ int tsk_mutation_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_mutation_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2857,11 +3008,10 @@ more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns,
 and their metadata schemas are byte-wise identical.
 
-TSK_CMP_IGNORE_METADATA
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
     Do not include metadata in the comparison. Note that as metadata is the
     only column in the population table, two population tables are considered
     equal if they have the same number of rows if this flag is specified.
-
 @endrst
 
 @param self A pointer to a tsk_population_table_t object.
@@ -2882,9 +3032,9 @@ be supplied to avoid leaking memory.
 @endrst
 
 @param self A pointer to a tsk_population_table_t object.
-@param dest A pointer to a tsk_population_table_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised population table. If not, it must
-    be an uninitialised population table.
+@param dest A pointer to a tsk_population_table_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised population table. If not, it must be an
+uninitialised population table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -2916,7 +3066,7 @@ int tsk_population_table_get_row(
 Copies the metadata schema string to this table, replacing any existing.
 @endrst
 @param self A pointer to a tsk_population_table_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3151,10 +3301,7 @@ Options to control the comparison can be specified by providing one or
 more of the following bitwise flags. By default (options=0) tables are
 considered equal if they are byte-wise identical in all columns.
 
-TSK_CMP_IGNORE_TIMESTAMPS
-    Do not include the timestamp column when comparing provenance
-    tables.
-
+- :c:macro:`TSK_CMP_IGNORE_TIMESTAMPS`
 @endrst
 
 @param self A pointer to a tsk_provenance_table_t object.
@@ -3175,9 +3322,9 @@ be supplied to avoid leaking memory.
 @endrst
 
 @param self A pointer to a tsk_provenance_table_t object.
-@param dest A pointer to a tsk_provenance_table_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised provenance table. If not, it must
-    be an uninitialised provenance table.
+@param dest A pointer to a tsk_provenance_table_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised provenance table. If not, it must be an
+uninitialised provenance table.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3333,19 +3480,13 @@ are initialised and freed.
 
 **Options**
 
-Options can be specified by providing one or more of the following bitwise
-flags:
+Options can be specified by providing bitwise flags:
 
-TSK_NO_EDGE_METADATA
-    Do not allocate space to store metadata in the edge table. Operations
-    attempting to add non-empty metadata to the edge table will fail
-    with error TSK_ERR_METADATA_DISABLED.
-
+- :c:macro:`TSK_TC_NO_EDGE_METADATA`
 @endrst
 
 @param self A pointer to an uninitialised tsk_table_collection_t object.
-@param options Allocation time options. Currently unused; should be
-    set to zero to ensure compatibility with later versions of tskit.
+@param options Allocation time options as above.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_init(tsk_table_collection_t *self, tsk_flags_t options);
@@ -3364,26 +3505,23 @@ this table collection.
 
 @rst
 By default this operation clears all tables except the provenance table, retaining
-table metadata schemas and the tree-sequnce level metadata and schema.
+table metadata schemas and the tree-sequence level metadata and schema.
+
+No memory is freed as a result of this operation; please use
+:c:func:`tsk_table_collection_free` to free internal resources.
 
 **Options**
 
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_CLEAR_PROVENANCE
-    Additionally clear the provenance table
-TSK_CLEAR_METADATA_SCHEMAS
-    Additionally clear the table metadata schemas
-TSK_CLEAR_TS_METADATA_AND_SCHEMA
-    Additionally clear the tree-sequence metadata and schema
-
-No memory is freed as a result of this operation; please use
-:c:func:`tsk_table_collection_free` to free internal resources.
+- :c:macro:`TSK_CLEAR_PROVENANCE`
+- :c:macro:`TSK_CLEAR_METADATA_SCHEMAS`
+- :c:macro:`TSK_CLEAR_TS_METADATA_AND_SCHEMA`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
-@param options Bitwise clearing options
+@param options Bitwise clearing options.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_clear(tsk_table_collection_t *self, tsk_flags_t options);
@@ -3407,24 +3545,12 @@ collections are considered equal if all of the tables are byte-wise
 identical, and the sequence lengths, metadata and metadata schemas
 of the two table collections are identical.
 
-TSK_CMP_IGNORE_PROVENANCE
-    Do not include the provenance table in comparison.
-TSK_CMP_IGNORE_METADATA
-    Do not include metadata when comparing the table collections.
-    This includes both the top-level tree sequence metadata as well as the
-    metadata for each of the tables (i.e, TSK_CMP_IGNORE_TS_METADATA is implied).
-    All metadata schemas are also ignored.
-TSK_CMP_IGNORE_TS_METADATA
-    Do not include the top-level tree sequence metadata and metadata schemas
-    in the comparison.
-TSK_CMP_IGNORE_TIMESTAMPS
-    Do not include the timestamp information when comparing the provenance
-    tables. This has no effect if TSK_CMP_IGNORE_PROVENANCE is specified.
-TSK_CMP_IGNORE_TABLES
-    Do not include any tables in the comparison, thus comparing only the
-    top-level information of the table collections being compared.
-TSK_CMP_IGNORE_REFERENCE_SEQUENCE
-    Do not include the reference sequence in the comparison.
+- :c:macro:`TSK_CMP_IGNORE_PROVENANCE`
+- :c:macro:`TSK_CMP_IGNORE_METADATA`
+- :c:macro:`TSK_CMP_IGNORE_TS_METADATA`
+- :c:macro:`TSK_CMP_IGNORE_TIMESTAMPS`
+- :c:macro:`TSK_CMP_IGNORE_TABLES`
+- :c:macro:`TSK_CMP_IGNORE_REFERENCE_SEQUENCE`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -3439,15 +3565,21 @@ bool tsk_table_collection_equals(const tsk_table_collection_t *self,
 @brief Copies the state of this table collection into the specified destination.
 
 @rst
-By default the method initialises the specified destination table. If the
+By default the method initialises the specified destination table collection. If the
 destination is already initialised, the :c:macro:`TSK_NO_INIT` option should
 be supplied to avoid leaking memory.
+
+**Options**
+
+Options can be specified by providing bitwise flags:
+
+:c:macro:`TSK_COPY_FILE_UUID`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
-@param dest A pointer to a tsk_table_collection_t object. If the TSK_NO_INIT option
-    is specified, this must be an initialised provenance table. If not, it must
-    be an uninitialised provenance table.
+@param dest A pointer to a tsk_table_collection_t object. If the TSK_NO_INIT
+option is specified, this must be an initialised table collection. If not, it must be an
+uninitialised table collection.
 @param options Bitwise option flags.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3483,10 +3615,10 @@ If the file contains multiple table collections, this function will load
 the first. Please see the :c:func:`tsk_table_collection_loadf` for details
 on how to sequentially load table collections from a stream.
 
-If the TSK_LOAD_SKIP_TABLES option is set, only the non-table information from
+If the :c:macro:`TSK_LOAD_SKIP_TABLES` option is set, only the non-table information from
 the table collection will be read, leaving all tables with zero rows and no
 metadata or schema.
-If the TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set, the table collection is
+If the :c:macro:`TSK_LOAD_SKIP_REFERENCE_SEQUENCE` option is set, the table collection is
 read without loading the reference sequence.
 
 **Options**
@@ -3494,12 +3626,9 @@ read without loading the reference sequence.
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_NO_INIT
-    Do not initialise this :c:type:`tsk_table_collection_t` before loading.
-TSK_LOAD_SKIP_TABLES
-    Skip reading tables, and only load top-level information.
-TSK_LOAD_SKIP_REFERENCE_SEQUENCE
-    Do not load reference sequence.
+- :c:macro:`TSK_NO_INIT`
+- :c:macro:`TSK_LOAD_SKIP_TABLES`
+- :c:macro:`TSK_LOAD_SKIP_REFERENCE_SEQUENCE`
 
 **Examples**
 
@@ -3538,6 +3667,9 @@ If the :c:macro:`TSK_NO_INIT` option is set, the table collection is
 not initialised, allowing an already initialised table collection to
 be overwritten with the data from a file.
 
+The stream can be an arbitrary file descriptor, for example a network socket.
+No seek operations are performed.
+
 If the stream contains multiple table collection definitions, this function
 will load the next table collection from the stream. If the stream contains no
 more table collection definitions the error value :c:macro:`TSK_ERR_EOF` will
@@ -3548,29 +3680,23 @@ different error conditions. Please see the
 sequentially load tree sequences from a stream.
 
 Please note that this streaming behaviour is not supported if the
-TSK_LOAD_SKIP_TABLES or TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set.
-If the TSK_LOAD_SKIP_TABLES option is set, only the non-table information from
-the table collection will be read, leaving all tables with zero rows and no
-metadata or schema.
-If the TSK_LOAD_SKIP_REFERENCE_SEQUENCE option is set, the table collection is
-read without loading the reference sequence.
-When attempting to read from a stream with multiple table collection definitions
-and either of these two options set, the requested information from the first
-table collection will be read on the first call to
-:c:func:`tsk_table_collection_loadf`, with subsequent calls leading to errors.
+:c:macro:`TSK_LOAD_SKIP_TABLES` or :c:macro:`TSK_LOAD_SKIP_REFERENCE_SEQUENCE` option is
+set. If the :c:macro:`TSK_LOAD_SKIP_TABLES` option is set, only the non-table information
+from the table collection will be read, leaving all tables with zero rows and no metadata
+or schema. If the :c:macro:`TSK_LOAD_SKIP_REFERENCE_SEQUENCE` option is set, the table
+collection is read without loading the reference sequence. When attempting to read from a
+stream with multiple table collection definitions and either of these two options set,
+the requested information from the first table collection will be read on the first call
+to :c:func:`tsk_table_collection_loadf`, with subsequent calls leading to errors.
 
 **Options**
 
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_NO_INIT
-    Do not initialise this :c:type:`tsk_table_collection_t` before loading.
-TSK_LOAD_SKIP_TABLES
-    Skip reading tables, and only load top-level information.
-TSK_LOAD_SKIP_REFERENCE_SEQUENCE
-    Do not load reference sequence.
-
+- :c:macro:`TSK_NO_INIT`
+- :c:macro:`TSK_LOAD_SKIP_TABLES`
+- :c:macro:`TSK_LOAD_SKIP_REFERENCE_SEQUENCE`
 @endrst
 
 @param self A pointer to an uninitialised tsk_table_collection_t object
@@ -3612,7 +3738,8 @@ and well formed files will be written.
 
 @param self A pointer to an initialised tsk_table_collection_t object.
 @param filename A NULL terminated string containing the filename.
-@param options Bitwise options. See above for details.
+@param options Bitwise options. Currently unused; should be
+    set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
 */
 int tsk_table_collection_dump(
@@ -3633,10 +3760,10 @@ of how to sequentially dump and load tree sequences from a stream.
 @param self A pointer to an initialised tsk_table_collection_t object.
 @param file A FILE stream opened in an appropriate mode for writing (e.g.
     "w", "a", "r+" or "w+").
-@param options Bitwise options. See above for details.
+@param options Bitwise options. Currently unused; should be
+    set to zero to ensure compatibility with later versions of tskit.
 @return Return 0 on success or a negative value on failure.
 */
-
 int tsk_table_collection_dumpf(
     const tsk_table_collection_t *self, FILE *file, tsk_flags_t options);
 
@@ -3674,10 +3801,10 @@ int tsk_table_collection_truncate(
 @rst
 Some of the tables in a table collection must satisfy specific sortedness requirements
 in order to define a :ref:`valid tree sequence <sec_valid_tree_sequence_requirements>`.
-This method sorts the ``edge``, ``site`` and ``mutation`` tables such that
-these requirements are guaranteed to be fulfilled. The ``individual``,
-``node``, ``population`` and ``provenance`` tables do not have any sortedness
-requirements, and are therefore ignored by this method.
+This method sorts the ``edge``, ``site``, ``mutation`` and ``individual`` tables such
+that these requirements are guaranteed to be fulfilled. The ``node``, ``population``
+and ``provenance`` tables do not have any sortedness requirements, and are therefore
+ignored by this method.
 
 .. note:: The current implementation **may** sort in such a way that exceeds
     these requirements, but this behaviour should not be relied upon and later
@@ -3690,16 +3817,16 @@ requirements, and are therefore ignored by this method.
 The specified :c:type:`tsk_bookmark_t` allows us to specify a start position
 for sorting in each of the tables; rows before this value are assumed to already be
 in sorted order and this information is used to make sorting more efficient.
-Positions in tables that are not sorted (``individual``, ``node``, ``population``
+Positions in tables that are not sorted (``node``, ``population``
 and ``provenance``) are ignored and can be set to arbitrary values.
 
 .. warning:: The current implementation only supports specifying a start
     position for the ``edge`` table and in a limited form for the
-    ``site`` and ``mutation`` tables. Specifying a non-zero ``migration``,
-    start position results in an error. The start positions for the
-    ``site`` and ``mutation`` tables can either be 0 or the length of the
-    respective tables, allowing these tables to either be fully sorted, or
-    not sorted at all.
+    ``site``, ``mutation`` and ``individual`` tables. Specifying a non-zero
+    ``migration``, start position results in an error. The start positions for the
+    ``site``, ``mutation`` and ``individual`` tables can either be 0 or the length of the
+    respective tables, allowing these tables to either be fully sorted, or not sorted at
+    all.
 
 The table collection will always be unindexed after sort successfully completes.
 
@@ -3711,7 +3838,7 @@ section.
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_NO_CHECK_INTEGRITY
+:c:macro:`TSK_NO_CHECK_INTEGRITY`
     Do not run integrity checks using
     :c:func:`tsk_table_collection_check_integrity` before sorting,
     potentially leading to a small reduction in execution time. This
@@ -3719,7 +3846,6 @@ TSK_NO_CHECK_INTEGRITY
     guarantee reference integrity within the table collection. References
     to rows not in the table or bad offsets will result in undefined
     behaviour.
-
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -3763,11 +3889,7 @@ tree sequence sortedness requirements.
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_KEEP_UNREFERENCED
-    By default, this will remove any unreferenced sites, populations, and
-    individuals. If this flag is provided, these will be retained, with
-    unreferenced individuals and populations at the end of the tables, in
-    their original order.
+- :c:macro:`TSK_SUBSET_KEEP_UNREFERENCED`
 
 @endrst
 
@@ -3786,50 +3908,29 @@ more details.
 A mapping from the node IDs in the table before simplification to their equivalent
 values after simplification can be obtained via the ``node_map`` argument. If this
 is non NULL, ``node_map[u]`` will contain the new ID for node ``u`` after simplification,
-or ``TSK_NULL`` if the node has been removed. Thus, ``node_map`` must be an array of
-at least ``self->nodes.num_rows`` :c:type:`tsk_id_t` values.
+or :c:macro:`TSK_NULL` if the node has been removed. Thus, ``node_map`` must be an array
+of at least ``self->nodes.num_rows`` :c:type:`tsk_id_t` values. The table collection will
+always be unindexed after simplify successfully completes.
+
+.. note:: Migrations are currently not supported by simplify, and an error will
+    be raised if we attempt call simplify on a table collection with greater
+    than zero migrations. See `<https://github.com/tskit-dev/tskit/issues/20>`_
 
 **Options**:
 
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_FILTER_SITES
-    Remove sites from the output if there are no mutations that reference them.
-TSK_FILTER_POPULATIONS
-    Remove populations from the output if there are no nodes or migrations that
-    reference them.
-TSK_FILTER_INDIVIDUALS
-    Remove individuals from the output if there are no nodes that reference them.
-TSK_REDUCE_TO_SITE_TOPOLOGY
-    Reduce the topological information in the tables to the minimum necessary to
-    represent the trees that contain sites. If there are zero sites this will
-    result in an zero output edges. When the number of sites is greater than zero,
-    every tree in the output tree sequence will contain at least one site.
-    For a given site, the topology of the tree containing that site will be
-    identical (up to node ID remapping) to the topology of the corresponding tree
-    in the input.
-TSK_KEEP_UNARY
-    By default simplify removes unary nodes (i.e., nodes with exactly one child)
-    along the path from samples to root. If this option is specified such unary
-    nodes will be preserved in the output.
-TSK_KEEP_INPUT_ROOTS
-    By default simplify removes all topology ancestral the MRCAs of the samples.
-    This option inserts edges from these MRCAs back to the roots of the input
-    trees.
-TSK_KEEP_UNARY_IN_INDIVDUALS
-    This acts like TSK_KEEP_UNARY (and is mutually exclusive with that flag). It
-    keeps unary nodes, but only if the unary node is referenced from an individual.
-
-.. note:: Migrations are currently not supported by simplify, and an error will
-    be raised if we attempt call simplify on a table collection with greater
-    than zero migrations. See `<https://github.com/tskit-dev/tskit/issues/20>`_
-
-The table collection will always be unindexed after simplify successfully
-completes.
+- :c:macro:`TSK_SIMPLIFY_FILTER_SITES`
+- :c:macro:`TSK_SIMPLIFY_FILTER_POPULATIONS`
+- :c:macro:`TSK_SIMPLIFY_FILTER_INDIVIDUALS`
+- :c:macro:`TSK_SIMPLIFY_REDUCE_TO_SITE_TOPOLOGY`
+- :c:macro:`TSK_SIMPLIFY_KEEP_UNARY`
+- :c:macro:`TSK_SIMPLIFY_KEEP_INPUT_ROOTS`
+- :c:macro:`TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVIDUALS`
 @endrst
 
-@param self A pointer to a tsk_individual_table_t object.
+@param self A pointer to a tsk_table_collection_t object.
 @param samples Either NULL or an array of num_samples distinct and valid node IDs.
     If non-null the nodes in this array will be marked as samples in the output.
     If NULL, the num_samples parameter is ignored and the samples in the output
@@ -3872,24 +3973,17 @@ and only retains the individuals A and B are in, and not their parents.
 
 This function does *not* require the tables to be sorted.
 
+.. note:: Migrations are currently not supported by subset, and an error will
+    be raised if we attempt call subset on a table collection with greater
+    than zero migrations.
+
 **Options**:
 
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_NO_CHANGE_POPULATIONS
-    If this flag is provided, the population table will not be changed
-    in any way.
-
-TSK_KEEP_UNREFERENCED
-    If this flag is provided, then unreferenced sites, individuals, and populations
-    will not be removed. If so, the site and individual tables will not be changed,
-    and (unless TSK_NO_CHANGE_POPULATIONS is also provided) unreferenced
-    populations will be placed last, in their original order.
-
-.. note:: Migrations are currently not supported by susbset, and an error will
-    be raised if we attempt call subset on a table collection with greater
-    than zero migrations.
+- :c:macro:`TSK_SUBSET_NO_CHANGE_POPULATIONS`
+- :c:macro:`TSK_SUBSET_KEEP_UNREFERENCED`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -3909,7 +4003,7 @@ Expands this table collection by adding the non-shared portions of another table
 collection to itself. The ``other_node_mapping`` encodes which nodes in ``other`` are
 equivalent to a node in ``self``. The positions in the ``other_node_mapping`` array
 correspond to node ids in ``other``, and the elements encode the equivalent
-node id in ``self`` or TSK_NULL if the node is exclusive to ``other``. Nodes
+node id in ``self`` or :c:macro:`TSK_NULL` if the node is exclusive to ``other``. Nodes
 that are exclusive ``other`` are added to ``self``, along with:
 
 1. Individuals which are new to ``self``.
@@ -3923,24 +4017,16 @@ and added to the population table as well.
 This operation will also sort the resulting tables, so the tables may change
 even if nothing new is added, if the original tables were not sorted.
 
+.. note:: Migrations are currently not supported by union, and an error will
+    be raised if we attempt call union on a table collection with migrations.
+
 **Options**:
 
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_UNION_NO_CHECK_SHARED
-    By default, union checks that the portion of shared history between
-    ``self`` and ``other``, as implied by ``other_node_mapping``, are indeed
-    equivalent. It does so by subsetting both ``self`` and ``other`` on the
-    equivalent nodes specified in ``other_node_mapping``, and then checking for
-    equality of the subsets.
-TSK_UNION_NO_ADD_POP
-    By default, all nodes new to ``self`` are assigned new populations. If this
-    option is specified, nodes that are added to ``self`` will retain the
-    population IDs they have in ``other``.
-
-.. note:: Migrations are currently not supported by union, and an error will
-    be raised if we attempt call union on a table collection with migrations.
+- :c:macro:`TSK_UNION_NO_CHECK_SHARED`
+- :c:macro:`TSK_UNION_NO_ADD_POP`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -3963,7 +4049,7 @@ int tsk_table_collection_union(tsk_table_collection_t *self,
 Copies the time_units string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param time_units A pointer to a char array
+@param time_units A pointer to a char array.
 @param time_units_length The size of the time units string in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3976,7 +4062,7 @@ int tsk_table_collection_set_time_units(
 Copies the metadata string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param metadata A pointer to a char array
+@param metadata A pointer to a char array.
 @param metadata_length The size of the metadata in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -3989,7 +4075,7 @@ int tsk_table_collection_set_metadata(
 Copies the metadata schema string to this table collection, replacing any existing.
 @endrst
 @param self A pointer to a tsk_table_collection_t object.
-@param metadata_schema A pointer to a char array
+@param metadata_schema A pointer to a char array.
 @param metadata_schema_length The size of the metadata schema in bytes.
 @return Return 0 on success or a negative value on failure.
 */
@@ -4017,8 +4103,6 @@ life-cycle.
 */
 bool tsk_table_collection_has_index(
     const tsk_table_collection_t *self, tsk_flags_t options);
-
-bool tsk_table_collection_has_reference_sequence(const tsk_table_collection_t *self);
 
 /**
 @brief Deletes the indexes for this table collection.
@@ -4054,9 +4138,6 @@ collection. Any existing index is first dropped using
 */
 int tsk_table_collection_build_index(tsk_table_collection_t *self, tsk_flags_t options);
 
-int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
-    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
-
 /**
 @brief Runs integrity checks on this table collection.
 
@@ -4073,10 +4154,10 @@ than their nodes or their mutation parents, etcetera.
 
 To check if a set of tables fulfills the :ref:`requirements
 <sec_valid_tree_sequence_requirements>` needed for a valid tree sequence, use
-the TSK_CHECK_TREES option. When this method is called with TSK_CHECK_TREES,
-the number of trees in the tree sequence is returned. Thus, to check for errors
-client code should verify that the return value is less than zero. All other
-options will return zero on success and a negative value on failure.
+the :c:macro:`TSK_CHECK_TREES` option. When this method is called with
+:c:macro:`TSK_CHECK_TREES`, the number of trees in the tree sequence is returned. Thus,
+to check for errors client code should verify that the return value is less than zero.
+All other options will return zero on success and a negative value on failure.
 
 More fine-grained checks can be achieved using bitwise combinations of the
 other options.
@@ -4086,33 +4167,15 @@ other options.
 Options can be specified by providing one or more of the following bitwise
 flags:
 
-TSK_CHECK_EDGE_ORDERING
-    Check edge ordering constraints for a tree sequence.
-TSK_CHECK_SITE_ORDERING
-    Check that sites are in nondecreasing position order.
-TSK_CHECK_SITE_DUPLICATES
-    Check for any duplicate site positions.
-TSK_CHECK_MUTATION_ORDERING
-    Check contraints on the ordering of mutations. Any non-null
-    mutation parents and known times are checked for ordering
-    constraints.
-TSK_CHECK_INDIVIDUAL_ORDERING
-    Check individual parents are before children, where specified.
-TSK_CHECK_MIGRATION_ORDERING
-    Check migrations are ordered by time.
-TSK_CHECK_INDEXES
-    Check that the table indexes exist, and contain valid edge
-    references.
-TSK_CHECK_TREES
-    All checks needed to define a valid tree sequence. Note that
-    this implies all of the above checks.
-
-It is sometimes useful to disregard some parts of the data model
-when performing checks:
-
-TSK_NO_CHECK_POPULATION_REFS
-    Do not check integrity of references to populations. This
-    can be safely combined with the other checks.
+- :c:macro:`TSK_CHECK_EDGE_ORDERING`
+- :c:macro:`TSK_CHECK_SITE_ORDERING`
+- :c:macro:`TSK_CHECK_SITE_DUPLICATES`
+- :c:macro:`TSK_CHECK_MUTATION_ORDERING`
+- :c:macro:`TSK_CHECK_INDIVIDUAL_ORDERING`
+- :c:macro:`TSK_CHECK_MIGRATION_ORDERING`
+- :c:macro:`TSK_CHECK_INDEXES`
+- :c:macro:`TSK_CHECK_TREES`
+- :c:macro:`TSK_NO_CHECK_POPULATION_REFS`
 @endrst
 
 @param self A pointer to a tsk_table_collection_t object.
@@ -4139,11 +4202,11 @@ tsk_id_t tsk_table_collection_check_integrity(
  * This should be done as part of documenting, I guess. */
 int tsk_table_collection_ibd_within(const tsk_table_collection_t *self,
     tsk_identity_segments_t *result, const tsk_id_t *samples, tsk_size_t num_samples,
-    double min_length, double max_time, tsk_flags_t options);
+    double min_span, double max_time, tsk_flags_t options);
 
 int tsk_table_collection_ibd_between(const tsk_table_collection_t *self,
     tsk_identity_segments_t *result, tsk_size_t num_sample_sets,
-    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets, double min_length,
+    const tsk_size_t *sample_set_sizes, const tsk_id_t *sample_sets, double min_span,
     double max_time, tsk_flags_t options);
 
 int tsk_table_collection_link_ancestors(tsk_table_collection_t *self, tsk_id_t *samples,
@@ -4156,6 +4219,39 @@ int tsk_table_collection_compute_mutation_parents(
 int tsk_table_collection_compute_mutation_times(
     tsk_table_collection_t *self, double *random, tsk_flags_t TSK_UNUSED(options));
 
+int tsk_table_collection_set_indexes(tsk_table_collection_t *self,
+    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
+
+int tsk_table_collection_takeset_metadata(
+    tsk_table_collection_t *self, char *metadata, tsk_size_t metadata_length);
+int tsk_table_collection_takeset_indexes(tsk_table_collection_t *self,
+    tsk_id_t *edge_insertion_order, tsk_id_t *edge_removal_order);
+int tsk_individual_table_takeset_columns(tsk_individual_table_t *self,
+    tsk_size_t num_rows, tsk_flags_t *flags, double *location,
+    tsk_size_t *location_offset, tsk_id_t *parents, tsk_size_t *parents_offset,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_node_table_takeset_columns(tsk_node_table_t *self, tsk_size_t num_rows,
+    tsk_flags_t *flags, double *time, tsk_id_t *population, tsk_id_t *individual,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_edge_table_takeset_columns(tsk_edge_table_t *self, tsk_size_t num_rows,
+    double *left, double *right, tsk_id_t *parent, tsk_id_t *child, char *metadata,
+    tsk_size_t *metadata_offset);
+int tsk_migration_table_takeset_columns(tsk_migration_table_t *self, tsk_size_t num_rows,
+    double *left, double *right, tsk_id_t *node, tsk_id_t *source, tsk_id_t *dest,
+    double *time, char *metadata, tsk_size_t *metadata_offset);
+int tsk_site_table_takeset_columns(tsk_site_table_t *self, tsk_size_t num_rows,
+    double *position, char *ancestral_state, tsk_size_t *ancestral_state_offset,
+    char *metadata, tsk_size_t *metadata_offset);
+int tsk_mutation_table_takeset_columns(tsk_mutation_table_t *self, tsk_size_t num_rows,
+    tsk_id_t *site, tsk_id_t *node, tsk_id_t *parent, double *time, char *derived_state,
+    tsk_size_t *derived_state_offset, char *metadata, tsk_size_t *metadata_offset);
+int tsk_population_table_takeset_columns(tsk_population_table_t *self,
+    tsk_size_t num_rows, char *metadata, tsk_size_t *metadata_offset);
+int tsk_provenance_table_takeset_columns(tsk_provenance_table_t *self,
+    tsk_size_t num_rows, char *timestamp, tsk_size_t *timestamp_offset, char *record,
+    tsk_size_t *record_offset);
+
+bool tsk_table_collection_has_reference_sequence(const tsk_table_collection_t *self);
 int tsk_reference_sequence_init(tsk_reference_sequence_t *self, tsk_flags_t options);
 int tsk_reference_sequence_free(tsk_reference_sequence_t *self);
 bool tsk_reference_sequence_is_null(const tsk_reference_sequence_t *self);
@@ -4173,12 +4269,8 @@ int tsk_reference_sequence_set_metadata_schema(tsk_reference_sequence_t *self,
     const char *metadata_schema, tsk_size_t metadata_schema_length);
 int tsk_reference_sequence_takeset_data(
     tsk_reference_sequence_t *self, char *data, tsk_size_t data_length);
-int tsk_reference_sequence_takeset_url(
-    tsk_reference_sequence_t *self, char *url, tsk_size_t url_length);
 int tsk_reference_sequence_takeset_metadata(
     tsk_reference_sequence_t *self, char *metadata, tsk_size_t metadata_length);
-int tsk_reference_sequence_takeset_metadata_schema(tsk_reference_sequence_t *self,
-    char *metadata_schema, tsk_size_t metadata_schema_length);
 
 /**
 @defgroup TABLE_SORTER_API_GROUP Low-level table sorter API.

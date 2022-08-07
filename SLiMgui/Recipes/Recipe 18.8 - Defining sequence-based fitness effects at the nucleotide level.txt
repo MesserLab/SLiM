@@ -1,4 +1,4 @@
-// Keywords: nucleotide-based, fitness()
+// Keywords: nucleotide-based
 
 initialize() {
 	defineConstant("L", 1e4);
@@ -13,21 +13,21 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 late() {
 	if (sum(sim.mutations.position == 100) == 0)
 		s1.active = 0;
 }
-s1 fitness(NULL) {
-	nuc1 = genome1.nucleotides(100, 100, format="integer");
-	nuc2 = genome2.nucleotides(100, 100, format="integer");
+s1 fitnessEffect() {
+	nuc1 = individual.genome1.nucleotides(100, 100, format="integer");
+	nuc2 = individual.genome2.nucleotides(100, 100, format="integer");
 	return EFF[nuc1] * EFF[nuc2];
 }
 10000 late() {
 	subs = sim.substitutions[sim.substitutions.position == 100];
 	
 	for (sub in subs)
-		catn("Sub to " + sub.nucleotide + " in "  + sub.fixationGeneration);
+		catn("Sub to " + sub.nucleotide + " in "  + sub.fixationTick);
 }

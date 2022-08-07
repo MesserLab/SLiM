@@ -9,7 +9,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-7);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 1000 late() {
@@ -26,6 +26,6 @@ initialize() {
 	nonSeg = BACKGROUND[!BACKGROUND.isSegregating];
 	fixed = nonSeg[nonSeg.isFixed];
 	lost = nonSeg[!nonSeg.isFixed];
-	writeFile("~/Desktop/fixed.txt", paste(fixed.position, sep=", "));
-	writeFile("~/Desktop/lost.txt", paste(lost.position, sep=", "));
+	writeFile("fixed.txt", paste(fixed.position, sep=", "));
+	writeFile("lost.txt", paste(lost.position, sep=", "));
 }

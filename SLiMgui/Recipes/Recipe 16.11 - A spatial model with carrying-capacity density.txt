@@ -21,9 +21,9 @@ initialize() {
 	// spatial mate choice
 	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
 }
-first() {
+2: first() {
 	// look for mates
-	i2.evaluate();
+	i2.evaluate(p1);
 }
 reproduction() {
 	// choose our nearest neighbor as a mate, within the max distance
@@ -49,7 +49,7 @@ reproduction() {
 	p1.individuals.setSpatialPosition(p1.pointUniform(1));
 }
 early() {
-	i1.evaluate();
+	i1.evaluate(p1);
 	
 	// spatial competition provides density-dependent selection
 	inds = p1.individuals;

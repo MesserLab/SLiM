@@ -1,6 +1,6 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2513
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Italic;\f1\fnil\fcharset0 Menlo-Italic;\f2\fswiss\fcharset0 Optima-Regular;
-\f3\fnil\fcharset0 Menlo-Regular;\f4\froman\fcharset0 TimesNewRomanPSMT;}
+\f3\fnil\fcharset0 Menlo-Regular;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red28\green0\blue207;\red63\green110\blue116;
 \red20\green0\blue196;\red181\green0\blue19;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c15223\c16313\c84844;\cssrgb\c30795\c50445\c52970;
@@ -12,23 +12,20 @@
 \f0\i\fs22 \cf0 5.13.0  ITEM: 1. 
 \f1\fs18 initialize()
 \f0\fs22  callbacks\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf0 Before a SLiM simulation can be run, the various classes underlying the simulation need to be set up with an initial configuration.  In SLiM 1.8 and earlier, this was done by means of 
-\f3\fs18 #
-\f2\fs22  directives in the simulation\'92s input file.  In SLiM 2.0, simulation parameters are instead configured using Eidos.\
-Configuration in Eidos is done in 
+\f2\i0 \cf2 Before a SLiM simulation can be run, the various classes underlying the simulation need to be set up with an initial configuration.  Simulation configuration in SLiM is done in 
 \f1\i\fs18 initialize()
 \f0\fs22  callbacks
-\f2\i0  that run prior to the beginning of simulation execution.  In your input file, you can simply write something like this:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\f2\i0  that run prior to the beginning of simulation execution.  For our present purposes, the idea is very simple; in your input file, you can write something like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf0    initialize() \{ ... \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 initialize()\uc0\u8232 \{\u8232 	...\u8232 \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf0 The 
+\f2\fs22 \cf2 The 
 \f3\fs18 initialize()
-\f2\fs22  specifies that the script block is to be executed as an 
+\f2\fs22  declaration specifies that the script block is to be executed as an 
 \f3\fs18 initialize()
 \f2\fs22  callback before the simulation starts.  The script between the braces 
 \f3\fs18 \{\}
@@ -38,43 +35,106 @@ Configuration in Eidos is done in
 \f3\fs18 initialize()
 \f2\fs22  callback, and their names begin with 
 \f3\fs18 initialize
-\f2\fs22  to mark them clearly as such.  You may also use other Eidos functionality, of course; for example, you might automate generating a large number of subpopulations with complex migration patterns by using a 
+\f2\fs22  to mark them clearly as such.  You may also use other Eidos functionality in these callbacks; for example, you might automate generating a complex genetic structure containing many genes by using a 
 \f3\fs18 for
 \f2\fs22  loop.\
+In general, it is required for a species to set up its genetic structure in an 
+\f3\fs18 initialize()
+\f2\fs22  callback with calls to 
+\f3\fs18 initializeMutationRate()
+\f2\fs22 , 
+\f3\fs18 initializeRecombinationRate()
+\f2\fs22 , 
+\f3\fs18 initializeMutationType()
+\f2\fs22 , 
+\f3\fs18 initializeGenomicElementType()
+\f2\fs22 , and 
+\f3\fs18 initializeGenomicElement()
+\f2\fs22 ; species must call all of these, setting up at least one mutation type, at least one genomic element type, and at least one genomic element.  The exception to this general rule is for species that have no genetics at all \'96 species that are modeled purely on an ecological/behavioral level.  Such species may be defined by calling 
+\f0\i none
+\f2\i0  of those initialization functions; in this case, SLiM will default to a zero-length chromosome with mutation and recombination rates of zero.  A middle ground between these two configuration paths is not allowed; either a species has no genetics, or it fully defines its genetics.\
 One thing worth mentioning is that in the context of an 
 \f3\fs18 initialize()
-\f2\fs22  callback, none of SLiM\'92s globals are defined \'96 not even the 
+\f2\fs22  callback, the 
 \f3\fs18 sim
-\f2\fs22  global for the simulation itself.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  New subpopulations, new genomic element types, etc., that you define in your callback by calling initialization functions will also not be available through globals during your callback; those globals will become visible once simulation execution begins.\
+\f2\fs22  global representing the species being simulated is not defined.  This is because the state of the simulation is not yet constructed fully, and accessing partially constructed state would not be safe.  (Similarly, in multispecies models, the 
+\f3\fs18 community
+\f2\fs22  object and the objects representing individual species are not yet defined.)\
+The above 
+\f3\fs18 initialize()
+\f2\fs22  callback syntax 
+\f0\i implicitly
+\f2\i0  declares a single species, with the default name of 
+\f3\fs18 sim
+\f2\fs22 , and therefore sets up a single-species model.  It is also possible to 
+\f0\i explicitly
+\f2\i0  declare a species, which is done with this extended syntax (using a species name of 
+\f3\fs18 fox
+\f2\fs22  as an example):\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 species fox initialize() \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 This sets up a multispecies model (although it might, in fact, declare only a single species, 
+\f3\fs18 fox
+\f2\fs22 ; the term \'93multispecies\'94, in SLiM parlance, really means \'93explicitly declared species\'94, but multispecies models almost always 
+\f0\i do
+\f2\i0  contain multiple species, so the distinction is unimportant).  In most respects multispecies models work identically to single-species models, so we will tend to focus on the single-species case in the reference documentation, with a species name of 
+\f3\fs18 sim
+\f2\fs22 , for simplicity and clarity.\
+In single-species models all initialization can be done in a single 
+\f3\fs18 initialize()
+\f2\fs22  callback (or you can have more than one, if you wish).  In multispecies models, each species must be initialized with its own callback(s), as shown above.  In addition, multispecies models also support an optional community-level initialization callback that is declared as follows:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 species all initialize() \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 These callbacks, technically called 
+\f0\i non-species-specific 
+\f1\fs18 initialize()
+\f0\fs22  callbacks
+\f2\i0 , provide a place for community-level initialization to occur.  They are run before any species-specific 
+\f3\fs18 initialize()
+\f2\fs22  callbacks are run, so you might wish to set up all of your model parameters in one, providing a single location for all parameters.  In multispecies models, the 
+\f3\fs18 initializeModelType()
+\f2\fs22  and 
+\f3\fs18 initializeInteractionType()
+\f2\fs22  functions may only be called from a non-species-specific 
+\f3\fs18 initialize()
+\f2\fs22  callback, since those aspects of model configuration span the entire community.  In single-species models, these functions may be called from an ordinary 
+\f3\fs18 initialize()
+\f2\fs22  callback for simplicity and backward compatibility.\
 Once all 
 \f3\fs18 initialize()
-\f2\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The generation number at which it starts is determined by the Eidos events you have defined; the first generation in which an Eidos event is scheduled to execute is the generation at which the simulation starts.  Similarly, the simulation will terminate after the last generation for which a script block (either an event or a callback) is registered to execute, unless the 
+\f2\fs22  callbacks have executed, in the order in which they are specified in the SLiM input file, the simulation will begin.  The tick number at which it starts is determined by the Eidos events you have defined; the first tick in which an Eidos event is scheduled to execute is the tick at which the simulation starts.  Similarly, the simulation will terminate after the last tick for which a script block (either an event or a callback) is registered to execute, unless the 
 \f3\fs18 stop()
-\f2\fs22  function is called to end the simulation earlier.
-\f4 \
+\f2\fs22  function or the 
+\f3\fs18 simulationFinished()
+\f2\fs22  method of 
+\f3\fs18 Community
+\f2\fs22  or 
+\f3\fs18 Species
+\f2\fs22  are called to end the simulation earlier.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 5.13.1  ITEM: 2. Eidos events\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-An Eidos event is a block of Eidos code that is executed every generation, within a generation range, to perform a desired task.  The syntax of an Eidos event declaration looks like one of these:\
+\f2\i0 \cf2 An Eidos event is a block of Eidos code that is executed every tick, within a tick range, to perform a desired task.  The syntax of an Eidos event declaration looks like one of these:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] first() \{ ... \}\uc0\u8232    [id] [gen1 [: gen2]] \{ ... \}\u8232    [id] [gen1 [: gen2]] early() \{ ... \}\u8232    [id] [gen1 [: gen2]] late() \{ ... \}\
+\f3\fs18 \cf2 [id] [t1 [: t2]] first() \{ ... \}\uc0\u8232 [id] [t1 [: t2]] early() \{ ... \}\u8232 [id] [t1 [: t2]] late() \{ ... \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The first declaration declares a 
+\f2\fs22 \cf2 The first declaration declares a 
 \f3\fs18 first()
-\f2\fs22  event that executes first thing in the generation cycle.  The second and third declarations are exactly equivalent, and declare an 
+\f2\fs22  event that executes first thing in the tick cycle.  The second declaration declares an 
 \f3\fs18 early()
-\f2\fs22  event that executes relatively early in the generation cycle; the 
-\f3\fs18 early()
-\f2\fs22  designation is optional.  The fourth declaration declares a 
+\f2\fs22  event that executes relatively early in the tick cycle.  The third declaration declares a 
 \f3\fs18 late()
-\f2\fs22  event that executes near the end of the generation cycle.  Exactly when these events run depends upon whether the model is a WF model (see chapter 22 for details on the generation cycle in WF models) or a nonWF model (see chapter 23 for the same about nonWF models).\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\f2\fs22  event that executes near the end of the tick cycle.  Exactly when these events run depends upon whether the model is a WF model or a nonWF model; see the tick cycle diagrams for those model types.\
 The 
 \f3\fs18 id
 \f2\fs22  is an optional identifier like 
@@ -85,110 +145,163 @@ The
 \f3\fs18 X
 \f2\fs22  is an integer greater than or equal to 
 \f3\fs18 0
-\f2\fs22 ) that defines an identifier that can be used to refer to the script block.  In most situations it can be omitted, in which case the id is implicitly defined as 
+\f2\fs22 ) that defines an identifier that can be used to refer to the script block.  In most situations it can be omitted, in which case the 
+\f3\fs18 id
+\f2\fs22  is implicitly defined as 
 \f3\fs18 -1
 \f2\fs22 , a placeholder value that essentially represents the lack of an identifier value.  Supplying an 
 \f3\fs18 id
 \f2\fs22  is only useful if you wish to manipulate your script blocks programmatically.\
-Then comes a generation or a range of generations, and then a block of Eidos code enclosed in braces to form a compound statement.  A trivial example might look like this:\
+Then comes a tick or a range of ticks, and then a block of Eidos code enclosed in braces to form a compound statement.  A trivial example might look like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf3    1000\cf2 :\cf3 5000\cf2  \{\uc0\u8232       catn(\cf4 sim\cf2 .generation);\uc0\u8232    \}\
+\f3\fs18 \cf3 1000\cf2 :\cf3 5000\cf2  early() \{\uc0\u8232 	catn(\cf4 community\cf2 .tick);\uc0\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 This would print the generation number in every generation in the specified range, which is obviously not very exciting.  The broader point is that the Eidos code in the braces 
+\f2\fs22 \cf2 This would print the tick number in every tick in the specified range, which is obviously not very exciting.  The broader point is that the Eidos code in the braces 
 \f3\fs18 \{\}
-\f2\fs22  is executed early in every generation within the specified range of generations.  In this case, the generation range is 
+\f2\fs22  is executed early in every tick within the specified range of ticks.  In this case, the tick range is 
 \f3\fs18 1000
 \f2\fs22  to 
 \f3\fs18 5000
-\f2\fs22 , and so the Eidos event will be executed 4001 times (not 4000!).  A range of generations can be given, as in the example above, or a single generation can be given with a single integer:\
+\f2\fs22 , and so the Eidos event will be executed 4001 times (not 4000!).  A range of ticks can be given, as in the example above, or a single tick can be given with a single integer:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf5 \expnd0\expndtw0\kerning0
-   100\cf2  late() \{\uc0\u8232       print(\cf6 "Finished generation 100!"\cf2 );\uc0\u8232    \}\
+\f3\fs18 \cf5 100\cf2  late() \{\uc0\u8232 	print(\cf6 "Finished tick 100!"\cf2 );\uc0\u8232 \}\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The generation range may also be incompletely specified, with a somewhat idiosyncratic syntax.  A range of 
+\f2\fs22 \cf2 The tick range may also be incompletely specified, with a somewhat idiosyncratic syntax.  A range of 
 \f3\fs18 1000:
-\f2\fs22  would specify that the event should run in generation 
+\f2\fs22  would specify that the event should run in tick 
 \f3\fs18 1000
-\f2\fs22  and every subsequent generation until the model finishes; a range of 
+\f2\fs22  and every subsequent tick until the model finishes; a range of 
 \f3\fs18 :1000
-\f2\fs22  would similarly specify that the event should run in the first generation executed, and every subsequent generation, up to and including generation 
+\f2\fs22  would similarly specify that the event should run in the first tick executed, and every subsequent tick, up to and including tick 
 \f3\fs18 1000
-\f2\fs22 .  (You might notice that the grammar shown above for the generation range is not quite correct; see section 27.1 for the correct, complete grammar.)\
-\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
-In fact, you can omit specifying a generation altogether, in which case the Eidos event runs every generation.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of generations possible; however, that is more of a concern with the callbacks we will look at later in this chapter, since they might be called many time in every generation, whereas 
+\f2\fs22 .\
+In fact, you can omit specifying a tick altogether, in which case the Eidos event runs every tick.  Since it takes a little time to set up the Eidos interpreter and interpret a script, it is advisable to use the narrowest range of ticks possible; however, that is more of a concern with callbacks, since they might be called many time in every tick, whereas 
 \f3\fs18 first()
 \f2\fs22 , 
 \f3\fs18 early()
 \f2\fs22 , and 
 \f3\fs18 late()
-\f2\fs22  events will just be called once per generation.\
-The generations specified for a Eidos event block can be any positive integer.  All scripts that apply to a given time point will be run in the order in which they are given; scripts specified higher in the input file will run before those specified lower.  Sometimes it is desirable to have a script block execute in a generation which is not fixed, but instead depends upon some parameter, defined constant, or calculation; this may be achieved by rescheduling the script block with the 
-\f3\fs18 SLiMSim
+\f2\fs22  events will just be called once per tick.\
+The ticks specified for a Eidos event block can be any positive integer.  All blocks that apply to a given time point will be run in 
+\f0\i definition order
+\f2\i0 ; blocks specified higher in the input file will run before those specified lower.  Sometimes it is desirable to have a script block execute in a tick which is not fixed, but instead depends upon some parameter, defined constant, or calculation; this may be achieved by rescheduling the script block with the 
+\f3\fs18 Community
 \f2\fs22  method 
 \f3\fs18 rescheduleScriptBlock()
 \f2\fs22 .\
+In multispecies models, one can optionally provide a 
+\f3\fs18 ticks
+\f2\fs22  specifier before the definition of an Eidos event, specifying that the event should only run in ticks in which a particular species is active.  That extended syntax looks like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 [ticks species_name] [id] [t1 [: t2]] first() \{ ... \}\uc0\u8232 [ticks species_name] [id] [t1 [: t2]] early() \{ ... \}\u8232 [ticks species_name] [id] [t1 [: t2]] late() \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 The 
+\f3\fs18 species_name
+\f2\fs22  should be the name of a species that was explicitly declared in the multispecies model.  If the 
+\f3\fs18 ticks
+\f2\fs22  specifier is omitted, the event will run in every tick (within the specified tick range).\
 When Eidos events are executed, several global variables are defined by SLiM for use by the Eidos code.  Here is a summary of those SLiM globals:\
-\pard\tx1890\tx2880\pardeftab720\li1411\fi-864\sb40\sa40\partightenfactor0
+\pard\tx1980\tx2880\pardeftab720\li1890\fi-1343\sa60\partightenfactor0
 
-\f3\fs18 \cf2    sim
+\f3\fs18 \cf2 community
+\f2\fs22 	The 
+\f3\fs18 Community
+\f2\fs22  object for the overall simulation\
+
+\f3\fs18 sim
 \f2\fs22 	A 
-\f3\fs18 SLiMSim
-\f2\fs22  object representing the current SLiM simulation\
+\f3\fs18 Species
+\f2\fs22  object for the simulated species (in single-species simulations)\
 
-\f3\fs18    g1, ...
+\f3\fs18 g1
+\f2\fs22 , 
+\f3\fs18 ...
 \f2\fs22 	
 \f3\fs18 GenomicElementType
-\f2\fs22  objects representing the genomic element types defined\
+\f2\fs22  objects for defined genomic element types\
 
-\f3\fs18    i1, ...
+\f3\fs18 i1
+\f2\fs22 , 
+\f3\fs18 ...
 \f2\fs22 	
 \f3\fs18 InteractionType
-\f2\fs22  objects representing the interaction types defined\
+\f2\fs22  objects for defined interaction types\
 
-\f3\fs18    m1, ...
+\f3\fs18 m1
+\f2\fs22 , 
+\f3\fs18 ...
 \f2\fs22 	
 \f3\fs18 MutationType
-\f2\fs22  objects representing the mutation types defined\
+\f2\fs22  objects representing defined mutation types\
 
-\f3\fs18    p1, ...
+\f3\fs18 p1
+\f2\fs22 , 
+\f3\fs18 ...
 \f2\fs22 	
 \f3\fs18 Subpopulation
-\f2\fs22  objects representing the subpopulations that exist\
+\f2\fs22  objects for existing subpopulations\
 
-\f3\fs18    s1, ...
+\f3\fs18 s1
+\f2\fs22 , 
+\f3\fs18 ...
 \f2\fs22 	
 \f3\fs18 SLiMEidosBlock
-\f2\fs22  objects representing the named events and callbacks defined\
+\f2\fs22  objects for named events and callbacks\
+\pard\tx1980\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
 
-\f3\fs18    self
+\f3\fs18 \cf2 self
 \f2\fs22 	A 
 \f3\fs18 SLiMEidosBlock
-\f2\fs22  object representing the script block currently executing\
+\f2\fs22  object for the script block currently executing\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 Note that the 
+\cf2 In multispecies models, symbols for each species will be defined instead of 
 \f3\fs18 sim
-\f2\fs22  global is 
+\f2\fs22 .  Note that species symbols such as 
+\f3\fs18 sim
+\f2\fs22  are 
 \f0\i not
 \f2\i0  available in 
 \f3\fs18 initialize()
-\f2\fs22  callbacks, since the simulation has not yet been initialized.  Similarly, the globals for subpopulations, mutation types, and genomic element types are only available after the point at which those objects have been defined by an 
+\f2\fs22  callbacks, since the species objects have not yet been initialized.  Similarly, the globals for subpopulations, mutation types, and genomic element types are only available after the point at which those objects have been defined by an 
 \f3\fs18 initialize()
-\f2\fs22  callback.\
+\f2\fs22  callback.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.2  ITEM: 3. 
-\f1\fs18 fitness()
+\f1\fs18 mutationEffect()
 \f0\fs22  callbacks\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
+\f2\i0 \cf2 An Eidos callback is a block of Eidos code that is called by SLiM in specific circumstances, to allow the customization of particular actions taken by SLiM while running the simulation of a species.  Nine types of callbacks are presently supported (in addition to 
+\f3\fs18 initialize()
+\f2\fs22  callbacks): 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, discussed here, and 
+\f3\fs18 fitnessEffect()
+\f2\fs22 , 
+\f3\fs18 mateChoice()
+\f2\fs22 , 
+\f3\fs18 modifyChild()
+\f2\fs22 , 
+\f3\fs18 recombination()
+\f2\fs22 , 
+\f3\fs18 interaction()
+\f2\fs22 , 
+\f3\fs18 reproduction()
+\f2\fs22  , 
+\f3\fs18 mutation()
+\f2\fs22 , and 
+\f3\fs18 survival()
+\f2\fs22  callbacks.\
 A 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback is called by SLiM when it is determining the fitness effect of a mutation carried by an individual.  Normally, the fitness effect of a mutation is determined by the selection coefficient 
 \f0\i s
 \f2\i0  of the mutation and the dominance coefficient 
@@ -196,26 +309,26 @@ A
 \f2\i0  of the mutation (the latter used only if the individual is heterozygous for the mutation).  More specifically, the standard calculation for the fitness effect of a mutation takes one of two forms.  If the individual is homozygous, then the fitness effect is (1+
 \f0\i s
 \f2\i0 ), or:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f0\i \cf2    w
+\f0\i \cf2 w
 \f2\i0  = 
 \f0\i w
 \f2\i0  * (1.0 + selectionCoefficient),\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 \cf2 where 
 \f0\i w
-\f2\i0  is the relative fitness of the individual carrying the mutation.  This equation is also used if the chromosome being simulated has no homologue \'96 when the Y sex chromosome is being simulated.  If the individual is heterozygous, then the dominance coefficient enters the picture, and the fitness effect is (1+
+\f2\i0  is the relative fitness of the individual carrying the mutation.  If the individual is heterozygous, then the dominance coefficient enters the picture, and the fitness effect is (1+
 \f0\i hs
 \f2\i0 ) or:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f0\i \cf2    w
+\f0\i \cf2 w
 \f2\i0  = 
 \f0\i w
 \f2\i0  * (1.0 + dominanceCoeff * selectionCoeff).\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 The dominance coefficient usually comes from the 
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 The dominance coefficient usually comes from the 
 \f3\fs18 dominanceCoeff
 \f2\fs22  property of the mutation\'92s 
 \f3\fs18 MutationType
@@ -223,40 +336,40 @@ A
 \f3\fs18 haploidDominanceCoeff
 \f2\fs22  property of the 
 \f3\fs18 MutationType
-\f2\fs22  is used instead.  See section 22.6 for further discussion of this detail.\
-\expnd0\expndtw0\kerning0
+\f2\fs22  is used instead.\
 That is the standard behavior of SLiM, reviewed here to provide a conceptual baseline.  Supplying a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback allows you to substitute any calculation you wish for the relative fitness effect of a mutation; the new relative fitness effect computation becomes:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f0\i \cf2    w
+\f0\i \cf2 w
 \f2\i0  = 
 \f0\i w
 \f2\i0  * 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22 \
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 \cf2 where 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  is the value returned by your callback.  This value is a multiplicative fitness effect, so 
 \f3\fs18 1.0
 \f2\fs22  is neutral, unlike the selection coefficient scale where 
 \f3\fs18 0.0
 \f2\fs22  is neutral; be careful with this distinction!\
-Like Eidos events, 
-\f3\fs18 fitness()
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 Like Eidos events, 
+\f3\fs18 mutationEffect()
 \f2\fs22  callbacks are defined as script blocks in the input file, but they use a variation of the syntax for defining an Eidos event:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] fitness(<mut-type-id> [, <subpop-id>]) \{ ... \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] mutationEffect(<mut-type-id> [, <subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 For example, if the callback were defined as:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    1000:2000 fitness(m2, p3) \{ 1.0; \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 1000:2000 mutationEffect(m2, p3) \{ 1.0; \}\
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 then a relative fitness of 
 \f3\fs18 1.0
@@ -264,59 +377,69 @@ Like Eidos events,
 \f3\fs18 m2
 \f2\fs22  in subpopulation 
 \f3\fs18 p3
-\f2\fs22  from generation 
+\f2\fs22  from tick 
 \f3\fs18 1000
-\f2\fs22  to generation 
+\f2\fs22  to tick 
 \f3\fs18 2000
 \f2\fs22 .  The very same mutations, if also present in individuals in other subpopulations, would preserve their normal selection coefficient and dominance coefficient in those other subpopulations; this callback would therefore establish spatial heterogeneity in selection, in which mutation type 
 \f3\fs18 m2
 \f2\fs22  was neutral in subpopulation 
 \f3\fs18 p3
-\f2\fs22  but under selection in other subpopulations, for the range of generations given.\
-In addition to standard SLiM globals, a 
-\f3\fs18 fitness()
-\f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94, variables that are defined by SLiM within the context of the callback\'92s code to supply the callback with relevant information:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\f2\fs22  but under selection in other subpopulations, for the range of ticks given.\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 In multispecies models, callbacks must be defined with a 
+\f3\fs18 species
+\f2\fs22  specifier that states the species with which species the callback is associated.  Such a definition looks like this:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    mut
+\f3\fs18 \cf2 species species_name [id] [t1 [: t2]] mutationEffect(...) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 It is the same syntax, in other words, except for the 
+\f3\fs18 species
+\f2\fs22  specifier at the beginning, with the name of the species that the callback will modify.  As with the 
+\f3\fs18 ticks
+\f2\fs22  specifier for events, this means the callback will only be called in ticks when the species is active; but the 
+\f3\fs18 species
+\f2\fs22  specifier goes further, making that species the focal species for the callback.\
+In addition to the standard SLiM globals, a 
+\f3\fs18 mutationEffect()
+\f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94, variables that are defined by SLiM within the context of the callback\'92s code to supply the callback with relevant information:\
+\pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0
+
+\f3\fs18 \cf2 mut
 \f2\fs22 	A 
 \f3\fs18 Mutation
 \f2\fs22  object, the mutation whose relative fitness is being evaluated\
 
-\f3\fs18    homozygous
+\f3\fs18 homozygous
 \f2\fs22 	A value of 
 \f3\fs18 T
 \f2\fs22  (the mutation is homozygous), 
 \f3\fs18 F
 \f2\fs22  (heterozygous), or 
 \f3\fs18 NULL
-\f2\fs22  (it is\uc0\u8232 paired with a null chromosome\kerning1\expnd0\expndtw0 , and is thus hemizygous or haploid\expnd0\expndtw0\kerning0
-)\
+\f2\fs22  (it is\uc0\u8232 paired with a null chromosome, and is thus hemizygous or haploid)\
 
-\f3\fs18    relFitness
+\f3\fs18 effect
 \f2\fs22 	The default relative fitness value calculated by SLiM\
 
-\f3\fs18    individual
+\f3\fs18 individual
 \f2\fs22 	The individual carrying this mutation (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
 
-\f3\fs18    genome1
-\f2\fs22 	One genome of the individual carrying this mutation\
-
-\f3\fs18    genome2
-\f2\fs22 	The other genome of that individual\
-
-\f3\fs18    subpop
+\f3\fs18 \cf2 subpop
 \f2\fs22 	The subpopulation in which that individual lives\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
 \f2\fs22  callback to compute a fitness value.  To implement the standard fitness functions used by SLiM for an autosomal simulation with no null genomes involved, for example, you could do something like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    fitness(m1) \{\uc0\u8232       if (homozygous)\u8232          return 1.0 + mut.selectionCoeff;\u8232       else\u8232          return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232    \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (homozygous)\u8232 		return 1.0 + mut.selectionCoeff;\u8232 	else\u8232 		return 1.0 + mut.mutationType.dominanceCoeff * mut.selectionCoeff;\u8232 \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 As mentioned above, a relative fitness of 
 \f3\fs18 1.0
@@ -325,52 +448,137 @@ In addition to standard SLiM globals, a
 \f2\fs22  is neutral); the 
 \f3\fs18 1.0 +
 \f2\fs22  in these calculations converts between the selection coefficient scale and the relative fitness scale, and is therefore essential.  However, the 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  global variable mentioned above would already contain this value, precomputed by SLiM, so you could simply return 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  to get that behavior when you want it:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    fitness(m1) \{\uc0\u8232       if (<conditions>)\u8232          <custom fitness calculations...>;\u8232       else\u8232          return relFitness;\u8232    \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 mutationEffect(m1) \{\uc0\u8232 	if (<conditions>)\u8232 		<custom fitness calculations...>;\u8232 	else\u8232 		return effect;\u8232 \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 This would return a modified fitness value in certain conditions, but would return the standard fitness value otherwise.\
 More than one 
-\f3\fs18 fitness()
-\f2\fs22  callback may be defined to operate in the same generation.  As with Eidos events, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
-\f3\fs18 relFitness
+\f3\fs18 mutationEffect()
+\f2\fs22  callback may be defined to operate in the same tick.  As with Eidos events, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
+\f3\fs18 effect
 \f2\fs22  value returned by the previous callback \'96 so the value of 
-\f3\fs18 relFitness
+\f3\fs18 effect
 \f2\fs22  is not necessarily the default value, in fact, but is the result of all previous 
-\f3\fs18 fitness()
-\f2\fs22  callbacks for that individual in that generation.  In this way, the effects of multiple callbacks can \'93stack\'94.\
-In SLiM version 2.3 and later, it is possible to define 
-\f0\i global
-\f2\i0  
-\f3\fs18 fitness()
-\f2\fs22  callbacks, which are applied exactly once to every individual (within a given subpopulation, if the 
-\f3\fs18 fitness()
-\f2\fs22  callback is declared to be limited to one subpopulation, as usual).  Global 
-\f3\fs18 fitness()
-\f2\fs22  callbacks do not reference a particular mutation type, and are not called in reference to any specific mutation in the individual; instead, they provide an opportunity for the model script to define fitness effects that are independent of specific mutations (although their fitness effects may still depend upon some aggregate genetic state).  For example, they are useful for defining the fitness effect of an individual\'92s overall phenotype (perhaps determined by multiple loci, and perhaps by developmental noise, phenotypic plasticity, etc.), or for defining the fitness effects of behavioral interactions between individuals such as competition or altruism.  A global 
-\f3\fs18 fitness()
-\f2\fs22  callback is defined by giving 
-\f3\fs18 NULL
-\f2\fs22  as the mutation type identifier in the callback\'92s declaration.  These callbacks will generally be called once per individual in each generation, in an order that is formally undefined.  When a global 
-\f3\fs18 fitness()
-\f2\fs22  callback is running, the 
-\f3\fs18 mut
-\f2\fs22  and 
-\f3\fs18 homozygous
-\f2\fs22  variables are defined to be 
-\f3\fs18 NULL
-\f2\fs22  (since there is no focal mutation), and 
-\f3\fs18 relFitness
-\f2\fs22  is defined to be 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks for that individual in that tick.  In this way, the effects of multiple callbacks can \'93stack\'94.\
+One caveat to be aware of in WF models is that 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  If you have a 
+\f3\fs18 mutationEffect()
+\f2\fs22  callback defined for tick 
+\f3\fs18 10
+\f2\fs22 , for example, it will actually be called at the very end of tick 
+\f3\fs18 10
+\f2\fs22 , after child generation has finished, after the new children have been promoted to be the next parental generation, and after 
+\f3\fs18 late()
+\f2\fs22  events have been executed.  The fitness values calculated will thus be used during tick 
+\f3\fs18 11
+\f2\fs22 ; the fitness values used in tick 
+\f3\fs18 10
+\f2\fs22  were calculated at the end of tick 
+\f3\fs18 9
+\f2\fs22 .  (This is primarily so that SLiMgui, which refreshes its display in between ticks, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  This is not an issue in nonWF models, since fitness values are used in the same tick in which they are calculated.\
+If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which the fitness of individuals is evaluated will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
+\f3\fs18 mutationEffect()
+\f2\fs22  callback are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , the fitness of individuals will be evaluated in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
+Many other possibilities can be implemented with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks.  However, since 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the tick range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f0\i \cf0 5.13.3  ITEM: 4. 
+\f1\fs18 fitnessEffect()
+\f0\fs22  callbacks\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\i0 \cf2 We have already seen 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, which modify the effect of a given mutation in a focal individual.  Sometimes it is desirable to model effects upon individual fitness that are not governed by particular mutations (or not directly, at least); fitness effects due to spatial position, or resource acquisition, or behavior such as competitive or altruistic interactions, for example.  Another situation of this type is when fitness depends upon the overall phenotype of an individual \'96 the height of a tree, say \'96 which might be influenced by genetics, but also by environmental effects, climate, and so forth.  For these sorts of situations, SLiM provides 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks.\
+A 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback is called by SLiM when it is determining the fitness of an individual \'96 typically, but not always, once per tick during the fitness calculation tick cycle stage.  Normally, the fitness of a given individual is determined by multiplying together the fitness effects of all mutations possessed by that individual.  Supplying a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback allows you to add another multiplicative fitness effect into that calculation.  As with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, the value returned by 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks is a fitness effect, so 
 \f3\fs18 1.0
-\f2\fs22 .  The fitness effect for the callback is simply returned as a singleton 
+\f2\fs22  is neutral.\
+The syntax for declaring 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks is similar to that for 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, but simpler since no mutation type is needed:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 [id] [t1 [: t2]] fitnessEffect([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
+For example, if the callback were defined as:\
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
+
+\f3\fs18 \cf2 1000:2000 fitnessEffect(p3) \{ 0.75; \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+
+\f2\fs22 \cf2 then a fitness effect of 
+\f3\fs18 0.75
+\f2\fs22  would be multiplied into the fitness values of all individuals in subpopulation 
+\f3\fs18 p3
+\f2\fs22  from tick 
+\f3\fs18 1000
+\f2\fs22  to tick 
+\f3\fs18 2000
+\f2\fs22 .\
+Much more interesting, of course, are 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks that return different fitness effects for different individuals, depending upon their state!  In addition to the standard SLiM globals, a 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94, variables that are defined by SLiM within the context of the callback\'92s code to supply the callback with relevant information:\
+\pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0
+
+\f3\fs18 \cf2 individual
+\f2\fs22 	The focal individual (an object of class 
+\f3\fs18 Individual
+\f2\fs22 )\
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
+
+\f3\fs18 \cf2 subpop
+\f2\fs22 	The subpopulation in which that individual lives\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 These may be used in the 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback to compute a fitness effect that depends upon the state of the focal individual.  The fitness effect for the callback is simply returned as a singleton 
 \f3\fs18 float
 \f2\fs22  value, as usual.\
+More than one 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback may be defined to operate in the same tick.  Each such callback will provide an independent fitness effect for the focal individual; the results of each 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback will be multiplied in to the individual\'92s fitness.  These callbacks will generally be called once per individual in each tick, in an order that is formally undefined.\
 Beginning in SLiM 3.0, it is also possible to set the 
 \f3\fs18 fitnessScaling
 \f2\fs22  property on a subpopulation to scale the fitness values of every individual in the subpopulation by the same constant amount, or to set the 
@@ -382,65 +590,59 @@ Beginning in SLiM 3.0, it is also possible to set the
 \f2\fs22  and 
 \f3\fs18 Individual
 \f2\fs22  can often provide similar functionality to 
-\f3\fs18 fitness(NULL)
+\f3\fs18 fitnessEffect()
 \f2\fs22  callbacks with greater efficiency and simplicity.  They are reset to 
 \f3\fs18 1.0
-\f2\fs22  in every generation, immediately after fitness values are calculated, so they only need to be set when a value other than 
+\f2\fs22  in every tick for which a given species is active, immediately after fitness values are calculated, so they only need to be set when a value other than 
 \f3\fs18 1.0
 \f2\fs22  is desired.\
-One caveat to be aware of in WF models is that 
-\f3\fs18 fitness()
-\f2\fs22  callbacks are called at the end of each generation, just before the next generation begins.  If you have a 
-\f3\fs18 fitness()
-\f2\fs22  callback defined for generation 
-\f3\fs18 10
-\f2\fs22 , for example, it will actually be called at the very end of generation 
-\f3\fs18 10
-\f2\fs22 , after child generation has finished, after the new children have been promoted to be the next parental generation, and after 
-\f3\fs18 late()
-\f2\fs22  events have been executed.  The fitness values calculated will thus be used during generation 
-\f3\fs18 11
-\f2\fs22 ; the fitness values used in generation 
-\f3\fs18 10
-\f2\fs22  were calculated at the end of generation 
-\f3\fs18 9
-\f2\fs22 .  (This is primarily so that SLiMgui, which refreshes its display in between generations, has computed fitness values at hand that it can use to display the new parental individuals in the proper colors.)  This is not an issue in nonWF models, since fitness values are used in the same generation in which they are calculated.\
-Many other possibilities can be implemented with a 
-\f3\fs18 fitness()
-\f2\fs22  callback, and/or with the 
+As with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks are called at the end of the tick, just before the next tick begins.  Also, as with 
+\f3\fs18 mutationEffect()
+\f2\fs22  callbacks, the order in which 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callbacks are called will be shuffled when 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is enabled, as it is by default, partially mitigating order-dependency issues.\
+The 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback mechanism is quite flexible and useful, although it has been considerably eclipsed by the modern modern and efficient 
 \f3\fs18 fitnessScaling
-\f2\fs22  properties of 
-\f3\fs18 Subpopulation
-\f2\fs22  and 
-\f3\fs18 Individual
-\f2\fs22 .  However, since 
-\f3\fs18 fitness()
-\f2\fs22  callbacks involve Eidos code being executed for the evaluation of fitness of every mutation of every individual (within the generation range, mutation type, and subpopulation specified), they can slow down a simulation considerably, so use them as sparingly as possible.\
+\f2\fs22  property mentioned above.  When efficiency is not at a premium, it remains a clear and expressive paradigm for modeling individual-level fitness effects.  The performance penalty paid is often not large, since these callbacks are called only once per individual per tick, whereas a 
+\f3\fs18 mutationEffect()
+\f2\fs22  for a type of mutation that is common in the simulation might be called thousands of times per individual per tick (once per mutation of that type possessed by the focal individual).  The performance penalty typically becomes severe only when the 
+\f3\fs18 fitnessEffect()
+\f2\fs22  callback needs to perform calculations, once per focal individual, that would vectorize well if performed across a whole vector of individuals.  In such cases, 
+\f3\fs18 fitnessScaling
+\f2\fs22  should be used.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.3  ITEM: 4. 
+\f0\i \cf0 5.13.4  ITEM: 5. 
 \f1\fs18 mateChoice()
 \f0\fs22  callbacks\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-Normally, WF models in SLiM regulate mate choice according to fitness; individuals of higher fitness are more likely to be chosen as mates.  However, one might wish to simulate more complex mate-choice dynamics such as assortative or disassortative mating, mate search algorithms, and so forth.  Such dynamics can be handled in WF models with the 
+\f2\i0 \cf2 Normally, WF models in SLiM regulate mate choice according to fitness; individuals of higher fitness are more likely to be chosen as mates.  However, one might wish to simulate more complex mate-choice dynamics such as assortative or disassortative mating, mate search algorithms, and so forth.  Such dynamics can be handled in WF models with the 
 \f3\fs18 mateChoice()
-\f2\fs22  callback mechanism.  (In nonWF models mating is arranged by the script, so there is no need for a callback).\
+\f2\fs22  callback mechanism.  (In nonWF models mating is arranged by the script, so there is no need for a callback.)\
 A 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is established in the input file with a syntax very similar to that of 
-\f3\fs18 fitness()
+\f3\fs18 fitnessEffect()
 \f2\fs22  callbacks:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] mateChoice([<subpop-id>]) \{ ... \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] mateChoice([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 The only difference between the two declarations is that the 
-\f3\fs18 mateChoice()
-\f2\fs22  callback does not allow you to specify a mutation type to which the callback applies, since that makes no sense.\
-Note that if a subpopulation is given to which the 
+\f2\fs22 \cf2 (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 Note that if a subpopulation is given to which the 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is to apply, the callback is used for all matings that will generate a 
 \f0\i child
@@ -450,7 +652,9 @@ Note that if a subpopulation is given to which the
 When a 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is defined, the first parent in a mating is still chosen proportionally according to fitness (if you wish to influence that choice, you can use a 
-\f3\fs18 fitness()
+\f3\fs18 mutationEffect()
+\f2\fs22  or 
+\f3\fs18 fitnessEffect()
 \f2\fs22  callback).  In a sexual (rather than hermaphroditic) simulation, this will be the female parent; SLiM does not currently support males as the choosy sex.  The second parent \'96 the male parent, in a sexual simulation \'96 will then be chosen based upon the results of the 
 \f3\fs18 mateChoice()
 \f2\fs22  callback.\
@@ -491,26 +695,21 @@ If the sum of the returned weights vector is zero, SLiM treats it as meaning the
 In addition to the standard SLiM globals, a 
 \f3\fs18 mateChoice()
 \f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2    individual
+\f3\fs18 \cf2 individual
 \f2\fs22 	The parent already chosen (the female, in sexual simulations)\
 
-\f3\fs18    genome1
-\f2\fs22 	One genome of the parent already chosen\
-
-\f3\fs18    genome2
-\f2\fs22 	The other genome of the parent already chosen
-\f3\fs18 \
-   subpop
+\f3\fs18 subpop
 \f2\fs22 	The subpopulation into which the offspring will be placed
 \f3\fs18 \
-   sourceSubpop
+sourceSubpop
 \f2\fs22 	The subpopulation from which the parents are being chosen
 \f3\fs18 \
-   weights
+\pard\tx2070\tx2880\pardeftab720\li2070\fi-1523\sa180\partightenfactor0
+\cf2 weights
 \f2\fs22 	The standard fitness-based weights for all individuals\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 If sex is enabled, the 
 \f3\fs18 mateChoice()
 \f2\fs22  callback must ensure that the appropriate weights are zero and nonzero to guarantee that all eligible mates are male (since the first parent chosen is always female, as explained above).  In other words, weights for females must be 
@@ -523,12 +722,12 @@ For example, a simple
 \f2\fs22  callback might look like this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    1000:2000 mateChoice(p2) \{\uc0\u8232       return weights ^ 2;\u8232    \}\
-\pard\pardeftab720\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 1000:2000 mateChoice(p2) \{\uc0\u8232 	return weights ^ 2;\u8232 \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 This defines a 
 \f3\fs18 mateChoice()
-\f2\fs22  callback for generations 
+\f2\fs22  callback for ticks 
 \f3\fs18 1000
 \f2\fs22  to 
 \f3\fs18 2000
@@ -545,7 +744,7 @@ For example, a simple
 \f2\fs22  is finessed; in other situations, care would need to be taken to ensure that.\
 More than one 
 \f3\fs18 mateChoice()
-\f2\fs22  callback may be defined to operate in the same generation.  As with Eidos events, multiple callbacks will be called in the order in which they were defined.  Furthermore, each callback will be given the 
+\f2\fs22  callback may be defined to operate in the same tick.  As with Eidos events, multiple callbacks will be called in the order in which they were defined.  Furthermore, each callback will be given the 
 \f3\fs18 weights
 \f2\fs22  vector returned by the previous callback \'96 so the value of 
 \f3\fs18 weights
@@ -565,105 +764,83 @@ A wide variety of mate choice algorithms can easily be implemented with
 \f3\fs18 mateChoice()
 \f2\fs22  callbacks.  However, 
 \f3\fs18 mateChoice()
-\f2\fs22  callbacks can be particularly slow since they are called for every proposed mating, and the vector of mating weights can be large and slow to process.\
+\f2\fs22  callbacks can be particularly slow since they are called for every proposed mating, and the vector of mating weights can be large and slow to process.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.4  ITEM: 5. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.5  ITEM: 6. 
 \f1\fs18 modifyChild()
 \f0\fs22  callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-Normally, a SLiM simulation defines child generation with its rules regarding selfing versus crossing, recombination, mutation, and so forth.  However, one might wish to modify these rules in particular circumstances \'96 by preventing particular children from being generated, by modifying the generated children in particular ways, or by generating children oneself.  All of these dynamics can be handled in SLiM with the 
+\f2\i0 \cf2 Normally, a SLiM simulation defines child generation with its rules regarding selfing versus crossing, recombination, mutation, and so forth.  However, one might wish to modify these rules in particular circumstances \'96 by preventing particular children from being generated, by modifying the generated children in particular ways, or by generating children oneself.  All of these dynamics can be handled in SLiM with the 
 \f3\fs18 modifyChild()
 \f2\fs22  callback mechanism.\
 A 
 \f3\fs18 modifyChild()
 \f2\fs22  callback is established in the input file with a syntax very similar to that of other callbacks:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] modifyChild([<subpop-id>]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] modifyChild([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 modifyChild()
-\f2\fs22  callback may optionally be restricted to the children generated to occupy a specified subpopulation.\
+\f2\fs22  callback may optionally be restricted to the children generated to occupy a specified subpopulation.  (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback is called, a parent or parents have already been chosen, and a candidate child has already been generated.  The parent or parents, and their genomes, are provided to the callback, as is the generated child and its genomes.  The callback may accept the generated child, modify it, substitute completely different genomic information for it, or reject it (causing a new parent or parents to be selected and a new child to be generated, which will again be passed to the callback).\
 In addition to the standard SLiM globals, a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2520\pardeftab720\li1080\fi-533\partightenfactor0
 
-\f3\fs18 \cf2    child
+\f3\fs18 \cf2 child
 \f2\fs22 	The generated child (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
 
-\f3\fs18    childGenome1
-\f2\fs22 	One genome of the generated child\
-
-\f3\fs18    childGenome2
-\f2\fs22 	The other genome of the generated child\
-
-\f3\fs18    childIsFemale
-\f2\fs22 	
-\f3\fs18 T
-\f2\fs22  if the child will be female, 
-\f3\fs18 F
-\f2\fs22  if male (defined only if sex is enabled)\
-
-\f3\fs18    parent1
+\f3\fs18 parent1
 \f2\fs22 	The first parent (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
 
-\f3\fs18    parent1Genome1
-\f2\fs22 	One genome of the first parent\
-
-\f3\fs18    parent1Genome2
-\f2\fs22 	The other genome of the first parent\
-
-\f3\fs18    isCloning
+\f3\fs18 isCloning
 \f2\fs22 	
 \f3\fs18 T
 \f2\fs22  if the child is the result of cloning\
 
-\f3\fs18    isSelfing
+\f3\fs18 isSelfing
 \f2\fs22 	
 \f3\fs18 T
 \f2\fs22  if the child is the result of selfing (but see note below)\
 
-\f3\fs18    parent2
+\f3\fs18 parent2
 \f2\fs22 	The second parent (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
 
-\f3\fs18    parent2Genome1
-\f2\fs22 	One genome of the second parent\
-
-\f3\fs18    parent2Genome2
-\f2\fs22 	The other genome of the second parent\
-
-\f3\fs18    subpop
+\f3\fs18 subpop
 \f2\fs22 	The subpopulation in which the child will live\
+\pard\tx2520\pardeftab720\li1080\fi-533\sa180\partightenfactor0
 
-\f3\fs18    sourceSubpop
+\f3\fs18 \cf2 sourceSubpop
 \f2\fs22 	The subpopulation of the parents (
 \f3\fs18 ==subpop
 \f2\fs22  if not a migration mating)\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 modifyChild()
-\f2\fs22  callback to decide upon a course of action.  The 
-\f3\fs18 childGenome1
+\f2\fs22  callback to decide upon a course of action.  The genomes of child (available as 
+\f3\fs18 child.genome1
 \f2\fs22  and 
-\f3\fs18 childGenome2
-\f2\fs22  variables may be modified by the callback; whatever mutations they contain on exit will be used for the new child.  Alternatively, they may be left unmodified (to accept the generated child as is).  These variables may be thought of as the two gametes that will fuse to produce the fertilized egg that results in a new offspring; 
-\f3\fs18 childGenome1
+\f3\fs18 child.genome2
+\f2\fs22 ) may be modified by the callback; whatever mutations they contain on exit will be used for the new child.  Alternatively, they may be left unmodified (to accept the generated child as is).  These variables may be thought of as the two gametes that will fuse to produce the fertilized egg that results in a new offspring; 
+\f3\fs18 child.genome1
 \f2\fs22  is the gamete contributed by the first parent (the female, if sex is turned on), and 
-\f3\fs18 childGenome2
+\f3\fs18 child.genome2
 \f2\fs22  is the gamete contributed by the second parent (the male, if sex is turned on).  The 
 \f3\fs18 child
 \f2\fs22  object itself may also be modified \'96 for example, to set the spatial position of the child.\
@@ -689,10 +866,8 @@ Note that
 \f2\fs22  is 
 \f3\fs18 T
 \f2\fs22  only when a mating was explicitly set up to be a selfing event by SLiM; an individual may also mate with itself by chance (by drawing itself as a mate) even when SLiM did not explicitly set up a selfing event, which one might term 
-\f0\i de facto
-\f2\i0  selfing.  If you need to know whether a mating event was a 
-\f0\i de facto
-\f2\i0  selfing event, you can compare the parents; self-fertilization will always entail 
+\f0\i incidental
+\f2\i0  selfing.  If you need to know whether a mating event was an incidental selfing event, you can compare the parents; self-fertilization will always entail 
 \f3\fs18 parent1==parent2
 \f2\fs22 , even when 
 \f3\fs18 isSelfing
@@ -702,9 +877,7 @@ Note that
 \f3\fs18 isSelfing
 \f2\fs22  will always be 
 \f3\fs18 F
-\f2\fs22  in sexual simulations (and 
-\f0\i de facto
-\f2\i0  selfing is also impossible in sexual simulations).\
+\f2\fs22  in sexual simulations (and incidental selfing is also impossible in sexual simulations).\
 Note that matings in SLiM do not proceed in random order.  Offspring are generated for each subpopulation in turn, and within each subpopulation the order of offspring generation is also non-random with respect to the source subpopulation, the sex of the offspring, and the reproductive mode (selfing, cloning, or autogamy).  It is important, therefore, that 
 \f3\fs18 modifyChild()
 \f2\fs22  callbacks are not in any way biased by the offspring generation order; they should not treat offspring generated early in the process any differently than offspring generated late in the process.  Similar to 
@@ -715,7 +888,7 @@ Note that matings in SLiM do not proceed in random order.  Offspring are generat
 \f3\fs18 mateChoice()
 \f2\fs22  or 
 \f3\fs18 modifyChild()
-\f2\fs22  callbacks are defined, it randomizes the order of child generation within each subpopulation, so this issue is mitigated somewhat.  However, offspring are still generated for each subpopulation in turn.  Furthermore, in generations without active callbacks offspring generation order will not be randomized (making the order of parents nonrandom in the next generation), with possible side effects.  In short, order-dependency issues are still possible and must be handled very carefully.\
+\f2\fs22  callbacks are defined, it randomizes the order of child generation within each subpopulation, so this issue is mitigated somewhat.  However, offspring are still generated for each subpopulation in turn.  Furthermore, in ticks without active callbacks offspring generation order will not be randomized (making the order of parents nonrandom in the next generation), with possible side effects.  In short, order-dependency issues are possible and must be handled very carefully.\
 As with the other callback types, multiple 
 \f3\fs18 modifyChild()
 \f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each child generated, in the order that the callbacks were registered.  If a 
@@ -725,41 +898,42 @@ As with the other callback types, multiple
 \f2\fs22 , however, indicating that the child should not be generated, the remaining callbacks in the chain will not be called.\
 There are many different ways in which a 
 \f3\fs18 modifyChild()
-\f2\fs22  callback could be used in a simulation; see the recipes in chapter 12 for illustrations of the power of this technique.  In nonWF models, 
+\f2\fs22  callback could be used in a simulation.  In nonWF models, 
 \f3\fs18 modifyChild()
 \f2\fs22  callbacks are often unnecessary since each generated child is available to the script in the models\'92 
 \f3\fs18 reproduction()
-\f2\fs22  callback anyway; but they may be used if desired.\cf0 \kerning1\expnd0\expndtw0 \
+\f2\fs22  callback anyway; but they may be used if desired.\cf0 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 5.13.5  ITEM: 6. 
+\f0\i \cf0 5.13.6  ITEM: 7. 
 \f1\fs18 recombination()
 \f0\fs22  callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-Typically, a simulation sets up a recombination map at the beginning of the run with 
+\f2\i0 \cf2 Typically, a simulation sets up a recombination map at the beginning of the run with 
 \f3\fs18 initializeRecombinationRate()
-\f2\fs22 , and that map is used for the duration of the run.  Less commonly, the recombination map is changed dynamically from generation to generation, with 
+\f2\fs22 , and that map is used for the duration of the run.  Less commonly, the recombination map is changed dynamically from tick to tick, with 
 \f3\fs18 Chromosome
 \f2\fs22 \'92s method 
 \f3\fs18 setRecombinationRate()
-\f2\fs22 ; but still, a single recombination map applies for all individuals in a given generation.  However, in unusual circumstances a simulation may need to modify the way that recombination works on an individual basis; for this, the 
+\f2\fs22 ; but still, a single recombination map applies for all individuals of a species in a given tick.  However, in unusual circumstances a simulation may need to modify the way that recombination works on an individual basis; for this, the 
 \f3\fs18 recombination()
 \f2\fs22  callback mechanism is provided.  This can be useful for models involving chromosomal inversions that prevent recombination within a region for some individuals, for example, or for models of the evolution of recombination.\
 A 
 \f3\fs18 recombination()
 \f2\fs22  callback is defined with a syntax much like that of other callbacks:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] recombination([<subpop-id>]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] recombination([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 recombination()
-\f2\fs22  callback will be called during the generation of every gamete during the generation(s) in which it is active.  It may optionally be restricted to apply only to gametes generated by parents in a specified subpopulation, using the 
+\f2\fs22  callback will be called during the generation of every gamete during the tick(s) in which it is active.  It may optionally be restricted to apply only to gametes generated by parents in a specified subpopulation, using the 
 \f3\fs18 <subpop-id>
-\f2\fs22  specifier.\
+\f2\fs22  specifier.  (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 recombination()
 \f2\fs22  callback is called, a parent has already been chosen to generate a gamete, and candidate recombination breakpoints for use in recombining the parental genomes have been drawn.  The genomes of the focal parent are provided to the callback, as is the focal parent itself (as an 
@@ -774,26 +948,27 @@ When a
 In addition to the standard SLiM globals, then, a 
 \f3\fs18 recombination()
 \f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2    individual
+\f3\fs18 \cf2 individual
 \f2\fs22 	The focal parent that is generating a gamete\
 
-\f3\fs18    genome1
+\f3\fs18 genome1
 \f2\fs22 	One genome of the focal parent; this is the initial copy strand\
 
-\f3\fs18    genome2
+\f3\fs18 genome2
 \f2\fs22 	The other genome of the focal parent
 \f3\fs18 \
-   subpop
+subpop
 \f2\fs22 	The subpopulation to which the focal parent belongs
 \f3\fs18 \
-   breakpoints
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
+\cf2 breakpoints
 \f2\fs22 	An 
 \f3\fs18 integer
 \f2\fs22  vector of crossover breakpoints
 \f3\fs18 \
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 These may be used in the 
 \f3\fs18 recombination()
@@ -814,7 +989,17 @@ The positions specified in
 \f0\i before
 \f2\i0  the specified base position (between the preceding base and the specified base, in other words).  The genome specified by 
 \f3\fs18 genome1
-\f2\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.\
+\f2\fs22  will be used as the initial copy strand when SLiM executes the recombination; this cannot presently be changed by the callback.  (Note that 
+\f3\fs18 genome1
+\f2\fs22  and 
+\f3\fs18 genome2
+\f2\fs22  will be the same objects as 
+\f3\fs18 individual.genome1
+\f2\fs22  and 
+\f3\fs18 individual.genome2
+\f2\fs22 , but may be swapped, if 
+\f3\fs18 individual.genome2
+\f2\fs22  is the initial copy strand!)\
 In this design, the recombination callback does not specify a custom recombination map.  Instead, the callback can add or remove breakpoints at specific locations.  To implement a chromosomal inversion, for example, if the parent is heterozygous for the inversion mutation then crossovers within the inversion region are removed by the callback.  As another example, to implement a model of the evolution of the overall recombination rate, a model could (1) set the global recombination rate to the highest rate attainable in the simulation, (2) for each individual, within the 
 \f3\fs18 recombination()
 \f2\fs22  callback, calculate the fraction of that maximum rate that the focal individual would experience based upon its genetics, and (3) probabilistically remove proposed crossover points based upon random uniform draws compared to that threshold fraction, thus achieving the individual effective recombination rate desired.  Other similar treatments could actually vary the effective recombination map, not just the overall rate, by removing proposed crossovers with probabilities that depend upon their position, allowing for the evolution of localized recombination hot-spots and cold-spots.  Crossovers may also be added, not just removed, by 
@@ -846,16 +1031,16 @@ Note that the positions in
 \f2\fs22 , the multiple occurrences of the position do not cancel; SLiM does not cross over and then \'93cross back over\'94 given a pair of identical positions.  Instead, the multiple occurrences of the position will simply be uniqued down to a single occurrence.\
 As with the other callback types, multiple 
 \f3\fs18 recombination()
-\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each gamete generated, in the order that the callbacks were registered.\
+\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each gamete generated, in the order that the callbacks were registered.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.6  ITEM: 7. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.7  ITEM: 8. 
 \f1\fs18 interaction()
 \f0\fs22  callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-The 
+\f2\i0 \cf2 The 
 \f3\fs18 InteractionType
 \f2\fs22  class provides various built-in interaction functions that translate from distances to interaction strengths.  However, it may sometimes be useful to define a custom function for that purpose; for that reason, SLiM allows 
 \f3\fs18 interaction()
@@ -864,77 +1049,105 @@ The
 \f2\fs22 .  In particular, this mechanism allows the strength of interactions to depend upon not only the distance between individuals, but also the genetics and other state of the individuals, the spatial position of the individuals, and other environmental variables.\
 An 
 \f3\fs18 interaction()
-\f2\fs22  callback is called by SLiM when it is determining the strength of the interaction between one individual (the receiver of the interaction) and another individual (the exerter of the interaction).  This may occur when the 
-\f3\fs18 evaluate()
-\f2\fs22  method of 
+\f2\fs22  callback is called by SLiM when it is determining the strength of the interaction between one individual (the 
+\f0\i receiver
+\f2\i0  of the interaction) and another individual (the 
+\f0\i exerter
+\f2\i0  of the interaction).  This generally occurs when an interaction query is made to 
 \f3\fs18 InteractionType
-\f2\fs22  is called, if immediate evaluation is requested; or it may occur at some point after evaluation of the 
-\f3\fs18 InteractionType
-\f2\fs22 , when the interaction strength is needed, if immediate evaluation was not requested.  This means that 
+\f2\fs22 , as a side effect of serving that query.  This means that 
 \f3\fs18 interaction()
-\f2\fs22  callbacks may be called at a variety of points in the generation cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
+\f2\fs22  callbacks may be called at a variety of points in the tick cycle, unlike the other callback types in SLiM, which are each called at a specific point.  If you write an 
 \f3\fs18 interaction()
-\f2\fs22  callback, you need to take this into account; assuming that the generation cycle is at a particular stage, or even that the generation count is the same as it was when 
+\f2\fs22  callback, you need to take this into account; assuming that the tick cycle is at a particular stage, or even that the tick or cycle is the same as it was when 
 \f3\fs18 evaluate()
 \f2\fs22  was called, may be dangerous.\
-When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the InteractionType.  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
+When an interaction strength is needed, the first thing SLiM does is calculate the default interaction strength using the interaction function that has been defined for the 
+\f3\fs18 InteractionType
+\f2\fs22 .  If the receiver is the same as the exerter, the interaction strength is always zero; and in spatial simulations if the distance between the receiver and the exerter is greater than the maximum distance set for the 
 \f3\fs18 InteractionType
 \f2\fs22 , the interaction strength is also always zero.  In these cases, 
 \f3\fs18 interaction()
 \f2\fs22  callbacks will not be called, and there is no way to redefine these interaction strengths.\
 Otherwise, SLiM will then call 
 \f3\fs18 interaction()
-\f2\fs22  callbacks that apply to the interaction type and subpopulation for the interaction being evaluated.  An 
+\f2\fs22  callbacks that apply to the interaction type and exerter subpopulation for the interaction being evaluated.  An 
 \f3\fs18 interaction()
 \f2\fs22  callback is defined with a variation of the syntax used for other callbacks:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] interaction(<int-type-id> [, <subpop-id>]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] interaction(<int-type-id> [, <subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 For example, if the callback were defined as:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    1000:2000 interaction(i2, p3) \{ 1.0; \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 1000:2000 interaction(i2, p3) \{ 1.0; \}\
+\pard\pardeftab397\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 then an interaction strength of 
 \f3\fs18 1.0
 \f2\fs22  would be used for all interactions of interaction type 
 \f3\fs18 i2
-\f2\fs22  in subpopulation 
+\f2\fs22 , for exerters in subpopulation 
 \f3\fs18 p3
-\f2\fs22  from generation 
+\f2\fs22 , from tick 
 \f3\fs18 1000
-\f2\fs22  to generation 
+\f2\fs22  to tick 
 \f3\fs18 2000
 \f2\fs22 .\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
+\cf2 Beginning in SLiM 4, the receiver and exerter may be in different subpopulations from each other \'96 or even, in multispecies models, in different species altogether.  For the subpopulation id in the 
+\f3\fs18 interaction()
+\f2\fs22  callback declaration, it does not matter which subpopulation the receiver is in; if the exerter is in 
+\f3\fs18 p3
+\f2\fs22 , for the above example, then the 
+\f3\fs18 interaction()
+\f2\fs22  callback will be called regardless of the receiver\'92s subpopulation (assuming other preconditions are also met, such as the tick range and the interaction type id).  This means that 
+\f3\fs18 interaction()
+\f2\fs22  callbacks are not species-specific, unlike other callback types; even if an 
+\f3\fs18 interaction()
+\f2\fs22  callback is declared to be specific to exerters in 
+\f3\fs18 p3
+\f2\fs22 , as above, receivers can still be in a different species.  With no subpopulation id specified, 
+\f3\fs18 interaction()
+\f2\fs22  callbacks are even more general: the 
+\f3\fs18 InteractionType
+\f2\fs22  can then be evaluated and queried for receivers and exerters belonging to any species.  For this reason, in multispecies models 
+\f3\fs18 interaction()
+\f2\fs22  callbacks must be declared using a species specifier of 
+\f3\fs18 species all
+\f2\fs22 , unlike all other SLiM callback types; it is not legal to declare an 
+\f3\fs18 interaction()
+\f2\fs22  callback as species-specific.  Note that there is no way to declare an 
+\f3\fs18 interaction()
+\f2\fs22  callback as applying only to receivers in a given subpopulation; if that functionality is desired, you can test 
+\f3\fs18 receiver.subpopulation
+\f2\fs22  in your callback code and act accordingly.\
 In addition to the standard SLiM globals, an 
 \f3\fs18 interaction()
 \f2\fs22  callback is supplied with some additional information passed through \'93pseudo-parameters\'94:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx1890\tx2880\pardeftab720\li1886\fi-1339\partightenfactor0
 
-\f3\fs18 \cf2    distance
+\f3\fs18 \cf2 distance
 \f2\fs22 	The distance from receiver to exerter, in spatial simulations; 
 \f3\fs18 NAN
 \f2\fs22  otherwise\
 
-\f3\fs18    strength
+\f3\fs18 strength
 \f2\fs22 	The default interaction strength calculated by the interaction function\
 
-\f3\fs18    receiver
+\f3\fs18 receiver
 \f2\fs22 	The individual receiving the interaction (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
+\pard\tx1890\tx2880\pardeftab720\li1890\fi-1343\sa180\partightenfactor0
 
-\f3\fs18    exerter
+\f3\fs18 \cf2 exerter
 \f2\fs22 	The individual exerting the interaction (an object of class 
 \f3\fs18 Individual
 \f2\fs22 )\
-
-\f3\fs18    subpop
-\f2\fs22 	The subpopulation in which the receiver and exerter live\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 \cf2 These may be used in the 
 \f3\fs18 interaction()
 \f2\fs22  callback to compute an interaction strength.  To simply use the default interaction strength that SLiM would use if a callback had not been defined for interaction type 
@@ -942,8 +1155,8 @@ In addition to the standard SLiM globals, an
 \f2\fs22 , for example, you could do this:\
 \pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    interaction(i1) \{\uc0\u8232       return strength;\u8232    \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 interaction(i1) \{\uc0\u8232 	return strength;\u8232 \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 Usually an 
 \f3\fs18 interaction()
@@ -951,12 +1164,18 @@ In addition to the standard SLiM globals, an
 \f3\fs18 float
 \f2\fs22  value greater than or equal to 
 \f3\fs18 0.0
-\f2\fs22  may be returned.  The value returned will be cached by SLiM; if the interaction strength between the same two individuals is needed again later, the 
+\f2\fs22  may be returned.  The value returned will be not be cached by SLiM; if the interaction strength between the same two individuals is needed again later, the 
 \f3\fs18 interaction()
-\f2\fs22  callback will not be called again until the interaction is next evaluated (something to keep in mind if the interaction strength includes a stochastic component).\
+\f2\fs22  callback will be called again (something to keep in mind if the interaction strength includes a stochastic component).  Note that the provided 
+\f3\fs18 distance
+\f2\fs22  and 
+\f3\fs18 strength
+\f2\fs22  values are based upon the spatial positions of the exerter and receiver when 
+\f3\fs18 evaluate()
+\f2\fs22  was called, not their current spatial positions, if they have moved since the interaction was evaluated.\
 More than one 
 \f3\fs18 interaction()
-\f2\fs22  callback may be defined to operate in the same generation.  As with other callbacks, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
+\f2\fs22  callback may be defined to operate in the same tick.  As with other callbacks, multiple callbacks will be called in the order in which they were defined in the input file.  Furthermore, each callback will be given the 
 \f3\fs18 strength
 \f2\fs22  value returned by the previous callback \'96 so the value of 
 \f3\fs18 strength
@@ -981,29 +1200,29 @@ The
 \f3\fs18 interaction()
 \f2\fs22  callback altogether.  Furthermore, constraining the number of cases in which interaction strengths need to be calculated \'96 using a short maximum interaction distance, querying the nearest neighbors of the focal individual rather than querying all possible interactions with that individual, and specifying the reciprocality and sex segregation of the 
 \f3\fs18 InteractionType
-\f2\fs22 , for example \'96 may greatly decrease the computational overhead of interaction evaluation.\
+\f2\fs22 , for example \'96 may greatly decrease the computational overhead of interaction evaluation.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.7  ITEM: 8. 
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.8  ITEM: 9. 
 \f1\fs18 reproduction()
 \f0\fs22  callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-In WF models (the default model type in SLiM), the SLiM core manages the reproduction of individuals in each generation.  In nonWF models, however, reproduction is managed by the model script, in 
+\f2\i0 \cf2 In WF models (the default model type in SLiM), the SLiM core manages the reproduction of individuals in each tick.  In nonWF models, however, reproduction is managed by the model script, in 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks.  These callbacks may only be defined in nonWF models.\
 A 
 \f3\fs18 reproduction()
 \f2\fs22  callback is defined with a syntax much like that of other callbacks:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] reproduction([<subpop-id> [, <sex>]]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] reproduction([<subpop-id> [, <sex>]]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 reproduction()
-\f2\fs22  callback will be called once for each individual during the generation(s) in which it is active.  It may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
+\f2\fs22  callback will be called once for each individual during the tick(s) in which it is active.  It may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
 \f3\fs18 <subpop-id>
 \f2\fs22  specifier; this may be a subpopulation specifier such as 
 \f3\fs18 p1
@@ -1017,39 +1236,36 @@ A
 \f3\fs18 "F"
 \f2\fs22 , or 
 \f3\fs18 NULL
-\f2\fs22  indicating no restriction.\
+\f2\fs22  indicating no restriction.  (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 reproduction()
 \f2\fs22  callback is called, SLiM\'92s expectation is that the callback will trigger the reproduction of a focal individual by making method calls to add new offspring individuals.  Typically the offspring added are the offspring of the focal individual, and typically they are added to the subpopulation to which the focal individual belongs, but neither of these is required; a 
 \f3\fs18 reproduction()
-\f2\fs22  callback may add offspring generated by any parent(s), to any subpopulation.  The focal individual is provided to the callback (as an 
+\f2\fs22  callback may add offspring generated by any parent(s), to any subpopulation in the focal species.  The focal individual is provided to the callback (as an 
 \f3\fs18 Individual
 \f2\fs22  object), as are its genomes and the subpopulation in which it resides.\
 A common alternative pattern is for a 
 \f3\fs18 reproduction()
-\f2\fs22  callback to ignore the focal individual and generate all of the offspring for the current generation, from all parents.  The callback then sets 
+\f2\fs22  callback to ignore the focal individual and generate all of the offspring for a species for the current tick, from all parents.  The callback then sets 
 \f3\fs18 self.active
 \f2\fs22  to 
 \f3\fs18 0
-\f2\fs22 , preventing itself from being called again in the current generation; this callback design therefore executes once per generation.  This can be useful if individuals influence each other\'92s offspring generation (as in a monogamous-mating model, for example); it can also simply be more efficient when producing offspring in bulk.\
-In addition to the standard SLiM globals, then, a 
+\f2\fs22 , preventing itself from being called again in the current tick; this callback design therefore executes once per tick.  This can be useful if individuals influence each other\'92s offspring generation (as in a monogamous-mating model, for example); it can also simply be more efficient when producing offspring in bulk.\
+In addition to the usual SLiM globals, then, a 
 \f3\fs18 reproduction()
 \f2\fs22  callback is supplied with additional information passed through global variables:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2    individual
+\f3\fs18 \cf2 individual
 \f2\fs22 	The focal individual that is expected to reproduce\
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
 
-\f3\fs18    genome1
-\f2\fs22 	One genome of the focal individual\
-
-\f3\fs18    genome2
-\f2\fs22 	The other genome of the focal individual
-\f3\fs18 \
-   subpop
+\f3\fs18 \cf2 subpop
 \f2\fs22 	The subpopulation to which the focal individual belongs
 \f3\fs18 \
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 At present, the return value from 
 \f3\fs18 reproduction()
@@ -1059,36 +1275,52 @@ In addition to the standard SLiM globals, then, a
 It is possible, of course, to do actions unrelated to reproduction inside 
 \f3\fs18 reproduction()
 \f2\fs22  callbacks, but it is not recommended.  The 
+\f3\fs18 first()
+\f2\fs22  event phase of the current tick provides an opportunity for actions immediately before reproduction, and the 
 \f3\fs18 early()
-\f2\fs22  event phase of the current generation provides an opportunity for actions immediately before reproduction, and the 
-\f3\fs18 early()
-\f2\fs22  event phase of the current generation provides an opportunity for actions immediately after reproduction, so only actions that are intertwined with reproduction itself should occur in 
+\f2\fs22  event phase of the current tick provides an opportunity for actions immediately after reproduction, so only actions that are intertwined with reproduction itself should occur in 
 \f3\fs18 reproduction()
-\f2\fs22  callbacks.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to reproduction should not influence or be influenced by the dynamics of reproduction.\
+\f2\fs22  callbacks.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to reproduction should usually not influence or be influenced by the dynamics of reproduction.\
+If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which individuals are given an opportunity to reproduce with a call to 
+\f3\fs18 reproduction()
+\f2\fs22  callbacks will be randomized within each subpopulation.  This partially mitigates order-dependency issues, although such issues can still arise whenever the effects of a 
+\f3\fs18 reproduction()
+\f2\fs22  callback are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , individuals will be given their opportunity to reproduce in sequential order within each subpopulation, greatly increasing the risk of order-dependency problems.\
 As with the other callback types, multiple 
 \f3\fs18 reproduction()
-\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each individual, in the order that the callbacks were registered.\
+\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each individual, in the order that the callbacks were registered.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.8  ITEM: 9. mutation() callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.9  ITEM: 10. 
+\f1\fs18 mutation()
+\f0\fs22  callbacks\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 \expnd0\expndtw0\kerning0
-SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distribution of fitness effects defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  \kerning1\expnd0\expndtw0 In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, replacing the proposed mutation with a pre-existing mutation at the same position, or even suppressing the proposed mutation altogether.\expnd0\expndtw0\kerning0
-  To achieve this, one may define a 
+\f2\i0 \cf2 SLiM auto-generates new mutations according to the current mutation rate (or rate map) and the genetic structure defined by genomic elements, their genomic element types, the mutation types those genomic element types draw from, and the distribution of fitness effects defined by those mutation types.  In nucleotide-based models, the nucleotide sequence and the mutation matrix also play a role in determining both the rate of mutation and the nucleotide mutated to.  In some models it can be desirable to modify these dynamics in some way \'96 altering the selection coefficients of new mutations in some way, changing the mutation type used, dictating the nucleotide to be used, replacing the proposed mutation with a pre-existing mutation at the same position, or even suppressing the proposed mutation altogether.  To achieve this, one may define a 
 \f3\fs18 mutation()
 \f2\fs22  callback.\
 A 
 \f3\fs18 mutation()
 \f2\fs22  callback is defined as:\
-\pard\tx1890\tx2880\pardeftab720\fi547\ri720\sb180\sa180\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2    [id] [gen1 [: gen2]] mutation([<mut-type-id> [, <subpop-id>]]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] mutation([<mut-type-id> [, <subpop-id>]]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 mutation()
-\f2\fs22  callback will be called once for each new auto-generated mutation during the generation(s) in which the callback is active.  It may optionally be restricted to apply only to mutations of a particular mutation type, using the 
+\f2\fs22  callback will be called once for each new auto-generated mutation during the tick(s) in which the callback is active.  It may optionally be restricted to apply only to mutations of a particular mutation type, using the 
 \f3\fs18 <mut-type-id>
 \f2\fs22  specifier; this may be a mutation type specifier such as 
 \f3\fs18 m1
@@ -1098,7 +1330,9 @@ A
 \f3\fs18 <subpop-id>
 \f2\fs22  specifier; this should be a subpopulation specifier such as 
 \f3\fs18 p1
-\f2\fs22 .\
+\f2\fs22 .  (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 mutation()
 \f2\fs22  callback is called, a focal mutation (provided to the callback as an object of type 
@@ -1115,18 +1349,18 @@ When a
 In addition to the standard SLiM globals, then, a 
 \f3\fs18 mutation()
 \f2\fs22  callback is supplied with additional information passed through global variables:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2    mut
+\f3\fs18 \cf2 mut
 \f2\fs22 	The focal mutation that is being modified or reviewed\
 
-\f3\fs18    genome
+\f3\fs18 genome
 \f2\fs22 	The parental genome that is being copied\
 
-\f3\fs18    element
+\f3\fs18 element
 \f2\fs22 	The genomic element that controls the mutation site\
 
-\f3\fs18    originalNuc
+\f3\fs18 originalNuc
 \f2\fs22 	The nucleotide (
 \f3\fs18 0
 \f2\fs22 /
@@ -1145,15 +1379,16 @@ In addition to the standard SLiM globals, then, a
 \f3\fs18 T
 \f2\fs22 ) originally at the mutating position\
 
-\f3\fs18    parent
+\f3\fs18 parent
 \f2\fs22 	The parent which is generating the offspring genome
 \f3\fs18 \
-   subpop
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
+\cf2 subpop
 \f2\fs22 	The subpopulation to which the parent belongs
 \f3\fs18 \
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\fs22 \cf2 \kerning1\expnd0\expndtw0 The 
+\f2\fs22 \cf2 The 
 \f3\fs18 mutation()
 \f2\fs22  callback has three possible returns: 
 \f3\fs18 T
@@ -1174,8 +1409,6 @@ In addition to the standard SLiM globals, then, a
 \f2\fs22 ) with the mutation returned; the offspring genomes being generated will contain the returned mutation.  The position of the returned mutation must match that of the proposed mutation.  This provides a mechanism for a 
 \f3\fs18 mutation()
 \f2\fs22  callback to make SLiM re-use existing mutations instead of generating new mutations, which can be useful.\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 The callback may perform a variety of actions related to the generated mutation.  The selection coefficient of the mutation can be changed with 
 \f3\fs18 setSelectionCoefficient()
 \f2\fs22 , and the mutation type of the mutation can be changed with 
@@ -1197,8 +1430,7 @@ The callback may perform a variety of actions related to the generated mutation.
 \f2\fs22  (it could be retrieved with 
 \f3\fs18 genome.nucleotides()
 \f2\fs22 , but SLiM already has it at hand anyway).  All of these modifications to the new mutation may be based upon the state of the parent, including its genetic state, or upon any other model state.\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 It is possible, of course, to do actions unrelated to mutation inside 
+It is possible, of course, to do actions unrelated to mutation inside 
 \f3\fs18 mutation()
 \f2\fs22  callbacks, but it is not recommended; 
 \f3\fs18 first()
@@ -1207,13 +1439,11 @@ The callback may perform a variety of actions related to the generated mutation.
 \f2\fs22 , and 
 \f3\fs18 late()
 \f2\fs22  events should be used for general-purpose scripting.  Besides providing conceptual clarity, following this design principle will also decrease the probability of bugs, since actions that are unrelated to mutation should not influence or be influenced by the dynamics of mutation.\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 The proposed mutation will not appear in the 
 \f3\fs18 sim.mutations
 \f2\fs22  vector of segregating mutations until it has been added to a genome; it will therefore not be visible in that vector within its own 
 \f3\fs18 mutation()
-\f2\fs22  callback invocation, and indeed, may not be visible in subsequent callbacks during the reproduction generation cycle stage until such time as the offspring individual being generated has been completed.  If that offspring is ultimately rejected, in particular by a 
+\f2\fs22  callback invocation, and indeed, may not be visible in subsequent callbacks during the reproduction tick cycle stage until such time as the offspring individual being generated has been completed.  If that offspring is ultimately rejected, in particular by a 
 \f3\fs18 modifyChild()
 \f2\fs22  callback, the proposed mutation may not be used by SLiM at all.  It may therefore be unwise to assume, in a 
 \f3\fs18 mutation()
@@ -1264,31 +1494,35 @@ Note that
 \f2\fs22  callbacks; but of course the script may modify or tailor such added mutations in whatever way is desired, so there is no need for callbacks in that situation.\
 As with the other callback types, multiple 
 \f3\fs18 mutation()
-\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each generated mutation to which they apply, in the order that the callbacks were registered.\
+\f2\fs22  callbacks may be registered and active.  In this case, all registered and active callbacks will be called for each generated mutation to which they apply, in the order that the callbacks were registered.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.9  ITEM: 10. survival() callbacks\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f0\i \cf0 \kerning1\expnd0\expndtw0 5.13.10  ITEM: 11. 
+\f1\fs18 survival()
+\f0\fs22  callbacks\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
-\f2\i0 \cf2 In nonWF models, a selection phase in the generation cycle results in mortality; individuals survive or die based upon their fitness.  In most cases this standard behavior is sufficient; but occasionally it can be useful to observe the survival decisions SLiM makes (to log out information about dying individuals, for example), to modify those decisions (influencing which individuals live and which die, perhaps based upon factors other than genetics), or even to short-circuit mortality completely (moving dead individuals into a \'93cold storage\'94 subpopulation for later use, perhaps).  To accomplish such goals, one can the 
+\f2\i0 \cf2 In nonWF models, a selection phase in the tick cycle results in mortality; individuals survive or die based upon their fitness.  In most cases this standard behavior is sufficient; but occasionally it can be useful to observe the survival decisions SLiM makes (to log out information about dying individuals, for example), to modify those decisions (influencing which individuals live and which die, perhaps based upon factors other than genetics), or even to short-circuit mortality completely (moving dead individuals into a \'93cold storage\'94 subpopulation for later use, perhaps).  To accomplish such goals, one can the 
 \f3\fs18 survival()
-\f2\fs22  callback mechanism to override SLiM\'92s default behavior.  Note that in WF models, since they always model non-overlapping generations, the entire parental generation dies in each generation regardless of fitness; 
+\f2\fs22  callback mechanism to override SLiM\'92s default behavior.  Note that in WF models, since they always model non-overlapping generations, the entire parental generation dies in each tick regardless of fitness; 
 \f3\fs18 survival()
 \f2\fs22  callbacks therefore apply only to nonWF models.\
 A 
 \f3\fs18 survival()
 \f2\fs22  callback is defined with a syntax much like that of other callbacks:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx990\tx1260\tx1530\tx1800\tx2070\tx2340\tx2610\tx2880\tx3150\tx3420\pardeftab720\li547\ri720\sb180\sa180\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 [id] [gen1 [: gen2]] survival([<subpop-id>]) \{ ... \}\
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\f3\fs18 \cf2 [id] [t1 [: t2]] survival([<subpop-id>]) \{ ... \}\
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 The 
 \f3\fs18 survival()
-\f2\fs22  callback will be called during the selection phase of the generation cycle of nonWF models, during the generation(s) in which it is active.  By default it will be called once per individual in the entire population (whether slated for survival or not); it may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
+\f2\fs22  callback will be called during the selection phase of the tick cycle of nonWF models, during the tick(s) in which it is active.  By default it will be called once per individual in the entire population (whether slated for survival or not); it may optionally be restricted to apply only to individuals in a specified subpopulation, using the 
 \f3\fs18 <subpop-id>
-\f2\fs22  specifier.\
+\f2\fs22  specifier.  (In multispecies models, the definition must be preceded by a 
+\f3\fs18 species
+\f2\fs22  specification as usual.)\
 When a 
 \f3\fs18 survival()
 \f2\fs22  callback is called, a focal individual has already been evaluated by SLiM regarding its survival; a final fitness value for the individual has been calculated, and a random uniform draw in 
@@ -1307,33 +1541,29 @@ When a
 In addition to the standard SLiM globals, then, a 
 \f3\fs18 survival()
 \f2\fs22  callback is supplied with additional information passed through \'93pseudo-parameters\'94:\
-\pard\tx2880\pardeftab720\li2880\fi-2334\sb40\sa40\partightenfactor0
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\partightenfactor0
 
-\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 individual
+\f3\fs18 \cf2 individual
 \f2\fs22 	The focal individual that will live or die\
 
-\f3\fs18 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 subpop
+\f3\fs18 subpop
 \f2\fs22 	The subpopulation to which the focal individual belongs\
 
-\f3\fs18 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 surviving
+\f3\fs18 surviving
 \f2\fs22 	A 
 \f3\fs18 logical
 \f2\fs22  value indicating SLiM\'92s preliminary decision (
 \f3\fs18 T
 \f2\fs22  == survival)\
 
-\f3\fs18 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 fitness
+\f3\fs18 fitness
 \f2\fs22 	The focal individual\'92s fitness\
+\pard\tx2070\tx2880\pardeftab720\li2073\fi-1526\sa180\partightenfactor0
 
-\f3\fs18 \expnd0\expndtw0\kerning0
-   \kerning1\expnd0\expndtw0 draw
+\f3\fs18 \cf2 draw
 \f2\fs22 	SLiM\'92s random uniform deviate, which determined the preliminary decision
 \f3\fs18 \
-\pard\pardeftab543\fi274\ri720\sb40\sa40\partightenfactor0
+\pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0
 
 \f2\fs22 \cf2 These may be used in the 
 \f3\fs18 survival()
@@ -1348,12 +1578,26 @@ While
 \f3\fs18 survival()
 \f2\fs22  callback, but it should be understood that previously made decisions about the fates of other individuals will not yet have any visible effect.  It is generally a good idea for the decisions rendered by 
 \f3\fs18 survival()
-\f2\fs22  callbacks to be independent anyway, to avoid biases due to order-dependency, since the order in which individuals are evaluated is not guaranteed to be random.\
+\f2\fs22  callbacks to be independent anyway, to avoid biases due to order-dependency.  If the 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  parameter to 
+\f3\fs18 initializeSLiMOptions()
+\f2\fs22  is 
+\f3\fs18 T
+\f2\fs22  (the default), the order in which 
+\f3\fs18 survival()
+\f2\fs22  callbacks are called on individuals will be randomized within each subpopulation; nevertheless, order-dependency issues can occur if callback effects are not independent.  If 
+\f3\fs18 randomizeCallbacks
+\f2\fs22  is 
+\f3\fs18 F
+\f2\fs22 , the order in which individuals are evaluated within each subpopulation is not guaranteed to be random, and order-dependency problems are thus even more likely.\
 It is worth noting that if 
 \f3\fs18 survival()
 \f2\fs22  callbacks are used, \'93fitness\'94 in the model is then no longer really fitness; the model is making its own decisions about which individuals live and die, and those decisions are the true determinant of fitness in the biological sense.  A 
 \f3\fs18 survival()
-\f2\fs22  callback that makes its own decisions regarding survival with no regard for SLiM\'92s calculated fitness values can completely alter the pattern of selection in a population, rendering all of SLiM\'92s fitness machinery \'96 selection and dominance coefficients, fitnessScaling values, etc. \'96 completely irrelevant.  To avoid highly counterintuitive and confusing effects, it is thus generally a good idea to use of 
+\f2\fs22  callback that makes its own decisions regarding survival with no regard for SLiM\'92s calculated fitness values can completely alter the pattern of selection in a population, rendering all of SLiM\'92s fitness machinery \'96 selection and dominance coefficients, 
+\f3\fs18 fitnessScaling
+\f2\fs22  values, etc. \'96 completely irrelevant.  To avoid highly counterintuitive and confusing effects, it is thus generally a good idea to use of 
 \f3\fs18 survival()
 \f2\fs22  callbacks only when it is strictly necessary to achieve a desired outcome.\
 As with the other callback types, multiple 

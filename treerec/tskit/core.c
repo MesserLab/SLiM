@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2021 Tskit Developers
+ * Copyright (c) 2019-2022 Tskit Developers
  * Copyright (c) 2015-2018 University of Oxford
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -129,10 +129,10 @@ tsk_strerror_internal(int err)
 
         /* General errors */
         case TSK_ERR_GENERIC:
-            ret = "Generic error; please file a bug report";
+            ret = "Generic error; please file a bug report. (TSK_ERR_GENERIC)";
             break;
         case TSK_ERR_NO_MEMORY:
-            ret = "Out of memory";
+            ret = "Out of memory. (TSK_ERR_NO_MEMORY)";
             break;
         case TSK_ERR_IO:
             if (errno != 0) {
@@ -142,379 +142,434 @@ tsk_strerror_internal(int err)
             }
             break;
         case TSK_ERR_BAD_PARAM_VALUE:
-            ret = "Bad parameter value provided";
+            ret = "Bad parameter value provided. (TSK_ERR_BAD_PARAM_VALUE)";
             break;
         case TSK_ERR_BUFFER_OVERFLOW:
-            ret = "Supplied buffer is too small";
+            ret = "Supplied buffer is too small. (TSK_ERR_BUFFER_OVERFLOW)";
             break;
         case TSK_ERR_UNSUPPORTED_OPERATION:
-            ret = "Operation cannot be performed in current configuration";
+            ret = "Operation cannot be performed in current configuration. "
+                  "(TSK_ERR_UNSUPPORTED_OPERATION)";
             break;
         case TSK_ERR_GENERATE_UUID:
-            ret = "Error generating UUID";
+            ret = "Error generating UUID. (TSK_ERR_GENERATE_UUID)";
             break;
         case TSK_ERR_EOF:
-            ret = "End of file";
+            ret = "End of file. (TSK_ERR_EOF)";
             break;
 
         /* File format errors */
         case TSK_ERR_FILE_FORMAT:
-            ret = "File format error";
+            ret = "File format error. (TSK_ERR_FILE_FORMAT)";
             break;
         case TSK_ERR_FILE_VERSION_TOO_OLD:
             ret = "tskit file version too old. Please upgrade using the "
-                  "'tskit upgrade' command";
+                  "'tskit upgrade' command. (TSK_ERR_FILE_VERSION_TOO_OLD)";
             break;
         case TSK_ERR_FILE_VERSION_TOO_NEW:
             ret = "tskit file version is too new for this instance. "
-                  "Please upgrade tskit to the latest version";
+                  "Please upgrade tskit to the latest version. "
+                  "(TSK_ERR_FILE_VERSION_TOO_NEW)";
             break;
         case TSK_ERR_REQUIRED_COL_NOT_FOUND:
-            ret = "A required column was not found in the file.";
+            ret = "A required column was not found in the file. "
+                  "(TSK_ERR_REQUIRED_COL_NOT_FOUND)";
             break;
         case TSK_ERR_BOTH_COLUMNS_REQUIRED:
-            ret = "Both columns in a related pair must be provided";
+            ret = "Both columns in a related pair must be provided. "
+                  "(TSK_ERR_BOTH_COLUMNS_REQUIRED)";
             break;
         case TSK_ERR_BAD_COLUMN_TYPE:
-            ret = "An incompatible type for a column was found in the file";
+            ret = "An incompatible type for a column was found in the file. "
+                  "(TSK_ERR_BAD_COLUMN_TYPE)";
             break;
 
         /* Out of bounds errors */
         case TSK_ERR_BAD_OFFSET:
-            ret = "Bad offset provided in input array";
-            break;
-        case TSK_ERR_OUT_OF_BOUNDS:
-            ret = "Object reference out of bounds";
+            ret = "Bad offset provided in input array. (TSK_ERR_BAD_OFFSET)";
             break;
         case TSK_ERR_NODE_OUT_OF_BOUNDS:
-            ret = "Node out of bounds";
+            ret = "Node out of bounds. (TSK_ERR_NODE_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_EDGE_OUT_OF_BOUNDS:
-            ret = "Edge out of bounds";
+            ret = "Edge out of bounds. (TSK_ERR_EDGE_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_POPULATION_OUT_OF_BOUNDS:
-            ret = "Population out of bounds";
+            ret = "Population out of bounds. (TSK_ERR_POPULATION_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_SITE_OUT_OF_BOUNDS:
-            ret = "Site out of bounds";
+            ret = "Site out of bounds. (TSK_ERR_SITE_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_MUTATION_OUT_OF_BOUNDS:
-            ret = "Mutation out of bounds";
+            ret = "Mutation out of bounds. (TSK_ERR_MUTATION_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_MIGRATION_OUT_OF_BOUNDS:
-            ret = "Migration out of bounds";
+            ret = "Migration out of bounds. (TSK_ERR_MIGRATION_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_INDIVIDUAL_OUT_OF_BOUNDS:
-            ret = "Individual out of bounds";
+            ret = "Individual out of bounds. (TSK_ERR_INDIVIDUAL_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_PROVENANCE_OUT_OF_BOUNDS:
-            ret = "Provenance out of bounds";
+            ret = "Provenance out of bounds. (TSK_ERR_PROVENANCE_OUT_OF_BOUNDS)";
             break;
         case TSK_ERR_TIME_NONFINITE:
-            ret = "Times must be finite";
+            ret = "Times must be finite. (TSK_ERR_TIME_NONFINITE)";
             break;
         case TSK_ERR_GENOME_COORDS_NONFINITE:
-            ret = "Genome coordinates must be finite numbers";
+            ret = "Genome coordinates must be finite numbers. "
+                  "(TSK_ERR_GENOME_COORDS_NONFINITE)";
             break;
         case TSK_ERR_SEEK_OUT_OF_BOUNDS:
-            ret = "Tree seek position out of bounds";
+            ret = "Tree seek position out of bounds. (TSK_ERR_SEEK_OUT_OF_BOUNDS)";
             break;
 
         /* Edge errors */
         case TSK_ERR_NULL_PARENT:
-            ret = "Edge in parent is null";
+            ret = "Edge in parent is null. (TSK_ERR_NULL_PARENT)";
             break;
         case TSK_ERR_NULL_CHILD:
-            ret = "Edge in parent is null";
+            ret = "Edge in parent is null. (TSK_ERR_NULL_CHILD)";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_PARENT_TIME:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                  " time[parent] order violated";
+                  " time[parent] order violated. (TSK_ERR_EDGES_NOT_SORTED_PARENT_TIME)";
             break;
         case TSK_ERR_EDGES_NONCONTIGUOUS_PARENTS:
-            ret = "All edges for a given parent must be contiguous";
+            ret = "All edges for a given parent must be contiguous. "
+                  "(TSK_ERR_EDGES_NONCONTIGUOUS_PARENTS)";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_CHILD:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                  " child order violated";
+                  " child order violated. (TSK_ERR_EDGES_NOT_SORTED_CHILD)";
             break;
         case TSK_ERR_EDGES_NOT_SORTED_LEFT:
             ret = "Edges must be listed in (time[parent], child, left) order;"
-                  " left order violated";
+                  " left order violated. (TSK_ERR_EDGES_NOT_SORTED_LEFT)";
             break;
         case TSK_ERR_BAD_NODE_TIME_ORDERING:
-            ret = "time[parent] must be greater than time[child]";
+            ret = "time[parent] must be greater than time[child]. "
+                  "(TSK_ERR_BAD_NODE_TIME_ORDERING)";
             break;
         case TSK_ERR_BAD_EDGE_INTERVAL:
-            ret = "Bad edge interval where right <= left";
+            ret = "Bad edge interval where right <= left. (TSK_ERR_BAD_EDGE_INTERVAL)";
             break;
         case TSK_ERR_DUPLICATE_EDGES:
-            ret = "Duplicate edges provided";
+            ret = "Duplicate edges provided. (TSK_ERR_DUPLICATE_EDGES)";
             break;
         case TSK_ERR_RIGHT_GREATER_SEQ_LENGTH:
-            ret = "Right coordinate > sequence length";
+            ret = "Right coordinate > sequence length. "
+                  "(TSK_ERR_RIGHT_GREATER_SEQ_LENGTH)";
             break;
         case TSK_ERR_LEFT_LESS_ZERO:
-            ret = "Left coordinate must be >= 0";
+            ret = "Left coordinate must be >= 0. (TSK_ERR_LEFT_LESS_ZERO)";
             break;
         case TSK_ERR_BAD_EDGES_CONTRADICTORY_CHILDREN:
             ret = "Bad edges: contradictory children for a given parent over "
-                  "an interval";
+                  "an interval. (TSK_ERR_BAD_EDGES_CONTRADICTORY_CHILDREN)";
             break;
         case TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA:
             ret = "Can't squash, flush, simplify or link ancestors with edges that have "
-                  "non-empty metadata";
+                  "non-empty metadata. (TSK_ERR_CANT_PROCESS_EDGES_WITH_METADATA)";
             break;
 
         /* Site errors */
         case TSK_ERR_UNSORTED_SITES:
-            ret = "Sites must be provided in strictly increasing position order";
+            ret = "Sites must be provided in strictly increasing position order. "
+                  "(TSK_ERR_UNSORTED_SITES)";
             break;
         case TSK_ERR_DUPLICATE_SITE_POSITION:
-            ret = "Duplicate site positions";
+            ret = "Duplicate site positions. (TSK_ERR_DUPLICATE_SITE_POSITION)";
             break;
         case TSK_ERR_BAD_SITE_POSITION:
-            ret = "Site positions must be between 0 and sequence_length";
+            ret = "Site positions must be between 0 and sequence_length. "
+                  "(TSK_ERR_BAD_SITE_POSITION)";
             break;
 
         /* Mutation errors */
         case TSK_ERR_MUTATION_PARENT_DIFFERENT_SITE:
-            ret = "Specified parent mutation is at a different site";
+            ret = "Specified parent mutation is at a different site. "
+                  "(TSK_ERR_MUTATION_PARENT_DIFFERENT_SITE)";
             break;
         case TSK_ERR_MUTATION_PARENT_EQUAL:
-            ret = "Parent mutation refers to itself";
+            ret = "Parent mutation refers to itself. (TSK_ERR_MUTATION_PARENT_EQUAL)";
             break;
         case TSK_ERR_MUTATION_PARENT_AFTER_CHILD:
-            ret = "Parent mutation ID must be < current ID";
+            ret = "Parent mutation ID must be < current ID. "
+                  "(TSK_ERR_MUTATION_PARENT_AFTER_CHILD)";
             break;
         case TSK_ERR_MUTATION_PARENT_INCONSISTENT:
-            ret = "Mutation parent references form a loop.";
+            ret = "Mutation parent references form a loop. "
+                  "(TSK_ERR_MUTATION_PARENT_INCONSISTENT)";
             break;
         case TSK_ERR_UNSORTED_MUTATIONS:
             ret = "Mutations must be provided in non-decreasing site order and "
-                  "non-increasing time order within each site";
+                  "non-increasing time order within each site. "
+                  "(TSK_ERR_UNSORTED_MUTATIONS)";
             break;
         case TSK_ERR_MUTATION_TIME_YOUNGER_THAN_NODE:
             ret = "A mutation's time must be >= the node time, or be marked as "
-                  "'unknown'";
+                  "'unknown'. (TSK_ERR_MUTATION_TIME_YOUNGER_THAN_NODE)";
             break;
         case TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_MUTATION:
             ret = "A mutation's time must be <= the parent mutation time (if known), or "
-                  "be marked as 'unknown'";
+                  "be marked as 'unknown'. "
+                  "(TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_MUTATION)";
             break;
         case TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE:
             ret = "A mutation's time must be < the parent node of the edge on which it "
-                  "occurs, or be marked as 'unknown'";
+                  "occurs, or be marked as 'unknown'. "
+                  "(TSK_ERR_MUTATION_TIME_OLDER_THAN_PARENT_NODE)";
             break;
         case TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN:
             ret = "Mutation times must either be all marked 'unknown', or all be known "
-                  "values for any single site.";
+                  "values for any single site. "
+                  "(TSK_ERR_MUTATION_TIME_HAS_BOTH_KNOWN_AND_UNKNOWN)";
             break;
 
         /* Migration errors */
         case TSK_ERR_UNSORTED_MIGRATIONS:
-            ret = "Migrations must be sorted by time.";
+            ret = "Migrations must be sorted by time. (TSK_ERR_UNSORTED_MIGRATIONS)";
             break;
 
         /* Sample errors */
         case TSK_ERR_DUPLICATE_SAMPLE:
-            ret = "Duplicate sample value";
+            ret = "Duplicate sample value. (TSK_ERR_DUPLICATE_SAMPLE)";
             break;
         case TSK_ERR_BAD_SAMPLES:
-            ret = "Bad sample configuration provided";
+            ret = "Bad sample configuration provided. (TSK_ERR_BAD_SAMPLES)";
             break;
 
         /* Table errors */
         case TSK_ERR_BAD_TABLE_POSITION:
-            ret = "Bad table position provided to truncate/reset";
+            ret = "Bad table position provided to truncate/reset. "
+                  "(TSK_ERR_BAD_TABLE_POSITION)";
             break;
         case TSK_ERR_BAD_SEQUENCE_LENGTH:
-            ret = "Sequence length must be > 0";
+            ret = "Sequence length must be > 0. (TSK_ERR_BAD_SEQUENCE_LENGTH)";
             break;
         case TSK_ERR_TABLES_NOT_INDEXED:
-            ret = "Table collection must be indexed";
+            ret = "Table collection must be indexed. (TSK_ERR_TABLES_NOT_INDEXED)";
             break;
         case TSK_ERR_TABLE_OVERFLOW:
-            ret = "Table too large; cannot allocate more than 2**31 rows.";
+            ret = "Table too large; cannot allocate more than 2**31 rows. "
+                  "(TSK_ERR_TABLE_OVERFLOW)";
             break;
         case TSK_ERR_COLUMN_OVERFLOW:
-            ret = "Table column too large; cannot be more than 2**32 bytes.";
+            ret = "Table column too large; cannot be more than 2**64 bytes. "
+                  "(TSK_ERR_COLUMN_OVERFLOW)";
             break;
         case TSK_ERR_TREE_OVERFLOW:
-            ret = "Too many trees; cannot be more than 2**31.";
+            ret = "Too many trees; cannot be more than 2**31. (TSK_ERR_TREE_OVERFLOW)";
             break;
         case TSK_ERR_METADATA_DISABLED:
-            ret = "Metadata is disabled for this table, so cannot be set";
+            ret = "Metadata is disabled for this table, so cannot be set. "
+                  "(TSK_ERR_METADATA_DISABLED)";
             break;
 
         /* Limitations */
         case TSK_ERR_ONLY_INFINITE_SITES:
-            ret = "Only infinite sites mutations are supported for this operation";
+            ret = "Only infinite sites mutations are supported for this operation, "
+                  "i.e. at most a single mutation per site. "
+                  "(TSK_ERR_ONLY_INFINITE_SITES)";
             break;
         case TSK_ERR_SIMPLIFY_MIGRATIONS_NOT_SUPPORTED:
-            ret = "Migrations not currently supported by simplify";
+            ret = "Migrations not currently supported by simplify. "
+                  "(TSK_ERR_SIMPLIFY_MIGRATIONS_NOT_SUPPORTED)";
             break;
         case TSK_ERR_SORT_MIGRATIONS_NOT_SUPPORTED:
-            ret = "Migrations not currently supported by sort";
-            break;
-        case TSK_ERR_MIGRATIONS_NOT_SUPPORTED:
-            ret = "Migrations not currently supported by this operation";
+            ret = "Migrations not currently supported by sort. "
+                  "(TSK_ERR_SORT_MIGRATIONS_NOT_SUPPORTED)";
             break;
         case TSK_ERR_SORT_OFFSET_NOT_SUPPORTED:
             ret = "Sort offsets for sites and mutations must be either 0 "
                   "or the length of the respective tables. Intermediate values "
-                  "are not supported";
+                  "are not supported. (TSK_ERR_SORT_OFFSET_NOT_SUPPORTED)";
             break;
         case TSK_ERR_NONBINARY_MUTATIONS_UNSUPPORTED:
-            ret = "Only binary mutations are supported for this operation";
+            ret = "Only binary mutations are supported for this operation. "
+                  "(TSK_ERR_NONBINARY_MUTATIONS_UNSUPPORTED)";
+            break;
+        case TSK_ERR_MIGRATIONS_NOT_SUPPORTED:
+            ret = "Migrations not currently supported by this operation. "
+                  "(TSK_ERR_MIGRATIONS_NOT_SUPPORTED)";
             break;
         case TSK_ERR_CANNOT_EXTEND_FROM_SELF:
-            ret = "Tables can only be extended using rows from a different table";
+            ret = "Tables can only be extended using rows from a different table. "
+                  "(TSK_ERR_CANNOT_EXTEND_FROM_SELF)";
             break;
         case TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED:
-            ret = "Silent mutations not supported by this operation";
+            ret = "Silent mutations not supported by this operation. "
+                  "(TSK_ERR_SILENT_MUTATIONS_NOT_SUPPORTED)";
+            break;
+        case TSK_ERR_VARIANT_CANT_DECODE_COPY:
+            ret = "Can't decode a copy of a variant. (TSK_ERR_VARIANT_CANT_DECODE_COPY)";
+            break;
+        case TSK_ERR_CANT_TAKE_OWNERSHIP_NO_EDGE_METADATA:
+            ret = "A tree sequence can't take ownership of tables with "
+                  "TSK_NO_EDGE_METADATA. (TSK_ERR_CANT_TAKE_OWNERSHIP_NO_EDGE_METADATA)";
             break;
 
         /* Stats errors */
         case TSK_ERR_BAD_NUM_WINDOWS:
-            ret = "Must have at least one window, [0, L]";
+            ret = "Must have at least one window, [0, L]. (TSK_ERR_BAD_NUM_WINDOWS)";
             break;
         case TSK_ERR_BAD_WINDOWS:
-            ret = "Windows must be increasing list [0, ..., L]";
+            ret = "Windows must be increasing list [0, ..., L]. (TSK_ERR_BAD_WINDOWS)";
             break;
         case TSK_ERR_MULTIPLE_STAT_MODES:
-            ret = "Cannot specify more than one stats mode.";
+            ret = "Cannot specify more than one stats mode. "
+                  "(TSK_ERR_MULTIPLE_STAT_MODES)";
             break;
         case TSK_ERR_BAD_STATE_DIMS:
-            ret = "Must have state dimension >= 1";
+            ret = "Must have state dimension >= 1. (TSK_ERR_BAD_STATE_DIMS)";
             break;
         case TSK_ERR_BAD_RESULT_DIMS:
-            ret = "Must have result dimension >= 1";
+            ret = "Must have result dimension >= 1. (TSK_ERR_BAD_RESULT_DIMS)";
             break;
         case TSK_ERR_INSUFFICIENT_SAMPLE_SETS:
-            ret = "Insufficient sample sets provided.";
+            ret = "Insufficient sample sets provided. "
+                  "(TSK_ERR_INSUFFICIENT_SAMPLE_SETS)";
             break;
         case TSK_ERR_INSUFFICIENT_INDEX_TUPLES:
-            ret = "Insufficient sample set index tuples provided.";
+            ret = "Insufficient sample set index tuples provided. "
+                  "(TSK_ERR_INSUFFICIENT_INDEX_TUPLES)";
             break;
         case TSK_ERR_BAD_SAMPLE_SET_INDEX:
-            ret = "Sample set index out of bounds";
+            ret = "Sample set index out of bounds. (TSK_ERR_BAD_SAMPLE_SET_INDEX)";
             break;
         case TSK_ERR_EMPTY_SAMPLE_SET:
-            ret = "Samples cannot be empty";
+            ret = "Samples cannot be empty. (TSK_ERR_EMPTY_SAMPLE_SET)";
             break;
         case TSK_ERR_UNSUPPORTED_STAT_MODE:
-            ret = "Requested statistics mode not supported for this method.";
+            ret = "Requested statistics mode not supported for this method. "
+                  "(TSK_ERR_UNSUPPORTED_STAT_MODE)";
             break;
         case TSK_ERR_TIME_UNCALIBRATED:
             ret = "Statistics using branch lengths cannot be calculated when time_units "
-                  "is 'uncalibrated'";
+                  "is 'uncalibrated'. (TSK_ERR_TIME_UNCALIBRATED)";
             break;
 
         /* Mutation mapping errors */
         case TSK_ERR_GENOTYPES_ALL_MISSING:
-            ret = "Must provide at least one non-missing genotype.";
+            ret = "Must provide at least one non-missing genotype. "
+                  "(TSK_ERR_GENOTYPES_ALL_MISSING)";
             break;
         case TSK_ERR_BAD_GENOTYPE:
-            ret = "Bad genotype value provided";
+            ret = "Bad genotype value provided. (TSK_ERR_BAD_GENOTYPE)";
             break;
         case TSK_ERR_BAD_ANCESTRAL_STATE:
-            ret = "Bad ancestral state specified";
+            ret = "Bad ancestral state specified. (TSK_ERR_BAD_ANCESTRAL_STATE)";
             break;
 
         /* Genotype decoding errors */
-        case TSK_ERR_TOO_MANY_ALLELES:
-            ret = "Cannot have more than 127 alleles";
-            break;
-        case TSK_ERR_ZERO_ALLELES:
-            ret = "Must have at least one allele when specifying an allele map";
-            break;
         case TSK_ERR_MUST_IMPUTE_NON_SAMPLES:
             ret = "Cannot generate genotypes for non-samples when isolated nodes are "
-                  "considered as missing";
+                  "considered as missing. (TSK_ERR_MUST_IMPUTE_NON_SAMPLES)";
             break;
         case TSK_ERR_ALLELE_NOT_FOUND:
-            ret = "An allele was not found in the user-specified allele map";
+            ret = "An allele was not found in the user-specified allele map. "
+                  "(TSK_ERR_ALLELE_NOT_FOUND)";
+            break;
+        case TSK_ERR_TOO_MANY_ALLELES:
+            ret = "Cannot have more than 2147483647 alleles (TSK_ERR_TOO_MANY_ALLELES)";
+            break;
+        case TSK_ERR_ZERO_ALLELES:
+            ret = "Must have at least one allele when specifying an allele map. "
+                  "(TSK_ERR_ZERO_ALLELES)";
             break;
 
         /* Distance metric errors */
         case TSK_ERR_SAMPLE_SIZE_MISMATCH:
-            ret = "Cannot compare trees with different numbers of samples.";
+            ret = "Cannot compare trees with different numbers of samples. "
+                  "(TSK_ERR_SAMPLE_SIZE_MISMATCH)";
             break;
         case TSK_ERR_SAMPLES_NOT_EQUAL:
-            ret = "Samples must be identical in trees to compare.";
+            ret = "Samples must be identical in trees to compare. "
+                  "(TSK_ERR_SAMPLES_NOT_EQUAL)";
             break;
         case TSK_ERR_MULTIPLE_ROOTS:
-            ret = "Trees with multiple roots not supported.";
+            ret = "Trees with multiple roots not supported. (TSK_ERR_MULTIPLE_ROOTS)";
             break;
         case TSK_ERR_UNARY_NODES:
-            ret = "Unsimplified trees with unary nodes are not supported.";
+            ret = "Unsimplified trees with unary nodes are not supported. "
+                  "(TSK_ERR_UNARY_NODES)";
             break;
         case TSK_ERR_SEQUENCE_LENGTH_MISMATCH:
-            ret = "Sequence lengths must be identical to compare.";
+            ret = "Sequence lengths must be identical to compare. "
+                  "(TSK_ERR_SEQUENCE_LENGTH_MISMATCH)";
             break;
         case TSK_ERR_NO_SAMPLE_LISTS:
-            ret = "The sample_lists option must be enabled to perform this operation.";
+            ret = "The sample_lists option must be enabled on the tree to perform this "
+                  "operation. (TSK_ERR_NO_SAMPLE_LISTS)";
             break;
 
         /* Haplotype matching errors */
         case TSK_ERR_NULL_VITERBI_MATRIX:
-            ret = "Viterbi matrix has not filled.";
+            ret = "Viterbi matrix has not filled. (TSK_ERR_NULL_VITERBI_MATRIX)";
             break;
         case TSK_ERR_MATCH_IMPOSSIBLE:
-            ret = "No matching haplotype exists with current parameters";
+            ret = "No matching haplotype exists with current parameters. "
+                  "(TSK_ERR_MATCH_IMPOSSIBLE)";
             break;
         case TSK_ERR_BAD_COMPRESSED_MATRIX_NODE:
-            ret = "The compressed matrix contains a node that subtends no samples";
+            ret = "The compressed matrix contains a node that subtends no samples. "
+                  "(TSK_ERR_BAD_COMPRESSED_MATRIX_NODE)";
             break;
         case TSK_ERR_TOO_MANY_VALUES:
-            ret = "Too many values to compress";
+            ret = "Too many values to compress. (TSK_ERR_TOO_MANY_VALUES)";
             break;
 
         /* Union errors */
         case TSK_ERR_UNION_BAD_MAP:
             ret = "Node map contains an entry of a node not present in this table "
-                  "collection.";
+                  "collection. (TSK_ERR_UNION_BAD_MAP)";
             break;
         case TSK_ERR_UNION_DIFF_HISTORIES:
             // histories could be equivalent, because subset does not reorder
             // edges (if not sorted) or mutations.
-            ret = "Shared portions of the tree sequences are not equal.";
+            ret = "Shared portions of the tree sequences are not equal. "
+                  "(TSK_ERR_UNION_DIFF_HISTORIES)";
             break;
 
         /* IBD errors */
         case TSK_ERR_SAME_NODES_IN_PAIR:
-            ret = "Both nodes in the sample pair are the same";
+            ret = "Both nodes in the sample pair are the same. "
+                  "(TSK_ERR_SAME_NODES_IN_PAIR)";
             break;
 
         case TSK_ERR_IBD_PAIRS_NOT_STORED:
             ret = "The sample pairs are not stored by default in ibd_segments. Please "
                   "add the TSK_IBD_STORE_PAIRS option flag if per-pair statistics are "
-                  "required.";
+                  "required. (TSK_ERR_IBD_PAIRS_NOT_STORED)";
             break;
 
         case TSK_ERR_IBD_SEGMENTS_NOT_STORED:
             ret = "All segments are not stored by default in ibd_segments. Please "
-                  "add the TSK_IBD_STORE_SEGMENTS option flag if they are required.";
+                  "add the TSK_IBD_STORE_SEGMENTS option flag if they are required. "
+                  "(TSK_ERR_IBD_SEGMENTS_NOT_STORED)";
             break;
 
         /* Simplify errors */
         case TSK_ERR_KEEP_UNARY_MUTUALLY_EXCLUSIVE:
-            ret = "You cannot specify both KEEP_UNARY and KEEP_UNARY_IN_INDIVDUALS.";
+            ret = "You cannot specify both TSK_SIMPLIFY_KEEP_UNARY and "
+                  "TSK_SIMPLIFY_KEEP_UNARY_IN_INDIVDUALS. "
+                  "(TSK_ERR_KEEP_UNARY_MUTUALLY_EXCLUSIVE)";
             break;
 
         /* Individual errors */
         case TSK_ERR_UNSORTED_INDIVIDUALS:
             ret = "Individuals must be provided in an order where children are after "
-                  "their parent individuals";
+                  "their parent individuals (TSK_ERR_UNSORTED_INDIVIDUALS)";
             break;
 
         case TSK_ERR_INDIVIDUAL_SELF_PARENT:
-            ret = "Individuals cannot be their own parents.";
+            ret = "Individuals cannot be their own parents. "
+                  "(TSK_ERR_INDIVIDUAL_SELF_PARENT)";
             break;
 
         case TSK_ERR_INDIVIDUAL_PARENT_CYCLE:
-            ret = "Individuals cannot be their own ancestor.";
+            ret = "Individuals cannot be their own ancestor. "
+                  "(TSK_ERR_INDIVIDUAL_PARENT_CYCLE)";
             break;
     }
     return ret;

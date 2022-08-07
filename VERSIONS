@@ -7,12 +7,127 @@ Note that not every commit will be logged here; that is what the Github commit h
 The build numbers given here are visible in SLiMgui's about panel.  They are not visible in any way on non-OSX platforms, unfortunately, because they are maintained by a "Run Script" build phase in the Xcode project that places the current git commit count into a field in the Info.plist file of SLiMgui (and EidosScribe).  This mechanism works only on OSX, so the build number is not available on Linux and other platforms.
 
 
-development head:
+development head (in the master branch):
 	fix deprecated pyslim API issues in recipes 17.2, 17.4, 17.5, 17.7, 17.8, 17.10, 18.13:
 		use tskit.load() instead of pyslim.load(), pyslim.recapitate() instead of ts.recapitate(), ts.metadata['SLiM']['generation'] instead of ts.slim_generation
 	add a second recipe to section 16.19 (range expansion in a stepping-stone model), showing how to solve the same migration problem with a survival() callback
 	fix a crash (rather than an error) when calling removeMutations() on a null genome in some situations
 	
+	SLiM 4.0 work (in the `multispecies` branch, mostly multispecies-related but also miscellaneous SLiM 4 changes):
+		split SLiMSim into two new classes: Species and Community
+		moved to Community: properties logFiles, generationStage, verbosity; it also has properties tick and tag
+		moved to Community: methods createLogFile(), register[X]Event(), deregisterScriptBlock(), rescheduleScriptBlock(), outputUsage(); also has its own simulationFinished()
+		change generations to ticks across almost all APIs; the basic unit of time is now called a tick, "generation" is a species-specific concept
+		remove the inSLiMgui property of SLiMSim (deprecated since SLiM 3.2.1)
+		remove vestiges of the xDominanceCoeff parameter to initializeSex() and the dominanceCoeffX property of SLiMSim (removed originally in SLiM 3.7)
+		change GO (generation of origin) to TO (tick of origin) in VCF output (should be able to read both annotations)
+		addNewMutation() and addNewDrawnMutation() have had their originGeneration parameter removed (first made redundant in SLiM 3.5)
+		originGeneration property of Mutation and Substitution renamed to originTick; fixationGeneration property of Substitution renamed to fixationTick
+		generation parameter to recalculateFitness() renamed to tick
+		generations parameter to rescheduleScriptBlock() renamed to ticks
+		new addTick() method added to LogFile
+		new output formats include both the tick and cycle, for outputFull(), outputMutations(), outputFixedMutations()
+		top-level tree-sequence metadata produced by outputTreeSeq() now includes both the tick ("tick") and generation ("generation")
+		tree-sequence metadata for mutations has changed the sense of "slim_time" to be in ticks, not generations
+		tree-sequence metadata for individuals has changed the sense of "SLIM_INDIVIDUAL_METADATA_MIGRATED" to indicate migration in the last tick, not the last generation
+		add Generation textfield below the Tick textfield in SLiMgui & SLiMguiLegacy
+		add name and description properties to Species; these are the species name as declared in script and a user-controlled description string; they get persisted in tree-seq top-level metadata
+		increment the tree-seq file version from 0.7 to 0.8
+		increment version to 4.0 - usually this is not done until it's time to roll the release, but since we're on a branch, it is useful for testing purposes
+		LogFile methods addGeneration(), addPopulationSexRatio(), and addPopulationSize() now take [No<Species>$ species = NULL]; if not supplied, it will default to a singleton species if possible
+		Species now supports simulationFinished(), but only in the single-species case; in multispecies models call community.simulationFinished() instead
+		make "early()" required; the default block type has been a source of confusion and is worse now with the multispecies syntax
+		add optional "species <identifier>" and "ticks <identifier>" syntax to the SLiM top-level syntax to modify block declarations
+		make the Object Tables window in SLiMgui display all objects, across all species
+		add initializeSpecies() function to set species-specific options in explicit-species models: [i$ tickModulo = 1], [i$ tickPhase = 1], and [Ns$ avatar = NULL], for now
+		SLiMgui now displays avatars in the Object Tables window
+		add allSpecies, allGenomicElementTypes, allInteractionTypes, allMutationTypes, allScriptBlocks, allSubpopulations properties to Community
+		graph windows (and haplotype plots) are now associated with the focal species at their time of creation, and display the species avatar as a badge
+		add a species "tab bar" in SLiMguiLegacy and QtSLiM to choose which species is the focal display species (population view, chromosome view, new graph windows)
+		add id property to Species
+		add lookup by id on Community for subpopulations, mutation types, genomic element types, interaction types, script blocks, and species with xWithIDs() methods
+		add species property to Chromosome, GenomicElementType, InteractionType, MutationType, Subpopulation
+		add active property and skipTick() method to Species, start using ticksModulo/ticksPhase to actually control species activation
+		add 'all' as a reserved species name, add the 'ticks all' syntax for event declarations and make it required in explicit-species models
+		add [No<Species>$ ticksSpec = NULL] to registerXEvent() so created event blocks can have a ticks specifier; add speciesSpec and tickSpec properties to SLiMEidosBlock
+		documentation/manual revisions for all of the above
+		remove now-obsolete pseudo-parameters from callbacks (breaking backward compatibility in 4.0; not really multispecies-related):
+			fitness(), reproduction(), mateChoice(): removed genome1, genome2 (kept these in recombination() callbacks since they are not redundant, indicating the initial copy strand)
+			modifyChild(): removed childGenome1, childGenome2, childIsFemale, parent1Genome1, parent1Genome2, parent2Genome1, parent2Genome2
+			revised recipes in reaction to these changes: 10.3.1 I/II, 11.3, 12.2 I/II, 12.3, 13.1, 14.5, 16.13, 16.14, 16.16, 16.17, 18.8
+		add WF/nonWF generation cycle images to QtSLiM, under the Help menu, for quick reference
+		add a findInterval() function to Eidos
+		change calcFST() from "average of ratios" to "ratio of averages", following current best practice; this breaks backward compatibility for users of this function, but hopefully in a good way
+		add autocorrect smarts to SLiMgui for common changes needed to migrate to SLiM 4
+		switch InteractionType from using a semi-permanent sparse array to using a transient sparse vector, providing multispecies flexibility:
+			add "species all initialize()" for non-species-specific initialization, move initializeInteractionType() to be non-species-specific, remove the `species` property from InteractionType
+			make it required, in multispecies models, to declare interaction() callbacks as "species all interaction()"; they are always active, and are not associated with any one species
+			move registerInteractionCallback() from Species to Community, since interaction() callbacks are now non-species-specific
+			change InteractionType APIs to be more explicit about receiver vs. exerter, allow an exerter subpop to be specified, etc.; new APIs:
+				– (float)clippedIntegral(No<Individual> receivers) - note this method now uses saved positions from evaluate(), and thus requires evaluation
+				– (float)distance(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - receiver must now be singleton (matching interactionDistance())
+				– (float)distanceFromPoint(float point, object<Individual> exerters) - renamed from distanceToPoint(), parameters switched places for consistency
+				– (object<Individual>)drawByStrength(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - "receiver", added exerterSubpop
+				– (integer)interactingNeighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - changed individuals to receivers, added exerterSubpop, require all receivers in one subpop
+				– (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change
+				– (float)localPopulationDensity(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - added exerterSubpop
+				– (object<Individual>)nearestInteractingNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - "receiver", added exerterSubpop
+				– (object<Individual>)nearestNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL]) - renamed individual to receiver, added exerterSubpop
+				– (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1]) - parameters switched
+				– (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL]) - no change
+				– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL]) - added exerterSubpop
+			change InteractionType::evaluate() API: (void)evaluate(io<Subpopulation> subpops) - `subpops` now required, remove `immediate`
+			remove the `subpop` pseudo-parameter from interaction() callbacks; receiver.subpop and exerter.subpop should now be used, and are not always the same
+			revised recipes for these changes (for evaluate() now requiring subpops, in all cases; no other changes needed): 15.2, 15.3 I/II/III/IV, 15.4, 15.5, 15.6, 15.7, 15.8, 15.9, 15.10, 15.11, 15.12, 16.10, 16.11, 16.18
+			note that these changes break backward compatibility for most models, and break backward reproducibility for many (due to distances not being rounded off from double to float in some code paths now)
+		move initializeSLiMModelType() to be non-species-specific (i.e., must be in "species all initialize()"), so it is shared and doesn't need to be repeated
+		add parameter color to initializeSpecies(), and property color to Species; add property avatar to Species; tweak avatar to be [s$=""] not [Ns$=NULL], the empty string can be the default
+		add "Multispecies Population Size ~ Time" graph to SLiMgui
+		shift initialization requirements to allow "no-genetics" species to omit all of their genetic setup (mutation and recombination rates, mutation types, genomic element types, genomic elements)
+		obsolete the term "generation" in favor of "cycle", "generation cycle" in favor of "tick cycle"; user-visible API changes:
+			Species.generation -> .cycle, Community.generationStage -> .cycleStage
+			change the "generation" metadata key in the tree sequence top-level scheme to "cycle"
+			LogFile.addGeneration() -> .addCycle(), LogFile.addGenerationStage() -> .addCycleStage()
+			change the column names produced by LogFile from "generation" and "gen_stage" to "cycle" and "cycle_stage"
+			revise recipes to use the new properties and methods, have correct comments, etc.
+		add recipes 19.1, 19.2, 19.3, 19.4, 19.5, 19.6, 19.7: new multispecies recipes!
+		add neighborCount() and neighborCountOfPoint() methods to fill out the InteractionType API
+		modify recipe 18.14 to unique down nucleotide-based mutations regardless of their mutation type (mutation() rather than mutation(m1))
+		add recipe 18.15, showing how to unique down to the ancestral state when that is desirable
+		add an "all" tab to the species bar, to see all species simultaneously in the UI
+		add a [No$ subpopMap = NULL] parameter to readFromPopulationFile() to allow remapping of subpopulation ids on load, for .trees
+		add a "Scheduling" tab in the output viewer that shows tick/cycle/event/callback scheduling in chronological order
+		relax the prohibition on calling cachedFitness() from late() in a WF model; it is now allowed IF recalculateFitness() has been called first
+		fix a bug that caused malformed metadata for (a) models where a subpop was removed, when (b) those subpops had a larger SLiM id than other subpops (and were thus at the end of the population table)
+		optimizations for several cases of sample() and sampleIndividuals() in the case of multiple draws without replacement
+		add calcInbreedingLoad() function, courtesy of Chris Kyriazis
+		add [logical$ randomizeCallbacks = T] to initializeSLiMOptions() to turn of randomization of the order individuals are processed with callbacks; T by default, breaks backward reproducibility unless set to F
+		add new section 14.15 recipes: biallelic models showing how to use mutation() callbacks, unique down, and handle back-mutation
+		add "Focus on Script" and "Focus on Console" keyboard shortcuts for keyboard warriors
+		revise Python recipes to match current usage: 17.2, 17.4 II, 17.5 II, 17.7 II, 17.8 I, 17.8 III, 17.9 I, 17.10 II, 18.13 III
+		add species color lines in the script editor in SLiMgui, in multispecies mode
+		relax call timing restrictions to allow species to operate upon each other within callbacks more broadly
+		add recipe 19.8: Within-host reproduction in a host–pathogen model
+		remove the `active` property of Species, at least for now; I decided that the existence of this might paint me into a corner with respect to possible extensions to the skipTick() mechanism
+		merge in tskit C API 1.0 final
+		relax unnecessary restrictions on reading, writing, addSubpop(), addSubpopSplit(), treeSeqRememberIndividuals(), treeSeqSimplify(), etc. being done in first() events
+		add willAutolog() method to LogFile to find out whether it will log automatically at the end of the current tick
+		add addSuppliedColumn() and setSuppliedValue() methods to LogFile, to support columns that are supplied their value by script, rather than generating them
+		remove the removeConstants parameter from rm(); it is no longer possible to remove defined constants, use defineGlobal() instead if you want to change a global value
+		add killIndividuals() method on Species, for nonWF models only, to kill a given vector of individuals, immediately removing them from their subpopulations
+		bug fix: add mutation frequency/count invalidation in more spots: addSubpop()/addSubpopSplit(), setSubpopulationSize(0) (WF), removeSubpopulation(), killIndividuals(), takeMigrants()
+			the results from sim.mutationFrequencies() / sim.mutationCounts() could be incorrect after one of those calls, for a complete tick cycle (test: test_freqCountChange_*.slim)
+			SLiM's internal tally never produced incorrect fixation/loss, so the bug should manifest only in script, only when those methods are used (test: test_fixloss_*.slim)
+			it could also result in (harmless) incorrect display of frequencies in SLiMgui at the end of a tick in which a subpopulation was removed (test: test_subpopRemoved_*.slim)
+		fitness() callback redesign (breaks in backward compatibility):
+			change fitness() callbacks to be called mutationEffect() callbacks
+			change relFitness to effect, inside mutationEffect() callbacks
+			change fitness(NULL) callbacks to be called fitnessEffect() callbacks
+			split registerFitnessCallback() into registerMutationEffectCallback() and registerFitnessEffectCallback()
+		add display of the Git SHA-1 hash in slim and SLiMgui, to aid in debugging; works for builds under cmake and qmake, not under Xcode
+		add a "progress indicator" in SLiMgui, in the Tick counter lineedit, that shows the progress towards the last tick the model will execute (assuming it doesn't stop early)
+		shift recipes 16.5, 16.19, and 19.8 to use killIndividuals(), for pedagogical purposes
+		
 
 version 3.7.1 (Eidos version 2.7.1):
 	fix a problem with the python recipe for recipe 18.13

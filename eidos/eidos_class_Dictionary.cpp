@@ -292,6 +292,26 @@ void EidosDictionaryUnretained::SetKeyValue(const std::string &key, EidosValue_S
 	}
 }
 
+EidosValue_SP EidosDictionaryUnretained::GetValueForKey(const std::string &key)
+{
+	// see also EidosDictionaryUnretained::ExecuteMethod_getValue()
+	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	
+	if (!symbols)
+		return gStaticEidosValueNULL;
+	
+	auto found_iter = symbols->find(key);
+	
+	if (found_iter == symbols->end())
+	{
+		return gStaticEidosValueNULL;
+	}
+	else
+	{
+		return found_iter->second;
+	}
+}
+
 EidosValue_SP EidosDictionaryUnretained::AllKeys(void) const
 {
 	const std::vector<std::string> *keys = SortedKeys();
@@ -733,6 +753,8 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getValue(EidosGlobalStrin
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue_String *key_value = (EidosValue_String *)p_arguments[0].get();
 	const std::string &key = key_value->StringRefAtIndex(0, nullptr);
+	
+	// see also EidosDictionaryUnretained::GetValueForKey()
 	const EidosDictionaryHashTable *symbols = DictionarySymbols();
 	
 	if (!symbols)

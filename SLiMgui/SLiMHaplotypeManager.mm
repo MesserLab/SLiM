@@ -29,6 +29,8 @@
 #include <algorithm>
 
 #include "eidos_globals.h"
+#include "community.h"
+#include "species.h"
 
 
 @implementation SLiMHaplotypeManager
@@ -41,8 +43,11 @@
 {
 	if (self = [super init])
 	{
-		SLiMSim *sim = controller->sim;
-		Population &population = sim->population_;
+		// Focus permanently on whatever species is the current species in the controller
+		focalSpeciesName = [controller focalDisplaySpecies]->name_;
+		
+		Species *displaySpecies = [self focalDisplaySpeciesWithController:controller];
+		Population &population = displaySpecies->population_;
 		
 		clusterMethod = clusteringMethod;
 		clusterOptimization = optimizationMethod;
@@ -97,7 +102,7 @@
 		if (usingSubrange)
 			title = [title stringByAppendingFormat:@", positions %lld:%lld", (int64_t)subrangeFirstBase, (int64_t)subrangeLastBase];
 		
-		title = [title stringByAppendingFormat:@", generation %d", (int)sim->generation_];
+		title = [title stringByAppendingFormat:@", tick %d", (int)controller->community->Tick()];
 		
 		[self setTitleString:title];
 		[self setSubpopCount:(int)selected_subpops.size()];
@@ -145,6 +150,15 @@
 	}
 	
 	return self;
+}
+
+- (Species *)focalDisplaySpeciesWithController:(SLiMWindowController *)controller
+{
+	// We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+	if (controller && controller->community)
+		return controller->community->SpeciesWithName(focalSpeciesName);
+	
+	return nullptr;
 }
 
 - (void)finishClusteringAnalysisWithBackgroundController:(SLiMWindowController *)backgroundController
@@ -215,9 +229,9 @@
 
 - (void)configureMutationInfoBufferForController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &population = sim->population_;
-	double scalingFactor = controller->selectionColorScale;
+	Species *displaySpecies = [self focalDisplaySpeciesWithController:controller];
+	Population &population = displaySpecies->population_;
+	double scalingFactor = 0.8; // used to be controller->selectionColorScale;
 	int registry_size;
 	const MutationIndex *registry = population.MutationRegistry(&registry_size);
 	const MutationIndex *reg_ptr, *reg_end_ptr = registry + registry_size;
@@ -268,7 +282,7 @@
 	}
 	
 	// Remember the chromosome length
-	mutationLastPosition = sim->chromosome_->last_position_;
+	mutationLastPosition = displaySpecies->TheChromosome().last_position_;
 }
 
 // Delegate the genome sorting to the appropriate method based on our configuration

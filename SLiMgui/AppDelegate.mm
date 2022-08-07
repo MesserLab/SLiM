@@ -26,7 +26,6 @@
 #import "CocoaExtra.h"
 #import "EidosCocoaExtra.h"
 #import "eidos_beep.h"
-#import "TipsWindowController.h"
 #import <WebKit/WebKit.h>
 
 #include <stdio.h>
@@ -165,7 +164,7 @@ typedef enum SLiMLaunchAction
 				case 7: chapterName = @"Mutation types, genomic elements, and chromosome structure";		break;
 				case 8: chapterName = @"SLiMgui visualizations for polymorphism patterns";					break;
 				case 9:	chapterName = @"Selective sweeps";													break;
-				case 10:chapterName = @"Context-dependent selection using fitness() callbacks";				break;
+				case 10:chapterName = @"Context-dependent selection using mutationEffect() callbacks";		break;
 				case 11:chapterName = @"Complex mating schemes using mateChoice() callbacks";				break;
 				case 12:chapterName = @"Direct child modifications using modifyChild() callbacks";			break;
 				case 13:chapterName = @"Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
@@ -174,6 +173,7 @@ typedef enum SLiMLaunchAction
 				case 16:chapterName = @"Going beyond Wright-Fisher models: nonWF model recipes";			break;
 				case 17:chapterName = @"Tree-sequence recording: tracking population history";				break;
 				case 18:chapterName = @"Modeling explicit nucleotides";										break;
+				case 19:chapterName = @"Multispecies modeling";												break;
 				default: break;
 			}
 			
@@ -287,7 +287,8 @@ typedef enum SLiMLaunchAction
 			break;
 	}
 	
-	[TipsWindowController showTipsWindowOnLaunch];
+	// The tips window has been removed so I don't have to maintain it, but the sources remain in the repository.  BCH 3/3/2022
+	//[TipsWindowController showTipsWindowOnLaunch];
 }
 
 - (void)openNewDocumentIfNeeded:(id)sender
@@ -328,8 +329,9 @@ typedef enum SLiMLaunchAction
 	
 	[defaults removeObjectForKey:EidosDefaultsSuppressScriptCheckSuccessPanelKey];
 	
-	[defaults removeObjectForKey:SLiMDefaultsShowTipsPanelKey];
-	[defaults removeObjectForKey:SLiMDefaultsTipsIndexKey];
+	// The tips window has been removed so I don't have to maintain it, but the sources remain in the repository.  BCH 3/3/2022
+	//[defaults removeObjectForKey:SLiMDefaultsShowTipsPanelKey];
+	//[defaults removeObjectForKey:SLiMDefaultsTipsIndexKey];
 }
 
 

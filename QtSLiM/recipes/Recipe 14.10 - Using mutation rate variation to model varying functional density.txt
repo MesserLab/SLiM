@@ -11,7 +11,7 @@ initialize() {
 	densities = c(1e-9, 2e-8, 1e-9, 5e-8, 1e-9);
 	initializeMutationRate(densities, ends);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 200000 late() { sim.outputFixedMutations(); }

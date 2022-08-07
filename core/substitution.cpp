@@ -33,22 +33,22 @@
 #pragma mark Substitution
 #pragma mark -
 
-Substitution::Substitution(Mutation &p_mutation, slim_generation_t p_fixation_generation) :
-	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_generation_(p_mutation.origin_generation_), fixation_generation_(p_fixation_generation), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
+Substitution::Substitution(Mutation &p_mutation, slim_tick_t p_fixation_tick) :
+	EidosDictionaryRetained(), mutation_type_ptr_(p_mutation.mutation_type_ptr_), position_(p_mutation.position_), selection_coeff_(p_mutation.selection_coeff_), subpop_index_(p_mutation.subpop_index_), origin_tick_(p_mutation.origin_tick_), fixation_tick_(p_fixation_tick), nucleotide_(p_mutation.nucleotide_), mutation_id_(p_mutation.mutation_id_), tag_value_(p_mutation.tag_value_)
 	
 {
 	AddKeysAndValuesFrom(&p_mutation);
 	// No call to ContentsChanged() here; we know we use Dictionary not DataFrame, and Mutation already vetted the dictionary
 }
 
-Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, slim_generation_t p_fixation_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), fixation_generation_(p_fixation_generation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
+Substitution::Substitution(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, slim_tick_t p_fixation_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), fixation_tick_(p_fixation_tick), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id), tag_value_(SLIM_TAG_UNSET_VALUE)
 {
 }
 
 void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 { 
-	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_generation_ << " "<< fixation_generation_;
+	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
 	
 	// output a nucleotide if available
 	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
@@ -91,10 +91,10 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selection_coeff_));
-		case gID_originGeneration:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
-		case gID_fixationGeneration:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_generation_));
+		case gID_originTick:			// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_tick_));
+		case gID_fixationTick:		// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(fixation_tick_));
 			
 			// variables
 		case gID_nucleotide:			// ACCELERATED
@@ -200,7 +200,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotideValue(EidosObject **
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -208,13 +208,13 @@ EidosValue *Substitution::GetProperty_Accelerated_originGeneration(EidosObject *
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->origin_generation_, value_index);
+		int_result->set_int_no_check(value->origin_tick_, value_index);
 	}
 	
 	return int_result;
 }
 
-EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObject **p_values, size_t p_values_size)
+EidosValue *Substitution::GetProperty_Accelerated_fixationTick(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -222,7 +222,7 @@ EidosValue *Substitution::GetProperty_Accelerated_fixationGeneration(EidosObject
 	{
 		Substitution *value = (Substitution *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->fixation_generation_, value_index);
+		int_result->set_int_no_check(value->fixation_tick_, value_index);
 	}
 	
 	return int_result;
@@ -389,8 +389,8 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_subpopID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,			false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,	false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_nucleotideValue));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originGeneration));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationGeneration,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationGeneration));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_originTick));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fixationTick,	true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_fixationTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_tag));
 		
 		std::sort(properties->begin(), properties->end(), CompareEidosPropertySignatures);

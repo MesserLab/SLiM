@@ -7,7 +7,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 1000); }
-1000 { p1.setSubpopulationSize(100); }
-2000 { p1.setSubpopulationSize(1000); }
+1 early() { sim.addSubpop("p1", 1000); }
+1000 early() { p1.setSubpopulationSize(100); }
+2000 early() { p1.setSubpopulationSize(1000); }
 10000 late() { sim.outputFixedMutations(); }

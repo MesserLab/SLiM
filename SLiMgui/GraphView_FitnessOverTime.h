@@ -31,7 +31,7 @@
 @interface GraphView_FitnessOverTime : GraphView
 {
 	NSImage *drawingCache;
-	slim_generation_t drawingCacheGeneration;
+	slim_tick_t drawingCacheTick;
 }
 
 @property (nonatomic) BOOL showSubpopulations;

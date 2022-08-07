@@ -50,6 +50,7 @@
 #include <QFileDialog>
 #include <QTextEdit>
 #include <QPlainTextEdit>
+#include <QLabel>
 #include <QDebug>
 
 #include <stdio.h>
@@ -446,7 +447,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 7: chapterName = "Mutation types, genomic elements, and chromosome structure";         break;
                     case 8: chapterName = "SLiMgui visualizations for polymorphism patterns";					break;
                     case 9:	chapterName = "Selective sweeps";													break;
-                    case 10:chapterName = "Context-dependent selection using fitness() callbacks";				break;
+                    case 10:chapterName = "Context-dependent selection using mutationEffect() callbacks";		break;
                     case 11:chapterName = "Complex mating schemes using mateChoice() callbacks";				break;
                     case 12:chapterName = "Direct child modifications using modifyChild() callbacks";			break;
                     case 13:chapterName = "Phenotypes, fitness functions, quantitative traits, and QTLs";		break;
@@ -455,6 +456,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 16:chapterName = "Going beyond Wright-Fisher models: nonWF model recipes";             break;
                     case 17:chapterName = "Tree-sequence recording: tracking population history";				break;
                     case 18:chapterName = "Modeling explicit nucleotides";										break;
+                    case 19:chapterName = "Multispecies modeling";                                              break;
                     default: break;
                 }
                 
@@ -697,7 +699,7 @@ void QtSLiMAppDelegate::findRecipe(void)
         
         for (QString resourceName : resourceNames)
         {
-            qDebug() << "recipe name:" << resourceName;
+            //qDebug() << "recipe name:" << resourceName;
             
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
@@ -728,7 +730,7 @@ void QtSLiMAppDelegate::openRecipe(void)
         
         if (resourceName.length())
         {
-            qDebug() << "recipe name:" << resourceName;
+            //qDebug() << "recipe name:" << resourceName;
             
             QString resourcePath = ":/recipes/" + resourceName;
             QFile recipeFile(resourcePath);
@@ -806,6 +808,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionAbout);
     }
     {
+        QAction *actionShowCycle_WF = new QAction("Show WF Tick Cycle", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
+        window->addAction(actionShowCycle_WF);
+    }
+    {
+        QAction *actionShowCycle_nonWF = new QAction("Show nonWF Tick Cycle", this);
+        //actionAbout->setShortcut(Qt::CTRL + Qt::Key_Comma);
+        connect(actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
+        window->addAction(actionShowCycle_nonWF);
+    }
+    {
         QAction *actionHelp = new QAction("Help", this);
         //actionHelp->setShortcut(Qt::CTRL + Qt::Key_Comma);
         connect(actionHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
@@ -843,6 +857,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionClose);
     }
     
+    {
+        QAction *actionFocusOnScript = new QAction("Focus on Script", this);
+        actionFocusOnScript->setShortcut(Qt::CTRL + Qt::Key_1);
+        connect(actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
+        window->addAction(actionFocusOnScript);
+    }
+    {
+        QAction *actionFocusOnConsole = new QAction("Focus on Console", this);
+        actionFocusOnConsole->setShortcut(Qt::CTRL + Qt::Key_2);
+        connect(actionFocusOnConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnConsole);
+        window->addAction(actionFocusOnConsole);
+    }
     {
         QAction *actionCheckScript = new QAction("Check Script", this);
         actionCheckScript->setShortcut(Qt::CTRL + Qt::Key_Equal);
@@ -1090,6 +1116,81 @@ void QtSLiMAppDelegate::dispatch_about(void)
     aboutWindow->activateWindow();
 }
 
+QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const QString &title, double scaleFactor)
+{
+    // This is based on QtSLiMWindow::imageWindowWithPath(), but makes a simple global window
+    // without context menus and other fluff, for simple display of help-related images
+    QImage image(path);
+    
+    if (image.isNull())
+    {
+        qApp->beep();
+        return nullptr;
+    }
+    
+    QFileInfo fileInfo(path);
+    int window_width = round(image.width() * scaleFactor);
+    int window_height = round(image.height() * scaleFactor);
+    
+    QWidget *image_window = new QWidget(nullptr, Qt::Window | Qt::Tool);    // a parentless standalone window
+    
+    image_window->setWindowTitle(title);
+    image_window->setFixedSize(window_width, window_height);
+    
+    // Make the image view
+    QLabel *imageView = new QLabel();
+    
+    imageView->setStyleSheet("QLabel { background-color : white; }");
+    imageView->setBackgroundRole(QPalette::Base);
+    imageView->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    imageView->setScaledContents(true);
+    imageView->setAlignment(Qt::AlignCenter | Qt::AlignVCenter);
+    imageView->setPixmap(QPixmap::fromImage(image));
+    
+    // Install imageView in the window
+    QVBoxLayout *topLayout = new QVBoxLayout;
+    
+    image_window->setLayout(topLayout);
+    topLayout->setMargin(0);
+    topLayout->setSpacing(0);
+    topLayout->addWidget(imageView);
+    
+    // Position the window nicely
+    //positionNewSubsidiaryWindow(image_window);
+    
+    // make window actions for all global menu items
+    // this does not seem to be necessary on macOS, but maybe it is on Linux; will need testing FIXME
+    //qtSLiMAppDelegate->addActionsForGlobalMenuItems(this);
+    
+    image_window->setAttribute(Qt::WA_DeleteOnClose, true);
+    
+    return image_window;
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_WF(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_WF.png", "WF Cycle", 0.32);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
+void QtSLiMAppDelegate::dispatch_showCycle_nonWF(void)
+{
+    QWidget *imageWindow = globalImageWindowWithPath(":/help/TickCycle_nonWF.png", "nonWF Cycle", 0.32);
+    
+    if (imageWindow)
+    {
+        imageWindow->show();
+        imageWindow->raise();
+        imageWindow->activateWindow();
+    }
+}
+
 void QtSLiMAppDelegate::dispatch_help(void)
 {
     QtSLiMHelpWindow &helpWindow = QtSLiMHelpWindow::instance();
@@ -1317,6 +1418,32 @@ void QtSLiMAppDelegate::dispatch_jumpToSelection(void)
 void QtSLiMAppDelegate::dispatch_jumpToLine(void)
 {
     QtSLiMFindPanel::instance().jumpToLine();
+}
+
+void QtSLiMAppDelegate::dispatch_focusOnScript(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : activeWindow());
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->scriptTextEdit()->setFocus();
+    else if (eidosConsole)
+        eidosConsole->scriptTextEdit()->setFocus();
+}
+
+void QtSLiMAppDelegate::dispatch_focusOnConsole(void)
+{
+    QWidget *focusWidget = QApplication::focusWidget();
+    QWidget *focusWindow = (focusWidget ? focusWidget->window() : activeWindow());
+    QtSLiMWindow *slimWindow = dynamic_cast<QtSLiMWindow*>(focusWindow);
+    QtSLiMEidosConsole *eidosConsole = dynamic_cast<QtSLiMEidosConsole*>(focusWindow);
+    
+    if (slimWindow)
+        slimWindow->outputTextEdit()->setFocus();
+    else if (eidosConsole)
+        eidosConsole->consoleTextEdit()->setFocus();
 }
 
 void QtSLiMAppDelegate::dispatch_checkScript(void)

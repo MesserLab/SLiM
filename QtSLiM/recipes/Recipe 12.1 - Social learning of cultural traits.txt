@@ -1,4 +1,4 @@
-// Keywords: fitness(), non-genetic inheritance
+// Keywords: non-genetic inheritance
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -9,7 +9,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 1000);
 	p1.individuals.tag = rbinom(1000, 1, 0.5);
 }
@@ -19,10 +19,10 @@ modifyChild() {
 	child.tag = childCulture;
 	return T;
 }
-fitness(m2) {
+mutationEffect(m2) {
 	if (individual.tag == 0)
 		return 1.0;         // neutral for non-milk-drinkers
 	else
-		return relFitness;  // beneficial for milk-drinkers
+		return effect;  // beneficial for milk-drinkers
 }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }

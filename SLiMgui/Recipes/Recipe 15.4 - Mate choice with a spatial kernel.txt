@@ -21,13 +21,13 @@ initialize() {
 	p1.individuals.setSpatialPosition(p1.pointUniform(500));
 }
 1: late() {
-	i1.evaluate();
+	i1.evaluate(p1);
 	inds = sim.subpopulations.individuals;
 	competition = i1.totalOfNeighborStrengths(inds);
 	inds.fitnessScaling = 1.1 - competition / size(inds);
 }
-first() {
-	i2.evaluate();
+2: first() {
+	i2.evaluate(p1);
 }
 mateChoice() {
 	// spatial mate choice

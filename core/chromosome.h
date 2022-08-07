@@ -41,7 +41,7 @@
 
 struct GESubrange;
 class Genome;
-class SLiMSim;
+class Species;
 
 
 extern EidosClass *gSLiM_Chromosome_Class;
@@ -61,7 +61,6 @@ private:
 #endif
 	
 	std::vector<GenomicElement *> genomic_elements_;		// OWNED POINTERS: genomic elements belong to the chromosome
-	SLiMSim *sim_;
 	
 	// We now allow different recombination maps for males and females, optionally.  Unfortunately, this means we have a bit of an
 	// explosion of state involved with recombination.  We now have _H, _M, and _F versions of many ivars.  The _M and _F versions
@@ -112,6 +111,9 @@ private:
 	std::vector<GESubrange> mutation_subranges_F_;
 	
 public:
+	
+	Community &community_;
+	Species &species_;
 	
 	std::vector<slim_position_t> mutation_end_positions_H_;		// end positions of each defined mutation region (BEFORE intersection with GEs)
 	std::vector<slim_position_t> mutation_end_positions_M_;
@@ -178,7 +180,7 @@ public:
 	Chromosome(const Chromosome&) = delete;									// no copying
 	Chromosome& operator=(const Chromosome&) = delete;						// no copying
 	Chromosome(void) = delete;												// no null constructor
-	explicit Chromosome(SLiMSim *p_sim);									// construct with a simulation object
+	explicit Chromosome(Species &p_species);							// construct with a species
 	~Chromosome(void);														// destructor
 	
 	inline __attribute__((always_inline)) std::vector<GenomicElement *> &GenomicElements(void)			{ return genomic_elements_; }
@@ -201,11 +203,11 @@ public:
 	int DrawSortedUniquedMutationPositions(int p_count, IndividualSex p_sex, std::vector<std::pair<slim_position_t, GenomicElement *>> &p_positions);
 	
 	// draw a new mutation, based on the genomic element types present and their mutational proclivities
-	MutationIndex DrawNewMutation(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_generation_t p_generation) const;
+	MutationIndex DrawNewMutation(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick) const;
 	
 	// draw a new mutation with reference to the genomic background upon which it is occurring, for nucleotide-based models and/or mutation() callbacks
 	Mutation *ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const;
-	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_generation_t p_generation, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
+	MutationIndex DrawNewMutationExtended(std::pair<slim_position_t, GenomicElement *> &p_position, slim_objectid_t p_subpop_index, slim_tick_t p_tick, Genome *parent_genome_1, Genome *parent_genome_2, std::vector<slim_position_t> *all_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks) const;
 	
 	// draw the number of breakpoints that occur, based on the overall recombination rate
 	int DrawBreakpointCount(IndividualSex p_sex) const;

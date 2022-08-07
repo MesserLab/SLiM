@@ -87,7 +87,7 @@ void QtSLiMGraphView_LifetimeReproduction::subpopulation1PopupChanged(int /* ind
         histogramBinCount_ = 11;
         xAxisMax_ = histogramBinCount_ - 1;
         
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -120,7 +120,7 @@ QString QtSLiMGraphView_LifetimeReproduction::graphTitle(void)
 QString QtSLiMGraphView_LifetimeReproduction::aboutString(void)
 {
     return "The Lifetime Reproductive Output graph shows the distribution of lifetime reproductive output within "
-           "a chosen subpopulation, for individuals that died in the last generation.  The x axis is individual "
+           "a chosen subpopulation, for individuals that died in the last tick.  The x axis is individual "
            "lifetime reproductive output; the y axis is the frequency of a given lifetime reproductive output "
            "in the population, normalized to a total of 1.0.";
 }
@@ -131,15 +131,17 @@ void QtSLiMGraphView_LifetimeReproduction::updateAfterTick(void)
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
 QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
-        if (controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        if (graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -149,7 +151,8 @@ QString QtSLiMGraphView_LifetimeReproduction::disableMessage(void)
 void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -160,7 +163,7 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_ - 1;
-            invalidateDrawingCache();
+            invalidateCachedData();
         }
         
         // rescale the y axis if needed
@@ -191,7 +194,8 @@ void QtSLiMGraphView_LifetimeReproduction::drawGraph(QPainter &painter, QRect in
 
 QtSLiMLegendSpec QtSLiMGraphView_LifetimeReproduction::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -219,7 +223,8 @@ bool QtSLiMGraphView_LifetimeReproduction::providesStringForData(void)
 void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *reproductionDist = reproductionDistribution(&binCount, tallySexesSeparately);
 	
     if (reproductionDist)
@@ -249,8 +254,8 @@ void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
 double *QtSLiMGraphView_LifetimeReproduction::reproductionDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    SLiMSim *sim = controller_->sim;
-    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *graphSpecies = focalDisplaySpecies();
+    Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

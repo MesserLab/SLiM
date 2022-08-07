@@ -31,6 +31,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/sysctl.h>
+#include <ctime>
 
 // From Apple tech note #1361, https://developer.apple.com/library/archive/qa/qa1361/_index.html
 // see https://stackoverflow.com/a/2200786/2752221
@@ -76,172 +77,6 @@ bool SLiM_AmIBeingDebugged(void)
 
 @end
 
-
-static NSDictionary *tickAttrs = nil;
-static NSDictionary *disabledTickAttrs = nil;
-static const int numberOfTicks = 4;
-static const int tickLength = 4;
-static const int heightForTicks = 15;
-
-@implementation SLiMColorStripeView
-
-+ (void)initialize
-{
-	if (!tickAttrs)
-		tickAttrs = [@{NSForegroundColorAttributeName : [NSColor blackColor], NSFontAttributeName : [NSFont systemFontOfSize:9.0]} retain];
-	if (!disabledTickAttrs)
-		disabledTickAttrs = [@{NSForegroundColorAttributeName : [NSColor colorWithCalibratedWhite:0.6 alpha:1.0], NSFontAttributeName : [NSFont systemFontOfSize:9.0]} retain];
-	
-	[self exposeBinding:@"enabled"];
-}
-
-- (void)setEnabled:(BOOL)enabled
-{
-	if (_enabled != enabled)
-	{
-		_enabled = enabled;
-		
-		[self setNeedsDisplay:YES];
-	}
-}
-
-- (void)awakeFromNib
-{
-	[self bind:@"enabled" toObject:[[self window] windowController] withKeyPath:@"invalidSimulation" options:@{NSValueTransformerNameBindingOption : NSNegateBooleanTransformerName}];
-}
-
-- (void)dealloc
-{
-	[self unbind:@"enabled"];
-	
-	[super dealloc];
-}
-
-- (BOOL)isOpaque
-{
-	return NO;	// we have a 10-pixel margin on our left and right to allow tick labels to overflow our apparent bounds
-}
-
-- (void)setMetricToPlot:(int)metricToPlot
-{
-	if (_metricToPlot != metricToPlot)
-	{
-		_metricToPlot = metricToPlot;
-		
-		[self setNeedsDisplay:YES];
-	}
-}
-
-- (void)drawTicksInContentRect:(NSRect)contentRect
-{
-	BOOL enabled = [self enabled];
-	int metric = [self metricToPlot];
-	NSRect interiorRect = NSInsetRect(contentRect, 1, 1);
-	
-	for (int tickIndex = 0; tickIndex <= numberOfTicks; ++tickIndex)
-	{
-		double fraction = tickIndex / (double)numberOfTicks;
-		int tickLeft = (int)floor(interiorRect.origin.x + fraction * (interiorRect.size.width - 1));
-		NSRect tickRect = NSMakeRect(tickLeft, contentRect.origin.y - tickLength, 1, tickLength);
-		
-		[[NSColor colorWithCalibratedWhite:(enabled ? 0.5 : 0.6) alpha:1.0] set];
-		NSRectFill(tickRect);
-		
-		NSString *tickLabel = nil;
-		
-		if (metric == 1)
-		{
-			if (tickIndex == 0) tickLabel = @"0.0";
-			if (tickIndex == 1) tickLabel = @"0.5";
-			if (tickIndex == 2) tickLabel = @"1.0";
-			if (tickIndex == 3) tickLabel = @"2.0";
-			if (tickIndex == 4) tickLabel = @"∞";
-		}
-		else if (metric == 2)
-		{
-			if (tickIndex == 0) tickLabel = @"−0.5";
-			if (tickIndex == 1) tickLabel = @"−0.25";
-			if (tickIndex == 2) tickLabel = @"0.0";
-			if (tickIndex == 3) tickLabel = @"0.5";
-			if (tickIndex == 4) tickLabel = @"1.0";
-		}
-		
-		if (tickLabel)
-		{
-			NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:(enabled ? tickAttrs : disabledTickAttrs)];
-			NSSize tickLabelSize = [tickAttrLabel size];
-			int tickLabelX = tickLeft - (int)round(tickLabelSize.width / 2.0);
-			
-			[tickAttrLabel drawAtPoint:NSMakePoint(tickLabelX, contentRect.origin.y - (tickLength + 12))];
-			
-			[tickAttrLabel release];
-		}
-	}
-}
-
-- (void)drawRect:(NSRect)dirtyRect
-{
-	NSRect bounds = [self bounds];
-	NSRect contentRect = NSMakeRect(bounds.origin.x + 10, bounds.origin.y + heightForTicks, bounds.size.width - 20, bounds.size.height - heightForTicks);
-	NSRect interiorRect = NSInsetRect(contentRect, 1, 1);
-	
-	// frame the content area itself
-	[[NSColor colorWithCalibratedWhite:0.6 alpha:1.0] set];
-	NSFrameRect(contentRect);
-	
-	double scaling = [self scalingFactor];
-	int metric = [self metricToPlot];
-	
-	// draw our stripe
-	for (int x = 0; x < interiorRect.size.width; ++x)
-	{
-		NSRect stripe = NSMakeRect(interiorRect.origin.x + x, interiorRect.origin.y, 1, interiorRect.size.height);
-		float red = 0.0, green = 0.0, blue = 0.0;
-		double fraction = x / (interiorRect.size.width - 1);
-		
-		// guarantee that there is a pixel position where fraction is 0.5, so neutrality gets drawn
-		if (x == floor((interiorRect.size.width - 1) / 2.0))
-			fraction = 0.5;
-		
-		if (metric == 1)
-		{
-			double fitness;
-			
-			if (fraction < 0.5) fitness = fraction * 2.0;						// [0.0, 0.5] -> [0.0, 1.0]
-			else if (fraction < 0.75) fitness = (fraction - 0.5) * 4.0 + 1.0;	// [0.5, 0.75] -> [1.0, 2.0]
-			else fitness = 0.50 / (0.25 - (fraction - 0.75));					// [0.75, 1.0] -> [2.0, +Inf]
-			
-			if (fraction == 1.0)
-				fitness = 1e100;	// avoid infinity
-			
-			RGBForFitness(fitness, &red, &green, &blue, scaling);
-		}
-		else if (metric == 2)
-		{
-			double selectionCoeff;
-			
-			if (fraction < 0.5) selectionCoeff = fraction - 0.5;				// [0.0, 0.5] -> [-0.5, 0]
-			else selectionCoeff = (fraction - 0.5) * 2.0;						// [0.5, 1.0] -> [0.0, 1.0]
-			
-			RGBForSelectionCoeff(selectionCoeff, &red, &green, &blue, scaling);
-		}
-		
-		[[NSColor colorWithCalibratedRed:red green:green blue:blue alpha:1.0] set];
-		NSRectFill(stripe);
-	}
-	
-	// draw ticks at bottom of content rect
-	[self drawTicksInContentRect:contentRect];
-	
-	// if we are not enabled, wash over the interior with light gray
-	if (![self enabled])
-	{
-		[[NSColor colorWithCalibratedWhite:0.9 alpha:0.8] set];
-		NSRectFillUsingOperation(interiorRect, NSCompositeSourceOver);
-	}
-}
-
-@end
 
 const float greenBrightness = 0.8f;
 
@@ -1132,6 +967,99 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	
 	[self setNeedsDisplay];
 	[self.layer setNeedsDisplay];
+}
+
+@end
+
+// This is a vestigial tail left over from the old ScriptMod class of SLiMguiLegacy; I ripped out that class completely,
+// but a few other places in the code used its validation logic for their own purposes, so I've moved that to CocoaExtra.
+
+@implementation ScriptMod
+
++ (NSColor *)validationErrorColor
+{
+	static NSColor *color = nil;
+	
+	if (!color)
+		color = [[NSColor colorWithCalibratedHue:0.0 saturation:0.15 brightness:1.0 alpha:1.0] retain];
+	
+	return color;
+}
+
++ (NSRegularExpression *)regexForInt
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^[0-9]+$" options:0 error:NULL];
+	
+	return regex;
+}
+
++ (NSRegularExpression *)regexForFloat
+{
+	static NSRegularExpression *regex = nil;
+	
+	if (!regex)
+		regex = [[NSRegularExpression alloc] initWithPattern:@"^\\-?[0-9]+(\\.[0-9]*)?$" options:0 error:NULL];
+	
+	return regex;
+}
+
++ (BOOL)validIntValueInTextField:(NSTextField *)textfield withMin:(int64_t)minValue max:(int64_t)maxValue
+{
+	NSString *stringValue = [textfield stringValue];
+	int64_t intValue = [[textfield stringValue] longLongValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForInt] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (intValue < minValue)
+		return NO;
+	
+	if (intValue > maxValue)
+		return NO;
+	
+	return YES;
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue
+{
+	return [self validFloatValueInTextField:textfield withMin:minValue max:maxValue excludingMin:NO excludingMax:NO];
+}
+
++ (BOOL)validFloatValueInTextField:(NSTextField *)textfield withMin:(double)minValue max:(double)maxValue excludingMin:(BOOL)excludeMin excludingMax:(BOOL)excludeMax
+{
+	NSString *stringValue = [textfield stringValue];
+	double doubleValue = [textfield doubleValue];
+	
+	if ([stringValue length] == 0)
+		return NO;
+	
+	if ([[ScriptMod regexForFloat] numberOfMatchesInString:stringValue options:0 range:NSMakeRange(0, [stringValue length])] == 0)
+		return NO;
+	
+	if (doubleValue < minValue)
+		return NO;
+	
+	if (excludeMin && (doubleValue == minValue))
+		return NO;
+	
+	if (doubleValue > maxValue)
+		return NO;
+	
+	if (excludeMax && (doubleValue == maxValue))
+		return NO;
+	
+	return YES;
+}
+
++ (NSColor *)backgroundColorForValidationState:(BOOL)valid
+{
+	return (valid ? [NSColor whiteColor] : [ScriptMod validationErrorColor]);
 }
 
 @end

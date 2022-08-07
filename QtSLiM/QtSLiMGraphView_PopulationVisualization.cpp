@@ -46,7 +46,7 @@ QString QtSLiMGraphView_PopulationVisualization::graphTitle(void)
 QString QtSLiMGraphView_PopulationVisualization::aboutString(void)
 {
     return "The Population Visualization graph shows a visual depiction of the population structure of "
-           "the model, at the current generation.  Each subpopulation is shown as a circle, with size "
+           "the model, at the current tick.  Each subpopulation is shown as a circle, with size "
            "proportional to the number of individuals in the subpopulation, and color representing the "
            "mean fitness of the subpopulation.  Arrows show migration between subpopulations, with "
            "the thickness of arrows representing the magnitude of migration.";
@@ -101,15 +101,9 @@ void QtSLiMGraphView_PopulationVisualization::drawSubpop(QPainter &painter, Subp
 	else
 	{
 		// calculate the color from the mean fitness of the population
-		double fitnessScalingFactor = 0.8; // controller->fitnessColorScale;
-		double totalFitness = subpop->parental_total_fitness_;
-		double subpopFitnessScaling = subpop->last_fitness_scaling_;
-		
-		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-			subpopFitnessScaling = 1.0;
-		
-		// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-		double fitness = ((subpopSize == 0) ? -10000.0 : (totalFitness / subpopFitnessScaling) / subpopSize);
+        // we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
+		const double fitnessScalingFactor = 0.8; // used to be controller->fitnessColorScale;
+		double fitness = ((subpopSize == 0) ? -10000.0 : subpop->parental_mean_unscaled_fitness_);
 		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, fitnessScalingFactor);
 	}
 	
@@ -348,13 +342,12 @@ double QtSLiMGraphView_PopulationVisualization::scorePositions(double *center_x,
 	return score;
 }
 
-#ifdef SLIM_WF_ONLY
 // This is a simple implementation of the algorithm of Fruchterman and Reingold 1991;
 // there are better algorithms out there, but this one is simple...
 void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	size_t subpopCount = pop.subpops_.size();
 	
 	if (subpopCount == 0)
@@ -553,13 +546,13 @@ void QtSLiMGraphView_PopulationVisualization::optimizePositions(void)
 	free(best_x);
 	free(best_y);
 }
-#endif	// SLIM_WF_ONLY
 
 void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect interiorRect)
 {
-    SLiMSim *sim = controller_->sim;
-	Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+	Population &pop = graphSpecies->population_;
 	int subpopCount = static_cast<int>(pop.subpops_.size());
+    Community &community = graphSpecies->community_;
 	
 	if (subpopCount == 0)
 	{
@@ -629,10 +622,8 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		}
 		
 		// if position optimization is on, we do that to optimize the positions of the subpops
-#ifdef SLIM_WF_ONLY
-		if ((sim->ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
+		if ((community.ModelType() == SLiMModelType::kModelTypeWF) && optimizePositions_ && (subpopCount > 2))
 			optimizePositions();
-#endif	// SLIM_WF_ONLY
 		
 		if (!allUserConfigured)
 		{
@@ -680,24 +671,23 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 		}
 		
 		// in the multipop case, we need to draw migration arrows, too
-#if (defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY))
 		{
 			for (auto destSubpopIter : pop.subpops_)
 			{
 				Subpopulation *destSubpop = destSubpopIter.second;
-				std::map<slim_objectid_t,double> &destMigrants = (sim->ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
+				std::map<slim_objectid_t,double> &destMigrants = (community.ModelType() == SLiMModelType::kModelTypeWF) ? destSubpop->migrant_fractions_ : destSubpop->gui_migrants_;
 				
 				for (auto sourceSubpopIter : destMigrants)
 				{
 					slim_objectid_t sourceSubpopID = sourceSubpopIter.first;
-                    Subpopulation *sourceSubpop = sim->SubpopulationWithID(sourceSubpopID);
+                    Subpopulation *sourceSubpop = graphSpecies->SubpopulationWithID(sourceSubpopID);
 					
 					if (sourceSubpop)
 					{
 						double migrantFraction = sourceSubpopIter.second;
 						
 						// The gui_migrants_ map is raw migration counts, which need to be converted to a fraction of the sourceSubpop pre-migration size
-						if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+						if (community.ModelType() == SLiMModelType::kModelTypeNonWF)
 						{
 							if (sourceSubpop->gui_premigration_size_ <= 0)
 								continue;
@@ -718,7 +708,6 @@ void QtSLiMGraphView_PopulationVisualization::drawGraph(QPainter &painter, QRect
 				}
 			}
 		}
-#endif
 	}
 	
 	// We're done with our transformed coordinate system
@@ -734,8 +723,8 @@ void QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions(void)
 void QtSLiMGraphView_PopulationVisualization::subclassAddItemsToMenu(QMenu &contextMenu, QContextMenuEvent * /* event */)
 {
     QAction *menuItem = contextMenu.addAction(optimizePositions_ ? "Standard Positions" : "Optimized Positions", this, &QtSLiMGraphView_PopulationVisualization::toggleOptimizedPositions);
-    SLiMSim *sim = controller_->sim;
-    Population &pop = sim->population_;
+    Species *graphSpecies = focalDisplaySpecies();
+    Population &pop = graphSpecies->population_;
     
     // If any subpop has a user-defined center, disable position optimization; it doesn't know how to
     // handle those, and there's no way to revert back after it messes things up, and so forth

@@ -12,8 +12,8 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	
 	// delete any existing pedigree log files
-	deleteFile("~/Desktop/mating.txt");
-	deleteFile("~/Desktop/death.txt");
+	deleteFile("mating.txt");
+	deleteFile("death.txt");
 }
 reproduction() {
 	// choose a mate and generate an offspring
@@ -23,8 +23,8 @@ reproduction() {
 	sim.tag = sim.tag + 1;
 	
 	// log the mating
-	line = paste(sim.generation, individual.tag, mate.tag, child.tag);
-	writeFile("~/Desktop/mating.txt", line, append=T);
+	line = paste(community.tick, individual.tag, mate.tag, child.tag);
+	writeFile("mating.txt", line, append=T);
 }
 1 early() {
 	sim.addSubpop("p1", 10);
@@ -40,8 +40,8 @@ early() {
 survival() {
 	if (!surviving) {
 		// log the death
-		line = sim.generation + " " + individual.tag;
-		writeFile("~/Desktop/death.txt", line, append=T);
+		line = community.tick + " " + individual.tag;
+		writeFile("death.txt", line, append=T);
 	}
 	return NULL;
 }

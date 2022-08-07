@@ -8,7 +8,7 @@ initialize() {
 	
 	// read Drosophila 2L map from Comeron et al. 2012
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	lines = readFile("~/Desktop/Comeron_100kb_chr2L.txt");
+	lines = readFile("Comeron_100kb_chr2L.txt");
 	rates = NULL;
 	ends = NULL;
 	
@@ -23,5 +23,5 @@ initialize() {
 	rates = rates * 1e-8;
 	initializeRecombinationRate(rates, ends);
 }
-1 { sim.addSubpop("p1", 500); }
-10000 { sim.simulationFinished(); }
+1 early() { sim.addSubpop("p1", 500); }
+10000 early() { sim.simulationFinished(); }

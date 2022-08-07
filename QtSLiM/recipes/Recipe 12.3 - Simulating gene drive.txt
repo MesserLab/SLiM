@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal, CRISPR gene drive, fitness()
+// Keywords: migration, dispersal, CRISPR gene drive
 
 initialize() {
 	initializeMutationRate(1e-7);
@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	for (i in 0:5)
 		sim.addSubpop(i, 500);
 	for (i in 1:5)
@@ -27,19 +27,19 @@ initialize() {
 		sim.simulationFinished();
 	}
 }
-fitness(m2) {
+mutationEffect(m2) {
 	return 1.5 - subpop.id * 0.15;
 }
 100:10000 modifyChild() {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 1)
 	{
-		hasMutOnChromosome1 = childGenome1.containsMutations(mut);
-		hasMutOnChromosome2 = childGenome2.containsMutations(mut);
+		hasMutOnChromosome1 = child.genome1.containsMutations(mut);
+		hasMutOnChromosome2 = child.genome2.containsMutations(mut);
 		if (hasMutOnChromosome1 & !hasMutOnChromosome2)
-			childGenome2.addMutations(mut);
+			child.genome2.addMutations(mut);
 		else if (hasMutOnChromosome2 & !hasMutOnChromosome1)
-			childGenome1.addMutations(mut);
+			child.genome1.addMutations(mut);
 	}
 	return T;
 }

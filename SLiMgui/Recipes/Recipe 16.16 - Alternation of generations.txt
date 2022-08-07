@@ -23,8 +23,8 @@ initialize()
 }
 reproduction(p1)
 {
-	g_1 = genome1;
-	g_2 = genome2;
+	g_1 = individual.genome1;
+	g_2 = individual.genome2;
 	
 	for (meiosisCount in 1:5)
 	{
@@ -58,7 +58,7 @@ reproduction(p2, "F")
 }
 early()
 {
-	if (sim.generation % 2 == 0)
+	if (sim.cycle % 2 == 0)
 	{
 		p1.fitnessScaling = 0.0;
 		p2.individuals.tag = 0;

@@ -53,8 +53,8 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("2.7.1")
-#define EIDOS_VERSION_FLOAT		(2.71)
+#define EIDOS_VERSION_STRING	("3.0")
+#define EIDOS_VERSION_FLOAT		(3.0)
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
@@ -564,6 +564,9 @@ std::string EidosStringForFloat(double p_value);
 // Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
 // see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
 // see also https://ideone.com/3A3cv for demo code using this
+// Note that this uses random(), not the GSL RNG.  This is actually desirable, because we use this
+// for doing haplotype display stuff; using random() avoids altering the simulation state.  For use
+// in a simulation, see the implementation of sample() for some useful approaches.
 template<class BidiIter>
 BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 {
@@ -1061,7 +1064,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 430		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 450		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN

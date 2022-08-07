@@ -20,7 +20,7 @@
 
 #include "genomic_element.h"
 #include "slim_globals.h"
-#include "slim_sim.h"
+#include "species.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 
@@ -195,8 +195,8 @@ EidosValue_SP GenomicElement::ExecuteMethod_setGenomicElementType(EidosGlobalStr
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *genomicElementType_value = p_arguments[0].get();
-	SLiMSim &sim = genomic_element_type_ptr_->sim_;
-	GenomicElementType *getype_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, sim, "setGenomicElementType()");
+	Species &species = genomic_element_type_ptr_->species_;
+	GenomicElementType *getype_ptr = SLiM_ExtractGenomicElementTypeFromEidosValue_io(genomicElementType_value, 0, &species.community_, &species, "setGenomicElementType()");		// SPECIES CONSISTENCY CHECK
 	
 	genomic_element_type_ptr_ = getype_ptr;
 	

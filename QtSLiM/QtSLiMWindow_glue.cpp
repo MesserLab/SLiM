@@ -37,9 +37,10 @@ void QtSLiMWindow::glueUI(void)
 {
     // connect all QtSLiMWindow slots
     //connect(ui->playOneStepButton, &QPushButton::clicked, this, &QtSLiMWindow::playOneStepClicked);   // done in playOneStepPressed() now!
-    connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(generationPlayOn_ ? PlayType::kGenerationPlay : PlayType::kNormalPlay); });
+    connect(ui->playButton, &QPushButton::clicked, this, [this]() { playOrProfile(tickPlayOn_ ? PlayType::kTickPlay : PlayType::kNormalPlay); });
     connect(ui->profileButton, &QPushButton::clicked, this, [this]() { playOrProfile(PlayType::kProfilePlay); });
-    connect(ui->generationLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::generationChanged);
+    connect(ui->tickLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::tickChanged);
+    //connect(ui->cycleLineEdit, &QLineEdit::returnPressed, this, &QtSLiMWindow::cycleChanged);   // not editable at the moment
     connect(ui->recycleButton, &QPushButton::clicked, this, &QtSLiMWindow::recycleClicked);
     connect(ui->playSpeedSlider, &QSlider::valueChanged, this, &QtSLiMWindow::playSpeedChanged);
 
@@ -132,6 +133,8 @@ void QtSLiMWindow::glueUI(void)
     // connect all menu items with existing slots
     connect(ui->actionPreferences, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_preferences);
     connect(ui->actionAboutQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_about);
+    connect(ui->actionShowCycle_WF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_WF);
+    connect(ui->actionShowCycle_nonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showCycle_nonWF);
     connect(ui->actionQtSLiMHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
     connect(ui->actionQuitQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_quit);
     connect(ui->actionNew, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF);
@@ -142,7 +145,7 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionSaveAs, &QAction::triggered, this, &QtSLiMWindow::saveAs);
     connect(ui->actionRevertToSaved, &QAction::triggered, this, &QtSLiMWindow::revert);
     connect(ui->actionStep, &QAction::triggered, this, &QtSLiMWindow::playOneStepClicked);
-    connect(ui->actionPlay, &QAction::triggered, this, [this]() { playOrProfile(generationPlayOn_ ? PlayType::kGenerationPlay : PlayType::kNormalPlay); });
+    connect(ui->actionPlay, &QAction::triggered, this, [this]() { playOrProfile(tickPlayOn_ ? PlayType::kTickPlay : PlayType::kNormalPlay); });
     connect(ui->actionProfile, &QAction::triggered, this, [this]() { playOrProfile(PlayType::kProfilePlay); });
     connect(ui->actionRecycle, &QAction::triggered, this, &QtSLiMWindow::recycleClicked);
     connect(ui->actionChangeWorkingDirectory, &QAction::triggered, this, &QtSLiMWindow::changeDirectoryClicked);
@@ -163,10 +166,13 @@ void QtSLiMWindow::glueUI(void)
 	connect(ui->actionGraph_Age_Distribution, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Lifetime_Reproduce_Output, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionGraph_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
-	connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionGraph_Population_Visualization, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
+    connect(ui->actionGraph_Multispecies_Population_Size_Time, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
 	connect(ui->actionCreate_Haplotype_Plot, &QAction::triggered, this, &QtSLiMWindow::displayGraphClicked);
     
     // connect menu items that can go to either a QtSLiMWindow or a QtSLiMEidosConsole
+    connect(ui->actionFocusOnScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnScript);
+    connect(ui->actionFocusOnConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_focusOnConsole);
     connect(ui->actionCheckScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_checkScript);
     connect(ui->actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
     connect(ui->actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);

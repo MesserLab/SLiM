@@ -29,6 +29,8 @@
 
 #include "slim_globals.h"
 
+#include "QtSLiMWindow.h"
+
 
 class QtSLiMWindow;
 class QtSLiMHaplotypeManager;
@@ -46,13 +48,11 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT    
     
+    QtSLiMWindow *controller_ = nullptr;
+    std::string focalSpeciesName_;                                  // we keep the name of our focal species, since a pointer would be unsafe
+    
     bool selectable_ = false;
     QtSLiMChromosomeWidget *referenceChromosomeView_ = nullptr;
-    
-    bool shouldDrawMutations_ = true;
-    bool shouldDrawFixedSubstitutions_ = false;
-    bool shouldDrawGenomicElements_ = false;
-    bool shouldDrawRateMaps_ = false;
     
     // Selection
 	bool hasSelection_ = false;
@@ -72,35 +72,29 @@ class QtSLiMChromosomeWidget : public QOpenGLWidget, protected QOpenGLFunctions
 	float *glArrayVertices = nullptr;
 	float *glArrayColors = nullptr;
     
-    // Display options
-	bool display_haplotypes_ = false;                   // if false, displaying frequencies; if true, displaying haplotypes
+    // Haplotype display
     int64_t *haplotype_previous_bincounts = nullptr;    // used by QtSLiMHaplotypeManager to keep the sort order stable
     QtSLiMHaplotypeManager *haplotype_mgr_ = nullptr;   // the haplotype manager constructed for the current display; cached
-	std::vector<slim_objectid_t> display_muttypes_;     // if empty, display all mutation types; otherwise, display only the muttypes chosen
     
 public:
-    explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
+    explicit QtSLiMChromosomeWidget(QWidget *p_parent = nullptr, QtSLiMWindow *controller = nullptr, Species *displaySpecies = nullptr, Qt::WindowFlags f = Qt::WindowFlags());
     virtual ~QtSLiMChromosomeWidget() override;
+    
+    void setController(QtSLiMWindow *controller);
+    void setFocalDisplaySpecies(Species *displaySpecies);
+    Species *focalDisplaySpecies(void);
     
     inline void setSelectable(bool p_flag) { selectable_ = p_flag; }
     void setReferenceChromosomeView(QtSLiMChromosomeWidget *p_ref_widget);
     
-    inline void setShouldDrawGenomicElements(bool p_flag) { shouldDrawGenomicElements_ = p_flag; }
-    inline void setShouldDrawRateMaps(bool p_flag) { shouldDrawRateMaps_ = p_flag; }
-    inline void setShouldDrawMutations(bool p_flag) { shouldDrawMutations_ = p_flag; }
-    inline void setShouldDrawFixedSubstitutions(bool p_flag) { shouldDrawFixedSubstitutions_ = p_flag; }
-    
     bool hasSelection(void) { return hasSelection_; }
-    QtSLiMRange getSelectedRange(void);
+    QtSLiMRange getSelectedRange(Species *displaySpecies);
     void setSelectedRange(QtSLiMRange p_selectionRange);
     void restoreLastSelection(void);
-    const std::vector<slim_objectid_t> &displayMuttypes(void);
     
-    QtSLiMRange getDisplayedRange(void);
+    QtSLiMRange getDisplayedRange(Species *displaySpecies);
     
     void stateChanged(void);    // update when the SLiM model state changes; tosses any cached display info
-    
-    void runContextMenuAtPoint(QPoint p_globalPoint);
     
 signals:
     void selectedRangeChanged(void);
@@ -115,25 +109,34 @@ protected:
     QRect getContentRect(void);
     QRect getInteriorRect(void);
     
-    void drawTicksInContentRect(QRect contentRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
-    void overlaySelection(QRect interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, QPainter &painter);
-    void glDrawRect(void);
+    void drawTicksInContentRect(QRect contentRect, Species *displaySpecies, QtSLiMRange displayedRange, QPainter &painter);
+    void overlaySelection(QRect interiorRect, QtSLiMRange displayedRange, QPainter &painter);
+    void glDrawRect(Species *displaySpecies);
     
-    void glDrawGenomicElements(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
-    void updateDisplayedMutationTypes(void);
-    void glDrawFixedSubstitutions(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
-    void glDrawMutations(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
+    void glDrawGenomicElements(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+    void updateDisplayedMutationTypes(Species *displaySpecies);
+    void glDrawFixedSubstitutions(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+    void glDrawMutations(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     
-    void _glDrawRateMapIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue);
-    void glDrawRecombinationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
-    void glDrawMutationIntervals(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
-    void glDrawRateMaps(QRect &interiorRect, QtSLiMWindow *controller, QtSLiMRange displayedRange);
+    void _glDrawRateMapIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange, std::vector<slim_position_t> &ends, std::vector<double> &rates, double hue);
+    void glDrawRecombinationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+    void glDrawMutationIntervals(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
+    void glDrawRateMaps(QRect &interiorRect, Species *displaySpecies, QtSLiMRange displayedRange);
     
     virtual void mousePressEvent(QMouseEvent *p_event) override;
     void _mouseTrackEvent(QMouseEvent *p_event);
     virtual void mouseMoveEvent(QMouseEvent *p_event) override;
     virtual void mouseReleaseEvent(QMouseEvent *p_event) override;
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
+    
+    // Our configuration is kept by the controller, since it is shared by all chromosome views for multispecies models
+    // However, "overview" chromosome views are always configured the same, hard-coded here
+    inline bool shouldDrawMutations(void) const { return referenceChromosomeView_ ? controller_->chromosome_shouldDrawMutations_ : false; }
+    inline bool shouldDrawFixedSubstitutions(void) const { return referenceChromosomeView_ ? controller_->chromosome_shouldDrawFixedSubstitutions_ : false; }
+    inline bool shouldDrawGenomicElements(void) const { return referenceChromosomeView_ ? controller_->chromosome_shouldDrawGenomicElements_ : true; }
+    inline bool shouldDrawRateMaps(void) const { return referenceChromosomeView_ ? controller_->chromosome_shouldDrawRateMaps_ : false; }
+    inline bool displayHaplotypes(void) const { return referenceChromosomeView_ ? controller_->chromosome_display_haplotypes_ : false; }
+    inline std::vector<slim_objectid_t> &displayMuttypes(void) const { return controller_->chromosome_display_muttypes_; }
 };
 
 #endif // QTSLIMCHROMOSOMEWIDGET_H

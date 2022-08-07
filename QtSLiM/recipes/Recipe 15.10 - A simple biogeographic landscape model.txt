@@ -22,7 +22,7 @@ initialize() {
 	p1.setSpatialBounds(c(0.0, 0.0, 539.0, 216.0));
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	mapImage = Image("~/Desktop/world_map_540x217.png");
+	mapImage = Image("world_map_540x217.png");
 	p1.defineSpatialMap("world", "xy", 1.0 - mapImage.floatK,
 		valueRange=c(0.0, 1.0), colors=c("#0000CC", "#55FF22"));
 	
@@ -33,14 +33,14 @@ initialize() {
 	}
 }
 1: late() {
-	i1.evaluate();
+	i1.evaluate(p1);
 	inds = sim.subpopulations.individuals;
 	competition = i1.totalOfNeighborStrengths(inds) / size(inds);
 	competition = pmin(competition, 0.99);
 	inds.fitnessScaling = 1.0 - competition;
 }
-first() {
-	i2.evaluate();
+2: first() {
+	i2.evaluate(p1);
 }
 mateChoice() {
 	return i2.strength(individual);

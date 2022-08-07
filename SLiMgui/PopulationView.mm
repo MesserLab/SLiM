@@ -21,11 +21,12 @@
 #import "PopulationView.h"
 #import "SLiMWindowController.h"
 #import "CocoaExtra.h"
-#import "ScriptMod.h"		// we use ScriptMod's validation tools
 
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
 #include <GLKit/GLKMatrix4.h>
+
+#include "community.h"
 
 
 static const int kMaxGLRects = 2000;				// 2000 rects
@@ -37,11 +38,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)initializeDisplayOptions
 {
 	displayMode = -1;	// don't know yet whether the model is spatial or not, which will determine our initial choice
-	
-	// Default values that will appear the first time the options sheet runs
-	binCount = 20;
-	fitnessMin = 0.0;
-	fitnessMax = 2.0;
 }
 
 - (instancetype)initWithCoder:(NSCoder *)coder
@@ -103,14 +99,9 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	//	NOTE this code is parallel to the code in canDisplayIndividualsFromSubpopulation:inArea: and should be maintained in parallel
 	//
 	
-	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	int squareSize, viewColumns = 0, viewRows = 0;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
 	
 	// first figure out the biggest square size that will allow us to display the whole subpopulation
 	for (squareSize = 20; squareSize > 1; --squareSize)
@@ -209,12 +200,12 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			}
 			else
 			{
-				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
-				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-				double fitness = individual.cached_fitness_UNSAFE_;
+				// use individual trait values to determine color; we use fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
+				// we use cached_unscaled_fitness_ so individual fitness, unscaled by subpopulation fitness, is used for coloring
+				double fitness = individual.cached_unscaled_fitness_;
 				
 				if (!std::isnan(fitness))
-					RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+					RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 			}
 			
 			for (int j = 0; j < 4; ++j)
@@ -430,231 +421,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 }
 
 #define SLIM_MAX_HISTOGRAM_BINS		100
-
-- (void)drawFitnessLinePlotForSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds
-{
-	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
-	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
-	
-	static float *glArrayVertices = nil;
-	static float *glArrayColors = nil;
-	int displayListIndex = 0;
-	float *vertices = NULL, *colors = NULL;
-	
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = (float *)malloc(SLIM_MAX_HISTOGRAM_BINS * 2 * sizeof(float));		// 2 floats per vertex, SLIM_MAX_HISTOGRAM_BINS vertices
-	
-	if (!glArrayColors)
-		glArrayColors = (float *)malloc(SLIM_MAX_HISTOGRAM_BINS * 4 * sizeof(float));		// 4 floats per color, SLIM_MAX_HISTOGRAM_BINS colors
-	
-	// Set up to draw lines
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
-	// first tabulate fitness values
-	int numberOfBins = binCount;
-	slim_popsize_t* binCounts = (slim_popsize_t *)calloc(numberOfBins, sizeof(slim_popsize_t));
-	
-	for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
-	{
-		Individual &individual = *subpop->parent_individuals_[individualIndex];
-		double fitness = individual.cached_fitness_UNSAFE_;
-		
-		if (!std::isnan(fitness))
-		{
-			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			int binIndex = (int)floor((((fitness / subpopFitnessScaling) - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
-			
-			if (binIndex < 0) binIndex = 0;
-			if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
-			
-			binCounts[binIndex]++;
-		}
-	}
-	
-	NSRect histogramArea = NSMakeRect(bounds.origin.x + 5, bounds.origin.y + 5, bounds.size.width - 10, bounds.size.height - 10);
-	
-	// then plot the tabulated values as a line
-	for (int binIndex = 0; binIndex < numberOfBins; ++binIndex)
-	{
-		*(vertices++) = (float)(histogramArea.origin.x + (binIndex / (double)(numberOfBins - 1)) * histogramArea.size.width);
-		*(vertices++) = (float)(histogramArea.origin.y + histogramArea.size.height - (binCounts[binIndex] / (double)subpopSize) * histogramArea.size.height);
-		
-		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
-		double fitness = ((binIndex + 0.5) / numberOfBins) * (fitnessMax - fitnessMin) + fitnessMin;
-		
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-		
-		*(colors++) = colorRed;
-		*(colors++) = colorGreen;
-		*(colors++) = colorBlue;
-		*(colors++) = colorAlpha;
-		
-		displayListIndex++;
-	}
-	
-	// Draw our line
-	if (displayListIndex)
-	{
-		glLineWidth(2.0);
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		
-		glDrawArrays(GL_LINE_STRIP, 0, 1 * displayListIndex);
-		
-		glLineWidth(1.0);
-		glDisable(GL_LINE_SMOOTH);
-		glDisable(GL_BLEND);
-	}
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	
-	free(binCounts);
-}
-
-- (void)drawFitnessBarPlotForSubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations inArea:(NSRect)bounds
-{
-	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
-	int selectedSubpopCount = (int)(selectedSubpopulations.size());
-	
-	// first tabulate fitness values
-	int numberOfBins = binCount;
-	slim_popsize_t* binCounts = (slim_popsize_t *)calloc(numberOfBins, sizeof(slim_popsize_t));
-	slim_popsize_t binTotal = 0;
-	
-	for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
-	{
-		Subpopulation *subpop = selectedSubpopulations[subpopIndex];
-		slim_popsize_t subpopSize = subpop->parent_subpop_size_;
-		double subpopFitnessScaling = subpop->last_fitness_scaling_;
-		
-		if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
-		
-		for (int individualIndex = 0; individualIndex < subpopSize; ++individualIndex)
-		{
-			Individual &individual = *subpop->parent_individuals_[individualIndex];
-			double fitness = individual.cached_fitness_UNSAFE_;
-			
-			if (!std::isnan(fitness))
-			{
-				// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-				int binIndex = (int)floor((((fitness / subpopFitnessScaling) - fitnessMin) / (fitnessMax - fitnessMin)) * numberOfBins);
-				
-				if (binIndex < 0) binIndex = 0;
-				if (binIndex >= numberOfBins) binIndex = numberOfBins - 1;
-				
-				binCounts[binIndex]++;
-			}
-		}
-		
-		binTotal += subpopSize;
-	}
-	
-	// then draw the barplot
-	static float *glArrayVertices = nil;
-	static float *glArrayColors = nil;
-	int displayListIndex;
-	float *vertices = NULL, *colors = NULL;
-	const int numVertices = SLIM_MAX_HISTOGRAM_BINS * 4 * 2;	// four corners for each rect, 2 rects per bar for frame and fill
-	
-	// Set up the vertex and color arrays
-	if (!glArrayVertices)
-		glArrayVertices = (float *)malloc(numVertices * 2 * sizeof(float));		// 2 floats per vertex, numVertices vertices
-	
-	if (!glArrayColors)
-		glArrayColors = (float *)malloc(numVertices * 4 * sizeof(float));		// 4 floats per color, numVertices colors
-	
-	// Set up to draw rects
-	displayListIndex = 0;
-	
-	vertices = glArrayVertices;
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
-	
-	colors = glArrayColors;
-	glEnableClientState(GL_COLOR_ARRAY);
-	glColorPointer(4, GL_FLOAT, 0, glArrayColors);
-	
-	NSRect histogramArea = NSMakeRect(bounds.origin.x + 4, bounds.origin.y + 6, bounds.size.width - 8, bounds.size.height - 12);
-	
-	for (int binIndex = 0; binIndex < numberOfBins; ++binIndex)
-	{
-		// Figure out the rect for the bar within histogramArea
-		float left = (float)(histogramArea.origin.x + (binIndex / (double)numberOfBins) * histogramArea.size.width);
-		float top = (float)(histogramArea.origin.y + histogramArea.size.height - (binCounts[binIndex] / (double)binTotal) * histogramArea.size.height);
-		float right = (float)(histogramArea.origin.x + ((binIndex + 1) / (double)numberOfBins) * histogramArea.size.width);
-		float bottom = (float)(histogramArea.origin.y + histogramArea.size.height);
-		
-		// First draw a rect for the frame of the bar
-		*(vertices++) = left + 1;
-		*(vertices++) = top - 1;
-		*(vertices++) = left + 1;
-		*(vertices++) = bottom + 1;
-		*(vertices++) = right - 1;
-		*(vertices++) = bottom + 1;
-		*(vertices++) = right - 1;
-		*(vertices++) = top - 1;
-		
-		for (int j = 0; j < 4; ++j)
-		{
-			*(colors++) = 1.0;
-			*(colors++) = 1.0;
-			*(colors++) = 1.0;
-			*(colors++) = 1.0;
-		}
-		
-		displayListIndex++;
-		
-		// Then draw a rect for the interior of the bar
-		*(vertices++) = left + 2;
-		*(vertices++) = top;
-		*(vertices++) = left + 2;
-		*(vertices++) = bottom;
-		*(vertices++) = right - 2;
-		*(vertices++) = bottom;
-		*(vertices++) = right - 2;
-		*(vertices++) = top;
-		
-		float colorRed = 0.0, colorGreen = 0.0, colorBlue = 0.0, colorAlpha = 1.0;
-		double fitness = ((binIndex + 0.5) / numberOfBins) * (fitnessMax - fitnessMin) + fitnessMin;
-		
-		RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
-		
-		for (int j = 0; j < 4; ++j)
-		{
-			*(colors++) = colorRed;
-			*(colors++) = colorGreen;
-			*(colors++) = colorBlue;
-			*(colors++) = colorAlpha;
-		}
-		
-		displayListIndex++;
-	}
-	
-	// Draw all the bars
-	if (displayListIndex)
-		glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
-	
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-	
-	free(binCounts);
-}
 
 - (void)cacheDisplayBufferForMap:(SpatialMap *)background_map subpopulation:(Subpopulation *)subpop
 {
@@ -1225,15 +991,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (void)drawSpatialIndividualsFromSubpopulation:(Subpopulation *)subpop inArea:(NSRect)bounds dimensionality:(int)dimensionality
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	double scalingFactor = controller->fitnessColorScale;
+	double scalingFactor = 0.8; // used to be controller->fitnessColorScale;
 	slim_popsize_t subpopSize = subpop->parent_subpop_size_;
 	double bounds_x0 = subpop->bounds_x0_, bounds_x1 = subpop->bounds_x1_;
 	double bounds_y0 = subpop->bounds_y0_, bounds_y1 = subpop->bounds_y1_;
 	double bounds_x_size = bounds_x1 - bounds_x0, bounds_y_size = bounds_y1 - bounds_y0;
-	double subpopFitnessScaling = subpop->last_fitness_scaling_;
-	
-	if ((subpopFitnessScaling <= 0.0) || !std::isfinite(subpopFitnessScaling))
-		subpopFitnessScaling = 1.0;
 	
 	NSRect individualArea = NSMakeRect(bounds.origin.x, bounds.origin.y, bounds.size.width - 1, bounds.size.height - 1);
 	
@@ -1262,7 +1024,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	// First we outline all individuals
 	if (dimensionality == 1)
-		srandom(controller->sim->Generation());
+		srandom(controller->community->Tick());
 	
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
@@ -1334,7 +1096,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	// Then we draw all individuals
 	if (dimensionality == 1)
-		srandom(controller->sim->Generation());
+		srandom(controller->community->Tick());
 	
 	for (individualArrayIndex = 0; individualArrayIndex < subpopSize; ++individualArrayIndex)
 	{
@@ -1389,12 +1151,12 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		}
 		else
 		{
-			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to fitness callbacks
+			// use individual trait values to determine color; we used fitness values cached in UpdateFitness, so we don't have to call out to mutationEffect() callbacks
 			// we normalize fitness values with subpopFitnessScaling so individual fitness, unscaled by subpopulation fitness, is used for coloring
-			double fitness = individual.cached_fitness_UNSAFE_;
+			double fitness = individual.cached_unscaled_fitness_;
 			
 			if (!std::isnan(fitness))
-				RGBForFitness(fitness / subpopFitnessScaling, &colorRed, &colorGreen, &colorBlue, scalingFactor);
+				RGBForFitness(fitness, &colorRed, &colorGreen, &colorBlue, scalingFactor);
 		}
 		
 		for (int j = 0; j < 4; ++j)
@@ -1439,16 +1201,16 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	NSRect bounds = [self bounds];
 	SLiMWindowController *controller = [[self window] windowController];
-	SLiMSim *sim = controller->sim;
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];
 	int selectedSubpopCount = (int)(selectedSubpopulations.size());
 	
 	// Decide on our display mode
-	if (!controller->invalidSimulation && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
+	if (displaySpecies && (controller->community->Tick() >= 1))
 	{
 		if (displayMode == -1)
-			displayMode = ((sim->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 0))
+			displayMode = ((displaySpecies->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 0))
 			displayMode = 0;
 	}
 	
@@ -1469,34 +1231,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		// clear to a shade of gray
 		glColor3f(0.9f, 0.9f, 0.9f);
 		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
-		
-		// Frame our view
-		[self drawViewFrameInBounds:bounds];
-	}
-	else if (displayMode == 2)
-	{
-		// Display fitness line plots for each subpopulation
-		glColor3f(0.2f, 0.2f, 0.2f);
-		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
-		
-		for (int subpopIndex = 0; subpopIndex < selectedSubpopCount; subpopIndex++)
-		{
-			Subpopulation *subpop = selectedSubpopulations[subpopIndex];
-			
-			// Draw all the individuals
-			[self drawFitnessLinePlotForSubpopulation:subpop inArea:bounds];
-		}
-		
-		// Frame our view
-		[self drawViewFrameInBounds:bounds];
-	}
-	else if (displayMode == 3)
-	{
-		// Display an aggregated fitness bar plot across all selected subpopulations
-		glColor3f(0.0f, 0.0f, 0.0f);
-		glRecti(0, 0, (int)bounds.size.width, (int)bounds.size.height);
-		
-		[self drawFitnessBarPlotForSubpopulations:selectedSubpopulations inArea:bounds];
 		
 		// Frame our view
 		[self drawViewFrameInBounds:bounds];
@@ -1529,13 +1263,13 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 			{
 				NSRect tileBounds = tileIter->second;
 				
-				if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
+				if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 1))
 				{
-					[self drawSpatialBackgroundInBounds:tileBounds forSubpopulation:subpop dimensionality:sim->spatial_dimensionality_];
-					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:NSInsetRect(tileBounds, 1, 1) dimensionality:sim->spatial_dimensionality_];
+					[self drawSpatialBackgroundInBounds:tileBounds forSubpopulation:subpop dimensionality:displaySpecies->spatial_dimensionality_];
+					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:NSInsetRect(tileBounds, 1, 1) dimensionality:displaySpecies->spatial_dimensionality_];
 					[self drawViewFrameInBounds:tileBounds];
 				}
-				else if ((displayMode == 1) && (sim->spatial_dimensionality_ > 1))
+				else if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ > 1))
 				{
 					// clear to a shade of gray
 					glColor3f(0.9f, 0.9f, 0.9f);
@@ -1547,8 +1281,8 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 					// Now determine a subframe and draw spatial information inside that.
 					NSRect spatialDisplayBounds = [self spatialDisplayBoundsForSubpopulation:subpop tileBounds:tileBounds];
 					
-					[self drawSpatialBackgroundInBounds:spatialDisplayBounds forSubpopulation:subpop dimensionality:sim->spatial_dimensionality_];
-					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:sim->spatial_dimensionality_];
+					[self drawSpatialBackgroundInBounds:spatialDisplayBounds forSubpopulation:subpop dimensionality:displaySpecies->spatial_dimensionality_];
+					[self drawSpatialIndividualsFromSubpopulation:subpop inArea:spatialDisplayBounds dimensionality:displaySpecies->spatial_dimensionality_];
 					[self drawViewFrameInBounds:NSInsetRect(spatialDisplayBounds, -1, -1)];
 				}
 				else	// displayMode == 0
@@ -1584,27 +1318,19 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	NSRect bounds = [self bounds];
 	SLiMWindowController *controller = [[self window] windowController];
-	SLiMSim *sim = controller->sim;
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	int selectedSubpopCount = (int)selectedSubpopulations.size();
 	
 	// Decide on our display mode
-	if (!controller->invalidSimulation && sim && sim->simulation_valid_ && (sim->generation_ >= 1))
+	if (displaySpecies && (controller->community->Tick() >= 1))
 	{
 		if (displayMode == -1)
-			displayMode = ((sim->spatial_dimensionality_ == 0) ? 0 : 1);
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 0))
+			displayMode = ((displaySpecies->spatial_dimensionality_ == 0) ? 0 : 1);
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 0))
 			displayMode = 0;
 	}
 	
 	if (selectedSubpopCount == 0)
-	{
-		return YES;
-	}
-	else if (displayMode == 2)
-	{
-		return YES;
-	}
-	else if (displayMode == 3)
 	{
 		return YES;
 	}
@@ -1618,11 +1344,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 		
 		subpopTiles.emplace(selectedSubpop->subpopulation_id_, bounds);
 		
-		if ((displayMode == 1) && (sim->spatial_dimensionality_ == 1))
+		if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ == 1))
 		{
 			return YES;
 		}
-		else if ((displayMode == 1) && (sim->spatial_dimensionality_ > 1))
+		else if ((displayMode == 1) && (displaySpecies->spatial_dimensionality_ > 1))
 		{
 			return YES;
 		}
@@ -1775,20 +1501,10 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (IBAction)setDisplayStyle:(id)sender
 {
 	NSMenuItem *senderMenuItem = (NSMenuItem *)sender;
-	int newDisplayMode = (int)[senderMenuItem tag];
 	
-	if ((newDisplayMode == 2) || (newDisplayMode == 3))
-	{
-		// Run a sheet for display options, which will set the new mode if the user confirms
-		[self runDisplayOptionsSheetForMode:newDisplayMode];
-	}
-	else
-	{
-		// This option does not require a sheet, so we just do it
-		displayMode = newDisplayMode;
-		[self setNeedsDisplay:YES];
-		[[[self window] windowController] updatePopulationViewHiding];
-	}
+	displayMode = (int)[senderMenuItem tag];
+	[self setNeedsDisplay:YES];
+	[[[self window] windowController] updatePopulationViewHiding];
 }
 
 - (IBAction)setDisplayBackground:(id)sender
@@ -1833,11 +1549,11 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 - (NSMenu *)menuForEvent:(NSEvent *)theEvent
 {
 	SLiMWindowController *controller = [[self window] windowController];
-	SLiMSim *sim = controller->sim;
+	Species *displaySpecies = [controller focalDisplaySpecies];
 	bool disableAll = false;
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (controller->invalidSimulation || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+	if (!displaySpecies || (controller->community->Tick() < 1))
 		disableAll = true;
 	
 	NSMenu *menu = [[NSMenu alloc] initWithTitle:@"population_menu"];
@@ -1853,7 +1569,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	menuItem = [menu addItemWithTitle:@"Display Individuals (spatial)" action:@selector(setDisplayStyle:) keyEquivalent:@""];
 	[menuItem setTag:1];
 	[menuItem setTarget:self];
-	[menuItem setEnabled:(!disableAll && (sim->spatial_dimensionality_ > 0))];
+	[menuItem setEnabled:(!disableAll && (displaySpecies->spatial_dimensionality_ > 0))];
 	
 	menuItem = [menu addItemWithTitle:@"Display Fitness Line Plot (per subpopulation)..." action:@selector(setDisplayStyle:) keyEquivalent:@""];
 	[menuItem setTag:2];
@@ -1873,7 +1589,7 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	
 	// If we're displaying spatially, provide background options (colors, spatial maps)
-	if (!disableAll && (sim->spatial_dimensionality_ > 0) && (displayMode == 1))
+	if (!disableAll && (displaySpecies->spatial_dimensionality_ > 0) && (displayMode == 1))
 	{
 		// determine which subpopulation the click was in
 		std::vector<Subpopulation*> selectedSubpopulations = [controller selectedSubpopulations];
@@ -1988,94 +1704,6 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	}
 	
 	return [menu autorelease];
-}
-
-
-//
-//	Options sheet handling
-//
-#pragma mark Options sheet handling
-
-- (void)runDisplayOptionsSheetForMode:(int)newDisplayMode
-{
-	// Nil out our outlets for a bit of safety, and then load our sheet nib
-	_displayOptionsSheet = nil;
-	_binCountTextField = nil;
-	_fitnessMinTextField = nil;
-	_fitnessMaxTextField = nil;
-	_okButton = nil;
-	
-	[[NSBundle mainBundle] loadNibNamed:@"PopulationViewOptionsSheet" owner:self topLevelObjects:NULL];
-	
-	// Run the sheet in our window
-	if (_displayOptionsSheet)
-	{
-		[_binCountTextField setStringValue:[NSString stringWithFormat:@"%d", binCount]];
-		[_fitnessMinTextField setStringValue:[NSString stringWithFormat:@"%0.1f", fitnessMin]];
-		[_fitnessMaxTextField setStringValue:[NSString stringWithFormat:@"%0.1f", fitnessMax]];
-		
-		[self validateSheetControls:nil];
-		
-		NSWindow *window = [self window];
-		
-		[window beginSheet:_displayOptionsSheet completionHandler:^(NSModalResponse returnCode) {
-			if (returnCode == NSAlertFirstButtonReturn)
-			{
-				// pull values from controls, set the new mode, and redisplay
-				binCount = [[_binCountTextField stringValue] intValue];
-				fitnessMin = [[_fitnessMinTextField stringValue] doubleValue];
-				fitnessMax = [[_fitnessMaxTextField stringValue] doubleValue];
-				
-				displayMode = newDisplayMode;
-				[self setNeedsDisplay:YES];
-				[[[self window] windowController] updatePopulationViewHiding];
-			}
-			
-			[_displayOptionsSheet autorelease];
-			_displayOptionsSheet = nil;
-		}];
-	}
-}
-
-- (IBAction)validateSheetControls:(id)sender
-{
-	// Determine whether we have valid inputs in all of our fields
-	BOOL validInput = YES;
-	
-	BOOL binCountValid = [ScriptMod validIntValueInTextField:_binCountTextField withMin:2 max:SLIM_MAX_HISTOGRAM_BINS];
-	validInput = validInput && binCountValid;
-	[_binCountTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:binCountValid]];
-	
-	BOOL fitnessMinValid = [ScriptMod validFloatValueInTextField:_fitnessMinTextField withMin:0.0 max:10.0];
-	validInput = validInput && fitnessMinValid;
-	[_fitnessMinTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:fitnessMinValid]];
-	
-	BOOL fitnessMaxValid = [ScriptMod validFloatValueInTextField:_fitnessMaxTextField withMin:0.0 max:10.0];
-	validInput = validInput && fitnessMaxValid;
-	[_fitnessMaxTextField setBackgroundColor:[ScriptMod backgroundColorForValidationState:fitnessMaxValid]];
-	
-	// if the input is invalid, we need to disable our OK button
-	[_okButton setEnabled:validInput];
-}
-
-- (IBAction)displaySheetOK:(id)sender
-{
-	NSWindow *window = [self window];
-	
-	[window endSheet:_displayOptionsSheet returnCode:NSAlertFirstButtonReturn];
-}
-
-- (IBAction)displaySheetCancel:(id)sender
-{
-	NSWindow *window = [self window];
-	
-	[window endSheet:_displayOptionsSheet returnCode:NSAlertSecondButtonReturn];
-}
-
-- (void)controlTextDidChange:(NSNotification *)notification
-{
-	// NSTextField delegate method
-	[self validateSheetControls:nil];
 }
 
 @end

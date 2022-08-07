@@ -20,7 +20,7 @@
 /*
  
  The class Mutation represents a single mutation, defined by its type, its position on the chromosome, and its selection coefficient.
- Mutations are also tagged with the subpopulation and generation in which they arose.
+ Mutations are also tagged with the subpopulation and tick in which they arose.
  
  */
 
@@ -77,7 +77,7 @@ public:
 	const slim_position_t position_;					// position on the chromosome
 	slim_selcoeff_t selection_coeff_;					// selection coefficient – not const because it may be changed in script
 	slim_objectid_t subpop_index_;						// subpopulation in which mutation arose (or a user-defined tag value!)
-	const slim_generation_t origin_generation_;			// generation in which mutation arose
+	const slim_tick_t origin_tick_;						// tick in which the mutation arose
 	int8_t state_;										// see MutationState above
 	int8_t nucleotide_;									// the nucleotide being kept: A=0, C=1, G=2, T=3.  -1 is used to indicate non-nucleotide-based.
 	int8_t scratch_;									// temporary scratch space for use by algorithms; regard as volatile outside your own code block
@@ -86,7 +86,7 @@ public:
 	slim_usertag_t tag_value_;							// a user-defined tag value
 	
 #ifdef SLIMGUI
-	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at generation end
+	mutable slim_refcount_t gui_reference_count_;			// a count of the number of occurrences of this mutation within the selected subpopulations in SLiMgui, valid at cycle end
 	mutable slim_refcount_t gui_scratch_reference_count_;	// an additional refcount used for temporary tallies by SLiMgui, valid only when explicitly updated
 #endif
 	
@@ -102,8 +102,8 @@ public:
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
-	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
-	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide);
+	Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
+	Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide);
 	
 	// a destructor is needed now that we inherit from EidosDictionaryRetained; we want it to be as minimal as possible, though, and inline
 #if DEBUG_MUTATIONS
@@ -137,7 +137,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_isSegregating(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotide(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_nucleotideValue(EidosObject **p_values, size_t p_values_size);
-	static EidosValue *GetProperty_Accelerated_originGeneration(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_position(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopID(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
@@ -201,8 +201,9 @@ extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parall
 void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
 void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
-size_t SLiM_MemoryUsageForMutationBlock(void);
-size_t SLiM_MemoryUsageForMutationRefcounts(void);
+size_t SLiMMemoryUsageForMutationBlock(void);
+size_t SLiMMemoryUsageForFreeMutations(void);
+size_t SLiMMemoryUsageForMutationRefcounts(void);
 
 inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
 {

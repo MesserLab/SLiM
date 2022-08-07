@@ -47,5 +47,5 @@ initialize() {
 	// single recombination rate
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 5000); }
-10000 { sim.simulationFinished(); }
+1 early() { sim.addSubpop("p1", 5000); }
+10000 early() { sim.simulationFinished(); }

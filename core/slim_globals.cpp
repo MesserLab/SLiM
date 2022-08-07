@@ -30,12 +30,13 @@
 #include "mutation.h"
 #include "mutation_type.h"
 #include "slim_eidos_block.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "substitution.h"
 #include "subpopulation.h"
 
 #include "mutation_run.h"
-#include "sparse_array.h"
+#include "sparse_vector.h"
 
 #include <string>
 #include <vector>
@@ -52,257 +53,6 @@ EidosValue_String_SP gStaticEidosValue_StringC;
 EidosValue_String_SP gStaticEidosValue_StringG;
 EidosValue_String_SP gStaticEidosValue_StringT;
 
-
-void TestSparseArray(void);
-void TestSparseArray(void)
-{
-#if 0
-	{
-		// This should succeed and contain six elements
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		uint32_t row3cols[] = {4, 1};
-		float row3dists[] = {4, 1};
-		float row3strengths[] = {3.45f, 3.15f};
-		
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(2, nullptr, nullptr, nullptr, 0);
-		sa.AddRowInteractions(3, row3cols, row3dists, row3strengths, 2);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should succeed and contain six elements, identical to the previous
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 0, 0, 0.05f);
-		sa.AddEntryInteraction(0, 3, 3, 0.35f);
-		sa.AddEntryInteraction(0, 2, 2, 0.25f);
-		sa.AddEntryInteraction(1, 4, 4, 1.45f);
-		sa.AddEntryInteraction(3, 4, 4, 3.45f);
-		sa.AddEntryInteraction(3, 1, 1, 3.15f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-
-#if 0
-	{
-		// This should fail because row 1 is added twice
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because row 0 is after row 1
-		SparseArray sa(5, 5);
-		uint32_t row0cols[] = {0, 3, 2};
-		float row0dists[] = {0, 3, 2};
-		float row0strengths[] = {0.05f, 0.35f, 0.25f};
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(0, nullptr, nullptr, nullptr, 0);
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-		sa.AddRowInteractions(0, row0cols, row0dists, row0strengths, 3);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because row 0 is not added first
-		SparseArray sa(5, 5);
-		uint32_t row1cols[] = {4};
-		float row1dists[] = {4};
-		float row1strengths[] = {1.45f};
-		
-		sa.AddRowInteractions(1, row1cols, row1dists, row1strengths, 1);
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because rows are added out of order
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 0, 0, 0.05f);
-		sa.AddEntryInteraction(1, 4, 4, 1.45f);
-		sa.AddEntryInteraction(0, 3, 3, 0.35f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because a row is added that is beyond bounds
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(5, 0, 0, 0.05f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// This should fail because a column is added that is beyond bounds
-		SparseArray sa(5, 5);
-		
-		sa.AddEntryInteraction(0, 5, 0, 0.05f);
-		sa.Finished();
-		
-		std::cout << sa << std::endl;
-	}
-#endif
-	
-#if 0
-	{
-		// stress test by creating a large number of sparse arrays by entry and cross-checking them
-		for (int trial = 0; trial < 10000; ++trial)
-		{
-			float *distances = (float *)calloc(100 * 100, sizeof(float));
-			float *strengths = (float *)calloc(100 * 100, sizeof(float));
-			int n_entries = random() % 5000;
-			
-			for (int entry = 1; entry <= n_entries; ++entry)
-			{
-				int entry_index = random() % 10000;
-				
-				distances[entry_index] = entry;
-				strengths[entry_index] = random();
-			}
-			
-			SparseArray sa(100, 100);
-			
-			for (int row = 0; row < 100; row++)
-				for (int col = 0; col < 100; ++col)
-					if (*(distances + row + col * 100) != 0)
-						sa.AddEntryInteraction(row, col, *(distances + row + col * 100), *(strengths + row + col * 100));
-			sa.Finished();
-			
-			for (int col = 0; col < 100; ++col)
-				for (int row = 0; row < 100; row++)
-					if (*(distances + row + col * 100) == 0)
-					{
-						if (!isinf(sa.Distance(row, col)))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
-						if (sa.Strength(row, col) != 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
-					}
-					else
-					{
-						double distance = sa.Distance(row, col);
-						double strength = sa.Strength(row, col);
-						
-						if (isinf(distance))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
-						if (strength == 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
-						if (distance != *(distances + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
-						if (strength != *(strengths + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
-					}
-			
-			free(distances);
-			free(strengths);
-		}
-	}
-#endif
-	
-#if 0
-	{
-		// stress test by creating a large number of sparse arrays by row and cross-checking them
-		for (int trial = 0; trial < 10000; ++trial)
-		{
-			float *distances = (float *)calloc(100 * 100, sizeof(double));
-			float *strengths = (float *)calloc(100 * 100, sizeof(double));
-			int n_entries = random() % 5000;
-			
-			for (int entry = 1; entry <= n_entries; ++entry)
-			{
-				int entry_index = random() % 10000;
-				
-				distances[entry_index] = entry;
-				strengths[entry_index] = random();
-			}
-			
-			SparseArray sa(100, 100);
-			
-			for (int row = 0; row < 100; row++)
-			{
-				std::vector<uint32_t> columns;
-				std::vector<float> row_distances;
-				std::vector<float> row_strengths;
-				
-				for (int col = 0; col < 100; ++col)
-					if (*(distances + row + col * 100) != 0)
-					{
-						columns.emplace_back(col);
-						row_distances.emplace_back(*(distances + row + col * 100));
-						row_strengths.emplace_back(*(strengths + row + col * 100));
-					}
-				
-				sa.AddRowInteractions(row, columns.data(), row_distances.data(), row_strengths.data(), (uint32_t)columns.size());
-			}
-			sa.Finished();
-			
-			for (int col = 0; col < 100; ++col)
-				for (int row = 0; row < 100; row++)
-					if (*(distances + row + col * 100) == 0)
-					{
-						if (!isinf(sa.Distance(row, col)))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance defined that should be undefined." << EidosTerminate(nullptr);
-						if (sa.Strength(row, col) != 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength defined that should be undefined." << EidosTerminate(nullptr);
-					}
-					else
-					{
-						double distance = sa.Distance(row, col);
-						double strength = sa.Strength(row, col);
-						
-						if (isinf(distance))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance undefined that should be defined." << EidosTerminate(nullptr);
-						if (strength == 0)
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength undefined that should be defined." << EidosTerminate(nullptr);
-						if (distance != *(distances + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): distance mismatch." << EidosTerminate(nullptr);
-						if (strength != *(strengths + row + col * 100))
-							EIDOS_TERMINATION << "ERROR (TestSparseArray): strength mismatch." << EidosTerminate(nullptr);
-					}
-			
-			free(distances);
-			free(strengths);
-		}
-	}
-#endif
-}
 
 void SLiM_WarmUp(void)
 {
@@ -325,7 +75,8 @@ void SLiM_WarmUp(void)
 		gSLiM_Mutation_Class =				new Mutation_Class(				gEidosStr_Mutation,			gEidosDictionaryRetained_Class);
 		gSLiM_MutationType_Class =			new MutationType_Class(			gStr_MutationType,			gEidosDictionaryUnretained_Class);
 		gSLiM_SLiMEidosBlock_Class =		new SLiMEidosBlock_Class(		gStr_SLiMEidosBlock,		gEidosDictionaryUnretained_Class);
-		gSLiM_SLiMSim_Class =				new SLiMSim_Class(				gStr_SLiMSim,				gEidosDictionaryUnretained_Class);
+		gSLiM_Community_Class =				new Community_Class(			gStr_Community,				gEidosDictionaryUnretained_Class);
+		gSLiM_Species_Class =				new Species_Class(				gStr_Species,				gEidosDictionaryUnretained_Class);
 		gSLiM_Substitution_Class =			new Substitution_Class(			gStr_Substitution,			gEidosDictionaryRetained_Class);
 		gSLiM_Subpopulation_Class =			new Subpopulation_Class(		gStr_Subpopulation,			gEidosDictionaryUnretained_Class);
 		
@@ -350,9 +101,6 @@ void SLiM_WarmUp(void)
 		// Check for a memory limit and prepare for memory-limit testing
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
-		
-		// Test sparse arrays; these are not structured as unit tests at the moment
-		TestSparseArray();
 		
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
 		
@@ -419,15 +167,19 @@ void SLiM_WarmUp(void)
 std::ostringstream gSLiMOut;
 std::ostringstream gSLiMError;
 
+#ifdef SLIMGUI
+std::ostringstream gSLiMScheduling;
+#endif
+
 
 #pragma mark -
 #pragma mark Types and max values
 #pragma mark -
 
 // Functions for casting from Eidos ints (int64_t) to SLiM int types safely
-void SLiM_RaiseGenerationRangeError(int64_t p_long_value)
+void SLiM_RaiseTickRangeError(int64_t p_long_value)
 {
-	EIDOS_TERMINATION << "ERROR (SLiM_RaiseGenerationRangeError): value " << p_long_value << " for a generation index or duration is out of range." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (SLiM_RaiseTickRangeError): value " << p_long_value << " for a tick index or duration is out of range." << EidosTerminate();
 }
 
 void SLiM_RaiseAgeRangeError(int64_t p_long_value)
@@ -465,19 +217,19 @@ void SLiM_RaisePolymorphismidRangeError(int64_t p_long_value)
 	EIDOS_TERMINATION << "ERROR (SLiM_RaisePolymorphismidRangeError): value " << p_long_value << " for a polymorphism identifier is out of range." << EidosTerminate();
 }
 
-SLiMSim &SLiM_GetSimFromInterpreter(EidosInterpreter &p_interpreter)
+Community &SLiM_GetCommunityFromInterpreter(EidosInterpreter &p_interpreter)
 {
 #if DEBUG
 	// Use dynamic_cast<> only in DEBUG since it is hella slow
-	SLiMSim *sim = dynamic_cast<SLiMSim *>(p_interpreter.Context());
+	Community *community = dynamic_cast<Community *>(p_interpreter.Context());
 #else
-	SLiMSim *sim = (SLiMSim *)(p_interpreter.Context());
+	Community *community = (Community *)(p_interpreter.Context());
 #endif
 	
-	if (!sim)
-		EIDOS_TERMINATION << "ERROR (SLiM_GetSimFromInterpreter): (internal error) the sim is not registered as the context pointer." << EidosTerminate();
+	if (!community)
+		EIDOS_TERMINATION << "ERROR (SLiM_GetCommunityFromInterpreter): (internal error) the community is not registered as the context pointer." << EidosTerminate();
 	
-	return *sim;
+	return *community;
 }
 
 slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p_index, char p_prefix_char)
@@ -485,102 +237,364 @@ slim_objectid_t SLiM_ExtractObjectIDFromEidosValue_is(EidosValue *p_value, int p
 	return (p_value->Type() == EidosValueType::kValueInt) ? SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr)) : SLiMEidosScript::ExtractIDFromStringWithPrefix(p_value->StringAtIndex(p_index, nullptr), p_prefix_char, nullptr);
 }
 
-MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+MutationType *SLiM_ExtractMutationTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	MutationType *found_muttype = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t mutation_type_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        MutationType *found_muttype = p_sim.MutationTypeWithID(mutation_type_id);
 		
-		if (!found_muttype)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
-		
-		return found_muttype;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_muttype = p_species->MutationTypeWithID(mutation_type_id);
+			
+			if (!found_muttype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_muttype = species->MutationTypeWithID(mutation_type_id);
+				
+				if (found_muttype)
+					break;
+			}
+			
+			if (!found_muttype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << mutation_type_id << " not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = dynamic_cast<MutationType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_muttype = (MutationType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_muttype)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a mutation type." << EidosTerminate();
+		
+		if (p_species && (&found_muttype->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " mutation type m" << found_muttype->mutation_type_id_ << " not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_muttype;
 }
 
-GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+GenomicElementType *SLiM_ExtractGenomicElementTypeFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	GenomicElementType *found_getype = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t getype_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        GenomicElementType *found_getype = p_sim.GenomicElementTypeTypeWithID(getype_id);
 		
-		if (!found_getype)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
-		
-		return found_getype;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_getype = p_species->GenomicElementTypeWithID(getype_id);
+			
+			if (!found_getype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_getype = species->GenomicElementTypeWithID(getype_id);
+				
+				if (found_getype)
+					break;
+			}
+			
+			if (!found_getype)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << getype_id << " not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = dynamic_cast<GenomicElementType *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_getype = (GenomicElementType *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_getype)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a genomic element type." << EidosTerminate();
+		
+		if (p_species && (&found_getype->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractGenomicElementTypeFromEidosValue_io): " << p_method_name << " genomic element type g" << found_getype->genomic_element_type_id_ << " not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_getype;
 }
 
-Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+Subpopulation *SLiM_ExtractSubpopulationFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	Subpopulation *found_subpop = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t source_subpop_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-        Subpopulation *found_subpop = p_sim.SubpopulationWithID(source_subpop_id);
 		
-		if (!found_subpop)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
-		
-		return found_subpop;
+		if (p_species)
+		{
+			// Look in the species, if one was supplied
+			found_subpop = p_species->SubpopulationWithID(source_subpop_id);
+			
+			if (!found_subpop)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined in the focal species." << EidosTerminate();
+		}
+		else
+		{
+			// Otherwise, look in all species in the community
+			for (Species *species : p_community->AllSpecies())
+			{
+				found_subpop = species->SubpopulationWithID(source_subpop_id);
+				
+				if (found_subpop)
+					break;
+			}
+			
+			if (!found_subpop)
+				EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << source_subpop_id << " not defined." << EidosTerminate();
+		}
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = dynamic_cast<Subpopulation *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_subpop = (Subpopulation *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_subpop)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a subpopulation." << EidosTerminate();
+		
+		if (p_species && (&found_subpop->species_ != p_species))
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSubpopulationFromEidosValue_io): " << p_method_name << " subpopulation p" << found_subpop->subpopulation_id_ << " not defined in the focal species." << EidosTerminate();
 	}
+	
+	return found_subpop;
 }
 
-SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, SLiMSim &p_sim, const char *p_method_name)
+SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value, int p_index, Community *p_community, Species *p_species, const char *p_method_name)
 {
+	SLiMEidosBlock *found_block = nullptr;
+	
 	if (p_value->Type() == EidosValueType::kValueInt)
 	{
 		slim_objectid_t block_id = SLiMCastToObjectidTypeOrRaise(p_value->IntAtIndex(p_index, nullptr));
-		std::vector<SLiMEidosBlock*> &script_blocks = p_sim.AllScriptBlocks();
+		std::vector<SLiMEidosBlock*> &script_blocks = p_community->AllScriptBlocks();
 		
-		for (SLiMEidosBlock *found_block : script_blocks)
-			if (found_block->block_id_ == block_id)
-				return found_block;
+		for (SLiMEidosBlock *temp_found_block : script_blocks)
+			if (temp_found_block->block_id_ == block_id)
+			{
+				found_block = temp_found_block;
+				break;
+			}
 		
-		EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
+		if (!found_block)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << block_id << " not defined." << EidosTerminate();
 	}
 	else
 	{
 #if DEBUG
 		// Use dynamic_cast<> only in DEBUG since it is hella slow
 		// the class of the object here should be guaranteed by the caller anyway
-		return dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = dynamic_cast<SLiMEidosBlock *>(p_value->ObjectElementAtIndex(p_index, nullptr));
 #else
-		return (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+		found_block = (SLiMEidosBlock *)(p_value->ObjectElementAtIndex(p_index, nullptr));
 #endif
+		
+		if (!found_block)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a SLiMEidosBlock." << EidosTerminate();
+		
 	}
+	
+	if (p_species && (found_block->species_spec_ != p_species))
+		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
+	
+	return found_block;
 }
+
+Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, Community *p_community, const char *p_method_name)
+{
+	Species *found_species = nullptr;
+	
+	if (p_value->Type() == EidosValueType::kValueNULL)
+	{
+		const std::vector<Species *> &all_species = p_community->AllSpecies();
+		
+		if (all_species.size() == 1)
+			found_species = all_species[0];
+		else
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSpeciesFromEidosValue_No): " << p_method_name << " requires a species to be supplied in multispecies models." << EidosTerminate();
+	}
+	else
+	{
+#if DEBUG
+		// Use dynamic_cast<> only in DEBUG since it is hella slow
+		// the class of the object here should be guaranteed by the caller anyway
+		found_species = dynamic_cast<Species *>(p_value->ObjectElementAtIndex(p_index, nullptr));
+#else
+		found_species = (Species *)(p_value->ObjectElementAtIndex(p_index, nullptr));
+#endif
+		
+		if (!found_species)
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSpeciesFromEidosValue_No): (internal error) " << p_method_name << " was passed an object that is not a Species." << EidosTerminate();
+	}
+	
+	return found_species;
+}
+
+
+#pragma mark -
+#pragma mark Memory management
+#pragma mark -
+
+void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
+{
+	p_usage.totalMemoryUsage =
+		p_usage.chromosomeObjects +
+		p_usage.chromosomeMutationRateMaps +
+		p_usage.chromosomeRecombinationRateMaps +
+		p_usage.chromosomeAncestralSequence +
+		p_usage.genomeObjects +
+		p_usage.genomeExternalBuffers +
+		p_usage.genomeUnusedPoolSpace +
+		p_usage.genomeUnusedPoolBuffers +
+		p_usage.genomicElementObjects +
+		p_usage.genomicElementTypeObjects +
+		p_usage.individualObjects +
+		p_usage.individualUnusedPoolSpace +
+		p_usage.mutationObjects +
+		p_usage.mutationRunObjects +
+		p_usage.mutationRunExternalBuffers +
+		p_usage.mutationRunNonneutralCaches +
+		p_usage.mutationTypeObjects +
+		p_usage.speciesObjects +
+		p_usage.speciesTreeSeqTables +
+		p_usage.subpopulationObjects +
+		p_usage.subpopulationFitnessCaches +
+		p_usage.subpopulationParentTables +
+		p_usage.subpopulationSpatialMaps +
+		p_usage.subpopulationSpatialMapsDisplay +
+		p_usage.substitutionObjects;
+}
+
+void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
+{
+	p_usage.totalMemoryUsage =
+		p_usage.communityObjects +
+		p_usage.mutationRefcountBuffer +
+		p_usage.mutationUnusedPoolSpace +
+		p_usage.mutationRunUnusedPoolSpace +
+		p_usage.mutationRunUnusedPoolBuffers +
+		p_usage.interactionTypeObjects +
+		p_usage.interactionTypeKDTrees +
+		p_usage.interactionTypePositionCaches +
+		p_usage.interactionTypeSparseVectorPool +
+		p_usage.eidosASTNodePool +
+		p_usage.eidosSymbolTablePool +
+		p_usage.eidosValuePool + 
+		p_usage.fileBuffers;
+}
+
+void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SLiMMemoryUsage_Species &p_total)
+{
+	// p_total += p_usage;
+	
+	p_total.chromosomeObjects_count += p_usage.chromosomeObjects_count;
+	p_total.chromosomeObjects += p_usage.chromosomeObjects;
+	p_total.chromosomeMutationRateMaps += p_usage.chromosomeMutationRateMaps;
+	p_total.chromosomeRecombinationRateMaps += p_usage.chromosomeRecombinationRateMaps;
+	p_total.chromosomeAncestralSequence += p_usage.chromosomeAncestralSequence;
+	
+	p_total.genomeObjects_count += p_usage.genomeObjects_count;
+	p_total.genomeObjects += p_usage.genomeObjects;
+	p_total.genomeExternalBuffers += p_usage.genomeExternalBuffers;
+	p_total.genomeUnusedPoolSpace += p_usage.genomeUnusedPoolSpace;
+	p_total.genomeUnusedPoolBuffers += p_usage.genomeUnusedPoolBuffers;
+	
+	p_total.genomicElementObjects_count += p_usage.genomicElementObjects_count;
+	p_total.genomicElementObjects += p_usage.genomicElementObjects;
+	
+	p_total.genomicElementTypeObjects_count += p_usage.genomicElementTypeObjects_count;
+	p_total.genomicElementTypeObjects += p_usage.genomicElementTypeObjects;
+	
+	p_total.individualObjects_count += p_usage.individualObjects_count;
+	p_total.individualObjects += p_usage.individualObjects;
+	p_total.individualUnusedPoolSpace += p_usage.individualUnusedPoolSpace;
+	
+	p_total.mutationObjects_count += p_usage.mutationObjects_count;
+	p_total.mutationObjects += p_usage.mutationObjects;
+	
+	p_total.mutationRunObjects_count += p_usage.mutationRunObjects_count;
+	p_total.mutationRunObjects += p_usage.mutationRunObjects;
+	p_total.mutationRunExternalBuffers += p_usage.mutationRunExternalBuffers;
+	p_total.mutationRunNonneutralCaches += p_usage.mutationRunNonneutralCaches;
+	
+	p_total.mutationTypeObjects_count += p_usage.mutationTypeObjects_count;
+	p_total.mutationTypeObjects += p_usage.mutationTypeObjects;
+	
+	p_total.speciesObjects_count += p_usage.speciesObjects_count;
+	p_total.speciesObjects += p_usage.speciesObjects;
+	p_total.speciesTreeSeqTables += p_usage.speciesTreeSeqTables;
+	
+	p_total.subpopulationObjects_count += p_usage.subpopulationObjects_count;
+	p_total.subpopulationObjects += p_usage.subpopulationObjects;
+	p_total.subpopulationFitnessCaches += p_usage.subpopulationFitnessCaches;
+	p_total.subpopulationParentTables += p_usage.subpopulationParentTables;
+	p_total.subpopulationSpatialMaps += p_usage.subpopulationSpatialMaps;
+	p_total.subpopulationSpatialMapsDisplay += p_usage.subpopulationSpatialMapsDisplay;
+	
+	p_total.substitutionObjects_count += p_usage.substitutionObjects_count;
+	p_total.substitutionObjects += p_usage.substitutionObjects;
+	
+	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
+}
+
+void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage, SLiMMemoryUsage_Community &p_total)
+{
+	// p_total += p_usage;
+	
+	p_total.communityObjects_count += p_usage.communityObjects_count;
+	p_total.communityObjects += p_usage.communityObjects;
+	
+	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
+	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
+	
+	p_total.mutationRunUnusedPoolSpace += p_usage.mutationRunUnusedPoolSpace;
+	p_total.mutationRunUnusedPoolBuffers += p_usage.mutationRunUnusedPoolBuffers;
+	
+	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
+	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;
+	p_total.interactionTypeKDTrees += p_usage.interactionTypeKDTrees;
+	p_total.interactionTypePositionCaches += p_usage.interactionTypePositionCaches;
+	
+	p_total.interactionTypeSparseVectorPool += p_usage.interactionTypeSparseVectorPool;
+	
+	p_total.eidosASTNodePool += p_usage.eidosASTNodePool;
+	p_total.eidosSymbolTablePool += p_usage.eidosSymbolTablePool;
+	p_total.eidosValuePool += p_usage.eidosValuePool;
+	p_total.fileBuffers += p_usage.fileBuffers;
+	
+	p_total.totalMemoryUsage += p_usage.totalMemoryUsage;
+}
+
 
 
 #pragma mark -
@@ -590,6 +604,34 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 // Verbosity, from the command-line option -l[ong]; defaults to 1 if -l[ong] is not used
 int64_t SLiM_verbosity_level = 1;
 
+// stream output for cycle stages
+std::string StringForSLiMCycleStage(SLiMCycleStage p_stage)
+{
+	switch (p_stage)
+	{
+		// some of these are not user-visible
+		case SLiMCycleStage::kStagePreCycle: return "begin";
+		case SLiMCycleStage::kWFStage0ExecuteFirstScripts: return "first";
+		case SLiMCycleStage::kWFStage1ExecuteEarlyScripts: return "early";
+		case SLiMCycleStage::kWFStage2GenerateOffspring: return "reproduction";
+		case SLiMCycleStage::kWFStage3RemoveFixedMutations: return "tally";
+		case SLiMCycleStage::kWFStage4SwapGenerations: return "swap";
+		case SLiMCycleStage::kWFStage5ExecuteLateScripts: return "late";
+		case SLiMCycleStage::kWFStage6CalculateFitness: return "fitness";
+		case SLiMCycleStage::kWFStage7AdvanceTickCounter: return "end";
+		case SLiMCycleStage::kNonWFStage0ExecuteFirstScripts: return "first";
+		case SLiMCycleStage::kNonWFStage1GenerateOffspring: return "reproduction";
+		case SLiMCycleStage::kNonWFStage2ExecuteEarlyScripts: return "early";
+		case SLiMCycleStage::kNonWFStage3CalculateFitness: return "fitness";
+		case SLiMCycleStage::kNonWFStage4SurvivalSelection: return "survival";
+		case SLiMCycleStage::kNonWFStage5RemoveFixedMutations: return "tally";
+		case SLiMCycleStage::kNonWFStage6ExecuteLateScripts: return "late";
+		case SLiMCycleStage::kNonWFStage7AdvanceTickCounter: return "end";
+		case SLiMCycleStage::kStagePostCycle: return "console";
+	}
+	
+	EIDOS_TERMINATION << "ERROR (StringForSLiMCycleStage): (internal) unrecognized cycle stage." << EidosTerminate();
+}
 
 // stream output for enumerations
 std::string StringForGenomeType(GenomeType p_genome_type)
@@ -1064,7 +1106,7 @@ std::istream& operator>>(std::istream& p_in, NucleotideArray &p_nuc_array)
 #pragma mark Global strings and IDs
 #pragma mark -
 
-// initialize...() functions defined by SLiMSim
+// initialize...() functions defined by Species
 const std::string &gStr_initializeAncestralNucleotides = EidosRegisteredString("initializeAncestralNucleotides", gID_initializeAncestralNucleotides);
 const std::string &gStr_initializeGenomicElement = EidosRegisteredString("initializeGenomicElement", gID_initializeGenomicElement);
 const std::string &gStr_initializeGenomicElementType = EidosRegisteredString("initializeGenomicElementType", gID_initializeGenomicElementType);
@@ -1076,6 +1118,7 @@ const std::string &gStr_initializeHotspotMap = EidosRegisteredString("initialize
 const std::string &gStr_initializeRecombinationRate = EidosRegisteredString("initializeRecombinationRate", gID_initializeRecombinationRate);
 const std::string &gStr_initializeSex = EidosRegisteredString("initializeSex", gID_initializeSex);
 const std::string &gStr_initializeSLiMOptions = EidosRegisteredString("initializeSLiMOptions", gID_initializeSLiMOptions);
+const std::string &gStr_initializeSpecies = EidosRegisteredString("initializeSpecies", gID_initializeSpecies);
 const std::string &gStr_initializeTreeSeq = EidosRegisteredString("initializeTreeSeq", gID_initializeTreeSeq);
 const std::string &gStr_initializeSLiMModelType = EidosRegisteredString("initializeSLiMModelType", gID_initializeSLiMModelType);
 const std::string &gStr_initializeInteractionType = EidosRegisteredString("initializeInteractionType", gID_initializeInteractionType);
@@ -1128,7 +1171,7 @@ const std::string &gStr_isSegregating = EidosRegisteredString("isSegregating", g
 const std::string &gStr_mutationType = EidosRegisteredString("mutationType", gID_mutationType);
 const std::string &gStr_nucleotide = EidosRegisteredString("nucleotide", gID_nucleotide);
 const std::string &gStr_nucleotideValue = EidosRegisteredString("nucleotideValue", gID_nucleotideValue);
-const std::string &gStr_originGeneration = EidosRegisteredString("originGeneration", gID_originGeneration);
+const std::string &gStr_originTick = EidosRegisteredString("originTick", gID_originTick);
 const std::string &gStr_position = EidosRegisteredString("position", gID_position);
 const std::string &gStr_selectionCoeff = EidosRegisteredString("selectionCoeff", gID_selectionCoeff);
 const std::string &gStr_subpopID = EidosRegisteredString("subpopID", gID_subpopID);
@@ -1144,11 +1187,15 @@ const std::string &gStr_mutationStackPolicy = EidosRegisteredString("mutationSta
 //const std::string &gStr_type = EidosRegisteredString("type", gID_type);
 //const std::string &gStr_source = EidosRegisteredString("source", gID_source);
 const std::string &gStr_active = EidosRegisteredString("active", gID_active);
+const std::string &gStr_allGenomicElementTypes = EidosRegisteredString("allGenomicElementTypes", gID_allGenomicElementTypes);
+const std::string &gStr_allInteractionTypes = EidosRegisteredString("allInteractionTypes", gID_allInteractionTypes);
+const std::string &gStr_allMutationTypes = EidosRegisteredString("allMutationTypes", gID_allMutationTypes);
+const std::string &gStr_allScriptBlocks = EidosRegisteredString("allScriptBlocks", gID_allScriptBlocks);
+const std::string &gStr_allSpecies = EidosRegisteredString("allSpecies", gID_allSpecies);
+const std::string &gStr_allSubpopulations = EidosRegisteredString("allSubpopulations", gID_allSubpopulations);
 const std::string &gStr_chromosome = EidosRegisteredString("chromosome", gID_chromosome);
 const std::string &gStr_chromosomeType = EidosRegisteredString("chromosomeType", gID_chromosomeType);
 const std::string &gStr_genomicElementTypes = EidosRegisteredString("genomicElementTypes", gID_genomicElementTypes);
-const std::string &gStr_inSLiMgui = EidosRegisteredString("inSLiMgui", gID_inSLiMgui);
-const std::string &gStr_interactionTypes = EidosRegisteredString("interactionTypes", gID_interactionTypes);
 const std::string &gStr_lifetimeReproductiveOutput = EidosRegisteredString("lifetimeReproductiveOutput", gID_lifetimeReproductiveOutput);
 const std::string &gStr_lifetimeReproductiveOutputM = EidosRegisteredString("lifetimeReproductiveOutputM", gID_lifetimeReproductiveOutputM);
 const std::string &gStr_lifetimeReproductiveOutputF = EidosRegisteredString("lifetimeReproductiveOutputF", gID_lifetimeReproductiveOutputF);
@@ -1158,9 +1205,9 @@ const std::string &gStr_scriptBlocks = EidosRegisteredString("scriptBlocks", gID
 const std::string &gStr_sexEnabled = EidosRegisteredString("sexEnabled", gID_sexEnabled);
 const std::string &gStr_subpopulations = EidosRegisteredString("subpopulations", gID_subpopulations);
 const std::string &gStr_substitutions = EidosRegisteredString("substitutions", gID_substitutions);
-const std::string &gStr_dominanceCoeffX = EidosRegisteredString("dominanceCoeffX", gID_dominanceCoeffX);
-const std::string &gStr_generation = EidosRegisteredString("generation", gID_generation);
-const std::string &gStr_generationStage = EidosRegisteredString("generationStage", gID_generationStage);
+const std::string &gStr_tick = EidosRegisteredString("tick", gID_tick);
+const std::string &gStr_cycle = EidosRegisteredString("cycle", gID_cycle);
+const std::string &gStr_cycleStage = EidosRegisteredString("cycleStage", gID_cycleStage);
 const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitution", gID_colorSubstitution);
 const std::string &gStr_verbosity = EidosRegisteredString("verbosity", gID_verbosity);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
@@ -1176,6 +1223,7 @@ const std::string &gStr_subpopulation = EidosRegisteredString("subpopulation", g
 const std::string &gStr_index = EidosRegisteredString("index", gID_index);
 const std::string &gStr_immigrantSubpopIDs = EidosRegisteredString("immigrantSubpopIDs", gID_immigrantSubpopIDs);
 const std::string &gStr_immigrantSubpopFractions = EidosRegisteredString("immigrantSubpopFractions", gID_immigrantSubpopFractions);
+const std::string &gStr_avatar = EidosRegisteredString("avatar", gID_avatar);
 const std::string &gStr_name = EidosRegisteredString("name", gID_name);
 const std::string &gStr_description = EidosRegisteredString("description", gID_description);
 const std::string &gStr_selfingRate = EidosRegisteredString("selfingRate", gID_selfingRate);
@@ -1183,7 +1231,7 @@ const std::string &gStr_cloningRate = EidosRegisteredString("cloningRate", gID_c
 const std::string &gStr_sexRatio = EidosRegisteredString("sexRatio", gID_sexRatio);
 const std::string &gStr_spatialBounds = EidosRegisteredString("spatialBounds", gID_spatialBounds);
 const std::string &gStr_individualCount = EidosRegisteredString("individualCount", gID_individualCount);
-const std::string &gStr_fixationGeneration = EidosRegisteredString("fixationGeneration", gID_fixationGeneration);
+const std::string &gStr_fixationTick = EidosRegisteredString("fixationTick", gID_fixationTick);
 const std::string &gStr_age = EidosRegisteredString("age", gID_age);
 const std::string &gStr_pedigreeID = EidosRegisteredString("pedigreeID", gID_pedigreeID);
 const std::string &gStr_pedigreeParentIDs = EidosRegisteredString("pedigreeParentIDs", gID_pedigreeParentIDs);
@@ -1232,7 +1280,14 @@ const std::string &gStr_setDistribution = EidosRegisteredString("setDistribution
 const std::string &gStr_addSubpop = EidosRegisteredString("addSubpop", gID_addSubpop);
 const std::string &gStr_addSubpopSplit = EidosRegisteredString("addSubpopSplit", gID_addSubpopSplit);
 const std::string &gStr_deregisterScriptBlock = EidosRegisteredString("deregisterScriptBlock", gID_deregisterScriptBlock);
+const std::string &gStr_genomicElementTypesWithIDs = EidosRegisteredString("genomicElementTypesWithIDs", gID_genomicElementTypesWithIDs);
+const std::string &gStr_interactionTypesWithIDs = EidosRegisteredString("interactionTypesWithIDs", gID_interactionTypesWithIDs);
+const std::string &gStr_mutationTypesWithIDs = EidosRegisteredString("mutationTypesWithIDs", gID_mutationTypesWithIDs);
+const std::string &gStr_scriptBlocksWithIDs = EidosRegisteredString("scriptBlocksWithIDs", gID_scriptBlocksWithIDs);
+const std::string &gStr_speciesWithIDs = EidosRegisteredString("speciesWithIDs", gID_speciesWithIDs);
+const std::string &gStr_subpopulationsWithIDs = EidosRegisteredString("subpopulationsWithIDs", gID_subpopulationsWithIDs);
 const std::string &gStr_individualsWithPedigreeIDs = EidosRegisteredString("individualsWithPedigreeIDs", gID_individualsWithPedigreeIDs);
+const std::string &gStr_killIndividuals = EidosRegisteredString("killIndividuals", gID_killIndividuals);
 const std::string &gStr_mutationCounts = EidosRegisteredString("mutationCounts", gID_mutationCounts);
 const std::string &gStr_mutationCountsInGenomes = EidosRegisteredString("mutationCountsInGenomes", gID_mutationCountsInGenomes);
 const std::string &gStr_mutationFrequencies = EidosRegisteredString("mutationFrequencies", gID_mutationFrequencies);
@@ -1248,16 +1303,18 @@ const std::string &gStr_recalculateFitness = EidosRegisteredString("recalculateF
 const std::string &gStr_registerFirstEvent = EidosRegisteredString("registerFirstEvent", gID_registerFirstEvent);
 const std::string &gStr_registerEarlyEvent = EidosRegisteredString("registerEarlyEvent", gID_registerEarlyEvent);
 const std::string &gStr_registerLateEvent = EidosRegisteredString("registerLateEvent", gID_registerLateEvent);
-const std::string &gStr_registerFitnessCallback = EidosRegisteredString("registerFitnessCallback", gID_registerFitnessCallback);
+const std::string &gStr_registerFitnessEffectCallback = EidosRegisteredString("registerFitnessEffectCallback", gID_registerFitnessEffectCallback);
 const std::string &gStr_registerInteractionCallback = EidosRegisteredString("registerInteractionCallback", gID_registerInteractionCallback);
 const std::string &gStr_registerMateChoiceCallback = EidosRegisteredString("registerMateChoiceCallback", gID_registerMateChoiceCallback);
 const std::string &gStr_registerModifyChildCallback = EidosRegisteredString("registerModifyChildCallback", gID_registerModifyChildCallback);
 const std::string &gStr_registerRecombinationCallback = EidosRegisteredString("registerRecombinationCallback", gID_registerRecombinationCallback);
 const std::string &gStr_registerMutationCallback = EidosRegisteredString("registerMutationCallback", gID_registerMutationCallback);
+const std::string &gStr_registerMutationEffectCallback = EidosRegisteredString("registerMutationEffectCallback", gID_registerMutationEffectCallback);
 const std::string &gStr_registerSurvivalCallback = EidosRegisteredString("registerSurvivalCallback", gID_registerSurvivalCallback);
 const std::string &gStr_registerReproductionCallback = EidosRegisteredString("registerReproductionCallback", gID_registerReproductionCallback);
 const std::string &gStr_rescheduleScriptBlock = EidosRegisteredString("rescheduleScriptBlock", gID_rescheduleScriptBlock);
 const std::string &gStr_simulationFinished = EidosRegisteredString("simulationFinished", gID_simulationFinished);
+const std::string &gStr_skipTick = EidosRegisteredString("skipTick", gID_skipTick);
 const std::string &gStr_subsetMutations = EidosRegisteredString("subsetMutations", gID_subsetMutations);
 const std::string &gStr_treeSeqCoalesced = EidosRegisteredString("treeSeqCoalesced", gID_treeSeqCoalesced);
 const std::string &gStr_treeSeqSimplify = EidosRegisteredString("treeSeqSimplify", gID_treeSeqSimplify);
@@ -1299,8 +1356,10 @@ const std::string &gStr_distance = EidosRegisteredString("distance", gID_distanc
 const std::string &gStr_localPopulationDensity = EidosRegisteredString("localPopulationDensity", gID_localPopulationDensity);
 const std::string &gStr_interactionDistance = EidosRegisteredString("interactionDistance", gID_interactionDistance);
 const std::string &gStr_clippedIntegral = EidosRegisteredString("clippedIntegral", gID_clippedIntegral);
-const std::string &gStr_distanceToPoint = EidosRegisteredString("distanceToPoint", gID_distanceToPoint);
+const std::string &gStr_distanceFromPoint = EidosRegisteredString("distanceFromPoint", gID_distanceFromPoint);
 const std::string &gStr_nearestNeighbors = EidosRegisteredString("nearestNeighbors", gID_nearestNeighbors);
+const std::string &gStr_neighborCount = EidosRegisteredString("neighborCount", gID_neighborCount);
+const std::string &gStr_neighborCountOfPoint = EidosRegisteredString("neighborCountOfPoint", gID_neighborCountOfPoint);
 const std::string &gStr_nearestInteractingNeighbors = EidosRegisteredString("nearestInteractingNeighbors", gID_nearestInteractingNeighbors);
 const std::string &gStr_interactingNeighborCount = EidosRegisteredString("interactingNeighborCount", gID_interactingNeighborCount);
 const std::string &gStr_nearestNeighborsOfPoint = EidosRegisteredString("nearestNeighborsOfPoint", gID_nearestNeighborsOfPoint);
@@ -1311,6 +1370,7 @@ const std::string &gStr_unevaluate = EidosRegisteredString("unevaluate", gID_une
 const std::string &gStr_drawByStrength = EidosRegisteredString("drawByStrength", gID_drawByStrength);
 
 // mostly SLiM variable names used in callbacks and such
+const std::string &gStr_community = EidosRegisteredString("community", gID_community);
 const std::string &gStr_sim = EidosRegisteredString("sim", gID_sim);
 const std::string &gStr_self = EidosRegisteredString("self", gID_self);
 const std::string &gStr_individual = EidosRegisteredString("individual", gID_individual);
@@ -1322,25 +1382,19 @@ const std::string &gStr_subpop = EidosRegisteredString("subpop", gID_subpop);
 const std::string &gStr_sourceSubpop = EidosRegisteredString("sourceSubpop", gID_sourceSubpop);
 //const std::string &gStr_weights = EidosRegisteredString("weights", gID_weights);		now gEidosStr_weights
 const std::string &gStr_child = EidosRegisteredString("child", gID_child);
-const std::string &gStr_childGenome1 = EidosRegisteredString("childGenome1", gID_childGenome1);
-const std::string &gStr_childGenome2 = EidosRegisteredString("childGenome2", gID_childGenome2);
-const std::string &gStr_childIsFemale = EidosRegisteredString("childIsFemale", gID_childIsFemale);
 const std::string &gStr_parent = EidosRegisteredString("parent", gID_parent);
 const std::string &gStr_parent1 = EidosRegisteredString("parent1", gID_parent1);
-const std::string &gStr_parent1Genome1 = EidosRegisteredString("parent1Genome1", gID_parent1Genome1);
-const std::string &gStr_parent1Genome2 = EidosRegisteredString("parent1Genome2", gID_parent1Genome2);
 const std::string &gStr_isCloning = EidosRegisteredString("isCloning", gID_isCloning);
 const std::string &gStr_isSelfing = EidosRegisteredString("isSelfing", gID_isSelfing);
 const std::string &gStr_parent2 = EidosRegisteredString("parent2", gID_parent2);
-const std::string &gStr_parent2Genome1 = EidosRegisteredString("parent2Genome1", gID_parent2Genome1);
-const std::string &gStr_parent2Genome2 = EidosRegisteredString("parent2Genome2", gID_parent2Genome2);
 const std::string &gStr_mut = EidosRegisteredString("mut", gID_mut);
-const std::string &gStr_relFitness = EidosRegisteredString("relFitness", gID_relFitness);
+const std::string &gStr_effect = EidosRegisteredString("effect", gID_effect);
 const std::string &gStr_homozygous = EidosRegisteredString("homozygous", gID_homozygous);
 const std::string &gStr_breakpoints = EidosRegisteredString("breakpoints", gID_breakpoints);
 const std::string &gStr_receiver = EidosRegisteredString("receiver", gID_receiver);
 const std::string &gStr_exerter = EidosRegisteredString("exerter", gID_exerter);
 const std::string &gStr_originalNuc = EidosRegisteredString("originalNuc", gID_originalNuc);
+const std::string &gStr_fitness = EidosRegisteredString("fitness", gID_fitness);
 const std::string &gStr_surviving = EidosRegisteredString("surviving", gID_surviving);
 const std::string &gStr_draw = EidosRegisteredString("draw", gID_draw);
 
@@ -1359,7 +1413,8 @@ const std::string &gStr_GenomicElementType = EidosRegisteredString("GenomicEleme
 //const std::string &gStr_Mutation = EidosRegisteredString("Mutation", gID_Mutation);			// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_MutationType = EidosRegisteredString("MutationType", gID_MutationType);
 const std::string &gStr_SLiMEidosBlock = EidosRegisteredString("SLiMEidosBlock", gID_SLiMEidosBlock);
-const std::string &gStr_SLiMSim = EidosRegisteredString("SLiMSim", gID_SLiMSim);
+const std::string &gStr_Community = EidosRegisteredString("Community", gID_Community);
+const std::string &gStr_Species = EidosRegisteredString("Species", gID_Species);
 const std::string &gStr_Subpopulation = EidosRegisteredString("Subpopulation", gID_Subpopulation);
 //const std::string &gStr_Individual = EidosRegisteredString("Individual", gID_Individual);		// in Eidos; see EidosValue_Object::EidosValue_Object()
 const std::string &gStr_Substitution = EidosRegisteredString("Substitution", gID_Substitution);
@@ -1373,17 +1428,21 @@ const std::string &gStr_LogFile = EidosRegisteredString("LogFile", gID_LogFile);
 const std::string &gStr_logInterval = EidosRegisteredString("logInterval", gID_logInterval);
 const std::string &gStr_precision = EidosRegisteredString("precision", gID_precision);
 const std::string &gStr_addCustomColumn = EidosRegisteredString("addCustomColumn", gID_addCustomColumn);
-const std::string &gStr_addGeneration = EidosRegisteredString("addGeneration", gID_addGeneration);
-const std::string &gStr_addGenerationStage = EidosRegisteredString("addGenerationStage", gID_addGenerationStage);
+const std::string &gStr_addCycle = EidosRegisteredString("addCycle", gID_addCycle);
+const std::string &gStr_addCycleStage = EidosRegisteredString("addCycleStage", gID_addCycleStage);
 const std::string &gStr_addMeanSDColumns = EidosRegisteredString("addMeanSDColumns", gID_addMeanSDColumns);
 const std::string &gStr_addPopulationSexRatio = EidosRegisteredString("addPopulationSexRatio", gID_addPopulationSexRatio);
 const std::string &gStr_addPopulationSize = EidosRegisteredString("addPopulationSize", gID_addPopulationSize);
 const std::string &gStr_addSubpopulationSexRatio = EidosRegisteredString("addSubpopulationSexRatio", gID_addSubpopulationSexRatio);
 const std::string &gStr_addSubpopulationSize = EidosRegisteredString("addSubpopulationSize", gID_addSubpopulationSize);
+const std::string &gStr_addSuppliedColumn = EidosRegisteredString("addSuppliedColumn", gID_addSuppliedColumn);
+const std::string &gStr_addTick = EidosRegisteredString("addTick", gID_addTick);
 const std::string &gStr_flush = EidosRegisteredString("flush", gID_flush);
 const std::string &gStr_logRow = EidosRegisteredString("logRow", gID_logRow);
 const std::string &gStr_setLogInterval = EidosRegisteredString("setLogInterval", gID_setLogInterval);
 const std::string &gStr_setFilePath = EidosRegisteredString("setFilePath", gID_setFilePath);
+const std::string &gStr_setSuppliedValue = EidosRegisteredString("setSuppliedValue", gID_setSuppliedValue);
+const std::string &gStr_willAutolog = EidosRegisteredString("willAutolog", gID_willAutolog);
 const std::string &gStr_context = EidosRegisteredString("context", gID_context);
 
 // mostly other fixed strings
@@ -1400,11 +1459,16 @@ const std::string &gStr_e = EidosRegisteredString("e", gID_e);
 const std::string &gStr_w = EidosRegisteredString("w", gID_w);
 const std::string &gStr_l = EidosRegisteredString("l", gID_l);
 //const std::string &gStr_s = EidosRegisteredString("s", gID_s);		now gEidosStr_s
+const std::string &gStr_species = EidosRegisteredString("species", gID_species);
+const std::string &gStr_ticks = EidosRegisteredString("ticks", gID_ticks);
+const std::string &gStr_speciesSpec = EidosRegisteredString("speciesSpec", gID_speciesSpec);
+const std::string &gStr_ticksSpec = EidosRegisteredString("ticksSpec", gID_ticksSpec);
 const std::string &gStr_first = EidosRegisteredString("first", gID_first);
 const std::string &gStr_early = EidosRegisteredString("early", gID_early);
 const std::string &gStr_late = EidosRegisteredString("late", gID_late);
 const std::string &gStr_initialize = EidosRegisteredString("initialize", gID_initialize);
-const std::string &gStr_fitness = EidosRegisteredString("fitness", gID_fitness);
+const std::string &gStr_fitnessEffect = EidosRegisteredString("fitnessEffect", gID_fitnessEffect);
+const std::string &gStr_mutationEffect = EidosRegisteredString("mutationEffect", gID_mutationEffect);
 const std::string &gStr_interaction = EidosRegisteredString("interaction", gID_interaction);
 const std::string &gStr_mateChoice = EidosRegisteredString("mateChoice", gID_mateChoice);
 const std::string &gStr_modifyChild = EidosRegisteredString("modifyChild", gID_modifyChild);
@@ -1466,26 +1530,31 @@ void SLiM_ConfigureContext(void)
 // see https://stackoverflow.com/a/5460235/2752221
 
 const std::string gSLiM_tsk_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.7","generation":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.7","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"generation":{"description":"The 'SLiM generation' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","generation","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","codec":"json","examples":[{"SLiM":{"file_version":"0.8","name":"fox","description":"foxes on Catalina island","cycle":123,"tick":123,"model_type":"WF","nucleotide_based":false,"separate_sexes":true,"spatial_dimensionality":"xy","spatial_periodicity":"x"}}],"properties":{"SLiM":{"description":"Top-level metadata for a SLiM tree sequence, file format version 0.8","properties":{"file_version":{"description":"The SLiM 'file format version' of this tree sequence.","type":"string"},"name":{"description":"The SLiM species name represented by this tree sequence.","type":"string"},"description":{"description":"A user-configurable description of the species represented by this tree sequence.","type":"string"},"cycle":{"description":"The 'SLiM cycle' counter when this tree sequence was recorded.","type":"integer"},"tick":{"description":"The 'SLiM tick' counter when this tree sequence was recorded.","type":"integer"},"model_type":{"description":"The model type used for the last part of this simulation (WF or nonWF).","enum":["WF","nonWF"],"type":"string"},"nucleotide_based":{"description":"Whether the simulation was nucleotide-based.","type":"boolean"},"separate_sexes":{"description":"Whether the simulation had separate sexes.","type":"boolean"},"spatial_dimensionality":{"description":"The spatial dimensionality of the simulation.","enum":["","x","xy","xyz"],"type":"string"},"spatial_periodicity":{"description":"The spatial periodicity of the simulation.","enum":["","x","y","z","xy","xz","yz","xyz"],"type":"string"},"stage":{"description":"The stage of the SLiM life cycle when this tree sequence was recorded.","type":"string"}},"required":["model_type","tick","file_version","spatial_dimensionality","spatial_periodicity","separate_sexes","nucleotide_based"],"type":"object"}},"required":["SLiM"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_edge_metadata_schema = "";
 const std::string gSLiM_tsk_site_metadata_schema = "";
 
 const std::string gSLiM_tsk_mutation_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM generation counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for mutation metadata.","examples":[{"mutation_list":[{"mutation_type":1,"nucleotide":3,"selection_coeff":-0.2,"slim_time":243,"subpopulation":0}]}],"properties":{"mutation_list":{"items":{"additionalProperties":false,"properties":{"mutation_type":{"binaryFormat":"i","description":"The index of this mutation's mutationType.","index":1,"type":"integer"},"nucleotide":{"binaryFormat":"b","description":"The nucleotide for this mutation (0=A , 1=C , 2=G, 3=T, or -1 for none)","index":5,"type":"integer"},"selection_coeff":{"binaryFormat":"f","description":"This mutation's selection coefficient.","index":2,"type":"number"},"slim_time":{"binaryFormat":"i","description":"The SLiM tick counter when this mutation occurred.","index":4,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation this mutation occurred in.","index":3,"type":"integer"}},"required":["mutation_type","selection_coeff","subpopulation","slim_time","nucleotide"],"type":"object"},"noLengthEncodingExhaustBuffer":true,"type":"array"}},"required":["mutation_list"],"type":"object"})V0G0N";
 
 const std::string gSLiM_tsk_node_metadata_schema =
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for node metadata.","examples":[{"genome_type":0,"is_null":false,"slim_id":123}],"properties":{"genome_type":{"binaryFormat":"B","description":"The 'type' of this genome (0 for autosome, 1 for X, 2 for Y).","index":2,"type":"integer"},"is_null":{"binaryFormat":"?","description":"Whether this node describes a 'null' (non-existant) chromosome.","index":1,"type":"boolean"},"slim_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this chromosome in SLiM.","index":0,"type":"integer"}},"required":["slim_id","is_null","genome_type"],"type":["object","null"]})V0G0N";
 
 const std::string gSLiM_tsk_individual_metadata_schema =
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the generation when the tree sequence was written out (if the individual was alive then), or in the generation of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for individual metadata.","examples":[{"age":-1,"flags":0,"pedigree_id":123,"pedigree_p1":12,"pedigree_p2":23,"sex":0,"subpopulation":0}],"flags":{"SLIM_INDIVIDUAL_METADATA_MIGRATED":{"description":"Whether this individual was a migrant, either in the tick when the tree sequence was written out (if the individual was alive then), or in the tick of the last time they were Remembered (if not).","value":1}},"properties":{"age":{"binaryFormat":"i","description":"The age of this individual, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":4,"type":"integer"},"flags":{"binaryFormat":"I","description":"Other information about the individual: see 'flags'.","index":7,"type":"integer"},"pedigree_id":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual in SLiM.","index":1,"type":"integer"},"pedigree_p1":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's first parent in SLiM.","index":2,"type":"integer"},"pedigree_p2":{"binaryFormat":"q","description":"The 'pedigree ID' of this individual's second parent in SLiM.","index":3,"type":"integer"},"sex":{"binaryFormat":"i","description":"The sex of the individual (0 for female, 1 for male, -1 for hermaphrodite).","index":6,"type":"integer"},"subpopulation":{"binaryFormat":"i","description":"The ID of the subpopulation the individual was part of, either when the tree sequence was written out (if the individual was alive then), or the last time they were Remembered (if not).","index":5,"type":"integer"}},"required":["pedigree_id","pedigree_p1","pedigree_p2","age","subpopulation","sex","flags"],"type":"object"})V0G0N";
 
 // This schema was obsoleted in SLiM 3.7; we now use a JSON schema for the population metadata (see below)
 const std::string gSLiM_tsk_population_metadata_schema_PREJSON = 
 R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":false,"codec":"struct","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"bounds_z0":0.0,"bounds_z1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2}],"properties":{"bounds_x0":{"binaryFormat":"d","description":"The minimum x-coordinate in this subpopulation.","index":6,"type":"number"},"bounds_x1":{"binaryFormat":"d","description":"The maximum x-coordinate in this subpopulation.","index":7,"type":"number"},"bounds_y0":{"binaryFormat":"d","description":"The minimum y-coordinate in this subpopulation.","index":8,"type":"number"},"bounds_y1":{"binaryFormat":"d","description":"The maximum y-coordinate in this subpopulation.","index":9,"type":"number"},"bounds_z0":{"binaryFormat":"d","description":"The minimum z-coordinate in this subpopulation.","index":10,"type":"number"},"bounds_z1":{"binaryFormat":"d","description":"The maximum z-coordinate in this subpopulation.","index":11,"type":"number"},"female_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","index":3,"type":"number"},"male_cloning_fraction":{"binaryFormat":"d","description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","index":4,"type":"number"},"migration_records":{"arrayLengthFormat":"I","index":13,"items":{"additionalProperties":false,"properties":{"migration_rate":{"binaryFormat":"d","description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","index":2,"type":"number"},"source_subpop":{"binaryFormat":"i","description":"The ID of the subpopulation migrants come from (in WF models).","index":1,"type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"selfing_fraction":{"binaryFormat":"d","description":"The frequency with which individuals in this subpopulation self (for WF models).","index":2,"type":"number"},"sex_ratio":{"binaryFormat":"d","description":"This subpopulation's sex ratio (for WF models).","index":5,"type":"number"},"slim_id":{"binaryFormat":"i","description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","index":1,"type":"integer"}},"required":["slim_id","selfing_fraction","female_cloning_fraction","male_cloning_fraction","sex_ratio","bounds_x0","bounds_x1","bounds_y0","bounds_y1","bounds_z0","bounds_z1","migration_records"],"type":["object","null"]})V0G0N";
 
+// BCH 19 May 2022: removed the `required` status for the "slim_id" key for SLiM 4, to allow "carryover" metadata
+// to validate without errors (but for it to be considered SLiM metadata, "slim_id" must nevertheless be present).
+// This is a change from SLiM 3.7 (and before SLiM 3.7 we were pre-JSON), but we don't need to have the SLiM 3.7
+// schema in SLiM since we don't check/validate schemas anyway in SLiM; we will just write out this new schema in
+// SLiM 4, and on read we won't care whether the schema is the 3.7 or the 4.0 schema.
 const std::string gSLiM_tsk_population_metadata_schema = 
-R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":true,"codec":"json","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2,"name":"p2"}],"properties":{"bounds_x0":{"description":"The minimum x-coordinate in this subpopulation.","type":"number"},"bounds_x1":{"description":"The maximum x-coordinate in this subpopulation.","type":"number"},"bounds_y0":{"description":"The minimum y-coordinate in this subpopulation.","type":"number"},"bounds_y1":{"description":"The maximum y-coordinate in this subpopulation.","type":"number"},"bounds_z0":{"description":"The minimum z-coordinate in this subpopulation.","type":"number"},"bounds_z1":{"description":"The maximum z-coordinate in this subpopulation.","type":"number"},"description":{"description":"A description of this subpopulation.","type":"string"},"female_cloning_fraction":{"description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","type":"number"},"male_cloning_fraction":{"description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","type":"number"},"migration_records":{"items":{"properties":{"migration_rate":{"description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","type":"number"},"source_subpop":{"description":"The ID of the subpopulation migrants come from (in WF models).","type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"name":{"description":"A human-readable name for this subpopulation.","type":"string"},"selfing_fraction":{"description":"The frequency with which individuals in this subpopulation self (for WF models).","type":"number"},"sex_ratio":{"description":"This subpopulation's sex ratio (for WF models).","type":"number"},"slim_id":{"description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","type":"integer"}},"required":["slim_id"],"type":["object","null"]})V0G0N";
+R"V0G0N({"$schema":"http://json-schema.org/schema#","additionalProperties":true,"codec":"json","description":"SLiM schema for population metadata.","examples":[{"bounds_x0":0.0,"bounds_x1":100.0,"bounds_y0":0.0,"bounds_y1":100.0,"female_cloning_fraction":0.25,"male_cloning_fraction":0.0,"migration_records":[{"migration_rate":0.9,"source_subpop":1},{"migration_rate":0.1,"source_subpop":2}],"selfing_fraction":0.5,"sex_ratio":0.5,"slim_id":2,"name":"p2"}],"properties":{"bounds_x0":{"description":"The minimum x-coordinate in this subpopulation.","type":"number"},"bounds_x1":{"description":"The maximum x-coordinate in this subpopulation.","type":"number"},"bounds_y0":{"description":"The minimum y-coordinate in this subpopulation.","type":"number"},"bounds_y1":{"description":"The maximum y-coordinate in this subpopulation.","type":"number"},"bounds_z0":{"description":"The minimum z-coordinate in this subpopulation.","type":"number"},"bounds_z1":{"description":"The maximum z-coordinate in this subpopulation.","type":"number"},"description":{"description":"A description of this subpopulation.","type":"string"},"female_cloning_fraction":{"description":"The frequency with which females in this subpopulation reproduce clonally (for WF models).","type":"number"},"male_cloning_fraction":{"description":"The frequency with which males in this subpopulation reproduce clonally (for WF models).","type":"number"},"migration_records":{"items":{"properties":{"migration_rate":{"description":"The fraction of children in this subpopulation that are composed of 'migrants' from the source subpopulation (in WF models).","type":"number"},"source_subpop":{"description":"The ID of the subpopulation migrants come from (in WF models).","type":"integer"}},"required":["source_subpop","migration_rate"],"type":"object"},"type":"array"},"name":{"description":"A human-readable name for this subpopulation.","type":"string"},"selfing_fraction":{"description":"The frequency with which individuals in this subpopulation self (for WF models).","type":"number"},"sex_ratio":{"description":"This subpopulation's sex ratio (for WF models).","type":"number"},"slim_id":{"description":"The ID of this population in SLiM. Note that this is called a 'subpopulation' in SLiM.","type":"integer"}},"required":[],"type":["object","null"]})V0G0N";
 
 
 

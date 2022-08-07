@@ -204,6 +204,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		//	distribution draw / density functions
 		//
 		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("findInterval",		Eidos_ExecuteFunction_findInterval,	kEidosValueMaskInt))->AddNumeric("x")->AddNumeric("vec")->AddLogical_OS("rightmostClosed", gStaticEidosValue_LogicalF)->AddLogical_OS("allInside", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dmvnorm",			Eidos_ExecuteFunction_dmvnorm,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("mu")->AddNumeric("sigma"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dbeta",				Eidos_ExecuteFunction_dbeta,		kEidosValueMaskFloat))->AddFloat("x")->AddNumeric("alpha")->AddNumeric("beta"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("dexp",				Eidos_ExecuteFunction_dexp,			kEidosValueMaskFloat))->AddFloat("x")->AddNumeric_O("mu", gStaticEidosValue_Integer1));
@@ -367,7 +368,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("functionSource",	Eidos_ExecuteFunction_functionSource,	kEidosValueMaskVOID))->AddString_S("functionName"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_ls,		Eidos_ExecuteFunction_ls,			kEidosValueMaskVOID))->AddLogical_OS("showSymbolTables", gStaticEidosValue_LogicalF));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL)->AddLogical_OS("removeConstants", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("stop",				Eidos_ExecuteFunction_stop,			kEidosValueMaskVOID))->AddString_OSN("message", gStaticEidosValueNULL));
@@ -5332,6 +5333,157 @@ EidosValue_SP Eidos_ExecuteFunction_var(const std::vector<EidosValue_SP> &p_argu
 #pragma mark -
 
 
+//	(integer)findInterval(numeric x, numeric vec, [logical$ rightmostClosed = F], [logical$ allInside = F])
+EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *arg_x = p_arguments[0].get();
+	EidosValue *arg_vec = p_arguments[1].get();
+	EidosValue *arg_rightmostClosed = p_arguments[2].get();
+	EidosValue *arg_allInside = p_arguments[3].get();
+	
+	EidosValueType x_type = arg_x->Type();
+	int x_count = arg_x->Count();
+	
+	EidosValueType vec_type = arg_vec->Type();
+	int vec_count = arg_vec->Count();
+	
+	if (vec_count == 0)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be of length > 0." << EidosTerminate(nullptr);
+	
+	bool rightmostClosed = arg_rightmostClosed->LogicalAtIndex(0, nullptr);
+	bool allInside = arg_allInside->LogicalAtIndex(0, nullptr);
+	int initial_x_result = allInside ? 0 : -1;
+	
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+	
+	if (vec_type == EidosValueType::kValueInt)
+	{
+		// Get a raw pointer to vec's values
+		const int64_t *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Int_singleton *)arg_vec)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_vec)->data();
+		
+		// Check that vec is sorted
+		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
+			if (vec_data[vec_index] > vec_data[vec_index + 1])
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be sorted into non-decreasing order." << EidosTerminate(nullptr);
+		
+		// Branch on the type of arg_x
+		if (x_type == EidosValueType::kValueInt)
+		{
+			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			
+			// Find intervals for integer vec, integer x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+		else	// (x_type == EidosValueType::kValueFloat)
+		{
+			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			
+			// Find intervals for integer vec, float x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+	}
+	else // (vec_type == EidosValueType::kValueFloat))
+	{
+		// Get a raw pointer to vec's values
+		const double *vec_data = arg_vec->IsSingleton() ? &((EidosValue_Float_singleton *)arg_vec)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_vec)->data();
+		
+		// Check that vec is sorted
+		for (int vec_index = 0; vec_index < vec_count - 1; ++vec_index)
+			if (vec_data[vec_index] > vec_data[vec_index + 1])
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_findInterval): findInterval() requires vec to be sorted into non-decreasing order." << EidosTerminate(nullptr);
+		
+		// Branch on the type of arg_x
+		if (x_type == EidosValueType::kValueInt)
+		{
+			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
+			
+			// Find intervals for float vec, integer x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+		else	// (x_type == EidosValueType::kValueFloat)
+		{
+			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
+			
+			// Find intervals for float vec, float x
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				int x_result = initial_x_result;
+				
+				if (x_value >= vec_data[0])
+				{
+					for (x_result = 0; x_result < vec_count - 1; ++x_result)
+						if ((x_value >= vec_data[x_result]) && (x_value < vec_data[x_result + 1]))
+							break;
+					
+					if (rightmostClosed && (x_result == vec_count - 1) && (x_value == vec_data[vec_count - 1]))
+						x_result = vec_count - 2;
+					if (allInside && (x_result > vec_count - 2))
+						x_result = vec_count - 2;
+				}
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+		}
+	}
+	
+	return EidosValue_SP(int_result);
+}
+
 //	(float)dmvnorm(float x, numeric mu, numeric sigma)
 EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -7203,6 +7355,28 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	if (!replace && (sample_size == 1))
 		replace = true;
 	
+	// several algorithms below use a buffer of indexes; we share that here as static locals
+	// whenever sampling without replacement, we resize the buffer to the needed capacity here, too,
+	// and initialize the buffer; all the code paths below use it in essentially the same way
+	static int *index_buffer = nullptr;
+	static int buffer_capacity = 0;
+	
+	if (!replace)
+	{
+		if (x_count > buffer_capacity)
+		{
+			buffer_capacity = x_count * 2;		// double whenever we go over capacity, to avoid reallocations
+			if (index_buffer)
+				free(index_buffer);
+			index_buffer = (int *)malloc(buffer_capacity * sizeof(int));	// no need to realloc, we don't need the old data
+			if (!index_buffer)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			index_buffer[value_index] = value_index;
+	}
+	
 	// the algorithm used depends on whether weights were supplied
 	if (weights_value)
 	{
@@ -7270,12 +7444,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
-				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
-				std::vector<int> index_vector;
-				
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					index_vector.emplace_back(value_index);
-				
 				// do the sampling
 				int64_t contender_count = x_count;
 				
@@ -7290,17 +7458,18 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					
 					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
 					{
-						rose_sum += weights_float[index_vector[rose_index]];
+						rose_sum += weights_float[index_buffer[rose_index]];
 						
 						if (rose <= rose_sum)
 							break;
 					}
 					
-					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 					
-					// remove the sampled index since replace==F
-					weights_sum -= weights_float[index_vector[rose_index]];	// possible source of numerical error
-					index_vector.erase(index_vector.begin() + rose_index);
+					// remove the sampled index since replace==F; note this algorithm is terrible if we are sampling
+					// a large number of elements without replacement, with weights, but that seems unlikely to me...
+					weights_sum -= weights_float[index_buffer[rose_index]];	// possible source of numerical error
+					memmove(index_buffer + rose_index, index_buffer + rose_index + 1, (contender_count - rose_index - 1) * sizeof(int));
 					--contender_count;
 				}
 			}
@@ -7371,12 +7540,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
-				// get indices of x; we sample from this vector and then look up the corresponding weight and EidosValue element
-				std::vector<int> index_vector;
-				
-				for (int value_index = 0; value_index < x_count; ++value_index)
-					index_vector.emplace_back(value_index);
-				
 				// do the sampling
 				int64_t contender_count = x_count;
 				
@@ -7391,17 +7554,18 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					
 					for (rose_index = 0; rose_index < contender_count - 1; ++rose_index)	// -1 so roundoff gives the result to the last contender
 					{
-						rose_sum += weights_int[index_vector[rose_index]];
+						rose_sum += weights_int[index_buffer[rose_index]];
 						
 						if (rose <= rose_sum)
 							break;
 					}
 					
-					result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
+					result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 					
-					// remove the sampled index since replace==F
-					weights_sum -= weights_int[index_vector[rose_index]];
-					index_vector.erase(index_vector.begin() + rose_index);
+					// remove the sampled index since replace==F; note this algorithm is terrible if we are sampling
+					// a large number of elements without replacement, with weights, but that seems unlikely to me...
+					weights_sum -= weights_int[index_buffer[rose_index]];
+					memmove(index_buffer + rose_index, index_buffer + rose_index + 1, (contender_count - rose_index - 1) * sizeof(int));
 					--contender_count;
 				}
 			}
@@ -7432,6 +7596,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		else if ((sample_size == x_count) && (x_value->Type() != EidosValueType::kValueString))
 		{
 			// full shuffle; optimized case for everything but std::string, which is difficult as usual
+			// and is handled below, because gsl_ran_shuffle() can't move std::string safely
 			result_SP = x_value->CopyValues();
 			EidosValue *result = result_SP.get();
 			
@@ -7440,32 +7605,31 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				case EidosValueType::kValueVOID: break;
 				case EidosValueType::kValueNULL: break;
 				case EidosValueType::kValueLogical:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count, sizeof(eidos_logical_t));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueInt:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count, sizeof(int64_t));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueFloat:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count, sizeof(double));
-					break;
-				case EidosValueType::kValueString:
-					// handled below, because gsl_ran_shuffle() can't move std::string safely
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueObject:
-					gsl_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count, sizeof(EidosObject *));
+					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count);
 					break;
+				default:
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
 			}
 		}
 		else
 		{
 			// get indices of x; we sample from this vector and then look up the corresponding EidosValue element
+			// this is generally faster than gsl_ran_choose(), which is O(n) in x_count with a large constant factor;
+			// we are O(n+m) in x_count and sample_size, but our constant factor is much, much smaller, because
+			// gsl_ran_choose() does a gsl_rng_uniform() call for every element in x_value()!  We only do one
+			// Eidos_rng_uniform_int() call per element in sample_size, at the price of a separate index buffer
+			// and a lack of re-entrancy and thread-safety.  This is a *lot* faster for sample_size << x_count.
 			result_SP = x_value->NewMatchingType();
 			EidosValue *result = result_SP.get();
-			
-			std::vector<int> index_vector;
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				index_vector.emplace_back(value_index);
 			
 			// do the sampling
 			int64_t contender_count = x_count;
@@ -7473,11 +7637,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
 				int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
-				
-				result->PushValueFromIndexOfEidosValue(index_vector[rose_index], *x_value, nullptr);
-				
-				index_vector[rose_index] = index_vector.back();
-				index_vector.resize(--contender_count);
+				result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
+				index_buffer[rose_index] = index_buffer[--contender_count];
 			}
 		}
 	}
@@ -11233,7 +11394,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	
 #ifdef SLIMGUI
 	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
-	// we make a separate buffer for this purpose, with string copies, to donate to SLiMSim with &&
+	// we make a separate buffer for this purpose, with string copies, to donate to Community with &&
 	{
 		EidosContext *context = p_interpreter.Context();
 		std::vector<std::string> slimgui_buffer;
@@ -11295,7 +11456,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	
 #ifdef SLIMGUI
 	// we need to provide SLiMgui with information about the file write we just did; this is gross, but it wants to know
-	// we make a separate buffer for this purpose, with string copies, to donate to SLiMSim with &&
+	// we make a separate buffer for this purpose, with string copies, to donate to Community with &&
 	{
 		EidosContext *context = p_interpreter.Context();
 		std::string file_path(file_path_cstr);
@@ -12468,13 +12629,12 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 	return gStaticEidosValueVOID;
 }
 
-//	(void)rm([Ns variableNames = NULL], [logical$ removeConstants = F])
+//	(void)rm([Ns variableNames = NULL])		// [logical$ removeConstants = F] removed in SLiM 4
 EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
 	EidosValue *variableNames_value = p_arguments[0].get();
-	bool removeConstants = p_arguments[1]->LogicalAtIndex(0, nullptr);
 	std::vector<std::string> symbols_to_remove;
 	
 	EidosSymbolTable &symbols = p_interpreter.SymbolTable();
@@ -12489,12 +12649,8 @@ EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_argum
 			symbols_to_remove.emplace_back(variableNames_value->StringAtIndex(value_index, nullptr));
 	}
 	
-	if (removeConstants)
-		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveConstantForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
-	else
-		for (std::string &symbol : symbols_to_remove)
-			symbols.RemoveValueForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
+	for (std::string &symbol : symbols_to_remove)
+		symbols.RemoveValueForSymbol(EidosStringRegistry::GlobalStringIDForString(symbol));
 	
 	return gStaticEidosValueVOID;
 }
@@ -12694,7 +12850,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 		
 		p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 		
-		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop(\"" + stop_string + "\") called.") << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop() called with error message:\n\n" + stop_string) << EidosTerminate(nullptr);
 	}
 	else
 	{

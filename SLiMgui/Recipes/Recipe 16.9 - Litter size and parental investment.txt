@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, sexual, QTL, quantitative trait loci, reproduction(), fitness()
+// Keywords: nonWF, non-Wright-Fisher, sexual, QTL, quantitative trait loci, reproduction()
 
 initialize() {
 	initializeSLiMModelType("nonWF");
@@ -50,13 +50,13 @@ early() {
 	// density-dependence for juveniles
 	p1.fitnessScaling = K / size(inds);
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 late() {
 	// output the phenotypic mean and pop size
 	qtlValues = p1.individuals.tagF;
 	expectedSizes = pmax(0.0, qtlValues + 3);
 	
-	cat(sim.generation + ": " + p1.individualCount + " individuals");
+	cat(sim.cycle + ": " + p1.individualCount + " individuals");
 	cat(", mean litter size " + mean(expectedSizes));
 	catn();
 }

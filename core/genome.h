@@ -54,7 +54,7 @@ typedef std::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
 #endif
 
 
-class SLiMSim;
+class Species;
 class Population;
 class Subpopulation;
 class Individual;
@@ -117,7 +117,7 @@ private:
 	
 	// Bulk operation optimization; see WillModifyRunForBulkOperation().  The idea is to keep track of changes to MutationRun
 	// objects in a bulk operation, and short-circuit the operation for all Genomes with the same initial MutationRun (since
-	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).
+	// the bulk operation will produce the same product MutationRun given the same initial MutationRun).  Note this is shared by all species.
 	static int64_t s_bulk_operation_id_;
 	static slim_mutrun_index_t s_bulk_operation_mutrun_index_;
 	static SLiMBulkOperationHashTable s_bulk_operation_runs_;
@@ -126,7 +126,23 @@ public:
 	
 	Genome(const Genome &p_original) = delete;
 	Genome& operator= (const Genome &p_original) = delete;
-	Genome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_, bool p_is_null);
+	
+	// make a null genome
+	explicit inline Genome(GenomeType p_genome_type_) :
+		genome_type_(p_genome_type_), mutrun_count_(0), mutrun_length_(0), mutruns_(nullptr), individual_(nullptr), genome_id_(-1)
+	{
+	};
+	
+	// make a non-null genome
+	inline Genome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type_) :
+		genome_type_(p_genome_type_), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(nullptr), genome_id_(-1)
+	{
+		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			mutruns_ = run_buffer_;
+		else
+			mutruns_ = new MutationRun_SP[mutrun_count_];
+	};
+	
 	~Genome(void);
 	
 	inline __attribute__((always_inline)) slim_genomeid_t GenomeID(void)			{ return genome_id_; }
@@ -360,7 +376,7 @@ public:
 		return mutruns_[run_index]->derived_mutation_ids_at_position(p_position);
 	}
 	
-	void record_derived_states(SLiMSim *p_sim) const;
+	void record_derived_states(Species *p_species) const;
 	
 	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);
 	
@@ -414,7 +430,7 @@ public:
 	// runs, etc., transparently and pretends that a genome is just a single bag of mutations.
 	// FIXME well, now we do in fact have the GenomeWalker iterator class below, which works nicely, so some
 	// of the code that messes around inside Genome's internals can probably be switched over to using it...
-	friend SLiMSim;
+	friend Species;
 	friend Population;
 	friend Subpopulation;
 	friend Individual;

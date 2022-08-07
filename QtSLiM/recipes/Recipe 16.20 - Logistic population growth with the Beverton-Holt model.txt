@@ -18,8 +18,8 @@ initialize() {
 	sim.addSubpop("p2", 50);   // Beverton-Holt influencing fecundity
 	sim.addSubpop("p3", 50);   // Beverton-Holt influencing survival
 	
-	log = sim.createLogFile("~/Desktop/sim_log.txt", logInterval=1);
-	log.addGeneration();
+	log = community.createLogFile("sim_log.txt", logInterval=1);
+	log.addCycle();
 	log.addSubpopulationSize(p1);
 	log.addSubpopulationSize(p2);
 	log.addSubpopulationSize(p3);

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="16096" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="16096"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -299,86 +299,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="0Gd-Zb-sPj"/>
-                            <menuItem title="Change Subpopulation Size..." id="rxc-hS-5Ou">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonChangeSubpopSize:" target="-1" id="cSm-Zo-Yrn"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Remove Subpopulation..." id="00D-fA-8hI">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonRemoveSubpop:" target="-1" id="r2p-Na-xyO"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Add Subpopulation..." id="AkA-4t-SUu">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonAddSubpop:" target="-1" id="Nkd-G9-pir"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Split Subpopulation..." id="wzB-k7-W3y">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonSplitSubpop:" target="-1" id="e1g-QP-eE1"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Change Migration Rates..." id="Pbv-4l-wIq">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonChangeMigrationRates:" target="-1" id="yuN-lY-gvK"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Change Selfing Rate..." id="qyd-pU-bof">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonChangeSelfingRates:" target="-1" id="6RG-Bl-teN"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Change Cloning Rate..." id="xfS-6F-38J">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonChangeCloningRates:" target="-1" id="jMi-1t-tOr"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Change Sex Ratio..." id="YJ3-cR-7cB">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="buttonChangeSexRatio:" target="-1" id="lfQ-wa-KBY"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="Hta-hf-61q"/>
-                            <menuItem title="Add Mutation Type..." id="trY-5Z-o5I">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addMutationType:" target="-1" id="mvw-a0-adG"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Add Genomic Element Type..." id="tKe-zj-cCW">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addGenomicElementType:" target="-1" id="yfV-Sm-Fcv"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Add Genomic Element to Chromosome..." id="rNK-jf-COe">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addGenomicElementToChromosome:" target="-1" id="SDy-mu-v1V"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Add Recombination Interval..." id="4Ke-1T-1sb">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addRecombinationInterval:" target="-1" id="fuX-Ht-eRx"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Add Sex Configuration..." id="1I4-t1-bBA">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="addSexConfiguration:" target="-1" id="XTx-NL-9ZY"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="J48-9s-tbA"/>
                             <menuItem title="Change Working Directory..." id="acZ-a2-D3c">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -386,25 +306,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="RrU-a1-ejQ"/>
-                            <menuItem title="Output Full Population State..." id="XhD-CB-edn">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="outputFullPopulationState:" target="-1" id="HJR-T9-PCK"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Output Population Sample..." id="7UE-Q9-2nb">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="outputPopulationSample:" target="-1" id="CPv-RK-1mw"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Output Fixed Mutations..." id="n8w-w5-LfG">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="outputFixedMutations:" target="-1" id="rFU-ES-1YL"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="JRf-ad-zNv"/>
                             <menuItem title="Graph Mutation Frequency Spectrum" id="FSt-J5-XHJ">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

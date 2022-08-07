@@ -8,16 +8,16 @@ initialize() {
 	initializeGenomicElement(g1, 0, 1e8-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 1: late() {
 	if (sim.treeSeqCoalesced())
 	{
-		catn(sim.generation + ": COALESCED");
+		catn(sim.cycle + ": COALESCED");
 		sim.simulationFinished();
 	}
 }
 100000 late() {
-	catn("NO COALESCENCE BY GENERATION 100000");
+	catn("NO COALESCENCE BY CYCLE 100000");
 }

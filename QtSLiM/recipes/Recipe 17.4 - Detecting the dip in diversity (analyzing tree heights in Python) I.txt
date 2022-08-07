@@ -14,9 +14,9 @@ initialize() {
 	for (start in seq(from=L0, to=L-(L0+L1), by=(L0+L1)))
 		initializeGenomicElement(g2, start, (start+L1)-1);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", N);
-	sim.rescheduleScriptBlock(s1, 10*N, 10*N);
+	community.rescheduleScriptBlock(s1, 10*N, 10*N);
 }
 s1 10 late() {
 	sim.treeSeqOutput("./recipe_17.4.trees");

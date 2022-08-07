@@ -21,6 +21,10 @@
 #import "GraphView.h"
 #import "SLiMWindowController.h"
 
+#import "species.h"
+#include "community.h"
+
+
 
 @implementation GraphView
 
@@ -35,6 +39,16 @@
 	
 	if (!attrs)
 		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:14]} retain];
+	
+	return attrs;
+}
+
++ (NSDictionary *)attributesForAvatars
+{
+	static NSDictionary *attrs = nil;
+	
+	if (!attrs)
+		attrs = [@{NSFontAttributeName : [NSFont fontWithName:[self labelFontName] size:12]} retain];
 	
 	return attrs;
 }
@@ -74,6 +88,7 @@
 	if (self = [super initWithFrame:frameRect])
 	{
 		[self setSlimWindowController:controller];
+		focalSpeciesName = [controller focalDisplaySpecies]->name_;
 		
 		_showXAxis = TRUE;
 		_allowXAxisUserRescale = TRUE;
@@ -107,6 +122,33 @@
 	}
 	
 	return self;
+}
+
+- (Species *)focalDisplaySpecies
+{
+	// We look up our focal species object by name every time, since keeping a pointer to it would be unsafe
+	// Before initialize() is done species have not been created, so we return nullptr in that case
+	SLiMWindowController *controller = [self slimWindowController];
+	
+	if (controller && controller->community && (controller->community->Tick() >= 1))
+		return controller->community->SpeciesWithName(focalSpeciesName);
+	
+	return nullptr;
+}
+
+- (void)updateSpeciesBadge
+{
+	Species *graphSpecies = [self focalDisplaySpecies];
+	
+	// Cache our graphSpecies avatar whenever we're in a valid state, because it could change,
+	// and because we want to be able to display it even when the sim is in an invalid state
+	if (graphSpecies)
+	{
+		if (graphSpecies->community_.all_species_.size() > 1)
+			focalSpeciesAvatar = graphSpecies->avatar_;
+		else
+			focalSpeciesAvatar = "";
+	}
 }
 
 - (void)cleanup
@@ -520,6 +562,27 @@
 	}
 }
 
+- (void)drawSpeciesAvatar
+{
+	SLiMWindowController *controller = [self slimWindowController];
+	NSRect bounds = [self bounds];
+	
+	if (controller->community->all_species_.size() > 1)
+	{
+		Species *displaySpecies = [self focalDisplaySpecies];
+		
+		if (displaySpecies)
+		{
+			NSDictionary *avatarAttrs = [[self class] attributesForAvatars];
+			NSString *avatarString = [NSString stringWithUTF8String:displaySpecies->avatar_.c_str()];
+			NSAttributedString *avatar = [[NSAttributedString alloc] initWithString:avatarString attributes:avatarAttrs];
+			
+			[avatar drawAtPoint:NSMakePoint(bounds.origin.x + bounds.size.width - 23, bounds.origin.x + 7)];
+			[avatar release];
+		}
+	}
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
 	NSRect bounds = [self bounds];
@@ -531,7 +594,20 @@
 	// Get our controller and test for validity, so subclasses don't have to worry about this
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation] && (controller->sim->generation_ > 0))
+	if (!controller || [controller invalidSimulation])
+	{
+		[self drawMessage:@"   invalid\nsimulation" inRect:bounds];
+	}
+	else if (controller->community->Tick() == 0)
+	{
+		[self drawMessage:@" no\ndata" inRect:bounds];
+	}
+	else if (![self focalDisplaySpecies])
+	{
+		// The species name no longer refers to a species in the community
+		[self drawMessage:@"missing\nspecies" inRect:bounds];
+	}
+	else
 	{
 		NSRect interiorRect = [self interiorRectForBounds:bounds];
 		
@@ -575,12 +651,10 @@
 			// Overdraw the legend
 			if ([self legendVisible])
 				[self drawLegendInInteriorRect:interiorRect];
+			
+			// Overdraw the species avatar
+			[self drawSpeciesAvatar];
 		}
-	}
-	else
-	{
-		// The controller is invalid, so just draw a generic message
-		[self drawMessage:@"   invalid\nsimulation" inRect:bounds];
 	}
 }
 
@@ -852,7 +926,7 @@
 {
 	SLiMWindowController *controller = [self slimWindowController];
 	
-	if (![controller invalidSimulation] && ![[controller window] attachedSheet])
+	if (![controller invalidSimulation] && ![[controller window] attachedSheet] && [self focalDisplaySpecies])
 	{
 		BOOL addedItems = NO;
 		NSMenu *menu = [[NSMenu alloc] initWithTitle:@"graph_menu"];
@@ -986,6 +1060,7 @@
 
 - (void)controllerRecycled
 {
+	[self updateSpeciesBadge];
 	[self invalidateDrawingCache];
 	[self setNeedsDisplay:YES];
 }
@@ -994,12 +1069,13 @@
 {
 }
 
-- (void)controllerGenerationFinished
+- (void)controllerTickFinished
 {
 }
 
 - (void)updateAfterTick
 {
+	[self updateSpeciesBadge];
 	[self setNeedsDisplay:YES];
 }
 
@@ -1008,20 +1084,20 @@
 
 @implementation GraphView (PrefabAdditions)
 
-- (void)setXAxisRangeFromGeneration
+- (void)setXAxisRangeFromTick
 {
 	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	slim_generation_t lastGen = sim->EstimatedLastGeneration();
+	Community &community = *controller->community;
+	slim_tick_t lastTick = community.EstimatedLastTick();
 	
-	// The last generation could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
-	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= last_gen, (2) have the axis
-	// max be == last_gen if last_gen is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
+	// The last tick could be just about anything, so we need some smart axis setup code here – a problem we neglect elsewhere
+	// since we use hard-coded axis setups in other places.  The goal is to (1) have the axis max be >= lastTick, (2) have the axis
+	// max be == lastTick if lastTick is a reasonably round number (a single-digit multiple of a power of 10, say), (3) have just a few
 	// other major tick intervals drawn, so labels don't collide or look crowded, and (4) have a few minor tick intervals in between
 	// the majors.  Labels that are single-digit multiples of powers of 10 are to be strongly preferred.
-	double lower10power = pow(10.0, floor(log10(lastGen)));		// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
+	double lower10power = pow(10.0, floor(log10(lastTick)));	// 8000 gives 1000, 1000 gives 1000, 10000 gives 10000
 	double lower5mult = lower10power / 2.0;						// 8000 gives 500, 1000 gives 500, 10000 gives 5000
-	double axisMax = ceil(lastGen / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
+	double axisMax = ceil(lastTick / lower5mult) * lower5mult;	// 8000 gives 8000, 7500 gives 7500, 1100 gives 1500
 	double contained5mults = axisMax / lower5mult;				// 8000 gives 16, 7500 gives 15, 1100 gives 3, 1000 gives 2
 	
 	if (contained5mults <= 3)
@@ -1046,9 +1122,12 @@
 
 - (NSArray *)mutationTypeLegendKey
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (!displaySpecies)
+		return nil;
+	
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	
 	// if we only have one mutation type, do not show a legend
 	if (mutationTypeCount < 2)
@@ -1057,11 +1136,11 @@
 	NSMutableArray *legendKey = [NSMutableArray array];
 	
 	// first we put in placeholders
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 		[legendKey addObject:@"placeholder"];
 	
 	// then we replace the placeholders with lines, but we do it out of order, according to mutation_type_index_ values
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

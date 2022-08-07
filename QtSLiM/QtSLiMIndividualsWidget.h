@@ -39,13 +39,18 @@ typedef struct {
 	std::string spatialMapName;		// the name of the spatial map chosen, for backgroundType == 3
 } PopulationViewSettings;
 
+typedef enum {
+    kDisplayIndividuals = 0,
+    kDisplaySpatialSeparate,
+    kDisplaySpatialUnified
+} PopulationViewDisplayMode;
 
 class QtSLiMIndividualsWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
     
-    // display mode: 0 == individuals (non-spatial), 1 == individuals (spatial, separate), 2 == individual (spatial, overplotted)
-	int displayMode = 0;
+    // display mode: this is now just a suggestion; each subpop will fall back to what it is able to do
+	PopulationViewDisplayMode preferredDisplayMode = kDisplaySpatialSeparate;
 	
 	// per-subview display preferences, kept indexed by subpopulation id
 	std::map<slim_objectid_t, PopulationViewSettings> subviewSettings;
@@ -74,7 +79,7 @@ protected:
     virtual void paintGL() override;
 
     bool canDisplayUnified(std::vector<Subpopulation*> &selectedSubpopulations);
-    void determineDisplayMode(std::vector<Subpopulation*> &selectedSubpopulations);
+    PopulationViewDisplayMode displayModeForSubpopulation(Subpopulation *subpopulation);
     bool canDisplayIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds);
     QRect spatialDisplayBoundsForSubpopulation(Subpopulation *subpop, QRect tileBounds);
     
@@ -87,7 +92,7 @@ protected:
     void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop);
     void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *settings, SpatialMap **returnMap, Subpopulation *subpop);
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
-    void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality);
+    void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor);
     
     virtual void contextMenuEvent(QContextMenuEvent *p_event) override;
     

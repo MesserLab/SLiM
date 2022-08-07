@@ -42,9 +42,9 @@ initialize() {
 }
 reproduction() {
 	m = subpop.sampleIndividuals(1);
-	b1 = driveBreakpoints(genome1, genome2);
+	b1 = driveBreakpoints(individual.genome1, individual.genome2);
 	b2 = driveBreakpoints(m.genome1, m.genome2);
-	subpop.addRecombinant(genome1, genome2, b1, m.genome1, m.genome2, b2);
+	subpop.addRecombinant(individual.genome1, individual.genome2, b1, m.genome1, m.genome2, b2);
 }
 1 early() {
 	sim.addSubpop("p1", 10);
@@ -59,10 +59,10 @@ early() {
 100:1000 late() {
 	mut = sim.mutationsOfType(m2);
 	if (size(mut) == 0) {
-		catn(sim.generation + ": LOST");
+		catn(sim.cycle + ": LOST");
 		sim.simulationFinished();
 	} else if (sim.mutationFrequencies(NULL, mut) == 1.0) {
-		catn(sim.generation + ": FIXED");
+		catn(sim.cycle + ": FIXED");
 		sim.simulationFinished();
 	}
 }

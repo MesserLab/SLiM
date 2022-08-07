@@ -28,36 +28,24 @@
 #import "GraphView_PopulationVisualization.h"
 #import "GraphView_MutationFrequencyTrajectory.h"
 #import "SLiMHaplotypeGraphView.h"
-#import "ScriptMod_ChangeSubpopSize.h"
-#import "ScriptMod_RemoveSubpop.h"
-#import "ScriptMod_AddSubpop.h"
-#import "ScriptMod_SplitSubpop.h"
-#import "ScriptMod_ChangeMigration.h"
-#import "ScriptMod_ChangeSelfing.h"
-#import "ScriptMod_ChangeCloning.h"
-#import "ScriptMod_ChangeSexRatio.h"
-#import "ScriptMod_OutputFullPopulation.h"
-#import "ScriptMod_OutputSubpopSample.h"
-#import "ScriptMod_OutputFixedMutations.h"
-#import "ScriptMod_AddMutationType.h"
-#import "ScriptMod_AddGenomicElementType.h"
-#import "ScriptMod_AddGenomicElement.h"
-#import "ScriptMod_AddRecombinationRate.h"
-#import "ScriptMod_AddSexConfiguration.h"
 #import "EidosHelpController.h"
 #import "EidosPrettyprinter.h"
 #import "EidosCocoaExtra.h"
-#import "eidos_call_signature.h"
-#import "eidos_property_signature.h"
-#import "eidos_type_interpreter.h"
-#import "slim_test.h"
-#import "slim_gui.h"
+
+#include "eidos_call_signature.h"
+#include "eidos_property_signature.h"
+#include "eidos_type_interpreter.h"
+#include "slim_test.h"
+#include "slim_gui.h"
+#include "community.h"
+#include "interaction_type.h"
 
 #include <iostream>
 #include <sstream>
 #include <iterator>
 #include <stdexcept>
 #include <sys/stat.h>
+#include <ctime>
 
 
 @implementation SLiMWindowController
@@ -66,7 +54,7 @@
 //	KVC / KVO / properties
 //
 
-@synthesize invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, reachedSimulationEnd, generationPlayOn;
+@synthesize invalidSimulation, continuousPlayOn, profilePlayOn, nonProfilePlayOn, reachedSimulationEnd, tickPlayOn;
 
 + (NSSet *)keyPathsForValuesAffectingColorForWindowLabels
 {
@@ -87,17 +75,17 @@
 	{
 		continuousPlayOn = newFlag;
 		
-		[_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+		[_consoleController setInterfaceEnabled:!(continuousPlayOn || tickPlayOn)];
 	}
 }
 
-- (void)setGenerationPlayOn:(BOOL)newFlag
+- (void)setTickPlayOn:(BOOL)newFlag
 {
-	if (generationPlayOn != newFlag)
+	if (tickPlayOn != newFlag)
 	{
-		generationPlayOn = newFlag;
+		tickPlayOn = newFlag;
 		
-		[_consoleController setInterfaceEnabled:!(continuousPlayOn || generationPlayOn)];
+		[_consoleController setInterfaceEnabled:!(continuousPlayOn || tickPlayOn)];
 	}
 }
 
@@ -199,7 +187,7 @@
 	
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 	
-	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _generationPlay:, _continuousPlay:, _continuousProfile:, etc.
+	[NSObject cancelPreviousPerformRequestsWithTarget:self];	// _tickPlay:, _continuousPlay:, _continuousProfile:, etc.
 	
 	// Disconnect delegate relationships
 	[overallSplitView setDelegate:nil];
@@ -239,10 +227,11 @@
 	[scriptString release];
 	scriptString = nil;
 	
-	if (sim)
+	if (community)
 	{
-		delete sim;
-		sim = nullptr;
+		delete community;
+		community = nullptr;
+		focalSpecies = nullptr;
 	}
 	if (slimgui)
 	{
@@ -397,7 +386,8 @@
 		
 		// Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
 		// of the old simulation object; who knows what state it is in, touching it might crash.
-		sim = nullptr;
+		community = nullptr;
+		focalSpecies = nullptr;
 		slimgui = nullptr;
 		
 		Eidos_FreeRNG(sim_RNG);
@@ -409,10 +399,11 @@
 
 - (void)startNewSimulationFromScript
 {
-	if (sim)
+	if (community)
 	{
-		delete sim;
-		sim = nullptr;
+		delete community;
+		community = nullptr;
+		focalSpecies = nullptr;
 	}
 	if (slimgui)
 	{
@@ -430,10 +421,10 @@
 	
 	try
 	{
-		sim = new SLiMSim(infile);
-		sim->InitializeRNGFromSeed(nullptr);
+		community = new Community(infile);
+		community->InitializeRNGFromSeed(nullptr);
 		
-		// We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
+		// We take over the RNG instance that Community just made, since each SLiMgui window has its own RNG
 		sim_RNG = gEidos_RNG;
 		EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
 		
@@ -452,19 +443,19 @@
 	}
 	catch (...)
 	{
-		if (sim)
-			sim->simulation_valid_ = false;
+		if (community)
+			community->simulation_valid_ = false;
 		[self setReachedSimulationEnd:YES];
 		[self checkForSimulationTermination];
 	}
 	
-	if (sim)
+	if (community)
 	{
 		// make a new SLiMgui instance to represent SLiMgui in Eidos
-		slimgui = new SLiMgui(*sim, self);
+		slimgui = new SLiMgui(*community, self);
 		
 		// set up the "slimgui" symbol for it immediately
-		sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+		community->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
 	}
 }
 
@@ -593,18 +584,29 @@
 	}
 }
 
-- (void)updateGenerationCounter
+- (void)updateTickCounter
 {
-	//NSLog(@"updating after generation %d, generationTextField %p", sim->generation_, generationTextField);
-	if (!invalidSimulation)
+	//NSLog(@"updating after tick %d, tickTextField %p", community->tick_, tickTextField);
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
-		if (sim->generation_ == 0)
-			[generationTextField setStringValue:@"initialize()"];
+		if (community->tick_ == 0)
+		{
+			[tickTextField setStringValue:@"initialize()"];
+			[cycleTextField setStringValue:@"initialize()"];
+		}
 		else
-			[generationTextField setIntegerValue:sim->generation_];
+		{
+			[tickTextField setIntegerValue:community->tick_];
+			[cycleTextField setIntegerValue:displaySpecies->cycle_];
+		}
 	}
 	else
-		[generationTextField setStringValue:@""];
+	{
+		[tickTextField setStringValue:@""];
+		[cycleTextField setStringValue:@""];
+	}
 }
 
 - (void)updatePopulationViewHiding
@@ -635,8 +637,8 @@
 {
 	// We don't have any really solid way to tell what the model will do until it is executed, given the dynamic nature of
 	// Eidos, but this method tries to apply some heuristics to the question to provide a guess that will usually be correct.
-	if (![self invalidSimulation] && sim)
-		if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (![self invalidSimulation] && community)
+		if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
 			return YES;
 	
 	NSString *string = [scriptTextView string];
@@ -645,6 +647,89 @@
 		return YES;
 	
 	return NO;
+}
+
+- (void)updateSpeciesBar
+{
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	// Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+	if (community && displaySpecies && (community->Tick() >= 1))
+	{
+		BOOL speciesBarVisibleNow = ![speciesBar isHidden];
+		bool speciesBarShouldBeVisible = (community->all_species_.size() > 1);
+		
+		if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
+		{
+			[speciesBar setEnabled:NO];
+			
+			[speciesBar setHidden:YES];
+			[speciesBarBottomConstraint setConstant:0];
+			
+			reloadingSpeciesBar = true;
+			[speciesBar setSegmentCount:0];
+			reloadingSpeciesBar = false;
+		}
+		else if (!speciesBarVisibleNow && speciesBarShouldBeVisible)
+		{
+			[speciesBar setHidden:NO];
+			[speciesBarBottomConstraint setConstant:10];
+			
+			if (([speciesBar segmentCount] == 0) && (community->all_species_.size() > 0))
+			{
+				// add tabs for species when shown
+				int selectedSpeciesIndex = 0;
+				int speciesCount = (int)community->all_species_.size(), speciesIndex = 0;
+				bool avatarsOnly = (speciesCount > 2);
+				
+				reloadingSpeciesBar = true;
+				
+				[speciesBar setSegmentCount:speciesCount];
+				
+				for (Species *species : community->all_species_)
+				{
+					NSString *tabLabel = [NSString stringWithUTF8String:species->avatar_.c_str()];
+					
+					if (!avatarsOnly)
+					{
+						tabLabel = [tabLabel stringByAppendingString:@" "];
+						tabLabel = [tabLabel stringByAppendingString:[NSString stringWithUTF8String:species->name_.c_str()]];
+					}
+					
+					[speciesBar setLabel:tabLabel forSegment:speciesIndex];
+					[speciesBar setWidth:0 forSegment:speciesIndex];
+					
+					NSString *tooltipString = [@"Species " stringByAppendingString:[NSString stringWithUTF8String:species->name_.c_str()]];
+					
+					[[speciesBar cell] setToolTip:tooltipString forSegment:speciesIndex];	// do this on the cell because the corresponding NSSegmentedControl API wasn't added until 10.13
+					
+					if (focalSpeciesName.length() && (species->name_.compare(focalSpeciesName) == 0))
+						selectedSpeciesIndex = speciesIndex;
+					
+					speciesIndex++;
+				}
+				
+				reloadingSpeciesBar = false;
+				
+				//qDebug() << "selecting index" << selectedSpeciesIndex << "for name" << QString::fromStdString(focalSpeciesName);
+				[speciesBar setSelectedSegment:selectedSpeciesIndex];
+			}
+			
+			[speciesBar setEnabled:YES];
+		}
+	}
+	else
+	{
+		// Whenever we're invalid or uninitialized, we hide the species bar and disable and remove all the tabs
+		[speciesBar setEnabled:NO];
+		
+		[speciesBar setHidden:YES];
+		[speciesBarBottomConstraint setConstant:0];
+		
+		reloadingSpeciesBar = true;
+		[speciesBar setSegmentCount:0];
+		reloadingSpeciesBar = false;
+	}
 }
 
 - (void)updateAfterTickFull:(BOOL)fullUpdate
@@ -659,6 +744,11 @@
 		}
 	}
 	
+	// Update the species bar and then fetch the focal species after that update, which might change it
+	[self updateSpeciesBar];
+	
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
 	// Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
 	if (fullUpdate)
 		Eidos_FlushFiles();
@@ -667,8 +757,6 @@
 	[self checkForSimulationTermination];
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	bool invalid = [self invalidSimulation];
-	
 	if (fullUpdate)
 	{
 		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
@@ -681,13 +769,13 @@
 		reloadingSubpopTableview = YES;
 		[subpopTableView reloadData];
 		
-		if (invalid || !sim)
+		if (!displaySpecies)
 		{
 			[subpopTableView deselectAll:nil];
 		}
 		else
 		{
-			Population &population = sim->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			auto popIter = population.subpops_.begin();
 			NSMutableIndexSet *indicesToSelect = [NSMutableIndexSet indexSet];
@@ -714,52 +802,52 @@
 	[self updatePopulationViewHiding];
 	
 	if (fullUpdate)
-		[self updateGenerationCounter];
+		[self updateTickCounter];
 	
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	if (invalid || sim->mutation_types_changed_)
+	if (!displaySpecies || community->mutation_types_changed_)
 	{
 		[mutTypeTableView reloadData];
 		[mutTypeTableView setNeedsDisplay];
 		
-		if (sim)
-			sim->mutation_types_changed_ = false;
+		if (community)
+			community->mutation_types_changed_ = false;
 	}
 	
-	if (invalid || sim->genomic_element_types_changed_)
+	if (!displaySpecies || community->genomic_element_types_changed_)
 	{
 		[genomicElementTypeTableView reloadData];
 		[genomicElementTypeTableView setNeedsDisplay];
 		
-		if (sim)
-			sim->genomic_element_types_changed_ = false;
+		if (community)
+			community->genomic_element_types_changed_ = false;
 	}
 	
-	if (invalid || sim->interaction_types_changed_)
+	if (!displaySpecies || community->interaction_types_changed_)
 	{
 		[interactionTypeTableView reloadData];
 		[interactionTypeTableView setNeedsDisplay];
 		
-		if (sim)
-			sim->interaction_types_changed_ = false;
+		if (community)
+			community->interaction_types_changed_ = false;
 	}
 	
-	if (invalid || sim->scripts_changed_)
+	if (!displaySpecies || community->scripts_changed_)
 	{
 		[scriptBlocksTableView reloadData];
 		[scriptBlocksTableView setNeedsDisplay];
 		
-		if (sim)
-			sim->scripts_changed_ = false;
+		if (community)
+			community->scripts_changed_ = false;
 	}
 	
-	if (invalid || sim->chromosome_changed_)
+	if (!displaySpecies || community->chromosome_changed_)
 	{
 		[chromosomeOverview restoreLastSelection];
 		[chromosomeOverview setNeedsDisplay:YES];
 		
-		if (sim)
-			sim->chromosome_changed_ = false;
+		if (community)
+			community->chromosome_changed_ = false;
 	}
 	
 	// Update graph windows as well; this will usually trigger a setNeedsDisplay:YES but may do other updating work as well
@@ -852,19 +940,6 @@
 	[self replaceHeaderForColumn:subpopMaleCloningRateColumn withImageNamed:@"change_cloning_rate" scaledToSize:14 withSexSymbol:IndividualSex::kMale];
 	[self replaceHeaderForColumn:subpopSexRatioColumn withImageNamed:@"change_sex_ratio" scaledToSize:15 withSexSymbol:IndividualSex::kUnspecified];
 	
-	// Set up our color stripes and sliders
-	fitnessColorScale = [fitnessColorSlider doubleValue];
-	fitnessColorScale *= fitnessColorScale;
-	
-	[fitnessColorStripe setMetricToPlot:1];
-	[fitnessColorStripe setScalingFactor:fitnessColorScale];
-	
-	selectionColorScale = [selectionColorSlider doubleValue];
-	selectionColorScale *= selectionColorScale;
-	
-	[selectionColorStripe setMetricToPlot:2];
-	[selectionColorStripe setScalingFactor:selectionColorScale];
-	
 	// Set up syntax coloring based on the user's defaults
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	
@@ -899,9 +974,7 @@
 	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(chromosomeSelectionChanged:) name:SLiMChromosomeSelectionChangedNotification object:chromosomeOverview];
 	
 	// Set up our menu buttons with their menus
-	[outputCommandsButton setSlimMenu:outputCommandsMenu];
 	[graphCommandsButton setSlimMenu:graphCommandsMenu];
-	[genomeCommandsButton setSlimMenu:genomeCommandsMenu];
 	
 	// Configure our drawer; note that the minimum height here actually forces a minimum height on our window too
 	[drawer setMinContentSize:NSMakeSize(280, 450)];
@@ -919,13 +992,51 @@
 	[[NSBundle mainBundle] loadNibNamed:@"EidosConsoleWindow" owner:self topLevelObjects:NULL];
 }
 
+- (Species *)focalDisplaySpecies
+{
+	// SLiMgui focuses on one species at a time in its main window display; this method should be called to obtain that species.
+	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
+	if (![self invalidSimulation] && community && community->simulation_valid_)
+	{
+		// If we have a focal species set already, it must be valid (the community still exists), so return it
+		if (focalSpecies)
+			return focalSpecies;
+		
+		// If not, we'll choose a species from the species list if there are any
+		const std::vector<Species *> &all_species = community->AllSpecies();
+		
+		if (all_species.size() >= 1)
+		{
+			// If we have a species name remembered, try to choose that species again
+			if (focalSpeciesName.length())
+			{
+				for (Species *species : all_species)
+				{
+					if (species->name_.compare(focalSpeciesName) == 0)
+					{
+						focalSpecies = species;
+						return focalSpecies;
+					}
+				}
+			}
+			
+			// Failing that, choose the first declared species and remember its name
+			focalSpecies = all_species[0];
+			focalSpeciesName = focalSpecies->name_;
+		}
+	}
+	
+	return nullptr;
+}
+
 - (std::vector<Subpopulation*>)selectedSubpopulations
 {
+	Species *displaySpecies = [self focalDisplaySpecies];
 	std::vector<Subpopulation*> selectedSubpops;
 	
-	if (![self invalidSimulation] && sim)
+	if (displaySpecies)
 	{
-		Population &population = sim->population_;
+		Population &population = displaySpecies->population_;
 		int subpopCount = (int)population.subpops_.size();
 		auto popIter = population.subpops_.begin();
 		
@@ -974,57 +1085,22 @@
 	SEL sel = [menuItem action];
 	
 	if (sel == @selector(playOneStep:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd);
+		return !(invalidSimulation || continuousPlayOn || tickPlayOn || reachedSimulationEnd);
 	if (sel == @selector(play:))
 	{
 		[menuItem setTitle:(nonProfilePlayOn ? @"Stop" : @"Play")];
 		
-		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd || profilePlayOn);
+		return !(invalidSimulation || tickPlayOn || reachedSimulationEnd || profilePlayOn);
 	}
 	if (sel == @selector(profile:))
 	{
 		[menuItem setTitle:(profilePlayOn ? @"Stop" : @"Profile")];
 		
-		return !(invalidSimulation || generationPlayOn || reachedSimulationEnd || nonProfilePlayOn);
+		return !(invalidSimulation || tickPlayOn || reachedSimulationEnd || nonProfilePlayOn);
 	}
 	if (sel == @selector(recycle:))
-		return !(continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || tickPlayOn);
 	
-	if (sel == @selector(buttonChangeSubpopSize:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonRemoveSubpop:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonAddSubpop:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonSplitSubpop:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonChangeMigrationRates:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonChangeSelfingRates:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonChangeCloningRates:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(buttonChangeSexRatio:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-
-	if (sel == @selector(addMutationType:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(addGenomicElementType:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(addGenomicElementToChromosome:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(addRecombinationInterval:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(addSexConfiguration:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-
-	if (sel == @selector(outputFullPopulationState:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(outputPopulationSample:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-	if (sel == @selector(outputFixedMutations:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
-
 	if (sel == @selector(graphMutationFrequencySpectrum:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphMutationFrequencyTrajectories:))
@@ -1036,19 +1112,27 @@
 	if (sel == @selector(graphFitnessOverTime:))
 		return !(invalidSimulation);
 	if (sel == @selector(graphHaplotypes:))
-		return (!invalidSimulation && sim && (sim->generation_ > 1) && (sim->population_.subpops_.size() > 0));	// must be past initialize() and have subpops
+	{
+		// must be past initialize() and have subpops
+		if (invalidSimulation || !community || (community->Tick() <= 1))
+			return NO;
+		
+		Species *displaySpecies = [self focalDisplaySpecies];
+		
+		return (displaySpecies && (displaySpecies->population_.subpops_.size() > 0));	
+	}
 	
 	if (sel == @selector(checkScript:))
-		return !(continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || tickPlayOn);
 	if (sel == @selector(prettyprintScript:))
-		return !(continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || tickPlayOn);
 	
 	if (sel == @selector(exportScript:))
-		return !(continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || tickPlayOn);
 	if (sel == @selector(exportOutput:))
-		return !(continuousPlayOn || generationPlayOn);
+		return !(continuousPlayOn || tickPlayOn);
 	if (sel == @selector(exportPopulation:))
-		return !(invalidSimulation || continuousPlayOn || generationPlayOn);
+		return !(invalidSimulation || continuousPlayOn || tickPlayOn);
 	
 	if (sel == @selector(clearOutput:))
 		return !(invalidSimulation);
@@ -1063,31 +1147,6 @@
 		return [_consoleController validateMenuItem:menuItem];
 	
 	return YES;
-}
-
-- (void)addScriptBlockToSimulation:(SLiMEidosBlock *)scriptBlock
-{
-	if (sim)
-	{
-		// First we tokenize and parse the script, which may raise a C++ exception
-		try
-		{
-			scriptBlock->TokenizeAndParse();
-		}
-		catch (...)
-		{
-			delete scriptBlock;
-			
-			NSBeep();
-			NSLog(@"raise in addScriptBlockToSimulation: within script_block->TokenizeAndParse()");
-			return;
-		}
-		
-		sim->AddScriptBlock(scriptBlock, nullptr, nullptr);		// takes ownership from us
-		
-		[scriptBlocksTableView reloadData];
-		[scriptBlocksTableView setNeedsDisplay];
-	}
 }
 
 - (void)updateRecycleHighlightForChangeCount:(int)changeCount
@@ -1105,117 +1164,28 @@
 #pragma mark -
 #pragma mark Actions
 
-- (void)scriptModNonWFError
+- (IBAction)speciesBarChanged:(id)sender
 {
-	NSAlert *alert = [[NSAlert alloc] init];
+	// We don't want to react to automatic tab changes as we are adding or removing tabs from the species bar
+	if (reloadingSpeciesBar)
+		return;
 	
-	[alert setAlertStyle:NSCriticalAlertStyle];
-	[alert setMessageText:@"Script Modification Error"];
-	[alert setInformativeText:@"This type of script modification can only be applied to WF models.  This model appears to be a nonWF model, so this script modification cannot be used."];
-	[alert addButtonWithTitle:@"OK"];
+	int speciesIndex = (int)[speciesBar selectedSegment];
+	const std::vector<Species *> &allSpecies = community->AllSpecies();
 	
-	[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
-}
-
-- (IBAction)buttonChangeSubpopSize:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_ChangeSubpopSize runWithController:self];
-}
-
-- (IBAction)buttonRemoveSubpop:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_RemoveSubpop runWithController:self];
-}
-
-- (IBAction)buttonAddSubpop:(id)sender
-{
-	[ScriptMod_AddSubpop runWithController:self];
-}
-
-- (IBAction)buttonSplitSubpop:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_SplitSubpop runWithController:self];
-}
-
-- (IBAction)buttonChangeMigrationRates:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_ChangeMigration runWithController:self];
-}
-
-- (IBAction)buttonChangeSelfingRates:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_ChangeSelfing runWithController:self];
-}
-
-- (IBAction)buttonChangeCloningRates:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_ChangeCloning runWithController:self];
-}
-
-- (IBAction)buttonChangeSexRatio:(id)sender
-{
-	if ([self modelMightBeNonWF])
-		[self scriptModNonWFError];
-	else
-		[ScriptMod_ChangeSexRatio runWithController:self];
-}
-
-- (IBAction)addMutationType:(id)sender
-{
-	[ScriptMod_AddMutationType runWithController:self];
-}
-
-- (IBAction)addGenomicElementType:(id)sender
-{
-	[ScriptMod_AddGenomicElementType runWithController:self];
-}
-
-- (IBAction)addGenomicElementToChromosome:(id)sender
-{
-	[ScriptMod_AddGenomicElement runWithController:self];
-}
-
-- (IBAction)addRecombinationInterval:(id)sender
-{
-	[ScriptMod_AddRecombinationRate runWithController:self];
-}
-
-- (IBAction)addSexConfiguration:(id)sender
-{
-	[ScriptMod_AddSexConfiguration runWithController:self];
-}
-
-- (IBAction)outputFullPopulationState:(id)sender
-{
-	[ScriptMod_OutputFullPopulation runWithController:self];
-}
-
-- (IBAction)outputPopulationSample:(id)sender
-{
-	[ScriptMod_OutputSubpopSample runWithController:self];
-}
-
-- (IBAction)outputFixedMutations:(id)sender
-{
-	[ScriptMod_OutputFixedMutations runWithController:self];
+	if ((speciesIndex < 0) || (speciesIndex >= (int)allSpecies.size()))
+	{
+		//qDebug() << "selectedSpeciesChanged() index" << speciesIndex << "out of range";
+		return;
+	}
+	
+	focalSpecies = allSpecies[speciesIndex];
+	focalSpeciesName = focalSpecies->name_;
+	
+	//qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
+	
+	// do a full update to show the state for the new species
+	[self updateAfterTickFull:YES];
 }
 
 - (void)positionNewGraphWindow:(NSWindow *)window
@@ -1367,7 +1337,7 @@
 	
 	// The sequence of events involved in this is actually quite complicated, because the genome clustering work happens in
 	// a background thread, which gets launched halfway through the setup of the plot window, and there is a progress panel
-	// that is run in SLiMWindowController's window as a sheet even though the clutering is done in SLiMHaplotypeManager,
+	// that is run in SLiMWindowController's window as a sheet even though the clustering is done in SLiMHaplotypeManager,
 	// and there is a configuration sheet that runs first, and so forth.  The sequence of events involved here is:
 	//
 	//	- runHaplotypePlotOptionsSheet is called to get configuration options from the user
@@ -1416,6 +1386,17 @@
 
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 
+static int DisplayDigitsForIntegerPart(double x)
+{
+	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
+	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
+	double digits = ceil(log10(floor(x)));
+	
+	if (std::isfinite(digits))
+		return (int)digits;
+	return 1;
+}
+
 - (void)displayProfileResults
 {
 	[[NSBundle mainBundle] loadNibNamed:@"ProfileReport" owner:self topLevelObjects:NULL];
@@ -1460,32 +1441,36 @@
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time inside SLiM core (corrected): %0.2f s\n", (double)elapsedWallClockTimeInSLiM] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core (uncorrected): %0.2f s\n", (double)elapsedCPUTimeInSLiM] attributes:optima13_d];
-	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed generations: %d%@\n", (int)continuousPlayGenerationsCompleted, (profileStartGeneration == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed ticks: %d%@\n", (int)continuousPlayTicksCompleted, (profileStartTick == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block external overhead: %0.2f ticks (%0.4g s)\n", gEidos_ProfileOverheadTicks, gEidos_ProfileOverheadSeconds] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block internal lag: %0.2f ticks (%0.4g s)\n", gEidos_ProfileLagTicks, gEidos_ProfileLagSeconds] attributes:optima13_d];
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
-	[content eidosAppendString:[NSString stringWithFormat:@"Average generation SLiM memory use: %@\n", [NSString stringForByteCount:sim->profile_total_memory_usage_.totalMemoryUsage / sim->total_memory_tallies_]] attributes:optima13_d];
-	[content eidosAppendString:[NSString stringWithFormat:@"Final generation SLiM memory use: %@\n", [NSString stringForByteCount:sim->profile_last_memory_usage_.totalMemoryUsage]] attributes:optima13_d];
+	size_t total_usage = community->profile_total_memory_usage_Community.totalMemoryUsage + community->profile_total_memory_usage_AllSpecies.totalMemoryUsage;
+	size_t average_usage = total_usage / community->total_memory_tallies_;
+	size_t last_usage = community->profile_last_memory_usage_Community.totalMemoryUsage + community->profile_last_memory_usage_AllSpecies.totalMemoryUsage;
+	
+	[content eidosAppendString:[NSString stringWithFormat:@"Average tick SLiM memory use: %@\n", [NSString stringForByteCount:average_usage]] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Final tick SLiM memory use: %@\n", [NSString stringForByteCount:last_usage]] attributes:optima13_d];
 	
 	
 	//
-	//	Generation stage breakdown
+	//	Cycle stage breakdown
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		bool isWF = (sim->ModelType() == SLiMModelType::kModelTypeWF);
-		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
-		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
-		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
-		double elapsedStage3Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[3]);
-		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
-		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
-		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
-		double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
-		double elapsedStage8Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[8]);
+		bool isWF = (community->ModelType() == SLiMModelType::kModelTypeWF);
+		double elapsedStage0Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[0]);
+		double elapsedStage1Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[1]);
+		double elapsedStage2Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[2]);
+		double elapsedStage3Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[3]);
+		double elapsedStage4Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[4]);
+		double elapsedStage5Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[5]);
+		double elapsedStage6Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[6]);
+		double elapsedStage7Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[7]);
+		double elapsedStage8Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[8]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1497,18 +1482,18 @@
 		double percentStage8 = (elapsedStage8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage0Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage1Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage2Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage3Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage4Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage5Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage6Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage7Time))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedStage8Time))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage0Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage1Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage2Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage3Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage4Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage5Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage6Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage7Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage8Time));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"Generation stage breakdown\n" attributes:optima14b_d];
+		[content eidosAppendString:@"Cycle stage breakdown\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%5.2f%%)", fw, elapsedStage0Time, percentStage0] attributes:menlo11_d];
@@ -1544,25 +1529,25 @@
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		double elapsedTime_first = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
-		double elapsedTime_early = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
-		double elapsedTime_late = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
-		double elapsedTime_initialize = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
-		double elapsedTime_fitness = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
-		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
-		double elapsedTime_interaction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
-		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
-		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
-		double elapsedTime_recombination = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
-		double elapsedTime_mutation = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
-		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
-		double elapsedTime_survival = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
+		double elapsedTime_first = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
+		double elapsedTime_early = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
+		double elapsedTime_late = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
+		double elapsedTime_initialize = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
+		double elapsedTime_mutationEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationEffectCallback]);
+		double elapsedTime_fitnessEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessEffectCallback]);
+		double elapsedTime_interaction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
+		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
+		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
+		double elapsedTime_recombination = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
+		double elapsedTime_mutation = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
+		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
+		double elapsedTime_survival = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
 		double percent_first = (elapsedTime_first / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_mutationEffect / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessEffect / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
@@ -1572,40 +1557,40 @@
 		double percent_survival = (elapsedTime_survival / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_first))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_early))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_late))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_initialize))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_fitness))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_fitnessglobal))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_interaction))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_matechoice))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_modifychild))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_recombination))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_mutation))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_reproduction))));
-		fw = std::max(fw, 3 + (int)ceil(log10(floor(elapsedTime_survival))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_first));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_early));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_late));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_initialize));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutationEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_interaction));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_matechoice));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_modifychild));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_recombination));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutation));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_reproduction));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_survival));
 		
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_first))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_early))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_late))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_initialize))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_fitness))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_fitnessglobal))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_interaction))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_matechoice))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_modifychild))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_recombination))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_mutation))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_reproduction))));
-		fw2 = std::max(fw2, 3 + (int)ceil(log10(floor(percent_survival))));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_first));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_early));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_late));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_initialize));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitness));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitnessglobal));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_interaction));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_matechoice));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_modifychild));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_recombination));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_mutation));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_reproduction));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_survival));
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		[content eidosAppendString:@"Callback type breakdown\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
-		// Note these are out of numeric order, but in generation-cycle order
-		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
+		// Note these are out of numeric order, but in cycle stage order
+		if (community->ModelType() == SLiMModelType::kModelTypeWF)
 		{
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_initialize, fw2, percent_initialize] attributes:menlo11_d];
 			[content eidosAppendString:@" : initialize() callbacks\n" attributes:optima13_d];
@@ -1631,11 +1616,11 @@
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_late, fw2, percent_late] attributes:menlo11_d];
 			[content eidosAppendString:@" : late() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutationEffect, fw2, percent_fitness] attributes:menlo11_d];
+			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessEffect, fw2, percent_fitnessglobal] attributes:menlo11_d];
+			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_interaction, fw2, percent_interaction] attributes:menlo11_d];
 			[content eidosAppendString:@" : interaction() callbacks\n" attributes:optima13_d];
@@ -1663,11 +1648,11 @@
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_early, fw2, percent_early] attributes:menlo11_d];
 			[content eidosAppendString:@" : early() events\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitness, fw2, percent_fitness] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks\n" attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_mutationEffect, fw2, percent_fitness] attributes:menlo11_d];
+			[content eidosAppendString:@" : mutationEffect() callbacks\n" attributes:optima13_d];
 			
-			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessglobal, fw2, percent_fitnessglobal] attributes:menlo11_d];
-			[content eidosAppendString:@" : fitness() callbacks (global)\n" attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_fitnessEffect, fw2, percent_fitnessglobal] attributes:menlo11_d];
+			[content eidosAppendString:@" : fitnessEffect() callbacks\n" attributes:optima13_d];
 			
 			[content eidosAppendString:[NSString stringWithFormat:@"%*.2f s (%*.2f%%)", fw, elapsedTime_survival, fw2, percent_survival] attributes:menlo11_d];
 			[content eidosAppendString:@" : survival() callbacks\n" attributes:optima13_d];
@@ -1686,7 +1671,7 @@
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
 		{
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			
 			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -1698,7 +1683,7 @@
 			[content eidosAppendString:@"Script block profiles (as a fraction of corrected wall clock time)\n" attributes:optima14b_d];
 			[content eidosAppendString:@"\n" attributes:optima3_d];
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -1744,7 +1729,7 @@
 			[content eidosAppendString:@"Script block profiles (as a fraction of within-block wall clock time)\n" attributes:optima14b_d];
 			[content eidosAppendString:@"\n" attributes:optima3_d];
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -1792,7 +1777,7 @@
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		EidosFunctionMap &function_map = sim->FunctionMap();
+		EidosFunctionMap &function_map = community->FunctionMap();
 		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
 		
 		for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
@@ -1903,44 +1888,60 @@
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	//
-	//	MutationRun metrics
+	//	MutationRun metrics, presented per Species
 	//
+	for (Species *focal_species : community->all_species_)
 	{
+		[content eidosAppendString:@"\n" attributes:menlo11_d];
+		[content eidosAppendString:@"\n" attributes:optima13_d];
+		[content eidosAppendString:@"MutationRun usage" attributes:optima14b_d];
+		if (community->all_species_.size() > 1)
+		{
+			[content eidosAppendString:@" (" attributes:optima14b_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_species->avatar_.c_str()] attributes:optima14b_d];
+			[content eidosAppendString:@" " attributes:optima14b_d];
+			[content eidosAppendString:[NSString stringWithUTF8String:focal_species->name_.c_str()] attributes:optima14b_d];
+			[content eidosAppendString:@")" attributes:optima14b_d];
+		}
+		[content eidosAppendString:@"\n" attributes:optima14b_d];
+		[content eidosAppendString:@"\n" attributes:optima3_d];
+		
+		if (!focal_species->HasGenetics())
+		{
+			[content eidosAppendString:@"(omitted for no-genetics species)" attributes:optima13i_d];
+			continue;
+		}
+		
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = (int)sim->profile_mutcount_history_.size();
+		int64_t power_tallies_total = (int)focal_species->profile_mutcount_history_.size();
 		
 		for (int power = 0; power < 20; ++power)
 			power_tallies[power] = 0;
 		
-		for (int32_t count : sim->profile_mutcount_history_)
+		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
 			int power = (int)round(log2(count));
 			
 			power_tallies[power]++;
 		}
 		
-		[content eidosAppendString:@"\n" attributes:menlo11_d];
-		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"MutationRun usage\n" attributes:optima14b_d];
-		[content eidosAppendString:@"\n" attributes:optima3_d];
-		
 		for (int power = 0; power < 20; ++power)
 		{
 			if (power_tallies[power] > 0)
 			{
 				[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (power_tallies[power] / (double)power_tallies_total) * 100.0] attributes:menlo11_d];
-				[content eidosAppendString:[NSString stringWithFormat:@" of generations : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
+				[content eidosAppendString:[NSString stringWithFormat:@" of ticks : %d mutation runs per genome\n", (int)(round(pow(2.0, power)))] attributes:optima13_d];
 			}
 		}
 		
 		
 		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = (int)sim->profile_nonneutral_regime_history_.size();
+		int64_t regime_tallies_total = (int)focal_species->profile_nonneutral_regime_history_.size();
 		
 		for (int regime = 0; regime < 3; ++regime)
 			regime_tallies[regime] = 0;
 		
-		for (int32_t regime : sim->profile_nonneutral_regime_history_)
+		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
 			if ((regime >= 1) && (regime <= 3))
 				regime_tallies[regime - 1]++;
 			else
@@ -1951,37 +1952,37 @@
 		for (int regime = 0; regime < 3; ++regime)
 		{
 			[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (regime_tallies[regime] / (double)regime_tallies_total) * 100.0] attributes:menlo11_d];
-			[content eidosAppendString:[NSString stringWithFormat:@" of generations : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no fitness callbacks" : (regime == 1 ? @"constant neutral fitness callbacks only" : @"unpredictable fitness callbacks present"))] attributes:optima13_d];
+			[content eidosAppendString:[NSString stringWithFormat:@" of ticks : regime %d (%@)\n", regime + 1, (regime == 0 ? @"no mutationEffect() callbacks" : (regime == 1 ? @"constant neutral mutationEffect() callbacks only" : @"unpredictable mutationEffect() callbacks present"))] attributes:optima13_d];
 		}
 		
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_mutation_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutations referenced, summed across all generations\n" attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
 		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / (double)sim->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
 		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_max_mutation_index_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_mutrun_total_usage_] attributes:menlo11_d];
-		[content eidosAppendString:@" mutation runs referenced, summed across all generations\n" attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", sim->profile_unique_mutrun_total_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
 		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (sim->profile_mutrun_nonneutral_recache_total_ / (double)sim->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
-		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per generation\n" attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:@" of mutation run nonneutral caches rebuilt per tick\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((sim->profile_mutrun_total_usage_ - sim->profile_unique_mutrun_total_) / (double)sim->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", ((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / (double)focal_species->profile_mutrun_total_usage_) * 100.0] attributes:menlo11_d];
 		[content eidosAppendString:@" of mutation runs shared among genomes" attributes:optima13_d];
 	}
 #endif
@@ -1990,254 +1991,269 @@
 		//
 		//	Memory usage metrics
 		//
-		SLiM_MemoryUsage &mem_tot = sim->profile_total_memory_usage_;
-		SLiM_MemoryUsage &mem_last = sim->profile_last_memory_usage_;
-		int64_t div = sim->total_memory_tallies_;
-		double ddiv = sim->total_memory_tallies_;
-		double average_total = mem_tot.totalMemoryUsage / ddiv;
-		double final_total = mem_last.totalMemoryUsage;
+		SLiMMemoryUsage_Community &mem_tot_C = community->profile_total_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_tot_S = community->profile_total_memory_usage_AllSpecies;
+		SLiMMemoryUsage_Community &mem_last_C = community->profile_last_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_last_S = community->profile_last_memory_usage_AllSpecies;
+		int64_t div = community->total_memory_tallies_;
+		double ddiv = community->total_memory_tallies_;
+		double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
+		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
 		[content eidosAppendString:@"\n" attributes:menlo11_d];
 		[content eidosAppendString:@"\n" attributes:optima13_d];
-		[content eidosAppendString:@"SLiM memory usage (average / final generation)\n" attributes:optima14b_d];
+		[content eidosAppendString:@"SLiM memory usage (average / final tick)\n" attributes:optima14b_d];
 		[content eidosAppendString:@"\n" attributes:optima3_d];
 		
 		// Chromosome
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:@" : Chromosome object\n" attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.chromosomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Chromosome objects (%0.2f / %lld)\n", mem_tot_S.chromosomeObjects_count / ddiv, mem_last_S.chromosomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeMutationRateMaps / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeMutationRateMaps / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeMutationRateMaps total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.chromosomeMutationRateMaps total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : mutation rate maps\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeRecombinationRateMaps / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeRecombinationRateMaps / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeRecombinationRateMaps total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.chromosomeRecombinationRateMaps total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : recombination rate maps\n" attributes:optima13_d];
 
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.chromosomeAncestralSequence / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeAncestralSequence / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.chromosomeAncestralSequence total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.chromosomeAncestralSequence total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : ancestral nucleotides\n" attributes:optima13_d];
+		
+		// Community
+		[content eidosAppendString:@"\n" attributes:optima8_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.communityObjects / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.communityObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : Community object\n" attributes:optima13_d];
 		
 		// Genome
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot.genomeObjects_count / ddiv, mem_last.genomeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, mem_last_S.genomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeExternalBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeExternalBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : external MutationRun* buffers\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// GenomicElement
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomicElementObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomicElementObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomicElementObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElement objects (%0.2f / %lld)\n", mem_tot.genomicElementObjects_count / ddiv, mem_last.genomicElementObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomicElementObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElement objects (%0.2f / %lld)\n", mem_tot_S.genomicElementObjects_count / ddiv, mem_last_S.genomicElementObjects_count] attributes:optima13_d];
 		
 		// GenomicElementType
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.genomicElementTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomicElementTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.genomicElementTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElementType objects (%0.2f / %lld)\n", mem_tot.genomicElementTypeObjects_count / ddiv, mem_last.genomicElementTypeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomicElementTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElementType objects (%0.2f / %lld)\n", mem_tot_S.genomicElementTypeObjects_count / ddiv, mem_last_S.genomicElementTypeObjects_count] attributes:optima13_d];
 		
 		// Individual
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.individualObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.individualObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot.individualObjects_count / ddiv, mem_last.individualObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot_S.individualObjects_count / ddiv, mem_last_S.individualObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.individualUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		// InteractionType
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot.interactionTypeObjects_count / ddiv, mem_last.interactionTypeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot_C.interactionTypeObjects_count / ddiv, mem_last_C.interactionTypeObjects_count] attributes:optima13_d];
 		
-		if (mem_tot.interactionTypeObjects_count || mem_last.interactionTypeObjects_count)
+		if (mem_tot_C.interactionTypeObjects_count || mem_last_C.interactionTypeObjects_count)
 		{
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeKDTrees / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeKDTrees / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeKDTrees total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeKDTrees total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : k-d trees\n" attributes:optima13_d];
 			
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypePositionCaches / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypePositionCaches / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypePositionCaches total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypePositionCaches total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : position caches\n" attributes:optima13_d];
 			
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.interactionTypeSparseArrays / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeSparseVectorPool / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.interactionTypeSparseArrays total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeSparseVectorPool total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : sparse arrays\n" attributes:optima13_d];
 		}
 		
 		// Mutation
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Mutation objects (%0.2f / %lld)\n", mem_tot.mutationObjects_count / ddiv, mem_last.mutationObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Mutation objects (%0.2f / %lld)\n", mem_tot_S.mutationObjects_count / ddiv, mem_last_S.mutationObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRefcountBuffer / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRefcountBuffer / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRefcountBuffer total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRefcountBuffer total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : refcount buffer\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		// MutationRun
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : MutationRun objects (%0.2f / %lld)\n", mem_tot.mutationRunObjects_count / ddiv, mem_last.mutationRunObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationRun objects (%0.2f / %lld)\n", mem_tot_S.mutationRunObjects_count / ddiv, mem_last_S.mutationRunObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunExternalBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunExternalBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunExternalBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunExternalBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : external MutationIndex buffers\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunNonneutralCaches / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunNonneutralCaches / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunNonneutralCaches total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunNonneutralCaches total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : nonneutral mutation caches\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRunUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRunUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationRunUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRunUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationRunUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRunUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// MutationType
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.mutationTypeObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.mutationTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : MutationType objects (%0.2f / %lld)\n", mem_tot.mutationTypeObjects_count / ddiv, mem_last.mutationTypeObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationTypeObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationType objects (%0.2f / %lld)\n", mem_tot_S.mutationTypeObjects_count / ddiv, mem_last_S.mutationTypeObjects_count] attributes:optima13_d];
 		
-		// SLiMSim
+		// Species
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.slimsimObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.speciesObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.slimsimObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:@" : SLiMSim object\n" attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.speciesObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Species objects (%0.2f / %lld)\n", mem_tot_S.speciesObjects_count / ddiv, mem_last_S.speciesObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.slimsimTreeSeqTables / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.speciesTreeSeqTables / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.slimsimTreeSeqTables total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.speciesTreeSeqTables total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : tree-sequence tables\n" attributes:optima13_d];
 		
 		// Subpopulation
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Subpopulation objects (%0.2f / %lld)\n", mem_tot.subpopulationObjects_count / ddiv, mem_last.subpopulationObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Subpopulation objects (%0.2f / %lld)\n", mem_tot_S.subpopulationObjects_count / ddiv, mem_last_S.subpopulationObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationFitnessCaches / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationFitnessCaches / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationFitnessCaches total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationFitnessCaches total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : fitness caches\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationParentTables / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationParentTables / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationParentTables total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationParentTables total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : parent tables\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationSpatialMaps / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationSpatialMaps / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationSpatialMaps total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationSpatialMaps total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : spatial maps\n" attributes:optima13_d];
 		
-		if (mem_tot.subpopulationSpatialMapsDisplay || mem_last.subpopulationSpatialMapsDisplay)
+		if (mem_tot_S.subpopulationSpatialMapsDisplay || mem_last_S.subpopulationSpatialMapsDisplay)
 		{
 			[content eidosAppendString:@"   " attributes:menlo11_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.subpopulationSpatialMapsDisplay / div total:average_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationSpatialMapsDisplay / div total:average_total attributes:menlo11_d]];
 			[content eidosAppendString:@" / " attributes:optima13_d];
-			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.subpopulationSpatialMapsDisplay total:final_total attributes:menlo11_d]];
+			[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationSpatialMapsDisplay total:final_total attributes:menlo11_d]];
 			[content eidosAppendString:@" : spatial map display (SLiMgui only)\n" attributes:optima13_d];
 		}
 		
 		// Substitution
 		[content eidosAppendString:@"\n" attributes:optima8_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.substitutionObjects / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.substitutionObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.substitutionObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Substitution objects (%0.2f / %lld)\n", mem_tot.substitutionObjects_count / ddiv, mem_last.substitutionObjects_count] attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.substitutionObjects total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Substitution objects (%0.2f / %lld)\n", mem_tot_S.substitutionObjects_count / ddiv, mem_last_S.substitutionObjects_count] attributes:optima13_d];
 		
 		// Eidos
 		[content eidosAppendString:@"\n" attributes:optima8_d];
 		[content eidosAppendString:@"Eidos:\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosASTNodePool / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.eidosASTNodePool / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosASTNodePool total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.eidosASTNodePool total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : EidosASTNode pool\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosSymbolTablePool / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.eidosSymbolTablePool / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosSymbolTablePool total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.eidosSymbolTablePool total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : EidosSymbolTable pool\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot.eidosValuePool / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.eidosValuePool / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last.eidosValuePool total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:@" : EidosValue pool" attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.eidosValuePool total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : EidosValue pool\n" attributes:optima13_d];
+		
+		[content eidosAppendString:@"   " attributes:menlo11_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.fileBuffers / div total:average_total attributes:menlo11_d]];
+		[content eidosAppendString:@" / " attributes:optima13_d];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.fileBuffers total:final_total attributes:menlo11_d]];
+		[content eidosAppendString:@" : File buffers" attributes:optima13_d];
 	}
 	
 	// Set the attributed string into the profile report text view
@@ -2290,39 +2306,41 @@
 	// initialize counters
 	profileElapsedCPUClock = 0;
 	profileElapsedWallClock = 0;
-	profileStartGeneration = sim->Generation();
+	profileStartTick = community->Tick();
 	
-	// call this first, which has the side effect of emptying out any pending profile counts
-	sim->CollectSLiMguiMutationProfileInfo();
+	// call this first, purely for its side effect of emptying out any pending profile counts
+	// note that the accumulators governed by this method get zeroed out down below
+	for (Species *focal_species : community->all_species_)
+		focal_species->CollectSLiMguiMutationProfileInfo();
 	
-	// zero out profile counts for generation stages
+	// zero out profile counts for cycle stages
 	for (int i = 0; i < 9; ++i)
-		sim->profile_stage_totals_[i] = 0;
+		community->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
-	sim->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
-	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+	std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 	
 	for (SLiMEidosBlock *script_block : script_blocks)
 		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
 			script_block->root_node_->ZeroProfileTotals();
 	
 	// zero out profile counts for all user-defined functions
-	EidosFunctionMap &function_map = sim->FunctionMap();
+	EidosFunctionMap &function_map = community->FunctionMap();
 	
 	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
 	{
@@ -2333,21 +2351,26 @@
 	}
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	// zero out mutation run metrics
-	sim->profile_mutcount_history_.clear();
-	sim->profile_nonneutral_regime_history_.clear();
-	sim->profile_mutation_total_usage_ = 0;
-	sim->profile_nonneutral_mutation_total_ = 0;
-	sim->profile_mutrun_total_usage_ = 0;
-	sim->profile_unique_mutrun_total_ = 0;
-	sim->profile_mutrun_nonneutral_recache_total_ = 0;
-	sim->profile_max_mutation_index_ = 0;
+	// zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
+	for (Species *focal_species : community->all_species_)
+	{
+		focal_species->profile_mutcount_history_.clear();
+		focal_species->profile_nonneutral_regime_history_.clear();
+		focal_species->profile_mutation_total_usage_ = 0;
+		focal_species->profile_nonneutral_mutation_total_ = 0;
+		focal_species->profile_mutrun_total_usage_ = 0;
+		focal_species->profile_unique_mutrun_total_ = 0;
+		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
+		focal_species->profile_max_mutation_index_ = 0;
+	}
 #endif
 	
 	// zero out memory usage metrics
-	EIDOS_BZERO(&sim->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
-	EIDOS_BZERO(&sim->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
-	sim->total_memory_tallies_ = 0;
+	EIDOS_BZERO(&community->profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	EIDOS_BZERO(&community->profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	community->total_memory_tallies_ = 0;
 }
 
 - (void)endProfiling
@@ -2358,12 +2381,12 @@
 
 #endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
 
-- (BOOL)runSimOneGeneration
+- (BOOL)runSimOneTick
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
 	// This method should always be used when calling out to run the simulation, because it swaps the correct random number
-	// generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
+	// generator stuff in and out bracketing the call to RunOneTick().  This bracketing would need to be done around
 	// any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
 	BOOL stillRunning = YES;
 	
@@ -2377,7 +2400,7 @@
 		std::clock_t startCPUClock = std::clock();
 		SLIM_PROFILE_BLOCK_START();
 		
-		stillRunning = sim->RunOneGeneration();
+		stillRunning = community->RunOneTick();
 		
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
 		std::clock_t endCPUClock = std::clock();
@@ -2387,14 +2410,14 @@
 	else
 #endif
 	{
-		stillRunning = sim->RunOneGeneration();
+		stillRunning = community->RunOneTick();
 	}
 	
 	[self eidosConsoleWindowControllerDidExecuteScript:_consoleController];
 	
-	// We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
-	// happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-	[self sendAllLinkedViewsSelector:@selector(controllerGenerationFinished)];
+	// We also want to let graphViews know when each tick has finished, in case they need to pull data from the sim.  Note this
+	// happens after every tick, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
+	[self sendAllLinkedViewsSelector:@selector(controllerTickFinished)];
 	
 	return stillRunning;
 }
@@ -2404,7 +2427,7 @@
 	if (!invalidSimulation)
 	{
 		[_consoleController invalidateSymbolTableAndFunctionMap];
-		[self setReachedSimulationEnd:![self runSimOneGeneration]];
+		[self setReachedSimulationEnd:![self runSimOneTick]];
 		[_consoleController validateSymbolTableAndFunctionMap];
 		[self updateAfterTickFull:YES];
 	}
@@ -2420,28 +2443,28 @@
 		double intervalSinceStarting = -[continuousPlayStartDate timeIntervalSinceNow];
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
-		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
+		double maxTicksPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
 		
 		if (speedSliderValue < 0.99999)
-			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+			maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 		
-		//NSLog(@"speedSliderValue == %f, maxGenerationsPerSecond == %f", speedSliderValue, maxGenerationsPerSecond);
+		//NSLog(@"speedSliderValue == %f, maxTicksPerSecond == %f", speedSliderValue, maxTicksPerSecond);
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		BOOL reachedEnd = reachedSimulationEnd;
 		
 		do
 		{
-			if (continuousPlayGenerationsCompleted / intervalSinceStarting >= maxGenerationsPerSecond)
+			if (continuousPlayTicksCompleted / intervalSinceStarting >= maxTicksPerSecond)
 				break;
 			
 			@autoreleasepool {
-				reachedEnd = ![self runSimOneGeneration];
+				reachedEnd = ![self runSimOneTick];
 			}
 			
-			continuousPlayGenerationsCompleted++;
+			continuousPlayTicksCompleted++;
 		}
 		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 		
@@ -2472,7 +2495,7 @@
 	{
 		NSDate *startDate = [NSDate date];
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		BOOL reachedEnd = reachedSimulationEnd;
@@ -2482,10 +2505,10 @@
 			do
 			{
 				@autoreleasepool {
-					reachedEnd = ![self runSimOneGeneration];
+					reachedEnd = ![self runSimOneTick];
 				}
 				
-				continuousPlayGenerationsCompleted++;
+				continuousPlayTicksCompleted++;
 			}
 			while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 			
@@ -2528,9 +2551,7 @@
 	}
 	
 	// Same for our context menus
-	[outputCommandsMenu update];
 	[graphCommandsMenu update];
-	[genomeCommandsMenu update];
 }
 
 - (void)placeSubview:(NSView *)topView aboveSubview:(NSView *)bottomView
@@ -2617,7 +2638,7 @@
 		// log information needed to track our play speed
 		[continuousPlayStartDate release];
 		continuousPlayStartDate = [[NSDate date] retain];
-		continuousPlayGenerationsCompleted = 0;
+		continuousPlayTicksCompleted = 0;
 		
 		[self setContinuousPlayOn:YES];
 		isProfileAction ? [self setProfilePlayOn:YES] : [self setNonProfilePlayOn:YES];
@@ -2644,7 +2665,7 @@
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// close out profiling information if necessary
-		if (isProfileAction && sim && !invalidSimulation)
+		if (isProfileAction && community && !invalidSimulation)
 		{
 			[self endProfiling];
 			gEidosProfilingClientCount--;
@@ -2681,7 +2702,7 @@
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
-		if (isProfileAction && sim && !invalidSimulation)
+		if (isProfileAction && community && !invalidSimulation)
 			[self displayProfileResults];
 #endif
 	}
@@ -2697,41 +2718,41 @@
 	[self playOrProfile:NO];
 }
 
-- (void)_generationPlay:(id)sender
+- (void)_tickPlay:(id)sender
 {
-	// FIXME would be nice to have a way to stop this prematurely, if an inccorect generation is entered or whatever... BCH 2 Nov. 2017
+	// FIXME would be nice to have a way to stop this prematurely, if an incorrect tick is entered or whatever... BCH 2 Nov. 2017
 	if (!invalidSimulation)
 	{
 		NSDate *startDate = [NSDate date];
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		BOOL reachedEnd = reachedSimulationEnd;
 		
 		do
 		{
-			if (sim->generation_ >= targetGeneration)
+			if (community->tick_ >= targetTick)
 				break;
 			
 			@autoreleasepool {
-				reachedEnd = ![self runSimOneGeneration];
+				reachedEnd = ![self runSimOneTick];
 			}
 		}
 		while (!reachedEnd && (-[startDate timeIntervalSinceNow] < 0.02));
 		
 		[self setReachedSimulationEnd:reachedEnd];
 		
-		if (!reachedSimulationEnd && !(sim->generation_ >= targetGeneration))
+		if (!reachedSimulationEnd && !(community->tick_ >= targetTick))
 		{
 			[self updateAfterTickFull:(-[startDate timeIntervalSinceNow] > 0.04)];	// if too much time has elapsed, do a full update
-			[self performSelector:@selector(_generationPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+			[self performSelector:@selector(_tickPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 		}
 		else
 		{
 			// stop playing
 			[self updateAfterTickFull:YES];
-			[self generationChanged:nil];
+			[self tickChanged:nil];
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			[NSApp requestUserAttention:NSInformationalRequest];
@@ -2739,58 +2760,58 @@
 	}
 }
 
-- (IBAction)generationChanged:(id)sender
+- (IBAction)tickChanged:(id)sender
 {
-	if (!generationPlayOn)
+	if (!tickPlayOn)
 	{
-		NSString *generationString = [generationTextField stringValue];
+		NSString *tickString = [tickTextField stringValue];
 		
 		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
-		if ([generationString isEqualToString:@"initialize()"])
+		if ([tickString isEqualToString:@"initialize()"])
 		{
-			if (sim->generation_ != 0)
+			if (community->tick_ != 0)
 			{
 				NSBeep();
-				[self updateGenerationCounter];
+				[self updateTickCounter];
 			}
 			
 			return;
 		}
 		
 		// Get the integer value from the textfield, since it is not "initialize()".  I would like the method used here to be
-		// -longLongValue, but that method does not presently exist on NSControl.   [generationString longLongValue] does not
+		// -longLongValue, but that method does not presently exist on NSControl.   [tickString longLongValue] does not
 		// work properly with the formatter; the formatter adds commas and longLongValue doesn't understand them.  Whatever.
-		targetGeneration = SLiMClampToGenerationType([generationTextField integerValue]);
+		targetTick = SLiMClampToTickType([tickTextField integerValue]);
 		
-		// make sure the requested generation is in range
-		if (sim->generation_ >= targetGeneration)
+		// make sure the requested tick is in range
+		if (community->tick_ >= targetTick)
 		{
-			if (sim->generation_ > targetGeneration)
+			if (community->tick_ > targetTick)
 				NSBeep();
 			
 			return;
 		}
 		
 		// update UI
-		[generationProgressIndicator startAnimation:nil];
-		[self setGenerationPlayOn:YES];
+		[tickProgressIndicator startAnimation:nil];
+		[self setTickPlayOn:YES];
 		
 		// invalidate the console symbols, and don't validate them until we are done
 		[_consoleController invalidateSymbolTableAndFunctionMap];
 		
-		// get the first responder out of the generation textfield
+		// get the first responder out of the tick textfield
 		[[self window] performSelector:@selector(makeFirstResponder:) withObject:nil afterDelay:0.0];
 		
 		// start playing
-		[self performSelector:@selector(_generationPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
+		[self performSelector:@selector(_tickPlay:) withObject:nil afterDelay:0 inModes:[NSArray arrayWithObject:NSRunLoopCommonModes]];
 	}
 	else
 	{
 		// stop our recurring perform request
-		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_generationPlay:) object:nil];
+		[NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(_tickPlay:) object:nil];
 		
-		[self setGenerationPlayOn:NO];
-		[generationProgressIndicator stopAnimation:nil];
+		[self setTickPlayOn:NO];
+		[tickProgressIndicator stopAnimation:nil];
 		
 		[_consoleController validateSymbolTableAndFunctionMap];
 		
@@ -2818,10 +2839,10 @@
 	
 	// Update the status field so that if the selection is in an initialize...() function the right signature is shown.  This call would
 	// be more technically correct in -updateAfterTick, but I don't want the tokenization overhead there, it's too heavyweight.  The
-	// only negative consequence of not having it there is that when the user steps out of initialization time into generation 1, an
+	// only negative consequence of not having it there is that when the user steps out of initialization time into tick 1, an
 	// initialize...() function signature may persist in the status bar that should have been changed to "unrecognized call" - no biggie.
 	// BCH 31 May 2016: commenting this out since the status bar is no longer dependent on the simulation state.  We want the
-	// initialize() functions to show their prototypes in the status bar whether we are in the zero generation or not.
+	// initialize() functions to show their prototypes in the status bar whether we are in the zero tick or not.
 	//[self updateStatusFieldFromSelection];
 
 	[self sendAllLinkedViewsSelector:@selector(controllerRecycled)];
@@ -2834,28 +2855,28 @@
 	// We want our speed to be from the point when the slider changed, not from when play started
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = [[NSDate date] retain];
-	continuousPlayGenerationsCompleted = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	continuousPlayTicksCompleted = 1;		// this prevents a new tick from executing every time the slider moves a pixel
 	
 	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
 	double speedSliderValue = [playSpeedSlider doubleValue];
 	
 	// Calculate frames per second; this equation must match the equation in _continuousPlay:
-	double maxGenerationsPerSecond = INFINITY;
+	double maxTicksPerSecond = INFINITY;
 	
 	if (speedSliderValue < 0.99999)
-		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+		maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 	
 	// Make a tooltip label string
 	NSString *fpsString= @"∞ fps";
 	
-	if (!isinf(maxGenerationsPerSecond))
+	if (!isinf(maxTicksPerSecond))
 	{
-		if (maxGenerationsPerSecond < 1.0)
-			fpsString = [NSString stringWithFormat:@"%.2f fps", maxGenerationsPerSecond];
-		else if (maxGenerationsPerSecond < 10.0)
-			fpsString = [NSString stringWithFormat:@"%.1f fps", maxGenerationsPerSecond];
+		if (maxTicksPerSecond < 1.0)
+			fpsString = [NSString stringWithFormat:@"%.2f fps", maxTicksPerSecond];
+		else if (maxTicksPerSecond < 10.0)
+			fpsString = [NSString stringWithFormat:@"%.1f fps", maxTicksPerSecond];
 		else
-			fpsString = [NSString stringWithFormat:@"%.0f fps", maxGenerationsPerSecond];
+			fpsString = [NSString stringWithFormat:@"%.0f fps", maxTicksPerSecond];
 		
 		//NSLog(@"fps string: %@", fpsString);
 	}
@@ -2884,37 +2905,11 @@
 	[playSpeedToolTipWindow performSelector:@selector(orderOut:) withObject:nil afterDelay:0.01];
 }
 
-- (IBAction)fitnessColorSliderChanged:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	fitnessColorScale = [fitnessColorSlider doubleValue];
-	fitnessColorScale *= fitnessColorScale;
-	
-	[fitnessColorStripe setScalingFactor:fitnessColorScale];
-	[fitnessColorStripe setNeedsDisplay:YES];
-	
-	[populationView setNeedsDisplay:YES];
-}
-
-- (IBAction)selectionColorSliderChanged:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	selectionColorScale = [selectionColorSlider doubleValue];
-	selectionColorScale *= selectionColorScale;
-	
-	[selectionColorStripe setScalingFactor:selectionColorScale];
-	[selectionColorStripe setNeedsDisplay:YES];
-	
-	[chromosomeZoomed setNeedsDisplayInInterior];
-}
-
 - (BOOL)checkScriptSuppressSuccessResponse:(BOOL)suppressSuccessResponse
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
 	
-	// Note this does *not* check out scriptString, which represents the state of the script when the SLiMSim object was created
+	// Note this does *not* check out scriptString, which represents the state of the script when the Community object was created
 	// Instead, it checks the current script in the script TextView – which is not used for anything until the recycle button is clicked.
 	NSString *currentScriptString = [scriptTextView string];
 	const char *cstr = [currentScriptString UTF8String];
@@ -3080,19 +3075,23 @@
 	
 	try
 	{
+		// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
+		Species *displaySpecies = [self focalDisplaySpecies];
+		slim_tick_t species_cycle = displaySpecies->Cycle();
+		
 		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " A" << std::endl;
+		displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
 		
 		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
 		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
+		SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
 		SLIM_OUTSTREAM << "Mutations:" << std::endl;
 		
-		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
+		for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
 		{
 			SLIM_OUTSTREAM << i << " ";
-			sim->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+			displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
 		}
 		
 		// now send SLIM_OUTSTREAM to the output textview
@@ -3199,97 +3198,6 @@
 	[drawer toggle:sender];
 }
 
-/*
-	// BCH 6 April 2017: I am removing the importPopulation: action entirely.  It doesn't work well in the direction SLiM is evolving in.
-	// One problem is that SLiMgui allows user actions only at the end of a generation, and that is not an appropriate time point for
-	// reading in a population; it comes after fitness values have already been evaluated, and there's no good way to patch that up.
-	// It used to be that re-evaluating fitness was a side effect of reading in a population, but we can't do that any more, because
-	// evaluating fitness increasingly depends upon other state that needs to be set up – evaluating interactions, pre-caching phenotype
-	// values, etc.  Basically, if the user wants to read in a population in SLiMgui, they need to do it in their script to assure that
-	// it is done properly.
- 
-- (IBAction)importPopulation:(id)sender
-{
-	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	if (invalidSimulation || continuousPlayOn || generationPlayOn || reachedSimulationEnd || hasImported || !sim || !sim->simulation_valid_ || (sim->generation_ != 1))
-	{
-		// Can only import when in a very specific state
-		NSAlert *alert = [[NSAlert alloc] init];
-		
-		[alert setAlertStyle:NSCriticalAlertStyle];
-		[alert setMessageText:@"Import Population Error"];
-		[alert setInformativeText:@"The simulation must be initialized and at the beginning of generation 1 before importing. Recycle and then Step over the initialization stage, and then try importing again."];
-		[alert addButtonWithTitle:@"OK"];
-		
-		[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
-		return;
-	}
-	
-	NSOpenPanel *op = [[NSOpenPanel openPanel] retain];
-	
-	[op setTitle:@"Import Population"];
-	[op setCanChooseDirectories:NO];
-	[op setCanChooseFiles:YES];
-	[op setAllowsMultipleSelection:NO];
-	[op setExtensionHidden:NO];
-	[op setCanSelectHiddenExtension:NO];
-	//[op setAllowedFileTypes:@[@"txt"]];	// we do not enforce any particular file suffix, at present
-	
-	[op beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
-		{
-			NSURL *fileURL = [op URL];
-			const char *filePath = [fileURL fileSystemRepresentation];
-			
-			// Get rid of the open panel first, to avoid a weird transition
-			[op orderOut:nil];
-			
-			int file_format = sim->FormatOfPopulationFile(filePath);
-			
-			if (file_format == -1)
-			{
-				// Show error: file contents could not be read
-				NSAlert *alert = [[NSAlert alloc] init];
-				
-				[alert setAlertStyle:NSCriticalAlertStyle];
-				[alert setMessageText:@"Import Population Error"];
-				[alert setInformativeText:@"The population file could not be read."];
-				[alert addButtonWithTitle:@"OK"];
-				
-				[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
-			}
-			else if (file_format == 0)
-			{
-				// Show error: pop file did not have a well-formed output line
-				NSAlert *alert = [[NSAlert alloc] init];
-				
-				[alert setAlertStyle:NSCriticalAlertStyle];
-				[alert setMessageText:@"Import Population Error"];
-				[alert setInformativeText:[NSString stringWithFormat:@"The population file is not well-formed. Only population files generated by SLiM can be imported."]];
-				[alert addButtonWithTitle:@"OK"];
-				
-				[alert beginSheetModalForWindow:[self window] completionHandler:^(NSModalResponse returnCode) { [alert autorelease]; }];
-			}
-			else
-			{
-				slim_generation_t newGeneration = sim->InitializePopulationFromFile(filePath, nullptr);
-				
-				// Mark that we have imported
-				SLIM_OUTSTREAM << "// Imported population from: " << filePath << std::endl;
-				SLIM_OUTSTREAM << "// Setting generation from import file:\n" << newGeneration << "\n" << std::endl;
-				
-				// Clean up after the import; the order of these steps may be sensitive, so be careful
-				[self updateAfterTickFull:YES];
-				[_consoleController validateSymbolTableAndFunctionMap];	// trigger a reload of the variable browser to show the new symbols
-			}
-			
-			[op autorelease];
-		}
-	}];
-}
-*/
-
 - (IBAction)exportScript:(id)sender
 {
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
@@ -3357,13 +3265,17 @@
 		if (result == NSFileHandlingPanelOKButton)
 		{
 			std::ostringstream outstring;
-//			const std::vector<std::string> &input_parameters = sim->InputParameters();
+//			const std::vector<std::string> &input_parameters = community->InputParameters();
 //			
 //			for (int i = 0; i < input_parameters.size(); i++)
 //				outstring << input_parameters[i] << std::endl;
 			
-			outstring << "#OUT: " << sim->generation_ << " A " << std::endl;
-			sim->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
+			// BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
+			Species *displaySpecies = [self focalDisplaySpecies];
+			slim_tick_t species_cycle = displaySpecies->Cycle();
+			
+			outstring << "#OUT: " << community->tick_ << " " << species_cycle << " A " << std::endl;
+			displaySpecies->population_.PrintAll(outstring, true, true, true, false);	// include spatial positions, ages, and ancestral sequence, if available
 			
 			std::string &&population_dump = outstring.str();
 			NSString *populationDump = [NSString stringWithUTF8String:population_dump.c_str()];
@@ -3386,7 +3298,7 @@
 {
 	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
 	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
-	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !generationPlayOn)
+	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !tickPlayOn)
 	{
 		[self play:nil];	// this will simulate a press of the play button to stop continuous play
 		
@@ -3404,9 +3316,9 @@
 
 - (void)eidos_pauseExecution
 {
-	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !generationPlayOn)
+	if (!invalidSimulation && !reachedSimulationEnd && continuousPlayOn && nonProfilePlayOn && !profilePlayOn && !tickPlayOn)
 	{
-		continuousPlayGenerationsCompleted = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this generation
+		continuousPlayTicksCompleted = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this tick
 		[self performSelectorOnMainThread:@selector(finish_eidos_pauseExecution:) withObject:nil waitUntilDone:NO];	// this will actually stop continuous play
 	}
 }
@@ -3728,7 +3640,7 @@
 
 - (EidosContext *)eidosConsoleWindowControllerEidosContext:(EidosConsoleWindowController *)eidosConsoleController
 {
-	return sim;
+	return community;
 }
 
 - (void)eidosConsoleWindowControllerAppendWelcomeMessageAddendum:(EidosConsoleWindowController *)eidosConsoleController
@@ -3763,8 +3675,8 @@
 		std::vector<EidosPropertySignature_CSP> context_properties = EidosClass::RegisteredClassProperties(false, true);
 		std::vector<EidosMethodSignature_CSP> context_methods = EidosClass::RegisteredClassMethods(false, true);
 		
-		const std::vector<EidosFunctionSignature_CSP> *zg_functions = SLiMSim::ZeroGenerationFunctionSignatures();
-		const std::vector<EidosFunctionSignature_CSP> *slim_functions = SLiMSim::SLiMFunctionSignatures();
+		const std::vector<EidosFunctionSignature_CSP> *zg_functions = Community::ZeroTickFunctionSignatures();
+		const std::vector<EidosFunctionSignature_CSP> *slim_functions = Community::SLiMFunctionSignatures();
 		std::vector<EidosFunctionSignature_CSP> all_slim_functions;
 		
 		all_slim_functions.insert(all_slim_functions.end(), zg_functions->begin(), zg_functions->end());
@@ -3804,29 +3716,31 @@
 
 - (EidosSymbolTable *)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController symbolsFromBaseSymbols:(EidosSymbolTable *)baseSymbols
 {
-	if (sim && !invalidSimulation)
-		return sim->SymbolsFromBaseSymbols(baseSymbols);
+	if (community && !invalidSimulation)
+		return community->SymbolsFromBaseSymbols(baseSymbols);
 	return baseSymbols;
 }
 
 - (EidosFunctionMap *)functionMapForEidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController
 {
-	if (sim && !invalidSimulation)
-		return &sim->FunctionMap();
+	if (community && !invalidSimulation)
+		return &community->FunctionMap();
 	return nullptr;
 }
 
 - (void)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController addOptionalFunctionsToMap:(EidosFunctionMap *)functionMap
 {
-	SLiMSim::AddZeroGenerationFunctionsToMap(*functionMap);
-	SLiMSim::AddSLiMFunctionsToMap(*functionMap);
+	Community::AddZeroTickFunctionsToMap(*functionMap);
+	Community::AddSLiMFunctionsToMap(*functionMap);
 }
 
 - (EidosSyntaxHighlightType)eidosConsoleWindowController:(EidosConsoleWindowController *)eidosConsoleController tokenStringIsSpecialIdentifier:(const std::string &)token_string
 {
-	if (token_string.compare("sim") == 0)
+	if (token_string.compare(gStr_community) == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
-	if (token_string.compare("slimgui") == 0)
+	if (token_string.compare(gStr_sim) == 0)
+		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
+	if (token_string.compare(gStr_slimgui) == 0)
 		return EidosSyntaxHighlightType::kHighlightAsIdentifier;
 	
 	// Request that SLiM's callback keywords be highlighted as "context keywords", which gives them a special color
@@ -3841,7 +3755,9 @@
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("late") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
-	if (token_string.compare("fitness") == 0)
+	if (token_string.compare("mutationEffect") == 0)
+		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
+	if (token_string.compare("fitnessEffect") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
 	if (token_string.compare("mateChoice") == 0)
 		return EidosSyntaxHighlightType::kHighlightAsContextKeyword;
@@ -3886,17 +3802,18 @@
 {
 	// A few strings which, when option-clicked, should result in more targeted searches.
 	// @"initialize" is deliberately omitted here so that the initialize...() methods also come up.
-	if ([clickedText isEqualToString:@"first"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"early"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"late"])			return @"Eidos events";
-	if ([clickedText isEqualToString:@"fitness"])		return @"fitness() callbacks";
-	if ([clickedText isEqualToString:@"interaction"])	return @"interaction() callbacks";
-	if ([clickedText isEqualToString:@"mateChoice"])	return @"mateChoice() callbacks";
-	if ([clickedText isEqualToString:@"modifyChild"])	return @"modifyChild() callbacks";
-	if ([clickedText isEqualToString:@"recombination"])	return @"recombination() callbacks";
-	if ([clickedText isEqualToString:@"mutation"])		return @"mutation() callbacks";
-	if ([clickedText isEqualToString:@"survival"])		return @"survival() callbacks";
-	if ([clickedText isEqualToString:@"reproduction"])	return @"reproduction() callbacks";
+	if ([clickedText isEqualToString:@"first"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"early"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"late"])				return @"Eidos events";
+	if ([clickedText isEqualToString:@"mutationEffect"])	return @"mutationEffect() callbacks";
+	if ([clickedText isEqualToString:@"fitnessEffect"])		return @"fitnessEffect() callbacks";
+	if ([clickedText isEqualToString:@"interaction"])		return @"interaction() callbacks";
+	if ([clickedText isEqualToString:@"mateChoice"])		return @"mateChoice() callbacks";
+	if ([clickedText isEqualToString:@"modifyChild"])		return @"modifyChild() callbacks";
+	if ([clickedText isEqualToString:@"recombination"])		return @"recombination() callbacks";
+	if ([clickedText isEqualToString:@"mutation"])			return @"mutation() callbacks";
+	if ([clickedText isEqualToString:@"survival"])			return @"survival() callbacks";
+	if ([clickedText isEqualToString:@"reproduction"])		return @"reproduction() callbacks";
 	
 	return nil;
 }
@@ -4055,7 +3972,7 @@
 		// all functions that are defined, even if below the completion point, end up in the function map.
 		*functionMap = [scriptTextView functionMapForScriptString:[scriptTextView string] includingOptionalFunctions:NO];
 		
-		SLiMSim::AddSLiMFunctionsToMap(**functionMap);
+		Community::AddSLiMFunctionsToMap(**functionMap);
 		
 		// Now we scan through the children of the root node, each of which is the root of a SLiM script block.  The last
 		// script block is the one we are actually completing inside, but we also want to do a quick scan of any other
@@ -4080,7 +3997,11 @@
 			{
 				for (EidosASTNode *script_block_node : script_root->children_)
 				{
-					// script_block_node can have various children, such as an sX identifier, start and end generations, a block type
+					// skip species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+					if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+						continue;
+					
+					// script_block_node can have various children, such as an sX identifier, start and end ticks, a block type
 					// identifier like late(), and then the root node of the compound statement for the script block.  We want to
 					// decode the parts that are important to us, without the complication of making SLiMEidosBlock objects.
 					EidosASTNode *block_statement_root = nullptr;
@@ -4094,18 +4015,19 @@
 						{
 							const std::string &child_string = child_token->token_string_;
 							
-							if (child_string.compare(gStr_first) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
-							else if (child_string.compare(gStr_early) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
-							else if (child_string.compare(gStr_late) == 0)			block_type = SLiMEidosBlockType::SLiMEidosEventLate;
-							else if (child_string.compare(gStr_initialize) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
-							else if (child_string.compare(gStr_fitness) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessCallback;	// can't distinguish global fitness callbacks, but no need to
-							else if (child_string.compare(gStr_interaction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
-							else if (child_string.compare(gStr_mateChoice) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
-							else if (child_string.compare(gStr_modifyChild) == 0)	block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
-							else if (child_string.compare(gStr_recombination) == 0)	block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
-							else if (child_string.compare(gStr_mutation) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
-							else if (child_string.compare(gStr_survival) == 0)		block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
-							else if (child_string.compare(gStr_reproduction) == 0)	block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
+							if (child_string.compare(gStr_first) == 0)					block_type = SLiMEidosBlockType::SLiMEidosEventFirst;
+							else if (child_string.compare(gStr_early) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventEarly;
+							else if (child_string.compare(gStr_late) == 0)				block_type = SLiMEidosBlockType::SLiMEidosEventLate;
+							else if (child_string.compare(gStr_initialize) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInitializeCallback;
+							else if (child_string.compare(gStr_fitnessEffect) == 0)		block_type = SLiMEidosBlockType::SLiMEidosFitnessEffectCallback;
+							else if (child_string.compare(gStr_mutationEffect) == 0)	block_type = SLiMEidosBlockType::SLiMEidosMutationEffectCallback;
+							else if (child_string.compare(gStr_interaction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosInteractionCallback;
+							else if (child_string.compare(gStr_mateChoice) == 0)		block_type = SLiMEidosBlockType::SLiMEidosMateChoiceCallback;
+							else if (child_string.compare(gStr_modifyChild) == 0)		block_type = SLiMEidosBlockType::SLiMEidosModifyChildCallback;
+							else if (child_string.compare(gStr_recombination) == 0)		block_type = SLiMEidosBlockType::SLiMEidosRecombinationCallback;
+							else if (child_string.compare(gStr_mutation) == 0)			block_type = SLiMEidosBlockType::SLiMEidosMutationCallback;
+							else if (child_string.compare(gStr_survival) == 0)			block_type = SLiMEidosBlockType::SLiMEidosSurvivalCallback;
+							else if (child_string.compare(gStr_reproduction) == 0)		block_type = SLiMEidosBlockType::SLiMEidosReproductionCallback;
 							
 							// Check for an sX designation on a script block and, if found, add a symbol for it
 							else if ((block_child == script_block_node->children_[0]) && (child_string.length() >= 2))
@@ -4144,26 +4066,54 @@
 					// Now we know the type of the node, and the root node of its compound statement; extract what we want
 					if (block_statement_root)
 					{
-						// The symbol sim is defined in all blocks except initialize() blocks; we need to add and remove it
-						// dynamically so that each block has it defined or not defined as necessary.  Since the completion block
-						// is last, the sim symbol will be correctly defined at the end of this process.
+						// The species/community symbols are  defined in all blocks except initialize() blocks; we need to add
+						// and remove them dynamically so that each block has it defined or not defined as necessary.  Since
+						// the completion block is last, the symbols will be correctly defined at the end of this process.
 						if (block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback)
-							(*typeTable)->RemoveTypeForSymbol(gID_sim);
+						{
+							std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
+							
+							for (EidosGlobalStringID symbol_id : symbol_ids)
+							{
+								EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+								
+								if ((typeSpec.type_mask == kEidosValueMaskObject) && ((typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_Species_Class)))
+									(*typeTable)->RemoveTypeForSymbol(symbol_id);
+							}
+						}
 						else
-							(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMSim_Class});
+						{
+							(*typeTable)->SetTypeForSymbol(gID_community, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Community_Class});
+							
+							if (community)
+							{
+								for (Species *species : community->AllSpecies())
+								{
+									EidosGlobalStringID species_symbol = species->self_symbol_.first;
+									
+									(*typeTable)->SetTypeForSymbol(species_symbol, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+								}
+							}
+							else
+							{
+								// We don't have a community object, so we don't have a vector of species; this is usually because of a failed parse
+								// In this case, we try to keep things functional by just assuming the single-species case and defining "sim"
+								(*typeTable)->SetTypeForSymbol(gID_sim, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Species_Class});
+							}
+						}
 						
 						// The slimgui symbol is always available within a block, but not at the top level
 						(*typeTable)->SetTypeForSymbol(gID_slimgui, EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_SLiMgui_Class});
 						
-						// Do the same for the zero-generation functions, which should be defined in initialization() blocks and
+						// Do the same for the zero-tick functions, which should be defined in initialization() blocks and
 						// not in other blocks; we add and remove them dynamically so they are defined as appropriate.  We ought
 						// to do this for other block-specific stuff as well (like the stuff below), but it is unlikely to matter.
 						// Note that we consider the zero-gen functions to always be defined inside function blocks, since the
 						// function might be called from the zero gen (we have no way of knowing definitively).
 						if ((block_type == SLiMEidosBlockType::SLiMEidosInitializeCallback) || (block_type == SLiMEidosBlockType::SLiMEidosUserDefinedFunction))
-							SLiMSim::AddZeroGenerationFunctionsToMap(**functionMap);
+							Community::AddZeroTickFunctionsToMap(**functionMap);
 						else
-							SLiMSim::RemoveZeroGenerationFunctionsFromMap(**functionMap);
+							Community::RemoveZeroTickFunctionsFromMap(**functionMap);
 						
 						if (script_block_node == completion_block)
 						{
@@ -4186,14 +4136,15 @@
 								case SLiMEidosBlockType::SLiMEidosInitializeCallback:
 									(*typeTable)->RemoveSymbolsOfClass(gSLiM_Subpopulation_Class);	// subpops defined upstream from us still do not exist for us
 									break;
-								case SLiMEidosBlockType::SLiMEidosFitnessCallback:
-								case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:
+								case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:
+									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
+									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
+									break;
+								case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:
 									(*typeTable)->SetTypeForSymbol(gID_mut,				EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Mutation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_homozygous,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
-									(*typeTable)->SetTypeForSymbol(gID_relFitness,		EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
+									(*typeTable)->SetTypeForSymbol(gID_effect,			EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									break;
 								case SLiMEidosBlockType::SLiMEidosInteractionCallback:
@@ -4205,25 +4156,16 @@
 									break;
 								case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gEidosID_weights,	EidosTypeSpecifier{kEidosValueMaskFloat, nullptr});
 									break;
 								case SLiMEidosBlockType::SLiMEidosModifyChildCallback:
 									(*typeTable)->SetTypeForSymbol(gID_child,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_childGenome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_childGenome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_childIsFemale,	EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_parent1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_parent1Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_parent1Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_isCloning,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_isSelfing,		EidosTypeSpecifier{kEidosValueMaskLogical, nullptr});
 									(*typeTable)->SetTypeForSymbol(gID_parent2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_parent2Genome1,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_parent2Genome2,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									(*typeTable)->SetTypeForSymbol(gID_sourceSubpop,	EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									break;
@@ -4251,8 +4193,6 @@
 									break;
 								case SLiMEidosBlockType::SLiMEidosReproductionCallback:
 									(*typeTable)->SetTypeForSymbol(gID_individual,		EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Individual_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome1,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
-									(*typeTable)->SetTypeForSymbol(gID_genome2,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Genome_Class});
 									(*typeTable)->SetTypeForSymbol(gID_subpop,			EidosTypeSpecifier{kEidosValueMaskObject, gSLiM_Subpopulation_Class});
 									break;
 								case SLiMEidosBlockType::SLiMEidosUserDefinedFunction:
@@ -4305,12 +4245,18 @@
 						{
 							// This is not the block we're completing in.  We want to add symbols for any constant-defining calls
 							// in this block; apart from that, this block cannot affect the completion block, due to scoping.
+							// However, constant-defining calls might use the types of variables, like defineConstant("foo", bar)
+							// where the type of foo comes from the type of bar; so we need to keep track of all symbols even
+							// though they will fall out of scope.  We therefore use a separate local type table with a reference
+							// upward to our main type table.
+							EidosTypeTable scopedTypeTable(**typeTable);
 							
 							// Make a type interpreter and add symbols to our type table using it
 							// We use SLiMTypeInterpreter because we want to pick up definitions of SLiM constants
-							SLiMTypeInterpreter typeInterpreter(block_statement_root, **typeTable, **functionMap, **callTypeTable, true);
+							SLiMTypeInterpreter typeInterpreter(block_statement_root, scopedTypeTable, **functionMap, **callTypeTable);
 							
-							typeInterpreter.TypeEvaluateInterpreterBlock();	// result not used
+							typeInterpreter.SetExternalTypeTable(*typeTable);		// defined constants/variables should also go into the global scope
+							typeInterpreter.TypeEvaluateInterpreterBlock();			// result not used
 						}
 					}
 				}
@@ -4321,20 +4267,41 @@
 		// have a compound statement (meaning its starting brace has not yet been typed), or if we're completing outside of any
 		// existing script block.  In these sorts of cases, we want to return completions for the outer level of a SLiM script.
 		// This means that standard Eidos language keywords like "while", "next", etc. are not legal, but SLiM script block
-		// keywords like "first", "early", "late", "fitness", "interaction", "mateChoice", "modifyChild", "recombination", "mutation",
-		// "survival", and "reproduction" are.
+		// keywords like "first", "early", "late", "mutationEffect", "fitnessEffect", "interaction", "mateChoice", "modifyChild",
+		// "recombination", "mutation", "survival", and "reproduction" are.  We also add "species" and "ticks" here for
+		// multispecies models.
 		[keywords removeAllObjects];
-		[keywords addObjectsFromArray:@[@"initialize() {\n\n}\n", @"first() {\n\n}\n", @"early() {\n\n}\n", @"late() {\n\n}\n", @"fitness() {\n\n}\n", @"interaction() {\n\n}\n", @"mateChoice() {\n\n}\n", @"modifyChild() {\n\n}\n", @"recombination() {\n\n}\n", @"mutation() {\n\n}\n", @"survival() {\n\n}\n", @"reproduction() {\n\n}\n", @"function (void)name(void) {\n\n}\n"]];
+		[keywords addObjectsFromArray:@[
+			@"initialize() {\n\n}\n",
+			@"first() {\n\n}\n",
+			@"early() {\n\n}\n",
+			@"late() {\n\n}\n",
+			@"mutationEffect() {\n\n}\n",
+			@"fitnessEffect() {\n\n}\n",
+			@"interaction() {\n\n}\n",
+			@"mateChoice() {\n\n}\n",
+			@"modifyChild() {\n\n}\n",
+			@"recombination() {\n\n}\n",
+			@"mutation() {\n\n}\n",
+			@"survival() {\n\n}\n",
+			@"reproduction() {\n\n}\n",
+			@"function (void)name(void) {\n\n}\n",
+			@"species",
+			@"ticks"]];
 		
 		// At the outer level, functions are also not legal
 		(*functionMap)->clear();
 		
-		// And no variables exist except SLiM objects like pX, gX, mX, sX
+		// And no variables exist except SLiM objects like pX, gX, mX, sX and species symbols
 		std::vector<EidosGlobalStringID> symbol_ids = (*typeTable)->AllSymbolIDs();
 		
 		for (EidosGlobalStringID symbol_id : symbol_ids)
-			if (((*typeTable)->GetTypeForSymbol(symbol_id).type_mask != kEidosValueMaskObject) || (symbol_id == gID_sim) || (symbol_id == gID_slimgui))
+		{
+			EidosTypeSpecifier typeSpec = (*typeTable)->GetTypeForSymbol(symbol_id);
+			
+			if ((typeSpec.type_mask != kEidosValueMaskObject) || (typeSpec.object_class == gSLiM_Community_Class) || (typeSpec.object_class == gSLiM_SLiMgui_Class))
 				(*typeTable)->RemoveTypeForSymbol(symbol_id);
+		}
 		
 		return YES;
 	}
@@ -4482,12 +4449,21 @@
 			
 			sig = callbackSig.get();
 		}
-		else if ([signatureString hasPrefix:@"fitness()"])
+		else if ([signatureString hasPrefix:@"mutationEffect()"])
 		{
 			static EidosCallSignature_CSP callbackSig = nullptr;
 			
 			if (!callbackSig)
-				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitness", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_SN("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("mutationEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_S("mutationType", gSLiM_MutationType_Class)->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
+			
+			sig = callbackSig.get();
+		}
+		else if ([signatureString hasPrefix:@"fitnessEffect()"])
+		{
+			static EidosCallSignature_CSP callbackSig = nullptr;
+			
+			if (!callbackSig)
+				callbackSig = EidosCallSignature_CSP((new EidosFunctionSignature("fitnessEffect", nullptr, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddObject_OS("subpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULLInvisible));
 			
 			sig = callbackSig.get();
 		}
@@ -4586,28 +4562,23 @@
 
 - (void)tableViewSelectionDidChange:(NSNotification *)aNotification
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		NSTableView *aTableView = [aNotification object];
 		
 		if (aTableView == subpopTableView && !reloadingSubpopTableview)		// see comment in -updateAfterTick after reloadingSubpopTableview
 		{
-			Population &population = sim->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			auto popIter = population.subpops_.begin();
-			bool all_selected = true;
 			
 			for (int i = 0; i < subpopCount; ++i)
 			{
 				popIter->second->gui_selected_ = [subpopTableView isRowSelected:i];
-				
-				if (!popIter->second->gui_selected_)
-					all_selected = false;
-				
 				popIter++;
 			}
-			
-			population.gui_all_selected_ = all_selected;
 			
 			// If the selection has changed, that means that the mutation tallies need to be recomputed
 			population.TallyMutationReferences(nullptr, true);
@@ -4631,27 +4602,29 @@
 
 - (NSInteger)numberOfRowsInTableView:(NSTableView *)aTableView
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == subpopTableView)
 		{
-			return sim->population_.subpops_.size();
+			return displaySpecies->population_.subpops_.size();
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			return sim->mutation_types_.size();
+			return community->AllMutationTypes().size();
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			return sim->genomic_element_types_.size();
+			return community->AllGenomicElementTypes().size();
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			return sim->interaction_types_.size();
+			return community->AllInteractionTypes().size();
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
-			return sim->AllScriptBlocks().size();
+			return community->AllScriptBlocks().size();
 		}
 	}
 	
@@ -4660,11 +4633,13 @@
 
 - (id)tableView:(NSTableView *)aTableView objectValueForTableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex
 {
-	if (!invalidSimulation && sim)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == subpopTableView)
 		{
-			Population &population = sim->population_;
+			Population &population = displaySpecies->population_;
 			int subpopCount = (int)population.subpops_.size();
 			
 			if (rowIndex < subpopCount)
@@ -4683,8 +4658,7 @@
 				{
 					return [NSString stringWithFormat:@"%lld", (int64_t)subpop->parent_subpop_size_];
 				}
-#ifdef SLIM_NONWF_ONLY
-				else if (sim->ModelType() == SLiMModelType::kModelTypeNonWF)
+				else if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
 				{
 					// in nonWF models selfing/cloning/sex rates/ratios are emergent, calculated from collected metrics
 					double total_offspring = subpop->gui_offspring_cloned_M_ + subpop->gui_offspring_crossed_ + subpop->gui_offspring_empty_ + subpop->gui_offspring_selfed_;
@@ -4715,9 +4689,7 @@
 					
 					return @"—";
 				}
-#endif	// SLIM_NONWF_ONLY
-#ifdef SLIM_WF_ONLY
-				else	// sim->ModelType() == SLiMModelType::kModelTypeWF
+				else	// community->ModelType() == SLiMModelType::kModelTypeWF
 				{
 					if (aTableColumn == subpopSelfingRateColumn)
 					{
@@ -4742,12 +4714,11 @@
 							return @"—";
 					}
 				}
-#endif	// SLIM_WF_ONLY
 			}
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
+			const std::map<slim_objectid_t,MutationType*> &mutationTypes = community->AllMutationTypes();
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -4760,7 +4731,12 @@
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
+					NSString *idString = [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
+					
+					if (community->all_species_.size() > 1)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:mutationType->species_.avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == mutTypeDominanceColumn)
 				{
@@ -4826,7 +4802,7 @@
 		}
 		else if (aTableView == genomicElementTypeTableView)
 		{
-			std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = sim->genomic_element_types_;
+			const std::map<slim_objectid_t,GenomicElementType*> &genomicElementTypes = community->AllGenomicElementTypes();
 			int genomicElementTypeCount = (int)genomicElementTypes.size();
 			
 			if (rowIndex < genomicElementTypeCount)
@@ -4839,7 +4815,12 @@
 				
 				if (aTableColumn == genomicElementTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
+					NSString *idString = [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
+					
+					if (community->all_species_.size() > 1)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:genomicElementType->species_.avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == genomicElementTypeColorColumn)
 				{
@@ -4866,7 +4847,7 @@
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
+			const std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->AllInteractionTypes();
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)
@@ -4879,7 +4860,9 @@
 				
 				if (aTableColumn == interactionTypeIDColumn)
 				{
-					return [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
+					NSString *idString = [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
+					
+					return idString;
 				}
 				else if (aTableColumn == interactionTypeMaxDistanceColumn)
 				{
@@ -4926,7 +4909,7 @@
 		}
 		else if (aTableView == scriptBlocksTableView)
 		{
-			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &scriptBlocks = community->AllScriptBlocks();
 			int scriptBlockCount = (int)scriptBlocks.size();
 			
 			if (rowIndex < scriptBlockCount)
@@ -4936,31 +4919,39 @@
 				if (aTableColumn == scriptBlocksIDColumn)
 				{
 					slim_objectid_t block_id = scriptBlock->block_id_;
+					NSString *idString;
 					
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
-						return @"—";
+						idString = @"—";
 					else if (block_id == -1)
-						return @"—";
+						idString = @"—";
 					else
-						return [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
+						idString = [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
+					
+					if ((community->all_species_.size() > 1) && scriptBlock->species_spec_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->species_spec_->avatar_.c_str()]];
+					else if ((community->all_species_.size() > 1) && scriptBlock->ticks_spec_)
+						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->ticks_spec_->avatar_.c_str()]];
+					
+					return idString;
 				}
 				else if (aTableColumn == scriptBlocksStartColumn)
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->start_generation_ == -1)
+					else if (scriptBlock->start_tick_ == -1)
 						return @"MIN";
 					else
-						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->start_generation_];
+						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->start_tick_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
 					if (scriptBlock->type_ == SLiMEidosBlockType::SLiMEidosUserDefinedFunction)
 						return @"—";
-					else if (scriptBlock->end_generation_ == SLIM_MAX_GENERATION + 1)
+					else if (scriptBlock->end_tick_ == SLIM_MAX_TICK + 1)
 						return @"MAX";
 					else
-						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_generation_];
+						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_tick_];
 				}
 				else if (aTableColumn == scriptBlocksTypeColumn)
 				{
@@ -4970,8 +4961,8 @@
 						case SLiMEidosBlockType::SLiMEidosEventEarly:				return @"early()";
 						case SLiMEidosBlockType::SLiMEidosEventLate:				return @"late()";
 						case SLiMEidosBlockType::SLiMEidosInitializeCallback:		return @"initialize()";
-						case SLiMEidosBlockType::SLiMEidosFitnessCallback:			return @"fitness()";
-						case SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback:	return @"fitness()";
+						case SLiMEidosBlockType::SLiMEidosMutationEffectCallback:	return @"mutationEffect()";
+						case SLiMEidosBlockType::SLiMEidosFitnessEffectCallback:	return @"fitnessEffect()";
 						case SLiMEidosBlockType::SLiMEidosInteractionCallback:		return @"interaction()";
 						case SLiMEidosBlockType::SLiMEidosMateChoiceCallback:		return @"mateChoice()";
 						case SLiMEidosBlockType::SLiMEidosModifyChildCallback:		return @"modifyChild()";
@@ -5000,11 +4991,13 @@
 
 - (NSString *)tableView:(NSTableView *)aTableView toolTipForCell:(NSCell *)aCell rect:(NSRectPointer)rect tableColumn:(NSTableColumn *)aTableColumn row:(NSInteger)rowIndex mouseLocation:(NSPoint)mouseLocation
 {
-	if (!invalidSimulation)
+	Species *displaySpecies = [self focalDisplaySpecies];
+	
+	if (displaySpecies)
 	{
 		if (aTableView == scriptBlocksTableView)
 		{
-			std::vector<SLiMEidosBlock*> &scriptBlocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &scriptBlocks = community->AllScriptBlocks();
 			int scriptBlockCount = (int)scriptBlocks.size();
 			
 			if (rowIndex < scriptBlockCount)
@@ -5023,7 +5016,7 @@
 		}
 		else if (aTableView == mutTypeTableView)
 		{
-			std::map<slim_objectid_t,MutationType*> &mutationTypes = sim->mutation_types_;
+			const std::map<slim_objectid_t,MutationType*> &mutationTypes = community->AllMutationTypes();
 			int mutationTypeCount = (int)mutationTypes.size();
 			
 			if (rowIndex < mutationTypeCount)
@@ -5064,7 +5057,7 @@
 		}
 		else if (aTableView == interactionTypeTableView)
 		{
-			std::map<slim_objectid_t,InteractionType*> &interactionTypes = sim->interaction_types_;
+			const std::map<slim_objectid_t,InteractionType*> &interactionTypes = community->AllInteractionTypes();
 			int interactionTypeCount = (int)interactionTypes.size();
 			
 			if (rowIndex < interactionTypeCount)
@@ -5170,41 +5163,12 @@
 	return YES;
 }
 
-// NSSplitView doesn't like delegates to implement these methods any more; it logs if you do.  We can achieve the same
-// effect using constraints in the nib, which is the new way to do things, so that's what we do now.
-
-/*
-- (CGFloat)splitView:(NSSplitView *)splitView constrainMaxCoordinate:(CGFloat)proposedMax ofSubviewAt:(NSInteger)dividerIndex
-{
-	if (splitView == bottomSplitView)
-		return proposedMax - 240;
-	else if (splitView == overallSplitView)
-		return proposedMax - 150;
-	
-	return proposedMax;
-}
-
-- (CGFloat)splitView:(NSSplitView *)splitView constrainMinCoordinate:(CGFloat)proposedMin ofSubviewAt:(NSInteger)dividerIndex
-{
-	if (splitView == bottomSplitView)
-		return proposedMin + 240;
-	else if (splitView == overallSplitView)
-		return proposedMin + 262;
-	
-	return proposedMin;
-}
-*/
-
 - (CGFloat)splitView:(NSSplitView *)splitView constrainSplitPosition:(CGFloat)proposedPosition ofSubviewAt:(NSInteger)dividerIndex
 {
 	if (splitView == overallSplitView)
 	{
-		if (fabs(proposedPosition - 262) < 20)
-			proposedPosition = 262;
-		if (fabs(proposedPosition - 329) < 20)
-			proposedPosition = 329;
-		if (fabs(proposedPosition - 394) < 20)
-			proposedPosition = 394;
+		if (fabs(proposedPosition - 294) < 20)
+			proposedPosition = 294;
 	}
 	
 	//NSLog(@"pos in constrainSplitPosition: %f", proposedPosition);
@@ -5212,59 +5176,9 @@
 	return proposedPosition;
 }
 
-- (void)respondToSizeChangeForSplitView:(NSSplitView *)splitView
-{
-	if (splitView == overallSplitView)
-	{
-		NSArray *subviews;
-		
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma deploymate push "ignored-api-availability"	// arrangedSubviews: is available on 10.11 and later
-		if ([splitView respondsToSelector:@selector(arrangedSubviews)])
-			subviews = [splitView arrangedSubviews];
-		else
-			subviews = [splitView subviews];		// on 10.10 and before, all subviews are arranged
-#pragma deploymate pop
-#pragma GCC diagnostic pop
-		
-		if ([subviews count] == 2)
-		{
-			NSView *firstSubview = [subviews objectAtIndex:0];
-			CGFloat height = [firstSubview frame].size.height;
-			
-			// heights here are the same as positions in constrainSplitPosition:, as it turns out
-			//NSLog(@"height in splitViewDidResizeSubviews: %f", height);
-			//NSLog(@"other height in splitViewDidResizeSubviews: %f", [[subviews objectAtIndex:1] frame].size.height);
-			
-			{
-				bool hideFitnessColorStrip = (height < 329);
-				
-				[fitnessTitleTextField setHidden:hideFitnessColorStrip];
-				[fitnessColorStripe setHidden:hideFitnessColorStrip];
-				[fitnessColorSlider setHidden:hideFitnessColorStrip];
-			}
-			
-			{
-				bool hideSelCoeffColorStrip = (height < 394);
-				
-				[selectionTitleTextField setHidden:hideSelCoeffColorStrip];
-				[selectionColorStripe setHidden:hideSelCoeffColorStrip];
-				[selectionColorSlider setHidden:hideSelCoeffColorStrip];
-			}
-		}
-		
-		[self updatePopulationViewHiding];
-	}
-}
-
 - (void)splitViewDidResizeSubviews:(NSNotification *)notification
 {
-	NSSplitView *splitView = [notification object];
-	
 	[[self document] setTransient:NO]; // Since the user has taken an interest in the window, clear the document's transient status
-	
-	[self respondToSizeChangeForSplitView:splitView];
 }
 
 

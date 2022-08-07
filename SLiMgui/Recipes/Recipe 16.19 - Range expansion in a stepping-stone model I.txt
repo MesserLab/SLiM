@@ -33,8 +33,8 @@ reproduction() {
 }
 1 late() {
 	// set up a log file
-	log = sim.createLogFile("~/Desktop/sim_log.txt", sep="\t", logInterval=10);
-	log.addGeneration();
+	log = community.createLogFile("sim_log.txt", sep="\t", logInterval=10);
+	log.addCycle();
 	log.addPopulationSize();
 	log.addMeanSDColumns("size", "sim.subpopulations.individualCount;");
 	log.addCustomColumn("pop_migrants", "sum(sim.subpopulations.individuals.migrant);");
@@ -71,7 +71,7 @@ early() {
 		}
 	}
 	
-	// post-migration density-dependent selection on each subpop
+	// post-migration density-dependent fitness for each subpop
 	for (subpop in sim.subpopulations)
 	{
 		juvenileCount = sum(subpop.individuals.age == 0);

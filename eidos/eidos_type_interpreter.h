@@ -47,13 +47,13 @@ class EidosTypeInterpreter
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
 	
 protected:
-	const EidosASTNode *root_node_;				// not owned
-	EidosTypeTable *global_symbols_;			// NOT OWNED: whoever creates us must give us a reference to a type table, which we use
+	const EidosASTNode *root_node_;						// not owned
+	EidosTypeTable *global_symbols_;					// NOT OWNED: whoever creates us must give us a reference to a type table, which we use
+	EidosTypeTable *external_type_table_ = nullptr;		// NOT OWNED: a global-scope table, our parent, given to us with SetExternalTypeTable()
 	
-	EidosFunctionMap &function_map_;			// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
+	EidosFunctionMap &function_map_;					// NOT OWNED: a map table of EidosFunctionSignature objects, keyed by function name
 
-	EidosCallTypeTable &call_type_map_;			// NOT OWNED: a map table of types for function calls encountered, keyed by position
-	bool defines_only_;							// if true, we add symbols only for defineConstant() calls, not for assignments
+	EidosCallTypeTable &call_type_map_;					// NOT OWNED: a map table of types for function calls encountered, keyed by position
 	
 	// for autocompletion of argument names, set up by TypeEvaluateInterpreterBlock_AddArgumentCompletions()
 	std::vector<std::string> *argument_completions_ = nullptr;
@@ -65,10 +65,12 @@ public:
 	EidosTypeInterpreter& operator=(const EidosTypeInterpreter&) = delete;		// no copying
 	EidosTypeInterpreter(void) = delete;										// no null construction
 	
-	EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);			// we use the passed symbol table but do not own it
-	EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types, bool p_defines_only = false);		// we use the passed symbol table but do not own it
+	EidosTypeInterpreter(const EidosScript &p_script, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types);			// we use the passed symbol table but do not own it
+	EidosTypeInterpreter(const EidosASTNode *p_root_node_, EidosTypeTable &p_symbols, EidosFunctionMap &p_functions, EidosCallTypeTable &p_call_types);		// we use the passed symbol table but do not own it
 	
 	virtual ~EidosTypeInterpreter(void);
+	
+	inline void SetExternalTypeTable(EidosTypeTable *p_external_type_table) { external_type_table_ = p_external_type_table; }	// to support local-scope type tables that are nested in the global scope
 	
 	inline __attribute__((always_inline)) EidosTypeTable &SymbolTable(void) { return *global_symbols_; };	// the returned reference is to the symbol table that the interpreter has borrowed
 	inline __attribute__((always_inline)) EidosFunctionMap &FunctionMap(void) { return function_map_; };	// the returned reference is to the function map that the interpreter has borrowed

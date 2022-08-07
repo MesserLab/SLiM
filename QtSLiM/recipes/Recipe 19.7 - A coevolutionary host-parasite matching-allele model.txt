@@ -1,0 +1,73 @@
+// Keywords: multispecies, interaction
+
+species all initialize() {
+	defineConstant("L", 1);
+}
+species host initialize() {
+	initializeSpecies(avatar="🦌");
+	
+	// one nucleotide controlling infection
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(1e-3));
+	initializeGenomicElement(g1, 0, L - 1);
+	initializeRecombinationRate(1e-8);
+}
+species parasite initialize() {
+	initializeSpecies(avatar="🐛");
+	
+	// one nucleotide controlling resistance
+	initializeSLiMOptions(nucleotideBased=T);
+	initializeAncestralNucleotides(randomNucleotides(L));
+	initializeMutationTypeNuc("m2", 0.5, "f", 0.0);
+	initializeGenomicElementType("g2", m2, 1.0, mmJukesCantor(1e-3));
+	initializeGenomicElement(g2, 0, L - 1);
+	initializeRecombinationRate(1e-8);
+}
+
+function (float$)nucleotideFreq(o<Species>$ species, s$ nuc) {
+	nucs = species.subpopulations.individuals.genomes.nucleotides();
+	return mean(nucs == nuc);
+}
+
+ticks all 1 early() {
+	host.addSubpop("p0", 1000);
+	parasite.addSubpop("p1", 1000);
+	
+	log = community.createLogFile("host-parasite log.txt", logInterval=1);
+	log.addTick();
+	log.addCustomColumn("hA", "nucleotideFreq(host, 'A');");
+	log.addCustomColumn("hC", "nucleotideFreq(host, 'C');");
+	log.addCustomColumn("hG", "nucleotideFreq(host, 'G');");
+	log.addCustomColumn("hT", "nucleotideFreq(host, 'T');");
+	log.addCustomColumn("pA", "nucleotideFreq(parasite, 'A');");
+	log.addCustomColumn("pC", "nucleotideFreq(parasite, 'C');");
+	log.addCustomColumn("pG", "nucleotideFreq(parasite, 'G');");
+	log.addCustomColumn("pT", "nucleotideFreq(parasite, 'T');");
+}
+
+ticks all late() {
+	// each parasite will pick a random host and try to infect it
+	parasites = p1.individuals;
+	chosen_hosts = sample(p0.individuals, size(parasites), replace=T);
+	
+	for (index in seqAlong(parasites))
+	{
+		// infection depends upon a match (diploid matching-allele model)
+		p = parasites[index];
+		h = chosen_hosts[index];
+		all_nucleotides = c(p.genomes.nucleotides(), h.genomes.nucleotides());
+		
+		if (size(unique(all_nucleotides, preserveOrder=F)) == 1)
+		{
+			// parasite and host are both homozygous for the same nucleotide(s)
+			// with a match, the parasite's fitness increases, the host's decreases
+			p.fitnessScaling = 1.5 * p.fitnessScaling;
+			h.fitnessScaling = 0.5 * h.fitnessScaling;
+		}
+	}
+}
+
+ticks all 2000 late() {
+}

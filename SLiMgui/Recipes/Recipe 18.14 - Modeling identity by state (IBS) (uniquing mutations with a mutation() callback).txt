@@ -8,10 +8,10 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99);
 	initializeRecombinationRate(1e-3);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
-mutation(m1) {
+mutation() {
 	m = sim.subsetMutations(position=mut.position, nucleotide=mut.nucleotide);
 	if (m.length())
 		return m;

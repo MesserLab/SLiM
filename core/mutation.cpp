@@ -21,7 +21,7 @@
 #include "mutation.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
-#include "slim_sim.h"	// we need to tell the simulation if a selection coefficient is set to non-neutral...
+#include "species.h"
 
 #include <algorithm>
 #include <string>
@@ -30,6 +30,7 @@
 
 
 // All Mutation objects get allocated out of a single shared block, for speed; see SLiM_WarmUp()
+// Note this is shared by all species; the mutations for every species come out of the same shared block.
 Mutation *gSLiM_Mutation_Block = nullptr;
 MutationIndex gSLiM_Mutation_Block_Capacity = 0;
 MutationIndex gSLiM_Mutation_FreeIndex = -1;
@@ -169,12 +170,26 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 #endif
 }
 
-size_t SLiM_MemoryUsageForMutationBlock(void)
+size_t SLiMMemoryUsageForMutationBlock(void)
 {
 	return gSLiM_Mutation_Block_Capacity * sizeof(Mutation);
 }
 
-size_t SLiM_MemoryUsageForMutationRefcounts(void)
+size_t SLiMMemoryUsageForFreeMutations(void)
+{
+	size_t mut_count = 0;
+	MutationIndex nextFreeBlock = gSLiM_Mutation_FreeIndex;
+	
+	while (nextFreeBlock != -1)
+	{
+		mut_count++;
+		nextFreeBlock = *(MutationIndex *)(gSLiM_Mutation_Block + nextFreeBlock);
+	}
+	
+	return mut_count * sizeof(Mutation);
+}
+
+size_t SLiMMemoryUsageForMutationRefcounts(void)
 {
 	return gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t);
 }
@@ -187,8 +202,8 @@ size_t SLiM_MemoryUsageForMutationRefcounts(void)
 // A global counter used to assign all Mutation objects a unique ID
 slim_mutationid_t gSLiM_next_mutation_id = 0;
 
-Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
+Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -216,7 +231,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		char *ptr_position_ = (char *)&(this->position_);
 		char *ptr_selection_coeff_ = (char *)&(this->selection_coeff_);
 		char *ptr_subpop_index_ = (char *)&(this->subpop_index_);
-		char *ptr_origin_generation_ = (char *)&(this->origin_generation_);
+		char *ptr_origin_tick_ = (char *)&(this->origin_tick_);
 		char *ptr_state_ = (char *)&(this->state_);
 		char *ptr_nucleotide_ = (char *)&(this->nucleotide_);
 		char *ptr_scratch_ = (char *)&(this->scratch_);
@@ -231,7 +246,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 		std::cout << "   " << (ptr_position_ - ptr_base) << " (" << sizeof(slim_position_t) << " bytes): const slim_position_t position_" << std::endl;
 		std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t selection_coeff_" << std::endl;
 		std::cout << "   " << (ptr_subpop_index_ - ptr_base) << " (" << sizeof(slim_objectid_t) << " bytes): slim_objectid_t subpop_index_" << std::endl;
-		std::cout << "   " << (ptr_origin_generation_ - ptr_base) << " (" << sizeof(slim_generation_t) << " bytes): const slim_generation_t origin_generation_" << std::endl;
+		std::cout << "   " << (ptr_origin_tick_ - ptr_base) << " (" << sizeof(slim_tick_t) << " bytes): const slim_tick_t origin_tick_" << std::endl;
 		std::cout << "   " << (ptr_state_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t state_" << std::endl;
 		std::cout << "   " << (ptr_nucleotide_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t nucleotide_" << std::endl;
 		std::cout << "   " << (ptr_scratch_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t scratch_" << std::endl;
@@ -247,8 +262,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 }
 
-Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_generation_t p_generation, int8_t p_nucleotide) :
-mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_generation_(p_generation), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
+Mutation::Mutation(slim_mutationid_t p_mutation_id, MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
+mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(p_mutation_id)
 {
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -283,7 +298,7 @@ void Mutation::SelfDelete(void)
 // This is unused except by debugging code and in the debugger itself
 std::ostream &operator<<(std::ostream &p_outstream, const Mutation &p_mutation)
 {
-	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", origin_generation_ " << p_mutation.origin_generation_;
+	p_outstream << "Mutation{mutation_type_ " << p_mutation.mutation_type_ptr_->mutation_type_id_ << ", position_ " << p_mutation.position_ << ", selection_coeff_ " << p_mutation.selection_coeff_ << ", subpop_index_ " << p_mutation.subpop_index_ << ", origin_tick_ " << p_mutation.origin_tick_;
 	
 	return p_outstream;
 }
@@ -320,8 +335,8 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 			return ((state_ == MutationState::kInRegistry) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutationType:		// ACCELERATED
 			return mutation_type_ptr_->SymbolTableEntry().second;
-		case gID_originGeneration:	// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_generation_));
+		case gID_originTick:		// ACCELERATED
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(origin_tick_));
 		case gID_position:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(position_));
 		case gID_selectionCoeff:	// ACCELERATED
@@ -459,7 +474,7 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotideValue(EidosObject **p_va
 	return int_result;
 }
 
-EidosValue *Mutation::GetProperty_Accelerated_originGeneration(EidosObject **p_values, size_t p_values_size)
+EidosValue *Mutation::GetProperty_Accelerated_originTick(EidosObject **p_values, size_t p_values_size)
 {
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_values_size);
 	
@@ -467,7 +482,7 @@ EidosValue *Mutation::GetProperty_Accelerated_originGeneration(EidosObject **p_v
 	{
 		Mutation *value = (Mutation *)(p_values[value_index]);
 		
-		int_result->set_int_no_check(value->origin_generation_, value_index);
+		int_result->set_int_no_check(value->origin_tick_, value_index);
 	}
 	
 	return int_result;
@@ -664,23 +679,23 @@ EidosValue_SP Mutation::ExecuteMethod_setSelectionCoeff(EidosGlobalStringID p_me
 	// since this selection coefficient came from the user, check and set pure_neutral_ and all_pure_neutral_DFE_
 	if (selection_coeff_ != 0.0)
 	{
-		SLiMSim &sim = mutation_type_ptr_->sim_;
+		Species &species = mutation_type_ptr_->species_;
 		
-		sim.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
+		species.pure_neutral_ = false;							// let the sim know that it is no longer a pure-neutral simulation
 		mutation_type_ptr_->all_pure_neutral_DFE_ = false;	// let the mutation type for this mutation know that it is no longer pure neutral
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
 		if (old_coeff == 0.0)
 		{
-			sim.nonneutral_change_counter_++;
+			species.nonneutral_change_counter_++;
 		}
 	}
 	else if (old_coeff != 0.0)	// && (selection_coeff_ == 0.0) implied by the "else"
 	{
-		SLiMSim &sim = mutation_type_ptr_->sim_;
+		Species &species = mutation_type_ptr_->species_;
 		
 		// If a selection coefficient has changed from zero to non-zero, or vice versa, MutationRun's nonneutral mutation caches need revalidation
-		sim.nonneutral_change_counter_++;
+		species.nonneutral_change_counter_++;
 	}
 	
 	// cache values used by the fitness calculation code for speed; see header
@@ -697,9 +712,9 @@ EidosValue_SP Mutation::ExecuteMethod_setMutationType(EidosGlobalStringID p_meth
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
-	SLiMSim &sim = mutation_type_ptr_->sim_;
+	Species &species = mutation_type_ptr_->species_;
 	
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, sim, "setMutationType()");
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "setMutationType()");		// SPECIES CONSISTENCY CHECK
 	
 	if (mutation_type_ptr->nucleotide_based_ != mutation_type_ptr_->nucleotide_based_)
 		EIDOS_TERMINATION << "ERROR (Mutation::ExecuteMethod_setMutationType): setMutationType() does not allow a mutation to be changed from nucleotide-based to non-nucleotide-based or vice versa." << EidosTerminate();
@@ -744,7 +759,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_mutationType,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_MutationType_Class))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_mutationType));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotide,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotide));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_nucleotideValue,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_nucleotideValue));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originGeneration,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originGeneration));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_originTick,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_originTick));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_position,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_position));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_selectionCoeff,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_selectionCoeff));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopID,				false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_subpopID)->DeclareAcceleratedSet(Mutation::SetProperty_Accelerated_subpopID));

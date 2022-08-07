@@ -65,16 +65,24 @@ public:
     
 public slots:
     virtual void addedToWindow(void);
+    virtual void invalidateCachedData(void);
     virtual void invalidateDrawingCache(void);
     virtual void graphWindowResized(void);
     virtual void controllerRecycled(void);
-    virtual void controllerSelectionChanged(void);
-    virtual void controllerGenerationFinished(void);
+    virtual void controllerChromosomeSelectionChanged(void);
+    virtual void controllerTickFinished(void);
     virtual void updateAfterTick(void);
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
     QtSLiMWindow *controller_ = nullptr;
+    std::string focalSpeciesName_;                                  // we keep the name of our focal species, since a pointer would be unsafe
+    std::string focalSpeciesAvatar_;                                // cached so we can display it even when the simulation is invalid
+    
+    void setFocalDisplaySpecies(Species *species);
+    Species *focalDisplaySpecies(void);
+    bool missingFocalDisplaySpecies(void);                          // true if the graph has a focal display species but can't find it
+    void updateSpeciesBadge(void);
     
     // Base graphing functionality
     QRect interiorRectForBounds(QRect bounds);
@@ -114,7 +122,7 @@ protected:
     
     // Prefab additions
     QString dateline(void);
-    void setXAxisRangeFromGeneration(void);
+    void setXAxisRangeFromTick(void);
     QtSLiMLegendSpec subpopulationLegendKey(std::vector<slim_objectid_t> &subpopsToDisplay, bool drawSubpopsGray);
     QtSLiMLegendSpec mutationTypeLegendKey(void);
     void drawGroupedBarplot(QPainter &painter, QRect interiorRect, double *buffer, int subBinCount, int mainBinCount, double firstBinValue, double mainBinWidth);

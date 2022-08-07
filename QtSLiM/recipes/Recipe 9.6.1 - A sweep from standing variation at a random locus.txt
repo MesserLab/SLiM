@@ -7,7 +7,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
 1000 late() {
@@ -28,7 +28,7 @@ initialize() {
 	if (sum(sim.mutations.selectionCoeff) == 0.0)
 	{
 		if (sum(sim.substitutions.selectionCoeff) == 0.0)
-			cat("Sweep mutation lost in gen. " + sim.generation + "\n");
+			cat("Sweep mutation lost in cycle " + sim.cycle + "\n");
 		else
 			cat("Sweep mutation reached fixation.\n");
 		sim.simulationFinished();

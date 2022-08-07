@@ -80,10 +80,10 @@
 	slim_position_t selectionLastBase = chromosome->selectionLastBase;
 	
 	// tally into our bins
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	
-	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
+	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
@@ -142,7 +142,8 @@
 - (void)drawGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
 	int binCount = [self histogramBinCount];
-	int mutationTypeCount = (int)controller->sim->mutation_types_.size();
+	Species *displaySpecies = [self focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *spectrum = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
 	// plot our histogram bars
@@ -198,11 +199,11 @@
 	[string appendString:@"\n\n"];
 	
 	int binCount = [self histogramBinCount];
-	SLiMSim *sim = controller->sim;
-	int mutationTypeCount = (int)sim->mutation_types_.size();
+	Species *displaySpecies = [self focalDisplaySpecies];
+	int mutationTypeCount = (int)displaySpecies->mutation_types_.size();
 	double *plotData = [self mutationFrequencySpectrumWithController:controller mutationTypeCount:mutationTypeCount];
 	
-	for (auto mutationTypeIter = sim->mutation_types_.begin(); mutationTypeIter != sim->mutation_types_.end(); ++mutationTypeIter)
+	for (auto mutationTypeIter = displaySpecies->mutation_types_.begin(); mutationTypeIter != displaySpecies->mutation_types_.end(); ++mutationTypeIter)
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!

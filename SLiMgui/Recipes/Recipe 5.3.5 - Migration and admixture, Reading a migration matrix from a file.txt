@@ -7,13 +7,13 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	for (i in 1:3)
 		sim.addSubpop(i, 1000);
 	subpops = sim.subpopulations;
 	
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	lines = readFile("~/Desktop/migration.csv");
+	lines = readFile("migration.csv");
 	lines = lines[substr(lines, 0, 1) != "//"];
 	
 	for (line in lines)

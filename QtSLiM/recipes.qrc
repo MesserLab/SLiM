@@ -147,8 +147,8 @@
         <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
         <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
         <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model.txt</file>
-        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with pyslim I.txt</file>
-        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with pyslim II.py</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit I.txt</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit II.py</file>
         <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
         <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
         <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
@@ -185,5 +185,17 @@
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model I.txt</file>
         <file>recipes/Recipe 16.15 - Implementing a Wright-Fisher model with a nonWF model II.txt</file>
         <file>recipes/Recipe 9.11 - Effective population size versus census population size.txt</file>
+        <file>recipes/Recipe 19.1 - A simple multispecies model.txt</file>
+        <file>recipes/Recipe 19.2 - A two-species model.txt</file>
+        <file>recipes/Recipe 19.3 - A deterministic host-parasitoid model.txt</file>
+        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model I.txt</file>
+        <file>recipes/Recipe 19.4 - An individual-based host-parasitoid model II.txt</file>
+        <file>recipes/Recipe 19.5 - A continuous-space host-parasitoid model.txt</file>
+        <file>recipes/Recipe 19.6 - A coevolutionary host-parasitoid trait-matching model.txt</file>
+        <file>recipes/Recipe 19.7 - A coevolutionary host-parasite matching-allele model.txt</file>
+        <file>recipes/Recipe 18.15 - Modeling identity by state (IBS) (uniquing back-mutations to the ancestral state).txt</file>
+        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback I.txt</file>
+        <file>recipes/Recipe 14.15 - Modeling biallelic loci with a mutation() callback II.txt</file>
+        <file>recipes/Recipe 19.8 - Within-host reproduction in a host-pathogen model.txt</file>
     </qresource>
 </RCC>

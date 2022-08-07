@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2020 Tskit Developers
+ * Copyright (c) 2019-2022 Tskit Developers
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -377,7 +377,7 @@ tsk_ls_hmm_get_allele_index(tsk_ls_hmm_t *self, tsk_id_t site, const char *allel
 {
     int ret = TSK_ERR_ALLELE_NOT_FOUND;
     const char **alleles = self->alleles[site];
-    const tsk_id_t num_alleles = self->num_alleles[site];
+    const tsk_id_t num_alleles = (tsk_id_t) self->num_alleles[site];
 
     tsk_id_t j;
 
@@ -395,7 +395,7 @@ tsk_ls_hmm_get_allele_index(tsk_ls_hmm_t *self, tsk_id_t site, const char *allel
 
 static int
 tsk_ls_hmm_update_probabilities(
-    tsk_ls_hmm_t *self, const tsk_site_t *site, int8_t haplotype_state)
+    tsk_ls_hmm_t *self, const tsk_site_t *site, int32_t haplotype_state)
 {
     int ret = 0;
     tsk_id_t root;
@@ -403,7 +403,7 @@ tsk_ls_hmm_update_probabilities(
     tsk_id_t *restrict parent = self->parent;
     tsk_id_t *restrict T_index = self->transition_index;
     tsk_value_transition_t *restrict T = self->transitions;
-    int8_t *restrict allelic_state = self->allelic_state;
+    int32_t *restrict allelic_state = self->allelic_state;
     const tsk_id_t left_root = tsk_tree_get_left_root(tree);
     tsk_mutation_t mut;
     tsk_id_t j, u, v;
@@ -417,7 +417,7 @@ tsk_ls_hmm_update_probabilities(
         goto out;
     }
     for (root = left_root; root != TSK_NULL; root = tree->right_sib[root]) {
-        allelic_state[root] = (int8_t) ret;
+        allelic_state[root] = (int32_t) ret;
     }
 
     for (j = 0; j < (tsk_id_t) site->mutations_length; j++) {
@@ -428,7 +428,7 @@ tsk_ls_hmm_update_probabilities(
             goto out;
         }
         u = mut.node;
-        allelic_state[u] = (int8_t) ret;
+        allelic_state[u] = (int32_t) ret;
         if (T_index[u] == TSK_NULL) {
             while (T_index[u] == TSK_NULL) {
                 u = parent[u];
@@ -922,7 +922,7 @@ out:
 
 static int
 tsk_ls_hmm_process_site(
-    tsk_ls_hmm_t *self, const tsk_site_t *site, int8_t haplotype_state)
+    tsk_ls_hmm_t *self, const tsk_site_t *site, int32_t haplotype_state)
 {
     int ret = 0;
     double x, normalisation_factor;
@@ -961,7 +961,7 @@ out:
 }
 
 int
-tsk_ls_hmm_run(tsk_ls_hmm_t *self, int8_t *haplotype,
+tsk_ls_hmm_run(tsk_ls_hmm_t *self, int32_t *haplotype,
     int (*next_probability)(tsk_ls_hmm_t *, tsk_id_t, double, bool, tsk_id_t, double *),
     double (*compute_normalisation_factor)(struct _tsk_ls_hmm_t *), void *output)
 {
@@ -979,7 +979,7 @@ tsk_ls_hmm_run(tsk_ls_hmm_t *self, int8_t *haplotype,
         goto out;
     }
 
-    for (t_ret = tsk_tree_first(&self->tree); t_ret == 1;
+    for (t_ret = tsk_tree_first(&self->tree); t_ret == TSK_TREE_OK;
          t_ret = tsk_tree_next(&self->tree)) {
         ret = tsk_ls_hmm_update_tree(self);
         if (ret != 0) {
@@ -1061,7 +1061,7 @@ tsk_ls_hmm_next_probability_forward(tsk_ls_hmm_t *self, tsk_id_t site_id, double
 }
 
 int
-tsk_ls_hmm_forward(tsk_ls_hmm_t *self, int8_t *haplotype,
+tsk_ls_hmm_forward(tsk_ls_hmm_t *self, int32_t *haplotype,
     tsk_compressed_matrix_t *output, tsk_flags_t options)
 {
     int ret = 0;
@@ -1143,7 +1143,7 @@ tsk_ls_hmm_next_probability_viterbi(tsk_ls_hmm_t *self, tsk_id_t site, double p_
 }
 
 int
-tsk_ls_hmm_viterbi(tsk_ls_hmm_t *self, int8_t *haplotype, tsk_viterbi_matrix_t *output,
+tsk_ls_hmm_viterbi(tsk_ls_hmm_t *self, int32_t *haplotype, tsk_viterbi_matrix_t *output,
     tsk_flags_t options)
 {
     int ret = 0;
@@ -1264,7 +1264,7 @@ tsk_compressed_matrix_store_site(tsk_compressed_matrix_t *self, tsk_id_t site,
     tsk_size_t j;
 
     if (site < 0 || site >= (tsk_id_t) self->num_sites) {
-        ret = TSK_ERR_OUT_OF_BOUNDS;
+        ret = TSK_ERR_SITE_OUT_OF_BOUNDS;
         goto out;
     }
 
@@ -1342,7 +1342,8 @@ tsk_compressed_matrix_decode(tsk_compressed_matrix_t *self, double *values)
         goto out;
     }
 
-    for (t_ret = tsk_tree_first(&tree); t_ret == 1; t_ret = tsk_tree_next(&tree)) {
+    for (t_ret = tsk_tree_first(&tree); t_ret == TSK_TREE_OK;
+         t_ret = tsk_tree_next(&tree)) {
         ret = tsk_tree_get_sites(&tree, &sites, &num_tree_sites);
         if (ret != 0) {
             goto out;

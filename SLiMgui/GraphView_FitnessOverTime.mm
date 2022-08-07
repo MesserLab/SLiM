@@ -21,6 +21,8 @@
 #import "GraphView_FitnessOverTime.h"
 #import "SLiMWindowController.h"
 
+#include "community.h"
+
 
 @implementation GraphView_FitnessOverTime
 
@@ -28,7 +30,7 @@
 {
 	[drawingCache release];
 	drawingCache = nil;
-	drawingCacheGeneration = 0;
+	drawingCacheTick = 0;
 }
 
 - (void)setDefaultYAxisRange
@@ -45,10 +47,10 @@
 {
 	if (self = [super initWithFrame:frameRect withController:controller])
 	{
-		[self setXAxisRangeFromGeneration];
+		[self setXAxisRangeFromTick];
 		[self setDefaultYAxisRange];
 		
-		[self setXAxisLabelString:@"Generation"];
+		[self setXAxisLabelString:@"Tick"];
 		[self setYAxisLabelString:@"Fitness (rescaled)"];
 		
 		[self setAllowXAxisUserRescale:YES];
@@ -72,7 +74,7 @@
 		if (![self yAxisIsUserRescaled])
 			[self setDefaultYAxisRange];
 		if (![self xAxisIsUserRescaled])
-			[self setXAxisRangeFromGeneration];
+			[self setXAxisRangeFromTick];
 		
 		[self setNeedsDisplay:YES];
 	}
@@ -95,12 +97,11 @@
 
 - (void)updateAfterTick
 {
-	SLiMWindowController *controller = [self slimWindowController];
+	Species *displaySpecies = [self focalDisplaySpecies];
 	
-	if (![controller invalidSimulation] && ![self yAxisIsUserRescaled])
+	if (displaySpecies && ![self yAxisIsUserRescaled])
 	{
-		SLiMSim *sim = controller->sim;
-		Population &pop = sim->population_;
+		Population &pop = displaySpecies->population_;
 		double minHistory = INFINITY;
 		double maxHistory = -INFINITY;
 		BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
@@ -111,7 +112,7 @@
 			{
 				FitnessHistory &history_record = history_record_iter.second;
 				double *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				
 				// find the min and max history value
 				for (int i = 0; i < historyLength; ++i)
@@ -160,32 +161,32 @@
 
 - (void)drawPointGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
+	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
-	// The generation counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
+	// The tick counter can get set backwards, in which case our drawing cache is invalid – it contains drawing of things in the
 	// future that may no longer happen.  So we need to detect that case and invalidate our cache.
-	if (!cachingNow && drawingCache && (drawingCacheGeneration > completedGenerations))
+	if (!cachingNow && drawingCache && (drawingCacheTick > completedTicks))
 	{
-		//NSLog(@"backward generation change detected, invalidating drawing cache");
+		//NSLog(@"backward tick change detected, invalidating drawing cache");
 		[self invalidateDrawingCache];
 	}
 	
-	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-generation boundary since we last cached, cache an image
-	if (!cachingNow && (!drawingCache || ((completedGenerations / 1000) > (drawingCacheGeneration / 1000))))
+	// If we're not caching, then: if our cache is invalid OR we have crossed a 1000-tick boundary since we last cached, cache an image
+	if (!cachingNow && (!drawingCache || ((completedTicks / 1000) > (drawingCacheTick / 1000))))
 	{
 		[self invalidateDrawingCache];
 		
 		NSBitmapImageRep *bitmap = [self bitmapImageRepForCachingDisplayInRect:interiorRect];
 		
 		cachingNow = YES;
-		//NSLog(@"recaching!  completedGenerations == %d", completedGenerations);
+		//NSLog(@"recaching!  completedTicks == %d", completedTicks);
 		[bitmap setSize:interiorRect.size];
 		[self cacheDisplayInRect:interiorRect toBitmapImageRep:bitmap];
 		drawingCache = [[NSImage alloc] initWithSize:interiorRect.size];
 		[drawingCache addRepresentation:bitmap];
-		drawingCacheGeneration = completedGenerations;
+		drawingCacheTick = completedTicks;
 		cachingNow = NO;
 	}
 	
@@ -198,13 +199,13 @@
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
 		
 		// If we are caching, draw all events; if we are not, draw only those that are not already in the cache
-		if (!cachingNow && (fixation_gen < drawingCacheGeneration))
+		if (!cachingNow && (fixation_tick < drawingCacheTick))
 			continue;
 		
-		double substitutionX = [self plotToDeviceX:fixation_gen withInteriorRect:interiorRect];
+		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
 		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
@@ -224,7 +225,7 @@
 			{
 				FitnessHistory &history_record = history_record_iter.second;
 				double *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				
 				if (drawSubpopsGray)
 					[[NSColor colorWithCalibratedWhite:0.5 alpha:1.0] set];
@@ -232,9 +233,9 @@
 					[[SLiMWindowController whiteContrastingColorForIndex:history_record_iter.first] set];
 				
 				// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-				slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
+				slim_tick_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheTick : 0));
 				
-				for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+				for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
 				{
 					double historyEntry = history[i];
 					
@@ -256,14 +257,14 @@
 		{
 			FitnessHistory &history_record = history_record_iter.second;
 			double *history = history_record.history_;
-			slim_generation_t historyLength = history_record.history_length_;
+			slim_tick_t historyLength = history_record.history_length_;
 			
 			[[NSColor blackColor] set];
 			
 			// If we're caching now, draw all points; otherwise, if we have a cache, draw only additional points
-			slim_generation_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheGeneration : 0));
+			slim_tick_t firstHistoryEntryToDraw = (cachingNow ? 0 : (drawingCache ? drawingCacheTick : 0));
 			
-			for (slim_generation_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedGenerations); ++i)
+			for (slim_tick_t i = firstHistoryEntryToDraw; (i < historyLength) && (i < completedTicks); ++i)
 			{
 				double historyEntry = history[i];
 				
@@ -280,17 +281,17 @@
 
 - (void)drawLineGraphInInteriorRect:(NSRect)interiorRect withController:(SLiMWindowController *)controller
 {
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
+	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	// Draw fixation events
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
-		double substitutionX = [self plotToDeviceX:fixation_gen withInteriorRect:interiorRect];
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
+		double substitutionX = [self plotToDeviceX:fixation_tick withInteriorRect:interiorRect];
 		NSRect substitutionRect = NSMakeRect(substitutionX - 0.5, interiorRect.origin.x, 1.0, interiorRect.size.height);
 		
 		[[NSColor colorWithCalibratedRed:0.2 green:0.2 blue:1.0 alpha:0.2] set];
@@ -310,11 +311,11 @@
 			{
 				FitnessHistory &history_record = history_record_iter.second;
 				double *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				NSBezierPath *linePath = [NSBezierPath bezierPath];
 				BOOL startedLine = NO;
 				
-				for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+				for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 				{
 					double historyEntry = history[i];
 					
@@ -351,11 +352,11 @@
 		{
 			FitnessHistory &history_record = history_record_iter.second;
 			double *history = history_record.history_;
-			slim_generation_t historyLength = history_record.history_length_;
+			slim_tick_t historyLength = history_record.history_length_;
 			NSBezierPath *linePath = [NSBezierPath bezierPath];
 			BOOL startedLine = NO;
 			
-			for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 			{
 				double historyEntry = history[i];
 				
@@ -391,23 +392,23 @@
 
 - (NSString *)stringForDataWithController:(SLiMWindowController *)controller
 {
-	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ generation\n"];
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
-	slim_generation_t completedGenerations = sim->generation_ - 1;
+	NSMutableString *string = [NSMutableString stringWithString:@"# Graph data: fitness ~ tick\n"];
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
+	slim_tick_t completedTicks = controller->community->Tick() - 1;
 	
 	[string appendString:[self dateline]];
 	
 	// Fixation events
-	[string appendString:@"\n\n# Fixation generations:\n"];
+	[string appendString:@"\n\n# Fixation ticks:\n"];
 	
 	std::vector<Substitution*> &substitutions = pop.substitutions_;
 	
 	for (const Substitution *substitution : substitutions)
 	{
-		slim_generation_t fixation_gen = substitution->fixation_generation_;
+		slim_tick_t fixation_tick = substitution->fixation_tick_;
 		
-		[string appendFormat:@"%lld, ", (int64_t)fixation_gen];
+		[string appendFormat:@"%lld, ", (int64_t)fixation_tick];
 	}
 	
 	// Fitness history
@@ -419,9 +420,9 @@
 		{
 			FitnessHistory &history_record = history_record_iter.second;
 			double *history = history_record.history_;
-			slim_generation_t historyLength = history_record.history_length_;
+			slim_tick_t historyLength = history_record.history_length_;
 			
-			for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+			for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 				[string appendFormat:@"%.4f, ", history[i]];
 			
 			[string appendString:@"\n"];
@@ -439,11 +440,11 @@
 			{
 				FitnessHistory &history_record = history_record_iter.second;
 				double *history = history_record.history_;
-				slim_generation_t historyLength = history_record.history_length_;
+				slim_tick_t historyLength = history_record.history_length_;
 				
 				[string appendFormat:@"\n\n# Fitness history (subpopulation p%d):\n", history_record_iter.first];
 				
-				for (slim_generation_t i = 0; (i < historyLength) && (i < completedGenerations); ++i)
+				for (slim_tick_t i = 0; (i < historyLength) && (i < completedTicks); ++i)
 					[string appendFormat:@"%.4f, ", history[i]];
 				
 				[string appendString:@"\n"];
@@ -459,9 +460,8 @@
 
 - (NSArray *)legendKey
 {
-	SLiMWindowController *controller = [self slimWindowController];
-	SLiMSim *sim = controller->sim;
-	Population &pop = sim->population_;
+	Species *displaySpecies = [self focalDisplaySpecies];
+	Population &pop = displaySpecies->population_;
 	BOOL showSubpops = [self showSubpopulations] && (pop.fitness_histories_.size() > 2);
 	BOOL drawSubpopsGray = (showSubpops && (pop.fitness_histories_.size() > 8));	// 7 subpops + pop
 	

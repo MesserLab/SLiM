@@ -14,7 +14,7 @@ initialize() {
 	else
 		stop("Couldn't find Rscript.");
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 5000);
 	sim.setValue("fixed", NULL);
 	
@@ -24,14 +24,14 @@ initialize() {
 	if (exists("slimgui"))
 		slimgui.openDocument(pngPath);
 }
-1: {
-	if (sim.generation % 10 == 0)
+1: early() {
+	if (sim.cycle % 10 == 0)
 	{
 		count = sim.substitutions.size();
 		sim.setValue("fixed", c(sim.getValue("fixed"), count));
 	}
 	
-	if (sim.generation % 1000 != 0)
+	if (sim.cycle % 1000 != 0)
 		return;
 	
 	y = sim.getValue("fixed");

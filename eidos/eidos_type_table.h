@@ -56,7 +56,7 @@ private:
 	
 public:
 	
-	EidosTypeTable(const EidosTypeTable&) = delete;										// no copying
+	EidosTypeTable(const EidosTypeTable &originalTable);								// copy all defined symbols from an original table to a derived table
 	EidosTypeTable& operator=(const EidosTypeTable&) = delete;							// no copying
 	explicit EidosTypeTable(void);														// standard constructor
 	virtual ~EidosTypeTable(void);

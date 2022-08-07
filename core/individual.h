@@ -26,9 +26,9 @@
  
  Individuals are kept by Subpopulation, and have the same lifetime as the Subpopulation to which they belong.  Since they do not
  actually contain any information specific to a particular individual – just an index in the Subpopulation's genomes vector –
- they do not get deallocated and reallocated between generations; the same object continues to represent individual #17 of the
+ they do not get deallocated and reallocated between cycles; the same object continues to represent individual #17 of the
  subpopulation for as long as that subpopulation exists.  This is safe because of the way that objects cannot live across code
- block boundaries in SLiM.  The tag values of particular Individual objects will persist between generations, even though the
+ block boundaries in SLiM.  The tag values of particular Individual objects will persist between cycles, even though the
  individual that is conceptually represented has changed, but that is fine since those values are officially undefined until set.
  
  */
@@ -44,7 +44,7 @@ class Subpopulation;
 
 extern EidosClass *gSLiM_Individual_Class;
 
-// A global counter used to assign all Individual objects a unique ID
+// A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
 extern slim_pedigreeid_t gSLiM_next_pedigree_id;
 
 
@@ -90,19 +90,22 @@ public:
 	
 	double fitness_scaling_ = 1.0;		// the fitnessScaling property value
 	double cached_fitness_UNSAFE_;		// the last calculated fitness value for this individual; NaN for new offspring, 1.0 for new subpops
-										// this is marked UNSAFE because it can be overridden by a Subpopulation-level flag, which must be
-										// checked before using this cached value (except in SLiMgui, where this value is always good)
+										// this is marked UNSAFE because Subpopulation's individual_cached_fitness_OVERRIDE_ flag can override
+										// this value in neutral models; that flag must be checked before using this cached value
+#ifdef SLIMGUI
+	double cached_unscaled_fitness_;	// the last calculated fitness value for this individual, WITHOUT subpop fitnessScaling; used only in
+										// in SLiMgui, which wants to exclude that scaling because it usually represents density-dependence
+										// that confuses interpretation; note that individual_cached_fitness_OVERRIDE_ is not relevant to this
+#endif
 	
 	Genome *genome1_, *genome2_;		// NOT OWNED; must correspond to the entries in the Subpopulation we live in
 	IndividualSex sex_;					// must correspond to our position in the Subpopulation vector we live in
-	
-#ifdef SLIM_NONWF_ONLY
-	slim_age_t age_;					// the age of the individual, in generations; -1 in WF models
-#endif  // SLIM_NONWF_ONLY
+	slim_age_t age_;					// nonWF only: the age of the individual, in cycles; -1 in WF models
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
-	Subpopulation *subpopulation_;		// the subpop to which we belong
-	eidos_logical_t migrant_;			// T if the individual has migrated in the current generation, F otherwise
+	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
+	eidos_logical_t migrant_;			// T if the individual has migrated in the current cycle, F otherwise
+	eidos_logical_t killed_;			// T if the individual has been killed by killIndividuals(), F otherwise
 	uint8_t scratch_;					// available for use by algorithms
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
@@ -224,9 +227,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_index(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_pedigreeID(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size);
-#ifdef SLIM_NONWF_ONLY
 	static EidosValue *GetProperty_Accelerated_age(EidosObject **p_values, size_t p_values_size);
-#endif  // SLIM_NONWF_ONLY
 	static EidosValue *GetProperty_Accelerated_reproductiveOutput(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size);
@@ -250,6 +251,8 @@ public:
 	
 	// These flags are used to minimize the work done by Subpopulation::SwapChildAndParentGenomes(); it only needs to
 	// reset colors or dictionaries if they have ever been touched by the model.  These flags are set and never cleared.
+	// BCH 5/24/2022: Note that these globals are shared across species, so if one species uses a given facility, all
+	// species will suffer the associated speed penalty for it.  This is a bit unfortunate, but keeps the design simple.
 	static bool s_any_individual_color_set_;
 	static bool s_any_individual_dictionary_set_;
 	static bool s_any_individual_or_genome_tag_set_;

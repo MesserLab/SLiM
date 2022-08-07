@@ -40,5 +40,5 @@ early() {
 }
 1:2000 late() {
 	ratio = sum(p1.individuals.tag == 0) / p1.individualCount;
-	catn(sim.generation + ": " + ratio);
+	catn(sim.cycle + ": " + ratio);
 }

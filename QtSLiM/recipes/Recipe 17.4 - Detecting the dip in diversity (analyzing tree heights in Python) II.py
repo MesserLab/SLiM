@@ -2,7 +2,7 @@
 
 # This is a Python recipe; note that it runs the SLiM model internally, below
 
-import subprocess, msprime, tskit, pyslim
+import subprocess, tskit
 import matplotlib.pyplot as plt
 import numpy as np
 

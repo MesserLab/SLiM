@@ -1,2 +1,2 @@
-tskit >= 0.4.0
-msprime
+tskit >= 0.4.1
+msprime >= 1.2.0

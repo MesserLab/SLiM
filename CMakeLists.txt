@@ -68,6 +68,13 @@ endif(NOT CMAKE_BUILD_TYPE)
 option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
 
 
+# obtain the Git commit SHA-1; see ./cmake/_README.txt and https://stackoverflow.com/a/4318642/2752221
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
+include(GetGitRevisionDescription)
+get_git_head_revision(GIT_REFSPEC GIT_SHA1)
+#message("GIT_SHA1 is ${GIT_SHA1}")
+
+
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wmissing-prototypes -Wswitch -Wpointer-sign -Wsign-compare -Wstrict-prototypes -Wno-sign-conversion -Wuninitialized")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wswitch -Wsign-compare -Wno-sign-conversion -Wuninitialized")
@@ -82,6 +89,8 @@ if(WIN32)
         "${PROJECT_SOURCE_DIR}/core/slim_globals.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim_eidos.cpp"
         "${PROJECT_SOURCE_DIR}/core/slim_sim.cpp"
+        "${PROJECT_SOURCE_DIR}/core/species.cpp"
+        "${PROJECT_SOURCE_DIR}/core/species_eidos.cpp"
         "${PROJECT_SOURCE_DIR}/core/subpopulation.cpp"
         "${PROJECT_SOURCE_DIR}/eidos/eidos_functions.cpp"
         "${PROJECT_SOURCE_DIR}/eidos/eidos_globals.cpp"
@@ -179,8 +188,14 @@ if(WIN32)
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
 endif()
 
+# SLIM
 set(TARGET_NAME slim)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
+
+# use the Git commit SHA-1 obtained above
+configure_file("${PROJECT_SOURCE_DIR}/cmake/GitSHA1.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" @ONLY)
+list(APPEND SLIM_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" ${PROJECT_SOURCE_DIR}/cmake/GitSHA1.h)
+
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
@@ -191,6 +206,7 @@ if(WIN32)
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
 endif()
 
+# EIDOS
 set(TARGET_NAME eidos)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
@@ -241,4 +257,3 @@ else()
 endif()
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_SLIMGUI)
-

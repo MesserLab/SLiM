@@ -40,14 +40,14 @@ early() {
 	for (subpop in sim.subpopulations)
 	{
 		if (runif(1) < e)
-			subpop.fitnessScaling = 0.0;
+			sim.killIndividuals(subpop.individuals);
 		else
 			subpop.fitnessScaling = K / subpop.individualCount;
 	}
 }
 late() {
 	if (sum(sim.subpopulations.individualCount) == 0)
-		stop("Global extinction in generation " + sim.generation + ".");
+		stop("Global extinction in cycle " + sim.cycle + ".");
 }
 2000 late() {
 	sim.outputFixedMutations();

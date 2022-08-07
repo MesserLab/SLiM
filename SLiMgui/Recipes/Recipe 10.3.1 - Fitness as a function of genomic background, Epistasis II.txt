@@ -1,4 +1,4 @@
-// Keywords: fitness(), gene interactions
+// Keywords: gene interactions
 
 initialize() {
 	initializeMutationRate(1e-8);
@@ -17,13 +17,13 @@ initialize() {
 	initializeGenomicElement(g1, 73001, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 500); }
-10000 { sim.simulationFinished(); }
-fitness(m3) {
-	if (genome1.countOfMutationsOfType(m2))
+1 early() { sim.addSubpop("p1", 500); }
+10000 early() { sim.simulationFinished(); }
+mutationEffect(m3) {
+	if (individual.genome1.countOfMutationsOfType(m2))
 		return 0.5;
-	else if (genome2.countOfMutationsOfType(m2))
+	else if (individual.genome2.countOfMutationsOfType(m2))
 		return 0.5;
 	else
-		return relFitness;
+		return effect;
 }

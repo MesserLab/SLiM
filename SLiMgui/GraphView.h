@@ -33,6 +33,9 @@
 
 @interface GraphView : NSView
 {
+	std::string focalSpeciesName;							// we keep the name of our focal species, since a pointer would be unsafe
+	std::string focalSpeciesAvatar;							// cached so we can display it even when the simulation is invalid
+	
 	// set to YES during a copy: operation, to allow customization
 	BOOL generatingPDF;
 	
@@ -88,6 +91,9 @@
 
 - (id)initWithFrame:(NSRect)frameRect withController:(SLiMWindowController *)controller;		// designated initializer
 
+- (Species *)focalDisplaySpecies;
+- (void)updateSpeciesBadge;
+
 - (void)cleanup;
 
 - (void)setXAxisLabelString:(NSString *)labelString;
@@ -137,7 +143,7 @@
 - (void)graphWindowResized;				// called by SLiMWindowController to let the GraphView do whatever recalculation, cache invalidation, etc. it might want to do
 - (void)controllerRecycled;				// called by SLiMWindowController when the simulation is recycled, to let the GraphView do whatever re-initialization is needed
 - (void)controllerSelectionChanged;		// called by SLiMWindowController when the selection changes, to let the GraphView respond
-- (void)controllerGenerationFinished;	// called by SLiMWindowController when a simulation generation ends, to allow per-generation data gathering; redrawing should not be done here
+- (void)controllerTickFinished;			// called by SLiMWindowController when a simulation tick ends, to allow per-tick data gathering; redrawing should not be done here
 - (void)updateAfterTick;				// by default, calls setNeedsDisplay:YES; can also perform other updating work
 
 // Additional properties that conceptually belong to PrefabAdditions below
@@ -148,8 +154,8 @@
 
 @interface GraphView (PrefabAdditions)
 
-// A prefab method to set up a good x axis to span the generation range, whatever it might be
-- (void)setXAxisRangeFromGeneration;
+// A prefab method to set up a good x axis to span the tick range, whatever it might be
+- (void)setXAxisRangeFromTick;
 
 // a prefab legend that shows all of the mutation types, with color swatches and labels
 - (NSArray *)mutationTypeLegendKey;

@@ -1,4 +1,4 @@
-// Keywords: migration, dispersal, QTL, quantitative trait loci, fitness()
+// Keywords: migration, dispersal, QTL, quantitative trait loci
 
 initialize() {
 	initializeMutationRate(1e-6);
@@ -48,8 +48,8 @@ initialize() {
 	p1.setMigrationRates(p2, 0.01);
 	p2.setMigrationRates(p1, 0.01);
 	
-	// replicate the s1 event to output in generation 2 also
-	sim.registerEarlyEvent("s2", s1.source, 2, 2);
+	// replicate the s1 event to output in tick 2 also
+	community.registerEarlyEvent("s2", s1.source, 2, 2);
 	
 	// optional: give m2 mutations to everyone, as standing variation
 	g = sim.subpopulations.genomes;
@@ -61,7 +61,7 @@ initialize() {
 		g[!isPlus].addNewMutation(m2, -1.0, q);
 	}
 }
-fitness(m2) { return 1.0; }
+mutationEffect(m2) { return 1.0; }
 1: late() {
 	// evaluate and save the additive effects of QTLs
 	for (subpop in c(p1,p2))
@@ -80,7 +80,7 @@ mateChoice() {
 }
 s1 2001 early() {
 	cat("-------------------------------\n");
-	cat("Output for end of generation " + (sim.generation - 1) + ":\n\n");
+	cat("Output for end of cycle " + (sim.cycle - 1) + ":\n\n");
 	
 	// Output population fitness values
 	cat("p1 mean fitness = " + mean(p1.cachedFitness(NULL)) + "\n");

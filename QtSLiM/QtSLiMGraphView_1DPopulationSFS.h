@@ -41,7 +41,7 @@ public:
     virtual void appendStringForData(QString &string) override;    
     
 public slots:
-    virtual void controllerSelectionChanged(void) override;
+    virtual void controllerChromosomeSelectionChanged(void) override;
     
 private:
     double *populationSFS(int mutationTypeCount);    

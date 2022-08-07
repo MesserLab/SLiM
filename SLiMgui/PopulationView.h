@@ -31,13 +31,8 @@ typedef struct {
 
 @interface PopulationView : NSOpenGLView
 {
-	// display mode: 0 == individuals (non-spatial), 1 == individuals (spatial), 2 == fitness distribution line plots, 3 == fitness distribution barplot
+	// display mode: 0 == individuals (non-spatial), 1 == individuals (spatial)
 	int displayMode;
-	
-	// used in displayMode 2 and 3, set by PopulationViewOptionsSheet.xib
-	int binCount;
-	double fitnessMin;
-	double fitnessMax;
 	
 	// display background preferences, kept indexed by subpopulation id
 	std::map<slim_objectid_t, PopulationViewBackgroundSettings> backgroundSettings;
@@ -53,8 +48,6 @@ typedef struct {
 @property (nonatomic, assign) IBOutlet NSTextField *fitnessMinTextField;
 @property (nonatomic, assign) IBOutlet NSTextField *fitnessMaxTextField;
 @property (nonatomic, assign) IBOutlet NSButton *okButton;
-
-- (IBAction)validateSheetControls:(id)sender;						// can be wired to controls that need to trigger validation
 
 - (BOOL)tileSubpopulations:(std::vector<Subpopulation*> &)selectedSubpopulations;
 

@@ -9,8 +9,8 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 100); }
-{
+1 early() { sim.addSubpop("p1", 100); }
+early() {
 	meanFitness = mean(p1.cachedFitness(NULL));
 	newSize = asInteger(100 * meanFitness);
 	p1.setSubpopulationSize(newSize);

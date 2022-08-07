@@ -8,15 +8,15 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 { sim.addSubpop("p1", 500); }
+1 early() { sim.addSubpop("p1", 500); }
 1:10001 early() {
 	fixedMuts = sum(sim.substitutions.mutationType == m2);
 	inds = p1.individuals;
 	osize = fixedMuts * 2 + inds.countOfMutationsOfType(m2);
 	inds.tagF = log(osize + 1) * 0.1;
 	
-	if (sim.generation % 1000 == 1)
-		catn(sim.generation + ": Mean ornament size == " + mean(osize));
+	if (sim.cycle % 1000 == 1)
+		catn(sim.cycle + ": Mean ornament size == " + mean(osize));
 }
 mateChoice() {
 	for (attempt in 1:5)

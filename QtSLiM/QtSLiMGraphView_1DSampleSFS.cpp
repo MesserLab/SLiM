@@ -95,7 +95,7 @@ void QtSLiMGraphView_1DSampleSFS::subpopulation1PopupChanged(int /* index */)
     if (!rebuildingMenu_ && (selectedSubpopulation1ID_ != newSubpopID))
     {
         selectedSubpopulation1ID_ = newSubpopID;
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -108,7 +108,7 @@ void QtSLiMGraphView_1DSampleSFS::mutationTypePopupChanged(int /* index */)
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -140,7 +140,7 @@ QString QtSLiMGraphView_1DSampleSFS::aboutString(void)
            "Population SFS graph provides an alternative that might also be useful.";
 }
 
-void QtSLiMGraphView_1DSampleSFS::invalidateDrawingCache(void)
+void QtSLiMGraphView_1DSampleSFS::invalidateCachedData(void)
 {
     if (sfs1dbuf_)
     {
@@ -148,7 +148,7 @@ void QtSLiMGraphView_1DSampleSFS::invalidateDrawingCache(void)
         sfs1dbuf_ = nullptr;
     }
     
-    QtSLiMGraphView::invalidateDrawingCache();
+    QtSLiMGraphView::invalidateCachedData();
 }
 
 void QtSLiMGraphView_1DSampleSFS::updateAfterTick(void)
@@ -158,18 +158,20 @@ void QtSLiMGraphView_1DSampleSFS::updateAfterTick(void)
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
 QString QtSLiMGraphView_1DSampleSFS::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
-        Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+        MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
-        qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
+        //qDebug() << "muttype " << muttype << " for id " << selectedMutationTypeIndex_;
         
         //if (!subpop1 || !muttype)
         //    return "no\ndata";
@@ -232,7 +234,7 @@ void QtSLiMGraphView_1DSampleSFS::changeSampleSize(void)
         {
             histogramBinCount_ = newSampleSize;
             xAxisMax_ = histogramBinCount_;
-            invalidateDrawingCache();
+            invalidateCachedData();
             update();
         }
         else qApp->beep();
@@ -248,12 +250,12 @@ uint64_t *QtSLiMGraphView_1DSampleSFS::mutation1DSFS(void)
 {
     if (!sfs1dbuf_)
     {
-        SLiMSim *sim = controller_->sim;
-        Population &population = sim->population_;
+        Species *graphSpecies = focalDisplaySpecies();
+        Population &population = graphSpecies->population_;
         
         // Find our subpops and mutation type
-        Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+        MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !muttype)
             return nullptr;

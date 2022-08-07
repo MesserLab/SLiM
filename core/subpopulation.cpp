@@ -19,9 +19,11 @@
 
 
 #include "subpopulation.h"
-#include "slim_sim.h"
+#include "community.h"
+#include "species.h"
 #include "slim_globals.h"
 #include "population.h"
+#include "interaction_type.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
@@ -312,49 +314,49 @@ void _SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 #pragma mark Subpopulation
 #pragma mark -
 
-Genome *Subpopulation::_NewSubpopGenome(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type, bool p_is_null)
+// These get called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
+// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
+// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
+// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
+// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
+// junkyards are empty.
+
+Genome *Subpopulation::_NewSubpopGenome_NULL(GenomeType p_genome_type)
 {
-	// This gets called if a null genome is requested but the null junkyard is empty, or if a non-null genome is requested
-	// but the non-null junkyard is empty; so we know that the primary junkyard for the request cannot service the request.
-	// If the other junkyard has a genome, we want to repurpose it; this prevents one junkyard from filling up with an
-	// ever-growing number of genomes while requests to the other junkyard create new genomes (which can happen because
-	// genomes can be transmogrified between null and non-null after creation).  We create a new genome only if both
-	// junkyards are empty.
-	if (p_is_null)
+	if (genome_junkyard_nonnull.size())
 	{
-		if (genome_junkyard_nonnull.size())
-		{
-			Genome *back = genome_junkyard_nonnull.back();
-			genome_junkyard_nonnull.pop_back();
-			
-			// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
-			back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
-			
-			return back;
-		}
-	}
-	else
-	{
-		if (genome_junkyard_null.size())
-		{
-			Genome *back = genome_junkyard_null.back();
-			genome_junkyard_null.pop_back();
-			
-			// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
-			back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
-			
-			return back;
-		}
+		Genome *back = genome_junkyard_nonnull.back();
+		genome_junkyard_nonnull.pop_back();
+		
+		// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
+		back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
+		
+		return back;
 	}
 	
-	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type, p_is_null);
+	return new (genome_pool_.AllocateChunk()) Genome(p_genome_type);
 }
 
-#ifdef SLIM_WF_ONLY
-void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male, bool p_no_clear)
+Genome *Subpopulation::_NewSubpopGenome_NONNULL(int p_mutrun_count, slim_position_t p_mutrun_length, GenomeType p_genome_type)
 {
-	SLiMSim &sim = population_.sim_;
-	Chromosome &chromosome = sim.TheChromosome();
+	if (genome_junkyard_null.size())
+	{
+		Genome *back = genome_junkyard_null.back();
+		genome_junkyard_null.pop_back();
+		
+		// got a null genome, need to repurpose it to be a non-null genome cleared to nullptr
+		back->ReinitializeGenomeNullptr(p_genome_type, p_mutrun_count, p_mutrun_length);
+		
+		return back;
+	}
+	
+	return new (genome_pool_.AllocateChunk()) Genome(p_mutrun_count, p_mutrun_length, p_genome_type);
+}
+
+// WF only:
+void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_individuals, std::vector<Genome *> &p_genomes, slim_popsize_t p_individual_count, slim_popsize_t p_first_male)
+{
+	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
@@ -363,108 +365,50 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 		// make hermaphrodites
 		if (p_individual_count > 0)
 		{
-			if (p_no_clear)
+			for (int index = 0; index < p_individual_count; ++index)
 			{
-				for (int index = 0; index < p_individual_count; ++index)
-				{
-					p_genomes[index * 2]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-					p_genomes[index * 2 + 1]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-				}
-			}
-			else
-			{
-				MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-				
-				for (int index = 0; index < p_individual_count; ++index)
-				{
-					p_genomes[index * 2]->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-					p_genomes[index * 2 + 1]->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-				}
+				p_genomes[index * 2]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+				p_genomes[index * 2 + 1]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
 			}
 		}
 	}
 	else
 	{
 		// make females and males
-		if (p_no_clear)
+		for (int index = 0; index < p_individual_count; ++index)
 		{
-			for (int index = 0; index < p_individual_count; ++index)
-			{
-				Genome *genome1 = p_genomes[index * 2];
-				Genome *genome2 = p_genomes[index * 2 + 1];
-				Individual *individual = p_individuals[index];
-				bool is_female = (index < p_first_male);
-				
-				individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
+			Genome *genome1 = p_genomes[index * 2];
+			Genome *genome2 = p_genomes[index * 2 + 1];
+			Individual *individual = p_individuals[index];
+			bool is_female = (index < p_first_male);
 			
-				switch (modeled_chromosome_type_)
+			individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
+		
+			switch (modeled_chromosome_type_)
+			{
+				case GenomeType::kAutosome:
 				{
-					case GenomeType::kAutosome:
-					{
-						genome1->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-						genome2->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-						break;
-					}
-					case GenomeType::kXChromosome:
-					{
-						genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
-						
-						if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
-						else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, 0, 0);									// leave as a null genome
-						
-						break;
-					}
-					case GenomeType::kYChromosome:
-					{
-						genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);													// leave as a null genome
-						
-						if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);									// leave as a null genome
-						else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, mutrun_count, mutrun_length);
-						
-						break;
-					}
+					genome1->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+					genome2->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+					break;
 				}
-			}
-		}
-		else
-		{
-			// since we're now guaranteed to have at least one male and one female, we're guaranteed to use the new empty run somewhere, so no leak
-			MutationRun *shared_empty_run = MutationRun::NewMutationRun();
-			
-			for (int index = 0; index < p_individual_count; ++index)
-			{
-				Genome *genome1 = p_genomes[index * 2];
-				Genome *genome2 = p_genomes[index * 2 + 1];
-				Individual *individual = p_individuals[index];
-				bool is_female = (index < p_first_male);
-				
-				individual->sex_ = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-				switch (modeled_chromosome_type_)
+				case GenomeType::kXChromosome:
 				{
-					case GenomeType::kAutosome:
-					{
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-						genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-						break;
-					}
-					case GenomeType::kXChromosome:
-					{
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
-						
-						if (is_female)	genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
-						else			genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, 0, 0, shared_empty_run);									// leave as a null genome
-						
-						break;
-					}
-					case GenomeType::kYChromosome:
-					{
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, 0, 0, shared_empty_run);													// leave as a null genome
-						
-						if (is_female)	genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, 0, 0, shared_empty_run);									// leave as a null genome
-						else			genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
-						
-						break;
-					}
+					genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
+					
+					if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, mutrun_count, mutrun_length);
+					else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, 0, 0);									// leave as a null genome
+					
+					break;
+				}
+				case GenomeType::kYChromosome:
+				{
+					genome1->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);													// leave as a null genome
+					
+					if (is_female)	genome2->ReinitializeGenomeNullptr(GenomeType::kXChromosome, 0, 0);									// leave as a null genome
+					else			genome2->ReinitializeGenomeNullptr(GenomeType::kYChromosome, mutrun_count, mutrun_length);
+					
+					break;
 				}
 			}
 		}
@@ -476,8 +420,7 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 // genomes between a null and non-null state, as a side effect of changing sex.  So this code is really gross and invasive.
 void Subpopulation::GenerateChildrenToFitWF()
 {
-	SLiMSim &sim = population_.sim_;
-	Chromosome &chromosome = sim.TheChromosome();
+	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
@@ -494,23 +437,40 @@ void Subpopulation::GenerateChildrenToFitWF()
 		child_genomes_.reserve(new_individual_count * 2);
 		child_individuals_.reserve(new_individual_count);
 		
-		for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+		if (species_.HasGenetics())
 		{
-			// allocate out of our object pools
-			// BCH 23 August 2018: passing false to NewSubpopGenome() for p_is_null is sometimes inaccurate, but should
-			// be harmless.  If the genomes are ultimately destined to be null genomes, their mutruns buffer will get
-			// freed again below.  Now that the disposed genome junkyards can supply each other when empty, there should
-			// be no bigger consequence than that performance hit.  It might be nice to figure out, here, what type of
-			// genome we will eventually want at this position, and make the right kind up front; but that is a
-			// substantial hassle, and this should only matter in unusual models (very large-magnitude population size
-			// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
-			Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
-			
-			child_genomes_.emplace_back(genome1);
-			child_genomes_.emplace_back(genome2);
-			child_individuals_.emplace_back(individual);
+			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+			{
+				// allocate out of our object pools
+				// BCH 23 August 2018: passing false to NewSubpopGenome() for p_is_null is sometimes inaccurate, but should
+				// be harmless.  If the genomes are ultimately destined to be null genomes, their mutruns buffer will get
+				// freed again below.  Now that the disposed genome junkyards can supply each other when empty, there should
+				// be no bigger consequence than that performance hit.  It might be nice to figure out, here, what type of
+				// genome we will eventually want at this position, and make the right kind up front; but that is a
+				// substantial hassle, and this should only matter in unusual models (very large-magnitude population size
+				// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
+				Genome *genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+				Genome *genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+				
+				child_genomes_.emplace_back(genome1);
+				child_genomes_.emplace_back(genome2);
+				child_individuals_.emplace_back(individual);
+			}
+		}
+		else
+		{
+			// In the no-genetics case we know we need null genomes, and we have to create them up front to avoid errors
+			for (int new_index = old_individual_count; new_index < new_individual_count; ++new_index)
+			{
+				Genome *genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				Genome *genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+				
+				child_genomes_.emplace_back(genome1);
+				child_genomes_.emplace_back(genome2);
+				child_individuals_.emplace_back(individual);
+			}
 		}
 	}
 	else if (new_individual_count < old_individual_count)
@@ -548,24 +508,22 @@ void Subpopulation::GenerateChildrenToFitWF()
 		else if (first_male_index >= child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateChildrenToFitWF): sex ratio of " << sex_ratio << " produced no males." << EidosTerminate();
 		
-		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, first_male_index, true);
+		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, first_male_index);
 	}
 	else
 	{
-		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, -1, true);	// make hermaphrodites
+		WipeIndividualsAndGenomes(child_individuals_, child_genomes_, new_individual_count, -1);	// make hermaphrodites
 	}
 }
-#endif	// SLIM_WF_ONLY
 
 // Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
 // sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
 // involved in that case).  This handles both the WF and nonWF cases, which are very similar.
 void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid)
 {
-	SLiMSim &sim = population_.sim_;
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	bool recording_tree_sequence = p_record_in_treeseq && sim.RecordingTreeSequence();
-	Chromosome &chromosome = sim.TheChromosome();
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
+	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
@@ -579,7 +537,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	
 	if (p_haploid)
 	{
-		if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals in WF models." << EidosTerminate();
 		if (sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::GenerateParentsToFit): (internal error) cannot create haploid individuals when simulating sex chromosomes." << EidosTerminate();
@@ -592,7 +550,8 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	parent_individuals_.reserve(parent_subpop_size_);
 	
 	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
-	MutationRun *shared_empty_run = (parent_subpop_size_ ? MutationRun::NewMutationRun() : nullptr);
+	bool has_genetics = species_.HasGenetics();
+	MutationRun *shared_empty_run = (((parent_subpop_size_ > 0) && has_genetics) ? MutationRun::NewMutationRun() : nullptr);
 	
 	if (sex_enabled_)
 	{
@@ -615,54 +574,77 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			bool is_female = (new_index < first_male_index);
 			Genome *genome1, *genome2;
 			
-			switch (modeled_chromosome_type_)
+			if (has_genetics)
 			{
-				case GenomeType::kAutosome:
+				switch (modeled_chromosome_type_)
 				{
-					genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-					genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-					
-					if (p_haploid)
+					case GenomeType::kAutosome:
 					{
-						genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+						genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+						
+						if (p_haploid)
+						{
+							genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+						}
+						else
+						{
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+							genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+						}
+						break;
 					}
-					else
+					case GenomeType::kXChromosome:
 					{
-						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-						genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
+						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						
+						if (is_female)
+						{
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
+							genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						}
+						else
+						{
+							genome2 = NewSubpopGenome_NULL(GenomeType::kYChromosome);
+						}
+						break;
 					}
-					break;
+					case GenomeType::kYChromosome:
+					{
+						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
+						
+						if (is_female)
+						{
+							genome2 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
+						}
+						else
+						{
+							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kYChromosome);
+							genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						}
+						break;
+					}
 				}
-				case GenomeType::kXChromosome:
+			}
+			else
+			{
+				// no-genetics species have null genomes
+				switch (modeled_chromosome_type_)
 				{
-					genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
-					genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
-					
-					if (is_female)
+					case GenomeType::kAutosome:
 					{
-						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kXChromosome, false);
-						genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+						genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+						break;
 					}
-					else
+					case GenomeType::kXChromosome:
+					case GenomeType::kYChromosome:
 					{
-						genome2 = NewSubpopGenome(0, 0, GenomeType::kYChromosome, true);
+						genome1 = NewSubpopGenome_NULL(GenomeType::kXChromosome);
+						genome2 = NewSubpopGenome_NULL(is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome);
+						break;
 					}
-					break;
-				}
-				case GenomeType::kYChromosome:
-				{
-					genome1 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
-					
-					if (is_female)
-					{
-						genome2 = NewSubpopGenome(0, 0, GenomeType::kXChromosome, true);
-					}
-					else
-					{
-						genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kYChromosome, false);
-						genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
-					}
-					break;
 				}
 			}
 			
@@ -672,9 +654,9 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
 			{
-				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+				species_.SetCurrentNewIndividual(individual);
+				species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
 			parent_genomes_.emplace_back(genome1);
@@ -691,17 +673,26 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			// start new parental genomes out with a shared empty mutrun; can't be nullptr like child genomes can
 			Genome *genome1, *genome2;
 			
-			genome1 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-			genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
-			
-			if (p_haploid)
+			if (has_genetics)
 			{
-				genome2 = NewSubpopGenome(0, 0, GenomeType::kAutosome, true);
+				genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+				genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				
+				if (p_haploid)
+				{
+					genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				}
+				else
+				{
+					genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
+					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				}
 			}
 			else
 			{
-				genome2 = NewSubpopGenome(mutrun_count, mutrun_length, GenomeType::kAutosome, false);
-				genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				// no-genetics species have null genomes
+				genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
+				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
 			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
@@ -709,9 +700,9 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
 			{
-				sim.SetCurrentNewIndividual(individual);
-				sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-				sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+				species_.SetCurrentNewIndividual(individual);
+				species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+				species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 			}
 			
 			parent_genomes_.emplace_back(genome1);
@@ -725,15 +716,19 @@ void Subpopulation::CheckIndividualIntegrity(void)
 {
 	ClearErrorPosition();
 	
-	if (population_.sim_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosNoBlockType)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) executing block type was not maintained correctly." << EidosTerminate();
 	
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
-	SLiMModelType model_type = population_.sim_.ModelType();
-#endif
-	Chromosome &chromosome = population_.sim_.TheChromosome();
+	SLiMModelType model_type = model_type_;
+	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	bool has_genetics = species_.HasGenetics();
+	
+	if (has_genetics && ((mutrun_count == 0) || (mutrun_length == 0)))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
+	else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
 	
 	//
 	//	Check the parental generation; this is essentially the same in WF and nonWF models
@@ -772,8 +767,17 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
 		if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+		if (!has_genetics && (!genome1->IsNull() || !genome2->IsNull()))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null genomes." << EidosTerminate();
 		
-		if (population_.sim_.PedigreesEnabled())
+		if (((genome1->mutrun_count_ == 0) && ((genome1->mutrun_length_ != 0) || (genome1->mutruns_ != nullptr))) ||
+			((genome1->mutrun_length_ == 0) && ((genome1->mutrun_count_ != 0) || (genome1->mutruns_ != nullptr))))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
+		if (((genome2->mutrun_count_ == 0) && ((genome2->mutrun_length_ != 0) || (genome2->mutruns_ != nullptr))) ||
+			((genome2->mutrun_length_ == 0) && ((genome2->mutrun_count_ != 0) || (genome2->mutruns_ != nullptr))))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
+		
+		if (species_.PedigreesEnabled())
 		{
 			if (individual->pedigree_id_ == -1)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
@@ -781,7 +785,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome has an invalid genome ID." << EidosTerminate();
 		}
 		
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 		if (model_type == SLiMModelType::kModelTypeWF)
 		{
 			if (individual->age_ != -1)
@@ -792,7 +795,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			if (individual->age_ < 0)
 				invalid_age = true;
 		}
-#endif
 		
 		if (invalid_age)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) invalid value for individual->age_." << EidosTerminate();
@@ -815,6 +817,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
 			}
 			
+			if (!has_genetics)
+			{
+				genome1_null = true;
+				genome2_null = true;
+			}
+			
 			// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
 			if ((modeled_chromosome_type_ != GenomeType::kAutosome) && ((genome1->IsNull() != genome1_null) || (genome2->IsNull() != genome2_null)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between expected and actual null genome status in sex chromosome simulation." << EidosTerminate();
@@ -834,7 +842,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) non-autosome genome in individual in non-sexual simulation." << EidosTerminate();
 		}
 		
-#ifdef SLIM_WF_ONLY
 		if (child_generation_valid_)
 		{
 			// When the child generation is valid, all parental genomes should have null mutrun pointers, so mutrun refcounts are correct
@@ -847,7 +854,6 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
 		}
 		else
-#endif	// SLIM_WF_ONLY
 		{
 			// When the parental generation is valid, all parental genomes should have non-null mutrun pointers
 			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
@@ -865,10 +871,7 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	//	Check the child generation; this is only in WF models
 	//
 	
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
 	if (model_type == SLiMModelType::kModelTypeWF)
-#endif
-#ifdef SLIM_WF_ONLY
 	{
 		if ((int)child_individuals_.size() != child_subpop_size_)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mismatch between child_subpop_size_ and child_individuals_.size()." << EidosTerminate();
@@ -902,8 +905,17 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 1 of individual has the wrong mutrun count/length." << EidosTerminate();
 			if (!genome2->IsNull() && ((genome2->mutrun_count_ != mutrun_count) || (genome2->mutrun_length_ != mutrun_length)))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) genome 2 of individual has the wrong mutrun count/length." << EidosTerminate();
+			if (!has_genetics && (!genome1->IsNull() || !genome2->IsNull()))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) no-genetics species has non-null genomes." << EidosTerminate();
 			
-			if (population_.sim_.PedigreesEnabled() && child_generation_valid_)
+			if (((genome1->mutrun_count_ == 0) && ((genome1->mutrun_length_ != 0) || (genome1->mutruns_ != nullptr))) ||
+				((genome1->mutrun_length_ == 0) && ((genome1->mutrun_count_ != 0) || (genome1->mutruns_ != nullptr))))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
+			if (((genome2->mutrun_count_ == 0) && ((genome2->mutrun_length_ != 0) || (genome2->mutruns_ != nullptr))) ||
+				((genome2->mutrun_length_ == 0) && ((genome2->mutrun_count_ != 0) || (genome2->mutruns_ != nullptr))))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) mutrun count/length/pointer inconsistency." << EidosTerminate();
+			
+			if (species_.PedigreesEnabled() && child_generation_valid_)
 			{
 				if (individual->pedigree_id_ == -1)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) individual has an invalid pedigree ID." << EidosTerminate();
@@ -927,6 +939,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 					case GenomeType::kXChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome2_null = !is_female; break;
 					case GenomeType::kYChromosome:	genome1_type = GenomeType::kXChromosome; genome2_type = (is_female ? GenomeType::kXChromosome : GenomeType::kYChromosome); genome1_null = true; genome2_null = is_female; break;
 					default: EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) unsupported chromosome type." << EidosTerminate();
+				}
+				
+				if (!has_genetics)
+				{
+					genome1_null = true;
+					genome2_null = true;
 				}
 				
 				// BCH 9/21/2021: when modeling autosomes in a sexual simulation, null genomes are now allowed (male and female haploid gametes in an alternation of generations model, for example)
@@ -972,12 +990,13 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			}
 		}
 	}
-#endif	// SLIM_WF_ONLY
-	
 	
 	//
 	//	Check the genome junkyards; all genomes should contain nullptr mutruns
 	//
+	
+	if (!has_genetics && genome_junkyard_nonnull.size())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) the nonnull genome junkyard should be empty in no-genetics species." << EidosTerminate();
 	
 	for (Genome *genome : genome_junkyard_nonnull)
 	{
@@ -1002,17 +1021,13 @@ void Subpopulation::CheckIndividualIntegrity(void)
 
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))), 
-	population_(p_population), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
-	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size)
-#ifdef SLIM_WF_ONLY
-	, child_subpop_size_(p_subpop_size)
-#endif	// SLIM_WF_ONLY
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size), child_subpop_size_(p_subpop_size)
+#if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 		GenerateChildrenToFitWF();
@@ -1021,15 +1036,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	{
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
-#elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-	GenerateChildrenToFitWF();
-#elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-#endif
 	
-#ifdef SLIM_WF_ONLY
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// Set up to draw random individuals, based initially on equal fitnesses
 		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
@@ -1046,25 +1054,20 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		
 		lookup_parent_ = gsl_ran_discrete_preproc(parent_subpop_size_, cached_parental_fitness_);
 	}
-#endif	// SLIM_WF_ONLY
 }
 
 // SEX ONLY
 Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopulation_id, slim_popsize_t p_subpop_size, bool p_record_in_treeseq,
 							 double p_sex_ratio, GenomeType p_modeled_chromosome_type, bool p_haploid) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Subpopulation_Class))),
-	population_(p_population), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
+	community_(p_population.species_.community_), species_(p_population.species_), population_(p_population), model_type_(p_population.model_type_), subpopulation_id_(p_subpopulation_id), name_(SLiMEidosScript::IDStringWithPrefix('p', p_subpopulation_id)), genome_pool_(p_population.species_genome_pool_), individual_pool_(p_population.species_individual_pool_),
 	genome_junkyard_nonnull(p_population.species_genome_junkyard_nonnull), genome_junkyard_null(p_population.species_genome_junkyard_null), parent_subpop_size_(p_subpop_size),
-#ifdef SLIM_WF_ONLY
-	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio),
-#endif	// SLIM_WF_ONLY
-	sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+	parent_sex_ratio_(p_sex_ratio), child_subpop_size_(p_subpop_size), child_sex_ratio_(p_sex_ratio), sex_enabled_(true), modeled_chromosome_type_(p_modeled_chromosome_type)
+#if defined(SLIMGUI)
 	, gui_premigration_size_(p_subpop_size)
 #endif
 {
-#if defined(SLIM_WF_ONLY) && defined(SLIM_NONWF_ONLY)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 		GenerateChildrenToFitWF();
@@ -1073,15 +1076,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 	{
 		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
 	}
-#elif defined(SLIM_WF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-	GenerateChildrenToFitWF();
-#elif defined(SLIM_NONWF_ONLY)
-	GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
-#endif
 	
-#ifdef SLIM_WF_ONLY
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// Set up to draw random females, based initially on equal fitnesses
 		cached_parental_fitness_ = (double *)realloc(cached_parental_fitness_, sizeof(double) * parent_subpop_size_);
@@ -1113,9 +1109,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		lookup_female_parent_ = gsl_ran_discrete_preproc(parent_first_male_index_, cached_parental_fitness_);
 		lookup_male_parent_ = gsl_ran_discrete_preproc(num_males, cached_parental_fitness_ + parent_first_male_index_);
 	}
-#endif	// SLIM_WF_ONLY
 	
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 	{
 		// OK, so.  When reading a nonWF tree-seq file, we get passed in a sex ratio that is the sex ratio of the individuals in the file.
 		// That's good, so the individuals that get created have the correct sex.  However, we want the sex ratio ivars in the subpop
@@ -1124,10 +1119,8 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 		// non-zero value to the .trees file, and that was confusing Peter's test code.  So now we explicitly set the ivars to 0.0 here,
 		// now that we're done using the value.  This might also occur when a new subpop is created in a nonWF model; the initial sex ratio
 		// value might have been sticking around permanently in the ivar, even though it would not be accurate any more.  BCH 9/7/2020
-#ifdef SLIM_WF_ONLY
 		parent_sex_ratio_ = 0.0;
 		child_sex_ratio_ = 0.0;
-#endif	// SLIM_WF_ONLY
 	}
 }
 
@@ -1136,7 +1129,6 @@ Subpopulation::~Subpopulation(void)
 {
 	//std::cout << "Subpopulation::~Subpopulation" << std::endl;
 	
-#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		gsl_ran_discrete_free(lookup_parent_);
 	
@@ -1151,7 +1143,6 @@ Subpopulation::~Subpopulation(void)
 	
 	if (cached_male_fitness_)
 		free(cached_male_fitness_);
-#endif	// SLIM_WF_ONLY
 	
 	{
 		// dispose of genomes and individuals with our object pools
@@ -1166,11 +1157,7 @@ Subpopulation::~Subpopulation(void)
 			individual->~Individual();
 			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
-	}
-	
-#ifdef SLIM_WF_ONLY
-	{
-		// dispose of genomes and individuals with our object pools
+		
 		for (Genome *genome : child_genomes_)
 		{
 			genome->~Genome();
@@ -1183,7 +1170,6 @@ Subpopulation::~Subpopulation(void)
 			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 	}
-#endif	// SLIM_WF_ONLY
 	
 	for (const auto &map_pair : spatial_maps_)
 	{
@@ -1216,28 +1202,26 @@ void Subpopulation::SetName(const std::string &p_name)
 	// and cannot be used by any other subpop anyway (and no other subpop can have the same ID)
 	if (!isSubpopID)
 	{
-		SLiMSim &sim = population_.sim_;
-		
-		if (sim.subpop_names_.count(p_name))
+		if (community_.SubpopulationNameInUse(p_name))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetName): property name must be unique across all subpopulations; " << p_name << " is already in use, or was previously used." << EidosTerminate();
 		
-		sim.subpop_names_.emplace(p_name);	// added; never removed unless the simulation state is reset
+		species_.subpop_names_.emplace(p_name);	// added; never removed unless the simulation state is reset
 	}
 	
 	name_ = p_name;
 }
 
-void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, std::vector<SLiMEidosBlock*> &p_global_fitness_callbacks)
+void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks)
 {
-	const std::map<slim_objectid_t,MutationType*> &mut_types = population_.sim_.MutationTypes();
+	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
 	
 	// The FitnessOfParent...() methods called by this method rely upon cached fitness values
 	// kept inside the Mutation objects.  Those caches may need to be validated before we can
 	// calculate fitness values.  We check for that condition and repair it first.
-	if (population_.sim_.any_dominance_coeff_changed_)
+	if (species_.any_dominance_coeff_changed_)
 	{
 		population_.ValidateMutationFitnessCaches();	// note one subpop triggers it, but the recaching occurs for the whole sim
-		population_.sim_.any_dominance_coeff_changed_ = false;
+		species_.any_dominance_coeff_changed_ = false;
 	}
 	
 	// This function calculates the population mean fitness as a side effect
@@ -1245,22 +1229,22 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// Figure out our callback scenario: zero, one, or many?  See the comment below, above FitnessOfParentWithGenomeIndices_NoCallbacks(),
 	// for more info on this complication.  Here we just figure out which version to call and set up for it.
-	int fitness_callback_count = (int)p_fitness_callbacks.size();
-	bool fitness_callbacks_exist = (fitness_callback_count > 0);
-	bool single_fitness_callback = false;
+	int mutationEffect_callback_count = (int)p_mutationEffect_callbacks.size();
+	bool mutationEffect_callbacks_exist = (mutationEffect_callback_count > 0);
+	bool single_mutationEffect_callback = false;
 	MutationType *single_callback_mut_type = nullptr;
 	
-	if (fitness_callback_count == 1)
+	if (mutationEffect_callback_count == 1)
 	{
-		slim_objectid_t mutation_type_id = p_fitness_callbacks[0]->mutation_type_id_;
-        MutationType *found_muttype = population_.sim_.MutationTypeWithID(mutation_type_id);
+		slim_objectid_t mutation_type_id = p_mutationEffect_callbacks[0]->mutation_type_id_;
+        MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
 		
 		if (found_muttype)
 		{
 			if (mut_types.size() > 1)
 			{
 				// We have a single callback that applies to a known mutation type among more than one defined type; we can optimize that
-				single_fitness_callback = true;
+				single_mutationEffect_callback = true;
 				single_callback_mut_type = found_muttype;
 			}
 			// else there is only one mutation type, so the callback applies to all mutations in the simulation
@@ -1268,35 +1252,35 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		else
 		{
 			// The only callback refers to a mutation type that doesn't exist, so we effectively have no callbacks; we probably never hit this
-			fitness_callback_count = 0;
-			(void)fitness_callback_count;		// tell the static analyzer that we know we just did a dead store
-			fitness_callbacks_exist = false;
+			mutationEffect_callback_count = 0;
+			(void)mutationEffect_callback_count;		// tell the static analyzer that we know we just did a dead store
+			mutationEffect_callbacks_exist = false;
 		}
 	}
 	
-	// Can we skip chromosome-based fitness calculations altogether, and just call global fitness() callbacks if any?
+	// Can we skip chromosome-based fitness calculations altogether, and just call fitnessEffect() callbacks if any?
 	// We can do this if (a) all mutation types either use a neutral DFE, or have been made neutral with a "return 1.0;"
-	// fitness callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
-	// selection coefficient changed, and (c) no fitness() callbacks are active apart from "return 1.0;" type callbacks.
+	// mutationEffect() callback that is active, (b) for the mutation types that use a neutral DFE, no mutation has had its
+	// selection coefficient changed, and (c) no mutationEffect() callbacks are active apart from "return 1.0;" type callbacks.
 	// This is often the case for QTL-based models (such as Misha's coral model), and should produce a big speed gain,
-	// so we do a pre-check here for this case.  Note that we can ignore global fitness callbacks in this situation,
-	// because they are explicitly documented as potentially being executed after all non-global fitness callbacks, so
-	// they are not allowed, as a matter of policy, to alter the operation of non-global fitness callbacks.
+	// so we do a pre-check here for this case.  Note that we can ignore fitnessEffect() callbacks in this situation,
+	// because they are explicitly documented as potentially being executed after mutationEffect() callbacks, so
+	// they are not allowed, as a matter of policy, to alter the operation of mutationEffect() callbacks.
 	bool skip_chromosomal_fitness = true;
 	
 	// Looping through all of the mutation types and setting flags can be very expensive, so as a first pass we check
 	// whether it is even conceivable that we will be able to have skip_chromosomal_fitness == true.  If the simulation
-	// is not pure neutral and we have no fitness callback that could change that, it is a no-go without checking the
+	// is not pure neutral and we have no mutationEffect() callback that could change that, it is a no-go without checking the
 	// mutation types at all.
-	if (!population_.sim_.pure_neutral_)
+	if (!species_.pure_neutral_)
 	{
 		skip_chromosomal_fitness = false;	// we're not pure neutral, so we have to prove that it is possible
 		
-		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -1307,7 +1291,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 					{
 						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
-							// we have a fitness callback that is neutral-making, so it could conceivably work;
+							// we have a mutationEffect() callback that is neutral-making, so it could conceivably work;
 							// change our minds but keep checking
 							skip_chromosomal_fitness = true;
 							continue;
@@ -1324,19 +1308,19 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// At this point it appears conceivable that we could skip, but we don't yet know.  We need to do a more thorough
 	// check, actually tracking precisely which mutation types are neutral and non-neutral, and which are made neutral
-	// by fitness() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
+	// by mutationEffect() callbacks.  Note this block is the only place where is_pure_neutral_now_ is valid or used!!!
 	if (skip_chromosomal_fitness)
 	{
 		// first set a flag on all mut types indicating whether they are pure neutral according to their DFE
 		for (auto &mut_type_iter : mut_types)
 			mut_type_iter.second->is_pure_neutral_now_ = mut_type_iter.second->all_pure_neutral_DFE_;
 		
-		// then go through the fitness callback list and set the pure neutral flag for mut types neutralized by an active callback
-		for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+		// then go through the mutationEffect() callback list and set the pure neutral flag for mut types neutralized by an active callback
+		for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 		{
-			if (fitness_callback->active_)
+			if (mutationEffect_callback->block_active_)
 			{
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -1348,7 +1332,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 						if (result->FloatAtIndex(0, nullptr) == 1.0)
 						{
 							// the callback returns 1.0, so it makes the mutation types to which it applies become neutral
-							slim_objectid_t mutation_type_id = fitness_callback->mutation_type_id_;
+							slim_objectid_t mutation_type_id = mutationEffect_callback->mutation_type_id_;
 							
 							if (mutation_type_id == -1)
 							{
@@ -1357,7 +1341,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 							}
 							else
 							{
-                                MutationType *found_muttype = population_.sim_.MutationTypeWithID(mutation_type_id);
+                                MutationType *found_muttype = species_.MutationTypeWithID(mutation_type_id);
                                 
 								if (found_muttype)
 									found_muttype->is_pure_neutral_now_ = true;
@@ -1400,19 +1384,40 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 	
 	// Figure out global callbacks; these are callbacks with NULL supplied for the mut-type id, which means that they are called
 	// exactly once per individual, for every individual regardless of genetics, to provide an entry point for alternate fitness definitions
-	int global_fitness_callback_count = (int)p_global_fitness_callbacks.size();
-	bool global_fitness_callbacks_exist = (global_fitness_callback_count > 0);
+	int fitnessEffect_callback_count = (int)p_fitnessEffect_callbacks.size();
+	bool fitnessEffect_callbacks_exist = (fitnessEffect_callback_count > 0);
 	
-	// We optimize the pure neutral case, as long as no fitness callbacks are defined; fitness values are then simply 1.0, for everybody.
+	// We optimize the pure neutral case, as long as no mutationEffect() or fitnessEffect() callbacks are defined; fitness values are then simply 1.0, for everybody.
 	// BCH 12 Jan 2018: now fitness_scaling_ modifies even pure_neutral_ models, but the framework here remains valid
-	bool pure_neutral = (!fitness_callbacks_exist && !global_fitness_callbacks_exist && population_.sim_.pure_neutral_);
-	double subpop_fitness_scaling = fitness_scaling_;
+	bool pure_neutral = (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist && species_.pure_neutral_);
+	double subpop_fitness_scaling = subpop_fitness_scaling_;
 	
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 	// Reset our override of individual cached fitness values; we make this decision afresh with each UpdateFitness() call.  See
 	// the header for further comments on this mechanism.
 	individual_cached_fitness_OVERRIDE_ = false;
-#endif
+	
+	// Decide whether we need to shuffle the order of operations.  This occurs only if (a) we have mutationEffect() or fitnessEffect() callbacks
+	// that are enabled, and (b) at least one of them has no cached optimization set.  Otherwise, the order of operations doesn't matter.
+	bool needs_shuffle = false;
+	
+	if (species_.RandomizingCallbackOrder())
+	{
+		if (!needs_shuffle)
+			for (SLiMEidosBlock *callback : p_fitnessEffect_callbacks)
+				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+				{
+					needs_shuffle = true;
+					break;
+				}
+		
+		if (!needs_shuffle)
+			for (SLiMEidosBlock *callback : p_mutationEffect_callbacks)
+				if (!callback->compound_statement_node_->cached_return_value_ && !callback->has_cached_optimization_)
+				{
+					needs_shuffle = true;
+					break;
+				}
+	}
 	
 	// calculate fitnesses in parent population and cache the values
 	if (sex_enabled_)
@@ -1427,26 +1432,34 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
-					double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
 					
+#ifdef SLIMGUI
+					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
 					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFemaleFitness += fitness;
 				}
 			}
 			else
 			{
+#ifdef SLIMGUI
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+					parent_individuals_[female_index]->cached_unscaled_fitness_ = 1.0;
+#endif
+				
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+				if (model_type_ == SLiMModelType::kModelTypeWF)
 				{
 					individual_cached_fitness_OVERRIDE_ = true;
 					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
 				else
-#endif
 				{
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
@@ -1457,45 +1470,133 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+				{
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for females without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
 				
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
+				{
+					slim_popsize_t female_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
+				}
 				
-				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFemaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		else
 		{
-			// general case for females
-			for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[female_index]->fitness_scaling_;
-				
-				if (fitness > 0.0)
+				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, female_index);
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for females; we use the shuffle buffer to randomize processing order
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_first_male_index_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_first_male_index_; shuffle_index++)
+				{
+					slim_popsize_t female_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[female_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFemaleFitness += fitness;
 				}
 				
-				parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFemaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		
 		totalFitness += totalFemaleFitness;
-		if ((population_.sim_.ModelType() == SLiMModelType::kModelTypeWF) && (totalFemaleFitness <= 0.0))
+		if ((model_type_ == SLiMModelType::kModelTypeWF) && (totalFemaleFitness <= 0.0))
 			EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of females is <= 0.0." << EidosTerminate(nullptr);
 		
 		// Set up to draw random males
@@ -1505,26 +1606,34 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
-					double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
 					
+#ifdef SLIMGUI
+					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
 					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 					totalMaleFitness += fitness;
 				}
 			}
 			else
 			{
+#ifdef SLIMGUI
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+					parent_individuals_[male_index]->cached_unscaled_fitness_ = 1.0;
+#endif
+				
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+				if (model_type_ == SLiMModelType::kModelTypeWF)
 				{
 					individual_cached_fitness_OVERRIDE_ = true;
 					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
 				else
-#endif
 				{
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
@@ -1536,46 +1645,136 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+				{
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for females without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
 				
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
+				{
+					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
+				}
 				
-				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-				totalMaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		else
 		{
-			// general case for males
-			for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[male_index]->fitness_scaling_;
-				
-				if (fitness > 0.0)
+				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, male_index);
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for males; we use the shuffle buffer to randomize processing order
+				slim_popsize_t male_count = parent_subpop_size_ - parent_first_male_index_;
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(male_count);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < male_count; shuffle_index++)
+				{
+					slim_popsize_t male_index = parent_first_male_index_ + shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[male_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					totalMaleFitness += fitness;
 				}
 				
-				parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-				totalMaleFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		
 		totalFitness += totalMaleFitness;
 		
-		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			if (totalMaleFitness <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of males is <= 0.0." << EidosTerminate(nullptr);
@@ -1591,26 +1790,34 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 			{
 				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 				{
-					double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 					
+#ifdef SLIMGUI
+					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
 					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFitness += fitness;
 				}
 			}
 			else
 			{
+#ifdef SLIMGUI
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+					parent_individuals_[individual_index]->cached_unscaled_fitness_ = 1.0;
+#endif
+				
 				double fitness = subpop_fitness_scaling;	// no individual fitness_scaling_
 				
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 				// Here we override setting up every cached_fitness_UNSAFE_ value, and set up a subpop-level cache instead.
 				// This is why cached_fitness_UNSAFE_ is marked "UNSAFE".  See the header for details on this.
-				if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+				if (model_type_ == SLiMModelType::kModelTypeWF)
 				{
 					individual_cached_fitness_OVERRIDE_ = true;
 					individual_cached_fitness_OVERRIDE_value_ = fitness;
 				}
 				else
-#endif
 				{
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
@@ -1621,45 +1828,134 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 		else if (skip_chromosomal_fitness)
 		{
-			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				{
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					// multiply in the effects of any fitnessEffect() callbacks
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for hermaphrodites without chromosomal fitness; shuffle buffer needed
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
 				
-				// multiply in the effects of any global fitness callbacks (muttype==NULL)
-				if (global_fitness_callbacks_exist && (fitness > 0.0))
-					fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+				{
+					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					// multiply in the effects of any fitnessEffect() callbacks
+					if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+						fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
+					
+#ifdef SLIMGUI
+					parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					
+					fitness *= subpop_fitness_scaling;
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
+				}
 				
-				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		else
 		{
-			// general case for hermaphrodites
-			for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+			if (!needs_shuffle)
 			{
-				double fitness = subpop_fitness_scaling * parent_individuals_[individual_index]->fitness_scaling_;
-				
-				if (fitness > 0)
+				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 				{
-					if (!fitness_callbacks_exist)
-						fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-					else if (single_fitness_callback)
-						fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_fitness_callbacks, single_callback_mut_type);
-					else
-						fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_fitness_callbacks);
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
 					
-					// multiply in the effects of any global fitness callbacks (muttype==NULL)
-					if (global_fitness_callbacks_exist && (fitness > 0.0))
-						fitness *= ApplyGlobalFitnessCallbacks(p_global_fitness_callbacks, individual_index);
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
+				}
+			}
+			else
+			{
+				// general case for hermaphrodites; we use the shuffle buffer to randomize processing order
+				slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+				
+				for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+				{
+					slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+					
+					if (fitness > 0.0)
+					{
+						if (!mutationEffect_callbacks_exist)
+							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+						else if (single_mutationEffect_callback)
+							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
+						else
+							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+						
+						// multiply in the effects of any fitnessEffect() callbacks
+						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
+						
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						
+						fitness *= subpop_fitness_scaling;
+					}
+					else
+					{
+#ifdef SLIMGUI
+						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+					}
+					
+					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					totalFitness += fitness;
 				}
 				
-				parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-				totalFitness += fitness;
+				species_.ReturnShuffleBuffer();
 			}
 		}
 		
-		if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+		if (model_type_ == SLiMModelType::kModelTypeWF)
 		{
 			if (totalFitness <= 0.0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::UpdateFitness): total fitness of all individuals is <= 0.0." << EidosTerminate(nullptr);
@@ -1668,13 +1964,11 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_fitness_callba
 		}
 	}
 	
-#ifdef SLIM_WF_ONLY
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		UpdateWFFitnessBuffers(pure_neutral && !Individual::s_any_individual_fitness_scaling_set_);
-#endif	// SLIM_WF_ONLY
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 {
 	// This is called only by UpdateFitness(), after the fitness of all individuals has been updated, and only in WF models.
@@ -1698,7 +1992,6 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 	}
 	
 	// Set up the fitness buffers with the new information
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 	if (individual_cached_fitness_OVERRIDE_)
 	{
 		// This is the optimized case, where all individuals have the same fitness and it is cached at the subpop level
@@ -1725,7 +2018,6 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 		}
 	}
 	else
-#endif
 	{
 		// This is the normal case, where cached_fitness_UNSAFE_ has the cached fitness values for each individual
 		if (sex_enabled_)
@@ -1794,9 +2086,8 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 		}
 	}
 }
-#endif	// SLIM_WF_ONLY
 
-double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
+double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -1804,13 +2095,12 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 #endif
 	
 	slim_objectid_t mutation_type_id = (gSLiM_Mutation_Block + p_mutation)->mutation_type_ptr_->mutation_type_id_;
-	SLiMSim &sim = population_.sim_;
 	
-	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	for (SLiMEidosBlock *mutationEffect_callback : p_mutationEffect_callbacks)
 	{
-		if (fitness_callback->active_)
+		if (mutationEffect_callback->block_active_)
 		{
-			slim_objectid_t callback_mutation_type_id = fitness_callback->mutation_type_id_;
+			slim_objectid_t callback_mutation_type_id = mutationEffect_callback->mutation_type_id_;
 			
 			if ((callback_mutation_type_id == -1) || (callback_mutation_type_id == mutation_type_id))
 			{
@@ -1822,21 +2112,21 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				EidosDebugPointIndent indenter;
 				
 				{
-					EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
-					EidosToken *decl_token = fitness_callback->root_node_->token_;
+					EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
+					EidosToken *decl_token = mutationEffect_callback->root_node_->token_;
 					
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 						(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 					{
-						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(m" << fitness_callback->mutation_type_id_;
-						if (fitness_callback->subpopulation_id_ != -1)
-							SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+						SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG mutationEffect(m" << mutationEffect_callback->mutation_type_id_;
+						if (mutationEffect_callback->subpopulation_id_ != -1)
+							SLIM_ERRSTREAM << ", p" << mutationEffect_callback->subpopulation_id_;
 						SLIM_ERRSTREAM << ")";
 						
-						if (fitness_callback->block_id_ != -1)
-							SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
+						if (mutationEffect_callback->block_id_ != -1)
+							SLIM_ERRSTREAM << " s" << mutationEffect_callback->block_id_;
 						
-						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim.DebugPointInfo() << ")" << std::endl;
+						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 						indenter.indent();
 					}
 				}
@@ -1844,7 +2134,7 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 				
 				// The callback is active and matches the mutation type id of the mutation, so we need to execute it
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-				const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+				const EidosASTNode *compound_statement_node = mutationEffect_callback->compound_statement_node_;
 				
 				if (compound_statement_node->cached_return_value_)
 				{
@@ -1853,73 +2143,69 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 					EidosValue *result = result_SP.get();
 					
 					if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 					
 					p_computed_fitness = result->FloatAtIndex(0, nullptr);
 					
 					// the cached value is owned by the tree, so we do not dispose of it
 					// there is also no script output to handle
 				}
-				else if (fitness_callback->has_cached_optimization_)
+				else if (mutationEffect_callback->has_cached_optimization_)
 				{
 					// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 					// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 					// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
-					// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
+					// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
 					// for comments on the specific cases optimized here.
-					if (fitness_callback->has_cached_opt_reciprocal)
+					if (mutationEffect_callback->has_cached_opt_reciprocal)
 					{
-						double A = fitness_callback->cached_opt_A_;
+						double A = mutationEffect_callback->cached_opt_A_;
 						
-						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is relFitness
+						p_computed_fitness = (A / p_computed_fitness);	// p_computed_fitness is effect
 					}
 					else
 					{
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
+						EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(mutationEffect_callback->identifier_token_);
 					}
 				}
 				else
 				{
 					// local variables for the callback parameters that we might need to allocate here, and thus need to free below
 					EidosValue_Object_singleton local_mut(gSLiM_Mutation_Block + p_mutation, gSLiM_Mutation_Class);
-					EidosValue_Float_singleton local_relFitness(p_computed_fitness);
+					EidosValue_Float_singleton local_effect(p_computed_fitness);
 					
 					// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 					{
-						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+						EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 						EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-						EidosFunctionMap &function_map = sim.FunctionMap();
-						EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+						EidosFunctionMap &function_map = community_.FunctionMap();
+						EidosInterpreter interpreter(mutationEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 						
-						if (fitness_callback->contains_self_)
-							callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
+						if (mutationEffect_callback->contains_self_)
+							callback_symbols.InitializeConstantSymbolEntry(mutationEffect_callback->SelfSymbolTableEntry());		// define "self"
 						
 						// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 						// We can use that method because we know the lifetime of the symbol table is shorter than that of
 						// the value objects, and we know that the values we are setting here will not change (the objects
 						// referred to by the values may change, but the values themselves will not change).
-						if (fitness_callback->contains_mut_)
+						if (mutationEffect_callback->contains_mut_)
 						{
 							local_mut.StackAllocated();			// prevent Eidos_intrusive_ptr from trying to delete this
 							callback_symbols.InitializeConstantSymbolEntry(gID_mut, EidosValue_SP(&local_mut));
 						}
-						if (fitness_callback->contains_relFitness_)
+						if (mutationEffect_callback->contains_effect_)
 						{
-							local_relFitness.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
-							callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, EidosValue_SP(&local_relFitness));
+							local_effect.StackAllocated();		// prevent Eidos_intrusive_ptr from trying to delete this
+							callback_symbols.InitializeConstantSymbolEntry(gID_effect, EidosValue_SP(&local_effect));
 						}
-						if (fitness_callback->contains_individual_)
+						if (mutationEffect_callback->contains_individual_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_individual, p_individual->CachedEidosValue());
-						if (fitness_callback->contains_genome1_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_genome1, p_genome1->CachedEidosValue());
-						if (fitness_callback->contains_genome2_)
-							callback_symbols.InitializeConstantSymbolEntry(gID_genome2, p_genome2->CachedEidosValue());
-						if (fitness_callback->contains_subpop_)
+						if (mutationEffect_callback->contains_subpop_)
 							callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 						
 						// p_homozygous == -1 means the mutation is opposed by a NULL chromosome; otherwise, 0 means heterozyg., 1 means homozyg.
 						// that gets translated into Eidos values of NULL, F, and T, respectively
-						if (fitness_callback->contains_homozygous_)
+						if (mutationEffect_callback->contains_homozygous_)
 						{
 							if (p_homozygous == -1)
 								callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
@@ -1930,11 +2216,11 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 						try
 						{
 							// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitness_callback->script_);
+							EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(mutationEffect_callback->script_);
 							EidosValue *result = result_SP.get();
 							
 							if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+								EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyMutationEffectCallbacks): mutationEffect() callbacks must provide a float singleton return value." << EidosTerminate(mutationEffect_callback->identifier_token_);
 							
 							p_computed_fitness = result->FloatAtIndex(0, nullptr);
 						}
@@ -1951,14 +2237,13 @@ double Subpopulation::ApplyFitnessCallbacks(MutationIndex p_mutation, int p_homo
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)]);
 #endif
 	
 	return p_computed_fitness;
 }
 
-// This calculates the effects of global fitness callbacks, i.e. those with muttype==NULL and which therefore do not reference any mutation
-double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &p_fitness_callbacks, slim_popsize_t p_individual_index)
+double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
@@ -1967,34 +2252,31 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 	double computed_fitness = 1.0;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
-	SLiMSim &sim = population_.sim_;
 	
-	for (SLiMEidosBlock *fitness_callback : p_fitness_callbacks)
+	for (SLiMEidosBlock *fitnessEffect_callback : p_fitnessEffect_callbacks)
 	{
-		if (fitness_callback->active_)
+		if (fitnessEffect_callback->block_active_)
 		{
 #if DEBUG_POINTS_ENABLED
 			// SLiMgui debugging point
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
-				EidosToken *decl_token = fitness_callback->root_node_->token_;
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
+				EidosToken *decl_token = fitnessEffect_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
 					(debug_points->set.find(decl_token->token_line_) != debug_points->set.end()))
 				{
-					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitness(NULL";
-					if (fitness_callback->subpopulation_id_ != -1)
-						SLIM_ERRSTREAM << ", p" << fitness_callback->subpopulation_id_;
+					SLIM_ERRSTREAM << EidosDebugPointIndent::Indent() << "#DEBUG fitnessEffect(";
+					if (fitnessEffect_callback->subpopulation_id_ != -1)
+						SLIM_ERRSTREAM << "p" << fitnessEffect_callback->subpopulation_id_;
 					SLIM_ERRSTREAM << ")";
 					
-					if (fitness_callback->block_id_ != -1)
-						SLIM_ERRSTREAM << " s" << fitness_callback->block_id_;
+					if (fitnessEffect_callback->block_id_ != -1)
+						SLIM_ERRSTREAM << " s" << fitnessEffect_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
@@ -2002,7 +2284,7 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 						
 			// The callback is active, so we need to execute it
 			// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
-			const EidosASTNode *compound_statement_node = fitness_callback->compound_statement_node_;
+			const EidosASTNode *compound_statement_node = fitnessEffect_callback->compound_statement_node_;
 			
 			if (compound_statement_node->cached_return_value_)
 			{
@@ -2011,73 +2293,63 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 				EidosValue *result = result_SP.get();
 				
 				if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				
 				computed_fitness *= result->FloatAtIndex(0, nullptr);
 				
 				// the cached value is owned by the tree, so we do not dispose of it
 				// there is also no script output to handle
 			}
-			else if (fitness_callback->has_cached_optimization_)
+			else if (fitnessEffect_callback->has_cached_optimization_)
 			{
 				// We can special-case particular simple callbacks for speed.  This is similar to the cached_return_value_
 				// mechanism above, but it is done in SLiM, not in Eidos, and is specific to callbacks, not general.
 				// The has_cached_optimization_ flag is the umbrella flag for all such optimizations; we then figure
-				// out below which cached optimization is in effect for this callback.  See SLiMSim::OptimizeScriptBlock()
+				// out below which cached optimization is in effect for this callback.  See Community::OptimizeScriptBlock()
 				// for comments on the specific cases optimized here.
-				if (fitness_callback->has_cached_opt_dnorm1_)
+				if (fitnessEffect_callback->has_cached_opt_dnorm1_)
 				{
-					double A = fitness_callback->cached_opt_A_;
-					double B = fitness_callback->cached_opt_B_;
-					double C = fitness_callback->cached_opt_C_;
-					double D = fitness_callback->cached_opt_D_;
+					double A = fitnessEffect_callback->cached_opt_A_;
+					double B = fitnessEffect_callback->cached_opt_B_;
+					double C = fitnessEffect_callback->cached_opt_C_;
+					double D = fitnessEffect_callback->cached_opt_D_;
 					
 					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C));
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitness_callback->identifier_token_);
+					EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): (internal error) cached optimization flag mismatch" << EidosTerminate(fitnessEffect_callback->identifier_token_);
 				}
 			}
 			else
 			{
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-					EidosFunctionMap &function_map = sim.FunctionMap();
-					EidosInterpreter interpreter(fitness_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosFunctionMap &function_map = community_.FunctionMap();
+					EidosInterpreter interpreter(fitnessEffect_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 					
-					if (fitness_callback->contains_self_)
-						callback_symbols.InitializeConstantSymbolEntry(fitness_callback->SelfSymbolTableEntry());		// define "self"
+					if (fitnessEffect_callback->contains_self_)
+						callback_symbols.InitializeConstantSymbolEntry(fitnessEffect_callback->SelfSymbolTableEntry());		// define "self"
 					
 					// Set all of the callback's parameters; note we use InitializeConstantSymbolEntry() for speed.
 					// We can use that method because we know the lifetime of the symbol table is shorter than that of
 					// the value objects, and we know that the values we are setting here will not change (the objects
 					// referred to by the values may change, but the values themselves will not change).
-					if (fitness_callback->contains_mut_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_mut, gStaticEidosValueNULL);
-					if (fitness_callback->contains_relFitness_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_relFitness, gStaticEidosValue_Float1);
-					if (fitness_callback->contains_individual_)
+					if (fitnessEffect_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-					if (fitness_callback->contains_genome1_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome1, genome1->CachedEidosValue());
-					if (fitness_callback->contains_genome2_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome2, genome2->CachedEidosValue());
-					if (fitness_callback->contains_subpop_)
+					if (fitnessEffect_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
-					if (fitness_callback->contains_homozygous_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_homozygous, gStaticEidosValueNULL);
 					
 					try
 					{
 						// Interpret the script; the result from the interpretation must be a singleton double used as a new fitness value
-						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitness_callback->script_);
+						EidosValue_SP result_SP = interpreter.EvaluateInternalBlock(fitnessEffect_callback->script_);
 						EidosValue *result = result_SP.get();
 						
 						if ((result->Type() != EidosValueType::kValueFloat) || (result->Count() != 1))
-							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyGlobalFitnessCallbacks): fitness() callbacks must provide a float singleton return value." << EidosTerminate(fitness_callback->identifier_token_);
+							EIDOS_TERMINATION << "ERROR (Subpopulation::ApplyFitnessEffectCallbacks): fitnessEffect() callbacks must provide a float singleton return value." << EidosTerminate(fitnessEffect_callback->identifier_token_);
 						
 						computed_fitness *= result->FloatAtIndex(0, nullptr);
 					}
@@ -2100,20 +2372,20 @@ double Subpopulation::ApplyGlobalFitnessCallbacks(std::vector<SLiMEidosBlock*> &
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)]);
 #endif
 	
 	return computed_fitness;
 }
 
 // FitnessOfParentWithGenomeIndices has three versions, for no callbacks, a single callback, and multiple callbacks.  This is for two reasons.  First,
-// it allows the case without fitness() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
+// it allows the case without mutationEffect() callbacks to run at full speed.  Second, the non-callback case short-circuits when the selection coefficient
 // is exactly 0.0f, as an optimization; but that optimization would be invalid in the callback case, since callbacks can change the relative fitness
 // of ostensibly neutral mutations.  For reasons of maintainability, the three versions should be kept in synch as closely as possible.
 //
 // When there is just a single callback, it usually refers to a mutation type that is relatively uncommon.  The model might have neutral mutations in most
 // cases, plus a rare (or unique) mutation type that is subject to more complex selection, for example.  We can optimize that very common case substantially
-// by making the callout to ApplyFitnessCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
+// by making the callout to ApplyMutationEffectCallbacks() only for mutations of the mutation type that the callback modifies.  This pays off mostly when there
 // are many common mutations with no callback, plus one rare mutation type that has a callback.  A model of neutral drift across a long chromosome with a
 // high mutation rate, with an introduced beneficial mutation with a selection coefficient extremely close to 0, for example, would hit this case hard and
 // see a speedup of as much as 25%, so the additional complexity seems worth it (since that's quite a realistic and common case).
@@ -2126,9 +2398,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = population_.sim_;
-	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
-	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -2321,15 +2592,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 
 // This version of FitnessOfParentWithGenomeIndices assumes multiple callbacks exist.  It doesn't optimize neutral mutations since they might be modified by callbacks.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks)
+double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = population_.sim_;
-	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
-	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -2370,7 +2640,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome_mutation = *genome_iter;
 				
-				w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2417,7 +2687,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					if (genome1_iter_position < genome2_iter_position)
 					{
 						// Process a mutation in genome1 since it is leading
-						w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2432,7 +2702,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 					else if (genome1_iter_position > genome2_iter_position)
 					{
 						// Process a mutation in genome2 since it is leading
-						w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+						w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 						
 						if (w <= 0.0)
 							return 0.0;
@@ -2461,7 +2731,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 								if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 								{
 									// a match was found, so we multiply our fitness by the full selection coefficient
-									w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
+									w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
 									
 									goto homozygousExit3;
 								}
@@ -2470,7 +2740,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 						homozygousExit3:
 							
@@ -2503,7 +2773,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 							}
 							
 							// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2533,7 +2803,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome1_mutation = *genome1_iter;
 				
-				w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2546,7 +2816,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 			{
 				MutationIndex genome2_mutation = *genome2_iter;
 				
-				w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+				w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 				
 				if (w <= 0.0)
 					return 0.0;
@@ -2561,15 +2831,14 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 
 // This version of FitnessOfParentWithGenomeIndices assumes a single callback exists, modifying the given mutation type.  It is a hybrid of the previous two versions.
 //
-double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_fitness_callbacks, MutationType *p_single_callback_mut_type)
+double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsize_t p_individual_index, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, MutationType *p_single_callback_mut_type)
 {
 	// calculate the fitness of the individual constituted by genome1 and genome2 in the parent population
 	double w = 1.0;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	SLiMSim &sim = population_.sim_;
-	int32_t nonneutral_change_counter = sim.nonneutral_change_counter_;
-	int32_t nonneutral_regime = sim.last_nonneutral_regime_;
+	int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+	int32_t nonneutral_regime = species_.last_nonneutral_regime_;
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -2612,7 +2881,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if ((mut_block_ptr + genome_mutation)->mutation_type_ptr_ == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyMutationEffectCallbacks(genome_mutation, -1, (mut_block_ptr + genome_mutation)->cached_one_plus_haploiddom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2668,7 +2937,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome1_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2692,7 +2961,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 						
 						if (genome2_muttype == p_single_callback_mut_type)
 						{
-							w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+							w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 							
 							if (w <= 0.0)
 								return 0.0;
@@ -2730,7 +2999,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 									if (genome1_mutation == *genome2_matchscan)		// note pointer equality test
 									{
 										// a match was found, so we multiply our fitness by the full selection coefficient
-										w *= ApplyFitnessCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_fitness_callbacks, individual, genome1, genome2);
+										w *= ApplyMutationEffectCallbacks(genome1_mutation, true, (mut_block_ptr + genome1_mutation)->cached_one_plus_sel_, p_mutationEffect_callbacks, individual);
 										
 										goto homozygousExit5;
 									}
@@ -2739,7 +3008,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 								
 							homozygousExit5:
 								
@@ -2800,7 +3069,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 								}
 								
 								// no match was found, so we are heterozygous; we multiply our fitness by the selection coefficient and the dominance coefficient
-								w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+								w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 								
 								if (w <= 0.0)
 									return 0.0;
@@ -2857,7 +3126,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome1_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyMutationEffectCallbacks(genome1_mutation, false, (mut_block_ptr + genome1_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2878,7 +3147,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 				
 				if (genome2_muttype == p_single_callback_mut_type)
 				{
-					w *= ApplyFitnessCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_fitness_callbacks, individual, genome1, genome2);
+					w *= ApplyMutationEffectCallbacks(genome2_mutation, false, (mut_block_ptr + genome2_mutation)->cached_one_plus_dom_sel_, p_mutationEffect_callbacks, individual);
 					
 					if (w <= 0.0)
 						return 0.0;
@@ -2896,15 +3165,15 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	}
 }
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 void Subpopulation::TallyLifetimeReproductiveOutput(void)
 {
-	if (population_.sim_.PedigreesEnabled())
+	if (species_.PedigreesEnabled())
 	{
 		lifetime_reproductive_output_MH_.clear();
 		lifetime_reproductive_output_F_.clear();
 		
-		if (population_.sim_.SexEnabled())
+		if (species_.SexEnabled())
 		{
 			for (Individual *ind : parent_individuals_)
 			{
@@ -2967,7 +3236,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 		}
 	}
 	
-	if (population_.sim_.PedigreesEnabled())
+	if (species_.PedigreesEnabled())
 	{
 		for (Individual *child : child_individuals_)
 			child->reproductive_output_ = 0;
@@ -2985,9 +3254,8 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 	if (will_need_new_children)
 		GenerateChildrenToFitWF();
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -2999,7 +3267,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 	
 	for (SLiMEidosBlock *reproduction_callback : p_reproduction_callbacks)
 	{
-		if (reproduction_callback->active_)
+		if (reproduction_callback->block_active_)
 		{
 			IndividualSex sex_specificity = reproduction_callback->sex_specificity_;
 			
@@ -3010,7 +3278,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 				EidosDebugPointIndent indenter;
 				
 				{
-					EidosInterpreterDebugPointsSet *debug_points = population_.sim_.DebugPoints();
+					EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 					EidosToken *decl_token = reproduction_callback->root_node_->token_;
 					
 					if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -3028,23 +3296,19 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 						if (reproduction_callback->block_id_ != -1)
 							SLIM_ERRSTREAM << " s" << reproduction_callback->block_id_;
 						
-						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << population_.sim_.DebugPointInfo() << ")" << std::endl;
+						SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 						indenter.indent();
 					}
 				}
 #endif
 				
-				Genome *genome1 = parent_genomes_[p_individual_index * 2];
-				Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
-				SLiMSim &sim = population_.sim_;
-				
 				// This code is similar to Population::ExecuteScript, but we set up an additional symbol table, and we use the return value
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-					EidosFunctionMap &function_map = sim.FunctionMap();
-					EidosInterpreter interpreter(reproduction_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosFunctionMap &function_map = community_.FunctionMap();
+					EidosInterpreter interpreter(reproduction_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 					
 					if (reproduction_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(reproduction_callback->SelfSymbolTableEntry());		// define "self"
@@ -3055,10 +3319,6 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 					// referred to by the values may change, but the values themselves will not change).
 					if (reproduction_callback->contains_individual_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_individual, individual->CachedEidosValue());
-					if (reproduction_callback->contains_genome1_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome1, genome1->CachedEidosValue());
-					if (reproduction_callback->contains_genome2_)
-						callback_symbols.InitializeConstantSymbolEntry(gID_genome2, genome2->CachedEidosValue());
 					if (reproduction_callback->contains_subpop_)
 						callback_symbols.InitializeConstantSymbolEntry(gID_subpop, SymbolTableEntry().second);
 					
@@ -3088,20 +3348,34 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)]);
 #endif
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::ReproduceSubpopulation(void)
 {
-	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
-		ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+	if (species_.RandomizingCallbackOrder())
+	{
+		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+		
+		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+		{
+			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+			
+			ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+		}
+		
+		species_.ReturnShuffleBuffer();
+	}
+	else
+	{
+		for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+			ApplyReproductionCallbacks(registered_reproduction_callbacks_, individual_index);
+	}
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::MergeReproductionOffspring(void)
 {
 	// NOTE: this method is called by Population::ResolveSurvivalPhaseMovement() as well as by reproduction, since the logic is identical!
@@ -3190,9 +3464,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 	nonWF_offspring_genomes_.clear();
 	nonWF_offspring_individuals_.clear();
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
 {
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
@@ -3200,12 +3473,11 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	SLIM_PROFILE_BLOCK_START();
 #endif
 	
-	SLiMSim &sim = population_.sim_;
 	Subpopulation *move_destination = nullptr;
 	
 	for (SLiMEidosBlock *survival_callback : p_survival_callbacks)
 	{
-		if (survival_callback->active_)
+		if (survival_callback->block_active_)
 		{
 #ifndef DEBUG_POINTS_ENABLED
 #error "DEBUG_POINTS_ENABLED is not defined; include eidos_globals.h"
@@ -3215,7 +3487,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 			EidosDebugPointIndent indenter;
 			
 			{
-				EidosInterpreterDebugPointsSet *debug_points = sim.DebugPoints();
+				EidosInterpreterDebugPointsSet *debug_points = community_.DebugPoints();
 				EidosToken *decl_token = survival_callback->root_node_->token_;
 				
 				if (debug_points && debug_points->set.size() && (decl_token->token_line_ != -1) &&
@@ -3229,7 +3501,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 					if (survival_callback->block_id_ != -1)
 						SLIM_ERRSTREAM << " s" << survival_callback->block_id_;
 					
-					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << sim.DebugPointInfo() << ")" << std::endl;
+					SLIM_ERRSTREAM << " (line " << (decl_token->token_line_ + 1) << community_.DebugPointInfo() << ")" << std::endl;
 					indenter.indent();
 				}
 			}
@@ -3244,10 +3516,10 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 				
 				// We need to actually execute the script; we start a block here to manage the lifetime of the symbol table
 				{
-					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &sim.SymbolTable());
+					EidosSymbolTable callback_symbols(EidosSymbolTableType::kContextConstantsTable, &community_.SymbolTable());
 					EidosSymbolTable client_symbols(EidosSymbolTableType::kLocalVariablesTable, &callback_symbols);
-					EidosFunctionMap &function_map = sim.FunctionMap();
-					EidosInterpreter interpreter(survival_callback->compound_statement_node_, client_symbols, function_map, &sim, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
+					EidosFunctionMap &function_map = community_.FunctionMap();
+					EidosInterpreter interpreter(survival_callback->compound_statement_node_, client_symbols, function_map, &community_, SLIM_OUTSTREAM, SLIM_ERRSTREAM);
 					
 					if (survival_callback->contains_self_)
 						callback_symbols.InitializeConstantSymbolEntry(survival_callback->SelfSymbolTableEntry());		// define "self"
@@ -3326,13 +3598,13 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING
-	SLIM_PROFILE_BLOCK_END(population_.sim_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)]);
+	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)]);
 #endif
 	
 	return p_surviving;
 }
 
-void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
+void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
@@ -3341,8 +3613,20 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 	int survived_individual_index = 0;
 	int females_deceased = 0;
 	bool individuals_died = false;
-	bool pedigrees_enabled = population_.sim_.PedigreesEnabled();
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool no_callbacks = (p_survival_callbacks.size() == 0);
+	
+	// We keep a global static buffer that records survival decisions
+	static uint8_t *survival_buffer = nullptr;
+	static int survival_buf_capacity = 0;
+	
+	if (parent_subpop_size_ > survival_buf_capacity)
+	{
+		survival_buf_capacity = parent_subpop_size_ * 2;		// double capacity to avoid excessive reallocation
+		if (survival_buffer)
+			free(survival_buffer);
+		survival_buffer = (uint8_t *)malloc(survival_buf_capacity * sizeof(uint8_t));
+	}
 	
 	// clear lifetime reproductive outputs, in preparation for new values
 	if (pedigrees_enabled)
@@ -3351,28 +3635,50 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 		lifetime_reproductive_output_F_.clear();
 	}
 	
-	// do mortality
-	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+	// pre-plan mortality; this avoids issues with callbacks accessing the subpop state while buffers are being modified
+	if (no_callbacks)
 	{
-		Individual *individual = individual_data[individual_index];
-		double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
-		bool survived;
-		
-		if (no_callbacks)
+		// this is the simple case with no callbacks and thus no shuffle buffer
+		for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
 		{
+			Individual *individual = individual_data[individual_index];
+			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+			uint8_t survived;
+			
 			if (fitness <= 0.0)			survived = false;
 			else if (fitness >= 1.0)	survived = true;
 			else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
-		}
-		else
-		{
-			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback; since fitness is usually in (0,1) this should have little impact
 			
-			survived = (draw < fitness);
+			survival_buffer[individual_index] = survived;
+		}
+	}
+	else
+	{
+		// this is the complex case with callbacks, and therefore a shuffle buffer to randomize processing order
+		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+		
+		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
+		{
+			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
+			Individual *individual = individual_data[individual_index];
+			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback
+			uint8_t survived = (draw < fitness);
 			
 			// run the survival() callbacks to allow the above decision to be modified
 			survived = ApplySurvivalCallbacks(p_survival_callbacks, individual, fitness, draw, survived);
+			
+			survival_buffer[individual_index] = survived;
 		}
+		
+		species_.ReturnShuffleBuffer();
+	}
+	
+	// execute the mortality plan; this never uses the shuffle buffer since we are no longer running callbacks
+	for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+	{
+		Individual *individual = individual_data[individual_index];
+		uint8_t survived = survival_buffer[individual_index];
 		
 		if (survived)
 		{
@@ -3446,22 +3752,19 @@ void Subpopulation::ViabilitySelection(std::vector<SLiMEidosBlock*> &p_survival_
 		cached_parent_individuals_value_.reset();
 	}
 }
-#endif  // SLIM_NONWF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 void Subpopulation::IncrementIndividualAges(void)
 {
 	// Loop through our individuals and increment all their ages by one
 	for (Individual *individual : parent_individuals_)
 		individual->age_++;
 }
-#endif  // SLIM_NONWF_ONLY
 
 size_t Subpopulation::MemoryUsageForParentTables(void)
 {
 	size_t usage = 0;
 	
-#ifdef SLIM_WF_ONLY
 	if (lookup_parent_)
 		usage += lookup_parent_->K * (sizeof(size_t) + sizeof(double));
 	
@@ -3470,7 +3773,6 @@ size_t Subpopulation::MemoryUsageForParentTables(void)
 	
 	if (lookup_male_parent_)
 		usage += lookup_male_parent_->K * (sizeof(size_t) + sizeof(double));
-#endif	// SLIM_WF_ONLY
 	
 	return usage;
 }
@@ -3509,7 +3811,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentFirstMaleIndex()));
 		case gID_genomes:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				if (!cached_child_genomes_value_)
@@ -3542,7 +3843,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_genomes_value_;
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				if (!cached_parent_genomes_value_)
 				{
@@ -3576,7 +3876,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_genomesNonNull:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(child_genomes_.size());
@@ -3588,7 +3887,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return EidosValue_SP(vec);
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Genome_Class))->reserve(parent_genomes_.size());
 				
@@ -3601,7 +3899,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_individuals:
 		{
-#ifdef SLIM_WF_ONLY
 			if (child_generation_valid_)
 			{
 				slim_popsize_t subpop_size = child_subpop_size_;
@@ -3623,7 +3920,6 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_child_individuals_value_;
 			}
 			else
-#endif	// SLIM_WF_ONLY
 			{
 				slim_popsize_t subpop_size = parent_subpop_size_;
 				
@@ -3644,10 +3940,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				return cached_parent_individuals_value_;
 			}
 		}
-#ifdef SLIM_WF_ONLY
 		case gID_immigrantSubpopIDs:
 		{
-			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopIDs is not available in nonWF models." << EidosTerminate();
 			
 			EidosValue_Int_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector();
@@ -3660,7 +3955,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_immigrantSubpopFractions:
 		{
-			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property immigrantSubpopFractions is not available in nonWF models." << EidosTerminate();
 			
 			EidosValue_Float_vector *vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector();
@@ -3673,7 +3968,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutput:
 		{
-			if (!population_.sim_.PedigreesEnabledByUser())
+			if (!species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep_M = lifetime_reproductive_output_MH_;
@@ -3691,9 +3986,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutputM:
 		{
-			if (!population_.sim_.PedigreesEnabledByUser())
+			if (!species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputM is not available because pedigree recording has not been enabled." << EidosTerminate();
-			if (!population_.sim_.SexEnabled())
+			if (!species_.SexEnabled())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputM is not defined since separate sexes are not enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_MH_;
@@ -3707,9 +4002,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_lifetimeReproductiveOutputF:
 		{
-			if (!population_.sim_.PedigreesEnabledByUser())
+			if (!species_.PedigreesEnabledByUser())
 				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputF is not available because pedigree recording has not been enabled." << EidosTerminate();
-			if (!population_.sim_.SexEnabled())
+			if (!species_.SexEnabled())
 				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputF is not defined since separate sexes are not enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_F_;
@@ -3731,14 +4026,14 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_selfingRate:
 		{
-			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property selfingRate is not available in nonWF models." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(selfing_fraction_));
 		}
 		case gID_cloningRate:
 		{
-			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property cloningRate is not available in nonWF models." << EidosTerminate();
 			
 			if (sex_enabled_)
@@ -3748,16 +4043,14 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_sexRatio:
 		{
-			if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+			if (model_type_ == SLiMModelType::kModelTypeNonWF)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property sexRatio is not available in nonWF models." << EidosTerminate();
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(child_generation_valid_ ? child_sex_ratio_ : parent_sex_ratio_));
 		}
-#endif	// SLIM_WF_ONLY
 		case gID_spatialBounds:
 		{
-			SLiMSim &sim = population_.sim_;
-			int dimensionality = sim.SpatialDimensionality();
+			int dimensionality = species_.SpatialDimensionality();
 			
 			switch (dimensionality)
 			{
@@ -3767,6 +4060,10 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 				case 3: return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector{bounds_x0_, bounds_y0_, bounds_z0_, bounds_x1_, bounds_y1_, bounds_z1_});
 				default:	return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
+		}
+		case gID_species:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(&species_, gSLiM_Species_Class));
 		}
 		case gID_individualCount:		// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(CurrentSubpopSize()));
@@ -3782,7 +4079,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(tag_value));
 		}
 		case gID_fitnessScaling:		// ACCELERATED
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness_scaling_));
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(subpop_fitness_scaling_));
 			
 			// all others, including gID_none
 		default:
@@ -3858,7 +4155,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_fitnessScaling(EidosObject **
 	{
 		Subpopulation *value = (Subpopulation *)(p_values[value_index]);
 		
-		float_result->set_float_no_check(value->fitness_scaling_, value_index);
+		float_result->set_float_no_check(value->subpop_fitness_scaling_, value_index);
 	}
 	
 	return float_result;
@@ -3877,9 +4174,9 @@ void Subpopulation::SetProperty(EidosGlobalStringID p_property_id, const EidosVa
 		}
 		case gID_fitnessScaling:	// ACCELERATED
 		{
-			fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
+			subpop_fitness_scaling_ = p_value.FloatAtIndex(0, nullptr);
 			
-			if ((fitness_scaling_ < 0.0) || std::isnan(fitness_scaling_))
+			if ((subpop_fitness_scaling_ < 0.0) || std::isnan(subpop_fitness_scaling_))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
 			return;
@@ -3935,7 +4232,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_value
 			EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((Subpopulation *)(p_values[value_index]))->fitness_scaling_ = source_value;
+			((Subpopulation *)(p_values[value_index]))->subpop_fitness_scaling_ = source_value;
 	}
 	else
 	{
@@ -3948,7 +4245,7 @@ void Subpopulation::SetProperty_Accelerated_fitnessScaling(EidosObject **p_value
 			if ((source_value < 0.0) || std::isnan(source_value))
 				EIDOS_TERMINATION << "ERROR (Subpopulation::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 			
-			((Subpopulation *)(p_values[value_index]))->fitness_scaling_ = source_value;
+			((Subpopulation *)(p_values[value_index]))->subpop_fitness_scaling_ = source_value;
 		}
 	}
 }
@@ -3957,15 +4254,14 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 {
 	switch (p_method_id)
 	{
-#ifdef SLIM_WF_ONLY
+			// WF only:
 		case gID_setMigrationRates:		return ExecuteMethod_setMigrationRates(p_method_id, p_arguments, p_interpreter);
 		case gID_setCloningRate:		return ExecuteMethod_setCloningRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setSelfingRate:		return ExecuteMethod_setSelfingRate(p_method_id, p_arguments, p_interpreter);
 		case gID_setSexRatio:			return ExecuteMethod_setSexRatio(p_method_id, p_arguments, p_interpreter);
 		case gID_setSubpopulationSize:	return ExecuteMethod_setSubpopulationSize(p_method_id, p_arguments, p_interpreter);
-#endif	// SLIM_WF_ONLY
 			
-#ifdef SLIM_NONWF_ONLY
+			// nonWF only:
 		case gID_addCloned:				return ExecuteMethod_addCloned(p_method_id, p_arguments, p_interpreter);
 		case gID_addCrossed:			return ExecuteMethod_addCrossed(p_method_id, p_arguments, p_interpreter);
 		case gID_addEmpty:				return ExecuteMethod_addEmpty(p_method_id, p_arguments, p_interpreter);
@@ -3973,7 +4269,6 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_addSelfed:				return ExecuteMethod_addSelfed(p_method_id, p_arguments, p_interpreter);
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
-#endif  // SLIM_NONWF_ONLY
 
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_interpreter);
@@ -3997,8 +4292,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 	}
 }
 
-#ifdef SLIM_NONWF_ONLY
-
+// nonWF only:
 IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null)
 {
 	EidosValueType sex_value_type = p_sex_value->Type();
@@ -4075,24 +4369,24 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
-	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	// TIMING RESTRICTION
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may only be called from a reproduction() callback." << EidosTerminate();
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): method -addCloned() may not be called from a nested callback." << EidosTerminate();
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
 	Individual *parent = (Individual *)parent_value->ObjectElementAtIndex(0, nullptr);
 	IndividualSex parent_sex = parent->sex_;
 	Subpopulation &parent_subpop = *parent->subpopulation_;
+	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): addCloned() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
 	
 	// Check for some other illegal setups
 	if (parent->index_ == -1)
@@ -4104,22 +4398,26 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	IndividualSex child_sex = parent_sex;
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Chromosome &chromosome = species_.TheChromosome();
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
 		individual->TrackParentage_Uniparental(*parent);
 	
 	// TREE SEQUENCE RECORDING
-	if (sim.RecordingTreeSequence())
+	if (species_.RecordingTreeSequence())
 	{
-		sim.SetCurrentNewIndividual(individual);
-		sim.RecordNewGenome(nullptr, genome1, &parent_genome_1, nullptr);
-		sim.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
+		species_.SetCurrentNewIndividual(individual);
+		species_.RecordNewGenome(nullptr, genome1, &parent_genome_1, nullptr);
+		species_.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 	}
 	
 	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
@@ -4134,13 +4432,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	
 	if (modify_child_callbacks_.size())
 	{
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, &parent_genome_1, &parent_genome_1, parent, &parent_genome_2, &parent_genome_2, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ false, /* p_is_cloning */ true, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 	
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Uniparental(*parent);
 	}
 	
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 	if (proposed_child_accepted)
 	{
 		if ((child_sex == IndividualSex::kHermaphrodite) || (child_sex == IndividualSex::kMale))
@@ -4164,19 +4462,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+
+	// TIMING RESTRICTION
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may only be called from a reproduction() callback." << EidosTerminate();
-	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): method -addCrossed() may not be called from a nested callback." << EidosTerminate();
-	
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	bool prevent_incidental_selfing = sim.PreventIncidentalSelfing();
-	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent1_value = p_arguments[0].get();
@@ -4196,11 +4489,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	if ((parent2_sex != IndividualSex::kMale) && (parent2_sex != IndividualSex::kHermaphrodite))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent2 must be male in sexual models (or hermaphroditic in non-sexual models)." << EidosTerminate();
 	
+	// SPECIES CONSISTENCY CHECK
+	if ((&parent1_subpop.species_ != &this->species_) || (&parent2_subpop.species_ != &this->species_))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): addCrossed() requires that both parents belong to the same species as the target subpopulation." << EidosTerminate();
+	
 	// Check for some other illegal setups
 	if ((parent1->index_ == -1) || (parent2->index_ == -1))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent1 and parent2 must be visible in a subpopulation (i.e., may not be new juveniles)." << EidosTerminate();
 	
-	if (prevent_incidental_selfing && (parent1 == parent2))
+	if (species_.PreventIncidentalSelfing() && (parent1 == parent2))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): parent1 and parent2 must be different individuals, since preventIncidentalSelfing has been set to T (use addSelfed to generate a non-incidentally selfed offspring)." << EidosTerminate();
 	
 	// Determine the sex of the offspring based on the sex parameter, and the consequent expected genome types
@@ -4208,25 +4505,44 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	GenomeType genome1_type, genome2_type;
 	bool genome1_null, genome2_null;
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+	int32_t mutrun_count;
+	slim_position_t mutrun_length;
 	
-	if (genome1_null || genome2_null)
+	if (!species_.HasGenetics())
+	{
+		genome1_null = true;
+		genome2_null = true;
+		has_null_genomes_ = true;
+		
+		mutrun_count = 0;
+		mutrun_length = 0;
+	}
+	else
+	{
+		if (genome1_null || genome2_null)
 			has_null_genomes_ = true;
+		
+		Chromosome &chromosome = species_.TheChromosome();
+		mutrun_count = chromosome.mutrun_count_;
+		mutrun_length = chromosome.mutrun_length_;
+	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_mutation_callbacks = &parent2_subpop.registered_mutation_callbacks_;
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
 		individual->TrackParentage_Biparental(*parent1, *parent2);
 	
 	// TREE SEQUENCE RECORDING
-	if (sim.RecordingTreeSequence())
-		sim.SetCurrentNewIndividual(individual);
+	if (species_.RecordingTreeSequence())
+		species_.SetCurrentNewIndividual(individual);
 	
 	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
 	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
@@ -4241,12 +4557,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	
 	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent1, parent1->genome1_, parent1->genome2_, parent2, parent2->genome1_, parent2->genome2_, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent1, parent2, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Biparental(*parent1, *parent2);
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_crossed_++;
@@ -4266,7 +4582,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_crossed_++;
 		
 		// this offspring came from parents in parent1_subpop and parent2_subpop but ended up here, so it is, in effect, a migrant;
@@ -4288,12 +4604,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+
+	// TIMING RESTRICTION
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may only be called from a reproduction() callback." << EidosTerminate();
-	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): method -addEmpty() may not be called from a nested callback." << EidosTerminate();
 	
 	EidosValue *sex_value = p_arguments[0].get();
@@ -4302,49 +4619,67 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	GenomeType genome1_type, genome2_type;
 	bool genome1_null, genome2_null;
 	IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+	int32_t mutrun_count;
+	slim_position_t mutrun_length;
 	
-	if (genome1Null_value->Type() != EidosValueType::kValueNULL)
+	if (!species_.HasGenetics())
 	{
-		bool requestedNull = genome1Null_value->LogicalAtIndex(0, nullptr);
+		genome1_null = true;
+		genome2_null = true;
+		has_null_genomes_ = true;
 		
-		if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+		if (((genome1Null_value->Type() != EidosValueType::kValueNULL) && !genome1Null_value->LogicalAtIndex(0, nullptr)) ||
+			((genome2Null_value->Type() != EidosValueType::kValueNULL) && !genome2Null_value->LogicalAtIndex(0, nullptr)))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): in a no-genetics species, null genomes are required." << EidosTerminate();
 		
-		genome1_null = requestedNull;
+		mutrun_count = 0;
+		mutrun_length = 0;
 	}
-	
-	if (genome2Null_value->Type() != EidosValueType::kValueNULL)
+	else
 	{
-		bool requestedNull = genome2Null_value->LogicalAtIndex(0, nullptr);
+		if (genome1Null_value->Type() != EidosValueType::kValueNULL)
+		{
+			bool requestedNull = genome1Null_value->LogicalAtIndex(0, nullptr);
+			
+			if ((requestedNull != genome1_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+			
+			genome1_null = requestedNull;
+		}
 		
-		if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+		if (genome2Null_value->Type() != EidosValueType::kValueNULL)
+		{
+			bool requestedNull = genome2Null_value->LogicalAtIndex(0, nullptr);
+			
+			if ((requestedNull != genome2_null) && sex_enabled_ && (modeled_chromosome_type_ != GenomeType::kAutosome))
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addEmpty): when simulating sex chromosomes, which genomes are null is dictated by sex and cannot be changed." << EidosTerminate();
+			
+			genome2_null = requestedNull;
+		}
 		
-		genome2_null = requestedNull;
-	}
-	
-	if (genome1_null || genome2_null)
+		if (genome1_null || genome2_null)
 			has_null_genomes_ = true;
+		
+		Chromosome &chromosome = species_.TheChromosome();
+		mutrun_count = chromosome.mutrun_count_;
+		mutrun_length = chromosome.mutrun_length_;
+	}
 	
 	// Make the new individual as a candidate
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
 		individual->TrackParentage_Parentless();
 	
 	// TREE SEQUENCE RECORDING
-	if (sim.RecordingTreeSequence())
+	if (species_.RecordingTreeSequence())
 	{
-		sim.SetCurrentNewIndividual(individual);
-		sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
-		sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+		species_.SetCurrentNewIndividual(individual);
+		species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+		species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 	}
 	
 	// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
@@ -4363,13 +4698,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	
 	if (registered_modify_child_callbacks_.size())
 	{
-		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, nullptr, nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Parentless();
 	}
 	
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 	if (proposed_child_accepted) gui_offspring_empty_++;
 	
 	gui_premigration_size_++;
@@ -4384,18 +4719,19 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+
+	// TIMING RESTRICTION
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may only be called from a reproduction() callback." << EidosTerminate();
-	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called from a nested callback." << EidosTerminate();
 	
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	// We could technically make this work in the no-genetics case, if the parameters specify that both child genomes are null, but there's
+	// really no reason for anybody to use addRecombinant() in that case, and getting all the logic correct below would be error-prone.
+	if (!species_.HasGenetics())
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species; recombination requires genetics." << EidosTerminate();
 	
 	// Note that empty Genome vectors are not legal values for the strandX parameters; the strands must either be NULL or singleton.
 	// If strand1 and strand2 are both NULL, breaks1 must be NULL/empty, and the offspring genome will be empty and will not receive mutations.
@@ -4429,6 +4765,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if ((strand1 && (strand1_parent->index_ == -1)) || (strand2 && (strand2_parent->index_ == -1)) ||
 		(strand3 && (strand3_parent->index_ == -1)) || (strand4 && (strand4_parent->index_ == -1)))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): a parental strand is not visible in the subpopulation (i.e., belongs to a new juvenile)." << EidosTerminate();
+	
+	// SPECIES CONSISTENCY CHECK
+	if ((strand1_parent && (&strand1_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand2_parent && (&strand2_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand3_parent && (&strand3_parent->subpopulation_->species_ != &this->species_)) ||
+		(strand4_parent && (&strand4_parent->subpopulation_->species_ != &this->species_)))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): addRecombinant() requires that all source genomes belong to the same species as the target subpopulation." << EidosTerminate();
 	
 	// If both strands are non-NULL for a pair, they must be the same type of genome
 	if (strand1 && strand2 && (strand1->Type() != strand2->Type()))
@@ -4529,6 +4872,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	
 	// Sort and unique and bounds-check the breakpoints
 	std::vector<slim_position_t> breakvec1, breakvec2;
+	Chromosome &chromosome = species_.TheChromosome();
 	
 	if (breaks1count)
 	{
@@ -4573,17 +4917,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	int32_t mutrun_count = chromosome.mutrun_count_;
+	slim_position_t mutrun_length = chromosome.mutrun_length_;
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
 		individual->TrackParentage_Parentless();
 	
 	// TREE SEQUENCE RECORDING
-	if (sim.RecordingTreeSequence())
-		sim.SetCurrentNewIndividual(individual);
+	if (species_.RecordingTreeSequence())
+		species_.SetCurrentNewIndividual(individual);
 	
 	if (!mutation_callbacks) mutation_callbacks = nullptr;
 	
@@ -4614,16 +4961,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 			
 			// both strands are non-NULL and we have a breakpoint, so we do recombination between them
-			if (sim.RecordingTreeSequence())
-				sim.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
+			if (species_.RecordingTreeSequence())
+				species_.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
 			
 			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
 		}
 		else
 		{
 			// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
-			if (sim.RecordingTreeSequence())
-				sim.RecordNewGenome(nullptr, genome1, strand1, nullptr);
+			if (species_.RecordingTreeSequence())
+				species_.RecordNewGenome(nullptr, genome1, strand1, nullptr);
 			
 			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex, mutation_callbacks);
 		}
@@ -4631,8 +4978,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	else
 	{
 		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
-		if (sim.RecordingTreeSequence())
-			sim.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
+		if (species_.RecordingTreeSequence())
+			species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
 		
 #if DEBUG
 		if (!genome1_null)
@@ -4667,16 +5014,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			}
 			
 			// both strands are non-NULL and we have a breakpoint, so we do recombination between them
-			if (sim.RecordingTreeSequence())
-				sim.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
+			if (species_.RecordingTreeSequence())
+				species_.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
 			
 			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
 		}
 		else
 		{
 			// one strand is non-NULL but the other is NULL, so we clone the non-NULL strand
-			if (sim.RecordingTreeSequence())
-				sim.RecordNewGenome(nullptr, genome2, strand3, nullptr);
+			if (species_.RecordingTreeSequence())
+				species_.RecordNewGenome(nullptr, genome2, strand3, nullptr);
 			
 			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex, mutation_callbacks);
 		}
@@ -4684,8 +5031,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	else
 	{
 		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
-		if (sim.RecordingTreeSequence())
-			sim.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
+		if (species_.RecordingTreeSequence())
+			species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 		
 #if DEBUG
 		if (!genome2_null)
@@ -4696,12 +5043,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	if (registered_modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, /* p_parent1 */ nullptr, strand1, strand2, /* p_parent2 */ nullptr, strand3, strand4, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
+		// BCH 4/5/2022: When removing excess pseudo-parameters from callbacks, we lost a bit of functionality here: we used to pass
+		// the four recombinant strands to the callback as the four "parental genomes".  But that was always kind of fictional, and
+		// it was never documented, and I doubt anybody was using it, and they can do the same without the modifyChild() callback,
+		// so I'm not viewing this loss of functionality as an obstacle to making this change.
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Parentless();
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_crossed_++;
@@ -4767,7 +5118,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_crossed_++;
 		
 		// this offspring came from parents in various subpops but ended up here, so it is, in effect, a migrant;
@@ -4835,18 +5186,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() is not available in WF models." << EidosTerminate();
-	if (sim.GenerationStage() != SLiMGenerationStage::kNonWFStage1GenerateOffspring)
+
+	// TIMING RESTRICTION
+	if (community_.CycleStage() != SLiMCycleStage::kNonWFStage1GenerateOffspring)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may only be called from a reproduction() callback." << EidosTerminate();
-	if (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
+	if (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosReproductionCallback)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): method -addSelfed() may not be called from a nested callback." << EidosTerminate();
-	
-	bool pedigrees_enabled = sim.PedigreesEnabled();
-	Chromosome &chromosome = sim.TheChromosome();
-	int32_t mutrun_count = chromosome.mutrun_count_;
-	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	
 	// Get and check the first parent (the mother)
 	EidosValue *parent_value = p_arguments[0].get();
@@ -4857,28 +5204,54 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (parent_sex != IndividualSex::kHermaphrodite)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): parent must be hermaphroditic in addSelfed()." << EidosTerminate();
 	
+	// SPECIES CONSISTENCY CHECK
+	if (&parent_subpop.species_ != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): addSelfed() requires that parent belongs to the same species as the target subpopulation." << EidosTerminate();
+	
 	// Check for some other illegal setups
 	if (parent->index_ == -1)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): parent must be visible in a subpopulation (i.e., may not be a new juvenile)." << EidosTerminate();
 	
 	// Determine the sex of the offspring, and the consequent expected genome types; for selfing this is predetermined
 	GenomeType genome1_type = GenomeType::kAutosome, genome2_type = GenomeType::kAutosome;
-	bool genome1_null = false, genome2_null = false;
+	bool genome1_null, genome2_null;
 	IndividualSex child_sex = IndividualSex::kHermaphrodite;
+	int32_t mutrun_count;
+	slim_position_t mutrun_length;
+	
+	if (!species_.HasGenetics())
+	{
+		genome1_null = true;
+		genome2_null = true;
+		has_null_genomes_ = true;
+		
+		mutrun_count = 0;
+		mutrun_length = 0;
+	}
+	else
+	{
+		genome1_null = false;
+		genome2_null = false;
+		
+		Chromosome &chromosome = species_.TheChromosome();
+		mutrun_count = chromosome.mutrun_count_;
+		mutrun_length = chromosome.mutrun_length_;
+	}
 	
 	// Make the new individual as a candidate
-	Genome *genome1 = NewSubpopGenome(mutrun_count, mutrun_length, genome1_type, genome1_null);
-	Genome *genome2 = NewSubpopGenome(mutrun_count, mutrun_length, genome2_type, genome2_null);
+	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
+	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
 	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
+	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
 		individual->TrackParentage_Uniparental(*parent);
 	
 	// TREE SEQUENCE RECORDING
-	if (sim.RecordingTreeSequence())
-		sim.SetCurrentNewIndividual(individual);
+	if (species_.RecordingTreeSequence())
+		species_.SetCurrentNewIndividual(individual);
 	
 	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
 	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
@@ -4891,12 +5264,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	
 	if (modify_child_callbacks_.size())
 	{
-		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, genome1, genome2, child_sex, parent, parent->genome1_, parent->genome2_, parent, parent->genome1_, parent->genome2_, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
+		bool proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, parent, parent, /* p_is_selfing */ true, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ &parent_subpop, modify_child_callbacks_);
 		
 		if (pedigrees_enabled && !proposed_child_accepted)
 			individual->RevokeParentage_Uniparental(*parent);
 		
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		if (proposed_child_accepted)
 		{
 			gui_offspring_selfed_++;
@@ -4913,7 +5286,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	}
 	else
 	{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 		gui_offspring_selfed_++;
 		
 		// this offspring came from a parent in parent_subpop but ended up here, so it is, in effect, a migrant;
@@ -4932,11 +5305,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() is not available in WF models." << EidosTerminate();
-	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from a first(), early(), or late() event." << EidosTerminate();
+	
+	// TIMING RESTRICTION
+	if (community_.executing_species_ == &species_)
+		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): method -takeMigrants() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
 	
 	EidosValue_Object *migrants_value = (EidosValue_Object *)p_arguments[0].get();
 	int migrant_count = migrants_value->Count();
@@ -4945,6 +5320,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 	if (migrant_count == 0)
 		return gStaticEidosValueVOID;
 	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividuals(migrants_value);
+	
+	if (species != &this->species_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() requires that all individuals belong to the same species as the target subpopulation." << EidosTerminate();
+	
+	if (has_been_removed_)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_takeMigrants): takeMigrants() should not be called to add individuals to a subpopulation that has been removed." << EidosTerminate();
+
 	// Loop over the migrants and move them one by one
 	for (int migrant_index = 0; migrant_index < migrant_count; ++migrant_index)
 	{
@@ -4953,7 +5337,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		if (source_subpop != this)
 		{
-#if (defined(SLIM_NONWF_ONLY) && defined(SLIMGUI))
+#if defined(SLIMGUI)
 			// before doing anything else, tally this incoming migrant for SLiMgui
 			++gui_migrants_[source_subpop->subpopulation_id_];
 #endif
@@ -5074,24 +5458,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		
 		// Invalidate interactions; we just do this for all subpops, for now, rather than trying to
 		// selectively invalidate only the subpops involved in the migrations that occurred
-		auto &interactionTypes = sim.InteractionTypes();
+		community_.InvalidateInteractionsForSpecies(&species_);
 		
-		for (auto int_type : interactionTypes)
-			int_type.second->Invalidate();
+		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
+		population_.cached_tally_genome_count_ = 0;
 	}
 	
 	return gStaticEidosValueVOID;
 }
 
-#endif  // SLIM_NONWF_ONLY
-
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setMigrationRates(object sourceSubpops, numeric rates)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setMigrationRates): method -setMigrationRates() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *sourceSubpops_value = p_arguments[0].get();
@@ -5106,8 +5488,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	for (int value_index = 0; value_index < source_subpops_count; ++value_index)
 	{
-		SLiMSim &sim = population_.sim_;
-		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, sim, "setMigrationRates()");
+		EidosObject *source_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(sourceSubpops_value, value_index, &species_.community_, &species_, "setMigrationRates()");		// SPECIES CONSISTENCY CHECK
 		slim_objectid_t source_subpop_id = ((Subpopulation *)(source_subpop))->subpopulation_id_;
 		
 		if (source_subpop_id == subpopulation_id_)
@@ -5123,7 +5504,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
 //	*********************	– (logical)pointInBounds(float point)
 //
@@ -5132,8 +5512,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point_value = p_arguments[0].get();
 	
-	SLiMSim &sim = population_.sim_;
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
@@ -5236,8 +5615,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point_value = p_arguments[0].get();
 	
-	SLiMSim &sim = population_.sim_;
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
@@ -5353,8 +5731,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point_value = p_arguments[0].get();
 	
-	SLiMSim &sim = population_.sim_;
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
@@ -5427,8 +5804,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *point_value = p_arguments[0].get();
 	
-	SLiMSim &sim = population_.sim_;
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	int value_count = point_value->Count();
 	
 	if (dimensionality == 0)
@@ -5436,7 +5812,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	
 	bool periodic_x, periodic_y, periodic_z;
 	
-	sim.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+	species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
 	
 	if (!periodic_x && !periodic_y && !periodic_z)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): pointPeriodic() cannot be called when no periodic spatial dimension has been set up." << EidosTerminate();
@@ -5549,9 +5925,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	
-	SLiMSim &sim = population_.sim_;
-	
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	
 	if (dimensionality == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointUniform): pointUniform() cannot be called in non-spatial simulations." << EidosTerminate();
@@ -5605,13 +5979,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	return result_SP;
 }			
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setCloningRate(numeric rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setCloningRate): method -setCloningRate() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *rate_value = p_arguments[0].get();
@@ -5652,15 +6026,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_setCloningRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueVOID;
 }			
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSelfingRate(numeric$ rate)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSelfingRate): method -setSelfingRate() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *rate_value = p_arguments[0].get();
@@ -5677,15 +6050,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSelfingRate(EidosGlobalStringID p_
 	
 	return gStaticEidosValueVOID;
 }			
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSexRatio(float$ sexRatio)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSexRatio): method -setSexRatio() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *sexRatio_value = p_arguments[0].get();
@@ -5710,7 +6082,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSexRatio(EidosGlobalStringID p_met
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
 //	*********************	– (void)setSpatialBounds(numeric position)
 //
@@ -5719,9 +6090,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *position_value = p_arguments[0].get();
 	
-	SLiMSim &sim = population_.sim_;
-	
-	int dimensionality = sim.SpatialDimensionality();
+	int dimensionality = species_.SpatialDimensionality();
 	int value_count = position_value->Count();
 	
 	if (dimensionality == 0)
@@ -5733,7 +6102,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	bool bad_bounds = false, bad_periodic_bounds = false;
 	bool periodic_x, periodic_y, periodic_z;
 	
-	sim.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+	species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
 	
 	switch (dimensionality)
 	{
@@ -5780,13 +6149,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 	return gStaticEidosValueVOID;
 }			
 
-#ifdef SLIM_WF_ONLY
+// WF only:
 //	*********************	- (void)setSubpopulationSize(integer$ size)
 //
 EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	if (population_.sim_.ModelType() == SLiMModelType::kModelTypeNonWF)
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSubpopulationSize): method -setSubpopulationSize() is not available in nonWF models." << EidosTerminate();
 	
 	EidosValue *size_value = p_arguments[0].get();
@@ -5797,25 +6166,25 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSubpopulationSize(EidosGlobalStrin
 	
 	return gStaticEidosValueVOID;
 }
-#endif	// SLIM_WF_ONLY
 
-#ifdef SLIM_NONWF_ONLY
+// nonWF only:
 //	*********************	- (void)removeSubpopulation()
 //
 EidosValue_SP Subpopulation::ExecuteMethod_removeSubpopulation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	SLiMSim &sim = population_.sim_;
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() is not available in WF models." << EidosTerminate();
-	if ((sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (sim.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from a first(), early(), or late() event." << EidosTerminate();
+	
+	// TIMING RESTRICTION
+	if (community_.executing_species_ == &species_)
+		if ((community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventFirst) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventEarly) && (community_.executing_block_type_ != SLiMEidosBlockType::SLiMEidosEventLate))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_removeSubpopulation): method -removeSubpopulation() must be called directly from a first(), early(), or late() event, when called on the currently executing species." << EidosTerminate();
 	
 	population_.RemoveSubpopulation(*this);
 	
 	return gStaticEidosValueVOID;
 }
-#endif  // SLIM_NONWF_ONLY
 
 //	*********************	- (float)cachedFitness(Ni indices)
 //
@@ -5824,24 +6193,29 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *indices_value = p_arguments[0].get();
 	
-#ifdef SLIM_WF_ONLY
+	// This should never be hit, I think; there is no script execution opportunity while the child generation is active
 	if (child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may only be called when the parental generation is active (before or during offspring generation)." << EidosTerminate();
-#endif	// SLIM_WF_ONLY
 	
-	SLiMSim &sim = population_.sim_;
-	
-	if (sim.ModelType() == SLiMModelType::kModelTypeWF)
+	// TIMING RESTRICTION
+	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage6CalculateFitness)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
-		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage5ExecuteLateScripts)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed)." << EidosTerminate();
+		if (community_.executing_species_ == &species_)
+			if (community_.CycleStage() == SLiMCycleStage::kWFStage6CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called for the currently executing species while its fitness values are being calculated." << EidosTerminate();
+		
+		// We used to disallow calling cachedFitness() in late() events in WF models in all cases (since a commit on 5 March 2018),
+		// because the cached fitness values at that point are typically garbage.  However, it is useful to allow the user to call
+		// recalculateFitness() and then cachedFitness(); in that case the cached fitness values are valid.  This allows WF models
+		// to interpose logic that changes fitness values based upon fitness values (such as hard selection).
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage5ExecuteLateScripts) && !species_.has_recalculated_fitness_)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() generally cannot be called during late() events in WF models, since the new generation does not yet have fitness values (which are calculated immediately after late() events have executed).  If you really need to get fitness values in a late() event, you can call recalculateFitness() first to force fitness value recalculation to occur, but that is not something to do lightly; proceed with caution.  Usually it is better to access fitness values after SLiM has calculated them, in a first() or early() event." << EidosTerminate();
 	}
 	else
 	{
-		if (sim.GenerationStage() == SLiMGenerationStage::kNonWFStage3CalculateFitness)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called while fitness values are being calculated." << EidosTerminate();
+		if (community_.executing_species_ == &species_)
+			if (community_.CycleStage() == SLiMCycleStage::kNonWFStage3CalculateFitness)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() may not be called for the currently executing species while its fitness values are being calculated." << EidosTerminate();
 		// in nonWF models uncalculated fitness values for new individuals are guaranteed to be NaN, so there is no need for a check here
 	}
 	
@@ -5860,11 +6234,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 		}
 		
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 		double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
-#else
-		double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
-#endif
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(fitness));
 	}
@@ -5885,11 +6255,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_cachedFitness(EidosGlobalStringID p_m
 					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_cachedFitness): cachedFitness() index " << index << " out of range." << EidosTerminate();
 			}
 			
-#if (!defined(SLIMGUI) && defined(SLIM_WF_ONLY))
 			double fitness = (individual_cached_fitness_OVERRIDE_ ? individual_cached_fitness_OVERRIDE_value_ : parent_individuals_[index]->cached_fitness_UNSAFE_);
-#else
-			double fitness = parent_individuals_[index]->cached_fitness_UNSAFE_;
-#endif
 			
 			float_return->set_float_no_check(fitness, value_index);
 		}
@@ -5925,8 +6291,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
+		// SPECIES CONSISTENCY CHECK
 		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must belong to the subpopulation being sampled." << EidosTerminate(nullptr);
+		
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
 		
@@ -5960,13 +6328,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	EidosValue *ageMax_value = p_arguments[6].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-#ifdef SLIM_NONWF_ONLY
 	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
 	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
 	
-	if ((ageMin_specified || ageMax_specified) && (population_.sim_.ModelType() != SLiMModelType::kModelTypeNonWF))
+	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
-#endif  // SLIM_NONWF_ONLY
 	
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[7].get();
@@ -6088,12 +6454,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				continue;
 			if (migrant_specified && (candidate->migrant_ != migrant))
 				continue;
-#ifdef SLIM_NONWF_ONLY
 			if (ageMin_specified && (candidate->age_ < ageMin))
 				continue;
 			if (ageMax_specified && (candidate->age_ > ageMax))
 				continue;
-#endif  // SLIM_NONWF_ONLY
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(parent_individuals_[sample_index], gSLiM_Individual_Class));
 		}
@@ -6102,21 +6466,35 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// base case
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
-		std::vector<int> index_vector;
+		// see sample() for some discussion of this implementation
+		static int *index_buffer = nullptr;
+		static int buffer_capacity = 0;
+		
+		if (last_candidate_index > buffer_capacity)		// just make it big enough for last_candidate_index, not worth worrying
+		{
+			buffer_capacity = last_candidate_index * 2;		// double whenever we go over capacity, to avoid reallocations
+			if (index_buffer)
+				free(index_buffer);
+			index_buffer = (int *)malloc(buffer_capacity * sizeof(int));	// no need to realloc, we don't need the old data
+			if (!index_buffer)
+				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		}
+		
+		candidate_count = 0;	// we will count how many candidates we actually end up with
 		
 		if (!tag_specified && !ageMin_specified && !ageMax_specified && !migrant_specified)
 		{
 			if (excluded_index == -1)
 			{
 				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
-					index_vector.emplace_back(value_index);
+					index_buffer[candidate_count++] = value_index;
 			}
 			else
 			{
 				for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
 				{
 					if (value_index != excluded_index)
-						index_vector.emplace_back(value_index);
+						index_buffer[candidate_count++] = value_index;
 				}
 			}
 		}
@@ -6130,20 +6508,16 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 					continue;
 				if (migrant_specified && (candidate->migrant_ != migrant))
 					continue;
-#ifdef SLIM_NONWF_ONLY
 				if (ageMin_specified && (candidate->age_ < ageMin))
 					continue;
 				if (ageMax_specified && (candidate->age_ > ageMax))
 					continue;
-#endif  // SLIM_NONWF_ONLY
 				if (value_index == excluded_index)
 					continue;
 				
-				index_vector.emplace_back(value_index);
+				index_buffer[candidate_count++] = value_index;
 			}
 		}
-		
-		candidate_count = (int)index_vector.size();
 		
 		if (candidate_count == 0)
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
@@ -6153,25 +6527,21 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		// do the sampling
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
-		int64_t contender_count = candidate_count;
 		
 		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 		{
 #if DEBUG
 			// this error should never occur, since we checked the count above
-			if (contender_count <= 0)
+			if (candidate_count <= 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
+			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidate_count);
 			
-			result->set_object_element_no_check_NORR(parent_individuals_[index_vector[rose_index]], samples_generated);
+			result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
 			
 			if (!replace)
-			{
-				index_vector[rose_index] = index_vector.back();
-				index_vector.resize(--contender_count);
-			}
+				index_buffer[rose_index] = index_buffer[--candidate_count];
 		}
 	}
 	
@@ -6201,8 +6571,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	
 	if (excluded_individual)
 	{
+		// SPECIES CONSISTENCY CHECK
 		if (excluded_individual->subpopulation_ != this)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must belong to the subpopulation being subset." << EidosTerminate(nullptr);
+		
 		if (excluded_individual->index_ == -1)
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): the excluded individual must be a valid, visible individual (not a newly generated child)." << EidosTerminate(nullptr);
 		
@@ -6236,13 +6608,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	EidosValue *ageMax_value = p_arguments[4].get();
 	bool ageMin_specified = (ageMin_value->Type() != EidosValueType::kValueNULL);
 	bool ageMax_specified = (ageMax_value->Type() != EidosValueType::kValueNULL);
-#ifdef SLIM_NONWF_ONLY
 	int64_t ageMin = (ageMin_specified ? ageMin_value->IntAtIndex(0, nullptr) : -1);
 	int64_t ageMax = (ageMax_specified ? ageMax_value->IntAtIndex(0, nullptr) : INT64_MAX);
 	
-	if ((ageMin_specified || ageMax_specified) && (population_.sim_.ModelType() != SLiMModelType::kModelTypeNonWF))
+	if ((ageMin_specified || ageMax_specified) && (model_type_ != SLiMModelType::kModelTypeNonWF))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_subsetIndividuals): ageMin and ageMax may only be specified in nonWF models." << EidosTerminate(nullptr);
-#endif  // SLIM_NONWF_ONLY
 	
 	// a migrant value may be specified
 	EidosValue *migrant_value = p_arguments[5].get();
@@ -6309,12 +6679,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 				continue;
 			if (migrant_specified && (candidate->migrant_ != migrant))
 				continue;
-#ifdef SLIM_NONWF_ONLY
 			if (ageMin_specified && (candidate->age_ < ageMin))
 				continue;
 			if (ageMax_specified && (candidate->age_ > ageMax))
 				continue;
-#endif  // SLIM_NONWF_ONLY
 			if (value_index == excluded_index)
 				continue;
 			
@@ -6344,8 +6712,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	if (map_name.length() == 0)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() map name must not be zero-length." << EidosTerminate();
 	
-	SLiMSim &sim = population_.sim_;
-	int spatial_dimensionality = sim.SpatialDimensionality();
+	int spatial_dimensionality = species_.SpatialDimensionality();
 	int required_dimensionality;
 	int map_spatiality;
 	
@@ -6851,16 +7218,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	EidosValue *outputNonnucleotides_arg = ((p_method_id == gID_outputVCFSample) ? p_arguments[7].get() : nullptr);
 	
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
-	SLiMSim &sim = population_.sim_;
 	
-	if (!sim.warned_early_output_)
+	// TIMING RESTRICTION
+	if (!community_.warned_early_output_)
 	{
-		if (sim.GenerationStage() == SLiMGenerationStage::kWFStage1ExecuteEarlyScripts)
+		if ((community_.CycleStage() == SLiMCycleStage::kWFStage0ExecuteFirstScripts) ||
+			(community_.CycleStage() == SLiMCycleStage::kWFStage1ExecuteEarlyScripts))
 		{
 			if (!gEidosSuppressWarnings)
 			{
-				p_interpreter.ErrorOutputStream() << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() should probably not be called from an early() event in a WF model; the output will reflect state at the beginning of the generation, not the end." << std::endl;
-				sim.warned_early_output_ = true;
+				p_interpreter.ErrorOutputStream() << "#WARNING (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() should probably not be called from a first() or early() event in a WF model; the output will reflect state at the beginning of the cycle, not the end." << std::endl;
+				community_.warned_early_output_ = true;
 			}
 		}
 	}
@@ -6882,7 +7250,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
 	
-	if (!sim.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
+	if (!species_.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << EidosTerminate();
 	
 	bool output_multiallelics = true;
@@ -6926,8 +7294,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	
 	if (!has_file || (p_method_id == gID_outputSample))
 	{
-		// Output header line
-		out << "#OUT: " << sim.Generation() << " S";
+		// Output header line.  BCH 3/6/2022: Note that the cycle was added after the tick in SLiM 4.
+		out << "#OUT: " << community_.Tick() << " " << species_.Cycle() << " S";
 		
 		if (p_method_id == gID_outputSample)
 			out << "S";
@@ -6938,7 +7306,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 		
 		out << " p" << subpopulation_id_ << " " << sample_size;
 		
-		if (sim.SexEnabled())
+		if (species_.SexEnabled())
 			out << " " << requested_sex;
 		
 		if (has_file)
@@ -6951,7 +7319,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	if (p_method_id == gID_outputSample)
 		population_.PrintSample_SLiM(out, *this, sample_size, replace, requested_sex);
 	else if (p_method_id == gID_outputMSSample)
-		population_.PrintSample_MS(out, *this, sample_size, replace, requested_sex, sim.TheChromosome(), filter_monomorphic);
+		population_.PrintSample_MS(out, *this, sample_size, replace, requested_sex, species_.TheChromosome(), filter_monomorphic);
 	else if (p_method_id == gID_outputVCFSample)
 		population_.PrintSample_VCF(out, *this, sample_size, replace, requested_sex, output_multiallelics, simplify_nucs, output_nonnucs);
 	
@@ -7087,6 +7455,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_cloningRate,					true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sexRatio,						true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialBounds,					true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_species,						true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Species_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_individualCount,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_individualCount));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,							false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Subpopulation::SetProperty_Accelerated_fitnessScaling));
@@ -7128,12 +7497,12 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subsetIndividuals, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_OSN("exclude", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_defineSpatialMap, kEidosValueMaskVOID))->AddString_S("name")->AddString_S("spatiality")->AddNumeric("values")->AddLogical_OS("interpolate", gStaticEidosValue_LogicalF)->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapColor, kEidosValueMaskString))->AddString_S("name")->AddNumeric("value"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("name")->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS("color", gStaticEidosValue_LogicalT));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddString_S("name")->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_spatialMapValue, kEidosValueMaskFloat))->AddString_S("name")->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputMSSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("filterMonomorphic", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputVCFSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddLogical_OS("outputMultiallelics", gStaticEidosValue_LogicalT)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("simplifyNucleotides", gStaticEidosValue_LogicalF)->AddLogical_OS("outputNonnucleotides", gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_outputSample, kEidosValueMaskVOID))->AddInt_S("sampleSize")->AddLogical_OS("replace", gStaticEidosValue_LogicalT)->AddString_OS("requestedSex", gStaticEidosValue_StringAsterisk)->AddString_OSN(gEidosStr_filePath, gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN("color", gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_configureDisplay, kEidosValueMaskVOID))->AddFloat_ON("center", gStaticEidosValueNULL)->AddFloat_OSN("scale", gStaticEidosValueNULL)->AddString_OSN(gEidosStr_color, gStaticEidosValueNULL));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

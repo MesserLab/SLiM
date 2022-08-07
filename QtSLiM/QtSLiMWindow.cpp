@@ -48,6 +48,7 @@
 #include "QtSLiMGraphView_FrequencyTrajectory.h"
 #include "QtSLiMGraphView_PopFitnessDist.h"
 #include "QtSLiMGraphView_SubpopFitnessDists.h"
+#include "QtSLiMGraphView_MultispeciesPopSizeOverTime.h"
 #include "QtSLiMHaplotypeManager.h"
 
 #include <QCoreApplication>
@@ -74,6 +75,7 @@
 #include <QDesktopServices>
 #include <QScreen>
 #include <QMetaMethod>
+#include <QLabel>
 
 #include <unistd.h>
 #include <sys/stat.h>
@@ -103,7 +105,7 @@ static std::string defaultWFScriptString(void)
                 "}\n"
                 "\n"
                 "// create a population of 500 individuals\n"
-                "1 {\n"
+                "1 early() {\n"
                 "	sim.addSubpop(\"p1\", 500);\n"
                 "}\n"
                 "\n"
@@ -222,13 +224,29 @@ void QtSLiMWindow::init(void)
     
     // create the window UI
     ui->setupUi(this);
+    
+    // hide the species bar initially so it doesn't interfere with the sizing done by interpolateSplitters()
+    ui->speciesBarWidget->setHidden(true);
+    
+    ui->speciesBar->setAcceptDrops(false);
+    ui->speciesBar->setDocumentMode(false);
+    ui->speciesBar->setDrawBase(false);
+    ui->speciesBar->setExpanding(false);
+    ui->speciesBar->setMovable(false);
+    ui->speciesBar->setShape(QTabBar::RoundedNorth);
+    ui->speciesBar->setTabsClosable(false);
+    ui->speciesBar->setUsesScrollButtons(false);
+    
+    connect(ui->speciesBar, &QTabBar::currentChanged, this, &QtSLiMWindow::selectedSpeciesChanged);
+    
+    // add splitters with the species bar hidden; this sets correct heights on things
     interpolateSplitters();
     initializeUI();
     
     // with everything built, mark ourselves as transient (recipes and files will mark this false after us)
     isTransient = true;
     
-    // wire up our continuous play and generation play timers
+    // wire up our continuous play and tick play timers
     connect(&continuousPlayInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousPlay);
     connect(&continuousProfileInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_continuousProfile);
     connect(&playOneStepInvocationTimer_, &QTimer::timeout, this, &QtSLiMWindow::_playOneStep);
@@ -276,15 +294,17 @@ void QtSLiMWindow::init(void)
     // Watch for changes to the selection in the population tableview
     connect(ui->subpopTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &QtSLiMWindow::subpopSelectionDidChange);
     
-    // Watch for changes to the selection in the chromosome view
-    connect(ui->chromosomeOverview, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerSelectionChanged(); });
-    
     // Watch for changes to our change count, for the recycle button color
     connect(this, &QtSLiMWindow::controllerChangeCountChanged, this, [this]() { updateRecycleButtonIcon(false); });
     
-    // Ensure that the generation lineedit does not have the initial keyboard focus and has no selection; hard to do!
-    ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
-    QTimer::singleShot(0, [this]() { ui->generationLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    // Ensure that the tick lineedit does not have the initial keyboard focus and has no selection; hard to do!
+    // BCH 5 August 2022: this code is no longer working, the tick lineedit still has initial focus, sigh; I added
+    // the call to ui->scriptTextEdit->setFocus() and that seems to do it, not sure why I didn't do that before;
+    // but since this seems to be fragile, I'm going to leave *both* approaches in the code here, maybe which
+    // approach works depends on the Qt version or the platform or something.  Forward in all directions!
+    ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
+    QTimer::singleShot(0, [this]() { ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    ui->scriptTextEdit->setFocus();
     
     // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
     connect(qtSLiMAppDelegate, &QtSLiMAppDelegate::applicationPaletteChanged, this, &QtSLiMWindow::applicationPaletteChanged);
@@ -399,8 +419,8 @@ void QtSLiMWindow::interpolateVerticalSplitter(void)
     QLayoutItem *child;
     while ((child = parentLayout->takeAt(0)) != nullptr);
     
-    ui->line->setParent(nullptr);
-    ui->line = nullptr;
+    ui->topBottomDividerLine->setParent(nullptr);
+    ui->topBottomDividerLine = nullptr;
     
     // make the new top-level widgets and transfer in their contents
     overallTopWidget = new QWidget(nullptr);
@@ -489,6 +509,25 @@ void QtSLiMWindow::interpolateSplitters(void)
 #endif
 }
 
+void QtSLiMWindow::addChromosomeWidgets(QVBoxLayout *chromosomeLayout, QtSLiMChromosomeWidget *overviewWidget, QtSLiMChromosomeWidget *zoomedWidget)
+{
+    overviewWidget->setController(this);
+	overviewWidget->setReferenceChromosomeView(nullptr);
+	overviewWidget->setSelectable(true);
+	
+    zoomedWidget->setController(this);
+	zoomedWidget->setReferenceChromosomeView(overviewWidget);
+	zoomedWidget->setSelectable(false);
+    
+    // Forward notification of changes to the selection in the chromosome view
+    connect(overviewWidget, &QtSLiMChromosomeWidget::selectedRangeChanged, this, [this]() { emit controllerChromosomeSelectionChanged(); });
+
+    // Add these widgets to our vectors of chromosome widgets
+    chromosomeWidgetLayouts.push_back(chromosomeLayout);
+    chromosomeOverviewWidgets.push_back(overviewWidget);
+    chromosomeZoomedWidgets.push_back(zoomedWidget);
+}
+
 void QtSLiMWindow::initializeUI(void)
 {
     glueUI();
@@ -565,7 +604,7 @@ void QtSLiMWindow::initializeUI(void)
     popTableHHeader->setMinimumSectionSize(1);
     popTableVHeader->setMinimumSectionSize(1);
     
-    popTableHHeader->resizeSection(0, 35);
+    popTableHHeader->resizeSection(0, 65);
     //popTableHHeader->resizeSection(1, 60);
     popTableHHeader->resizeSection(2, 40);
     popTableHHeader->resizeSection(3, 40);
@@ -595,20 +634,8 @@ void QtSLiMWindow::initializeUI(void)
     popTableVHeader->setSectionResizeMode(QHeaderView::Fixed);
     popTableVHeader->setDefaultSectionSize(18);
     
-    // Set up our chromosome views to show the proper stuff
-	ui->chromosomeOverview->setReferenceChromosomeView(nullptr);
-	ui->chromosomeOverview->setSelectable(true);
-	ui->chromosomeOverview->setShouldDrawGenomicElements(true);
-	ui->chromosomeOverview->setShouldDrawMutations(false);
-	ui->chromosomeOverview->setShouldDrawFixedSubstitutions(false);
-	ui->chromosomeOverview->setShouldDrawRateMaps(false);
-	
-	ui->chromosomeZoomed->setReferenceChromosomeView(ui->chromosomeOverview);
-	ui->chromosomeZoomed->setSelectable(false);
-	ui->chromosomeZoomed->setShouldDrawGenomicElements(false);
-	ui->chromosomeZoomed->setShouldDrawMutations(true);
-	ui->chromosomeZoomed->setShouldDrawFixedSubstitutions(false);
-	ui->chromosomeZoomed->setShouldDrawRateMaps(false);
+    // Set up our built-in chromosome widgets; this should be the only place these ui outlets are used!
+    addChromosomeWidgets(ui->chromosomeWidgetLayout, ui->chromosomeOverview, ui->chromosomeZoomed);
     
     // Restore the saved window position; see https://doc.qt.io/qt-5/qsettings.html#details
     QSettings settings;
@@ -727,6 +754,11 @@ QtSLiMScriptTextEdit *QtSLiMWindow::scriptTextEdit(void)
     return ui->scriptTextEdit;
 }
 
+QtSLiMTextEdit *QtSLiMWindow::outputTextEdit(void)
+{
+    return ui->outputTextEdit;
+}
+
 QtSLiMWindow::~QtSLiMWindow()
 {
     // Do this first, in case it uses any ivars that will be freed
@@ -745,10 +777,11 @@ QtSLiMWindow::~QtSLiMWindow()
         consoleController->parentSLiMWindow = nullptr;
     
     // Free resources
-    if (sim)
+    if (community)
     {
-        delete sim;
-        sim = nullptr;
+        delete community;
+        community = nullptr;
+        focalSpecies = nullptr;
     }
     if (slimgui)
 	{
@@ -794,9 +827,10 @@ void QtSLiMWindow::invalidateUI(void)
     continuousPlayOn_ = false;
     profilePlayOn_ = false;
     nonProfilePlayOn_ = false;
-    generationPlayOn_ = false;
+    tickPlayOn_ = false;
     
     // Recycle to throw away any bulky simulation state; set the default script first to avoid errors
+    // Note that this creates a species named "sim" even if the window being closed was multispecies!
     ui->scriptTextEdit->setPlainText(QString::fromStdString(defaultWFScriptString()));
     recycleClicked();
     
@@ -843,7 +877,7 @@ const QColor &QtSLiMWindow::blackContrastingColorForIndex(int index)
         colorArray.emplace_back(QtSLiMColorWithHSV(0.00, 0.00, 0.80, 1.0));
 	}
 	
-	return ((index >= 0) && (index <= 6)) ? colorArray[static_cast<size_t>(index)] : colorArray[7];
+    return ((index >= 0) && (index <= 6)) ? colorArray[static_cast<size_t>(index)] : colorArray[7];
 }
 
 const QColor &QtSLiMWindow::whiteContrastingColorForIndex(int index)
@@ -895,6 +929,34 @@ void QtSLiMWindow::colorForGenomicElementType(GenomicElementType *elementType, s
         *p_alpha = static_cast<float>(elementColor->alphaF());
 	}
 }
+
+QColor QtSLiMWindow::qcolorForSpecies(Species *species)
+{
+    if (species->color_.length() > 0)
+        return QtSLiMColorWithRGB(species->color_red_, species->color_green_, species->color_blue_, 1.0);
+    
+    return whiteContrastingColorForIndex(species->species_id_);
+}
+
+void QtSLiMWindow::colorForSpecies(Species *species, float *p_red, float *p_green, float *p_blue, float *p_alpha)
+{
+    if (species->color_.length() > 0)
+    {
+        *p_red = species->color_red_;
+        *p_green = species->color_green_;
+        *p_blue = species->color_blue_;
+        *p_alpha = 1.0;
+        return;
+    }
+    
+    const QColor &speciesColor = whiteContrastingColorForIndex(species->species_id_);
+    
+    *p_red = static_cast<float>(speciesColor.redF());
+    *p_green = static_cast<float>(speciesColor.greenF());
+    *p_blue = static_cast<float>(speciesColor.blueF());
+    *p_alpha = static_cast<float>(speciesColor.alphaF());
+}
+
 
 //
 //  Document support
@@ -1173,46 +1235,95 @@ void QtSLiMWindow::tile(const QMainWindow *previous)
 //  Simulation state
 //
 
-std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
+std::vector<Subpopulation *> QtSLiMWindow::listedSubpopulations(void)
 {
-    std::vector<Subpopulation*> selectedSubpops;
-	
-	if (!invalidSimulation() && sim)
-	{
-		Population &population = sim->population_;
+    // This funnel method provides the vector of subpopulations that we are displaying in the population table
+    // It handles the multispecies case and the "all" species tab for us
+    std::vector<Subpopulation *> listedSubpops;
+    Species *displaySpecies = focalDisplaySpecies();
+    
+    if (displaySpecies)
+    {
+        // If we have a displaySpecies, we just show all of the subpopulations in the species
+        for (auto &iter : displaySpecies->population_.subpops_)
+            listedSubpops.push_back(iter.second);
+    }
+    else if (!invalidSimulation() && community && community->simulation_valid_)
+    {
+        // If we don't, then we show all subpopulations of all species; this is the "all" tab
+        for (Species *species : community->AllSpecies())
+            for (auto &iter : species->population_.subpops_)
+                listedSubpops.push_back(iter.second);
         
-        for (auto popIter : population.subpops_)
-		{
-			Subpopulation *subpop = popIter.second;
-			
-			if (subpop->gui_selected_)
-				selectedSubpops.emplace_back(subpop);
-		}
-	}
-	
-	return selectedSubpops;
+        // Sort by id, not by species
+        std::sort(listedSubpops.begin(), listedSubpops.end(), [](Subpopulation *l, Subpopulation *r) { return l->subpopulation_id_ < r->subpopulation_id_; });
+    }
+    
+    return listedSubpops;     // note these are sorted by id, not by species, unlike selectedSubpopulations()
 }
 
-void QtSLiMWindow::chromosomeSelection(bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
+std::vector<Subpopulation*> QtSLiMWindow::selectedSubpopulations(void)
 {
-    QtSLiMChromosomeWidget *chromosomeOverview = ui->chromosomeOverview;
+    Species *displaySpecies = focalDisplaySpecies();
+    std::vector<Subpopulation*> selectedSubpops;
+	
+    if (community && community->simulation_valid_)
+    {
+        for (Species *species : community->all_species_)
+        {
+            if (!displaySpecies || (displaySpecies == species))
+            {
+                Population &population = species->population_;
+                
+                for (auto popIter : population.subpops_)
+                {
+                    Subpopulation *subpop = popIter.second;
+                    
+                    if (subpop->gui_selected_)
+                        selectedSubpops.emplace_back(subpop);
+                }
+            }
+        }
+    }
     
+	return selectedSubpops;     // note these are sorted by species, not by id, unlike listedSubpopulations()
+}
+
+void QtSLiMWindow::chromosomeSelection(Species *species, bool *p_hasSelection, slim_position_t *p_selectionFirstBase, slim_position_t *p_selectionLastBase)
+{
+    // First we need to look up the chromosome view for the requested species
+    for (QtSLiMChromosomeWidget *chromosomeWidget : chromosomeOverviewWidgets)
+    {
+        Species *widgetSpecies = chromosomeWidget->focalDisplaySpecies();
+        
+        if (widgetSpecies == species)
+        {
+            if (p_hasSelection)
+                *p_hasSelection = chromosomeWidget->hasSelection();
+            
+            QtSLiMRange selRange = chromosomeWidget->getSelectedRange(species);
+            
+            if (p_selectionFirstBase)
+                *p_selectionFirstBase = selRange.location;
+            if (p_selectionLastBase)
+                *p_selectionLastBase = selRange.location + selRange.length - 1;
+            
+            return;
+        }
+    }
+    
+    // We drop through to here if the species can't be found, which should not happen
     if (p_hasSelection)
-        *p_hasSelection = chromosomeOverview->hasSelection();
-    
-    QtSLiMRange selRange = chromosomeOverview->getSelectedRange();
-    
+        *p_hasSelection = false;
     if (p_selectionFirstBase)
-        *p_selectionFirstBase = selRange.location;
+        *p_selectionFirstBase = 0;
     if (p_selectionLastBase)
-        *p_selectionLastBase = selRange.location + selRange.length - 1;
+        *p_selectionLastBase = species->TheChromosome().last_position_;
 }
 
 const std::vector<slim_objectid_t> &QtSLiMWindow::chromosomeDisplayMuttypes(void)
 {
-    QtSLiMChromosomeWidget *chromosomeZoomed = ui->chromosomeZoomed;
-    
-    return chromosomeZoomed->displayMuttypes();
+    return chromosome_display_muttypes_;
 }
 
 void QtSLiMWindow::setInvalidSimulation(bool p_invalid)
@@ -1243,11 +1354,11 @@ void QtSLiMWindow::setContinuousPlayOn(bool p_flag)
     }
 }
 
-void QtSLiMWindow::setGenerationPlayOn(bool p_flag)
+void QtSLiMWindow::setTickPlayOn(bool p_flag)
 {
-    if (generationPlayOn_ != p_flag)
+    if (tickPlayOn_ != p_flag)
     {
-        generationPlayOn_ = p_flag;
+        tickPlayOn_ = p_flag;
         updateUIEnabling();
     }
 }
@@ -1270,13 +1381,274 @@ void QtSLiMWindow::setNonProfilePlayOn(bool p_flag)
     }
 }
 
+bool QtSLiMWindow::offerAndExecuteAutofix(QTextCursor target, QString replacement, QString explanation, QString terminationMessage)
+{
+    QString informativeText = "SLiMgui has found an issue with your script that it knows how to fix:\n\n";
+    informativeText.append(explanation);
+    informativeText.append("\n\nWould you like SLiMgui to automatically fix it, and then recycle?\n");
+    
+    QMessageBox messageBox(this);
+    messageBox.setText("Autofixable Error");
+    messageBox.setInformativeText(informativeText);
+    messageBox.setDetailedText(terminationMessage.trimmed());
+    messageBox.setIcon(QMessageBox::Warning);
+    messageBox.setWindowModality(Qt::WindowModal);
+    messageBox.setFixedWidth(700);      // seems to be ignored
+    messageBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    
+    int button = messageBox.exec();
+    
+    if (button == QMessageBox::Yes)
+    {
+        target.insertText(replacement);
+        recycleClicked();
+        return true;
+    }
+    
+    return false;
+}
+
+bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
+{
+    QTextCursor selection = ui->scriptTextEdit->textCursor();
+    QString selectionString = selection.selectedText();
+    
+    // get the four characters prior to the selected error range, to recognize if the error is preceded by "sim."; note this is a heuristic, not precise
+    QTextCursor beforeSelection4 = selection;
+    beforeSelection4.setPosition(beforeSelection4.selectionStart(), QTextCursor::MoveAnchor);
+    beforeSelection4.movePosition(QTextCursor::Left, QTextCursor::MoveAnchor, 4);
+    beforeSelection4.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 4);
+    QString beforeSelection4String = beforeSelection4.selectedText();
+    
+    // early() events are no longer default
+    if (terminationMessage.contains("unexpected token {") &&
+            terminationMessage.contains("expected an event declaration") &&
+            terminationMessage.contains("early() is no longer a default script block type") &&
+            (selectionString == "{"))
+        return offerAndExecuteAutofix(selection, "early() {", "Script blocks no longer default to `early()`; `early()` must be explicitly specified.", terminationMessage);
+    
+    // sim to community changes
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method createLogFile() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `createLogFile()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method deregisterScriptBlock() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `deregisterScriptBlock()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerFirstEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerFirstEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerEarlyEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerEarlyEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method registerLateEvent() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `registerLateEvent()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method rescheduleScriptBlock() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `rescheduleScriptBlock()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method simulationFinished() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `simulationFinished()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("method outputUsage() is not defined on object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `outputUsage()` method has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property logFiles is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `logFiles` property has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property generationStage is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `generationStage` property has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property modelType is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `modelType` property has been moved to the Community class.", terminationMessage);
+    
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property verbosity is not defined for object element type Species"))
+        return offerAndExecuteAutofix(beforeSelection4, "community.", "The `verbosity` property has been moved to the Community class.", terminationMessage);
+    
+    // generation to tick changes
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Mutation"))
+        return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Mutation; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
+
+    if (terminationMessage.contains("property originGeneration is not defined for object element type Substitution"))
+        return offerAndExecuteAutofix(selection, "originTick", "The `originGeneration` property has been removed from Substitution; in its place is `originTick` (which measures in ticks, not generations).", terminationMessage);
+
+    if (terminationMessage.contains("property fixationGeneration is not defined for object element type Substitution"))
+        return offerAndExecuteAutofix(selection, "fixationTick", "The `fixationGeneration` property has been removed from Substitution; in its place is `fixationTick` (which measures in ticks, not generations).", terminationMessage);
+    
+    // generation to cycle changes
+    if (terminationMessage.contains("property generation is not defined for object element type Species"))
+        return offerAndExecuteAutofix(selection, "cycle", "The `generation` property of Species has been renamed to `cycle`.", terminationMessage);
+    
+    if (terminationMessage.contains("property generationStage is not defined for object element type Community"))
+        return offerAndExecuteAutofix(selection, "cycleStage", "The `generationStage` property of Community has been renamed to `cycleStage`.", terminationMessage);
+    
+    if (terminationMessage.contains("method addGeneration() is not defined on object element type LogFile"))
+        return offerAndExecuteAutofix(selection, "addCycle", "The `addGeneration()` method of Community has been renamed to `addCycle()`.", terminationMessage);
+    
+    if (terminationMessage.contains("method addGenerationStage() is not defined on object element type LogFile"))
+        return offerAndExecuteAutofix(selection, "addCycleStage", "The `addGenerationStage()` method of Community has been renamed to `addCycleStage()`.", terminationMessage);
+    
+    // removal of various callback pseudo-parameters
+    if (terminationMessage.contains("undefined identifier genome1"))
+        return offerAndExecuteAutofix(selection, "individual.genome1", "The `genome1` pseudo-parameter has been removed; it is now accessed as `individual.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier genome2"))
+        return offerAndExecuteAutofix(selection, "individual.genome2", "The `genome2` pseudo-parameter has been removed; it is now accessed as `individual.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childGenome1"))
+        return offerAndExecuteAutofix(selection, "child.genome1", "The `childGenome1` pseudo-parameter has been removed; it is now accessed as `child.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childGenome2"))
+        return offerAndExecuteAutofix(selection, "child.genome2", "The `childGenome2` pseudo-parameter has been removed; it is now accessed as `child.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent1Genome1"))
+        return offerAndExecuteAutofix(selection, "parent1.genome1", "The `parent1Genome1` pseudo-parameter has been removed; it is now accessed as `parent1.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent1Genome2"))
+        return offerAndExecuteAutofix(selection, "parent1.genome2", "The `parent1Genome2` pseudo-parameter has been removed; it is now accessed as `parent1.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent2Genome1"))
+        return offerAndExecuteAutofix(selection, "parent2.genome1", "The `parent2Genome1` pseudo-parameter has been removed; it is now accessed as `parent2.genome1`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier parent2Genome2"))
+        return offerAndExecuteAutofix(selection, "parent2.genome2", "The `parent2Genome2` pseudo-parameter has been removed; it is now accessed as `parent2.genome2`.", terminationMessage);
+
+    if (terminationMessage.contains("undefined identifier childIsFemale"))
+        return offerAndExecuteAutofix(selection, "(child.sex == \"F\")", "The `childIsFemale` pseudo-parameter has been removed; it is now accessed as `child.sex == \"F\"`.", terminationMessage);
+    
+    // changes to InteractionType -evaluate()
+    if (terminationMessage.contains("missing required argument subpops") && (selectionString == "evaluate"))
+    {
+        QTextCursor entireCall = selection;
+        entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
+        entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 11);
+        QString entireCallString = entireCall.selectedText();
+        
+        if (entireCallString == "evaluate();")
+            return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method now requires a vector of subpopulations to evaluate.", terminationMessage);
+    }
+    
+    if (terminationMessage.contains("named argument immediate skipped over required argument subpops") && (selectionString == "evaluate"))
+    {
+        QTextCursor entireCall = selection;
+        entireCall.setPosition(entireCall.selectionStart(), QTextCursor::MoveAnchor);
+        entireCall.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 22);
+        QString entireCallString = entireCall.selectedText();
+        
+        if ((entireCallString == "evaluate(immediate=T);") || (entireCallString == "evaluate(immediate=F);"))
+            return offerAndExecuteAutofix(entireCall, "evaluate(sim.subpopulations);", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+    }
+    
+    if (terminationMessage.contains("unrecognized named argument immediate") && (selectionString == "evaluate"))
+    {
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 15);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ", immediate=T);") || (callEndString == ", immediate=F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 14);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ",immediate=T);") || (callEndString == ",immediate=F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 17);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ", immediate = T);") || (callEndString == ", immediate = F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callEnd = selection;
+            callEnd.setPosition(callEnd.selectionStart(), QTextCursor::MoveAnchor);
+            callEnd.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor, 1);
+            callEnd.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 16);
+            QString callEndString = callEnd.selectedText();
+            
+            if ((callEndString == ",immediate = T);") || (callEndString == ",immediate = F);"))
+                return offerAndExecuteAutofix(callEnd, ");", "The evaluate() method no longer supports immediate evaluation, and the `immediate` parameter has been removed.", terminationMessage);
+        }
+    }
+    
+    // API changes in anticipation of multi-phenotype
+    if (terminationMessage.contains("unexpected identifier @fitness; expected an event declaration"))
+    {
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 14);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(NULL, ")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect(", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 13);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(NULL,")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect(", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+            if (callbackDeclString == "fitness(NULL)")
+                return offerAndExecuteAutofix(callbackDecl, "fitnessEffect()", "The fitness(NULL) callback type is now called a fitnessEffect() callback.", terminationMessage);
+        }
+        
+        {
+            QTextCursor callbackDecl = selection;
+            callbackDecl.setPosition(callbackDecl.selectionStart(), QTextCursor::MoveAnchor);
+            callbackDecl.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 9);
+            QString callbackDeclString = callbackDecl.selectedText();
+            
+            if (callbackDeclString == "fitness(m")
+                return offerAndExecuteAutofix(callbackDecl, "mutationEffect(m", "The fitness() callback type is now called a mutationEffect() callback.", terminationMessage);
+        }
+    }
+    
+    if (terminationMessage.contains("undefined identifier relFitness"))
+        return offerAndExecuteAutofix(selection, "effect", "The `relFitness` pseudo-parameter has been renamed to `effect`.", terminationMessage);
+    
+    // other deprecated APIs, unrelated to multispecies and multi-phenotype
+    if ((beforeSelection4String == "sim.") && terminationMessage.contains("property inSLiMgui is not defined for object element type Species"))
+    {
+        QTextCursor simAndSelection = beforeSelection4;
+        simAndSelection.setPosition(selection.selectionEnd(), QTextCursor::KeepAnchor);
+        
+        return offerAndExecuteAutofix(simAndSelection, "exists(\"slimgui\")", "The `inSLiMgui` property has been removed; now use `exists(\"slimgui\")`.", terminationMessage);
+    }
+    
+    return false;
+}
+
 void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
 {
     //qDebug() << terminationMessage;
     
     // Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
 	if (!changedSinceRecycle())
+    {
 		ui->scriptTextEdit->selectErrorRange();
+        
+        // check to see if this is an error we can assist the user in fixing; if they choose to autofix, we are done
+        if (checkTerminationForAutofix(terminationMessage))
+            return;
+    }
     
     // Show an error sheet/panel
     QString fullMessage(terminationMessage);
@@ -1310,7 +1682,8 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.
-        sim = nullptr;
+        community = nullptr;
+        focalSpecies = nullptr;
         slimgui = nullptr;
 
         Eidos_FreeRNG(sim_RNG);
@@ -1322,16 +1695,20 @@ void QtSLiMWindow::checkForSimulationTermination(void)
 
 void QtSLiMWindow::startNewSimulationFromScript(void)
 {
-    if (sim)
+    if (community)
     {
-        delete sim;
-        sim = nullptr;
+        delete community;
+        community = nullptr;
+        focalSpecies = nullptr;
     }
     if (slimgui)
     {
         delete slimgui;
         slimgui = nullptr;
     }
+    
+    // forget any script block coloring
+    ui->scriptTextEdit->clearScriptBlockColoring();
 
     // Free the old simulation RNG and let SLiM make one for us
     Eidos_FreeRNG(sim_RNG);
@@ -1343,11 +1720,11 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
     try
     {
-        sim = new SLiMSim(infile);
-        sim->InitializeRNGFromSeed(nullptr);
-        sim->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
+        community = new Community(infile);
+        community->InitializeRNGFromSeed(nullptr);
+        community->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
-        // We take over the RNG instance that SLiMSim just made, since each SLiMgui window has its own RNG
+        // We take over the RNG instance that Community just made, since each SLiMgui window has its own RNG
         sim_RNG = gEidos_RNG;
         gEidos_RNG = Eidos_RNG_State();     // zero it out
 
@@ -1366,19 +1743,39 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     }
     catch (...)
     {
-        if (sim)
-            sim->simulation_valid_ = false;
+        if (community)
+            community->simulation_valid_ = false;
         setReachedSimulationEnd(true);
         checkForSimulationTermination();
     }
 
-    if (sim)
+    if (community)
     {
         // make a new SLiMgui instance to represent SLiMgui in Eidos
-        slimgui = new SLiMgui(*sim, this);
+        slimgui = new SLiMgui(*community, this);
 
         // set up the "slimgui" symbol for it immediately
-        sim->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+        community->simulation_constants_->InitializeConstantSymbolEntry(slimgui->SymbolTableEntry());
+    }
+    
+    if (community && community->simulation_valid_ && (community->all_species_.size() > 1))
+    {
+        // set up script block coloring
+        std::vector<SLiMEidosBlock*> &blocks = community->AllScriptBlocks();
+        
+        for (SLiMEidosBlock *block : blocks)
+        {
+            Species *species = (block->species_spec_ ? block->species_spec_ : (block->ticks_spec_ ? block->ticks_spec_ : nullptr));
+            
+            if (species && (block->user_script_line_offset_ != -1) && block->root_node_ && block->root_node_->token_)
+            {
+                EidosToken *block_root_token = block->root_node_->token_;
+                int startPos = block_root_token->token_UTF16_start_;
+                int endPos = block_root_token->token_UTF16_end_;
+                
+                ui->scriptTextEdit->addScriptBlockColoring(startPos, endPos, species);
+            }
+        }
     }
 }
 
@@ -1386,6 +1783,80 @@ void QtSLiMWindow::setScriptStringAndInitializeSimulation(std::string string)
 {
     scriptString = string;
     startNewSimulationFromScript();
+}
+
+Species *QtSLiMWindow::focalDisplaySpecies(void)
+{
+    // SLiMgui focuses on one species at a time in its main window display; this method should be called to obtain that species.
+	// This funnel method checks for various invalid states and returns nil; callers should check for a nil return as needed.
+	if (!invalidSimulation_ && community && community->simulation_valid_)
+	{
+        // If we have a focal species set already, it must be valid (the community still exists), so return it
+        if (focalSpecies)
+            return focalSpecies;
+        
+        // If "all" is chosen, we return nullptr, which represents that state
+        if (focalSpeciesName.compare("all") == 0)
+            return nullptr;
+        
+        // If not, we'll choose a species from the species list if there are any
+		const std::vector<Species *> &all_species = community->AllSpecies();
+		
+		if (all_species.size() >= 1)
+        {
+            // If we have a species name remembered, try to choose that species again
+            if (focalSpeciesName.length())
+            {
+                for (Species *species : all_species)
+                {
+                    if (species->name_.compare(focalSpeciesName) == 0)
+                    {
+                        focalSpecies = species;
+                        return focalSpecies;
+                    }
+                }
+            }
+            
+            // Failing that, choose the first declared species and remember its name
+            focalSpecies = all_species[0];
+            focalSpeciesName = focalSpecies->name_;
+        }
+	}
+	
+	return nullptr;
+}
+
+void QtSLiMWindow::selectedSpeciesChanged(void)
+{
+    // We don't want to react to automatic tab changes as we are adding or removing tabs from the species bar
+    if (reloadingSpeciesBar)
+        return;
+    
+    int speciesIndex = ui->speciesBar->currentIndex();
+    const std::vector<Species *> &allSpecies = community->AllSpecies();
+    
+    if (speciesIndex == (int)allSpecies.size())
+    {
+        // this is the "all" tab
+        focalSpecies = nullptr;
+        focalSpeciesName = "all";
+    }
+    else
+    {
+        if ((speciesIndex < 0) || (speciesIndex >= (int)allSpecies.size()))
+        {
+            qDebug() << "selectedSpeciesChanged() index" << speciesIndex << "out of range";
+            return;
+        }
+        
+        focalSpecies = allSpecies[speciesIndex];
+        focalSpeciesName = focalSpecies->name_;
+    }
+    
+    //qDebug() << "selectedSpeciesChanged(): changed to species name" << QString::fromStdString(focalSpeciesName);
+    
+    // do a full update to show the state for the new species
+    updateAfterTickFull(true);
 }
 
 QtSLiMGraphView *QtSLiMWindow::graphViewForGraphWindow(QWidget *p_window)
@@ -1450,7 +1921,7 @@ void QtSLiMWindow::updateOutputViews(void)
 	}
     
     // BCH 2/9/2021: We now handle the error output here too, since we want to be in charge of how the
-    // debug windows shows itself, etc.  We follow the same strategy as above; comments have been removed.
+    // debug window shows itself, etc.  We follow the same strategy as above; comments have been removed.
     std::string &&newErrors = gSLiMError.str();
     
     if (!newErrors.empty())
@@ -1469,10 +1940,24 @@ void QtSLiMWindow::updateOutputViews(void)
         gSLiMError.str("");
     }
     
-    // Scan through LogFile instances kept by the sim and flush them to the debug window
-    if (debugWindow && !invalidSimulation_ && sim)
+    // BCH 5/15/2022: And now scheduling stream output happens here too, following the pattern above.
+    std::string &&newSchedulingOutput = gSLiMScheduling.str();
+    
+    if (!newSchedulingOutput.empty())
     {
-        for (LogFile *logfile : sim->log_file_registry_)
+        QString str = QString::fromStdString(newSchedulingOutput);
+        
+        if (debugWindow)
+            debugWindow->takeSchedulingOutput(str);
+        
+        gSLiMScheduling.clear();
+        gSLiMScheduling.str("");
+    }
+    
+    // Scan through LogFile instances kept by the sim and flush them to the debug window
+    if (debugWindow && !invalidSimulation_ && community)
+    {
+        for (LogFile *logfile : community->log_file_registry_)
         {
             for (auto &lineElements : logfile->emitted_lines_)
             {
@@ -1485,17 +1970,17 @@ void QtSLiMWindow::updateOutputViews(void)
     }
     
     // Scan through file output kept by the sim and flush it to the debug window
-    if (debugWindow && !invalidSimulation_ && sim)
+    if (debugWindow && !invalidSimulation_ && community)
     {
-        for (size_t index = 0; index < sim->file_write_paths_.size(); ++index)
+        for (size_t index = 0; index < community->file_write_paths_.size(); ++index)
         {
             // This call takes a vector of lines comprising all the output for one file
-            debugWindow->takeFileOutput(sim->file_write_buffers_[index], sim->file_write_appends_[index], sim->file_write_paths_[index]);
+            debugWindow->takeFileOutput(community->file_write_buffers_[index], community->file_write_appends_[index], community->file_write_paths_[index]);
         }
         
-        sim->file_write_paths_.clear();
-        sim->file_write_buffers_.clear();
-        sim->file_write_appends_.clear();
+        community->file_write_paths_.clear();
+        community->file_write_buffers_.clear();
+        community->file_write_appends_.clear();
     }
 }
 
@@ -1548,17 +2033,244 @@ void QtSLiMWindow::handleDebugButtonFlash(void)
     }
 }
 
-void QtSLiMWindow::updateGenerationCounter(void)
+void QtSLiMWindow::updateTickCounter(void)
 {
-    if (!invalidSimulation_)
-	{
-		if (sim->generation_ == 0)
-            ui->generationLineEdit->setText("initialize()");
-		else
-            ui->generationLineEdit->setText(QString::number(sim->generation_));
-	}
-	else
-        ui->generationLineEdit->setText("");
+    Species *displaySpecies = focalDisplaySpecies();
+    
+    if (!displaySpecies)
+        ui->cycleLineEdit->setText("");
+    else if (community->Tick() == 0)
+        ui->cycleLineEdit->setText("initialize()");
+    else
+         ui->cycleLineEdit->setText(QString::number(displaySpecies->Cycle()));
+    
+    if (!community)
+    {
+        ui->tickLineEdit->setText("");
+        ui->tickLineEdit->setProgress(0.0);
+    }
+    else if (community->Tick() == 0)
+    {
+        ui->tickLineEdit->setText("initialize()");
+        ui->tickLineEdit->setProgress(0.0);
+    }
+    else
+    {
+        slim_tick_t tick = community->Tick();
+        slim_tick_t lastTick = community->EstimatedLastTick();
+        
+        double progress = (lastTick > 0) ? (tick / (double)lastTick) : 0.0;
+        
+        ui->tickLineEdit->setText(QString::number(tick));
+        ui->tickLineEdit->setProgress(progress);
+    }
+}
+
+void QtSLiMWindow::updateSpeciesBar(void)
+{
+    // Update the species bar as needed; we do this only after initialization, to avoid a hide/show on recycle of multispecies models
+    if (!invalidSimulation_ && community && community->simulation_valid_ && (community->Tick() >= 1))
+    {
+        bool speciesBarVisibleNow = !ui->speciesBarWidget->isHidden();
+        bool speciesBarShouldBeVisible = (community->all_species_.size() > 1);
+        
+        if (speciesBarVisibleNow && !speciesBarShouldBeVisible)
+        {
+            ui->speciesBar->setEnabled(false);
+            ui->speciesBarWidget->setHidden(true);
+            
+            reloadingSpeciesBar = true;
+            
+            while (ui->speciesBar->count())
+                ui->speciesBar->removeTab(0);
+            
+            reloadingSpeciesBar = false;
+        }
+        else if (!speciesBarVisibleNow && speciesBarShouldBeVisible)
+        {
+            ui->speciesBar->setEnabled(true);
+            ui->speciesBarWidget->setHidden(false);
+            
+            if ((ui->speciesBar->count() == 0) && (community->all_species_.size() > 0))
+            {
+                // add tabs for species when shown
+                int selectedSpeciesIndex = 0;
+                bool avatarsOnly = (community->all_species_.size() > 2);
+                
+                reloadingSpeciesBar = true;
+                
+                for (Species *species : community->all_species_)
+                {
+                    QString tabLabel = QString::fromStdString(species->avatar_);
+                    
+                    if (!avatarsOnly)
+                    {
+                        tabLabel.append(" ");
+                        tabLabel.append(QString::fromStdString(species->name_));
+                    }
+                    
+                    int newTabIndex = ui->speciesBar->addTab(tabLabel);
+                    
+                    ui->speciesBar->setTabToolTip(newTabIndex, QString::fromStdString(species->name_).prepend("Species "));
+                    
+                    if (focalSpeciesName.length() && (species->name_.compare(focalSpeciesName) == 0))
+                        selectedSpeciesIndex = newTabIndex;
+                }
+                
+                {
+                    // add the "all" tab
+                    QString allLabel = QString::fromUtf8("\xF0\x9F\x94\x85");   // "low brightness symbol", https://www.compart.com/en/unicode/U+1F505
+                
+                    if (!avatarsOnly)
+                        allLabel.append(" all");
+                    
+                    int newTabIndex = ui->speciesBar->addTab(allLabel);
+                    
+                    ui->speciesBar->setTabToolTip(newTabIndex, "Show all species together");
+                    
+                    if (focalSpeciesName.length() && (focalSpeciesName.compare("all") == 0))
+                        selectedSpeciesIndex = newTabIndex;
+                }
+                
+                reloadingSpeciesBar = false;
+                
+                //qDebug() << "selecting index" << selectedSpeciesIndex << "for name" << QString::fromStdString(focalSpeciesName);
+                ui->speciesBar->setCurrentIndex(selectedSpeciesIndex);
+            }
+        }
+    }
+    else
+    {
+        // Whenever we're invalid or uninitialized, we hide the species bar and disable and remove all the tabs
+        ui->speciesBar->setEnabled(false);
+        ui->speciesBarWidget->setHidden(true);
+        
+        reloadingSpeciesBar = true;
+        
+        while (ui->speciesBar->count())
+            ui->speciesBar->removeTab(0);
+        
+        reloadingSpeciesBar = false;
+    }
+}
+
+void QtSLiMWindow::removeExtraChromosomeViews(void)
+{
+    while (chromosomeOverviewWidgets.size() > 1)
+    {
+        QVBoxLayout *widgetLayout = chromosomeWidgetLayouts.back();
+        
+        ui->chromosomeLayout->removeItem(widgetLayout);
+        
+        // remove all items under widgetLayout
+        QLayoutItem *child;
+        
+        while ((child = widgetLayout->takeAt(0)) != nullptr)
+        {
+            delete child->widget(); // delete the widget
+            delete child;   // delete the layout item
+        }
+        
+        delete widgetLayout;
+        
+        ui->chromosomeLayout->update();
+        
+        chromosomeWidgetLayouts.pop_back();
+        chromosomeOverviewWidgets.pop_back();
+        chromosomeZoomedWidgets.pop_back();
+    }
+    
+    // Sometimes the call above to "delete child->widget()" hangs for up to a second.  This appears to be due to
+    // disposing of the OpenGL context used for the widget, and might be an AMD Radeon issue.  Here's a backtrace
+    // I managed to get from sample.  The only thing I can think of to do about this would be to keep the view
+    // around and reuse it, to avoid having to dispose of its context.  But this may be specific to my hardware;
+    // probably not worth jumping through hoops to address.  BCH 5/9/2022
+    //
+    // 845 QtSLiMChromosomeWidget::~QtSLiMChromosomeWidget()  (in SLiMgui) + 188  [0x1033354ac]  QtSLiMChromosomeWidget.cpp:140
+    //   845 QOpenGLWidget::~QOpenGLWidget()  (in QtWidgets) + 39  [0x104811887]  qopenglwidget.cpp:1020
+    //     844 QOpenGLWidgetPrivate::reset()  (in QtWidgets) + 226  [0x104810582]  qopenglwidget.cpp:719
+    //       844 QOpenGLContext::~QOpenGLContext()  (in QtGui) + 24  [0x104e58f68]  qopenglcontext.cpp:690
+    //         844 QOpenGLContext::destroy()  (in QtGui) + 200  [0x104e58818]  qopenglcontext.cpp:653
+    //           844 QCocoaGLContext::~QCocoaGLContext()  (in libqcocoa.dylib) + 14  [0x105c648ce]  qcocoaglcontext.mm:354
+    //             844 QCocoaGLContext::~QCocoaGLContext()  (in libqcocoa.dylib) + 51  [0x105c64753]  qcocoaglcontext.mm:355
+    //               844 -[NSOpenGLContext dealloc]  (in AppKit) + 62  [0x7fff34349987]
+    //                 844 CGLReleaseContext  (in OpenGL) + 178  [0x7fff4166942a]
+    //                   843 gliDestroyContext  (in GLEngine) + 127  [0x7fff4168f9d1]
+    //                     843 gldDestroyContext  (in libGPUSupportMercury.dylib) + 114  [0x7fff57fe6745]
+    //                       842 glrTerminateContext  (in AMDRadeonX6000GLDriver) + 42  [0x11f390257]
+}
+
+void QtSLiMWindow::updateChromosomeViewSetup(void)
+{
+    Species *displaySpecies = focalDisplaySpecies();
+    
+    QtSLiMChromosomeWidget *overviewWidget = chromosomeOverviewWidgets[0];
+    QtSLiMChromosomeWidget *zoomedWidget = chromosomeZoomedWidgets[0];
+    
+    if (invalidSimulation_ || !community || !community->simulation_valid_ || (community->Tick() == 0))
+    {
+        // We are in an invalid state of some kind, so we want one chromosome view that is displaying the empty state
+        overviewWidget->setFocalDisplaySpecies(nullptr);
+        zoomedWidget->setFocalDisplaySpecies(nullptr);
+        
+        removeExtraChromosomeViews();
+    }
+    else if (displaySpecies)
+    {
+        // We have a focal display species, so we want just one chromosome view, displaying that species
+        overviewWidget->setFocalDisplaySpecies(displaySpecies);
+        zoomedWidget->setFocalDisplaySpecies(displaySpecies);
+        
+        removeExtraChromosomeViews();
+    }
+    else if (chromosomeOverviewWidgets.size() != community->all_species_.size())
+    {
+        // We are on the "all" species tab in a multispecies model; create a chromosome view for each species
+        // We should always arrive at this state through the "invalid state" case above as an intermediate
+        removeExtraChromosomeViews();
+        
+        for (int index = 0; index < (int)community->all_species_.size(); ++index)
+        {
+            displaySpecies = community->all_species_[index];
+            
+            if (index == 0)
+            {
+                // overviewWidget and zoomedWidget were set above and are used for index == 0
+            }
+            else
+            {
+                // Beyond the built-in chromosome view, we create the rest dynamically
+                // This code is based directly on the MOC code for the built-in views
+                QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
+                sizePolicy1.setHorizontalStretch(0);
+                sizePolicy1.setVerticalStretch(0);
+                
+                QVBoxLayout *chromosomeWidgetLayout = new QVBoxLayout();
+                chromosomeWidgetLayout->setSpacing(15);
+                
+                overviewWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
+                sizePolicy1.setHeightForWidth(overviewWidget->sizePolicy().hasHeightForWidth());
+                overviewWidget->setSizePolicy(sizePolicy1);
+                overviewWidget->setMinimumSize(QSize(0, 30));
+                overviewWidget->setMaximumSize(QSize(16777215, 30));
+                chromosomeWidgetLayout->addWidget(overviewWidget);
+                
+                zoomedWidget = new QtSLiMChromosomeWidget(ui->centralWidget);
+                sizePolicy1.setHeightForWidth(zoomedWidget->sizePolicy().hasHeightForWidth());
+                zoomedWidget->setSizePolicy(sizePolicy1);
+                zoomedWidget->setMinimumSize(QSize(0, 65));
+                zoomedWidget->setMaximumSize(QSize(16777215, 65));
+                chromosomeWidgetLayout->addWidget(zoomedWidget);
+                
+                ui->chromosomeLayout->insertLayout(1, chromosomeWidgetLayout);
+                
+                addChromosomeWidgets(chromosomeWidgetLayout, overviewWidget, zoomedWidget);
+            }
+            
+            overviewWidget->setFocalDisplaySpecies(displaySpecies);
+            zoomedWidget->setFocalDisplaySpecies(displaySpecies);
+        }
+    }
 }
 
 void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
@@ -1572,7 +2284,13 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 			fullUpdate = true;
 		}
 	}
+    
+    // Update the species bar and then fetch the focal species after that update, which might change it
+    updateSpeciesBar();
 	
+    // Create or destroy chromosome views for each species, and set the species for each chromosome view
+    updateChromosomeViewSetup();
+    
     // Flush any buffered output to files every full update, so that the user sees changes to the files without too much delay
 	if (fullUpdate)
 		Eidos_FlushFiles();
@@ -1581,8 +2299,8 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	checkForSimulationTermination();
 	
 	// The rest of the code here needs to be careful about the invalid state; we do want to update our controls when invalid, but sim is nil.
-	bool invalid = invalidSimulation();
-	
+    bool inInvalidState = (!community || !community->simulation_valid_ || invalidSimulation());
+    
 	if (fullUpdate)
 	{
 		// FIXME it would be good for this updating to be minimal; reloading the tableview every time, etc., is quite wasteful...
@@ -1595,40 +2313,45 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 		reloadingSubpopTableview = true;
         populationTableModel_->reloadTable();
 		
-		if (invalid || !sim)
-		{
-            ui->subpopTableView->selectionModel()->clear();
-		}
-		else
+        int subpopCount = populationTableModel_->rowCount();
+        
+		if (subpopCount > 0)
 		{
             ui->subpopTableView->selectionModel()->reset();
             
-			Population &population = sim->population_;
-			int subpopCount = static_cast<int>(population.subpops_.size());
-			auto popIter = population.subpops_.begin();
-			
 			for (int i = 0; i < subpopCount; ++i)
 			{
-				if (popIter->second->gui_selected_)
+                Subpopulation *subpop = populationTableModel_->subpopAtIndex(i);
+                
+				if (subpop->gui_selected_)
                 {
                     QModelIndex modelIndex = ui->subpopTableView->model()->index(i, 0);
                     
                     ui->subpopTableView->selectionModel()->select(modelIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows);
                 }
-				
-				popIter++;
 			}
 		}
+        else
+        {
+            ui->subpopTableView->selectionModel()->clear();
+        }
 		
 		reloadingSubpopTableview = false;
+        
+        // We don't want to allow an empty selection, maybe; if we are now in that state, and there are subpops to select, select them all
+        // See also subpopSelectionDidChange() which also needs to do this
+        if ((ui->subpopTableView->selectionModel()->selectedRows().size() == 0) && subpopCount)
+            ui->subpopTableView->selectAll();
 	}
 	
 	// Now update our other UI, some of which depends upon the state of subpopTableView
     ui->individualsWidget->update();
-    ui->chromosomeZoomed->stateChanged();
-	
-	if (fullUpdate)
-		updateGenerationCounter();
+    
+    for (QtSLiMChromosomeWidget *zoomedWidget : chromosomeZoomedWidgets)
+        zoomedWidget->stateChanged();
+    
+    if (fullUpdate)
+        updateTickCounter();
     
     if (fullUpdate)
     {
@@ -1642,19 +2365,46 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
             QString message(inDarkMode ? "<font color='#AAAAAA' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>"
                                        : "<font color='#555555' style='font-size: 11px;'><tt>%1</tt> CPU seconds elapsed inside SLiM; <tt>%2</tt> MB memory usage in SLiM; <tt>%3</tt> mutations segregating, <tt>%4</tt> substitutions.</font>");
             
-            if (sim)
+            if (!inInvalidState)
             {
-                int registry_size;
-                sim->population_.MutationRegistry(&registry_size);
+                int totalRegistrySize = 0;
                 
-                SLiM_MemoryUsage current_memory_usage;
-                sim->TabulateMemoryUsage(&current_memory_usage, nullptr);
-                double current_memory_MB = current_memory_usage.totalMemoryUsage / (1024.0 * 1024.0);
+                for (Species *species : community->AllSpecies())
+                {
+                    int registry_size;
+                    
+                    species->population_.MutationRegistry(&registry_size);
+                    totalRegistrySize += registry_size;
+                }
+                
+                // Tally up usage across the simulation
+                SLiMMemoryUsage_Community usage_community;
+                SLiMMemoryUsage_Species usage_all_species;
+                
+                EIDOS_BZERO(&usage_all_species, sizeof(SLiMMemoryUsage_Species));
+                
+                community->TabulateSLiMMemoryUsage_Community(&usage_community, nullptr);
+                
+                for (Species *species : community->AllSpecies())
+                {
+                    SLiMMemoryUsage_Species usage_one_species;
+                    
+                    species->TabulateSLiMMemoryUsage_Species(&usage_one_species);
+                    AccumulateMemoryUsageIntoTotal_Species(usage_one_species, usage_all_species);
+                }
+                
+                double current_memory_MB = (usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage) / (1024.0 * 1024.0);
+                
+                // Tally up substitutions across the simulation
+                int totalSubstitutions = 0;
+                
+                for (Species *species : community->AllSpecies())
+                    totalSubstitutions += species->population_.substitutions_.size();
                 
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6)
                                            .arg(current_memory_MB, 0, 'f', 1)
-                                           .arg(registry_size)
-                                           .arg(sim->population_.substitutions_.size()));
+                                           .arg(totalRegistrySize)
+                                           .arg(totalSubstitutions));
             }
             else
                 ui->statusBar->showMessage(message.arg(elapsedTimeInSLiM, 0, 'f', 6));
@@ -1662,49 +2412,52 @@ void QtSLiMWindow::updateAfterTickFull(bool fullUpdate)
 	}
     
 	// Update stuff that only needs updating when the script is re-parsed, not after every tick
-	if (invalid || sim->mutation_types_changed_)
+	if (inInvalidState || community->mutation_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->mutTypeTableModel_)
             tablesDrawerController->mutTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->mutation_types_changed_ = false;
+		if (community)
+			community->mutation_types_changed_ = false;
 	}
 	
-	if (invalid || sim->genomic_element_types_changed_)
+	if (inInvalidState || community->genomic_element_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->geTypeTableModel_)
             tablesDrawerController->geTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->genomic_element_types_changed_ = false;
+		if (community)
+			community->genomic_element_types_changed_ = false;
 	}
 	
-	if (invalid || sim->interaction_types_changed_)
+	if (inInvalidState || community->interaction_types_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->interactionTypeTableModel_)
             tablesDrawerController->interactionTypeTableModel_->reloadTable();
 		
-		if (sim)
-			sim->interaction_types_changed_ = false;
+		if (community)
+			community->interaction_types_changed_ = false;
 	}
 	
-	if (invalid || sim->scripts_changed_)
+	if (inInvalidState || community->scripts_changed_)
 	{
         if (tablesDrawerController && tablesDrawerController->eidosBlockTableModel_)
             tablesDrawerController->eidosBlockTableModel_->reloadTable();
 		
-		if (sim)
-			sim->scripts_changed_ = false;
+		if (community)
+			community->scripts_changed_ = false;
 	}
 	
-	if (invalid || sim->chromosome_changed_)
+	if (inInvalidState || community->chromosome_changed_)
 	{
-		ui->chromosomeOverview->restoreLastSelection();
-		ui->chromosomeOverview->update();
-		
-		if (sim)
-			sim->chromosome_changed_ = false;
+        for (QtSLiMChromosomeWidget *overviewWidget : chromosomeOverviewWidgets)
+        {
+            overviewWidget->restoreLastSelection();
+            overviewWidget->update();
+        }
+        
+		if (community)
+			community->chromosome_changed_ = false;
 	}
 	
 	// Update graph windows as well; this will usually trigger an update() but may do other updating work as well
@@ -1742,12 +2495,29 @@ void QtSLiMWindow::updateUIEnabling(void)
     // First we update all the UI that belongs exclusively to ourselves: buttons, labels, etc.
     ui->playOneStepButton->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
     ui->playButton->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
-    ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->profileButton->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !tickPlayOn_);
     ui->recycleButton->setEnabled(!continuousPlayOn_);
     
     ui->playSpeedSlider->setEnabled(!invalidSimulation_);
-    ui->generationLineEdit->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
-
+    
+    if (invalidSimulation_)
+    {
+        // when an error occurs, we want these textfields to have a dimmed/disabled appearance
+        ui->tickLineEdit->setAppearance(/* enabled */ false, /* dimmed */ true);
+        ui->cycleLineEdit->setAppearance(/* enabled */ false, /* dimmed */ true);
+    }
+    else
+    {
+        // otherwise, we want an enabled _appearance_ at all times, but we have to disable them
+        // to prevent editing during play; so we set the text color to prevent it from dimming
+        // note that the cycle lineedit is always disabled, but follows the appearance of the tick lineedit;
+        // the "editable but dimmed" visual appearance is actually a little different so hopefully this is clear
+        bool editingAllowed = (!reachedSimulationEnd_ && !continuousPlayOn_);
+        
+        ui->tickLineEdit->setAppearance(/* enabled */ editingAllowed, /* dimmed */ false);
+        ui->cycleLineEdit->setAppearance(/* enabled */ false, /* dimmed */ false);
+    }
+    
     ui->toggleDrawerButton->setEnabled(true);
     
     ui->clearDebugButton->setEnabled(true);
@@ -1768,7 +2538,8 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->scriptTextEdit->setReadOnly(continuousPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
     
-    ui->generationLabel->setEnabled(!invalidSimulation_);
+    ui->tickLabel->setEnabled(!invalidSimulation_);
+    ui->cycleLabel->setEnabled(!invalidSimulation_);
     ui->outputHeaderLabel->setEnabled(!invalidSimulation_);
     
     // Tell the console controller to enable/disable its buttons
@@ -1802,7 +2573,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionStep->setEnabled(!reachedSimulationEnd_ && !continuousPlayOn_);
     ui->actionPlay->setEnabled(!reachedSimulationEnd_ && !profilePlayOn_);
     ui->actionPlay->setText(nonProfilePlayOn_ ? "Stop" : "Play");
-    ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !generationPlayOn_);
+    ui->actionProfile->setEnabled(!reachedSimulationEnd_ && !nonProfilePlayOn_ && !tickPlayOn_);
     ui->actionProfile->setText(profilePlayOn_ ? "Stop" : "Profile");
     ui->actionRecycle->setEnabled(!continuousPlayOn_);
     
@@ -1823,8 +2594,9 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
     
     // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
-    bool graphItemsEnabled = !invalidSimulation_;
-    bool haplotypePlotEnabled = !invalidSimulation_ && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size();
+    Species *displaySpecies = focalDisplaySpecies();
+    bool graphItemsEnabled = displaySpecies && !invalidSimulation_;
+    bool haplotypePlotEnabled = displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size();
     
     //ui->menuGraph->setEnabled(graphItemsEnabled);
     ui->actionGraph_1D_Population_SFS->setEnabled(graphItemsEnabled);
@@ -1841,6 +2613,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 	ui->actionGraph_Lifetime_Reproduce_Output->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Size_Time->setEnabled(graphItemsEnabled);
 	ui->actionGraph_Population_Visualization->setEnabled(graphItemsEnabled);
+    ui->actionGraph_Multispecies_Population_Size_Time->setEnabled(!invalidSimulation_);     // displaySpecies not required
 	ui->actionCreate_Haplotype_Plot->setEnabled(haplotypePlotEnabled);
     
     updateMenuEnablingSHARED(p_focusWidget);
@@ -2090,7 +2863,7 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
 		
 		QTextCursor colorCursor(doc);
         colorCursor.setPosition(start);
-        colorCursor.setPosition(end, QTextCursor::KeepAnchor); // +1?
+        colorCursor.setPosition(end + 1, QTextCursor::KeepAnchor);
         
         QColor backgroundColor = slimColorForFraction(Eidos_ElapsedProfileTime(count) / elapsedTime);
 		QTextCharFormat colorFormat = baseFormat;
@@ -2102,6 +2875,17 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
 	// Then let child nodes color
 	for (const EidosASTNode *child : node->children_)
         colorScriptWithProfileCountsFromNode(child, elapsedTime, baseIndex, doc, baseFormat);
+}
+
+static int DisplayDigitsForIntegerPart(double x)
+{
+	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
+	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
+	double digits = ceil(log10(floor(x)));
+	
+	if (std::isfinite(digits))
+		return (int)digits;
+	return 1;
 }
 
 void QtSLiMWindow::displayProfileResults(void)
@@ -2255,31 +3039,35 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
-    tc.insertText(QString("Elapsed generations: %1%2\n").arg(continuousPlayGenerationsCompleted_).arg((profileStartGeneration == 0) ? " (including initialize)" : ""), optima13_d);
+    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(continuousPlayTicksCompleted_).arg((profileStartTick == 0) ? " (including initialize)" : ""), optima13_d);
     tc.insertText(" \n", optima8_d);
     
     tc.insertText(QString("Profile block external overhead: %1 ticks (%2 s)\n").arg(gEidos_ProfileOverheadTicks, 0, 'f', 2).arg(gEidos_ProfileOverheadSeconds, 0, 'g', 4), optima13_d);
     tc.insertText(QString("Profile block internal lag: %1 ticks (%2 s)\n").arg(gEidos_ProfileLagTicks, 0, 'f', 2).arg(gEidos_ProfileLagSeconds, 0, 'g', 4), optima13_d);
     tc.insertText(" \n", optima8_d);
     
-    tc.insertText(QString("Average generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_total_memory_usage_.totalMemoryUsage / static_cast<size_t>(sim->total_memory_tallies_))), optima13_d);
-    tc.insertText(QString("Final generation SLiM memory use: %1\n").arg(stringForByteCount(sim->profile_last_memory_usage_.totalMemoryUsage)), optima13_d);
+    size_t total_usage = community->profile_total_memory_usage_Community.totalMemoryUsage + community->profile_total_memory_usage_AllSpecies.totalMemoryUsage;
+	size_t average_usage = total_usage / community->total_memory_tallies_;
+	size_t last_usage = community->profile_last_memory_usage_Community.totalMemoryUsage + community->profile_last_memory_usage_AllSpecies.totalMemoryUsage;
+	
+    tc.insertText(QString("Average tick SLiM memory use: %1\n").arg(stringForByteCount(average_usage)), optima13_d);
+    tc.insertText(QString("Final tick SLiM memory use: %1\n").arg(stringForByteCount(last_usage)), optima13_d);
     
 	//
-	//	Generation stage breakdown
+	//	Cycle stage breakdown
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		bool isWF = (sim->ModelType() == SLiMModelType::kModelTypeWF);
-		double elapsedStage0Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[0]);
-		double elapsedStage1Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[1]);
-		double elapsedStage2Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[2]);
-		double elapsedStage3Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[3]);
-		double elapsedStage4Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[4]);
-		double elapsedStage5Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[5]);
-		double elapsedStage6Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[6]);
-        double elapsedStage7Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[7]);
-        double elapsedStage8Time = Eidos_ElapsedProfileTime(sim->profile_stage_totals_[8]);
+		bool isWF = (community->ModelType() == SLiMModelType::kModelTypeWF);
+		double elapsedStage0Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[0]);
+		double elapsedStage1Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[1]);
+		double elapsedStage2Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[2]);
+		double elapsedStage3Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[3]);
+		double elapsedStage4Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[4]);
+		double elapsedStage5Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[5]);
+		double elapsedStage6Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[6]);
+        double elapsedStage7Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[7]);
+        double elapsedStage8Time = Eidos_ElapsedProfileTime(community->profile_stage_totals_[8]);
 		double percentStage0 = (elapsedStage0Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage1 = (elapsedStage1Time / elapsedWallClockTimeInSLiM) * 100.0;
 		double percentStage2 = (elapsedStage2Time / elapsedWallClockTimeInSLiM) * 100.0;
@@ -2291,18 +3079,18 @@ void QtSLiMWindow::displayProfileResults(void)
         double percentStage8 = (elapsedStage8Time / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4;
 		
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage0Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage1Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage2Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage3Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage4Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage5Time)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage6Time)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage7Time)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedStage8Time)))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage0Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage1Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage2Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage3Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage4Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage5Time));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage6Time));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage7Time));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedStage8Time));
 		
 		tc.insertText(" \n", optima13_d);
-		tc.insertText("Generation stage breakdown\n", optima14b_d);
+		tc.insertText("Cycle stage breakdown\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
 		tc.insertText(QString("%1 s (%2%)").arg(elapsedStage0Time, fw, 'f', 2).arg(percentStage0, 5, 'f', 2), menlo11_d);
@@ -2338,25 +3126,25 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-        double elapsedTime_first = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
-		double elapsedTime_early = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
-		double elapsedTime_late = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
-		double elapsedTime_initialize = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
-		double elapsedTime_fitness = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessCallback]);
-		double elapsedTime_fitnessglobal = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback]);
-		double elapsedTime_interaction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
-		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
-		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
-		double elapsedTime_recombination = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
-		double elapsedTime_mutation = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
-		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
-        double elapsedTime_survival = Eidos_ElapsedProfileTime(sim->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
+        double elapsedTime_first = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventFirst]);
+		double elapsedTime_early = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventEarly]);
+		double elapsedTime_late = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosEventLate]);
+		double elapsedTime_initialize = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInitializeCallback]);
+		double elapsedTime_mutationEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationEffectCallback]);
+		double elapsedTime_fitnessEffect = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosFitnessEffectCallback]);
+		double elapsedTime_interaction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosInteractionCallback]);
+		double elapsedTime_matechoice = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMateChoiceCallback]);
+		double elapsedTime_modifychild = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosModifyChildCallback]);
+		double elapsedTime_recombination = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosRecombinationCallback]);
+		double elapsedTime_mutation = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosMutationCallback]);
+		double elapsedTime_reproduction = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosReproductionCallback]);
+        double elapsedTime_survival = Eidos_ElapsedProfileTime(community->profile_callback_totals_[(int)SLiMEidosBlockType::SLiMEidosSurvivalCallback]);
 		double percent_first = (elapsedTime_first / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_early = (elapsedTime_early / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_late = (elapsedTime_late / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_initialize = (elapsedTime_initialize / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitness = (elapsedTime_fitness / elapsedWallClockTimeInSLiM) * 100.0;
-		double percent_fitnessglobal = (elapsedTime_fitnessglobal / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitness = (elapsedTime_mutationEffect / elapsedWallClockTimeInSLiM) * 100.0;
+		double percent_fitnessglobal = (elapsedTime_fitnessEffect / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_interaction = (elapsedTime_interaction / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_matechoice = (elapsedTime_matechoice / elapsedWallClockTimeInSLiM) * 100.0;
 		double percent_modifychild = (elapsedTime_modifychild / elapsedWallClockTimeInSLiM) * 100.0;
@@ -2366,40 +3154,40 @@ void QtSLiMWindow::displayProfileResults(void)
         double percent_survival = (elapsedTime_survival / elapsedWallClockTimeInSLiM) * 100.0;
 		int fw = 4, fw2 = 4;
 		
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_first)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_early)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_late)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_initialize)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitness)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_fitnessglobal)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_interaction)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_matechoice)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_modifychild)))));
-		fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_recombination)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_mutation)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_reproduction)))));
-        fw = std::max(fw, 3 + static_cast<int>(ceil(log10(floor(elapsedTime_survival)))));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_first));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_early));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_late));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_initialize));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutationEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_fitnessEffect));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_interaction));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_matechoice));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_modifychild));
+		fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_recombination));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_mutation));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_reproduction));
+        fw = std::max(fw, 3 + DisplayDigitsForIntegerPart(elapsedTime_survival));
 		
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_first)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_early)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_late)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_initialize)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitness)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_fitnessglobal)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_interaction)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_matechoice)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_modifychild)))));
-		fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_recombination)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_mutation)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_reproduction)))));
-        fw2 = std::max(fw2, 3 + static_cast<int>(ceil(log10(floor(percent_survival)))));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_first));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_early));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_late));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_initialize));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitness));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_fitnessglobal));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_interaction));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_matechoice));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_modifychild));
+		fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_recombination));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_mutation));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_reproduction));
+        fw2 = std::max(fw2, 3 + DisplayDigitsForIntegerPart(percent_survival));
 		
 		tc.insertText(" \n", optima13_d);
 		tc.insertText("Callback type breakdown\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
-		// Note these are out of numeric order, but in generation-cycle order
-		if (sim->ModelType() == SLiMModelType::kModelTypeWF)
+		// Note these are out of numeric order, but in cycle stage order
+		if (community->ModelType() == SLiMModelType::kModelTypeWF)
 		{
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_initialize, fw, 'f', 2).arg(percent_initialize, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : initialize() callbacks\n", optima13_d);
@@ -2425,11 +3213,11 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_late, fw, 'f', 2).arg(percent_late, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : late() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutationEffect, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessEffect, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_interaction, fw, 'f', 2).arg(percent_interaction, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : interaction() callbacks\n", optima13_d);
@@ -2457,11 +3245,11 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_early, fw, 'f', 2).arg(percent_early, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : early() events\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitness, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks\n", optima13_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_mutationEffect, fw, 'f', 2).arg(percent_fitness, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : mutationEffect() callbacks\n", optima13_d);
 			
-			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessglobal, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
-			tc.insertText(" : fitness() callbacks (global)\n", optima13_d);
+			tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_fitnessEffect, fw, 'f', 2).arg(percent_fitnessglobal, fw2, 'f', 2), menlo11_d);
+			tc.insertText(" : fitnessEffect() callbacks\n", optima13_d);
 			
             tc.insertText(QString("%1 s (%2%)").arg(elapsedTime_survival, fw, 'f', 2).arg(percent_survival, fw2, 'f', 2), menlo11_d);
 			tc.insertText(" : survival() callbacks\n", optima13_d);
@@ -2480,7 +3268,7 @@ void QtSLiMWindow::displayProfileResults(void)
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
 		{
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			
 			// Convert the profile counts in all script blocks into self counts (excluding the counts of nodes below them)
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2492,7 +3280,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText("Script block profiles (as a fraction of corrected wall clock time)\n", optima14b_d);
 			tc.insertText(" \n", optima3_d);
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2537,7 +3325,7 @@ void QtSLiMWindow::displayProfileResults(void)
 			tc.insertText("Script block profiles (as a fraction of within-block wall clock time)\n", optima14b_d);
 			tc.insertText(" \n", optima3_d);
 			
-			std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+			std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 			bool firstBlock = true, hiddenInconsequentialBlocks = false;
 			
 			for (SLiMEidosBlock *script_block : script_blocks)
@@ -2584,7 +3372,7 @@ void QtSLiMWindow::displayProfileResults(void)
 	//
 	if (elapsedWallClockTimeInSLiM > 0.0)
 	{
-		EidosFunctionMap &function_map = sim->FunctionMap();
+		EidosFunctionMap &function_map = community->FunctionMap();
 		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
 		
 		for (auto functionPairIter : function_map)
@@ -2693,44 +3481,60 @@ void QtSLiMWindow::displayProfileResults(void)
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	//
-	//	MutationRun metrics
+	//	MutationRun metrics, presented per Species
 	//
+    for (Species *focal_species : community->all_species_)
 	{
+        tc.insertText(" \n", menlo11_d);
+		tc.insertText(" \n", optima13_d);
+		tc.insertText("MutationRun usage", optima14b_d);
+        if (community->all_species_.size() > 1)
+        {
+            tc.insertText(" (", optima14b_d);
+            tc.insertText(QString::fromStdString(focal_species->avatar_), optima14b_d);
+            tc.insertText(" ", optima14b_d);
+            tc.insertText(QString::fromStdString(focal_species->name_), optima14b_d);
+            tc.insertText(")", optima14b_d);
+        }
+        tc.insertText("\n", optima14b_d);
+		tc.insertText(" \n", optima3_d);
+		
+        if (!focal_species->HasGenetics())
+        {
+            tc.insertText("(omitted for no-genetics species)", optima13i_d);
+            continue;
+        }
+        
 		int64_t power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
-		int64_t power_tallies_total = static_cast<int>(sim->profile_mutcount_history_.size());
+		int64_t power_tallies_total = static_cast<int>(focal_species->profile_mutcount_history_.size());
 		
 		for (int power = 0; power < 20; ++power)
 			power_tallies[power] = 0;
 		
-		for (int32_t count : sim->profile_mutcount_history_)
+		for (int32_t count : focal_species->profile_mutcount_history_)
 		{
 			int power = static_cast<int>(round(log2(count)));
 			
 			power_tallies[power]++;
 		}
 		
-		tc.insertText(" \n", menlo11_d);
-		tc.insertText(" \n", optima13_d);
-		tc.insertText("MutationRun usage\n", optima14b_d);
-		tc.insertText(" \n", optima3_d);
-		
 		for (int power = 0; power < 20; ++power)
 		{
 			if (power_tallies[power] > 0)
 			{
 				tc.insertText(QString("%1%").arg((power_tallies[power] / static_cast<double>(power_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-				tc.insertText(QString(" of generations : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
+				tc.insertText(QString(" of ticks : %1 mutation runs per genome\n").arg(static_cast<int>(round(pow(2.0, power)))), optima13_d);
 			}
 		}
 		
 		
 		int64_t regime_tallies[3];
-		int64_t regime_tallies_total = static_cast<int>(sim->profile_nonneutral_regime_history_.size());
+		int64_t regime_tallies_total = static_cast<int>(focal_species->profile_nonneutral_regime_history_.size());
 		
 		for (int regime = 0; regime < 3; ++regime)
 			regime_tallies[regime] = 0;
 		
-		for (int32_t regime : sim->profile_nonneutral_regime_history_)
+		for (int32_t regime : focal_species->profile_nonneutral_regime_history_)
 			if ((regime >= 1) && (regime <= 3))
 				regime_tallies[regime - 1]++;
 			else
@@ -2741,37 +3545,37 @@ void QtSLiMWindow::displayProfileResults(void)
 		for (int regime = 0; regime < 3; ++regime)
 		{
 			tc.insertText(QString("%1%").arg((regime_tallies[regime] / static_cast<double>(regime_tallies_total)) * 100.0, 6, 'f', 2), menlo11_d);
-			tc.insertText(QString(" of generations : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no fitness callbacks" : (regime == 1 ? "constant neutral fitness callbacks only" : "unpredictable fitness callbacks present")), optima13_d);
+			tc.insertText(QString(" of ticks : regime %1 (%2)\n").arg(regime + 1).arg(regime == 0 ? "no mutationEffect() callbacks" : (regime == 1 ? "constant neutral mutationEffect() callbacks only" : "unpredictable mutationEffect() callbacks present")), optima13_d);
 		}
 		
 		
 		tc.insertText(" \n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_mutation_total_usage_), menlo11_d);
-		tc.insertText(" mutations referenced, summed across all generations\n", optima13_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_mutation_total_usage_), menlo11_d);
+		tc.insertText(" mutations referenced, summed across all ticks\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_nonneutral_mutation_total_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_nonneutral_mutation_total_), menlo11_d);
 		tc.insertText(" mutations considered potentially nonneutral\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg(((sim->profile_mutation_total_usage_ - sim->profile_nonneutral_mutation_total_) / static_cast<double>(sim->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
+		tc.insertText(QString("%1%").arg(((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / static_cast<double>(focal_species->profile_mutation_total_usage_)) * 100.0, 0, 'f', 2), menlo11_d);
 		tc.insertText(" of mutations excluded from fitness calculations\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_max_mutation_index_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_max_mutation_index_), menlo11_d);
 		tc.insertText(" maximum simultaneous mutations\n", optima13_d);
 		
 		
 		tc.insertText(" \n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_mutrun_total_usage_), menlo11_d);
-		tc.insertText(" mutation runs referenced, summed across all generations\n", optima13_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_mutrun_total_usage_), menlo11_d);
+		tc.insertText(" mutation runs referenced, summed across all ticks\n", optima13_d);
 		
-		tc.insertText(QString("%1").arg(sim->profile_unique_mutrun_total_), menlo11_d);
+		tc.insertText(QString("%1").arg(focal_species->profile_unique_mutrun_total_), menlo11_d);
 		tc.insertText(" unique mutation runs maintained among those\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg((sim->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(sim->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
-		tc.insertText(" of mutation run nonneutral caches rebuilt per generation\n", optima13_d);
+		tc.insertText(QString("%1%").arg((focal_species->profile_mutrun_nonneutral_recache_total_ / static_cast<double>(focal_species->profile_unique_mutrun_total_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(" of mutation run nonneutral caches rebuilt per tick\n", optima13_d);
 		
-		tc.insertText(QString("%1%").arg(((sim->profile_mutrun_total_usage_ - sim->profile_unique_mutrun_total_) / static_cast<double>(sim->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
+		tc.insertText(QString("%1%").arg(((focal_species->profile_mutrun_total_usage_ - focal_species->profile_unique_mutrun_total_) / static_cast<double>(focal_species->profile_mutrun_total_usage_)) * 100.0, 6, 'f', 2), menlo11_d);
 		tc.insertText(" of mutation runs shared among genomes", optima13_d);
 	}
 #endif
@@ -2780,257 +3584,272 @@ void QtSLiMWindow::displayProfileResults(void)
 		//
 		//	Memory usage metrics
 		//
-		SLiM_MemoryUsage &mem_tot = sim->profile_total_memory_usage_;
-		SLiM_MemoryUsage &mem_last = sim->profile_last_memory_usage_;
-		uint64_t div = static_cast<uint64_t>(sim->total_memory_tallies_);
-		double ddiv = sim->total_memory_tallies_;
-		double average_total = mem_tot.totalMemoryUsage / ddiv;
-		double final_total = mem_last.totalMemoryUsage;
+        SLiMMemoryUsage_Community &mem_tot_C = community->profile_total_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_tot_S = community->profile_total_memory_usage_AllSpecies;
+		SLiMMemoryUsage_Community &mem_last_C = community->profile_last_memory_usage_Community;
+		SLiMMemoryUsage_Species &mem_last_S = community->profile_last_memory_usage_AllSpecies;
+		uint64_t div = static_cast<uint64_t>(community->total_memory_tallies_);
+		double ddiv = community->total_memory_tallies_;
+        double average_total = (mem_tot_C.totalMemoryUsage + mem_tot_S.totalMemoryUsage) / ddiv;
+		double final_total = mem_last_C.totalMemoryUsage + mem_last_S.totalMemoryUsage;
 		
 		tc.insertText(" \n", menlo11_d);
 		tc.insertText(" \n", optima13_d);
-		tc.insertText("SLiM memory usage (average / final generation)\n", optima14b_d);
+		tc.insertText("SLiM memory usage (average / final tick)\n", optima14b_d);
 		tc.insertText(" \n", optima3_d);
 		
         QTextCharFormat colored_menlo = menlo11_d;
         
 		// Chromosome
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : Chromosome object\n", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeObjects, final_total, colored_menlo), colored_menlo);
+        tc.insertText(QString(" : Chromosome objects (%1 / %2)\n").arg(mem_tot_S.chromosomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.chromosomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeMutationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeMutationRateMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeMutationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeMutationRateMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : mutation rate maps\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeRecombinationRateMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeRecombinationRateMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeRecombinationRateMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeRecombinationRateMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : recombination rate maps\n", optima13_d);
 
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.chromosomeAncestralSequence / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.chromosomeAncestralSequence / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.chromosomeAncestralSequence, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.chromosomeAncestralSequence, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : ancestral nucleotides\n", optima13_d);
+		
+        // Community
+        tc.insertText(" \n", optima8_d);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.communityObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(" / ", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.communityObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : Community object\n", optima13_d);
 		
 		// Genome
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Genome objects (%1 / %2)\n").arg(mem_tot_S.genomeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomeObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationRun* buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomeUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomeUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// GenomicElement
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomicElementObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomicElementObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : GenomicElement objects (%1 / %2)\n").arg(mem_tot.genomicElementObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomicElementObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElement objects (%1 / %2)\n").arg(mem_tot_S.genomicElementObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomicElementObjects_count), optima13_d);
 		
 		// GenomicElementType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.genomicElementTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.genomicElementTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.genomicElementTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : GenomicElementType objects (%1 / %2)\n").arg(mem_tot.genomicElementTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.genomicElementTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.genomicElementTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : GenomicElementType objects (%1 / %2)\n").arg(mem_tot_S.genomicElementTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.genomicElementTypeObjects_count), optima13_d);
 		
 		// Individual
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.individualObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.individualObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last.individualObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Individual objects (%1 / %2)\n").arg(mem_tot_S.individualObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.individualObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.individualUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.individualUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		// InteractionType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.interactionTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : InteractionType objects (%1 / %2)\n").arg(mem_tot_C.interactionTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_C.interactionTypeObjects_count), optima13_d);
 		
-		if (mem_tot.interactionTypeObjects_count || mem_last.interactionTypeObjects_count)
+		if (mem_tot_C.interactionTypeObjects_count || mem_last_C.interactionTypeObjects_count)
 		{
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeKDTrees / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeKDTrees, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : k-d trees\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypePositionCaches / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypePositionCaches, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : position caches\n", optima13_d);
 			
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.interactionTypeSparseArrays / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_C.interactionTypeSparseVectorPool / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.interactionTypeSparseArrays, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_C.interactionTypeSparseVectorPool, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : sparse arrays\n", optima13_d);
 		}
 		
 		// Mutation
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Mutation objects (%1 / %2)\n").arg(mem_tot.mutationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Mutation objects (%1 / %2)\n").arg(mem_tot_S.mutationObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRefcountBuffer / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRefcountBuffer / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRefcountBuffer, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : refcount buffer\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		// MutationRun
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : MutationRun objects (%1 / %2)\n").arg(mem_tot.mutationRunObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationRunObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationRun objects (%1 / %2)\n").arg(mem_tot_S.mutationRunObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationRunObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunExternalBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunExternalBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunExternalBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunExternalBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : external MutationIndex buffers\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunNonneutralCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunNonneutralCaches / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunNonneutralCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunNonneutralCaches, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : nonneutral mutation caches\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// MutationType
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.mutationTypeObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationTypeObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last.mutationTypeObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationTypeObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : MutationType objects (%1 / %2)\n").arg(mem_tot_S.mutationTypeObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.mutationTypeObjects_count), optima13_d);
 		
-		// SLiMSim
+		// Species
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.slimsimObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.slimsimObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : SLiMSim object\n", optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.speciesObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : Species object\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.slimsimTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesTreeSeqTables / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.slimsimTreeSeqTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.speciesTreeSeqTables, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : tree-sequence tables\n", optima13_d);
 		
 		// Subpopulation
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Subpopulation objects (%1 / %2)\n").arg(mem_tot.subpopulationObjects_count / ddiv, 0, 'f', 2).arg(mem_last.subpopulationObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Subpopulation objects (%1 / %2)\n").arg(mem_tot_S.subpopulationObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.subpopulationObjects_count), optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationFitnessCaches / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationFitnessCaches / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationFitnessCaches, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationFitnessCaches, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : fitness caches\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationParentTables / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationParentTables / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationParentTables, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationParentTables, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : parent tables\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMaps / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationSpatialMaps / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMaps, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationSpatialMaps, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : spatial maps\n", optima13_d);
 		
-		if (mem_tot.subpopulationSpatialMapsDisplay || mem_last.subpopulationSpatialMapsDisplay)
+		if (mem_tot_S.subpopulationSpatialMapsDisplay || mem_last_S.subpopulationSpatialMapsDisplay)
 		{
 			tc.insertText("   ", menlo11_d);
-			tc.insertText(attributedStringForByteCount(mem_tot.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_tot_S.subpopulationSpatialMapsDisplay / div, average_total, colored_menlo), colored_menlo);
 			tc.insertText(" / ", optima13_d);
-			tc.insertText(attributedStringForByteCount(mem_last.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
+			tc.insertText(attributedStringForByteCount(mem_last_S.subpopulationSpatialMapsDisplay, final_total, colored_menlo), colored_menlo);
 			tc.insertText(" : spatial map display (SLiMgui only)\n", optima13_d);
 		}
 		
 		// Substitution
 		tc.insertText(" \n", optima8_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.substitutionObjects / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.substitutionObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.substitutionObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(QString(" : Substitution objects (%1 / %2)\n").arg(mem_tot.substitutionObjects_count / ddiv, 0, 'f', 2).arg(mem_last.substitutionObjects_count), optima13_d);
+		tc.insertText(attributedStringForByteCount(mem_last_S.substitutionObjects, final_total, colored_menlo), colored_menlo);
+		tc.insertText(QString(" : Substitution objects (%1 / %2)\n").arg(mem_tot_S.substitutionObjects_count / ddiv, 0, 'f', 2).arg(mem_last_S.substitutionObjects_count), optima13_d);
 		
 		// Eidos
 		tc.insertText(" \n", optima8_d);
 		tc.insertText("Eidos:\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosASTNodePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosASTNodePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosASTNodePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosASTNodePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosASTNode pool\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosSymbolTablePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosSymbolTablePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosSymbolTablePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosSymbolTablePool, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : EidosSymbolTable pool\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_C.eidosValuePool / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last.eidosValuePool, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : EidosValue pool", optima13_d);
-	}
+		tc.insertText(attributedStringForByteCount(mem_last_C.eidosValuePool, final_total, colored_menlo), colored_menlo);
+		tc.insertText(" : EidosValue pool\n", optima13_d);
+        
+        tc.insertText("   ", menlo11_d);
+        tc.insertText(attributedStringForByteCount(mem_tot_C.fileBuffers / div, average_total, colored_menlo), colored_menlo);
+        tc.insertText(" / ", optima13_d);
+        tc.insertText(attributedStringForByteCount(mem_last_C.fileBuffers, final_total, colored_menlo), colored_menlo);
+        tc.insertText(" : File buffers", optima13_d);
+    }
     
     // Done, show the window
     tc.setPosition(0);
@@ -3046,39 +3865,41 @@ void QtSLiMWindow::startProfiling(void)
 	// initialize counters
 	profileElapsedCPUClock = 0;
 	profileElapsedWallClock = 0;
-	profileStartGeneration = sim->Generation();
+	profileStartTick = community->Tick();
 	
-	// call this first, which has the side effect of emptying out any pending profile counts
-	sim->CollectSLiMguiMutationProfileInfo();
+    // call this first, purely for its side effect of emptying out any pending profile counts
+	// note that the accumulators governed by this method get zeroed out down below
+    for (Species *species : community->all_species_)
+        species->CollectSLiMguiMutationProfileInfo();
 	
-	// zero out profile counts for generation stages
+	// zero out profile counts for cycle stages
     for (int i = 0; i < 9; ++i)
-		sim->profile_stage_totals_[i] = 0;
+		community->profile_stage_totals_[i] = 0;
 	
 	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessGlobalCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
-	sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
-    sim->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
+	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
 	
 	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
-	std::vector<SLiMEidosBlock*> &script_blocks = sim->AllScriptBlocks();
+	std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
 	
 	for (SLiMEidosBlock *script_block : script_blocks)
 		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
 			script_block->root_node_->ZeroProfileTotals();
 	
 	// zero out profile counts for all user-defined functions
-	EidosFunctionMap &function_map = sim->FunctionMap();
+	EidosFunctionMap &function_map = community->FunctionMap();
 	
 	for (auto functionPairIter : function_map)
 	{
@@ -3089,21 +3910,28 @@ void QtSLiMWindow::startProfiling(void)
 	}
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
-	// zero out mutation run metrics
-	sim->profile_mutcount_history_.clear();
-	sim->profile_nonneutral_regime_history_.clear();
-	sim->profile_mutation_total_usage_ = 0;
-	sim->profile_nonneutral_mutation_total_ = 0;
-	sim->profile_mutrun_total_usage_ = 0;
-	sim->profile_unique_mutrun_total_ = 0;
-	sim->profile_mutrun_nonneutral_recache_total_ = 0;
-	sim->profile_max_mutation_index_ = 0;
+    // zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
+    for (Species *species : community->all_species_)
+    {
+        Species *focal_species = species;
+        
+        focal_species->profile_mutcount_history_.clear();
+        focal_species->profile_nonneutral_regime_history_.clear();
+        focal_species->profile_mutation_total_usage_ = 0;
+        focal_species->profile_nonneutral_mutation_total_ = 0;
+        focal_species->profile_mutrun_total_usage_ = 0;
+        focal_species->profile_unique_mutrun_total_ = 0;
+        focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
+        focal_species->profile_max_mutation_index_ = 0;
+    }
 #endif
 	
 	// zero out memory usage metrics
-	EIDOS_BZERO(&sim->profile_last_memory_usage_, sizeof(SLiM_MemoryUsage));
-	EIDOS_BZERO(&sim->profile_total_memory_usage_, sizeof(SLiM_MemoryUsage));
-	sim->total_memory_tallies_ = 0;
+    EIDOS_BZERO(&community->profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&community->profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	EIDOS_BZERO(&community->profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	community->total_memory_tallies_ = 0;
 }
 
 void QtSLiMWindow::endProfiling(void)
@@ -3169,12 +3997,12 @@ void QtSLiMWindow::didExecuteScript(void)
         qDebug() << "didExecuteScript: Unable to set the working directory to " << app_cwd.c_str() << " (error " << errno << ")";
 }
 
-bool QtSLiMWindow::runSimOneGeneration(void)
+bool QtSLiMWindow::runSimOneTick(void)
 {
     isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
     
     // This method should always be used when calling out to run the simulation, because it swaps the correct random number
-    // generator stuff in and out bracketing the call to RunOneGeneration().  This bracketing would need to be done around
+    // generator stuff in and out bracketing the call to RunOneTick().  This bracketing would need to be done around
     // any other call out to the simulation that caused it to use random numbers, too, such as subsample output.
     bool stillRunning = true;
 
@@ -3190,14 +4018,14 @@ bool QtSLiMWindow::runSimOneGeneration(void)
 		// as profile report percentages are fractions of the total elapsed wall clock time.
 		SLIM_PROFILE_BLOCK_START();
 
-		stillRunning = sim->RunOneGeneration();
+		stillRunning = community->RunOneTick();
 
 		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
 	}
     else
 #endif
     {
-        stillRunning = sim->RunOneGeneration();
+        stillRunning = community->RunOneTick();
     }
     
     // Take an end clock time to tally elapsed time spent running the model
@@ -3212,9 +4040,9 @@ bool QtSLiMWindow::runSimOneGeneration(void)
     
     didExecuteScript();
 
-    // We also want to let graphViews know when each generation has finished, in case they need to pull data from the sim.  Note this
-    // happens after every generation, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
-    emit controllerGenerationFinished();
+    // We also want to let graphViews know when each tick has finished, in case they need to pull data from the sim.  Note this
+    // happens after every tick, not just when we are updating the UI, so drawing and setNeedsDisplay: should not happen here.
+    emit controllerTickFinished();
 
     return stillRunning;
 }
@@ -3231,35 +4059,35 @@ void QtSLiMWindow::_continuousPlay(void)
 		double intervalSinceStarting = continuousPlayElapsedTimer_.nsecsElapsed() / 1000000000.0;
 		
 		// Calculate frames per second; this equation must match the equation in playSpeedChanged:
-		double maxGenerationsPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
+		double maxTicksPerSecond = 1000000000.0;	// bounded, to allow -eidos_pauseExecution to interrupt us
 		
 		if (speedSliderValue < 0.99999)
-			maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+			maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 		
-		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxGenerationsPerSecond == " << maxGenerationsPerSecond;
+		//qDebug() << "speedSliderValue == " << speedSliderValue << ", maxTicksPerSecond == " << maxTicksPerSecond;
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		bool reachedEnd = reachedSimulationEnd_;
 		
 		do
 		{
-			if (continuousPlayGenerationsCompleted_ / intervalSinceStarting >= maxGenerationsPerSecond)
+			if (continuousPlayTicksCompleted_ / intervalSinceStarting >= maxTicksPerSecond)
 				break;
 			
-            if (generationPlayOn_ && (sim->generation_ >= targetGeneration_))
+            if (tickPlayOn_ && (community->Tick() >= targetTick_))
                 break;
             
-            reachedEnd = !runSimOneGeneration();
+            reachedEnd = !runSimOneTick();
 			
-			continuousPlayGenerationsCompleted_++;
+			continuousPlayTicksCompleted_++;
 		}
 		while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 		
 		setReachedSimulationEnd(reachedEnd);
 		
-		if (!reachedSimulationEnd_ && (!generationPlayOn_ || !(sim->generation_ >= targetGeneration_)))
+		if (!reachedSimulationEnd_ && (!tickPlayOn_ || !(community->Tick() >= targetTick_)))
 		{
             updateAfterTickFull((playStartTimer.nsecsElapsed() / 1000000000.0) > 0.04);
 			continuousPlayInvocationTimer_.start(0);
@@ -3271,8 +4099,8 @@ void QtSLiMWindow::_continuousPlay(void)
             
             if (nonProfilePlayOn_)
                 playOrProfile(PlayType::kNormalPlay);       // click the Play button
-            else if (generationPlayOn_)
-                playOrProfile(PlayType::kGenerationPlay);   // click the Play button
+            else if (tickPlayOn_)
+                playOrProfile(PlayType::kTickPlay);   // click the Play button
 			
 			// bounce our icon; if we are not the active app, to signal that the run is done
 			//[NSApp requestUserAttention:NSInformationalRequest];
@@ -3288,7 +4116,7 @@ void QtSLiMWindow::_continuousProfile(void)
         QElapsedTimer playStartTimer;
         playStartTimer.start();
 		
-		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every generation
+		// We keep a local version of reachedSimulationEnd, because calling setReachedSimulationEnd: every tick
 		// can actually be a large drag for simulations that run extremely quickly – it can actually exceed the time
 		// spent running the simulation itself!  Moral of the story, KVO is wicked slow.
 		bool reachedEnd = reachedSimulationEnd_;
@@ -3297,9 +4125,9 @@ void QtSLiMWindow::_continuousProfile(void)
 		{
 			do
 			{
-                reachedEnd = !runSimOneGeneration();
+                reachedEnd = !runSimOneTick();
 				
-				continuousPlayGenerationsCompleted_++;
+				continuousPlayTicksCompleted_++;
 			}
             while (!reachedEnd && (playStartTimer.nsecsElapsed() / 1000000000.0) < 0.02);
 			
@@ -3363,15 +4191,15 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 	{
         // log information needed to track our play speed
         continuousPlayElapsedTimer_.restart();
-		continuousPlayGenerationsCompleted_ = 0;
+		continuousPlayTicksCompleted_ = 0;
         
 		setContinuousPlayOn(true);
 		if (playType == PlayType::kProfilePlay)
             setProfilePlayOn(true);
         else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(true);
-        else if (playType == PlayType::kGenerationPlay)
-            setGenerationPlayOn(true);
+        else if (playType == PlayType::kTickPlay)
+            setTickPlayOn(true);
 		
 		// keep the button on; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (playType == PlayType::kProfilePlay)
@@ -3379,7 +4207,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             ui->profileButton->setChecked(true);
             updateProfileButtonIcon(false);
 		}
-		else    // kNormalPlay and kGenerationPlay
+		else    // kNormalPlay and kTickPlay
 		{
             ui->playButton->setChecked(true);
             updatePlayButtonIcon(false);
@@ -3403,14 +4231,14 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 		// start playing/profiling
 		if (playType == PlayType::kProfilePlay)
             continuousProfileInvocationTimer_.start(0);
-        else    // kNormalPlay and kGenerationPlay
+        else    // kNormalPlay and kTickPlay
             continuousPlayInvocationTimer_.start(0);
 	}
 	else
 	{
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// close out profiling information if necessary
-		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 		{
 			endProfiling();
 			gEidosProfilingClientCount--;
@@ -3428,8 +4256,8 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             setProfilePlayOn(false);
         else if (playType == PlayType::kNormalPlay)
             setNonProfilePlayOn(false);
-        else if (playType == PlayType::kGenerationPlay)
-            setGenerationPlayOn(false);
+        else if (playType == PlayType::kTickPlay)
+            setTickPlayOn(false);
 		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed
 		if (playType == PlayType::kProfilePlay)
@@ -3437,7 +4265,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
             ui->profileButton->setChecked(false);
             updateProfileButtonIcon(false);
 		}
-		else    // kNormalPlay and kGenerationPlay
+		else    // kNormalPlay and kTickPlay
 		{
             ui->playButton->setChecked(false);
             updatePlayButtonIcon(false);
@@ -3452,7 +4280,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 		
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
-		if ((playType == PlayType::kProfilePlay) && sim && !invalidSimulation_)
+		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 			displayProfileResults();
 #endif
 	}
@@ -3466,7 +4294,7 @@ void QtSLiMWindow::finish_eidos_pauseExecution(void)
 {
 	// this gets called by performSelectorOnMainThread: after _continuousPlay: has broken out of its loop
 	// if the simulation has already ended, or is invalid, or is not in continuous play, it does nothing
-	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+	if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !tickPlayOn_)
 	{
 		playOrProfile(PlayType::kNormalPlay);	// this will simulate a press of the play button to stop continuous play
 		
@@ -3488,9 +4316,9 @@ void QtSLiMWindow::eidos_openDocument(QString path)
 
 void QtSLiMWindow::eidos_pauseExecution(void)
 {
-    if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !generationPlayOn_)
+    if (!invalidSimulation_ && !reachedSimulationEnd_ && continuousPlayOn_ && nonProfilePlayOn_ && !profilePlayOn_ && !tickPlayOn_)
 	{
-		continuousPlayGenerationsCompleted_ = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this generation
+		continuousPlayTicksCompleted_ = UINT64_MAX - 1;			// this will break us out of the loop in _continuousPlay: at the end of this tick
         
         QMetaObject::invokeMethod(this, "finish_eidos_pauseExecution", Qt::QueuedConnection);   // this will actually stop continuous play
 	}
@@ -3554,14 +4382,14 @@ void QtSLiMWindow::playOneStepClicked(void)
         if (consoleController)
             consoleController->invalidateSymbolTableAndFunctionMap();
         
-        setReachedSimulationEnd(!runSimOneGeneration());
+        setReachedSimulationEnd(!runSimOneTick());
         
         // BCH 5/7/2021: moved these two lines up here, above validateSymbolTableAndFunctionMap(), so that
         // updateAfterTickFull() calls checkForSimulationTermination() for us before we re-validate the
         // symbol table; this way if the simulation has hit an error the symbol table no longer contains
         // SLiM stuff in it.  I *think* this mirrors what happens when play, rather than step, is used.
         // Nevertheless, it might be a fragile change, so I'm leaving this comment to document the change.
-        ui->generationLineEdit->clearFocus();
+        ui->tickLineEdit->clearFocus();
         updateAfterTickFull(true);
         
         if (consoleController)
@@ -3596,51 +4424,51 @@ void QtSLiMWindow::playOneStepReleased(void)
     playOneStepInvocationTimer_.stop();
 }
 
-void QtSLiMWindow::generationChanged(void)
+void QtSLiMWindow::tickChanged(void)
 {
-	if (!generationPlayOn_)
+	if (!tickPlayOn_)
 	{
-		QString generationString = ui->generationLineEdit->text();
+		QString tickString = ui->tickLineEdit->text();
 		
 		// Special-case initialize(); we can never advance to it, since it is first, so we just validate it
-		if (generationString == "initialize()")
+		if (tickString == "initialize()")
 		{
-			if (sim->generation_ != 0)
+			if (community->Tick() != 0)
 			{
 				qApp->beep();
-				updateGenerationCounter();
-                ui->generationLineEdit->selectAll();
+				updateTickCounter();
+                ui->tickLineEdit->selectAll();
 			}
 			
 			return;
 		}
 		
 		// Get the integer value from the textfield, since it is not "initialize()"
-		targetGeneration_ = SLiMClampToGenerationType(static_cast<int64_t>(generationString.toLongLong()));
+		targetTick_ = SLiMClampToTickType(static_cast<int64_t>(tickString.toLongLong()));
 		
-		// make sure the requested generation is in range
-		if (sim->generation_ >= targetGeneration_)
+		// make sure the requested tick is in range
+		if (community->Tick() >= targetTick_)
 		{
-			if (sim->generation_ > targetGeneration_)
+			if (community->Tick() > targetTick_)
             {
                 qApp->beep();
-                updateGenerationCounter();
-                ui->generationLineEdit->selectAll();
+                updateTickCounter();
+                ui->tickLineEdit->selectAll();
 			}
             
 			return;
 		}
 		
-		// get the first responder out of the generation textfield
-        ui->generationLineEdit->clearFocus();
+		// get the first responder out of the tick textfield
+        ui->tickLineEdit->clearFocus();
 		
 		// start playing
-        playOrProfile(PlayType::kGenerationPlay);
+        playOrProfile(PlayType::kTickPlay);
 	}
 	else
 	{
 		// stop our recurring perform request; I don't think this is hit any more
-        playOrProfile(PlayType::kGenerationPlay);
+        playOrProfile(PlayType::kTickPlay);
 	}
 }
 
@@ -3680,7 +4508,7 @@ void QtSLiMWindow::recycleClicked(void)
     if (consoleController)
         consoleController->validateSymbolTableAndFunctionMap();
     
-    ui->generationLineEdit->clearFocus();
+    ui->tickLineEdit->clearFocus();
     elapsedCPUClock_ = 0;
     
     updateAfterTickFull(true);
@@ -3702,28 +4530,28 @@ void QtSLiMWindow::playSpeedChanged(void)
     
 	// We want our speed to be from the point when the slider changed, not from when play started
     continuousPlayElapsedTimer_.restart();
-	continuousPlayGenerationsCompleted_ = 1;		// this prevents a new generation from executing every time the slider moves a pixel
+	continuousPlayTicksCompleted_ = 1;		// this prevents a new tick from executing every time the slider moves a pixel
 	
 	// This method is called whenever playSpeedSlider changes, continuously; we want to show the chosen speed in a tooltip-ish window
     double speedSliderValue = ui->playSpeedSlider->value() / 100.0;     // scale is 0 to 100, since only integer values are allowed by QSlider
 	
 	// Calculate frames per second; this equation must match the equation in _continuousPlay:
-	double maxGenerationsPerSecond = static_cast<double>(INFINITY);
+	double maxTicksPerSecond = static_cast<double>(INFINITY);
 	
 	if (speedSliderValue < 0.99999)
-		maxGenerationsPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
+		maxTicksPerSecond = (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * (speedSliderValue + 0.06) * 839;
 	
 	// Make a tooltip label string
 	QString fpsString("∞ fps");
 	
-	if (!std::isinf(maxGenerationsPerSecond))
+	if (!std::isinf(maxTicksPerSecond))
 	{
-		if (maxGenerationsPerSecond < 1.0)
-			fpsString = QString::asprintf("%.2f fps", maxGenerationsPerSecond);
-		else if (maxGenerationsPerSecond < 10.0)
-			fpsString = QString::asprintf("%.1f fps", maxGenerationsPerSecond);
+		if (maxTicksPerSecond < 1.0)
+			fpsString = QString::asprintf("%.2f fps", maxTicksPerSecond);
+		else if (maxTicksPerSecond < 10.0)
+			fpsString = QString::asprintf("%.1f fps", maxTicksPerSecond);
 		else
-			fpsString = QString::asprintf("%.0f fps", maxGenerationsPerSecond);
+			fpsString = QString::asprintf("%.0f fps", maxTicksPerSecond);
 		
 		//qDebug() << "fps string: " << fpsString;
 	}
@@ -3799,11 +4627,169 @@ void QtSLiMWindow::debugOutputClicked(void)
     debugOutputWindow_->activateWindow();
 }
 
+void QtSLiMWindow::runChromosomeContextMenuAtPoint(QPoint p_globalPoint)
+{
+    if (!invalidSimulation() && community && community->simulation_valid_)
+	{
+        QMenu contextMenu("chromosome_menu", this);
+        
+        QAction *displayMutations = contextMenu.addAction("Display Mutations");
+        displayMutations->setCheckable(true);
+        displayMutations->setChecked(chromosome_shouldDrawMutations_);
+        
+        QAction *displaySubstitutions = contextMenu.addAction("Display Substitutions");
+        displaySubstitutions->setCheckable(true);
+        displaySubstitutions->setChecked(chromosome_shouldDrawFixedSubstitutions_);
+        
+        QAction *displayGenomicElements = contextMenu.addAction("Display Genomic Elements");
+        displayGenomicElements->setCheckable(true);
+        displayGenomicElements->setChecked(chromosome_shouldDrawGenomicElements_);
+        
+        QAction *displayRateMaps = contextMenu.addAction("Display Rate Maps");
+        displayRateMaps->setCheckable(true);
+        displayRateMaps->setChecked(chromosome_shouldDrawRateMaps_);
+        
+        contextMenu.addSeparator();
+        
+        QAction *displayFrequencies = contextMenu.addAction("Display Frequencies");
+        displayFrequencies->setCheckable(true);
+        displayFrequencies->setChecked(!chromosome_display_haplotypes_);
+        
+        QAction *displayHaplotypes = contextMenu.addAction("Display Haplotypes");
+        displayHaplotypes->setCheckable(true);
+        displayHaplotypes->setChecked(chromosome_display_haplotypes_);
+        
+        QActionGroup *displayGroup = new QActionGroup(this);    // On Linux this provides a radio-button-group appearance
+        displayGroup->addAction(displayFrequencies);
+        displayGroup->addAction(displayHaplotypes);
+        
+        QAction *displayAllMutations = nullptr;
+        QAction *selectNonneutralMutations = nullptr;
+        
+		// mutation type checkmark items
+        {
+            const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
+			
+			if (muttypes.size() > 0)
+			{
+                contextMenu.addSeparator();
+                
+                displayAllMutations = contextMenu.addAction("Display All Mutations");
+                displayAllMutations->setCheckable(true);
+                displayAllMutations->setChecked(chromosome_display_muttypes_.size() == 0);
+                
+                // Make a sorted list of all mutation types we know – those that exist, and those that used to exist that we are displaying
+				std::vector<slim_objectid_t> all_muttypes;
+				
+				for (auto muttype_iter : muttypes)
+				{
+					MutationType *muttype = muttype_iter.second;
+					slim_objectid_t muttype_id = muttype->mutation_type_id_;
+					
+					all_muttypes.emplace_back(muttype_id);
+				}
+				
+				all_muttypes.insert(all_muttypes.end(), chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end());
+                
+                // Avoid building a huge menu, which will hang the app
+				if (all_muttypes.size() <= 500)
+				{
+					std::sort(all_muttypes.begin(), all_muttypes.end());
+					all_muttypes.resize(static_cast<size_t>(std::distance(all_muttypes.begin(), std::unique(all_muttypes.begin(), all_muttypes.end()))));
+					
+					// Then add menu items for each of those muttypes
+					for (slim_objectid_t muttype_id : all_muttypes)
+					{
+                        QString menuItemTitle = QString("Display m%1").arg(muttype_id);
+                        MutationType *muttype = community->MutationTypeWithID(muttype_id);  // try to look up the mutation type; can fail if it doesn't exists now
+                        
+                        if (muttype && (community->all_species_.size() > 1))
+                            menuItemTitle.append(" ").append(QString::fromStdString(muttype->species_.avatar_));
+                        
+                        QAction *mutationAction = contextMenu.addAction(menuItemTitle);
+                        
+                        mutationAction->setData(muttype_id);
+                        mutationAction->setCheckable(true);
+                        
+						if (std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id) != chromosome_display_muttypes_.end())
+							mutationAction->setChecked(true);
+					}
+				}
+                
+                contextMenu.addSeparator();
+                
+                selectNonneutralMutations = contextMenu.addAction("Select Non-Neutral MutationTypes");
+            }
+        }
+        
+        // Run the context menu synchronously
+        QAction *action = contextMenu.exec(p_globalPoint);
+        
+        // Act upon the chosen action; we just do it right here instead of dealing with slots
+        if (action)
+        {
+            if (action == displayMutations)
+                chromosome_shouldDrawMutations_ = !chromosome_shouldDrawMutations_;
+            else if (action == displaySubstitutions)
+                chromosome_shouldDrawFixedSubstitutions_ = !chromosome_shouldDrawFixedSubstitutions_;
+            else if (action == displayGenomicElements)
+                chromosome_shouldDrawGenomicElements_ = !chromosome_shouldDrawGenomicElements_;
+            else if (action == displayRateMaps)
+                chromosome_shouldDrawRateMaps_ = !chromosome_shouldDrawRateMaps_;
+            else if (action == displayFrequencies)
+                chromosome_display_haplotypes_ = false;
+            else if (action == displayHaplotypes)
+                chromosome_display_haplotypes_ = true;
+            else
+            {
+                const std::map<slim_objectid_t,MutationType*> &muttypes = community->AllMutationTypes();
+                
+                if (action == displayAllMutations)
+                    chromosome_display_muttypes_.clear();
+                else if (action == selectNonneutralMutations)
+                {
+                    // - (IBAction)filterNonNeutral:(id)sender
+                    chromosome_display_muttypes_.clear();
+                    
+                    for (auto muttype_iter : muttypes)
+                    {
+                        MutationType *muttype = muttype_iter.second;
+                        slim_objectid_t muttype_id = muttype->mutation_type_id_;
+                        
+                        if ((muttype->dfe_type_ != DFEType::kFixed) || (muttype->dfe_parameters_[0] != 0.0))
+                            chromosome_display_muttypes_.emplace_back(muttype_id);
+                    }
+                }
+                else
+                {
+                    // - (IBAction)filterMutations:(id)sender
+                    slim_objectid_t muttype_id = action->data().toInt();
+                    auto present_iter = std::find(chromosome_display_muttypes_.begin(), chromosome_display_muttypes_.end(), muttype_id);
+                    
+                    if (present_iter == chromosome_display_muttypes_.end())
+                    {
+                        // this mut-type is not being displayed, so add it to our display list
+                        chromosome_display_muttypes_.emplace_back(muttype_id);
+                    }
+                    else
+                    {
+                        // this mut-type is being displayed, so remove it from our display list
+                        chromosome_display_muttypes_.erase(present_iter);
+                    }
+                }
+            }
+            
+            for (auto *widget : chromosomeZoomedWidgets)
+                widget->update();
+        }
+    }
+}
+
 void QtSLiMWindow::chromosomeActionRunMenu(void)
 {
     QPoint mousePos = QCursor::pos();
     
-    ui->chromosomeZoomed->runContextMenuAtPoint(mousePos);
+    runChromosomeContextMenuAtPoint(mousePos);
     
     // This is not called by Qt, for some reason (nested tracking loops?), so we call it explicitly
     chromosomeActionReleased();
@@ -3982,6 +4968,24 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
         }
     }
     
+    // Figure out whether we have multispecies avatars, and thus want to use the "low brightness symbol" emoji for "ticks all" blocks.
+    // This emoji provides nicely lined up spacing in the menu, and indicates "ticks all" clearly; seems better than nothing.  It would
+    // be even better, perhaps, to have a spacer of emoji width, to make things line up without having a symbol displayed; unfortunately
+    // such a spacer does not seem to exist.  https://stackoverflow.com/questions/66496671/is-there-a-blank-unicode-character-matching-emoji-width
+    QString ticksAllAvatar;
+    
+    if (community && community->is_explicit_species_ && (community->all_species_.size() > 0))
+    {
+        bool hasAvatars = false;
+        
+        for (Species *species : community->all_species_)
+            if (species->avatar_.length() > 0)
+                hasAvatars = true;
+        
+        if (hasAvatars)
+            ticksAllAvatar = QString::fromUtf8("\xF0\x9F\x94\x85");     // "low brightness symbol", https://www.compart.com/en/unicode/U+1F505
+    }
+    
     // Next we parse and get script blocks
     if (cstr)
     {
@@ -3993,9 +4997,25 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
             
             // Extract SLiMEidosBlocks from the parse tree
             const EidosASTNode *root_node = script.AST();
+            QString specifierAvatar;
             
             for (EidosASTNode *script_block_node : root_node->children_)
             {
+                // handle species/ticks specifiers, which are identifier token nodes at the top level of the AST with one child
+                if ((script_block_node->token_->token_type_ == EidosTokenType::kTokenIdentifier) && (script_block_node->children_.size() == 1))
+                {
+                    EidosASTNode *specifierChild = script_block_node->children_[0];
+                    std::string specifierSpeciesName = specifierChild->token_->token_string_;
+                    Species *specifierSpecies = (community ? community->SpeciesWithName(specifierSpeciesName) : nullptr);
+                    
+                    if (specifierSpecies && specifierSpecies->avatar_.length())
+                        specifierAvatar = QString::fromStdString(specifierSpecies->avatar_);
+                    else if (!specifierSpecies && (specifierSpeciesName == "all"))
+                        specifierAvatar = ticksAllAvatar;
+                    
+                    continue;
+                }
+                
                 // Create the block and use it to find the string from the start of its declaration to the start of its code
                 SLiMEidosBlock *new_script_block = new SLiMEidosBlock(script_block_node);
                 int32_t decl_start = new_script_block->root_node_->token_->token_UTF16_start_;
@@ -4049,6 +5069,13 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                 
                 if (comment.length() > 0)
                     decl = decl + "  —  " + comment;
+                
+                // If a species/ticks specifier was previously seen that provides us with an avatar, prepend that
+                if (specifierAvatar.length())
+                {
+                    decl = specifierAvatar + " " + decl;
+                    specifierAvatar.clear();
+                }
                 
                 // Make a menu item with the final string, and annotate it with the range to select
                 QAction *jumpAction = new QAction(decl);
@@ -4127,23 +5154,36 @@ void QtSLiMWindow::dumpPopulationClicked(void)
     
     try
 	{
-		// dump the population
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " A" << std::endl;
-		sim->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
-		
-		// dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
-		SLIM_OUTSTREAM << std::endl;
-		SLIM_OUTSTREAM << "#OUT: " << sim->generation_ << " F " << std::endl;
-		SLIM_OUTSTREAM << "Mutations:" << std::endl;
-		
-		for (unsigned int i = 0; i < sim->population_.substitutions_.size(); i++)
-		{
-			SLIM_OUTSTREAM << i << " ";
-			sim->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
-		}
-		
-		// now send SLIM_OUTSTREAM to the output textview
-		updateOutputViews();
+        // BCH 3/6/2022: Note that the species cycle has been added here for SLiM 4, in keeping with SLiM's native output formats.
+        Species *displaySpecies = focalDisplaySpecies();
+        
+        if (displaySpecies)
+        {
+            slim_tick_t species_cycle = displaySpecies->Cycle();
+            
+            // dump the population
+            SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " A" << std::endl;
+            displaySpecies->population_.PrintAll(SLIM_OUTSTREAM, true, true, false, false);	// output spatial positions and ages if available, but not ancestral sequence
+            
+            // dump fixed substitutions also; so the dump in SLiMgui is like outputFull() + outputFixedMutations()
+            SLIM_OUTSTREAM << std::endl;
+            SLIM_OUTSTREAM << "#OUT: " << community->tick_ << " " << species_cycle << " F " << std::endl;
+            SLIM_OUTSTREAM << "Mutations:" << std::endl;
+            
+            for (unsigned int i = 0; i < displaySpecies->population_.substitutions_.size(); i++)
+            {
+                SLIM_OUTSTREAM << i << " ";
+                displaySpecies->population_.substitutions_[i]->PrintForSLiMOutput(SLIM_OUTSTREAM);
+            }
+            
+            // now send SLIM_OUTSTREAM to the output textview
+            updateOutputViews();
+        }
+        else
+        {
+            // With no display species, including when on the "all" species tab, we just beep
+            qApp->beep();
+        }
 	}
 	catch (...)
 	{
@@ -4158,39 +5198,11 @@ void QtSLiMWindow::displayGraphClicked(void)
     
     if (action)
     {
-        QtSLiMGraphView *graphView = nullptr;
+        Species *displaySpecies = focalDisplaySpecies();
         
-        if (action == ui->actionGraph_1D_Population_SFS)
-            graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
-        if (action == ui->actionGraph_1D_Sample_SFS)
-            graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
-        if (action == ui->actionGraph_2D_Population_SFS)
-            graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
-        if (action == ui->actionGraph_2D_Sample_SFS)
-            graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
-        if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
-            graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
-        if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
-            graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
-        if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
-            graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
-        if (action == ui->actionGraph_Population_Fitness_Distribution)
-            graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
-        if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
-            graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
-        if (action == ui->actionGraph_Fitness_Time)
-            graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
-        if (action == ui->actionGraph_Age_Distribution)
-            graphView = new QtSLiMGraphView_AgeDistribution(this, this);
-        if (action == ui->actionGraph_Lifetime_Reproduce_Output)
-            graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
-        if (action == ui->actionGraph_Population_Size_Time)
-            graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
-        if (action == ui->actionGraph_Population_Visualization)
-            graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == ui->actionCreate_Haplotype_Plot)
         {
-            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            if (displaySpecies && !continuousPlayOn_ && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4201,16 +5213,59 @@ void QtSLiMWindow::displayGraphClicked(void)
                 qApp->beep();
             }
         }
-        
-        if (graphView)
+        else
         {
-            QWidget *graphWindow = graphWindowWithView(graphView);
+            QtSLiMGraphView *graphView = nullptr;
             
-            if (graphWindow)
+            if (displaySpecies)
             {
-                graphWindow->show();
-                graphWindow->raise();
-                graphWindow->activateWindow();
+                if (action == ui->actionGraph_1D_Population_SFS)
+                    graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
+                if (action == ui->actionGraph_1D_Sample_SFS)
+                    graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
+                if (action == ui->actionGraph_2D_Population_SFS)
+                    graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
+                if (action == ui->actionGraph_2D_Sample_SFS)
+                    graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
+                if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
+                    graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
+                if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
+                    graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
+                if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
+                    graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
+                if (action == ui->actionGraph_Population_Fitness_Distribution)
+                    graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
+                if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
+                    graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
+                if (action == ui->actionGraph_Fitness_Time)
+                    graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
+                if (action == ui->actionGraph_Age_Distribution)
+                    graphView = new QtSLiMGraphView_AgeDistribution(this, this);
+                if (action == ui->actionGraph_Lifetime_Reproduce_Output)
+                    graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
+                if (action == ui->actionGraph_Population_Size_Time)
+                    graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
+                if (action == ui->actionGraph_Population_Visualization)
+                    graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
+            }
+            
+            if (action == ui->actionGraph_Multispecies_Population_Size_Time)
+                graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
+            
+            if (graphView)
+            {
+                QWidget *graphWindow = graphWindowWithView(graphView);
+                
+                if (graphWindow)
+                {
+                    graphWindow->show();
+                    graphWindow->raise();
+                    graphWindow->activateWindow();
+                }
+            }
+            else
+            {
+                qApp->beep();
             }
         }
     }
@@ -4490,6 +5545,11 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         buttonLayout->setSpacing(5);
         topLayout->addLayout(buttonLayout);
         
+        QLabel *speciesLabel = new QLabel();
+        speciesLabel->setText("");
+        buttonLayout->addWidget(speciesLabel);
+        speciesLabel->setHidden(true);
+        
         QSpacerItem *rightSpacer = new QSpacerItem(16, 5, QSizePolicy::Expanding, QSizePolicy::Minimum);
         buttonLayout->addItem(rightSpacer);
         
@@ -4515,7 +5575,7 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
         connect(actionButton, &QPushButton::pressed, graphView, [actionButton, graphView]() { actionButton->qtslimSetHighlight(true); graphView->actionButtonRunMenu(actionButton); });
         connect(actionButton, &QPushButton::released, graphView, [actionButton]() { actionButton->qtslimSetHighlight(false); });
         
-        actionButton->setEnabled(!invalidSimulation() && (sim->generation_ > 0));
+        actionButton->setEnabled(!invalidSimulation() && (community->Tick() > 0));
     }
     
     // Give the graph view a chance to do something with the window it's now in
@@ -4557,9 +5617,10 @@ QWidget *QtSLiMWindow::graphWindowWithView(QtSLiMGraphView *graphView)
 void QtSLiMWindow::graphPopupButtonRunMenu(void)
 {
 	bool disableAll = false;
+    Species *displaySpecies = focalDisplaySpecies();
 	
 	// When the simulation is not valid and initialized, the context menu is disabled
-	if (invalidSimulation_) // || !sim || !sim->simulation_valid_ || (sim->generation_ < 1))
+	if (invalidSimulation_ || !displaySpecies)
 		disableAll = true;
     
     QMenu contextMenu("graph_menu", this);
@@ -4616,8 +5677,13 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     contextMenu.addSeparator();
     
+    QAction *graphMultispeciesPopSizeVsTime = contextMenu.addAction("Multispecies Population Size ~ Time");
+    graphMultispeciesPopSizeVsTime->setEnabled(!invalidSimulation_);
+    
+    contextMenu.addSeparator();
+    
     QAction *createHaplotypePlot = contextMenu.addAction("Create Haplotype Plot");
-    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size());
+    createHaplotypePlot->setEnabled(!disableAll && !continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size());
     
     // Run the context menu synchronously
     QPoint mousePos = QCursor::pos();
@@ -4625,39 +5691,11 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
     
     if (action && !invalidSimulation_)
     {
-        QtSLiMGraphView *graphView = nullptr;
+        displaySpecies = focalDisplaySpecies();     // might change while the menu is running...
         
-        if (action == graph1DFreqSpectrum)
-            graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
-        if (action == graph1DSampleSFS)
-            graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
-        if (action == graph2DFreqSpectrum)
-            graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
-        if (action == graph2DSampleSFS)
-            graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
-        if (action == graphMutFreqTrajectories)
-            graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
-        if (action == graphMutLossTimeHist)
-            graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
-        if (action == graphMutFixTimeHist)
-            graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
-        if (action == graphPopFitnessDist)
-            graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
-        if (action == graphSubpopFitnessDists)
-            graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
-        if (action == graphFitnessVsTime)
-            graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
-        if (action == graphAgeDistribution)
-            graphView = new QtSLiMGraphView_AgeDistribution(this, this);
-        if (action == graphLifetimeReproduction)
-            graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
-        if (action == graphPopSizeVsTime)
-            graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
-        if (action == graphPopVisualization)
-            graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
         if (action == createHaplotypePlot)
         {
-            if (!continuousPlayOn_ && sim && sim->simulation_valid_ && sim->population_.subpops_.size())
+            if (!continuousPlayOn_ && displaySpecies && displaySpecies->population_.subpops_.size())
             {
                 isTransient = false;    // Since the user has taken an interest in the window, clear the document's transient status
                 
@@ -4668,17 +5706,60 @@ void QtSLiMWindow::graphPopupButtonRunMenu(void)
                 qApp->beep();
             }
         }
-        
-        if (graphView)
+        else
         {
-            QWidget *graphWindow = graphWindowWithView(graphView);
+            QtSLiMGraphView *graphView = nullptr;
             
-            if (graphWindow)
+            if (displaySpecies)
             {
-                graphWindow->show();
-                graphWindow->raise();
-                graphWindow->activateWindow();
+                if (action == graph1DFreqSpectrum)
+                    graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
+                if (action == graph1DSampleSFS)
+                    graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
+                if (action == graph2DFreqSpectrum)
+                    graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
+                if (action == graph2DSampleSFS)
+                    graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
+                if (action == graphMutFreqTrajectories)
+                    graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
+                if (action == graphMutLossTimeHist)
+                    graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
+                if (action == graphMutFixTimeHist)
+                    graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
+                if (action == graphPopFitnessDist)
+                    graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
+                if (action == graphSubpopFitnessDists)
+                    graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
+                if (action == graphFitnessVsTime)
+                    graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
+                if (action == graphAgeDistribution)
+                    graphView = new QtSLiMGraphView_AgeDistribution(this, this);
+                if (action == graphLifetimeReproduction)
+                    graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
+                if (action == graphPopSizeVsTime)
+                    graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
+                if (action == graphPopVisualization)
+                    graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
             }
+            
+            if (action == graphMultispeciesPopSizeVsTime)
+                graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
+            
+            if (graphView)
+            {
+                QWidget *graphWindow = graphWindowWithView(graphView);
+                
+                if (graphWindow)
+                {
+                    graphWindow->show();
+                    graphWindow->raise();
+                    graphWindow->activateWindow();
+                }
+            }
+            else
+            {
+                qApp->beep();
+            }                
         }
     }
     
@@ -4715,8 +5796,7 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
     {
         QItemSelectionModel *selectionModel = ui->subpopTableView->selectionModel();
         QModelIndexList selectedRows = selectionModel->selectedRows();
-        Population &population = sim->population_;
-        std::map<slim_objectid_t,Subpopulation*> &subpops = population.subpops_;
+        std::vector<Subpopulation *> subpops = listedSubpopulations();
         size_t subpopCount = subpops.size();
         
         // first get the state of each row, for algorithmic convenience
@@ -4726,28 +5806,37 @@ void QtSLiMWindow::subpopSelectionDidChange(const QItemSelection & /* selected *
             rowSelectedState[static_cast<size_t>(modelIndex.row())] = true;
         
         // then loop through subpops and update their selected state
-        auto popIter = population.subpops_.begin();
-        bool all_selected = true;
+        auto subpopIter = subpops.begin();
+        //bool all_selected = true;
+        bool none_selected = true;
         
         for (size_t i = 0; i < subpopCount; ++i)
         {
-            popIter->second->gui_selected_ = rowSelectedState[i];
+            (*subpopIter)->gui_selected_ = rowSelectedState[i];
             
-            if (!popIter->second->gui_selected_)
-                all_selected = false;
+            if ((*subpopIter)->gui_selected_)
+                none_selected = false;
+            //else
+            //    all_selected = false;
             
-            popIter++;
+            subpopIter++;
         }
         
-        population.gui_all_selected_ = all_selected;
-        
         // If the selection has changed, that means that the mutation tallies need to be recomputed
-        population.TallyMutationReferences(nullptr, true);
+        for (Species *species : community->AllSpecies())
+            species->population_.TallyMutationReferences(nullptr, true);
         
         // It's a bit hard to tell for sure whether we need to update or not, since a selected subpop might have been removed from the tableview;
         // selection changes should not happen often, so we can just always update, I think.
         ui->individualsWidget->update();
-        ui->chromosomeZoomed->update();     // was setNeedsDisplayInInterior, which would be more minimal
+        
+        for (QtSLiMChromosomeWidget *zoomedWidget : chromosomeZoomedWidgets)
+            zoomedWidget->update();     // was setNeedsDisplayInInterior, which would be more minimal
+        
+        // We don't want to allow an empty selection, maybe; if we are now in that state, and there are subpops to select, select them all
+        // See also updateAfterTickFull() which also needs to do this
+        if (none_selected && subpops.size())
+            ui->subpopTableView->selectAll();
     }
 }
 

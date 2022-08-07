@@ -33,7 +33,7 @@
 
 QtSLiMGraphView_AgeDistribution::QtSLiMGraphView_AgeDistribution(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {
-    histogramBinCount_ = 10;        // max age (no age 0 since we display after generation increment); this rescales automatically
+    histogramBinCount_ = 10;        // max age (no age 0 since we display after tick increment); this rescales automatically
     allowBinCountRescale_ = false;
     
     xAxisMin_ = 0;
@@ -87,7 +87,7 @@ void QtSLiMGraphView_AgeDistribution::subpopulation1PopupChanged(int /* index */
         histogramBinCount_ = 10;
         xAxisMax_ = histogramBinCount_;
         
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -120,10 +120,10 @@ QString QtSLiMGraphView_AgeDistribution::graphTitle(void)
 QString QtSLiMGraphView_AgeDistribution::aboutString(void)
 {
     return "The Age Distribution graph shows the distribution of age values within a chosen subpopulation.  The "
-           "x axis is individual age (in generations, in the SLiM sense of the term); the y axis is the "
-           "frequency of a given age in the population, normalized to a total of 1.0.  This graph is only "
-           "meaningful for nonWF models; WF models have non-overlapping generations without age structure.  Note "
-           "that display occurs <i>after</i> the generation counter increments, so new offspring will have age 1.";
+           "x axis is individual age (in cycles, in the SLiM sense of the term); the y axis is the frequency "
+           "of a given age in the population, normalized to a total of 1.0.  This graph is only meaningful "
+           "for nonWF models; WF models have non-overlapping generations without age structure.  Note that "
+           "display occurs <i>after</i> the cycle counter increments, so new offspring will have age 1.";
 }
 
 void QtSLiMGraphView_AgeDistribution::updateAfterTick(void)
@@ -132,7 +132,7 @@ void QtSLiMGraphView_AgeDistribution::updateAfterTick(void)
 	// in turn, will have the side effect of invaliding our cache and fetching new data if needed
     addSubpopulationsToMenu(subpopulation1Button_, selectedSubpopulation1ID_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
@@ -140,10 +140,12 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 {
     if (controller_ && !controller_->invalidSimulation())
     {
-        if (controller_->sim->ModelType() == SLiMModelType::kModelTypeWF)
+        if (controller_->community->ModelType() == SLiMModelType::kModelTypeWF)
             return "requires a\nnonWF model";
         
-        if (controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
+        Species *graphSpecies = focalDisplaySpecies();
+        
+        if (graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_) == nullptr)
             return "no\ndata";
     }
     
@@ -153,7 +155,8 @@ QString QtSLiMGraphView_AgeDistribution::disableMessage(void)
 void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interiorRect)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
     int totalBinCount = tallySexesSeparately ? (binCount * 2) : binCount;
 	
@@ -164,7 +167,7 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
         {
             histogramBinCount_ = binCount;
             xAxisMax_ = histogramBinCount_;
-            invalidateDrawingCache();
+            invalidateCachedData();
         }
         
         // rescale the y axis if needed
@@ -195,7 +198,8 @@ void QtSLiMGraphView_AgeDistribution::drawGraph(QPainter &painter, QRect interio
 
 QtSLiMLegendSpec QtSLiMGraphView_AgeDistribution::legendKey(void)
 {
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
     
 	if (tallySexesSeparately)
     {
@@ -223,7 +227,8 @@ bool QtSLiMGraphView_AgeDistribution::providesStringForData(void)
 void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 {
     int binCount = histogramBinCount_;
-    bool tallySexesSeparately = controller_->sim->sex_enabled_;
+    Species *graphSpecies = focalDisplaySpecies();
+    bool tallySexesSeparately = graphSpecies->sex_enabled_;
 	double *ageDist = ageDistribution(&binCount, tallySexesSeparately);
 	
     if (ageDist)
@@ -253,8 +258,8 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
 double *QtSLiMGraphView_AgeDistribution::ageDistribution(int *binCount, bool tallySexesSeparately)
 {
     // Find our subpop
-    SLiMSim *sim = controller_->sim;
-    Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
+    Species *graphSpecies = focalDisplaySpecies();
+    Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
     
     if (!subpop1)
         return nullptr;

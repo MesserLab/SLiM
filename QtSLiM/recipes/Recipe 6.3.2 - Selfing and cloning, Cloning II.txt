@@ -8,8 +8,8 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	initializeSex("A");
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 	p1.setCloningRate(c(0.5,0.0));
 }
-10000 { sim.simulationFinished(); }
+10000 early() { sim.simulationFinished(); }

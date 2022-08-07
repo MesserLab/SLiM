@@ -1,4 +1,4 @@
-// Keywords: nucleotide-based, fitness()
+// Keywords: nucleotide-based
 
 initialize() {
 	defineConstant("L", 1e4);
@@ -24,10 +24,10 @@ initialize() {
 	initializeGenomicElement(g1, 0, L-1);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	sim.addSubpop("p1", 500);
 }
-fitness(NULL) {
+fitnessEffect() {
 	for (g in individual.genomes)
 	{
 		seq = g.nucleotides(253, 670) + g.nucleotides(871, 1034);

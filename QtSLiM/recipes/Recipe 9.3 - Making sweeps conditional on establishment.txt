@@ -8,7 +8,7 @@ initialize() {
 	initializeGenomicElement(g1, 0, 99999);
 	initializeRecombinationRate(1e-8);
 }
-1 {
+1 early() {
 	// save this run's identifier, used to save and restore
 	defineConstant("simID", getSeed());
 	
@@ -30,14 +30,14 @@ initialize() {
 		if (sim.mutationFrequencies(NULL, mut) > 0.1)
 		{
 			cat(simID + ": ESTABLISHED\n");
-			sim.deregisterScriptBlock(self);
+			community.deregisterScriptBlock(self);
 		}
 	}
 	else
 	{
 		cat(simID + ": LOST - RESTARTING\n");
 		
-		// go back to generation 1000
+		// go back to tick 1000
 		sim.readFromPopulationFile(tempdir() + "slim_" + simID + ".txt");
 		
 		// start a newly seeded run
@@ -48,6 +48,6 @@ initialize() {
 		target.addNewDrawnMutation(m2, 10000);
 	}
 }
-10000 {
+10000 early() {
 	sim.simulationFinished();
 }

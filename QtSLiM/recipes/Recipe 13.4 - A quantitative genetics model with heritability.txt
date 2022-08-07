@@ -1,4 +1,4 @@
-// Keywords: QTLs, quantitative trait loci, heritability, environmental variance, breeding values, additive genetic variance, fitness()
+// Keywords: QTLs, quantitative trait loci, heritability, environmental variance, breeding values, additive genetic variance
 
 initialize() {
 	defineConstant("h2", 0.1);     // target heritability
@@ -31,11 +31,11 @@ initialize() {
 	inds.fitnessScaling = 1.0 + dnorm(10.0 - phenotypes, 0.0, 5.0);
 	inds.tagF = phenotypes;
 }
-fitness(m2) {
+mutationEffect(m2) {
 	return 1.0;   // QTLs are neutral; fitness effects are handled below
 }
 1:100000 late() {
-	if (sim.generation == 1)
+	if (sim.cycle == 1)
 		cat("Mean phenotype:\n");
 	
 	meanPhenotype = mean(p1.individuals.tagF);
@@ -49,13 +49,13 @@ fitness(m2) {
 	}
 	
 	cat("\n\n-------------------------------\n");
-	cat("QTLs at generation " + sim.generation + ":\n\n");
+	cat("QTLs at cycle " + sim.cycle + ":\n\n");
 	
 	qtls = sim.mutationsOfType(m2);
 	f = sim.mutationFrequencies(NULL, qtls);
 	s = qtls.selectionCoeff;
 	p = qtls.position;
-	o = qtls.originGeneration;
+	o = qtls.originTick;
 	indices = order(f, F);
 	
 	for (i in indices)

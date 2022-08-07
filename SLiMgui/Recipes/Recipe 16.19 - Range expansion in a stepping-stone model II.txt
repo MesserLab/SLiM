@@ -33,8 +33,8 @@ reproduction() {
 }
 1 late() {
 	// set up a log file
-	log = sim.createLogFile("~/Desktop/sim_log.txt", sep="\t", logInterval=10);
-	log.addGeneration();
+	log = community.createLogFile("sim_log.txt", sep="\t", logInterval=10);
+	log.addCycle();
 	log.addPopulationSize();
 	log.addMeanSDColumns("size", "sim.subpopulations.individualCount;");
 	log.addCustomColumn("pop_migrants", "sum(sim.subpopulations.individuals.migrant);");
@@ -44,14 +44,11 @@ reproduction() {
 early() {
 	// non-overlapping generations; kill off the parental generation
 	inds = sim.subpopulations.individuals;
-	inds[inds.age > 0].fitnessScaling = 0.0;
+	sim.killIndividuals(inds[inds.age > 0]);
 	
-	// pre-migration density-dependent selection on each subpop
+	// pre-migration density-dependent fitness for each subpop
 	for (subpop in sim.subpopulations)
-	{
-		juvenileCount = sum(subpop.individuals.age == 0);
-		subpop.fitnessScaling = K / juvenileCount;
-	}
+		subpop.fitnessScaling = K / subpop.individualCount;
 }
 survival() {
 	// honor SLiM's survival decision

@@ -106,7 +106,7 @@ void QtSLiMGraphView_2DSampleSFS::subpopulation1PopupChanged(int /* index */)
     {
         selectedSubpopulation1ID_ = newSubpopID;
         xAxisLabel_ = QString("Count in p%1 sample").arg(selectedSubpopulation1ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -120,7 +120,7 @@ void QtSLiMGraphView_2DSampleSFS::subpopulation2PopupChanged(int /* index */)
     {
         selectedSubpopulation2ID_ = newSubpopID;
         yAxisLabel_ = QString("Count in p%1 sample").arg(selectedSubpopulation2ID_);
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -133,7 +133,7 @@ void QtSLiMGraphView_2DSampleSFS::mutationTypePopupChanged(int /* index */)
     if (!rebuildingMenu_ && (selectedMutationTypeIndex_ != newMutTypeIndex))
     {
         selectedMutationTypeIndex_ = newMutTypeIndex;
-        invalidateDrawingCache();
+        invalidateCachedData();
         update();
     }
 }
@@ -169,7 +169,7 @@ QString QtSLiMGraphView_2DSampleSFS::aboutString(void)
            "the action menu.  The 2D Population SFS graph provides an alternative that might also be useful.";
 }
 
-void QtSLiMGraphView_2DSampleSFS::invalidateDrawingCache(void)
+void QtSLiMGraphView_2DSampleSFS::invalidateCachedData(void)
 {
     if (sfs2dbuf_)
     {
@@ -177,7 +177,7 @@ void QtSLiMGraphView_2DSampleSFS::invalidateDrawingCache(void)
         sfs2dbuf_ = nullptr;
     }
     
-    QtSLiMGraphView::invalidateDrawingCache();
+    QtSLiMGraphView::invalidateCachedData();
 }
 
 void QtSLiMGraphView_2DSampleSFS::updateAfterTick(void)
@@ -188,17 +188,19 @@ void QtSLiMGraphView_2DSampleSFS::updateAfterTick(void)
     addSubpopulationsToMenu(subpopulation2Button_, selectedSubpopulation2ID_, selectedSubpopulation1ID_);
 	addMutationTypesToMenu(mutationTypeButton_, selectedMutationTypeIndex_);
 	
-    invalidateDrawingCache();
+    invalidateCachedData();
 	QtSLiMGraphView::updateAfterTick();
 }
 
 QString QtSLiMGraphView_2DSampleSFS::disableMessage(void)
 {
-    if (controller_ && !controller_->invalidSimulation())
+    Species *graphSpecies = focalDisplaySpecies();
+    
+    if (graphSpecies)
     {
-        Subpopulation *subpop1 = controller_->sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        Subpopulation *subpop2 = controller_->sim->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = controller_->sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+        Subpopulation *subpop2 = graphSpecies->SubpopulationWithID(selectedSubpopulation2ID_);
+        MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return "no\ndata";
@@ -281,7 +283,7 @@ void QtSLiMGraphView_2DSampleSFS::changeZAxisScale(void)
         {
             zAxisMax_ = (double)newZMax;
             
-            invalidateDrawingCache();
+            invalidateCachedData();
             update();
         }
         else qApp->beep();
@@ -302,7 +304,7 @@ void QtSLiMGraphView_2DSampleSFS::changeSampleSize(void)
             histogramBinCount_ = newSampleSize + 1;
             xAxisMax_ = histogramBinCount_ - 1;
             yAxisMax_ = histogramBinCount_ - 1;
-            invalidateDrawingCache();
+            invalidateCachedData();
             update();
         }
         else qApp->beep();
@@ -319,17 +321,17 @@ uint64_t *QtSLiMGraphView_2DSampleSFS::mutation2DSFS(void)
 {
     if (!sfs2dbuf_)
     {
-        SLiMSim *sim = controller_->sim;
-        Population &population = sim->population_;
+        Species *graphSpecies = focalDisplaySpecies();
+        Population &population = graphSpecies->population_;
         int registry_size;
         const MutationIndex *registry = population.MutationRegistry(&registry_size);
         const MutationIndex *registry_iter_end = registry + registry_size;
         Mutation *mut_block_ptr = gSLiM_Mutation_Block;
         
         // Find our subpops and mutation type
-        Subpopulation *subpop1 = sim->SubpopulationWithID(selectedSubpopulation1ID_);
-        Subpopulation *subpop2 = sim->SubpopulationWithID(selectedSubpopulation2ID_);
-        MutationType *muttype = sim->MutationTypeWithIndex(selectedMutationTypeIndex_);
+        Subpopulation *subpop1 = graphSpecies->SubpopulationWithID(selectedSubpopulation1ID_);
+        Subpopulation *subpop2 = graphSpecies->SubpopulationWithID(selectedSubpopulation2ID_);
+        MutationType *muttype = graphSpecies->MutationTypeWithIndex(selectedMutationTypeIndex_);
         
         if (!subpop1 || !subpop2 || !muttype)
             return nullptr;

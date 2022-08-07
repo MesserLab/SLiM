@@ -81,6 +81,8 @@ else:unix: PRE_TARGETDEPS += $$OUT_PWD/../treerec/tskit/libtskit.a
 
 SOURCES += \
     chromosome.cpp \
+    community.cpp \
+    community_eidos.cpp \
     genome.cpp \
     genomic_element_type.cpp \
     genomic_element.cpp \
@@ -95,18 +97,19 @@ SOURCES += \
     slim_eidos_block.cpp \
     slim_functions.cpp \
     slim_globals.cpp \
-    slim_sim.cpp \
-    slim_sim_eidos.cpp \
     slim_test.cpp \
     slim_test_core.cpp \
     slim_test_genetics.cpp \
     slim_test_other.cpp \
-    sparse_array.cpp \
+    sparse_vector.cpp \
+    species.cpp \
+    species_eidos.cpp \
     subpopulation.cpp \
     substitution.cpp
 
 HEADERS += \
     chromosome.h \
+    community.h \
     genome.h \
     genomic_element_type.h \
     genomic_element.h \
@@ -121,8 +124,8 @@ HEADERS += \
     slim_eidos_block.h \
     slim_functions.h \
     slim_globals.h \
-    slim_sim.h \
     slim_test.h \
-    sparse_array.h \
+    sparse_vector.h \
+    species.h \
     subpopulation.h \
     substitution.h

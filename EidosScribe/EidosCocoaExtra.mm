@@ -411,10 +411,6 @@
 @end
 
 
-@interface NSObject (EidosSplitViewExtensions)
-- (void)respondToSizeChangeForSplitView:(NSSplitView *)splitView;
-@end
-
 @implementation NSSplitView (EidosAdditions)
 
 - (void)eidosRestoreAutosavedPositionsWithName:(NSString *)autosaveName
@@ -448,15 +444,6 @@
 				[subView setFrameSize:NSMakeSize(width, subView.frame.size.height)];
 			}
 		}
-	}
-	
-	// Notify our delegate of the resize.  Note that this is not an NSSplitViewDelegate method; we're doing our own thing here
-	NSObject *delegate = [self delegate];
-	
-	if (delegate)
-	{
-		if ([delegate respondsToSelector:@selector(respondToSizeChangeForSplitView:)])
-			[delegate respondToSizeChangeForSplitView:self];
 	}
 }
 
