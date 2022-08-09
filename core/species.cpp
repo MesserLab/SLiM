@@ -6779,6 +6779,24 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 			tsk_population_table_t &pop_table = tables_.populations;
 			tsk_size_t pop_count = pop_table.num_rows;
 			
+			// Start by checking that no remap entry references a population table index that is out of range
+			if (pop_count == 0)
+				EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): the population table is empty, and therefore cannot be remapped." << EidosTerminate(nullptr);
+			
+			for (auto &remap_entry : p_subpop_map)
+			{
+				int64_t table_index = remap_entry.first;
+				//slim_objectid_t remapped_index = remap_entry.second;
+				
+				//std::cout << "index " << table_index << " being remapped to " << remapped_index << std::endl;
+				
+				if (table_index < 0)
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): (internal error) index " << table_index << " is out of range (less than zero)." << EidosTerminate(nullptr);
+				if (table_index >= (int64_t)pop_count)
+					EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): index " << table_index << " is out of range (last valid index " << ((int64_t)pop_count - 1) << ")." << EidosTerminate(nullptr);
+			}
+			
+			// OK, population table indices are in range; check the population table entry remappings one by one
 			for (tsk_size_t pop_index = 0; pop_index < pop_count; pop_index++)
 			{
 				// validate and parse metadata
