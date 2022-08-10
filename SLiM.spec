@@ -1,5 +1,5 @@
 Name:           SLiM
-Version:        3.7.1
+Version:        4.0
 Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
@@ -31,21 +31,7 @@ ExclusiveArch:  x86_64
 # Qt is weird and doesn't allow older software to be used if a newer point release is
 # installed on the system.
 %if 0%{?fedora}
-%if 0%{?fedora} == 31
-Requires: qt5-qtbase == 5.13.2
-%else
-%if 0%{?fedora} == 32
-Requires: qt5-qtbase == 5.14.2
-%else
-%if 0%{?fedora} == 33
-Requires: qt5-qtbase == 5.15.2
-%else
-%if 0%{?fedora} == 34
-Requires: qt5-qtbase == 5.15.2
-%endif
-%endif
-%endif
-%endif
+Requires: qt5-qtbase >= 5.13.2
 %else
 # Conditonal requires for RHEL (and CentOS)
 %if 0%{?rhel} == 8
