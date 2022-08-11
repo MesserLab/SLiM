@@ -32,27 +32,16 @@ ExclusiveArch:  x86_64
 # installed on the system.
 %if 0%{?fedora}
 Requires: qt5-qtbase >= 5.13.2
-%else
+%endif
+
 # Conditonal requires for RHEL (and CentOS)
-%if 0%{?rhel} == 8
-Requires: qt5-qtbase == 5.12.5
-%else
+%if 0%{?rhel}
+Requires: qt5-qtbase >= 5.12.5
+%endif
+
 # Conditional requires for openSUSE and SLE.
-# openSUSE Leap 15.2 and SLE 15 (and all service packs)
 %if %{defined suse_version}
-%if %{defined suse_version} == 1500
-Requires: libqt5-qtbase == 5.12.7
-%else
-# openSUSE Tumbleweed
-%if %{defined suse_version} >= 1550
-Requires: libqt5-qtbase == 5.15.2
-%endif
-%endif
-%else
-# The minimum version of Qt5 required to run SLiMgui is 5.9.5, however this does not actually assure that the system will install the same version of Qt5 that it was built against; an end-user may install a more recent Qt5 if, for isntance, openSUSE Leap 15.3 builds against Qt 5.12.7 and the user upgrades to 5.15.2 when it is available. This is strange, but we can't protect against every edge-case.
-Requires: qt5-qtbase >= 5.9.5
-%endif
-%endif
+Requires: libqt5-qtbase >= 5.12.7
 %endif
 
 %description
