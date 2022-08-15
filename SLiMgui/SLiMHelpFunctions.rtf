@@ -1157,15 +1157,21 @@ The
 \f1\fs18 tskit
 \f2\fs20  APIs); it has no effect on the running simulation whatsoever.  The default value, 
 \f1\fs18 NULL
-\f2\fs20 , indicates that a time unit of 
-\f1\fs18 "generations"
-\f2\fs20  should be used for WF models in which one simulation tick represents one biological generation, whereas 
+\f2\fs20 , means that a time unit of 
 \f1\fs18 "ticks"
-\f2\fs20  should be used otherwise (e.g., for all nonWF models).  It may be helpful to set 
+\f2\fs20  will be used for all model types.  (In SLiM 3.7 / 3.7.1, 
+\f1\fs18 NULL
+\f2\fs20  implied a time unit of 
+\f1\fs18 "generations"
+\f2\fs20  for WF models, but 
+\f1\fs18 "ticks"
+\f2\fs20  for nonWF models; given the new multispecies timescale parameters in SLiM 4, a default of 
+\f1\fs18 "ticks"
+\f2\fs20  makes sense in all cases since now even in WF models one tick might not equal one biological generation.)  It may be helpful to set 
 \f1\fs18 timeUnit
 \f2\fs20  to 
 \f1\fs18 "generations"
-\f2\fs20  explicitly when modeling non-overlapping generations in a nonWF model, to tell 
+\f2\fs20  explicitly when modeling non-overlapping generations in which one tick equals one generation, to tell 
 \f1\fs18 tskit
 \f2\fs20  that the time unit does in fact represent biological generations; doing so may avoid warnings from 
 \f1\fs18 tskit
