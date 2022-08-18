@@ -101,6 +101,18 @@ Installation
 </tbody>
 </table>
 
+<ul class="distro-logos">
+  <li><a href="/running.html#fedora"><img src="/images/site/os-fedora.svg" alt="Fedora"></a></li>
+  <li><a href="/running.html#rhel"><img src="/images/site/os-rhel.svg" alt="Red Hat Enterprise Linux"></a></li>
+  <li><a href="/running.html#coreos"><img src="/images/site/os-coreos.svg" alt="Fedora CoreOS"></a></li>
+  <li><a href="/running.html#centos"><img src="/images/site/os-centos.svg" alt="CentOS"></a></li>
+  <li><a href="/running.html#debian"><img src="/images/site/os-debian.svg" alt="Debian GNU/Linux"></a></li>
+  <li><a href="/running.html#ubuntu"><img src="/images/site/os-ubuntu.svg" alt="Ubuntu"></a></li>
+  <li><a href="/running.html#clearlinux"><img src="/images/site/os-clearlinux.svg" alt="Clear Linux"></a></li>
+  <li><a href="/running.html#archlinux"><img src="/images/site/os-archlinux.svg" alt="Arch Linux"></a></li>
+  <li><a href="/running.html#tumbleweed"><img src="/images/site/os-tumbleweed.svg" alt="openSUSE Tumbleweed"></a></li>
+</ul>
+
 Compilation of SLiM from source
 ----------------------------------
 
