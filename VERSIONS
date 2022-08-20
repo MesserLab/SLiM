@@ -8,7 +8,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 
 
 development head (in the master branch):
-
+	fix the documentation for the timeUnit parameter of initializeTreeSeq(), which had not been updated for SLiM 4's policy change that the default is now "ticks" in all cases
+	
 
 version 4.0 (Eidos version 3.0):
 	fix deprecated pyslim API issues in recipes 17.2, 17.4, 17.5, 17.7, 17.8, 17.10, 18.13:
