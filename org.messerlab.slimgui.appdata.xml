@@ -13,8 +13,11 @@
   </description>
   <screenshots>
     <screenshot type="default">
-      <null>ssimg.png</null>
+        <image>https://github.com/bryce-carson/SLiM/blob/ab1a982d6f6238d1702cd6a146b4b90019a566d4/org.messerlab.slimgui.screenshot.png</image>
     </screenshot>
   </screenshots>
+  <!-- LINKS to display in "Software Center" applications-->
+  <url type="bugtracker">https://github.com/MesserLab/SLiM/issues</url>
+  <url type="homepage">https://messerlab.org/slim/</url>
   <developer_name>Ben Haller</developer_name>
 </component>

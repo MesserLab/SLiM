@@ -1,6 +1,6 @@
 Name:           SLiM
 Version:        4.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        an evolutionary simulation framework
 
 License:        GPLv3+
@@ -113,6 +113,12 @@ update-mime-database -n /usr/share/mime/
 xdg-mime install --mode system /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Tue Aug 23 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0-2
+- Include new changelog entry to identify the date of the new release
+
+* Wed Aug 10 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0-1
+- New release
+
 * Sat Feb 12 2022 Bryce Carson <bryce.a.carson@gmail.com> - 3.7.1-1
 - Increment version
 
