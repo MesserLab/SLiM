@@ -4355,6 +4355,8 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
 	
+	tables_initialized_ = true;
+	
 	ret = table_collection_load_text(&tables_,
 									 MspTxtNodeTable,
 									 MspTxtEdgeTable,
@@ -8294,6 +8296,8 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	
 	ret = tsk_table_collection_load(&tables_, p_file, TSK_LOAD_SKIP_REFERENCE_SEQUENCE);	// we load the ref seq ourselves; see below
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
+	
+	tables_initialized_ = true;
 	
 	// BCH 4/25/2019: if indexes are present on tables_ we want to drop them; they are synced up
 	// with the edge table, but we plan to modify the edge table so they will become invalid anyway, and
