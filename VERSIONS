@@ -10,6 +10,8 @@ The build numbers given here are visible in SLiMgui's about panel.  They are not
 development head (in the master branch):
 	fix the documentation for the timeUnit parameter of initializeTreeSeq(), which had not been updated for SLiM 4's policy change that the default is now "ticks" in all cases
 	fix a bug that would bite tree-seq models that reloaded with readFromPopulationFile(); such models could trigger an internal error, or leak memory
+	fix LogFile bug with an absolute filesystem path on Windows
+	fix error incorrectly raised for treeSeqRememberIndividuals() with a zero-length individuals vector
 	
 
 version 4.0 (Eidos version 3.0):

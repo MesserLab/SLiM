@@ -3185,13 +3185,16 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	bool permanent = permanent_value->LogicalAtIndex(0, nullptr); 
 	uint32_t flag = permanent ? SLIM_TSK_INDIVIDUAL_REMEMBERED : SLIM_TSK_INDIVIDUAL_RETAINED;
 	
+	if (ind_count == 0)
+		return gStaticEidosValueVOID;
+	
 	// SPECIES CONSISTENCY CHECK
 	Species *species = Community::SpeciesForIndividuals(individuals_value);
 	
 	if (species != this)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
-	if (individuals_value->Count() == 1)
+	if (ind_count == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
 		AddIndividualsToTable(&ind, 1, &tables_, &tabled_individuals_hash_, flag);

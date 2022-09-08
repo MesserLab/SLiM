@@ -964,6 +964,7 @@ void _RunTreeSeqTests(std::string temp_path)
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: early() { sim.treeSeqSimplify(); } 100 early() { stop(); }", __LINE__);
 	
 	// treeSeqRememberIndividuals()
+	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 early() { sim.treeSeqRememberIndividuals(p1.individuals[integer(0)]); } 100 early() { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 early() { sim.treeSeqRememberIndividuals(p1.individuals); } 100 early() { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "1: early() { sim.treeSeqRememberIndividuals(p1.individuals); } 100 early() { sim.treeSeqSimplify(); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "50 early() { sim.treeSeqRememberIndividuals(p1.individuals, permanent=F); } 100 early() { sim.treeSeqSimplify(); stop(); }", __LINE__);
