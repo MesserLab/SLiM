@@ -161,20 +161,16 @@ jobs:
           - os: ubuntu-18.04
             qt: 5.9.5
             gcc: 4.8
-            qtinstaller_v: v2
           # Ubuntu with the most recent Qt and GCC.
           - os: ubuntu-20.04
             qt: 5.15.2
             gcc: 11
-            qtinstaller_v: v3
           # MacOS with oldest supported Qt.
           - os: macos-10.15
             qt: 5.9.5
-            qtinstaller_v: v3
           # MacOS with most recent Qt.
           - os: macos-10.15
             qt: 5.15.2
-            qtinstaller_v: v3
 
     steps:
       - name: Checkout
@@ -188,21 +184,11 @@ jobs:
             --install /usr/bin/gcc gcc /usr/bin/gcc-${{ matrix.gcc }} 100 \
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
 
-      # The jurplel/install-qt-action script @v3 seems to not work on this platform, stick for @v2 for now
-      # once https://github.com/jurplel/install-qt-action/issues/163 is fixed this can probably be removed
-      - name: Install Qt v2
-        if: matrix.qtinstaller_v == 'v2'
-        uses: jurplel/install-qt-action@v2
-        with:
-          version: ${{ matrix.qt }}
-          setup-python: false
-
-      - name: Install Qt v3
-        if: matrix.qtinstaller_v == 'v3'
+      - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ matrix.qt }}
-          setup-python: false
+          setup-python: true
 
       - name: Build (cmake)
         run: |
