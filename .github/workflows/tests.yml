@@ -191,14 +191,14 @@ jobs:
       # The jurplel/install-qt-action script @v3 seems to not work on this platform, stick for @v2 for now
       # once https://github.com/jurplel/install-qt-action/issues/163 is fixed this can probably be removed
       - name: Install Qt v2
-        if: matrix.qtinstaller_v == v2
+        if: matrix.qtinstaller_v == 'v2'
         uses: jurplel/install-qt-action@v2
         with:
           version: ${{ matrix.qt }}
           setup-python: false
 
       - name: Install Qt v3
-        if: matrix.qtinstaller_v == v3
+        if: matrix.qtinstaller_v == 'v3'
         uses: jurplel/install-qt-action@v3
         with:
           version: ${{ matrix.qt }}
