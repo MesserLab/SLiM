@@ -175,7 +175,7 @@ jobs:
             --slave /usr/bin/g++ g++ /usr/bin/g++-${{ matrix.gcc }}
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v2
+        uses: jurplel/install-qt-action@v3
         with:
           version: ${{ matrix.qt }}
           setup-python: false
