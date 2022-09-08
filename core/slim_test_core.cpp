@@ -507,7 +507,7 @@ void _RunSpeciesTests(std::string temp_path)
 	if (Eidos_TemporaryDirectoryExists())
 		SLiMAssertScriptSuccess(gen1_setup_highmut_p1 + "5 late() { sim.outputMutations(sim.mutations, '" + temp_path + "/slimOutputMutationsTest.txt'); }", __LINE__);
 	
-	// Test - (void)readFromPopulationFile(string$ filePath)
+	// Test sim - (void)readFromPopulationFile(string$ filePath)
 	if (Eidos_TemporaryDirectoryExists())
 	{
 		SLiMAssertScriptSuccess(gen1_setup + "1 early() { sim.readFromPopulationFile('" + temp_path + "/slimOutputFullTest.txt'); }", __LINE__);												// legal, read from file path; depends on the outputFull() test above
@@ -676,6 +676,10 @@ void _RunSpeciesTests(std::string temp_path)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=25:28); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, 25:28)) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(25:28, 35)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(25:28, 35))) stop(); } s1 10 early() { }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { b = community.rescheduleScriptBlock(1, ticks=c(13, 25:28)); r = sapply(b, 'applyValue.start:applyValue.end;'); if (identical(r, c(13, 25:28))) stop(); } s1 10 early() { }", __LINE__);
+	
+	// Test Community - (object<LogFile>$)createLogFile(string$ filePath, [Ns initialContents = NULL], [logical$ append = F], [logical$ compress = F], [string$ sep = ","], [Ni$ logInterval = NULL], [Ni$ flushInterval = NULL])
+	if (Eidos_TemporaryDirectoryExists())
+		SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 late() { path = '" + temp_path + "/slimLogFileTest.txt'; log = community.createLogFile(path, initialContents='# HEADER COMMENT', logInterval=1); log.addTick(); log.addCycle(); log.addSubpopulationSize(p1); } 10 late() { }", __LINE__);
 	
 	// Test Community - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 early() { stop(); }", __LINE__);
