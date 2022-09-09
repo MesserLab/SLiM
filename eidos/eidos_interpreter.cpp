@@ -780,7 +780,8 @@ void EidosInterpreter::_AssignRValueToLValue(EidosValue_SP p_rvalue, const Eidos
 				EIDOS_TERMINATION << "ERROR (EidosInterpreter::_AssignRValueToLValue): (internal error) the '.' operator for x.y requires operand y to be an identifier." << EidosTerminate(nullptr);
 			
 			// OK, we have <object type>.<identifier>; we can work with that
-			static_cast<EidosValue_Object *>(first_child_value.get())->SetPropertyOfElements(second_child_node->cached_stringID_, *p_rvalue);
+			static_cast<EidosValue_Object *>(first_child_value.get())->SetPropertyOfElements(second_child_node->cached_stringID_, *p_rvalue, second_child_node->token_);
+			
 			break;
 		}
 		case EidosTokenType::kTokenIdentifier:

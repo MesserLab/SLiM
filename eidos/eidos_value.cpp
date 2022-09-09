@@ -2706,12 +2706,14 @@ EidosValue_SP EidosValue_Object_vector::GetPropertyOfElements(EidosGlobalStringI
 	}
 }
 
-void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value)
+void EidosValue_Object_vector::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token)
 {
 	const EidosPropertySignature *signature = Class()->SignatureForProperty(p_property_id);
 	
+	// BCH 9 Sept. 2022: if the property does not exist, raise an error on the token for the property name.
+	// Note that other errors stemming from this call will refer to whatever the current error range is.
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_vector::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(p_property_token);
 	
 	bool exact_match = signature->CheckAssignedValue(p_value);
 	
@@ -3341,12 +3343,14 @@ EidosValue_SP EidosValue_Object_singleton::GetPropertyOfElements(EidosGlobalStri
 	return result;
 }
 
-void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value)
+void EidosValue_Object_singleton::SetPropertyOfElements(EidosGlobalStringID p_property_id, const EidosValue &p_value, EidosToken *p_property_token)
 {
 	const EidosPropertySignature *signature = value_->Class()->SignatureForProperty(p_property_id);
 	
+	// BCH 9 Sept. 2022: if the property does not exist, raise an error on the token for the property name.
+	// Note that other errors stemming from this call will refer to whatever the current error range is.
 	if (!signature)
-		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosValue_Object_singleton::SetPropertyOfElements): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " is not defined for object element type " << ElementType() << "." << EidosTerminate(p_property_token);
 	
 	signature->CheckAssignedValue(p_value);
 	
