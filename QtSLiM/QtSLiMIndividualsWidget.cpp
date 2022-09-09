@@ -687,11 +687,11 @@ void QtSLiMIndividualsWidget::drawIndividualsFromSubpopulationInArea(Subpopulati
             float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
             Individual &individual = *subpop->parent_individuals_[static_cast<size_t>(individualArrayIndex)];
             
-            if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
+            if (Individual::s_any_individual_color_set_ && individual.color_set_)
             {
-                colorRed = individual.color_red_;
-                colorGreen = individual.color_green_;
-                colorBlue = individual.color_blue_;
+                colorRed = individual.colorR_ / 255.0F;
+                colorGreen = individual.colorG_ / 255.0F;
+                colorBlue = individual.colorB_ / 255.0F;
             }
             else
             {
@@ -1464,11 +1464,11 @@ void QtSLiMIndividualsWidget::drawSpatialIndividualsFromSubpopulationInArea(Subp
 		// dark gray default, for a fitness of NaN; should never happen
 		float colorRed = 0.3f, colorGreen = 0.3f, colorBlue = 0.3f, colorAlpha = 1.0;
 		
-		if (Individual::s_any_individual_color_set_ && !individual.color_.empty())
+		if (Individual::s_any_individual_color_set_ && individual.color_set_)
 		{
-			colorRed = individual.color_red_;
-			colorGreen = individual.color_green_;
-			colorBlue = individual.color_blue_;
+			colorRed = individual.colorR_ / 255.0F;
+			colorGreen = individual.colorG_ / 255.0F;
+			colorBlue = individual.colorB_ / 255.0F;
 		}
         else if (forceColor)
         {

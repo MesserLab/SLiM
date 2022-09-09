@@ -63,13 +63,14 @@ private:
 	
 	EidosValue_SP self_value_;						// cached EidosValue object for speed
 	
-	std::string color_;								// color to use when displayed (in SLiMgui)
-	float color_red_, color_green_, color_blue_;	// cached color components from color_; should always be in sync
+	uint8_t color_set_;								// set to true if the color for the individual has been set
+	uint8_t colorR_, colorG_, colorB_;				// cached color components from the color property
 	
 	// Pedigree-tracking ivars.  These are -1 if unknown, otherwise assigned sequentially from 0 counting upward.  They
 	// uniquely identify individuals within the simulation, so that relatedness of individuals can be assessed.  They can
 	// be accessed through the read-only pedigree properties.  These are only maintained if sim->pedigrees_enabled_ is on.
 	// If these are maintained, genome pedigree IDs are also maintained in parallel; see genome.h.
+	float mean_parent_age_;				// the mean age of this individual's parents; 0 if parentless, -1 in WF models
 	slim_pedigreeid_t pedigree_id_;		// the id of this individual
 	slim_pedigreeid_t pedigree_p1_;		// the id of parent 1
 	slim_pedigreeid_t pedigree_p2_;		// the id of parent 2
@@ -84,6 +85,10 @@ public:
 	// BCH 6 April 2017: making these ivars public; lots of other classes want to access them, but writing
 	// accessors for them seems excessively complicated / slow, and friending the whole class is too invasive.
 	// Basically I think of the Individual class as just being a struct-like bag in some aspects.
+	
+	eidos_logical_t migrant_;			// T if the individual has migrated in the current cycle, F otherwise
+	eidos_logical_t killed_;			// T if the individual has been killed by killIndividuals(), F otherwise
+	uint8_t scratch_;					// available for use by algorithms
 	
 	slim_usertag_t tag_value_;			// a user-defined tag value
 	double tagF_value_;					// a user-defined tag value of float type
@@ -104,9 +109,6 @@ public:
 	
 	slim_popsize_t index_;				// the individual index in that subpop (0-based, and not multiplied by 2)
 	Subpopulation *subpopulation_;		// the subpop to which we belong; cannot be a reference because it changes on migration!
-	eidos_logical_t migrant_;			// T if the individual has migrated in the current cycle, F otherwise
-	eidos_logical_t killed_;			// T if the individual has been killed by killIndividuals(), F otherwise
-	uint8_t scratch_;					// available for use by algorithms
 	
 	// Continuous space ivars.  These are effectively free tag values of type float, unless they are used by interactions.
 	double spatial_x_, spatial_y_, spatial_z_;
@@ -119,10 +121,10 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	inline virtual ~Individual(void) override { }
 	
-	inline __attribute__((always_inline)) void ClearColor(void) { color_.clear(); }
+	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
 	
 	inline __attribute__((always_inline)) double TagFloat(void) { return tagF_value_; }
 	

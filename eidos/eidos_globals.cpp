@@ -3673,6 +3673,24 @@ void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_s
 	p_string_buffer[7] = 0;
 }
 
+void Eidos_GetColorString(uint8_t p_red, uint8_t p_green, uint8_t p_blue, char *p_string_buffer)
+{
+	int r_i = (int)p_red;
+	int g_i = (int)p_green;
+	int b_i = (int)p_blue;
+	
+	static char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+	
+	p_string_buffer[0] = '#';
+	p_string_buffer[1] = hex[r_i / 16];
+	p_string_buffer[2] = hex[r_i % 16];
+	p_string_buffer[3] = hex[g_i / 16];
+	p_string_buffer[4] = hex[g_i % 16];
+	p_string_buffer[5] = hex[b_i / 16];
+	p_string_buffer[6] = hex[b_i % 16];
+	p_string_buffer[7] = 0;
+}
+
 void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, double *p_b)
 {
 	if (std::isnan(h) || std::isnan(s) || std::isnan(v))
