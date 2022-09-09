@@ -68,8 +68,10 @@ double gsl_ran_erlang_pdf (const double x, const double a, const double n);
 double gsl_ran_fdist (const gsl_rng * r, const double nu1, const double nu2);
 double gsl_ran_fdist_pdf (const double x, const double nu1, const double nu2);
 
-double gsl_ran_flat (const gsl_rng * r, const double a, const double b);
-double gsl_ran_flat_pdf (double x, const double a, const double b);
+// BCH 9 Sept. 2022: commenting this out to remind myself that it has a bug in the GSL code!
+// see https://github.com/tskit-dev/msprime/issues/1997
+//double gsl_ran_flat (const gsl_rng * r, const double a, const double b);
+//double gsl_ran_flat_pdf (double x, const double a, const double b);
 
 double gsl_ran_gamma (const gsl_rng * r, const double a, const double b);
 double gsl_ran_gamma_int (const gsl_rng * r, const unsigned int a);
