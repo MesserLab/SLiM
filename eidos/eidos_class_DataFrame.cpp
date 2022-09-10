@@ -454,7 +454,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 	// Then subset the columns
 	EidosDataFrame *cols_subset;
 	
-	if (rows_value->Type() == EidosValueType::kValueNULL)
+	if (cols_value->Type() == EidosValueType::kValueNULL)
 	{
 		cols_subset = rows_subset;
 		cols_subset->Retain();
