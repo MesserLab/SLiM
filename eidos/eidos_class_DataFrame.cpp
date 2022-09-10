@@ -575,8 +575,8 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	std::string dec_string = dec_value->StringAtIndex(0, nullptr);
 	std::string comment_string = comment_value->StringAtIndex(0, nullptr);
 	
-	if (sep_string.length() != 1)
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that sep be a string of exactly one character." << EidosTerminate(nullptr);
+	if (sep_string.length() > 1)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that sep be a string of exactly one character, or the empty string \"\"." << EidosTerminate(nullptr);
 	if (quote_string.length() != 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that quote be a string of exactly one character." << EidosTerminate(nullptr);
 	if (dec_string.length() != 1)
@@ -584,12 +584,13 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 	if (comment_string.length() > 1)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that comment be a string of exactly one character, or the empty string." << EidosTerminate(nullptr);
 	
-	char sep = sep_string[0];
+	char sep = (sep_string.length() ? sep_string[0] : 0);				// 0 indicates "whitespace separator", a special case
 	char quote = quote_string[0];
 	char dec = dec_string[0];
 	char comment = (comment_string.length() ? comment_string[0] : 0);	// 0 indicates "no comments"
 	
-	if ((sep == quote) || (sep == dec) || (sep == comment) || (quote == dec) || (quote == comment) || (dec == comment))
+	if ((sep && ((sep == quote) || (sep == dec) || (sep == comment))) ||
+		((quote == dec) || (quote == comment) || (dec == comment)))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires sep, quote, dec, and comment to be different from each other." << EidosTerminate(nullptr);
 	if (!std::isprint(dec) || std::isalnum(dec) || (dec == '+') || (dec == '-'))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): readCSV() requires that dec be a printable, non-alphanumeric character that is not '+' or '-' (typically '.' or ',')." << EidosTerminate(nullptr);
@@ -613,6 +614,11 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		if ((ch == 0) || (comment && (ch == comment)))
 			continue;
 		
+		// if the separator is "whitespace" the line can begin with whitespace, which we eat here
+		if (!sep)
+			while ((ch == ' ') || (ch == '\t'))
+				ch = *(++line_ptr);
+		
 		do
 		{
 			// ch should always be equal to *line_ptr here already, no need to fetch it again
@@ -620,15 +626,19 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 			
 			// at the top of the loop, we expect a new element; a comment or a null means we have an empty string and then end
 			// this might look like: foo,bar,baz,#comment: the last element is an empty string
+			// if the separator is "whitespace" then an empty string is not implied here; we just end the line
 			if ((ch == 0) || (comment && (ch == comment)))
 			{
-				// empty element and then end the line
-				row.emplace_back();
+				// empty element (if the separator is not whitespace), and then end the line
+				if (sep)
+					row.emplace_back();
 				break;
 			}
 			
-			// similarly, a separator character here means we have am empty string and then expect another element
+			// similarly, a separator character here means we have an empty string and then expect another element
 			// we make the empty element, eat the separator, and loop back for the next element
+			// note this does not occur for a "whitespace" separator; any whitespace would already be eaten at this point,
+			// because two consecutive "whitespace" separators cannot occur, whereas ",," can occur implying an empty string
 			if (ch == sep)
 			{
 				row.emplace_back();
@@ -678,9 +688,16 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 						{
 							// not a doubled quote; the element is terminated and ch is already the character after the end quote
 							// at this point, we expect only a separator, a comment, or a line end; the element is done
-							if (ch == sep)
+							if (sep && (ch == sep))
 							{
 								ch = *(++line_ptr);
+								break;
+							}
+							else if (!sep && ((ch == ' ') || (ch == '\t')))
+							{
+								// eat a "whitespace" separator, similar to above
+								while ((ch == ' ') || (ch == '\t'))
+									ch = *(++line_ptr);
 								break;
 							}
 							else if ((ch == 0) || (comment && (ch == comment)))
@@ -724,11 +741,18 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 						line_ended_without_separator = true;
 						break;
 					}
-					else if (ch == sep)
+					else if (sep && (ch == sep))
 					{
 						// we hit a separator, which terminates the element but expects another
 						// eat the separator so we're at the start of the next element
 						ch = *(++line_ptr);
+						break;
+					}
+					else if (!sep && ((ch == ' ') || (ch == '\t')))
+					{
+						// eat a "whitespace" separator, similar to above
+						while ((ch == ' ') || (ch == '\t'))
+							ch = *(++line_ptr);
 						break;
 					}
 					else if (comment && (ch == comment))
