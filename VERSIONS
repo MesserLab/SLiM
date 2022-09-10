@@ -13,6 +13,7 @@ development head (in the master branch):
 	fix LogFile bug with an absolute filesystem path on Windows
 	fix error incorrectly raised for treeSeqRememberIndividuals() with a zero-length individuals vector
 	fix the error position reported for assignment into a non-existent property; this fixes a bug in SLiMgui's autofix feature, as a side effect (with, e.g., "sim.generation = 5")
+	revise recipe 6.1.2 (reading a recombination map from a file) to use readCSV() instead of readFile()
 	
 
 version 4.0 (Eidos version 3.0):
