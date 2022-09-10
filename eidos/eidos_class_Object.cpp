@@ -116,7 +116,8 @@ EidosValue_SP EidosObject::ExecuteInstanceMethod(EidosGlobalStringID p_method_id
 #pragma unused(p_arguments, p_interpreter)
 	switch (p_method_id)
 	{
-		case gEidosID_str:	return ExecuteMethod_str(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_str:					return ExecuteMethod_str(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_stringRepresentation:	return ExecuteMethod_stringRepresentation(p_method_id, p_arguments, p_interpreter);
 			
 		default:
 		{
@@ -232,6 +233,19 @@ EidosValue_SP EidosObject::ExecuteMethod_str(EidosGlobalStringID p_method_id, co
 	}
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (string$)stringRepresentation(void)
+//
+EidosValue_SP EidosObject::ExecuteMethod_stringRepresentation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	std::ostringstream oss;
+	
+	Print(oss);
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(oss.str()));
 }
 
 EidosValue_SP EidosObject::ContextDefinedFunctionDispatch(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -520,6 +534,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosClass::Methods(void) const
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_size, kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gEidosStr_length, kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_str, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_stringRepresentation, kEidosValueMaskString | kEidosValueMaskSingleton)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

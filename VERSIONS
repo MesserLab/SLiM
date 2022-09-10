@@ -16,6 +16,7 @@ development head (in the master branch):
 	revise recipe 6.1.2 (reading a recombination map from a file) to use readCSV() instead of readFile()
 	extend the subset() method of DataFrame to accept NULL for rows/cols, to take entire columns or entire rows respectively, for usability
 	extend readCSV() to allow sep="", meaning that the separator is "whitespace", as in R
+	add a stringRepresentation() method on Object, to provide the same string representation printed by print()
 	
 
 version 4.0 (Eidos version 3.0):

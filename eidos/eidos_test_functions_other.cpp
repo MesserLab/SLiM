@@ -939,6 +939,9 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptSuccess_VOID("matrix(_Test(7)).str();");
 	EidosAssertScriptSuccess_VOID("matrix(c(_Test(7), _Test(8), _Test(9))).str();");
 	
+	// stringRepresentation()
+	EidosAssertScriptSuccess_SV("matrix(rep(_Test(7), 3)).stringRepresentation();", {"_TestElement", "_TestElement", "_TestElement"});
+	EidosAssertScriptSuccess_S("Dictionary('a', 1:3, 'b', 5:6).stringRepresentation();", "{a=1 2 3;b=5 6;}");
 	
 	// Test EidosDictionaryUnretained properties and methods, using EidosDictionaryRetained
 	// since there's no way to instantiate an EidosDictionaryUnretained directly

@@ -90,6 +90,26 @@
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Prints the internal property structure of the receiving object; in particular, the element type of the object is printed, followed, on successive lines, by all of the properties supported by the object, their types, and a sample of their values.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(string$)stringRepresentation(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a singleton 
+\f3\fs18 string
+\f4\fs20  value that represents the receiving object.  By default, this is simply the name of the class of the receiving object; however, many subclasses of 
+\f3\fs18 Object
+\f4\fs20  provide a different string representation.  The value returned by 
+\f3\fs18 stringRepresentation()
+\f4\fs20  is the same string that would be printed by 
+\f3\fs18 print()
+\f4\fs20  for the object, so 
+\f3\fs18 stringRepresentation()
+\f4\fs20  allows the same representation to be used in other contexts such as 
+\f3\fs18 paste()
+\f4\fs20  and 
+\f3\fs18 cat()
+\f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.2  Class DataFrame\

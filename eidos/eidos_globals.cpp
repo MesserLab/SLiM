@@ -2702,6 +2702,7 @@ const std::string &gEidosStr_length = EidosRegisteredString("length", gEidosID_l
 const std::string &gEidosStr_methodSignature = EidosRegisteredString("methodSignature", gEidosID_methodSignature);
 const std::string &gEidosStr_propertySignature = EidosRegisteredString("propertySignature", gEidosID_propertySignature);
 const std::string &gEidosStr_str = EidosRegisteredString("str", gEidosID_str);
+const std::string &gEidosStr_stringRepresentation = EidosRegisteredString("stringRepresentation", gEidosID_stringRepresentation);
 
 // strings for EidosTestElement
 const std::string &gEidosStr__TestElement = EidosRegisteredString("_TestElement", gEidosID__TestElement);
