@@ -243,12 +243,12 @@ This method is similar to the
 \f4\fs20 , which may be used instead if one wishes the append to work even when the columns are in different orders, or other such situations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(*)subset(li\'a0rows, lis\'a0cols)\
+\f3\fs18 \cf2 \'96\'a0(*)subset([Nli\'a0rows\'a0=\'a0NULL], [Nlis\'a0cols\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the elements in the selected rows and columns of the target 
 \f3\fs18 DataFrame
-\f4\fs20 .  The selection logic is identical to that for 
+\f4\fs20 .  The selection logic is based upon that for 
 \f3\fs18 subsetRows()
 \f4\fs20  and 
 \f3\fs18 subsetColumns()
@@ -262,7 +262,21 @@ This method is similar to the
 \f3\fs18 logical
 \f4\fs20  vector, or by a 
 \f3\fs18 string
-\f4\fs20  vector of column names.\
+\f4\fs20  vector of column names.  In addition, however, 
+\f3\fs18 NULL
+\f4\fs20  may be passed for either 
+\f3\fs18 rows
+\f4\fs20  or 
+\f3\fs18 cols
+\f4\fs20  to select all of the rows or all of the columns, respectively; this is the default for both parameters.  If you want entire rows (rather than selecting particular columns), pass 
+\f3\fs18 NULL
+\f4\fs20  for 
+\f3\fs18 cols
+\f4\fs20 ; if you want entire columns (rather than selecting particular rows), pass 
+\f3\fs18 NULL
+\f4\fs20  for 
+\f3\fs18 rows
+\f4\fs20 .\
 The first step performed by 
 \f3\fs18 subset()
 \f4\fs20  is to produce a 
@@ -285,7 +299,7 @@ The first step performed by
 \f3\fs18 subsetColumns()
 \f4\fs20 , which always return a 
 \f3\fs18 DataFrame
-\f4\fs20 .  It is therefore a convenient way to get a single value, or multiple values from the same column, from a 
+\f4\fs20 .  This method is therefore a convenient way to get a single value, or multiple values from the same column, from a 
 \f3\fs18 DataFrame
 \f4\fs20 .  (Note that the 
 \f3\fs18 Dictionary

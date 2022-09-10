@@ -428,7 +428,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_i
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (*)subset(li rows, lis cols)
+//	*********************	- (*)subset([Nli rows = NULL], [Nlis cols = NULL])
 //
 EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -438,12 +438,32 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 	EidosValue_SP result_SP(nullptr);
 	
 	// First subset the rows
-	EidosDataFrame *rows_subset = SubsetRows(rows_value);
-	rows_subset->ContentsChanged("subset()");
+	EidosDataFrame *rows_subset;
+	
+	if (rows_value->Type() == EidosValueType::kValueNULL)
+	{
+		rows_subset = this;
+		rows_subset->Retain();
+	}
+	else
+	{
+		rows_subset = SubsetRows(rows_value);
+		rows_subset->ContentsChanged("subset()");
+	}
 	
 	// Then subset the columns
-	EidosDataFrame *cols_subset = rows_subset->SubsetColumns(cols_value);
-	cols_subset->ContentsChanged("subset()");
+	EidosDataFrame *cols_subset;
+	
+	if (rows_value->Type() == EidosValueType::kValueNULL)
+	{
+		cols_subset = rows_subset;
+		cols_subset->Retain();
+	}
+	else
+	{
+		cols_subset = rows_subset->SubsetColumns(cols_value);
+		cols_subset->ContentsChanged("subset()");
+	}
 	
 	// Then return the resulting DataFrame, or if it contains exactly one column, return the vector of values from that column instead
 	if (cols_subset->ColumnCount() == 1)
@@ -1082,7 +1102,9 @@ const std::vector<EidosMethodSignature_CSP> *EidosDataFrame_Class::Methods(void)
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_cbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_rbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subset, kEidosValueMaskAny))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "rows", nullptr)->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskString, "cols", nullptr));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subset, kEidosValueMaskAny))
+			->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional, "rows", nullptr, gStaticEidosValueNULL)
+			->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskOptional, "cols", nullptr, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subsetColumns, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskString, "index", nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subsetRows, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDataFrame_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr)->AddLogical_OS("drop", gStaticEidosValue_LogicalF));
 		

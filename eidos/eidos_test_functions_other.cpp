@@ -1169,6 +1169,13 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('b', Dictionary(), 'a', T); x.rbind(y);", 84, "cannot be mixed");
 	
 	// DataFrame subset()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset().identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=0).identicalContents(DataFrame('b', 1, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=1).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=2).identicalContents(DataFrame('b', 3, 'a', T));", true);
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(cols=0);", {1, 2, 3});
+	EidosAssertScriptSuccess_LV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(cols=1);", {true, false, true});
+	
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 0);", 1);
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 0);", 2);
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 'b');", 1);
