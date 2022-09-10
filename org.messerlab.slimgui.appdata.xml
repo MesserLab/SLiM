@@ -13,7 +13,7 @@
   </description>
   <screenshots>
     <screenshot type="default">
-        <image type="source">https://raw.githubusercontent.com/bryce-carson/SLiM/flatpak-merge-request/org.messerlab.slimgui.screenshot.png</image>
+        <image type="source">https://raw.githubusercontent.com/MesserLab/SLiM/master/org.messerlab.slimgui.screenshot.png</image>
     </screenshot>
   </screenshots>
   <!-- LINKS to display in "Software Center" applications-->
