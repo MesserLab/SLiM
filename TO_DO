@@ -74,6 +74,11 @@ a useful LaTeX equation editor:
 find all instances of a string (or regex) in the commit history:
 	git --no-pager log -G"pedigree"
 
+to dump class memory layouts in Xcode:
+	add -Xclang and -fdump-record-layouts to "Other C++ Flags" in the project
+	rebuild one file of interest with command-control-B
+	go to the Report navigator, click on the build of the file
+	click on the compile execution line in the build log, then click on the report viewer icon at the right edge of that line
 
 
 

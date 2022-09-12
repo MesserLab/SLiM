@@ -451,7 +451,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 				// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
 				Genome *genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 				Genome *genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
 				child_genomes_.emplace_back(genome1);
 				child_genomes_.emplace_back(genome2);
@@ -465,7 +465,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			{
 				Genome *genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 				Genome *genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
 				child_genomes_.emplace_back(genome1);
 				child_genomes_.emplace_back(genome2);
@@ -519,7 +519,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 // Generate new individuals to fill out a freshly created subpopulation, including recording in the tree
 // sequence unless this is the result of addSubpopSplit() (which does its own recording since parents are
 // involved in that case).  This handles both the WF and nonWF cases, which are very similar.
-void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid)
+void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age)
 {
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = p_record_in_treeseq && species_.RecordingTreeSequence();
@@ -649,7 +649,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -695,7 +695,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -1029,12 +1029,12 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 {
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ -1.0F);
 		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ 0.0, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -1069,12 +1069,12 @@ Subpopulation::Subpopulation(Population &p_population, slim_objectid_t p_subpopu
 {
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
-		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
+		GenerateParentsToFit(/* p_initial_age */ -1, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ false, /* p_require_both_sexes */ true, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ -1.0F);
 		GenerateChildrenToFitWF();
 	}
 	else
 	{
-		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid);
+		GenerateParentsToFit(/* p_initial_age */ 0, /* p_sex_ratio */ p_sex_ratio, /* p_allow_zero_size */ true, /* p_require_both_sexes */ false, /* p_record_in_treeseq */ p_record_in_treeseq, p_haploid, /* p_mean_parent_age */ 0.0F);
 	}
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
@@ -4403,7 +4403,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
@@ -4530,7 +4530,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (parent1->age_ + (float)parent2->age_) / 2.0F);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
@@ -4668,7 +4668,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ 0.0F);
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
@@ -4916,12 +4916,59 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		}
 	}
 	
+	// Figure out the mean parent age; it is averaged across the mean parent age for each non-null child genome
+	float mean_parent_age = 0.0;
+	int non_null_count = 0;
+	
+	if (strand1_parent && strand2_parent)
+	{
+		mean_parent_age += ((strand1_parent->age_ + (float)strand2_parent->age_) / 2.0F);
+		non_null_count++;
+	}
+	else if (strand1_parent)
+	{
+		mean_parent_age += strand1_parent->age_;
+		non_null_count++;
+	}
+	else if (strand2_parent)
+	{
+		mean_parent_age += strand2_parent->age_;
+		non_null_count++;
+	}
+	else
+	{
+		// this child genome is generated from NULL, nULL for parents, so there is no parent to average the age of
+	}
+	
+	if (strand3_parent && strand4_parent)
+	{
+		mean_parent_age += ((strand3_parent->age_ + (float)strand4_parent->age_) / 2.0F);
+		non_null_count++;
+	}
+	else if (strand3_parent)
+	{
+		mean_parent_age += strand3_parent->age_;
+		non_null_count++;
+	}
+	else if (strand4_parent)
+	{
+		mean_parent_age += strand4_parent->age_;
+		non_null_count++;
+	}
+	else
+	{
+		// this child genome is generated from NULL, nULL for parents, so there is no parent to average the age of
+	}
+	
+	if (non_null_count > 0)
+		mean_parent_age = mean_parent_age / non_null_count;
+	
 	// Make the new individual as a candidate
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
@@ -5241,7 +5288,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();

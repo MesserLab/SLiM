@@ -1233,6 +1233,7 @@ const std::string &gStr_spatialBounds = EidosRegisteredString("spatialBounds", g
 const std::string &gStr_individualCount = EidosRegisteredString("individualCount", gID_individualCount);
 const std::string &gStr_fixationTick = EidosRegisteredString("fixationTick", gID_fixationTick);
 const std::string &gStr_age = EidosRegisteredString("age", gID_age);
+const std::string &gStr_meanParentAge = EidosRegisteredString("meanParentAge", gID_meanParentAge);
 const std::string &gStr_pedigreeID = EidosRegisteredString("pedigreeID", gID_pedigreeID);
 const std::string &gStr_pedigreeParentIDs = EidosRegisteredString("pedigreeParentIDs", gID_pedigreeParentIDs);
 const std::string &gStr_pedigreeGrandparentIDs = EidosRegisteredString("pedigreeGrandparentIDs", gID_pedigreeGrandparentIDs);

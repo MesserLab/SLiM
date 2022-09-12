@@ -45,12 +45,14 @@ bool Individual::s_any_individual_or_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness) :
-	pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1), pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0), cached_fitness_UNSAFE_(p_fitness),
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1),
+	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
+	migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
 	cached_unscaled_fitness_(p_fitness),
 #endif
-	genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation), migrant_(false), killed_(false)
+	genome1_(p_genome1), genome2_(p_genome2), sex_(p_sex), age_(p_age), index_(p_individual_index), subpopulation_(p_subpopulation)
 {
 #if DEBUG
 	if (!p_genome1 || !p_genome2)
@@ -365,6 +367,13 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(age_));
 		}
+		case gID_meanParentAge:
+		{
+			if (mean_parent_age_ == -1)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property meanParentAge is not available in WF models." << EidosTerminate();
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(mean_parent_age_));
+		}
 		case gID_pedigreeID:		// ACCELERATED
 		{
 			if (!subpopulation_->species_.PedigreesEnabledByUser())
@@ -575,7 +584,16 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			// variables
 		case gEidosID_color:
 		{
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(color_));
+			// as of SLiM 4.0.1, we construct a color string from the RGB values, which will
+			// not necessarily be what the user set, but will represent the same color
+			if (!color_set_)
+				return gStaticEidosValue_StringEmpty;
+			
+			char hex_chars[8];
+			
+			Eidos_GetColorString(colorR_, colorG_, colorB_, hex_chars);
+			
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(std::string(hex_chars)));
 		}
 		case gID_tag:				// ACCELERATED
 		{
@@ -855,10 +873,16 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 	{
 		case gEidosID_color:		// ACCELERATED
 		{
-			color_ = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
-			if (!color_.empty())
+			const std::string &color_string = ((EidosValue_String &)p_value).StringRefAtIndex(0, nullptr);
+			
+			if (color_string.empty())
 			{
-				Eidos_GetColorComponents(color_, &color_red_, &color_green_, &color_blue_);
+				color_set_ = false;
+			}
+			else
+			{
+				Eidos_GetColorComponents(color_string, &colorR_, &colorG_, &colorB_);
+				color_set_ = true;
 				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
 			return;
@@ -1051,11 +1075,11 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 		if (source_value.empty())
 		{
 			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-				((Individual *)(p_values[value_index]))->color_ = source_value;
+				((Individual *)(p_values[value_index]))->color_set_ = false;
 		}
 		else
 		{
-			float color_red, color_green, color_blue;
+			uint8_t color_red, color_green, color_blue;
 			
 			Eidos_GetColorComponents(source_value, &color_red, &color_green, &color_blue);
 			
@@ -1063,10 +1087,10 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 			{
 				Individual *individual = ((Individual *)(p_values[value_index]));
 				
-				individual->color_ = source_value;
-				individual->color_red_ = color_red;
-				individual->color_green_ = color_green;
-				individual->color_blue_ = color_blue;
+				individual->colorR_ = color_red;
+				individual->colorG_ = color_green;
+				individual->colorB_ = color_blue;
+				individual->color_set_ = true;
 			}
 			
 			s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
@@ -1081,11 +1105,14 @@ void Individual::SetProperty_Accelerated_color(EidosObject **p_values, size_t p_
 			Individual *individual = ((Individual *)(p_values[value_index]));
 			const std::string &source_value = (*source_data)[value_index];
 			
-			individual->color_ = source_value;
-			
-			if (!source_value.empty())
+			if (source_value.empty())
 			{
-				Eidos_GetColorComponents(source_value, &individual->color_red_, &individual->color_green_, &individual->color_blue_);
+				individual->color_set_ = false;
+			}
+			else
+			{
+				Eidos_GetColorComponents(source_value, &individual->colorR_, &individual->colorG_, &individual->colorB_);
+				individual->color_set_ = true;
 				s_any_individual_color_set_ = true;		// keep track of the fact that an individual's color has been set
 			}
 		}
@@ -1602,6 +1629,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_meanParentAge,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));

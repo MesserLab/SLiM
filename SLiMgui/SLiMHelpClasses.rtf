@@ -2560,15 +2560,17 @@ The species to which the target object belongs.\
 \f3\fs18 \cf0 color <\'96> (string$)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The color used to display the individual in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
+\f4\fs20 \cf2 The color used to display the individual in SLiMgui.  Outside of SLiMgui, this property still exists, but is not used by SLiM.  Colors may be specified by name, or with hexadecimal RGB values of the form 
 \f3\fs18 "#RRGGBB"
-\f4\fs20 .  If 
+\f4\fs20  (see the Eidos manual).  If 
 \f3\fs18 color
 \f4\fs20  is the empty string, 
 \f3\fs18 ""
 \f4\fs20 , SLiMgui\'92s default (fitness-based) color scheme is used; this is the default for new 
 \f3\fs18 Individual
-\f4\fs20  objects.\
+\f4\fs20  objects.  Note that named colors will be converted to RGB internally, so the value of this property will always be a hexadecimal RGB color string (or 
+\f3\fs18 ""
+\f4\fs20 ).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -2642,6 +2644,20 @@ genome1 => (object<Genome>$)\
 \f4\fs20  vector of its 
 \f3\fs18 Subpopulation
 \f5\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 meanParentAge => (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The average age of the parents of this individual, measured in cycles.  Parentless individuals will have a 
+\f3\fs18 meanParentAge
+\f4\fs20  of 
+\f3\fs18 0.0
+\f4\fs20 .  The mean parent age is determined when a new offspring is generated, from the 
+\f3\fs18 age
+\f4\fs20  property of the parent or parents involved in generating the offspring.  For 
+\f3\fs18 addRecombinant()
+\f4\fs20  that is somewhat complex; see that method for details.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -7300,6 +7316,22 @@ These semantics allow several uses for
 \f4\fs20  to replace segments of an otherwise clonal copy of 
 \f3\fs18 strand1
 \f4\fs20 , while the second genome of the generated offspring will again be kept empty; this could be useful for modeling bacterial conjugation, for example.  Other variations are also possible.\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 The value of the 
+\f3\fs18 meanParentAge
+\f4\fs20  property of the generated offspring is calculated from the mean parent age of each of its two genomes (whether they turn out to be null genomes or not); that may be an average of two values (if both offspring genomes have at least one parent), a single value (if one offspring genome has no parent), or no values (if both offspring genomes have no parent, in which case 
+\f3\fs18 0.0
+\f4\fs20  results).  The mean parent age of a given offspring genome is the mean of the ages of the parents of the two strands used to generate that offspring genome; if one strand is 
+\f3\fs18 NULL
+\f4\fs20  then the mean parent age for that offspring genome is the age of the parent of the non-
+\f3\fs18 NULL
+\f4\fs20  strand, while if both strands are 
+\f3\fs18 NULL
+\f4\fs20  then that offspring genome is parentless and is not used in the final calculation.  In other words, if one offspring genome has two parents with ages A and B, and the other offspring genome has one parent with age C, the 
+\f3\fs18 meanParentAge
+\f4\fs20  of the offspring will be (A+B+C+C)\'a0/\'a04, not (A+B+C)\'a0/\'a03.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that gene conversion tracts are not explicitly supported by this method; the 
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
