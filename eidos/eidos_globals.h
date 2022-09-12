@@ -881,6 +881,7 @@ extern const std::string &gEidosStr_length;
 extern const std::string &gEidosStr_methodSignature;
 extern const std::string &gEidosStr_propertySignature;
 extern const std::string &gEidosStr_str;
+extern const std::string &gEidosStr_stringRepresentation;
 
 extern const std::string &gEidosStr__TestElement;
 extern const std::string &gEidosStr__yolk;
@@ -1001,6 +1002,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_methodSignature,
 	gEidosID_propertySignature,
 	gEidosID_str,
+	gEidosID_stringRepresentation,
 
 	gEidosID__TestElement,
 	gEidosID__yolk,

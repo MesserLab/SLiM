@@ -11,6 +11,10 @@ development head (in the master branch):
 	fix LogFile bug with an absolute filesystem path on Windows
 	fix error incorrectly raised for treeSeqRememberIndividuals() with a zero-length individuals vector
 	fix the error position reported for assignment into a non-existent property; this fixes a bug in SLiMgui's autofix feature, as a side effect (with, e.g., "sim.generation = 5")
+	revise recipe 6.1.2 (reading a recombination map from a file) to use readCSV() instead of readFile()
+	extend the subset() method of DataFrame to accept NULL for rows/cols, to take entire columns or entire rows respectively, for usability
+	extend readCSV() to allow sep="", meaning that the separator is "whitespace", as in R
+	add a stringRepresentation() method on Object, to provide the same string representation printed by print()
 	improve memory usage for Individual, down to 192 bytes from 232 bytes, by compactifying the color information for SLiMgui and rearranging ivars to minimize wasted space
 	the color property on Individual no longer guarantees that the value read equals the value set; when a color is set, it is now converted to RGB, so named colors do not round-trip
 	add a meanParentAge property, to make calculating generation length simpler; unavailable in WF models (like age), 0 for parentless individuals

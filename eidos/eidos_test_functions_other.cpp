@@ -939,6 +939,9 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptSuccess_VOID("matrix(_Test(7)).str();");
 	EidosAssertScriptSuccess_VOID("matrix(c(_Test(7), _Test(8), _Test(9))).str();");
 	
+	// stringRepresentation()
+	EidosAssertScriptSuccess_SV("matrix(rep(_Test(7), 3)).stringRepresentation();", {"_TestElement", "_TestElement", "_TestElement"});
+	EidosAssertScriptSuccess_S("Dictionary('a', 1:3, 'b', 5:6).stringRepresentation();", "{a=1 2 3;b=5 6;}");
 	
 	// Test EidosDictionaryUnretained properties and methods, using EidosDictionaryRetained
 	// since there's no way to instantiate an EidosDictionaryUnretained directly
@@ -1169,6 +1172,13 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptRaise("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('b', Dictionary(), 'a', T); x.rbind(y);", 84, "cannot be mixed");
 	
 	// DataFrame subset()
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset().identicalContents(x);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=0).identicalContents(DataFrame('b', 1, 'a', T));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=1).identicalContents(DataFrame('b', 2, 'a', F));", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(rows=2).identicalContents(DataFrame('b', 3, 'a', T));", true);
+	EidosAssertScriptSuccess_IV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(cols=0);", {1, 2, 3});
+	EidosAssertScriptSuccess_LV("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(cols=1);", {true, false, true});
+	
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 0);", 1);
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(1, 0);", 2);
 	EidosAssertScriptSuccess_I("x = DataFrame('b', 1:3, 'a', c(T,F,T)); x.subset(0, 'b');", 1);
@@ -1292,6 +1302,9 @@ void _RunClassTests(std::string temp_path)
 			EidosAssertScriptSuccess_L("x = Dictionary('a', 3:6, 'b', c(121,131,141,141141)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, quote='1'); Dictionary('\"a\"', 3:6, '\"b\"', c(2:4, 414)).identicalContents(y);", true);
 			EidosAssertScriptSuccess_L("x = Dictionary('b', c('10$25', '10$0', '10$')); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$'); Dictionary('b', c(10.25, 10, 10)).identicalContents(y);", true);
 			EidosAssertScriptSuccess_L("x = Dictionary('a', c('foo', 'bar'), 'b', c(10.5, 10.25)); file = writeTempFile('eidos_test_', '.csv', x.serialize('csv')); y = readCSV(file, dec='$', comment='.'); Dictionary('a', c('foo', 'bar'), 'b', c(10, 10)).identicalContents(y);", true);
+			
+			// test sep="" whitespace separator)
+			EidosAssertScriptSuccess_L("file = writeTempFile('eidos_test_', '.csv', c('  a   b   c   d   e', '   1   2   3   4   5   ', ' 10  20  30  40  50', '100 200 300 400 500')); y = readCSV(file, sep=''); Dictionary('a', c(1,10,100), 'b', c(2,20,200), 'c', c(3,30,300), 'd', c(4,40,400), 'e', c(5,50,500)).identicalContents(y);", true);
 		}
 	}
 	

@@ -8,19 +8,10 @@ initialize() {
 	
 	// read Drosophila 2L map from Comeron et al. 2012
 	// this file is in the recipe archive at http://benhaller.com/slim/SLiM_Recipes.zip
-	lines = readFile("Comeron_100kb_chr2L.txt");
-	rates = NULL;
-	ends = NULL;
-	
-	for (line in lines)
-	{
-		components = strsplit(line, "\t");
-		ends = c(ends, asInteger(components[0]));
-		rates = c(rates, asFloat(components[1]));
-	}
-	
+	map = readCSV("Comeron_100kb_chr2L.txt", c("ends", "rates"), sep="\t");
+	ends = map.getValue("ends");
 	ends = c(ends[1:(size(ends)-1)] - 2, 23011543);
-	rates = rates * 1e-8;
+	rates = map.getValue("rates") * 1e-8;
 	initializeRecombinationRate(rates, ends);
 }
 1 early() { sim.addSubpop("p1", 500); }
