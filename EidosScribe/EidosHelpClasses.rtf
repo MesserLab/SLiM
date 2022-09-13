@@ -193,7 +193,27 @@
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)cbind(object\'a0source, ...)\
+\f3\i0\fs18 \cf2 \'96\'a0(*)asMatrix(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a matrix representation of the 
+\f3\fs18 DataFrame
+\f4\fs20 .  The matrix will have the same type as the elements of the 
+\f3\fs18 DataFrame
+\f4\fs20 ; if the 
+\f3\fs18 DataFrame
+\f4\fs20  contains more than one type of element, an error will be raised.  The order of the columns of the 
+\f3\fs18 DataFrame
+\f4\fs20  will be preserved.  This method is useful, for example, if you wish to read in a text file as a matrix; you can use 
+\f3\fs18 readCSV()
+\f4\fs20  to read the file as a 
+\f3\fs18 DataFrame
+\f4\fs20 , and then convert it to a matrix with 
+\f3\fs18 asMatrix()
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)cbind(object\'a0source, ...)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds all of the columns contained by 

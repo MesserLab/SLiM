@@ -907,6 +907,7 @@ extern const std::string &gEidosStr_colNames;
 extern const std::string &gEidosStr_dim;
 extern const std::string &gEidosStr_ncol;
 extern const std::string &gEidosStr_nrow;
+extern const std::string &gEidosStr_asMatrix;
 extern const std::string &gEidosStr_cbind;
 extern const std::string &gEidosStr_rbind;
 extern const std::string &gEidosStr_subset;
@@ -1028,6 +1029,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_dim,
 	gEidosID_ncol,
 	gEidosID_nrow,
+	gEidosID_asMatrix,
 	gEidosID_cbind,
 	gEidosID_rbind,
 	gEidosID_subset,

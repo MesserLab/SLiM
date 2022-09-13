@@ -357,6 +357,7 @@ EidosValue_SP EidosDataFrame::ExecuteInstanceMethod(EidosGlobalStringID p_method
 	
 	switch (p_method_id)
 	{
+		case gEidosID_asMatrix:					return ExecuteMethod_asMatrix(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_cbind:					return ExecuteMethod_cbind(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_rbind:					return ExecuteMethod_rbind(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_subset:					return ExecuteMethod_subset(p_method_id, p_arguments, p_interpreter);
@@ -364,6 +365,76 @@ EidosValue_SP EidosDataFrame::ExecuteInstanceMethod(EidosGlobalStringID p_method
 		case gEidosID_subsetRows:				return ExecuteMethod_subsetRows(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
+}
+
+//	*********************	- (void)asMatrix()
+//
+EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	// First determine what type the matrix would be, and check that all columns match that type
+	int64_t nrow = RowCount();
+	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	int64_t ncol = symbols->size();
+	EidosValue_SP type_template;
+	const EidosClass *class_template = nullptr;
+	
+	if (ncol == 0)
+	{
+		type_template = gStaticEidosValue_Logical_ZeroVec;		// with no columns, we have no way to know the type, so we go with "logical", following R
+	}
+	else
+	{
+		for (auto symbols_iter : *symbols)
+		{
+			if (!type_template)
+			{
+				type_template = symbols_iter.second;
+				if (type_template->Type() == EidosValueType::kValueObject)
+					class_template = ((EidosValue_Object *)(type_template.get()))->Class();
+			}
+			else if (type_template->Type() != symbols_iter.second->Type())
+			{
+				EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_asMatrix): asMatrix() requires that every column of the target DataFrame is the same type (" << type_template->Type() << " != " << symbols_iter.second->Type() << ")." << EidosTerminate(nullptr);
+			}
+			else if (class_template)
+			{
+				const EidosClass *class_column = ((EidosValue_Object *)(symbols_iter.second.get()))->Class();
+				
+				if (class_template != class_column)
+					EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_asMatrix): asMatrix() requires that every object element in the target DataFrame is the same class (" << class_template->ClassName() << " != " << class_column->ClassName() << ")." << EidosTerminate(nullptr);
+			}
+		}
+	}
+	
+	// Create the matrix; for now we use a slow implementation that is type-agnostic and does not resize to fit first, probably this is unlikely to be a bottleneck
+	//int64_t data_count = nrow * ncol;
+	EidosValue_SP result_SP = type_template->NewMatchingType();
+	EidosValue *result = result_SP.get();
+	
+	//result_SP->resize_no_initialize(data_count);
+	
+	// Fill in all the values, in sorted column order
+	const std::vector<std::string> *keys = SortedKeys();
+	
+	for (const std::string &key : *keys)
+	{
+		auto key_iter = symbols->find(key);
+		
+		if (key_iter == symbols->end())
+			EIDOS_TERMINATION << "ERROR (EidosDataFrame::ExecuteMethod_asMatrix): (internal error) key not found." << EidosTerminate(nullptr);
+		
+		EidosValue *column_value = key_iter->second.get();
+		
+		for (int64_t i = 0; i < nrow; ++i)
+			result->PushValueFromIndexOfEidosValue((int)i, *column_value, nullptr);
+	}
+	
+	const int64_t dim_buf[2] = {nrow, ncol};
+	
+	result_SP->SetDimensions(2, dim_buf);
+	
+	return result_SP;
 }
 
 //	*********************	- (void)cbind(object source, ...)
@@ -1124,6 +1195,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDataFrame_Class::Methods(void)
 	{
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_asMatrix, kEidosValueMaskAny)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_cbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_rbind, kEidosValueMaskVOID))->AddObject("source", nullptr)->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_subset, kEidosValueMaskAny))

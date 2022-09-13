@@ -1148,6 +1148,18 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.ncol, 2);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); identical(x.nrow, 3);", true);
 	
+	// DataFrame asMatrix()
+	EidosAssertScriptRaise("x = DataFrame('a', 1:3, 'b', c(T,F,T)); x.asMatrix();", 42, "is the same type (logical != integer)");
+	EidosAssertScriptRaise("x = DataFrame('a', DataFrame(), 'b', Dictionary()); x.asMatrix();", 54, "is the same class (Dictionary != DataFrame)");
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 1:5, 'b', 11:15); m1 = x.asMatrix(); m2 = matrix(c(1:5, 11:15), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:5, 'a', 11:15); m1 = x.asMatrix(); m2 = matrix(c(1:5, 11:15), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 11:15, 'a', 1:5); m1 = x.asMatrix(); m2 = matrix(c(11:15, 1:5), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('a', 11:15, 'b', 1:5); m1 = x.asMatrix(); m2 = matrix(c(11:15, 1:5), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', 11.0:15, 'a', 1.0:5); m1 = x.asMatrix(); m2 = matrix(c(11.0:15, 1.0:5), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', c('foo','bar'), 'a', c('baz','barbaz')); m1 = x.asMatrix(); m2 = matrix(c('foo','bar','baz','barbaz'), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("x = DataFrame('b', c(T,T,F), 'a', c(F,T,F)); m1 = x.asMatrix(); m2 = matrix(c(T,T,F,F,T,F), ncol=2, byrow=F); identical(m1, m2);", true);
+	EidosAssertScriptSuccess_L("d1 = Dictionary('foo', 1:8); d2 = Dictionary('baz', 11:18); x = DataFrame('b', d1, 'a', d2); m1 = x.asMatrix(); m2 = matrix(c(d1, d2), ncol=2, byrow=F); identical(m1, m2);", true);
+	
 	// DataFrame cbind()
 	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame(); y.cbind(x); y.identicalContents(x);", true);
 	EidosAssertScriptSuccess_L("x = DataFrame('b', 1:3, 'a', c(T,F,T)); y = DataFrame('c', 2.0:4); y.cbind(x); DataFrame('c', 2.0:4, 'b', 1:3, 'a', c(T,F,T)).identicalContents(y);", true);

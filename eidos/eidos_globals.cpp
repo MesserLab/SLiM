@@ -2732,6 +2732,7 @@ const std::string &gEidosStr_colNames = EidosRegisteredString("colNames", gEidos
 const std::string &gEidosStr_dim = EidosRegisteredString("dim", gEidosID_dim);
 const std::string &gEidosStr_ncol = EidosRegisteredString("ncol", gEidosID_ncol);
 const std::string &gEidosStr_nrow = EidosRegisteredString("nrow", gEidosID_nrow);
+const std::string &gEidosStr_asMatrix = EidosRegisteredString("asMatrix", gEidosID_asMatrix);
 const std::string &gEidosStr_cbind = EidosRegisteredString("cbind", gEidosID_cbind);
 const std::string &gEidosStr_rbind = EidosRegisteredString("rbind", gEidosID_rbind);
 const std::string &gEidosStr_subset = EidosRegisteredString("subset", gEidosID_subset);

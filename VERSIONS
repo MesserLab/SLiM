@@ -18,6 +18,7 @@ development head (in the master branch):
 	improve memory usage for Individual, down to 192 bytes from 232 bytes, by compactifying the color information for SLiMgui and rearranging ivars to minimize wasted space
 	the color property on Individual no longer guarantees that the value read equals the value set; when a color is set, it is now converted to RGB, so named colors do not round-trip
 	add a meanParentAge property, to make calculating generation length simpler; unavailable in WF models (like age), 0 for parentless individuals
+	add DataFrame asMatrix() method to convert a DataFrame into a matrix, if all columns are the same type/class
 	
 
 version 4.0 (Eidos version 3.0):
