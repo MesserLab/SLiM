@@ -113,6 +113,9 @@ update-mime-database -n /usr/share/mime/
 xdg-mime install --mode system /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Tue Sep 13 2022 Ben Haller <bhaller@mac.com> - 4.0.1-1
+- Final candidate 1 for 4.0.1 release
+
 * Tue Aug 23 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0-2
 - Include new changelog entry to identify the date of the new release
 
