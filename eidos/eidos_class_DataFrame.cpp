@@ -367,11 +367,11 @@ EidosValue_SP EidosDataFrame::ExecuteInstanceMethod(EidosGlobalStringID p_method
 	}
 }
 
-//	*********************	- (void)asMatrix()
+//	*********************	- (void)asMatrix(void)
 //
 EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-#pragma unused (p_method_id, p_interpreter)
+#pragma unused (p_method_id, p_arguments, p_interpreter)
 	// First determine what type the matrix would be, and check that all columns match that type
 	int64_t nrow = RowCount();
 	const EidosDictionaryHashTable *symbols = DictionarySymbols();

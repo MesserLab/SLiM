@@ -19,6 +19,7 @@ development head (in the master branch):
 	the color property on Individual no longer guarantees that the value read equals the value set; when a color is set, it is now converted to RGB, so named colors do not round-trip
 	add a meanParentAge property, to make calculating generation length simpler; unavailable in WF models (like age), 0 for parentless individuals
 	add DataFrame asMatrix() method to convert a DataFrame into a matrix, if all columns are the same type/class
+	modify recipe 16.12 II to use asMatrix() to read the mating and death files more elegantly
 	
 
 version 4.0 (Eidos version 3.0):

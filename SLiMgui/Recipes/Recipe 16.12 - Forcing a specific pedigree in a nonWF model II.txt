@@ -1,12 +1,12 @@
 // Keywords: nonWF, non-Wright-Fisher
 
-function (i)readIntTable(s$ path)
+function (+)readMatrix(s$ path, [string$ sep = ","])
 {
 	if (!fileExists(path))
-		stop("readIntTable(): File not found at path " + path);
-	l = readFile(path);
-	m = sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix");
-	return t(m);
+		stop("readMatrix(): File not found at path " + path);
+	df = readCSV(path, colNames=F, sep=sep);
+	m = df.asMatrix();
+	return m;
 }
 
 initialize() {
@@ -21,8 +21,8 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 	
 	// read in the pedigree log files
-	defineConstant("M", readIntTable("mating.txt"));
-	defineConstant("D", readIntTable("death.txt"));
+	defineConstant("M", readMatrix("mating.txt", sep=""));
+	defineConstant("D", readMatrix("death.txt", sep=""));
 	
 	// extract the ticks for quick lookup
 	defineConstant("Mt", drop(M[,0]));
