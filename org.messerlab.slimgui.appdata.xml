@@ -13,7 +13,7 @@
   </description>
   <screenshots>
     <screenshot type="default">
-        <image>https://raw.githubusercontent.com/bryce-carson/SLiM/ab1a982d6f6238d1702cd6a146b4b90019a566d4/org.messerlab.slimgui.screenshot.png</image>
+        <image type="source">https://raw.githubusercontent.com/MesserLab/SLiM/master/org.messerlab.slimgui.screenshot.png</image>
     </screenshot>
   </screenshots>
   <!-- LINKS to display in "Software Center" applications-->
