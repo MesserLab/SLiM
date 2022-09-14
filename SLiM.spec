@@ -1,6 +1,6 @@
 Name:           SLiM
-Version:        4.0
-Release:        2%{?dist}
+Version:        4.0.1
+Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
 License:        GPLv3+

@@ -42,8 +42,9 @@ class Subpopulation;
 class SLiMEidosBlock;
 
 
-#define SLIM_VERSION_STRING	("4.0")
-#define SLIM_VERSION_FLOAT	(4.0)
+// SLiM version: see also Info.plist and QtSLiM.pro
+#define SLIM_VERSION_STRING	("4.0.1")
+#define SLIM_VERSION_FLOAT	(4.01)
 
 
 // This should be called once at startup to give SLiM an opportunity to initialize static state

@@ -53,8 +53,9 @@ class EidosScript;
 class EidosToken;
 
 
-#define EIDOS_VERSION_STRING	("3.0")
-#define EIDOS_VERSION_FLOAT		(3.0)
+// Eidos version: See also Info.plist
+#define EIDOS_VERSION_STRING	("3.0.1")
+#define EIDOS_VERSION_FLOAT		(3.01)
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
