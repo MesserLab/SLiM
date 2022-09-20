@@ -84,7 +84,7 @@ public:
     
     // highlight errors
     void highlightError(int startPosition, int endPosition);   
-    void selectErrorRange(void);
+    void selectErrorRange(EidosErrorContext &errorContext);
     QPalette qtslimStandardPalette(void);
     QPalette qtslimErrorPalette(void);
     

@@ -86,6 +86,11 @@
 #include "log_file.h"
 
 
+// This allows us to use Qt::QueuedConnection with EidosErrorContext
+Q_DECLARE_METATYPE(EidosErrorContext)
+static int metatype_id = qRegisterMetaType<EidosErrorContext>();
+
+
 static std::string defaultWFScriptString(void)
 {
     return std::string(
@@ -1636,14 +1641,14 @@ bool QtSLiMWindow::checkTerminationForAutofix(QString terminationMessage)
     return false;
 }
 
-void QtSLiMWindow::showTerminationMessage(QString terminationMessage)
+void QtSLiMWindow::showTerminationMessage(QString terminationMessage, EidosErrorContext errorContext)
 {
     //qDebug() << terminationMessage;
     
     // Depending on the circumstances of the error, we might be able to select a range in our input file to show what caused the error
 	if (!changedSinceRecycle())
     {
-		ui->scriptTextEdit->selectErrorRange();
+		ui->scriptTextEdit->selectErrorRange(errorContext);
         
         // check to see if this is an error we can assist the user in fixing; if they choose to autofix, we are done
         if (checkTerminationForAutofix(terminationMessage))
@@ -1673,12 +1678,19 @@ void QtSLiMWindow::checkForSimulationTermination(void)
 
     if (!terminationMessage.empty())
     {
+        // Get the termination message and clear the global
         QString message = QString::fromStdString(terminationMessage);
 
         gEidosTermination.clear();
         gEidosTermination.str("");
 
-        emit terminationWithMessage(message);
+        // Get the error position and clear the global
+        EidosErrorContext errorContext = gEidosErrorContext;
+        
+        gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+        
+        // Send the signal, which connects up to QtSLiMWindow::showTerminationMessage() through a Qt::QueuedConnection
+        emit terminationWithMessage(message, errorContext);
         
         // Now we need to clean up so we are in a displayable state.  Note that we don't even attempt to dispose
         // of the old simulation object; who knows what state it is in, touching it might crash.

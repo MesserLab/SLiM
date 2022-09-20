@@ -210,16 +210,12 @@ void QtSLiMTextEdit::highlightError(int startPosition, int endPosition)
     // note that this custom selection color is cleared by a connection to QPlainTextEdit::selectionChanged()
 }
 
-void QtSLiMTextEdit::selectErrorRange(void)
+void QtSLiMTextEdit::selectErrorRange(EidosErrorContext &errorContext)
 {
 	// If there is error-tracking information set, and the error is not attributed to a runtime script
 	// such as a lambda or a callback, then we can highlight the error range
-	if (!gEidosErrorContext.executingRuntimeScript && (gEidosErrorContext.errorPosition.characterStartOfErrorUTF16 >= 0) && (gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 >= gEidosErrorContext.errorPosition.characterStartOfErrorUTF16))
-        highlightError(gEidosErrorContext.errorPosition.characterStartOfErrorUTF16, gEidosErrorContext.errorPosition.characterEndOfErrorUTF16 + 1);
-	
-	// In any case, since we are the ultimate consumer of the error information, we should clear out
-	// the error state to avoid misattribution of future errors
-    gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+	if (!errorContext.executingRuntimeScript && (errorContext.errorPosition.characterStartOfErrorUTF16 >= 0) && (errorContext.errorPosition.characterEndOfErrorUTF16 >= errorContext.errorPosition.characterStartOfErrorUTF16))
+        highlightError(errorContext.errorPosition.characterStartOfErrorUTF16, errorContext.errorPosition.characterEndOfErrorUTF16 + 1);
 }
 
 QPalette QtSLiMTextEdit::qtslimStandardPalette(void)
@@ -334,7 +330,12 @@ bool QtSLiMTextEdit::checkScriptSuppressSuccessResponse(bool suppressSuccessResp
 		{
 			// On failure, we show an alert describing the error, and highlight the relevant script line
             qApp->beep();
-            selectErrorRange();
+            
+            EidosErrorContext errorContext = gEidosErrorContext;
+            
+            gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, nullptr, false};
+            
+            selectErrorRange(errorContext);
             
             QString q_errorDiagnostic = QString::fromStdString(errorDiagnostic);
             QMessageBox messageBox(this);

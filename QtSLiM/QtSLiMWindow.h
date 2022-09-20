@@ -185,7 +185,7 @@ public:
     void flashDebugButton(void);
     void stopDebugButtonFlash(void);
     
-    void selectErrorRange(void);
+    void selectErrorRange(EidosErrorContext &errorContext);
     void checkForSimulationTermination(void);
     void startNewSimulationFromScript(void);
     void setScriptStringAndInitializeSimulation(std::string string);
@@ -240,7 +240,7 @@ public:
     void eidos_pauseExecution(void);
     
 signals:
-    void terminationWithMessage(QString message);
+    void terminationWithMessage(QString message, EidosErrorContext errorContext);
     void playStateChanged(void);
     void controllerChangeCountChanged(int changeCount);
     
@@ -250,7 +250,7 @@ signals:
     void controllerRecycled(void);
     
 public slots:
-    void showTerminationMessage(QString terminationMessage);
+    void showTerminationMessage(QString terminationMessage, EidosErrorContext errorContext);
     
     void playOneStepClicked(void);
     void tickChanged(void);
