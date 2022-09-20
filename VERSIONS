@@ -7,6 +7,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
+	fix recipe 17.10 to set the time unit, to avoid the timescale warning from tskit
 	
 
 version 4.0.1 (Eidos version 3.0.1):

@@ -1,7 +1,7 @@
 // Keywords: tree-sequence recording, tree sequence recording
 
 initialize() {
-	initializeTreeSeq(simplificationRatio=INF);
+	initializeTreeSeq(simplificationRatio=INF, timeUnit="generations");
 	initializeMutationRate(0);
 	initializeMutationType("m2", 0.5, "f", 1.0);
 	m2.convertToSubstitution = F;
