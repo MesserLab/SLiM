@@ -77,6 +77,15 @@ SOURCES += \
     eidos_class_Object.cpp \
     eidos_class_TestElement.cpp \
     eidos_functions.cpp \
+    eidos_functions_colors.cpp \
+    eidos_functions_distributions.cpp \
+    eidos_functions_files.cpp \
+    eidos_functions_math.cpp \
+    eidos_functions_matrices.cpp \
+    eidos_functions_other.cpp \
+    eidos_functions_stats.cpp \
+    eidos_functions_strings.cpp \
+    eidos_functions_values.cpp \
     eidos_globals.cpp \
     eidos_interpreter.cpp \
     eidos_property_signature.cpp \
