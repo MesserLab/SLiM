@@ -59,6 +59,10 @@ class EidosToken;
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
+#ifdef _OPENMP
+void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
+#endif
+
 void Eidos_WarmUp(void);
 
 // This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line

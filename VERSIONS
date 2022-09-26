@@ -4,6 +4,54 @@ This version history begins with the final release of version 2.0.  Versions pri
 
 Note that not every commit will be logged here; that is what the Github commit history is for.  The purpose of this file is to record major feature additions, major bug fixes, etc., so that it is easier to track down which version number a particular major change occurred in.  To that end, major changes made in the development head will be logged below; when we decide to roll a new version number and do a new release, all of those development head changes will be reassigned as belonging to the new version number.
 
+"parallel" branch changes:
+	How to run a PARALLEL version of SLiM (this will move to the manual eventually):
+		on macOS, Apple has disabled OpenMP support in the version of clang they ship, and they do not include the OpenMP library or headers (WTF), so this needs to be fixed to build
+			first of all, the R folks have figured this out; see https://mac.r-project.org/openmp/ for information and downloads
+			do "About Xcode" to find out the Xcode version you're using, and download the corresponding openmp ("Release", probably) from that web page
+			install it as shown there ("sudo tar fvxz <file>.tar.gz -C /"); you may see "tar: Error exit delayed from previous errors" which seems to be fine
+			the rest of that web page is R-specific and can be ignored
+			note that we used to use MacPorts or Homebrew to install a separate version of clang; it seems better to use the native clang and patch it up as we do now, but this no longer links in libomp automatically
+		on other platforms, you may need to get a newer/different compiler to get one with OpenMP support; IIRC we have targeted OpenMP 3.1 as a minimum, but that needs to be checked
+			if you need to use a different compiler, you may need to switch CMake over to using that compiler, etc.
+			you may also need to install the OpenMP library if it doesn't come installed for your toolchain; and the paths for the includes and libomp might be different than in CMakeLists.txt
+			if you figure how to make this work for a particular platform, please send us step-by-step instructions that we can share with other users!
+		if building at the command line with CMake, set -DPARALLEL=ON, and do not build SLiMgui (it will error out)
+		if building in Xcode, use the provided separate version of the project, SLiM_OpenMP.xcodeproj, and the separate targets eidos_multi and slim_multi
+		with -DPARALLEL=ON, the built executables will be slim_multi and eidos_multi, to make it easier to distinguish them; but of course you may rename them as you see fit
+		on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
+		use the -maxthreads <x> command-line option to change the maximum number of threads from OpenMP's default
+	
+	TO DO: the openmp branch had changes to travis.yml to test the openmp branch, which should be replicated somehow for GitHub Actions:
+		using macos xcode11.6/clang and linux bionic/gcc
+		on osx, "brew install libomp;" "ls -l /usr/local/opt/libomp/include/omp.h;" "ls -l /usr/local/include;"
+		note the paths for the headers/lib are likely different, so that will require a bit of legwork
+	TO DO: all the diffs for parallelization of SparseArray (interaction_type.cpp) are obsolete since SparseArray no longer even exists; interaction calculations should be parallelized in a new/different way now
+	make a separate Xcode project file, SLiM_OpenMP.xcodeproj, for OpenMP configuration; this makes it easier to merge in changes from master without project-related conflicts, but it must be kept up to date with SLiM.xcodeproj:
+		duplicate the entire SLiM directory to SLiM_temp, open the SLiM.xcodeproj file in the copy, rename it in the Project Navigator to "SLiM_OpenMP", copy it back into the SLiM folder and delete the rest of the copy
+		use grep to find "SLiM_temp" inside files in the new SLiM_OpenMP.xcodeproj and fix them to refer to the correct directory (might be just one, or none)
+		add system header search path for targets eidos_multi and SLiM_multi, in Build Settings: /usr/local/include/ (non-recursive)
+		add library search path for targets eidos_multi and SLiM_multi, in Build Settings: /usr/local/lib/ (non-recursive)
+		add link to binary library, under "Build Phases" (Link Binary With Libraries) on targets eidos_multi and SLiM_multi, by dragging in /usr/local/lib/libomp.dylib
+		add to Other C Flags and Other C++ Flags for targets eidos_multi and SLiM_multi, in Build Settings: -Xclang and -fopenmp
+		disable library validation for targets eidos_multi and SLiM_multi, in Signing & Capabilities: https://developer.apple.com/documentation/bundleresources/entitlements/com_apple_security_cs_disable-library-validation
+		set Enable Index-While-Building Functionality to NO in Build Settings on targets eidos_multi and SLiM_multi
+		disable Link-Time Optimization, which appears to be incompatible with OpenMP
+		switched "Build Active Architecture Only" in Build Settings to YES for Release builds, for targets eidos_multi and SLiM_multi, because the older libomp.dylib builds do not have arm64 in them
+		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
+	modify CMakeLists.txt to add a "PARALLEL" flag that can be set to "ON" to enable OpenMP with the -fopenmp flag
+	modify CMakeLists.txt to add /usr/local/include to all targets (through GSL_INCLUDES, which should maybe get cleaned up somehow)
+	modify CMakeLists.txt to build executables eidos_multi and slim_multi when PARALLEL is ON, and to link in libomp
+	disable parallel builds of EidosScribe, SLiMgui, and SLiMguiLegacy with #error directives; parallelization is for the command line only (active threads peg the CPU, passive threads are slower than single-threaded)
+	add a command-line option, -maxthreads <n>, to control the maximum number of threads used in OpenMP
+	add a header eidos_openmp.h that should be used instead of #include "omp.h", providing various useful definitions etc.
+	add an initialization function for OpenMP, Eidos_WarmUpOpenMP(), that must be called when warming up; sets various options, logs diagnostic info
+	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
+	
+	parallelized loops for:
+		Individual::SetProperty_Accelerated_fitnessScaling()
+		Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType()
+	
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

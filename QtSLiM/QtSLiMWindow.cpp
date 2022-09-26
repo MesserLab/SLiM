@@ -85,6 +85,10 @@
 #include "slim_test.h"
 #include "log_file.h"
 
+#ifdef _OPENMP
+#error Building SLiMgui to run in parallel is not currently supported.
+#endif
+
 
 // This allows us to use Qt::QueuedConnection with EidosErrorContext
 Q_DECLARE_METATYPE(EidosErrorContext)

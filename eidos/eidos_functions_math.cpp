@@ -39,6 +39,8 @@
 // dangerous.  So I think we need to just tolerate this build issue and fix it when it arises.
 #include <cmath>
 
+#include "eidos_openmp.h"
+
 
 // ************************************************************************************
 //
@@ -2505,6 +2507,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(x_value->IntAtIndex(0, nullptr)));
 		}
 		else
+#ifndef _OPENMP
 		{
 			// We have x_count != 1, so the type of x_value must be EidosValue_Int_vector; we can use the fast API
 			const int64_t *int_data = x_value->IntVector()->data();
@@ -2539,6 +2542,28 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			else
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum_d));
 		}
+#else
+		{
+			// In the OpenMP case we want to follow fairly different logic, because dealing with catching the overflow
+			// case across multiple threads seems excessively complex; instead we look for an overflow afterwards
+			const int64_t *int_data = x_value->IntVector()->data();
+			double sum_d = 0;
+
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(int_data) reduction(+: sum_d) if(x_count >= EIDOS_OMPMIN_SUM_INTEGER)
+			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_integer.txt
+			for (int value_index = 0; value_index < x_count; ++value_index)
+				sum_d += int_data[value_index];
+
+			// 2^53 is the largest integer such that it and all smaller integers can be represented in double losslessly
+			int64_t sum = (int64_t)sum_d;
+			bool fits_in_integer = (((double)sum == sum_d) && (sum < 9007199254740992L) && (sum > -9007199254740992L));
+
+			if (fits_in_integer)
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(sum));
+			else
+				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum_d));
+		}
+#endif
 	}
 	else if (x_type == EidosValueType::kValueFloat)
 	{
@@ -2552,6 +2577,10 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float_data) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_FLOAT)
+			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_float.txt
+			// We use clang loop vectorize(enable) here because clang is worried about changing the order of the FP additions; this reassures it
+#pragma clang loop vectorize(enable)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
 			
@@ -2564,6 +2593,8 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(logical_data) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_LOGICAL)
+		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_logical.txt
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			sum += logical_data[value_index];
 		

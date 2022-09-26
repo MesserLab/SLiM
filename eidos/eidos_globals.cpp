@@ -82,6 +82,11 @@
 #define gettimeofday gnulib::gettimeofday
 #endif
 
+#include "eidos_openmp.h"
+#ifdef _OPENMP
+#include <stdlib.h>
+#endif
+
 
 // Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
 static_assert(sizeof(char *) == 8, "SLiM must be built for 64-bit, not 32-bit.");
@@ -204,6 +209,55 @@ void Eidos_PrepareForProfiling(void)
 bool Eidos_GoodSymbolForDefine(std::string &p_symbol_name);
 EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expression);
 
+
+#ifdef _OPENMP
+void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads)
+{
+	// When running under OpenMP, print a log, and also set values for the OpenMP ICV's that we want to guarantee
+	// See http://www.archer.ac.uk/training/course-material/2018/09/openmp-imp/Slides/L10-TipsTricksGotchas.pdf
+	// We set these with overwrite=0 so the user can override them with custom values from the environment
+	// FIXME: This should all be documented somewhere...
+	
+	// "active" encourages idle threads to spin rather than sleep; "active" seems to be much faster, maybe lower lag?
+	// In SLiMgui and EidosScribe, we don't want to use "active", though, as it will pin the CPU usage even when not running a parallel section.
+	const char *wait_policy = active_threads ? "ACTIVE" : "PASSIVE";
+	setenv("OMP_WAIT_POLICY", wait_policy, 0);
+	
+	// "false" == don’t let the runtime deliver fewer threads than you asked for
+	// when this is true, you sometimes get just one thread even in a parallel section, because the system has decided it's busy; no good
+	const char *dynamic_policy = "false";
+	setenv("OMP_DYNAMIC", dynamic_policy, 0);
+	
+	// "true" prevents threads migrating between cores; "false" seems to result in better performance, for me on macOS,
+	// but I suspect that for users on HPC setting this to "true" will likely improve performance
+	const char *bind_policy = "false";
+	setenv("OMP_PROC_BIND", bind_policy, 0);
+	
+	if (changed_max_thread_count)
+		omp_set_num_threads(new_max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
+	
+	if (outstream)
+	{
+		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl;
+		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
+	}
+	
+#ifdef EIDOS_GUI
+	// The SLiM_OpenMP project enabled OpenMP project-wide, so the GUI apps build with OpenMP enabled.  However,
+	// they really don't work well multithreaded.  They have to allow threads to sleep (otherwise they peg the
+	// CPU the whole time they're running), and that is so inefficient that it makes the apps actually run much
+	// slower than if they were just single-threaded, as far as I can tell.  I think the threads fall asleep
+	// whenever they get suspended at all, and then waking them up again is heavyweight.  Or something.
+	// BCH 4 August 2020: Note that I have disallowed building the GUI apps multithreaded at all, with #error
+	// directives in their code, so this is dead code for the time being.
+	if (outstream)
+		(*outstream) << "// ********** RUNNING SLIMGUI / EIDOSSCRIBE WITH OPENMP IS NOT RECOMMENDED!" << std::endl;
+#endif
+	
+	if (outstream)
+		(*outstream) << std::endl;
+}
+#endif
 
 void Eidos_WarmUp(void)
 {

@@ -41,6 +41,11 @@
 #include "slim_test.h"
 #include "eidos_symbol_table.h"
 
+#include "eidos_openmp.h"
+#ifdef _OPENMP
+#warning Building slim with OpenMP enabled
+#endif
+
 // Get our Git commit SHA-1, as C string "g_GIT_SHA1"
 #include "../cmake/GitSHA1.h"
 
@@ -52,9 +57,21 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "SLiM version " << SLIM_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << "." << std::endl;
 		
 		if (strcmp(g_GIT_SHA1, "GITDIR-NOTFOUND") == 0)
-			SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl << std::endl;
+			SLIM_OUTSTREAM << "Git commit SHA-1: unknown (built from a non-Git source archive)" << std::endl;
 		else
-			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl << std::endl;
+			SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
+		
+#ifdef DEBUG
+		SLIM_OUTSTREAM << "This is a DEBUG build of SLiM." << std::endl;
+#else
+		SLIM_OUTSTREAM << "This is a RELEASE build of SLiM." << std::endl;
+#endif
+#ifdef _OPENMP
+		SLIM_OUTSTREAM << "This is a PARALLEL (MULTI-THREADED) build of SLiM." << std::endl;
+#else
+		SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
+#endif
+		SLIM_OUTSTREAM << std::endl;
 		
 		SLIM_OUTSTREAM << "SLiM is a product of the Messer Lab, http://messerlab.org/" << std::endl;
 		SLIM_OUTSTREAM << "Copyright 2013-2022 Philipp Messer.  All rights reserved." << std::endl << std::endl;
@@ -84,7 +101,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] [<script file>]" << std::endl;
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-maxthreads <n>] [<script file>]" << std::endl;
 	
 	if (p_print_full_usage)
 	{
@@ -102,6 +119,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -M[emhist]       : print a histogram of SLiM's memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -x               : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>  : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
+		SLIM_OUTSTREAM << "   -maxthreads <n>  : set the maximum number of threads used" << std::endl;
 		SLIM_OUTSTREAM << "   <script file>    : the input script file (stdin may be used instead)" << std::endl;
 	}
 	
@@ -144,6 +162,11 @@ int main(int argc, char *argv[])
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false, keep_mem_hist = false, skip_checks = false, tree_seq_checks = false, tree_seq_force = false;
 	std::vector<std::string> defined_constants;
+	
+#ifdef _OPENMP
+	long max_thread_count = omp_get_max_threads();
+	bool changed_max_thread_count = false;
+#endif
 	
 	// command-line SLiM generally terminates rather than throwing
 	gEidosTerminateThrows = false;
@@ -276,6 +299,9 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--testEidos") == 0 || strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef _OPENMP
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			
 			int test_result = RunEidosTests();
@@ -288,6 +314,9 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--testSLiM") == 0 || strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef _OPENMP
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			SLiM_WarmUp();
 			
@@ -314,6 +343,34 @@ int main(int argc, char *argv[])
 			defined_constants.emplace_back(argv[arg_index]);
 			
 			continue;
+		}
+		
+		// -maxthreads <x>: set the maximum number of OpenMP threads that will be used
+		if (strcmp(arg, "-maxthreads") == 0)
+		{
+			if (++arg_index == argc)
+				PrintUsageAndDie(false, true);
+			
+			long count = strtol(argv[arg_index], NULL, 10);
+			
+#ifdef _OPENMP
+			max_thread_count = count;
+			changed_max_thread_count = true;
+			
+			if ((max_thread_count < 1) || (max_thread_count > 1024))
+			{
+				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, 1024]." << std::endl;
+				exit(0);
+			}
+			
+			continue;
+#else
+			if (count != 1)
+			{
+				SLIM_OUTSTREAM << "The -maxthreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
+				exit(0);
+			}
+#endif
 		}
 		
         // -TSXC is an undocumented command-line flag that turns on tree-sequence recording and runtime crosschecks
@@ -345,12 +402,18 @@ int main(int argc, char *argv[])
 	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie(false, true);
 	
-	// announce if we are running a debug build or are skipping runtime checks
+	// announce if we are running a debug build, are skipping runtime checks, etc.
 #if DEBUG
 	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
+	
+#ifdef _OPENMP
+	Eidos_WarmUpOpenMP((SLiM_verbosity_level >= 1) ? &SLIM_ERRSTREAM : nullptr, changed_max_thread_count, (int)max_thread_count, true);
+#endif
+	
 	if (SLiM_verbosity_level >= 2)
 		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output (level " << SLiM_verbosity_level << ")" << std::endl << std::endl;
+	
 	if (skip_checks)
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	

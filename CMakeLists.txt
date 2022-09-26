@@ -66,6 +66,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # User-defined CMAKE command-line options
 option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
+option(PARALLEL "Build parallel versions of eidos and slim" OFF)
 
 
 # obtain the Git commit SHA-1; see ./cmake/_README.txt and https://stackoverflow.com/a/4318642/2752221
@@ -113,6 +114,17 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFI
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
+# Report whether the build is parallel or not
+if(PARALLEL)
+	# Use the _OPENMP define to test in code whether the build is parallel
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Xclang -fopenmp ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fopenmp")
+	link_directories(/usr/local/lib/)
+	message("PARALLEL is ${PARALLEL}")
+else()
+	message("PARALLEL is ${PARALLEL}; use -DPARALLEL=ON to enable OpenMP parallelization")
+endif(PARALLEL)
+
 # Report the build type and SLiMgui build status
 message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
@@ -157,10 +169,10 @@ endif()
 #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
 #endif()
 
-# GSL 
+# GSL - adding /usr/local/include so all targets that use GSL_INCLUDES get omp.h
 set(TARGET_NAME gsl)
 file(GLOB_RECURSE GSL_SOURCES ${PROJECT_SOURCE_DIR}/gsl/*.c ${PROJECT_SOURCE_DIR}/gsl/*/*.c)
-set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${PROJECT_SOURCE_DIR}/gsl/blas ${PROJECT_SOURCE_DIR}/gsl/rng ${PROJECT_SOURCE_DIR}/gsl/cdf ${PROJECT_SOURCE_DIR}/gsl/vector ${PROJECT_SOURCE_DIR}/gsl/err ${PROJECT_SOURCE_DIR}/gsl/sys ${PROJECT_SOURCE_DIR}/gsl/randist ${PROJECT_SOURCE_DIR}/gsl/matrix ${PROJECT_SOURCE_DIR}/gsl/cblas ${PROJECT_SOURCE_DIR}/gsl/complex ${PROJECT_SOURCE_DIR}/gsl/block ${PROJECT_SOURCE_DIR}/gsl/linalg)
+set(GSL_INCLUDES ${PROJECT_SOURCE_DIR}/gsl ${PROJECT_SOURCE_DIR}/gsl/specfunc ${PROJECT_SOURCE_DIR}/gsl/blas ${PROJECT_SOURCE_DIR}/gsl/rng ${PROJECT_SOURCE_DIR}/gsl/cdf ${PROJECT_SOURCE_DIR}/gsl/vector ${PROJECT_SOURCE_DIR}/gsl/err ${PROJECT_SOURCE_DIR}/gsl/sys ${PROJECT_SOURCE_DIR}/gsl/randist ${PROJECT_SOURCE_DIR}/gsl/matrix ${PROJECT_SOURCE_DIR}/gsl/cblas ${PROJECT_SOURCE_DIR}/gsl/complex ${PROJECT_SOURCE_DIR}/gsl/block ${PROJECT_SOURCE_DIR}/gsl/linalg /usr/local/include)
 add_library(${TARGET_NAME} STATIC ${GSL_SOURCES})
 target_include_directories(${TARGET_NAME} PUBLIC ${GSL_INCLUDES})
 
@@ -190,7 +202,11 @@ if(WIN32)
 endif()
 
 # SLIM
-set(TARGET_NAME slim)
+if(PARALLEL)
+	set(TARGET_NAME slim_multi)
+else()
+	set(TARGET_NAME slim)
+endif(PARALLEL)
 file(GLOB_RECURSE SLIM_SOURCES ${PROJECT_SOURCE_DIR}/core/*.cpp ${PROJECT_SOURCE_DIR}/eidos/*.cpp)
 
 # use the Git commit SHA-1 obtained above
@@ -200,6 +216,9 @@ list(APPEND SLIM_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/GitSHA1.cpp" ${PROJECT_SOU
 add_executable(${TARGET_NAME} ${SLIM_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/core" "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
+if(PARALLEL)
+	target_link_libraries(${TARGET_NAME} PUBLIC omp)
+endif()
 if(WIN32)
     set_source_files_properties(${SLIM_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
     set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
@@ -208,11 +227,18 @@ if(WIN32)
 endif()
 
 # EIDOS
-set(TARGET_NAME eidos)
+if(PARALLEL)
+	set(TARGET_NAME eidos_multi)
+else()
+	set(TARGET_NAME eidos)
+endif(PARALLEL)
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
 target_link_libraries(${TARGET_NAME} PUBLIC gsl eidos_zlib tables)
+if(PARALLEL)
+	target_link_libraries(${TARGET_NAME} PUBLIC omp)
+endif()
 if(WIN32)
     set_source_files_properties(${EIDOS_SOURCES} PROPERTIES COMPILE_FLAGS "-include config.h")
     set_source_files_properties(${GNULIB_NAMESPACE_SOURCES} TARGET_DIRECTORY slim eidos PROPERTIES COMPILE_FLAGS "-include config.h -DGNULIB_NAMESPACE=gnulib")
@@ -220,7 +246,11 @@ if(WIN32)
     target_link_libraries(${TARGET_NAME} PUBLIC gnu)
 endif()
 
-install(TARGETS slim eidos DESTINATION bin)
+if(PARALLEL)
+	install(TARGETS slim_multi eidos_multi DESTINATION bin)
+else()
+	install(TARGETS slim eidos DESTINATION bin)
+endif(PARALLEL)
 
 # SLiMgui -- this can be enabled with the -DBUILD_SLIMGUI=ON option to cmake
 if(BUILD_SLIMGUI)

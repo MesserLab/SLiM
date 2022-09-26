@@ -21,12 +21,18 @@
 #include "eidos_interpreter.h"
 #include "eidos_test.h"
 
+#include "eidos_openmp.h"
+#ifdef _OPENMP
+#warning Building eidos with OpenMP enabled
+#endif
+
 
 void PrintUsageAndDie();
 
 void PrintUsageAndDie()
 {
-	std::cout << "usage: eidos -version | -usage | -testEidos | [-time] [-mem] <script file>" << std::endl;
+	std::cout << "usage: eidos -version | -usage | -testEidos | [-time] [-mem]" << std::endl;
+	std::cout << "   [-maxthreads <n>] <script file>" << std::endl;
 	exit(0);
 }
 
@@ -38,6 +44,11 @@ int main(int argc, const char * argv[])
 	// parse command-line arguments
 	const char *input_file = nullptr;
 	bool keep_time = false, keep_mem = false;
+	
+#ifdef _OPENMP
+	long max_thread_count = omp_get_max_threads();
+	bool changed_max_thread_count = false;
+#endif
 	
 	// "slim" with no arguments prints usage, *unless* stdin is not a tty, in which case we're running the stdin script
 	if ((argc == 1) && isatty(fileno(stdin)))
@@ -74,6 +85,9 @@ int main(int argc, const char * argv[])
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 			gEidosTerminateThrows = true;
+#ifdef _OPENMP
+			Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
+#endif
 			Eidos_WarmUp();
 			
 			int test_result = RunEidosTests();
@@ -88,6 +102,34 @@ int main(int argc, const char * argv[])
 			PrintUsageAndDie();
 		}
 		
+		// -maxthreads <x>: set the maximum number of OpenMP threads that will be used
+		if (strcmp(arg, "-maxthreads") == 0)
+		{
+			if (++arg_index == argc)
+				PrintUsageAndDie();
+			
+			long count = strtol(argv[arg_index], NULL, 10);
+			
+#ifdef _OPENMP
+			max_thread_count = count;
+			changed_max_thread_count = true;
+			
+			if ((max_thread_count < 1) || (max_thread_count > 1024))
+			{
+				std::cout << "The -maxthreads command-line option enforces a range of [1, 1024]." << std::endl;
+				exit(0);
+			}
+			
+			continue;
+#else
+			if (count != 1)
+			{
+				std::cout << "The -maxthreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
+				exit(0);
+			}
+#endif
+		}
+		
 		// this is the fall-through, which should be the input file, and should be the last argument given
 		if (arg_index + 1 != argc)
 			PrintUsageAndDie();
@@ -99,9 +141,13 @@ int main(int argc, const char * argv[])
 	if (!input_file && isatty(fileno(stdin)))
 		PrintUsageAndDie();
 	
-	// announce if we are running a debug build
+	// announce if we are running a debug build, etc.
 #ifdef DEBUG
 	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
+#endif
+	
+#ifdef _OPENMP
+	Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)

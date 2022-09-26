@@ -929,6 +929,7 @@
 		986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_PopulationVisualization.mm; sourceTree = "<group>"; };
 		986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_call_signature.cpp; sourceTree = "<group>"; };
 		986D73E71B07E89E007FBB70 /* eidos_call_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_call_signature.h; sourceTree = "<group>"; };
+		9873B12328CE26CD00582D83 /* eidos_openmp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_openmp.h; sourceTree = "<group>"; };
 		9876E5F31ED5572C00FF9762 /* gsl_cdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_cdf.h; path = cdf/gsl_cdf.h; sourceTree = "<group>"; };
 		9876E5F41ED5572C00FF9762 /* tdist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tdist.c; path = cdf/tdist.c; sourceTree = "<group>"; };
 		9876E5F91ED557B000FF9762 /* beta_inc.inc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.pascal; name = beta_inc.inc; path = cdf/beta_inc.inc; sourceTree = "<group>"; };
@@ -1464,6 +1465,9 @@
 		9857249E1AD34B120047C223 /* eidos */ = {
 			isa = PBXGroup;
 			children = (
+				9873B12328CE26CD00582D83 /* eidos_openmp.h */,
+				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
+				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				98321F931B406B67007337A3 /* eidos_globals.h */,
 				98321F921B406B67007337A3 /* eidos_globals.cpp */,
 				98A5134E1B66B69E005A753D /* eidos_token.h */,
