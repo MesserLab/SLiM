@@ -31,6 +31,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <sys/utsname.h>
+#include <chrono>
+#include <ctime>
 
 #if 0
 // These would enable further keys in sysinfo(), but cause problems on Ubuntu 18.04 and/or Windows
