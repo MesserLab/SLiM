@@ -95,6 +95,24 @@
 		981DC37128E26F8B000ABE91 /* eidos_functions_stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34F28E26F8B000ABE91 /* eidos_functions_stats.cpp */; };
 		981DC37228E26F8B000ABE91 /* eidos_functions_stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34F28E26F8B000ABE91 /* eidos_functions_stats.cpp */; };
 		981DC37328E26F8B000ABE91 /* eidos_functions_stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34F28E26F8B000ABE91 /* eidos_functions_stats.cpp */; };
+		981DC37428E27300000ABE91 /* eidos_functions_other.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34E28E26F8B000ABE91 /* eidos_functions_other.cpp */; };
+		981DC37528E27300000ABE91 /* eidos_functions_stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34F28E26F8B000ABE91 /* eidos_functions_stats.cpp */; };
+		981DC37628E27300000ABE91 /* eidos_functions_strings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34D28E26F8A000ABE91 /* eidos_functions_strings.cpp */; };
+		981DC37728E27300000ABE91 /* eidos_functions_math.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34828E26F8A000ABE91 /* eidos_functions_math.cpp */; };
+		981DC37828E27300000ABE91 /* eidos_functions_matrices.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34A28E26F8A000ABE91 /* eidos_functions_matrices.cpp */; };
+		981DC37928E27300000ABE91 /* eidos_functions_values.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34B28E26F8A000ABE91 /* eidos_functions_values.cpp */; };
+		981DC37A28E27300000ABE91 /* eidos_functions_colors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34928E26F8A000ABE91 /* eidos_functions_colors.cpp */; };
+		981DC37B28E27300000ABE91 /* eidos_functions_distributions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34C28E26F8A000ABE91 /* eidos_functions_distributions.cpp */; };
+		981DC37C28E27300000ABE91 /* eidos_functions_files.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34728E26F8A000ABE91 /* eidos_functions_files.cpp */; };
+		981DC37D28E27301000ABE91 /* eidos_functions_other.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34E28E26F8B000ABE91 /* eidos_functions_other.cpp */; };
+		981DC37E28E27301000ABE91 /* eidos_functions_stats.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34F28E26F8B000ABE91 /* eidos_functions_stats.cpp */; };
+		981DC37F28E27301000ABE91 /* eidos_functions_strings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34D28E26F8A000ABE91 /* eidos_functions_strings.cpp */; };
+		981DC38028E27301000ABE91 /* eidos_functions_math.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34828E26F8A000ABE91 /* eidos_functions_math.cpp */; };
+		981DC38128E27301000ABE91 /* eidos_functions_matrices.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34A28E26F8A000ABE91 /* eidos_functions_matrices.cpp */; };
+		981DC38228E27301000ABE91 /* eidos_functions_values.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34B28E26F8A000ABE91 /* eidos_functions_values.cpp */; };
+		981DC38328E27301000ABE91 /* eidos_functions_colors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34928E26F8A000ABE91 /* eidos_functions_colors.cpp */; };
+		981DC38428E27301000ABE91 /* eidos_functions_distributions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34C28E26F8A000ABE91 /* eidos_functions_distributions.cpp */; };
+		981DC38528E27301000ABE91 /* eidos_functions_files.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 981DC34728E26F8A000ABE91 /* eidos_functions_files.cpp */; };
 		9821E2041ABDBC300036EAEA /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9821E2031ABDBC300036EAEA /* QuartzCore.framework */; };
 		98235682252FDCF50096A745 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98235681252FDCF50096A745 /* lodepng.cpp */; };
 		98235683252FDCF50096A745 /* lodepng.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98235681252FDCF50096A745 /* lodepng.cpp */; };
@@ -3273,11 +3291,13 @@
 				98D7EBA928CE557C00DEAAC4 /* eidos_functions.cpp in Sources */,
 				98D7EBAA28CE557C00DEAAC4 /* eidos_interpreter.cpp in Sources */,
 				98D7EBAB28CE557C00DEAAC4 /* mt.c in Sources */,
+				981DC37428E27300000ABE91 /* eidos_functions_other.cpp in Sources */,
 				98D7EBAC28CE557C00DEAAC4 /* gausszig.c in Sources */,
 				98D7EBAD28CE557C00DEAAC4 /* message.c in Sources */,
 				98D7EBAE28CE557C00DEAAC4 /* eidos_property_signature.cpp in Sources */,
 				98D7EBAF28CE557C00DEAAC4 /* inline.c in Sources */,
 				98D7EBB028CE557C00DEAAC4 /* eidos_test_functions_statistics.cpp in Sources */,
+				981DC37C28E27300000ABE91 /* eidos_functions_files.cpp in Sources */,
 				98D7EBB128CE557C00DEAAC4 /* discrete.c in Sources */,
 				98D7EBB228CE557C00DEAAC4 /* gzwrite.c in Sources */,
 				98D7EBB328CE557C00DEAAC4 /* poisson.c in Sources */,
@@ -3285,15 +3305,20 @@
 				98D7EBB528CE557C00DEAAC4 /* exp.c in Sources */,
 				98D7EBB628CE557C00DEAAC4 /* eidos_test_functions_other.cpp in Sources */,
 				98D7EBB728CE557C00DEAAC4 /* eidos_script.cpp in Sources */,
+				981DC37B28E27300000ABE91 /* eidos_functions_distributions.cpp in Sources */,
 				98D7EBB828CE557C00DEAAC4 /* eidos_symbol_table.cpp in Sources */,
 				98D7EBB928CE557C00DEAAC4 /* submatrix.c in Sources */,
+				981DC37728E27300000ABE91 /* eidos_functions_math.cpp in Sources */,
 				98D7EBBA28CE557C00DEAAC4 /* minmax.c in Sources */,
+				981DC37828E27300000ABE91 /* eidos_functions_matrices.cpp in Sources */,
 				98D7EBBB28CE557C00DEAAC4 /* pow_int.c in Sources */,
 				98D7EBBC28CE557C00DEAAC4 /* gaussinv.c in Sources */,
 				98D7EBBD28CE557C00DEAAC4 /* log.c in Sources */,
+				981DC37928E27300000ABE91 /* eidos_functions_values.cpp in Sources */,
 				98D7EBBE28CE557C00DEAAC4 /* gamma_inc.c in Sources */,
 				98D7EBBF28CE557C00DEAAC4 /* eidos_test_functions_vector.cpp in Sources */,
 				98D7EBC028CE557C00DEAAC4 /* eidos_class_DataFrame.cpp in Sources */,
+				981DC37628E27300000ABE91 /* eidos_functions_strings.cpp in Sources */,
 				98D7EBC128CE557C00DEAAC4 /* taus.c in Sources */,
 				98D7EBC228CE557C00DEAAC4 /* eidos_call_signature.cpp in Sources */,
 				98D7EBC328CE557C00DEAAC4 /* nbinomial.c in Sources */,
@@ -3301,6 +3326,7 @@
 				98D7EBC528CE557C00DEAAC4 /* lognormal.c in Sources */,
 				98D7EBC628CE557C00DEAAC4 /* vector.c in Sources */,
 				98D7EBC728CE557C00DEAAC4 /* fdiv.c in Sources */,
+				981DC37A28E27300000ABE91 /* eidos_functions_colors.cpp in Sources */,
 				98D7EBC828CE557C00DEAAC4 /* matrix.c in Sources */,
 				98D7EBC928CE557C00DEAAC4 /* init.c in Sources */,
 				98D7EBCA28CE557C00DEAAC4 /* weibull.c in Sources */,
@@ -3313,6 +3339,7 @@
 				98D7EBD128CE557C00DEAAC4 /* dtrmv.c in Sources */,
 				98D7EBD228CE557C00DEAAC4 /* crc32.c in Sources */,
 				98D7EBD328CE557C00DEAAC4 /* fdist.c in Sources */,
+				981DC37528E27300000ABE91 /* eidos_functions_stats.cpp in Sources */,
 				98D7EBD428CE557C00DEAAC4 /* trees.c in Sources */,
 				98D7EBD528CE557C00DEAAC4 /* gamma.c in Sources */,
 				98D7EBD628CE557C00DEAAC4 /* beta.c in Sources */,
@@ -3349,10 +3376,12 @@
 				98D7ECA628CE58FC00DEAAC4 /* gamma.c in Sources */,
 				98D7ECA728CE58FC00DEAAC4 /* gauss.c in Sources */,
 				98D7ECA828CE58FC00DEAAC4 /* eidos_test_operators_arithmetic.cpp in Sources */,
+				981DC38528E27301000ABE91 /* eidos_functions_files.cpp in Sources */,
 				98D7ECA928CE58FC00DEAAC4 /* eidos_test_functions_statistics.cpp in Sources */,
 				98D7ECAA28CE58FC00DEAAC4 /* log.c in Sources */,
 				98D7ECAB28CE58FC00DEAAC4 /* slim_test.cpp in Sources */,
 				98D7ECAC28CE58FC00DEAAC4 /* expint.c in Sources */,
+				981DC38028E27301000ABE91 /* eidos_functions_math.cpp in Sources */,
 				98D7ECAD28CE58FC00DEAAC4 /* elementary.c in Sources */,
 				98D7ECAE28CE58FC00DEAAC4 /* mvgauss.c in Sources */,
 				98D7ECAF28CE58FC00DEAAC4 /* copy.c in Sources */,
@@ -3365,6 +3394,7 @@
 				98D7ECB628CE58FC00DEAAC4 /* dtrmv.c in Sources */,
 				98D7ECB728CE58FC00DEAAC4 /* gamma_inc.c in Sources */,
 				98D7ECB828CE58FC00DEAAC4 /* slim_test_other.cpp in Sources */,
+				981DC38428E27301000ABE91 /* eidos_functions_distributions.cpp in Sources */,
 				98D7ECB928CE58FC00DEAAC4 /* vector.c in Sources */,
 				98D7ECBA28CE58FC00DEAAC4 /* eidos_script.cpp in Sources */,
 				98D7ECBB28CE58FC00DEAAC4 /* gaussinv.c in Sources */,
@@ -3377,6 +3407,7 @@
 				98D7ECC228CE58FC00DEAAC4 /* fdist.c in Sources */,
 				98D7ECC328CE58FC00DEAAC4 /* matrix.c in Sources */,
 				98D7ECC428CE58FC00DEAAC4 /* submatrix.c in Sources */,
+				981DC38228E27301000ABE91 /* eidos_functions_values.cpp in Sources */,
 				98D7ECC528CE58FC00DEAAC4 /* psi.c in Sources */,
 				98D7ECC628CE58FC00DEAAC4 /* binomial_tpe.c in Sources */,
 				98D7ECC728CE58FC00DEAAC4 /* eidos_test_functions_math.cpp in Sources */,
@@ -3396,14 +3427,18 @@
 				98D7ECD528CE58FC00DEAAC4 /* eidos_test_operators_other.cpp in Sources */,
 				98D7ECD628CE58FC00DEAAC4 /* eidos_test_functions_vector.cpp in Sources */,
 				98D7ECD728CE58FC00DEAAC4 /* deflate.c in Sources */,
+				981DC38128E27301000ABE91 /* eidos_functions_matrices.cpp in Sources */,
 				98D7ECD828CE58FC00DEAAC4 /* gamma.c in Sources */,
 				98D7ECD928CE58FC00DEAAC4 /* nbinomial.c in Sources */,
 				98D7ECDA28CE58FC00DEAAC4 /* poisson.c in Sources */,
 				98D7ECDB28CE58FC00DEAAC4 /* sparse_vector.cpp in Sources */,
 				98D7ECDC28CE58FC00DEAAC4 /* population.cpp in Sources */,
 				98D7ECDD28CE58FC00DEAAC4 /* beta.c in Sources */,
+				981DC37E28E27301000ABE91 /* eidos_functions_stats.cpp in Sources */,
 				98D7ECDE28CE58FC00DEAAC4 /* rowcol.c in Sources */,
 				98D7ECDF28CE58FC00DEAAC4 /* taus.c in Sources */,
+				981DC37D28E27301000ABE91 /* eidos_functions_other.cpp in Sources */,
+				981DC37F28E27301000ABE91 /* eidos_functions_strings.cpp in Sources */,
 				98D7ECE028CE58FC00DEAAC4 /* eidos_rng.cpp in Sources */,
 				98D7ECE128CE58FC00DEAAC4 /* geometric.c in Sources */,
 				98D7ECE228CE58FC00DEAAC4 /* eidos_token.cpp in Sources */,
@@ -3443,6 +3478,7 @@
 				98D7ED0428CE58FC00DEAAC4 /* cauchy.c in Sources */,
 				98D7ED0528CE58FC00DEAAC4 /* substitution.cpp in Sources */,
 				98D7ED0628CE58FC00DEAAC4 /* genotypes.c in Sources */,
+				981DC38328E27301000ABE91 /* eidos_functions_colors.cpp in Sources */,
 				98D7ED0728CE58FC00DEAAC4 /* exp.c in Sources */,
 				98D7ED0828CE58FC00DEAAC4 /* gzwrite.c in Sources */,
 				98D7ED0928CE58FC00DEAAC4 /* adler32.c in Sources */,
