@@ -20,6 +20,7 @@
 #include "eidos_class_DataFrame.h"
 #include "eidos_globals.h"
 #include "eidos_functions.h"
+#include "eidos_interpreter.h"
 
 #include <fstream>
 #include <regex>
