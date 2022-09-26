@@ -982,34 +982,54 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 	}
 }
 
+bool Individual::_SetFitnessScaling_1(double source_value, EidosObject **p_values, size_t p_values_size)
+{
+	if ((source_value < 0.0) || (std::isnan(source_value)))
+		return true;
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+	
+	return false;
+}
+
+bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p_values, size_t p_values_size)
+{
+	bool needs_raise = false;	// deferred raises for OpenMP compliance
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		double source_value = source_data[value_index];
+		
+		if ((source_value < 0.0) || (std::isnan(source_value)))
+			needs_raise = true;
+		
+		((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+	}
+	
+	return needs_raise;
+}
+
 void Individual::SetProperty_Accelerated_fitnessScaling(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
 	Individual::s_any_individual_fitness_scaling_set_ = true;
+	bool needs_raise = false;
 	
 	if (p_source_size == 1)
 	{
 		double source_value = p_source.FloatAtIndex(0, nullptr);
 		
-		if ((source_value < 0.0) || (std::isnan(source_value)))
-			EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
-		
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-			((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
+		needs_raise = _SetFitnessScaling_1(source_value, p_values, p_values_size);
 	}
 	else
 	{
 		const double *source_data = p_source.FloatVector()->data();
 		
-		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
-		{
-			double source_value = source_data[value_index];
-			
-			if ((source_value < 0.0) || (std::isnan(source_value)))
-				EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
-			
-			((Individual *)(p_values[value_index]))->fitness_scaling_ = source_value;
-		}
+		needs_raise = _SetFitnessScaling_N(source_data, p_values, p_values_size);
 	}
+	
+	if (needs_raise)
+		EIDOS_TERMINATION << "ERROR (Individual::SetProperty_Accelerated_fitnessScaling): property fitnessScaling must be >= 0.0." << EidosTerminate();
 }
 
 void Individual::SetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
