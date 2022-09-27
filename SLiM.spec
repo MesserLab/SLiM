@@ -60,7 +60,7 @@ tar -xf ../SOURCES/v%{version}.tar.gz
 
 %build
 # NOTE: is the relative path required when using the cmake macro due to the above source prep-style?
-%cmake -DBUILD_SLIMGUI=ON #./SLiM-%version}/
+%cmake -DBUILD_SLIMGUI=ON ./SLiM-%{version}/
 %cmake_build
 
 %install
