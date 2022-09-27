@@ -3748,6 +3748,10 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-fno-math-errno",
+				);
 				SDKROOT = macosx;
 				STRIP_STYLE = debugging;
 				WARNING_CFLAGS = "-Wimplicit-fallthrough";
@@ -3810,6 +3814,10 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				OTHER_CFLAGS = "";
+				OTHER_CPLUSPLUSFLAGS = (
+					"$(OTHER_CFLAGS)",
+					"-fno-math-errno",
+				);
 				SDKROOT = macosx;
 				STRIP_STYLE = debugging;
 				WARNING_CFLAGS = "-Wimplicit-fallthrough";
@@ -3991,6 +3999,7 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
+					"$(OTHER_CPLUSPLUSFLAGS)",
 					"-Rpass=\"loop|vect\"",
 					"-Rpass-missed=\"loop|vect\"",
 					"-Rpass-analysis=\"loop|vect\"",
@@ -4020,6 +4029,7 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
+					"$(OTHER_CPLUSPLUSFLAGS)",
 					"-Rpass=\"loop|vect\"",
 					"-Rpass-missed=\"loop|vect\"",
 					"-Rpass-analysis=\"loop|vect\"",
@@ -4044,6 +4054,7 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
+					"$(OTHER_CPLUSPLUSFLAGS)",
 					"-Xclang",
 					"-fopenmp",
 				);
@@ -4068,6 +4079,7 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
+					"$(OTHER_CPLUSPLUSFLAGS)",
 					"-Xclang",
 					"-fopenmp",
 				);

@@ -40,6 +40,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 		switched "Build Active Architecture Only" in Build Settings to YES for Release builds, for targets eidos_multi and SLiM_multi, because the older libomp.dylib builds do not have arm64 in them
 		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
 		added -Rpass="loop|vect" -Rpass-missed="loop|vect" -Rpass-analysis="loop|vect" to Other C++ Flags for eidos_multi, to aid in optimization work
+		added "-fno-math-errno" to the project-level Other C++ Flags, to match the main project
+		added $(OTHER_CPLUSPLUSFLAGS) to that build setting for slim_multi and eidos_multi, to inherit from the project's settings
 	modify CMakeLists.txt to add a "PARALLEL" flag that can be set to "ON" to enable OpenMP with the -fopenmp flag
 	modify CMakeLists.txt to add /usr/local/include to all targets (through GSL_INCLUDES, which should maybe get cleaned up somehow)
 	modify CMakeLists.txt to build executables eidos_multi and slim_multi when PARALLEL is ON, and to link in libomp
