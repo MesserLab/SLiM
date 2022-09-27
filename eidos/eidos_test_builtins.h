@@ -134,7 +134,7 @@ for (iter in 1:100)
 	x = rnorm(10);		// float
 	xbuiltin = cumSum(x);
 	xuserdef = cumSum_func(x);
-	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of cumSum(f)');
+	if (!identical(xbuiltin, xuserdef)) stop('Mismatch in test of cumSum(f);\n   xbuiltin == ' + paste(xbuiltin) + '\n   xuserdef == ' + paste(xuserdef));
 }
 
 // ***********************************************************************************************
