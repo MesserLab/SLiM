@@ -2551,6 +2551,8 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 
 #pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(int_data) reduction(+: sum_d) if(x_count >= EIDOS_OMPMIN_SUM_INTEGER)
 			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_integer.txt
+			// We use clang loop vectorize(enable) here because clang is worried about changing the order of the FP additions; this reassures it
+#pragma clang loop vectorize(enable)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
 

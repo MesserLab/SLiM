@@ -3991,8 +3991,9 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-Xclang",
-					"-fopenmp",
+					"-Rpass=\"loop|vect\"",
+					"-Rpass-missed=\"loop|vect\"",
+					"-Rpass-analysis=\"loop|vect\"",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYSTEM_HEADER_SEARCH_PATHS = /usr/local/include/;
@@ -4019,8 +4020,9 @@
 				);
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
-					"-Xclang",
-					"-fopenmp",
+					"-Rpass=\"loop|vect\"",
+					"-Rpass-missed=\"loop|vect\"",
+					"-Rpass-analysis=\"loop|vect\"",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SYSTEM_HEADER_SEARCH_PATHS = /usr/local/include/;

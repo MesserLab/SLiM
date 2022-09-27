@@ -39,6 +39,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 		disable Link-Time Optimization, which appears to be incompatible with OpenMP
 		switched "Build Active Architecture Only" in Build Settings to YES for Release builds, for targets eidos_multi and SLiM_multi, because the older libomp.dylib builds do not have arm64 in them
 		see http://antonmenshov.com/2017/09/09/clang-openmp-setup-in-xcode/
+		added -Rpass="loop|vect" -Rpass-missed="loop|vect" -Rpass-analysis="loop|vect" to Other C++ Flags for eidos_multi, to aid in optimization work
 	modify CMakeLists.txt to add a "PARALLEL" flag that can be set to "ON" to enable OpenMP with the -fopenmp flag
 	modify CMakeLists.txt to add /usr/local/include to all targets (through GSL_INCLUDES, which should maybe get cleaned up somehow)
 	modify CMakeLists.txt to build executables eidos_multi and slim_multi when PARALLEL is ON, and to link in libomp
@@ -49,6 +50,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
 	
 	parallelized loops for:
+		Eidos_ExecuteFunction_sum()
 		Individual::SetProperty_Accelerated_fitnessScaling()
 		Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType()
 	
