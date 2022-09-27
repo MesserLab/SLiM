@@ -559,6 +559,10 @@ void _RunOperatorDivTests(void)
 	EidosAssertScriptSuccess_FV("10.0/(0:2);", {std::numeric_limits<double>::infinity(), 10, 5});
 	EidosAssertScriptSuccess_FV("10/(0.0:2);", {std::numeric_limits<double>::infinity(), 10, 5});
 	EidosAssertScriptSuccess_FV("(15.0:13)/(0:2.0);", {std::numeric_limits<double>::infinity(), 14, 6.5});
+	EidosAssertScriptSuccess_F("1.0/0.0;", std::numeric_limits<double>::infinity());
+	EidosAssertScriptSuccess_F("1.0/-0.0;", -std::numeric_limits<double>::infinity());	// signed zeros as per IEEE 754
+	EidosAssertScriptSuccess_F("0.0/0.0;", std::numeric_limits<double>::quiet_NaN());
+	EidosAssertScriptSuccess_F("INF/INF;", std::numeric_limits<double>::quiet_NaN());
 	EidosAssertScriptRaise("(15:12.0)/(0:2);", 9, "operator requires that either");
 	EidosAssertScriptRaise("'foo'/5;", 5, "is not supported by");
 	EidosAssertScriptRaise("T/F;", 1, "is not supported by");

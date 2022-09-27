@@ -21,7 +21,6 @@
 #include "eidos_ast_node.h"
 #include "eidos_interpreter.h"
 
-#include "errno.h"
 #include <string>
 #include <algorithm>
 

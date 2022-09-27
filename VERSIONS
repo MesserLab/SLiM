@@ -8,6 +8,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
 	fix recipe 17.10 to set the time unit, to avoid the timescale warning from tskit
+	add "-fno-math-errno" in Other C++ Flags to improve performance and help with SIMD vectorization; not set for C, only C++, so this does not affect the GSL
+		errno is presently used in C++ only with functions that are not affected by -fno-math-errno, like chdir() and strtoll() and such, so there is no sacrifice here at all
 	
 
 version 4.0.1 (Eidos version 3.0.1):
