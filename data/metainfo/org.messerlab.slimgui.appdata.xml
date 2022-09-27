@@ -20,4 +20,8 @@
   <url type="bugtracker">https://github.com/MesserLab/SLiM/issues</url>
   <url type="homepage">https://messerlab.org/slim/</url>
   <developer_name>Ben Haller</developer_name>
+  <content_rating type="oars-1.0" />
+  <releases>
+      <release version="v4.0.1" date="2022-09-13" type="stable"/>
+  </releases>
 </component>
