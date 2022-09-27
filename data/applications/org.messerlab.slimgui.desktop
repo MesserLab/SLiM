@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec="/usr/bin/SLiMgui" %F
+Exec=SLiMgui %f
 Name=SLiMgui
 GenericName=The SLiM modeling environment.
 Icon=org.messerlab.slimgui
