@@ -66,8 +66,6 @@ tar -xf ../SOURCES/v%{version}.tar.gz
 %install
 %cmake_install
 
-install slim eidos SLiMgui %{buildroot}/usr/bin
-
 %check
 appstream-util validate-relax --nonet %{buildroot}/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
 
