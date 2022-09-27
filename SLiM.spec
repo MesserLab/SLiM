@@ -1,6 +1,6 @@
 Name:           SLiM
 Version:        4.0.1
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        an evolutionary simulation framework
 
 License:        GPLv3+
@@ -58,41 +58,15 @@ visualization of simulation output.
 %prep
 tar -xf ../SOURCES/v%{version}.tar.gz
 
-# Create a symbolic icon from the provided SVG
-# SVG object data structure:
-#    <rect
-#       y="0"
-#       x="0"
-#       height="16"
-#       width="16"
-#       id="rect31"
-#       style="fill:#000000" />
-sed -i '69,166 s/"fill:#[[:alnum:]]*"/"fill:#ffffff"/' ./SLiM-%{version}/QtSLiM/icons/AppIcon16.svg
-sed -i '62,68 d' ./SLiM-%{version}/QtSLiM/icons/AppIcon16.svg
-
 %build
-cmake -DBUILD_SLIMGUI=ON ./SLiM-%{version}/
-make
+# NOTE: is the relative path required when using the cmake macro due to the above source prep-style?
+%cmake -DBUILD_SLIMGUI=ON #./SLiM-%version}/
+%cmake_build
 
 %install
-mkdir -p %{buildroot}/usr/bin
-mkdir -p %{buildroot}/usr/share/icons/hicolor/{scalable/apps,scalable/mimetypes,symbolic/apps}
-mkdir -p %{buildroot}/usr/share/{applications/,metainfo/,mime/packages/}
+%cmake_install
 
-# Consult documentation regarding `install` system command; not the RPM install section documentation. Install is more appropriate than `cp`.
-cp slim eidos SLiMgui --target-directory %{buildroot}/usr/bin
-
-# Colourful and Symbolic Application Icon
-cp --no-target-directory ./SLiM-%{version}/QtSLiM/icons/AppIcon64.svg %{buildroot}/usr/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
-cp --no-target-directory ./SLiM-%{version}/QtSLiM/icons/AppIcon16.svg %{buildroot}/usr/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
-
-# slim Mimetype Icon
-cp --no-target-directory ./SLiM-%{version}/QtSLiM/icons/DocIcon.svg %{buildroot}/usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg
-
-# Desktop Entry and Appstream XMLs
-cp ./SLiM-%{version}/org.messerlab.slimgui-mime.xml --target-directory %{buildroot}/usr/share/mime/packages/
-cp ./SLiM-%{version}/org.messerlab.slimgui.desktop --target-directory %{buildroot}/usr/share/applications/
-cp ./SLiM-%{version}/org.messerlab.slimgui.appdata.xml --target-directory %{buildroot}/usr/share/metainfo/
+install slim eidos SLiMgui %{buildroot}/usr/bin
 
 %check
 appstream-util validate-relax --nonet %{buildroot}/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
@@ -106,6 +80,7 @@ appstream-util validate-relax --nonet %{buildroot}/usr/share/metainfo/org.messer
 /usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg
 /usr/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
 /usr/share/metainfo/org.messerlab.slimgui.appdata.xml
+/usr/share/metainfo/org.messerlab.slimgui.metainfo.xml
 /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
 
 %post
@@ -113,6 +88,10 @@ update-mime-database -n /usr/share/mime/
 xdg-mime install --mode system /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Tue Sep 27 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0.1-2
+- `CMakeLists.txt` improved, so the installation section of the RPM is now simplified.
+- Data files now exist in `data/`, rather than in the root folder of the software.
+
 * Tue Sep 13 2022 Ben Haller <bhaller@mac.com> - 4.0.1-1
 - Final candidate 1 for 4.0.1 release
 
