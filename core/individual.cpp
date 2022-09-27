@@ -989,6 +989,11 @@ bool Individual::_SetFitnessScaling_1(double source_value, EidosObject **p_value
 	if ((source_value < 0.0) || (std::isnan(source_value)))
 		return true;
 	
+	// Note that parallelization here only helps on machines with very high memory bandwidth,
+	// because this loop spends all of its time writing to memory.  It also introduces a
+	// potential race condition if the same Individual is referenced more than once in
+	// p_values; that is considered a bug in the user's script, and we could check for it
+	// in DEBUG mode if we wanted to.
 #pragma omp parallel for schedule(static) default(none) shared(p_values_size) firstprivate(p_values, source_value) if(p_values_size >= EIDOS_OMPMIN_SET_FITNESS_S1)
 	// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_set_fitnessScaling_1
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -1001,6 +1006,11 @@ bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p
 {
 	bool needs_raise = false;	// deferred raises for OpenMP compliance
 	
+	// Note that parallelization here only helps on machines with very high memory bandwidth,
+	// because this loop spends all of its time writing to memory.  It also introduces a
+	// potential race condition if the same Individual is referenced more than once in
+	// p_values; that is considered a bug in the user's script, and we could check for it
+	// in DEBUG mode if we wanted to.
 #pragma omp parallel for schedule(static) default(none) shared(p_values_size) firstprivate(p_values, source_data) reduction(||: needs_raise) if(p_values_size >= EIDOS_OMPMIN_SET_FITNESS_S2)
 	// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_set_fitnessScaling_2
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
