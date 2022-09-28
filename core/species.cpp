@@ -2326,6 +2326,14 @@ void Species::nonWF_GenerateOffspring(void)
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
+	// This completes the first half of the reproduction process; see Species::nonWF_MergeOffspring() for the second half
+}
+
+void Species::nonWF_MergeOffspring(void)
+{
+	// Species::nonWF_GenerateOffspring() completed the first half of the reproduction process; this does the second half
+	// This defers the merging of offspring until all species have reproduced, allowing multispecies interactions to remain valid
+	
 	// Invalidate interactions, now that the generation they were valid for is disappearing
 	community_.InvalidateInteractionsForSpecies(this);
 	

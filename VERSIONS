@@ -10,6 +10,7 @@ development head (in the master branch):
 	fix recipe 17.10 to set the time unit, to avoid the timescale warning from tskit
 	add "-fno-math-errno" in Other C++ Flags to improve performance and help with SIMD vectorization; not set for C, only C++, so this does not affect the GSL
 		errno is presently used in C++ only with functions that are not affected by -fno-math-errno, like chdir() and strtoll() and such, so there is no sacrifice here at all
+	split reproduction in nonWF models into a two-stage process of reproduction for all species, then merging for all species, to allow multispecies interactions to be used; no consequence for single-species models
 	
 
 version 4.0.1 (Eidos version 3.0.1):
