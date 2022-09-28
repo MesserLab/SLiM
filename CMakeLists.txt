@@ -64,8 +64,27 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
-# User-defined CMAKE command-line options
+# Add "-D BUILD_SLIMGUI=ON" to the command line to build SLiMgui
 option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
+
+# Add "-D BUILD_NATIVE=ON" to build natively for the build machine's architecture
+# this can result in better optimization, but the executable will only run on the build machine,
+# so it should only be enabled when you are building on the same machine you will do your runs on
+option(BUILD_NATIVE "Build native for the build machine" OFF)
+
+# Add "-D BUILD_LTO=ON" to enable link-time optimization; this may improve performance slightly,
+# but fails (see issue #33) on some machines with incompatible toolchains (so then don't enable it)
+option(BUILD_LTO "Build with link-time optimization" OFF)
+
+
+# Report the build type and SLiMgui build status first
+message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+
+if(BUILD_SLIMGUI)
+	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
+else()
+	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
+endif()
 
 
 # obtain the Git commit SHA-1; see ./cmake/_README.txt and https://stackoverflow.com/a/4318642/2752221
@@ -79,6 +98,13 @@ get_git_head_revision(GIT_REFSPEC GIT_SHA1)
 # Note that -fno-math-errno is deliberately set for C++ (for eidos and slim) but not for C (for gsl, eidos_zlib, kastore, tables)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Wno-attributes -Wunused-label -Wimplicit -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wmissing-prototypes -Wswitch -Wpointer-sign -Wsign-compare -Wstrict-prototypes -Wno-sign-conversion -Wuninitialized")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-attributes -Wunused-label -Wunused-variable -Wunused-value -Wno-pragmas -Wempty-body -Wshadow -Wparentheses -Wswitch -Wsign-compare -Wno-sign-conversion -Wuninitialized -fno-math-errno")
+
+# Add -march=native if requested
+if(BUILD_NATIVE)
+	message(STATUS "BUILD_NATIVE is ${BUILD_NATIVE}; building native (for this machine only)")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=native")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
 # Windows specific flags and variables
 if(WIN32)
@@ -114,15 +140,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFI
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 
-# Report the build type and SLiMgui build status
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
-
-if(BUILD_SLIMGUI)
-	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
-else()
-	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
-endif()
-
 # Windows compat
 if(WIN32)
     set(GNU_DIR ${CMAKE_CURRENT_BINARY_DIR}/libgnu-prefix/src/libgnu-build)
@@ -144,19 +161,21 @@ if(WIN32)
     set_target_properties(gnu PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${GNU_INCLUDES})
 endif()
 
-# Test for -flto support
-# BCH 4/4/2019: I am disabling this LTO stuff for now.  It made only a very small performance
-# difference, and multiple users reported build problems associated with it (see Issue #33).
-#include(CheckCXXCompilerFlag)
-#include(CheckCCompilerFlag)
-#CHECK_CXX_COMPILER_FLAG(-flto CXX_SUPPORTS_FLTO)
-#CHECK_C_COMPILER_FLAG(-flto C_SUPPORTS_FLTO)
-#if(CXX_SUPPORTS_FLTO AND C_SUPPORTS_FLTO)
-#    message(STATUS "Compiling with FLTO support")
-#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
-#endif()
+# Do link-time optimization with -flto if requested and supported
+if(BUILD_LTO)
+    include(CheckCXXCompilerFlag)
+    include(CheckCCompilerFlag)
+    CHECK_CXX_COMPILER_FLAG(-flto CXX_SUPPORTS_FLTO)
+    CHECK_C_COMPILER_FLAG(-flto C_SUPPORTS_FLTO)
+    if(CXX_SUPPORTS_FLTO AND C_SUPPORTS_FLTO)
+        message(STATUS "BUILD_LTO is ${BUILD_LTO}; building with link-time optimization")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+    else()
+        message(AUTHOR_WARNING "BUILD_LTO is ${BUILD_LTO} but -flto is not supported by the compiler")
+    endif()
+endif()
 
 # GSL 
 set(TARGET_NAME gsl)
