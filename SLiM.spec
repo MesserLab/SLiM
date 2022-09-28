@@ -57,36 +57,45 @@ visualization of simulation output.
 
 %prep
 tar -xf ../SOURCES/v%{version}.tar.gz
+%if %{defined suse_version}
+%define __sourcedir SLiM-%{version}
+%endif
 
 %build
-# NOTE: is the relative path required when using the cmake macro due to the above source prep-style?
+%if %{defined suse_version}
+%cmake -DBUILD_SLIMGUI=ON %{__sourcedir}
+%endif
+%else
 %cmake -DBUILD_SLIMGUI=ON ./SLiM-%{version}/
+%endif
+
 %cmake_build
 
 %install
 %cmake_install
 
 %check
-appstream-util validate-relax --nonet %{buildroot}/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
+appstream-util validate-relax --nonet %{buildroot}/usr/local/share/metainfo/org.messerlab.slimgui.appdata.xml
 
 %files
-/usr/bin/eidos
-/usr/bin/slim
-/usr/bin/SLiMgui
-/usr/share/applications/org.messerlab.slimgui.desktop
-/usr/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
-/usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg
-/usr/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
-/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
-/usr/share/metainfo/org.messerlab.slimgui.metainfo.xml
-/usr/share/mime/packages/org.messerlab.slimgui-mime.xml
+/usr/local/bin/eidos
+/usr/local/bin/slim
+/usr/local/bin/SLiMgui
+/usr/local/share/applications/org.messerlab.slimgui.desktop
+/usr/local/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
+/usr/local/share/icons/hicolor/scalable/mimetypes/text-slim.svg
+/usr/local/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
+/usr/local/share/metainfo/org.messerlab.slimgui.appdata.xml
+/usr/local/share/metainfo/org.messerlab.slimgui.metainfo.xml
+/usr/local/share/mime/packages/org.messerlab.slimgui-mime.xml
 
+# FIXME: Now that these paths are not hard-coded, because CMAKE can offer different prefixes, will this be fragile?
 %post
 update-mime-database -n /usr/share/mime/
 xdg-mime install --mode system /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
-* Tue Sep 27 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0.1-2
+* Wed Sep 28 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0.1-2
 - `CMakeLists.txt` improved, so the installation section of the RPM is now simplified.
 - Data files now exist in `data/`, rather than in the root folder of the software.
 
