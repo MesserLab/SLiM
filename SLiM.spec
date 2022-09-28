@@ -64,7 +64,6 @@ tar -xf ../SOURCES/v%{version}.tar.gz
 %build
 %if %{defined suse_version}
 %cmake -DBUILD_SLIMGUI=ON %{__sourcedir}
-%endif
 %else
 %cmake -DBUILD_SLIMGUI=ON ./SLiM-%{version}/
 %endif
