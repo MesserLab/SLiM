@@ -74,29 +74,30 @@ tar -xf ../SOURCES/v%{version}.tar.gz
 %cmake_install
 
 %check
-appstream-util validate-relax --nonet %{buildroot}/usr/local/share/metainfo/org.messerlab.slimgui.appdata.xml
+appstream-util validate-relax --nonet %{buildroot}%{_datadir}/metainfo/org.messerlab.slimgui.appdata.xml
 
 %files
-/usr/bin/eidos
-/usr/bin/slim
-/usr/bin/SLiMgui
-/usr/local/share/applications/org.messerlab.slimgui.desktop
-/usr/local/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
-/usr/local/share/icons/hicolor/scalable/mimetypes/text-slim.svg
-/usr/local/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
-/usr/local/share/metainfo/org.messerlab.slimgui.appdata.xml
-/usr/local/share/metainfo/org.messerlab.slimgui.metainfo.xml
-/usr/local/share/mime/packages/org.messerlab.slimgui-mime.xml
+%{_bindir}/eidos
+%{_bindir}/slim
+%{_bindir}/SLiMgui
+%{_datadir}/applications/org.messerlab.slimgui.desktop
+%{_datadir}/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
+%{_datadir}/icons/hicolor/scalable/mimetypes/text-slim.svg
+%{_datadir}/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
+%{_datadir}/metainfo/org.messerlab.slimgui.appdata.xml
+%{_datadir}/metainfo/org.messerlab.slimgui.metainfo.xml
+%{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
-# FIXME: Now that these paths are not hard-coded, because CMAKE can offer different prefixes, will this be fragile?
+# CMake does not impact the Fedora builds apart from what the vendor-specified SHARE_INSTALL_PREFIX is, and this is used by the 
 %post
-update-mime-database -n /usr/local/share/mime/
-xdg-mime install --mode system /usr/local/share/mime/packages/org.messerlab.slimgui-mime.xml
+update-mime-database -n %{_datadir}/mime/
+xdg-mime install --mode system %{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
 * Thurs Sep 29 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0.1-2
 - `CMakeLists.txt` improved, so the installation section of the RPM is now simplified.
 - Data files now exist in `data/`, rather than in the root folder of the software.
+- Use more macros to make the RPM less fragile 
 
 * Tue Sep 13 2022 Ben Haller <bhaller@mac.com> - 4.0.1-1
 - Final candidate 1 for 4.0.1 release
