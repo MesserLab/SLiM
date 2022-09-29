@@ -721,7 +721,7 @@ EidosValue_SP Eidos_ExecuteFunction_isInfinite(const std::vector<EidosValue_SP> 
 		if (x_value ->DimensionCount() == 1)
 			result_SP = (std::isinf(x_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		else
-			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{std::isinf(x_value->FloatAtIndex(0, nullptr))});
+			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(eidos_logical_t)std::isinf(x_value->FloatAtIndex(0, nullptr))});
 	}
 	else
 	{
@@ -753,7 +753,7 @@ EidosValue_SP Eidos_ExecuteFunction_isNAN(const std::vector<EidosValue_SP> &p_ar
 		if (x_value ->DimensionCount() == 1)
 			result_SP = (std::isnan(x_value->FloatAtIndex(0, nullptr)) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		else
-			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{std::isnan(x_value->FloatAtIndex(0, nullptr))});
+			result_SP = EidosValue_Logical_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Logical{(eidos_logical_t)std::isnan(x_value->FloatAtIndex(0, nullptr))});
 	}
 	else
 	{
