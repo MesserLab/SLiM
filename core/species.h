@@ -406,6 +406,7 @@ public:
 	void WF_SwapGenerations(void);
 	
 	void nonWF_GenerateOffspring(void);
+	void nonWF_MergeOffspring(void);
 	void nonWF_ViabilitySurvival(void);
 	
 	void AdvanceCycleCounter(void);

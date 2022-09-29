@@ -20,8 +20,7 @@
 
 #include "eidos_test.h"
 
-#include "math.h"
-
+#include <cmath>
 #include <limits>
 
 

@@ -2383,6 +2383,10 @@ bool Community::_RunOneTickNonWF(void)
 		
 		cycle_stage_ = SLiMCycleStage::kNonWFStage1GenerateOffspring;
 		
+		// BCH 28 September 2022: Offspring generation in nonWF models is now done in two passes: first all species generate
+		// their offspring, then all species merge their offspring.  This allows multispecies interactions to remain valid
+		// through the whole reproduction process.  In effect, reproduction is now kind of two separate tick cycle stages,
+		// but this is not emphasized since it only makes a difference to multispecies models; conceptually it is one stage.
 		for (Species *species : all_species_)
 			if (species->Active())
 			{
@@ -2393,6 +2397,20 @@ bool Community::_RunOneTickNonWF(void)
 					gSLiMScheduling << "\toffspring generation: species " << species->name_ << std::endl;
 #endif
 				species->nonWF_GenerateOffspring();
+				
+				executing_species_ = nullptr;
+			}
+		
+		for (Species *species : all_species_)
+			if (species->Active())
+			{
+				executing_species_ = species;
+				
+#ifdef SLIMGUI
+				if (is_explicit_species_)
+					gSLiMScheduling << "\tmerge offspring: species " << species->name_ << std::endl;
+#endif
+				species->nonWF_MergeOffspring();
 				species->has_recalculated_fitness_ = false;
 				
 				executing_species_ = nullptr;
