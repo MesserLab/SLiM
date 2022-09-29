@@ -117,8 +117,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 # Report whether the build is parallel or not
 if(PARALLEL)
 	# Use the _OPENMP define to test in code whether the build is parallel
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Xclang -fopenmp ")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fopenmp")
+	# to compile with Clang on macOS, -Xclang also needs to be supplied; it is in Xcode
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	link_directories(/usr/local/lib/)
 	message("PARALLEL is ${PARALLEL}")
 else()
