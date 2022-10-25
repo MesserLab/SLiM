@@ -332,6 +332,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	// several algorithms below use a buffer of indexes; we share that here as static locals
 	// whenever sampling without replacement, we resize the buffer to the needed capacity here, too,
 	// and initialize the buffer; all the code paths below use it in essentially the same way
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static int *index_buffer = nullptr;
 	static int buffer_capacity = 0;
 	

@@ -30,8 +30,6 @@
 #include <vector>
 #include <cmath>
 
-#include "eidos_openmp.h"
-
 
 #pragma mark -
 #pragma mark Individual
@@ -348,6 +346,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_sex_string_H)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
 				static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
 				static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
@@ -1650,6 +1650,8 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_subpopulation,			true,	kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_subpopulation));
@@ -1688,6 +1690,8 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));

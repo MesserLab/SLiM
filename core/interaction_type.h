@@ -228,6 +228,8 @@ private:
 	
 	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop, SparseVectorDataType data_type)
 	{
+		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+		
 		// Return a recycled SparseVector object, or create a new one if we have no recycled objects left.
 		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
 		SparseVector *sv;
@@ -255,6 +257,8 @@ private:
 	
 	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
 	{
+		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+		
 		// We return mutation runs to the free list without resetting them, because we do not know the ncols
 		// value for their next usage.  They would hang on to their internal buffers for reuse.
 		s_freed_sparse_vectors_.emplace_back(sv);
@@ -302,6 +306,8 @@ public:
 	
 	static inline void DeleteSparseVectorFreeList(void)
 	{
+		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+		
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
 		for (auto sv : s_freed_sparse_vectors_)

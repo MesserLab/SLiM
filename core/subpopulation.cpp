@@ -649,7 +649,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -695,7 +695,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -3606,6 +3606,8 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 
 void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
 	Individual **individual_data = parent_individuals_.data();
@@ -4800,6 +4802,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
 		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
 		
@@ -6514,6 +6518,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		// see sample() for some discussion of this implementation
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;
 		
@@ -7484,6 +7490,8 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
@@ -7519,6 +7527,8 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));

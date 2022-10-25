@@ -82,7 +82,6 @@
 #define gettimeofday gnulib::gettimeofday
 #endif
 
-#include "eidos_openmp.h"
 #ifdef _OPENMP
 #include <stdlib.h>
 #endif
@@ -261,6 +260,8 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 
 void Eidos_WarmUp(void)
 {
+	THREAD_SAFETY_CHECK();		// should never be called when parallel
+	
 	static bool been_here = false;
 	
 	if (!been_here)
@@ -1098,6 +1099,8 @@ size_t Eidos_GetCurrentRSS(void)
 
 size_t Eidos_GetMaxRSS(void)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static bool beenHere = false;
 	static size_t max_rss = 0;
 	
@@ -1170,6 +1173,8 @@ size_t Eidos_GetMaxRSS(void)
 
 void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static bool beenHere = false;
 	static size_t max_rss = 0;
 	
@@ -1295,6 +1300,8 @@ std::string Eidos_LastPathComponent(const std::string &p_path)
 // Get the current working directory; oddly, C++ has no API for this
 std::string Eidos_CurrentDirectory(void)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	// buffer of size MAXPATHLEN * 8 to accommodate relatively long paths
 	static char *path_buffer = nullptr;
 	
@@ -1333,6 +1340,8 @@ std::string Eidos_StripTrailingSlash(const std::string &p_path)
 // Create a directory at the given path if it does not already exist; returns false if an error occurred (which emits a warning)
 bool Eidos_CreateDirectory(const std::string &p_path, std::string *p_error_string)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_path));
 	
 	errno = 0;
@@ -1401,6 +1410,8 @@ std::string Eidos_TemporaryDirectory(void)
 
 bool Eidos_TemporaryDirectoryExists(void)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	// we cache the result for speed, making the assumption that the temporary directory will not change underneath us
 	static bool been_here = false;
 	static bool exists = false;
@@ -1512,6 +1523,8 @@ bool Eidos_TemporaryDirectoryExists(void)
 
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static uint64_t value;
 	size_t len = strlen(p_pattern);
@@ -1564,6 +1577,8 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static uint64_t value;
 	size_t len = strlen(p_pattern);
@@ -1622,6 +1637,8 @@ std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
 // This flushes the bytes in outstring to the file at file_path, with gzip append
 bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 	//std::cout << "_Eidos_FlushZipBuffer() called for " << file_path << std::endl;
 	
 	gzFile gzf = z_gzopen(file_path.c_str(), "ab");
@@ -1656,6 +1673,8 @@ bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outs
 // This flushes a given file, if it is buffering zip output
 void Eidos_FlushFile(const std::string &p_file_path)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 #if EIDOS_BUFFER_ZIP_APPENDS
 	auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
 	
@@ -1674,6 +1693,8 @@ void Eidos_FlushFile(const std::string &p_file_path)
 // This flushes all outstanding buffered zip data to the appropriate files
 void Eidos_FlushFiles(void)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 #if EIDOS_BUFFER_ZIP_APPENDS
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
 	for (auto &buffer_pair : gEidosBufferedZipAppendData)
@@ -1693,6 +1714,8 @@ void Eidos_FlushFiles(void)
 
 void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)
 {
+	THREAD_SAFETY_CHECK();		// filesystem write
+	
 	// note that we add a newline after the last line in all cases, so that appending new content to a file produces correct line breaks
 	
 	if (p_compress)
@@ -2047,6 +2070,8 @@ to be bound by the terms and conditions of this License Agreement.
 
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	// We allocate the partials using malloc() rather than initially using the stack,
 	// and keep the allocated block around forever; simpler if a bit less efficient.
 	static double *p = nullptr;		// partials array
@@ -2405,6 +2430,8 @@ std::string EidosStringForFloat(double p_value)
 
 bool Eidos_RegexWorks(void)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	// check whether <regex> works, because on some platforms it doesn't (!); test just once and cache the result
 	static bool beenHere = false;
 	static bool regex_works = false;
@@ -2859,6 +2886,8 @@ EidosStringRegistry::~EidosStringRegistry(void)
 
 void EidosStringRegistry::_RegisterStringForGlobalID(const std::string &p_string, EidosGlobalStringID p_string_id)
 {
+	THREAD_SAFETY_CHECK();		// string registry change
+	
 	// BCH 13 September 2016: So, this is a tricky issue without a good resolution at the moment.  Eidos explicitly registers
 	// a few strings, using this method, using the function EidosRegisteredString().  And SLiM explicitly registers
 	// a bunch more strings, in SLiM_RegisterGlobalStringsAndIDs().  So far so good.  But Eidos also registers a bunch of

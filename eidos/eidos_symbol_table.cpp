@@ -57,6 +57,8 @@ size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable)
 
 static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTableFromPool(uint32_t *p_capacity)
 {
+	THREAD_SAFETY_CHECK();		// gEidosSymbolTable_TablePool change
+	
 	// Get a zeroed table from the pool, or make a new one
 	*p_capacity = gEidosSymbolTable_TablePool_table_capacity;
 	
@@ -76,6 +78,8 @@ static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTabl
 
 static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSymbolTableSlot *p_table, uint32_t p_capacity)
 {
+	THREAD_SAFETY_CHECK();		// gEidosSymbolTable_TablePool change
+	
 	if (p_capacity > gEidosSymbolTable_TablePool_table_capacity)
 	{
 		// If the returning table is bigger than those in the pool, we want to increase the pool capacity
@@ -102,6 +106,8 @@ static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSym
 
 void FreeSymbolTablePool(void)
 {
+	THREAD_SAFETY_CHECK();		// gEidosSymbolTable_TablePool change
+	
     // Clean up our symbol table slot pool to avoid confusing Valgrind
     while (gEidosSymbolTable_TablePool.size())
 	{
@@ -122,6 +128,8 @@ void FreeSymbolTablePool(void)
 EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table) : table_type_(p_table_type),
 	table_type_is_constant_((p_table_type != EidosSymbolTableType::kGlobalVariablesTable) && (p_table_type != EidosSymbolTableType::kLocalVariablesTable))
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	// allocate the lookup table
 	slots_ = GetZeroedTableFromPool(&capacity_);
 	
@@ -386,6 +394,8 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 
 void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	uint32_t new_capacity = capacity_;
 	
 	while (p_symbol_name >= new_capacity)
@@ -409,6 +419,8 @@ void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 
 void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
 	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
 	// x[2]=...; and x=x+1;). If the value is invisible then we copy it, since the symbol table never stores invisible values.
@@ -443,6 +455,8 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 
 void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	// So, this is a little weird.  SetValueForSymbol() copies the passed value, as explained in its comment above.
 	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
 	// values directly inside a value we just set in the symbol table.  Evaluate_For() is the worst offender in this
@@ -482,6 +496,8 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 
 void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	// First make sure this symbol is not in use as either a variable or a constant
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
 	// currently in scope or not – as soon as the conflicting scope comes into scope, the conflict will be manifest.
@@ -541,6 +557,8 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 
 void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	// First find the global variables table
 	EidosSymbolTable *global_variables_table = this;
 	
@@ -585,6 +603,8 @@ void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, 
 
 void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 	if (p_symbol_name < capacity_)
 	{
 		EidosSymbolTableSlot *slot = slots_ + p_symbol_name;
@@ -632,6 +652,8 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 
 void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
+	THREAD_SAFETY_CHECK();		// symbol table change
+	
 #if DEBUG
 	if (p_value->Invisible())
 		EIDOS_TERMINATION << "ERROR (EidosSymbolTable::_InitializeConstantSymbolEntry): (internal error) this method should be called only for non-invisible objects." << EidosTerminate(nullptr);

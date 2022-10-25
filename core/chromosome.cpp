@@ -1237,6 +1237,8 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 // the information returned here also includes a list of heteroduplex regions where mismatches between the two parental strands will need to be resolved
 void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const
 {
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+	
 	// BEWARE! Chromosome::DrawCrossoverBreakpoints() above must be altered in parallel with this method!
 #if DEBUG
 	if (!using_DSB_model_)
@@ -2439,6 +2441,8 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomicElements,						true,	kEidosValueMaskObject, gSLiM_GenomicElement_Class)));
@@ -2488,6 +2492,8 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_ancestralNucleotides, kEidosValueMaskInt | kEidosValueMaskString))->AddInt_OSN(gEidosStr_start, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_end, gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));

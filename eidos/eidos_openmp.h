@@ -26,6 +26,29 @@
 #ifndef eidos_openmp_h
 #define eidos_openmp_h
 
+#include <signal.h>
+
+
+// THREAD_SAFETY_CHECK(): places in the code that have identified thread safety concerns should use this macro.  It will
+// produce a runtime error for DEBUG builds if it is hit while parallel.  Put it in places that are not currently thread-safe.
+// For example, the RNG, object pools, and other such global state are not thread-safe right now, so they should use this.
+// Many of these places might be made safe with a simple locking protocol, but that has not yet been done, so beware.
+// This tagging of unsafe spots is undoubtedly not comprehensive; I'm just trying to catch the most obvious problems!
+// Note that this macro uses a GCC built-in; it is supported by Clang as well, but may need a tweak for other platforms.
+#ifdef _OPENMP
+
+#if DEBUG
+#define THREAD_SAFETY_CHECK() if (omp_in_parallel()) raise(SIGTRAP);
+#else
+#define THREAD_SAFETY_CHECK()
+#endif
+
+#else
+
+#define THREAD_SAFETY_CHECK()
+
+#endif
+
 
 #ifdef _OPENMP
 

@@ -468,6 +468,8 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 
 slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
+	THREAD_SAFETY_CHECK();		// SLiM global state read
+	
 	slim_tick_t file_tick, file_cycle;
 	std::map<slim_polymorphismid_t,MutationIndex> mutations;
 	std::string line, sub; 
@@ -990,6 +992,8 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #ifndef __clang_analyzer__
 slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
+	THREAD_SAFETY_CHECK();		// SLiM global state read
+	
 	std::size_t file_size = 0;
 	slim_tick_t file_tick, file_cycle;
 	int32_t spatial_output_count;
@@ -2000,6 +2004,8 @@ void Species::PrepareForCycle(void)
 			
 			if (!beenHere)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!";
 				beenHere = true;
 			}
@@ -2867,7 +2873,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	
 	// MutationRun
 	{
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		int64_t mutrun_objectCount = 0;
 		int64_t mutrun_externalBuffers = 0;
 		int64_t mutrun_nonneutralCaches = 0;
@@ -3526,7 +3532,7 @@ void Species::CollectSLiMguiMutationProfileInfo(void)
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally up the number of mutation runs, mutation usage metrics, etc.
-	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
@@ -4214,6 +4220,8 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
 	// form derived state
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
 	static std::vector<MutationMetadataRec> mutation_metadata;
 	MutationMetadataRec metadata_rec;
@@ -4608,6 +4616,8 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	
 	if (!double_buf)
 	{
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
 		double_buf = (char *)malloc(40 * sizeof(char));
 		if (!double_buf)
 			EIDOS_TERMINATION << "ERROR (Species::TreeSequenceDataToAscii): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
@@ -6230,6 +6240,8 @@ void Species::CheckTreeSeqIntegrity(void)
 
 void Species::CrosscheckTreeSeqIntegrity(void)
 {
+	THREAD_SAFETY_CHECK();		// should never be called when parallel
+	
 #if DEBUG
 	if (!recording_tree_)
 		EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) tree sequence recording method called with recording off." << EidosTerminate();
@@ -8221,6 +8233,8 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 
 slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
+	THREAD_SAFETY_CHECK();		// SLiM global state read
+	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	std::string directory_path(p_file);
 	
@@ -8286,6 +8300,8 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
+	THREAD_SAFETY_CHECK();		// SLiM global state read
+	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	int ret;
 

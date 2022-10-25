@@ -41,7 +41,6 @@
 #include "slim_test.h"
 #include "eidos_symbol_table.h"
 
-#include "eidos_openmp.h"
 #ifdef _OPENMP
 #warning Building slim with OpenMP enabled
 #endif
@@ -166,6 +165,15 @@ int main(int argc, char *argv[])
 #ifdef _OPENMP
 	long max_thread_count = omp_get_max_threads();
 	bool changed_max_thread_count = false;
+#endif
+	
+	// Test the thread-safety check; enable this #if to confirm that this macro is working
+	// Note the macro only does its runtime check for a DEBUG build with _OPENMP defined!
+#if 0
+#pragma omp parallel
+	{
+		THREAD_SAFETY_CHECK();		// TEST
+	}
 #endif
 	
 	// command-line SLiM generally terminates rather than throwing

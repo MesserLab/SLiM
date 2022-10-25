@@ -369,6 +369,8 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_dfe_string_f)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
 				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
 				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
@@ -423,6 +425,8 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_policy_string_s)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
 				static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
 				static_policy_string_l = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_l));
@@ -728,6 +732,8 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id));
@@ -756,6 +762,8 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawSelectionCoefficient, kEidosValueMaskFloat))->AddInt_OS("n", gStaticEidosValue_Integer1));

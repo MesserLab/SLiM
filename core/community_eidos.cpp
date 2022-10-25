@@ -105,6 +105,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 	
 	if (!sim_0_signatures_.size())
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskObject, gSLiM_GenomicElement_Class, "SLiM"))
@@ -397,6 +399,8 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_model_type_string_WF)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
 				static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
 			}
@@ -1381,6 +1385,8 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allGenomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
@@ -1408,6 +1414,8 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));

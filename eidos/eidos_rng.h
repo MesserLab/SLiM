@@ -95,6 +95,8 @@ taus_state_t;
 inline __attribute__((always_inline)) unsigned long
 taus_get_inline (void *vstate)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	taus_state_t *state = (taus_state_t *) vstate;
 	
 #define TAUS_MASK 0xffffffffUL
@@ -194,6 +196,8 @@ template <class T> inline void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n
 
 static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
 		return gsl_ran_poisson(EIDOS_GSL_RNG, p_mu);
@@ -218,6 +222,8 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 // This version allows the caller to supply a precalculated exp(-mu) value
 static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu, double p_exp_neg_mu)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
 		return gsl_ran_poisson(EIDOS_GSL_RNG, p_mu);
@@ -246,6 +252,8 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
 static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO(double p_mu, double p_exp_neg_mu)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
 	{
@@ -378,6 +386,8 @@ void _Eidos_MT64_fill();
 /* generates a random number on [0, 2^64-1]-interval */
 inline __attribute__((always_inline)) uint64_t Eidos_MT64_genrand64_int64(void)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	/* generate NN words at one time */
 	if (gEidos_RNG.mti_ >= Eidos_MT64_NN)
 		_Eidos_MT64_fill();
@@ -443,6 +453,8 @@ inline __attribute__((always_inline)) uint64_t Eidos_rng_uniform_int_MT64(uint64
 // the independence of all 64 bits seems to be a solid assumption for the MT64 generator, as far as I can tell.
 static inline __attribute__((always_inline)) bool Eidos_RandomBool()
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	bool retval;
 	
 	if (gEidos_RNG.random_bool_bit_counter_ > 0)

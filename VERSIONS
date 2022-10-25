@@ -50,6 +50,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 	add a header eidos_openmp.h that should be used instead of #include "omp.h", providing various useful definitions etc.
 	add an initialization function for OpenMP, Eidos_WarmUpOpenMP(), that must be called when warming up; sets various options, logs diagnostic info
 	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
+	add THREAD_SAFETY_CHECK() convention for marking areas that are known not to be thread-safe, such as due to use of statics or globals
 	
 	parallelized loops for:
 		Eidos_ExecuteFunction_sum()

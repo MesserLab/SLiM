@@ -47,6 +47,7 @@
 
 #endif
 
+#include "eidos_openmp.h"
 #include "eidos_intrusive_ptr.h"
 
 class EidosScript;
@@ -141,11 +142,15 @@ extern EidosErrorContext gEidosErrorContext;
 
 inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
 {
+	THREAD_SAFETY_CHECK();		// gEidosErrorContext change
+	
 	gEidosErrorContext.errorPosition = p_saved_position;
 }
 
 inline __attribute__((always_inline)) void ClearErrorPosition(void)
 {
+	THREAD_SAFETY_CHECK();		// gEidosErrorContext change
+	
 	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
 }
 

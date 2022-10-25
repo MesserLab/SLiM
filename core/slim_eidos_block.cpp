@@ -1559,6 +1559,8 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_active,			false,	kEidosValueMaskInt | kEidosValueMaskSingleton)));

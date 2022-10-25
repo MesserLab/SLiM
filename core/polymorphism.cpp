@@ -34,6 +34,8 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static char double_buf[40];
 	
 	p_out << polymorphism_id_ << " " << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " ";
@@ -49,10 +51,8 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 	p_out << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
-	
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << nuc_chars[mutation_ptr_->nucleotide_];
+		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
 	p_out << std::endl;
 }
@@ -64,10 +64,8 @@ void Polymorphism::Print_NoID(std::ostream &p_out) const
 	p_out << mutation_ptr_->mutation_id_ << " " << "m" << mutation_ptr_->mutation_type_ptr_->mutation_type_id_ << " " << mutation_ptr_->position_ << " " << mutation_ptr_->selection_coeff_ << " " << mutation_ptr_->mutation_type_ptr_->dominance_coeff_ << " p" << mutation_ptr_->subpop_index_ << " " << mutation_ptr_->origin_tick_ << " " << prevalence_;
 	
 	// output a nucleotide if available
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
-	
 	if (mutation_ptr_->mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << nuc_chars[mutation_ptr_->nucleotide_];
+		p_out << " " << gSLiM_Nucleotides[mutation_ptr_->nucleotide_];
 	
 	p_out << std::endl;
 }

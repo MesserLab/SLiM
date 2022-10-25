@@ -1019,6 +1019,8 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+	
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
 	bool prevent_incidental_selfing = species_.PreventIncidentalSelfing();
@@ -2282,6 +2284,8 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+	
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
 	
@@ -3552,6 +3556,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
 	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
 #if DEBUG
@@ -4102,6 +4108,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
+	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+
 #if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
@@ -4794,7 +4802,7 @@ void Population::UniqueMutationRuns(void)
 	std::multimap<int64_t, MutationRun *> runmap;
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
 	
-	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
@@ -5305,7 +5313,7 @@ void Population::AssessMutationRuns(void)
 		slim_position_t mutrun_length = 0;
 		int64_t mutation_total = 0;
 		
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
@@ -5559,7 +5567,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		if (can_tally_runs)
 		{
 			slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
@@ -5848,7 +5856,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
 	slim_refcount_t total_genome_count = 0;
-	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
@@ -6246,7 +6254,7 @@ void Population::RemoveAllFixedMutations(void)
 		//std::cout << "Removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
 		
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
@@ -6574,6 +6582,8 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static char double_buf[40];
 				
 				if (spatial_output_count >= 1)

@@ -39,8 +39,6 @@
 // dangerous.  So I think we need to just tolerate this build issue and fix it when it arises.
 #include <cmath>
 
-#include "eidos_openmp.h"
-
 
 // ************************************************************************************
 //

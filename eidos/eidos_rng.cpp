@@ -29,6 +29,8 @@ Eidos_RNG_State gEidos_RNG;
 
 unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 {
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static long int hereCounter = 0;
 	pid_t pid = getpid();
 	struct timeval te; 
@@ -45,6 +47,8 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 
 void Eidos_InitializeRNG(void)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	// Allocate the RNG if needed
 	if (!gEidos_RNG.gsl_rng_)
 		gEidos_RNG.gsl_rng_ = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
@@ -61,6 +65,8 @@ void Eidos_InitializeRNG(void)
 
 void Eidos_FreeRNG(Eidos_RNG_State &p_rng)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	if (p_rng.gsl_rng_)
 	{
 		gsl_rng_free(p_rng.gsl_rng_);
@@ -80,6 +86,8 @@ void Eidos_FreeRNG(Eidos_RNG_State &p_rng)
 
 void Eidos_SetRNGSeed(unsigned long int p_seed)
 {
+	THREAD_SAFETY_CHECK();		// RNG change
+	
 	// BCH 12 Sept. 2016: it turns out that gsl_rng_taus2 produces exactly the same sequence for seeds 0 and 1.  This is obviously
 	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
 	// identical runs for 0 and 1.  There is no way to re-map the seed space to get rid of the problem altogether; all we can do

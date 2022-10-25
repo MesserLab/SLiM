@@ -1467,6 +1467,8 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_dimensionality_string_x)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
 				static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
 				static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
@@ -1497,6 +1499,8 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_periodicity_string_x)
 			{
+				THREAD_SAFETY_CHECK();		// usage of statics
+				
 				static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
 				static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
 				static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
@@ -1806,6 +1810,8 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	EidosValue *subpops_value = p_arguments[1].get();
 	
 	// Cache the subpops across which we will tally
+	THREAD_SAFETY_CHECK();		// usage of statics
+	
 	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
 	subpops_to_search.clear();
 	
@@ -2072,6 +2078,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	{
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
+		
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
 		
 		subpops_to_tally.clear();
@@ -3280,6 +3289,8 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -3314,6 +3325,8 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));

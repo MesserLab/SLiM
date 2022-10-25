@@ -51,10 +51,8 @@ void Substitution::PrintForSLiMOutput(std::ostream &p_out) const
 	p_out << mutation_id_ << " m" << mutation_type_ptr_->mutation_type_id_ << " " << position_ << " " << selection_coeff_ << " " << mutation_type_ptr_->dominance_coeff_ << " p" << subpop_index_ << " " << origin_tick_ << " "<< fixation_tick_;
 	
 	// output a nucleotide if available
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
-	
 	if (mutation_type_ptr_->nucleotide_based_)
-		p_out << " " << nuc_chars[nucleotide_];
+		p_out << " " << gSLiM_Nucleotides[nucleotide_];
 	
 	p_out << std::endl;
 }
@@ -380,6 +378,8 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Substitution::GetProperty_Accelerated_id));
@@ -405,6 +405,8 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

@@ -44,6 +44,8 @@ extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	//
 
 void SLiM_CreateMutationBlock(void)
 {
+	THREAD_SAFETY_CHECK();		// gSLiM_Mutation_Block change
+	
 	// first allocate the block; no need to zero the memory
 	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
 	gSLiM_Mutation_Block = (Mutation *)malloc(gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
@@ -66,6 +68,8 @@ void SLiM_CreateMutationBlock(void)
 
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
+	THREAD_SAFETY_CHECK();		// gSLiM_Mutation_Block change
+	
 	if (!gSLiM_Mutation_Block)
 		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
 	
@@ -130,6 +134,8 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 
 void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
 {
+	THREAD_SAFETY_CHECK();		// gSLiM_Mutation_Block change
+	
 #ifdef SLIMGUI
 	// This version zeros out refcounts just for the mutations currently in use in the registry.
 	// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
@@ -205,6 +211,8 @@ slim_mutationid_t gSLiM_next_mutation_id = 0;
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
+	THREAD_SAFETY_CHECK();		// gSLiM_next_mutation_id change
+	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	
@@ -226,6 +234,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	
 	if (!been_here)
 	{
+		THREAD_SAFETY_CHECK();		// should never be run in parallel
+		
 		char *ptr_base = (char *)this;
 		char *ptr_mutation_type_ptr_ = (char *)&(this->mutation_type_ptr_);
 		char *ptr_position_ = (char *)&(this->position_);
@@ -281,6 +291,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
+	THREAD_SAFETY_CHECK();		// gSLiM_next_mutation_id change
+	
 	if (gSLiM_next_mutation_id <= mutation_id_)
 		gSLiM_next_mutation_id = mutation_id_ + 1;
 }
@@ -751,6 +763,8 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Mutation::GetProperty_Accelerated_id));
@@ -777,6 +791,8 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSelectionCoeff, kEidosValueMaskVOID))->AddFloat_S("selectionCoeff"));

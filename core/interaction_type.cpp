@@ -5239,6 +5239,8 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(InteractionType::GetProperty_Accelerated_id));
@@ -5260,6 +5262,8 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_clippedIntegral, kEidosValueMaskFloat))->AddObject_N("receivers", gSLiM_Individual_Class));

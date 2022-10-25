@@ -1553,7 +1553,7 @@ bool Community::_RunOneTick(void)
 		
 		{
 			// do a bulk operation to tally up mutation run and genome counts
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			{
@@ -1579,7 +1579,7 @@ bool Community::_RunOneTick(void)
 		
 		{
 			// do a bulk operation to tally up mutation run external buffer usage efficiency
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			{
