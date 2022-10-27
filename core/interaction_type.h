@@ -221,6 +221,8 @@ private:
 	bool clipped_integral_valid_ = false;
 	
 	// A pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity.  Note this is shared by all species.
+	// Note that s_freed_sparse_vectors_ and s_sparse_vector_count_ are controlled by s_freed_sparse_vectors_LOCK_.
+	static omp_lock_t s_freed_sparse_vectors_LOCK_;
 	static std::vector<SparseVector *> s_freed_sparse_vectors_;
 #if DEBUG
 	static int s_sparse_vector_count_;
@@ -228,28 +230,32 @@ private:
 	
 	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop, SparseVectorDataType data_type)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
-		
 		// Return a recycled SparseVector object, or create a new one if we have no recycled objects left.
 		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
 		SparseVector *sv;
+		
+		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
 		
 		if (s_freed_sparse_vectors_.size())
 		{
 			sv = s_freed_sparse_vectors_.back();
 			s_freed_sparse_vectors_.pop_back();
 			
+			omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
+			
 			sv->Reset(exerter_subpop->parent_subpop_size_, data_type);
 		}
 		else
 		{
-			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
-			sv->SetDataType(data_type);
-			
 #if DEBUG
 			if (++s_sparse_vector_count_ > 1)
 				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_ << "..." << std::endl;
 #endif
+			
+			omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
+			
+			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
+			sv->SetDataType(data_type);
 		}
 		
 		return sv;
@@ -257,7 +263,7 @@ private:
 	
 	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
 		
 		// We return mutation runs to the free list without resetting them, because we do not know the ncols
 		// value for their next usage.  They would hang on to their internal buffers for reuse.
@@ -266,6 +272,8 @@ private:
 #if DEBUG
 		s_sparse_vector_count_--;
 #endif
+		
+		omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
 	}
 	
 	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
@@ -306,7 +314,7 @@ public:
 	
 	static inline void DeleteSparseVectorFreeList(void)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
 		
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
@@ -314,6 +322,8 @@ public:
 			delete (sv);
 		
 		s_freed_sparse_vectors_.clear();
+		
+		omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
 	}
 	
 	//

@@ -54,6 +54,7 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 #pragma mark -
 
 std::vector<SparseVector *> InteractionType::s_freed_sparse_vectors_;
+omp_lock_t InteractionType::s_freed_sparse_vectors_LOCK_;		// initialized in InteractionType::InteractionType()
 #if DEBUG
 int InteractionType::s_sparse_vector_count_ = 0;
 #endif
@@ -64,6 +65,18 @@ InteractionType::InteractionType(Community &p_community, slim_objectid_t p_inter
 	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	community_(p_community), interaction_type_id_(p_interaction_type_id)
 {
+	static bool beenHere = false;
+	
+	if (!beenHere) {
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
+		// OpenMP requires that locks be initialized with omp_init_lock().  There seems to be
+		// no way to do that where the lock is defined, so we do it here once.  A poor man's
+		// +initialize method; as usual, C++ sucks.  Note this lock is never destroyed.
+		omp_init_lock(&s_freed_sparse_vectors_LOCK_);
+		beenHere = true;
+	}
+	
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
 	if (spatiality_string_ == "")			{ spatiality_ = 0; required_dimensionality_ = 0; }
 	else if (spatiality_string_ == "x")		{ spatiality_ = 1; required_dimensionality_ = 1; }
@@ -1284,6 +1297,8 @@ size_t InteractionType::MemoryUsageForPositions(void)
 
 size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 {
+	THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
+	
 	size_t usage = s_freed_sparse_vectors_.size() * sizeof(SparseVector);
 	
 	for (SparseVector *free_sv : s_freed_sparse_vectors_)
@@ -4114,18 +4129,26 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	else
 	{
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+		bool saw_error_1 = false, saw_error_2 = false;
 		
+#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
 			slim_popsize_t receiver_index_in_subpop = receiver->index_;
 			
 			if (receiver_index_in_subpop < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			{
+				saw_error_1 = true;
+				continue;
+			}
 			
 			// SPECIES CONSISTENCY CHECK
 			if (receiver_subpop != receiver->subpopulation_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			{
+				saw_error_2 = true;
+				continue;
+			}
 			
 			// Check sex-specificity for the receiver; if the individual is disqualified, the count is zero
 			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
@@ -4146,6 +4169,12 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			InteractionType::FreeSparseVector(sv);
 			result_vec->set_int_no_check(nnz, receiver_index);
 		}
+		
+		// deferred raises, for OpenMP compatibility
+		if (saw_error_1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		if (saw_error_2)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -5167,18 +5196,26 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	{
 		// Loop over the requested individuals and get the totals
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+		bool saw_error_1 = false, saw_error_2 = false;
 		
+#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
 			slim_popsize_t receiver_index_in_subpop = receiver->index_;
 			
 			if (receiver_index_in_subpop < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that receivers are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			{
+				saw_error_1 = true;
+				continue;
+			}
 			
 			// SPECIES CONSISTENCY CHECK
 			if (receiver_subpop != receiver->subpopulation_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			{
+				saw_error_2 = true;
+				continue;
+			}
 			
 			// Check sex-specificity for the receiver; if the individual is disqualified, the total is zero
 			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
@@ -5206,6 +5243,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			result_vec->set_float_no_check(total_strength, receiver_index);
 			InteractionType::FreeSparseVector(sv);
 		}
+		
+		// deferred raises, for OpenMP compatibility
+		if (saw_error_1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that receivers are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		if (saw_error_2)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
