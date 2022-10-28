@@ -45,6 +45,7 @@
 class Species;
 class Subpopulation;
 class Individual;
+class InteractionType_Class;
 
 
 extern EidosClass *gSLiM_InteractionType_Class;
@@ -126,6 +127,9 @@ class InteractionType : public EidosDictionaryUnretained
 private:
 	typedef EidosDictionaryUnretained super;
 
+	static void _WarmUp(void);					// called internally at startup, do not call
+	friend InteractionType_Class;				// so it can call _WarmUp() for us
+	
 #ifdef SLIMGUI
 public:
 #else
@@ -369,7 +373,7 @@ private:
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
-	inline InteractionType_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	inline InteractionType_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { InteractionType::_WarmUp(); }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;

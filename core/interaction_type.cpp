@@ -59,24 +59,28 @@ omp_lock_t InteractionType::s_freed_sparse_vectors_LOCK_;		// initialized in Int
 int InteractionType::s_sparse_vector_count_ = 0;
 #endif
 
+void InteractionType::_WarmUp(void)
+{
+	// Called by InteractionType_Class::InteractionType_Class() when it is created during warmup
+	static bool beenHere = false;
+	
+	if (!beenHere) {
+		THREAD_SAFETY_CHECK();		// usage of statics
+		
+		// OpenMP requires that locks be initialized with omp_init_lock().  There seems to be no
+		// way to do that where the lock is defined, so we do it here once.  This is a poor man's
+		// +initialize method; as usual, C++ sucks.  Note this lock is never destroyed.
+		omp_init_lock(&s_freed_sparse_vectors_LOCK_);
+		beenHere = true;
+	}
+}
+
 InteractionType::InteractionType(Community &p_community, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 			 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class))),
 	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	community_(p_community), interaction_type_id_(p_interaction_type_id)
 {
-	static bool beenHere = false;
-	
-	if (!beenHere) {
-		THREAD_SAFETY_CHECK();		// usage of statics
-		
-		// OpenMP requires that locks be initialized with omp_init_lock().  There seems to be
-		// no way to do that where the lock is defined, so we do it here once.  A poor man's
-		// +initialize method; as usual, C++ sucks.  Note this lock is never destroyed.
-		omp_init_lock(&s_freed_sparse_vectors_LOCK_);
-		beenHere = true;
-	}
-	
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
 	if (spatiality_string_ == "")			{ spatiality_ = 0; required_dimensionality_ = 0; }
 	else if (spatiality_string_ == "x")		{ spatiality_ = 1; required_dimensionality_ = 1; }

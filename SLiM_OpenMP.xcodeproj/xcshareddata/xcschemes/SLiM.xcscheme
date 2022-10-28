@@ -109,11 +109,11 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_nonWF.slim&quot;"
+            argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/M_turnover_nonWF.slim&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&quot;/Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM-Benchmarks/models/turnover_WF.slim&quot;"
+            argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/M_turnover_WF.slim&quot;"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
