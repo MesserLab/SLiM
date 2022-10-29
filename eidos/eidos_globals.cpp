@@ -87,6 +87,10 @@
 #endif
 
 
+// declared in eidos_openmp.h
+int gEidosMaxThreads = 1;
+
+
 // Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
 static_assert(sizeof(char *) == 8, "SLiM must be built for 64-bit, not 32-bit.");
 
@@ -232,12 +236,20 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	const char *bind_policy = "false";
 	setenv("OMP_PROC_BIND", bind_policy, 0);
 	
+	// We do not support nested parallelism; we set the relevant ICVs here to make sure it is off, overriding defaults/environment
+	omp_set_max_active_levels(1);
+	//omp_set_nested(false);		// deprecated in favor of omp_set_max_active_levels()
+	
+	// Set the maximum number of threads to the user's request
 	if (changed_max_thread_count)
 		omp_set_num_threads(new_max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
 	
+	// Get the maximum number of threads in effect, which might be different from the number requested
+	gEidosMaxThreads = omp_get_max_threads();
+	
 	if (outstream)
 	{
-		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << omp_get_max_threads() << " threads)" << std::endl;
+		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << gEidosMaxThreads << " threads)" << std::endl;
 		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
 	}
 	

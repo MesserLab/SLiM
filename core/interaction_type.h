@@ -225,11 +225,19 @@ private:
 	bool clipped_integral_valid_ = false;
 	
 	// A pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity.  Note this is shared by all species.
-	// Note that s_freed_sparse_vectors_ and s_sparse_vector_count_ are controlled by s_freed_sparse_vectors_LOCK_.
-	static omp_lock_t s_freed_sparse_vectors_LOCK_;
+	// When built multithreaded, we have per-thread sparse vector pools to avoid lock contention, but single-thread there is one pool.
+	// At present we only use one SparseVector object per pool, but this design will allow new code to access multiple SparseVectors
+	// simultaneously if that becomes useful for more complex functionality.  The overhead of the pools should be quite small.
+#ifdef _OPENMP
+	static std::vector<std::vector<SparseVector *>> s_freed_sparse_vectors_PERTHREAD;
+	#if DEBUG
+	static std::vector<int> s_sparse_vector_count_PERTHREAD_;
+	#endif
+#else
 	static std::vector<SparseVector *> s_freed_sparse_vectors_;
-#if DEBUG
+	#if DEBUG
 	static int s_sparse_vector_count_;
+	#endif
 #endif
 	
 	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop, SparseVectorDataType data_type)
@@ -238,14 +246,19 @@ private:
 		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
 		SparseVector *sv;
 		
-		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
+#ifdef _OPENMP
+		// When running multithreaded, look up the per-thread SparseVector pool to use
+		int threadnum = omp_get_thread_num();
+		std::vector<SparseVector *> &s_freed_sparse_vectors_ = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		#if DEBUG
+		int &s_sparse_vector_count_ = s_sparse_vector_count_PERTHREAD_[threadnum];
+		#endif
+#endif
 		
 		if (s_freed_sparse_vectors_.size())
 		{
 			sv = s_freed_sparse_vectors_.back();
 			s_freed_sparse_vectors_.pop_back();
-			
-			omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
 			
 			sv->Reset(exerter_subpop->parent_subpop_size_, data_type);
 		}
@@ -256,8 +269,6 @@ private:
 				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_ << "..." << std::endl;
 #endif
 			
-			omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
-			
 			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
 			sv->SetDataType(data_type);
 		}
@@ -267,7 +278,14 @@ private:
 	
 	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
 	{
-		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
+#ifdef _OPENMP
+		// When running multithreaded, look up the per-thread SparseVector pool to use
+		int threadnum = omp_get_thread_num();
+		std::vector<SparseVector *> &s_freed_sparse_vectors_ = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		#if DEBUG
+		int &s_sparse_vector_count_ = s_sparse_vector_count_PERTHREAD_[threadnum];
+		#endif
+#endif
 		
 		// We return mutation runs to the free list without resetting them, because we do not know the ncols
 		// value for their next usage.  They would hang on to their internal buffers for reuse.
@@ -276,8 +294,6 @@ private:
 #if DEBUG
 		s_sparse_vector_count_--;
 #endif
-		
-		omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
 	}
 	
 	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
@@ -318,16 +334,33 @@ public:
 	
 	static inline void DeleteSparseVectorFreeList(void)
 	{
-		omp_set_lock(&s_freed_sparse_vectors_LOCK_);
+		THREAD_SAFETY_CHECK();
 		
+#ifdef _OPENMP
+		// When running multithreaded, free all pools
+		for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
+		{
+			for (auto sv : pool)
+				delete (sv);
+			
+			pool.clear();
+		}
+		
+		#if DEBUG
+		for (int &count : s_sparse_vector_count_PERTHREAD_)
+			count = 0;
+		#endif
+#else
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
 		for (auto sv : s_freed_sparse_vectors_)
 			delete (sv);
 		
 		s_freed_sparse_vectors_.clear();
-		
-		omp_unset_lock(&s_freed_sparse_vectors_LOCK_);
+		#if DEBUG
+		s_sparse_vector_count_ = 0;
+		#endif
+#endif
 	}
 	
 	//

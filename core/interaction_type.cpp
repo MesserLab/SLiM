@@ -53,10 +53,21 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 #pragma mark InteractionType
 #pragma mark -
 
+// The SparseVector pool structure depends on whether we are built single-threaded or multi-threaded; see interaction_type.h
+#ifdef _OPENMP
+
+std::vector<std::vector<SparseVector *>> InteractionType::s_freed_sparse_vectors_PERTHREAD;
+#if DEBUG
+std::vector<int> InteractionType::s_sparse_vector_count_PERTHREAD_;
+#endif
+
+#else
+
 std::vector<SparseVector *> InteractionType::s_freed_sparse_vectors_;
-omp_lock_t InteractionType::s_freed_sparse_vectors_LOCK_;		// initialized in InteractionType::InteractionType()
 #if DEBUG
 int InteractionType::s_sparse_vector_count_ = 0;
+#endif
+
 #endif
 
 void InteractionType::_WarmUp(void)
@@ -67,10 +78,14 @@ void InteractionType::_WarmUp(void)
 	if (!beenHere) {
 		THREAD_SAFETY_CHECK();		// usage of statics
 		
-		// OpenMP requires that locks be initialized with omp_init_lock().  There seems to be no
-		// way to do that where the lock is defined, so we do it here once.  This is a poor man's
-		// +initialize method; as usual, C++ sucks.  Note this lock is never destroyed.
-		omp_init_lock(&s_freed_sparse_vectors_LOCK_);
+#ifdef _OPENMP
+		// set up per-thread sparse vector pools to avoid lock contention
+		s_freed_sparse_vectors_PERTHREAD.resize(gEidosMaxThreads);
+		#if DEBUG
+		s_sparse_vector_count_PERTHREAD_.resize(gEidosMaxThreads, 0);
+		#endif
+#endif
+		
 		beenHere = true;
 	}
 }
@@ -1303,10 +1318,24 @@ size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 {
 	THREAD_SAFETY_CHECK();		// s_freed_sparse_vectors_
 	
-	size_t usage = s_freed_sparse_vectors_.size() * sizeof(SparseVector);
+	size_t usage = 0;
+	
+#ifdef _OPENMP
+	// When running multithreaded, count all pools
+	for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
+	{
+		usage += sizeof(std::vector<SparseVector *>);
+		usage += pool.size() * sizeof(SparseVector);
+		
+		for (SparseVector *free_sv : pool)
+			usage += free_sv->MemoryUsage();
+	}
+#else
+	usage = s_freed_sparse_vectors_.size() * sizeof(SparseVector);
 	
 	for (SparseVector *free_sv : s_freed_sparse_vectors_)
 		usage += free_sv->MemoryUsage();
+#endif
 	
 	return usage;
 }

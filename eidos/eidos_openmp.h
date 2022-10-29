@@ -29,6 +29,11 @@
 #include <signal.h>
 
 
+// This is a cached result from omp_get_max_threads() after warmup, providing the final number of threads that we will
+// be using (maximum) in parallel regions.  This can be used to preallocate per-thread data structures.
+extern int gEidosMaxThreads;
+
+
 // THREAD_SAFETY_CHECK(): places in the code that have identified thread safety concerns should use this macro.  It will
 // produce a runtime error for DEBUG builds if it is hit while parallel.  Put it in places that are not currently thread-safe.
 // For example, the RNG, object pools, and other such global state are not thread-safe right now, so they should use this.
