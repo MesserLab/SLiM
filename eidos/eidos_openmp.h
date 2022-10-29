@@ -60,8 +60,8 @@ extern int gEidosMaxThreads;
 // Check that the OpenMP version supported by the compiler suffices.  Note that _OPENMP is formatted as a "YYYYMM" date of
 // release.  See https://github.com/Kitware/CMake/blob/v3.16.3/Modules/FindOpenMP.cmake#L384 for dates of release.  For
 // quick reference, "200805=3.0", "201107=3.1", "201307=4.0", "201511=4.5", "201811=5.0".  Right now we require 3.1.
-#if (_OPENMP < 201107)
-#error OpenMP version 3.1 or later is required.
+#if (_OPENMP < 201511)
+#error OpenMP version 4.5 or later is required.
 #endif
 
 // We're building SLiM for running in parallel, and OpenMP is present; include the header.
