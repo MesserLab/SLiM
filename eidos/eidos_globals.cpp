@@ -2462,6 +2462,77 @@ bool Eidos_RegexWorks(void)
 	return regex_works;
 }
 
+#ifdef _OPENMP
+static void _Eidos_ParallelQuicksort_I(int64_t *values, int64_t lo, int64_t hi)
+{
+	if (lo >= hi)
+		return;
+	
+	if (hi - lo + 1 <= 1000) {
+		// fall over to using std::sort when below a threshold interval size
+		// the larger the threshold, the less time we spend thrashing tasks on small
+		// intervals, which is good; but it also sets a limit on how many threads we
+		// we bring to bear on relatively small sorts, which is bad; 1000 seems fine
+		std::sort(values + lo, values + hi + 1);
+	} else {
+		// choose the middle of three pivots, in an attempt to avoid really bad pivots
+		int64_t pivot1 = *(values + lo);
+		int64_t pivot2 = *(values + hi);
+		int64_t pivot3 = *(values + ((lo + hi) >> 1));
+		int64_t pivot;
+		
+		if (pivot1 > pivot2)
+		{
+			if (pivot2 > pivot3)		pivot = pivot2;
+			else if (pivot1 > pivot3)	pivot = pivot3;
+			else						pivot = pivot1;
+		}
+		else
+		{
+			if (pivot1 > pivot3)		pivot = pivot1;
+			else if (pivot2 > pivot3)	pivot = pivot3;
+			else						pivot = pivot2;
+		}
+		
+		// note that std::partition is not guaranteed to leave the pivot value in position
+		// we do a second partition to exclude all duplicate pivot values, which seems to be one standard strategy
+		// this works particularly well when duplicate values are very common; it helps avoid O(n^2) performance
+		// note the partition is not parallelized; that is apparently a difficult problem for parallel quicksort
+		int64_t *middle1 = std::partition(values + lo, values + hi + 1, [pivot](const int64_t& em) { return em < pivot; });
+		int64_t *middle2 = std::partition(middle1, values + hi + 1, [pivot](const int64_t& em) { return !(pivot < em); });
+		int64_t mid1 = middle1 - values;
+		int64_t mid2 = middle2 - values;
+		#pragma omp task default(none) firstprivate(values, lo, mid1)
+		{ _Eidos_ParallelQuicksort_I(values, lo, mid1 - 1); }	// Left branch
+		#pragma omp task default(none) firstprivate(values, hi, mid2)
+		{ _Eidos_ParallelQuicksort_I(values, mid2, hi); }		// Right branch
+	}
+}
+#endif
+
+void Eidos_ParallelQuicksort_I(int64_t *values, int64_t nelements)
+{
+#ifdef _OPENMP
+	if (nelements > 1000) {
+		#pragma omp parallel default(none) shared(values, nelements)
+		{
+			#pragma omp single nowait
+			{
+				_Eidos_ParallelQuicksort_I(values, 0, nelements - 1);
+			}
+		} // End of parallel region
+	}
+	else
+	{
+		// Use std::sort for small vectors
+		std::sort(values, values + nelements);
+	}
+#else
+	// Use std::sort when not running parallel
+	std::sort(values, values + nelements);
+#endif
+}
+
 
 // *******************************************************************************************************************
 //

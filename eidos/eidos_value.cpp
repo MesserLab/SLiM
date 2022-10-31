@@ -1660,7 +1660,9 @@ void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const Eido
 void EidosValue_Int_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_, values_ + count_);
+#warning experimental test code
+		//std::sort(values_, values_ + count_);
+		Eidos_ParallelQuicksort_I(values_, count_);
 	else
 		std::sort(values_, values_ + count_, std::greater<int64_t>());
 }
