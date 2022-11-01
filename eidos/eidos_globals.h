@@ -597,8 +597,9 @@ BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 // The <regex> library does not work on Ubuntu 18.04, annoyingly; probably a very old compiler or something.  So we have to check.
 bool Eidos_RegexWorks(void);
 
-// Parallel quicksort; this uses std::sort when we are not running parallel, or for small jobs
-void Eidos_ParallelQuicksort_I(int64_t *a, int64_t nelements);
+// Parallel sorting; these use std::sort when we are not running parallel, or for small jobs
+void Eidos_ParallelQuicksort_I(int64_t *values, int64_t nelements);
+void Eidos_ParallelMergesort_I(int64_t *values, int64_t nelements);
 
 
 // *******************************************************************************************************************

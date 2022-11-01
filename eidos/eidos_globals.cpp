@@ -2462,6 +2462,8 @@ bool Eidos_RegexWorks(void)
 	return regex_works;
 }
 
+// This parallel quicksort code is thanks to Ruud van der Pas, modified from
+// https://www.openmp.org/wp-content/uploads/sc16-openmp-booth-tasking-ruud.pdf
 #ifdef _OPENMP
 static void _Eidos_ParallelQuicksort_I(int64_t *values, int64_t lo, int64_t hi)
 {
@@ -2519,6 +2521,68 @@ void Eidos_ParallelQuicksort_I(int64_t *values, int64_t nelements)
 			#pragma omp single nowait
 			{
 				_Eidos_ParallelQuicksort_I(values, 0, nelements - 1);
+			}
+		} // End of parallel region
+	}
+	else
+	{
+		// Use std::sort for small vectors
+		std::sort(values, values + nelements);
+	}
+#else
+	// Use std::sort when not running parallel
+	std::sort(values, values + nelements);
+#endif
+}
+
+// This parallel mergesort code is thanks to Libor Bukata and Jan Dvořák, modified from
+// https://cw.fel.cvut.cz/old/_media/courses/b4m35pag/lab6_slides_advanced_openmp.pdf
+#ifdef _OPENMP
+static void _Eidos_ParallelMergesort_I(int64_t *values, int64_t left, int64_t right)
+{
+	if (left >= right)
+		return;
+	
+	if (right - left <= 1000)
+	{
+		// fall over to using std::sort when below a threshold interval size
+		// the larger the threshold, the less time we spend thrashing tasks on small
+		// intervals, which is good; but it also sets a limit on how many threads we
+		// we bring to bear on relatively small sorts, which is bad; 1000 seems fine
+		std::sort(values + left, values + right + 1);
+	}
+	else
+	{
+		int64_t mid = (left + right) / 2;
+		#pragma omp taskgroup
+		{
+			// the original code had if() limits on task subdivision here, but that
+			// doesn't make sense to me, because we also have the threshold above,
+			// which serves the same purpose but avoids using std::sort on subdivided
+			// regions and then merging them with inplace_merge; if we assume that
+			// std::sort is faster than mergesort when running on one thread, then
+			// merging subdivided std::sort calls only seems like a good strategy
+			// when the std::sort calls happen on separate threads
+			#pragma omp task default(none) firstprivate(values, left, mid) untied
+			_Eidos_ParallelMergesort_I(values, left, mid);
+			#pragma omp task default(none) firstprivate(values, mid, right) untied
+			_Eidos_ParallelMergesort_I(values, mid + 1, right);
+			#pragma omp taskyield
+		}
+		std::inplace_merge(values + left, values + mid + 1, values + right + 1);
+	}
+}
+#endif
+
+void Eidos_ParallelMergesort_I(int64_t *values, int64_t nelements)
+{ 
+#ifdef _OPENMP
+	if (nelements > 1000) {
+		#pragma omp parallel default(none) shared(values, nelements)
+		{
+			#pragma omp single
+			{
+				_Eidos_ParallelMergesort_I(values, 0, nelements - 1);
 			}
 		} // End of parallel region
 	}
