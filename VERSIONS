@@ -52,6 +52,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 	add THREAD_SAFETY_CHECK() convention for marking areas that are known not to be thread-safe, such as due to use of statics or globals
 	add gEidosMaxThreads global that has the max number of threads for the session (for pre-allocating per-thread data structures)
 	create per-thread SparseVector pools to allow high-scalability parallelization of spatial interactions
+	add parallel sorting code - quicksort and mergesort, rather experimental at this point, just early work
 	
 	parallelized loops for:
 		Eidos_ExecuteFunction_sum()
@@ -59,6 +60,7 @@ Note that not every commit will be logged here; that is what the Github commit h
 		Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType()
 		InteractionType::ExecuteMethod_interactingNeighborCount()
 		InteractionType::ExecuteMethod_totalOfNeighborStrengths()
+		EidosValue_Int_vector::Sort()
 		
 
 development head (in the master branch):

@@ -2462,6 +2462,18 @@ bool Eidos_RegexWorks(void)
 	return regex_works;
 }
 
+// Here are some early explorations into parallelizing sorting.  The speedups
+// here are not particularly impressive.  Parallel sorting is a very deep and
+// complex rabbit hole to go down; see, e.g., Victor Duvanenko's work at
+// https://github.com/DragonSpit/ParallelAlgorithms.  But those algorithms
+// use TBB instead of OpenMP, and require C++17, so they're not easily usable.
+// Wikipedia at https://en.wikipedia.org/wiki/Merge_sort#Parallel_merge_sort
+// also has some very interesting commentary about parallelization of sorting.
+// The code here is also very primitive - integer only, no templates, no
+// client-suppliable comparator, etc. – so it would be hard to integrate into
+// all the ways Eidos presently uses std::sort.  Improving this looks like a
+// good project for somebody in CS.
+
 // This parallel quicksort code is thanks to Ruud van der Pas, modified from
 // https://www.openmp.org/wp-content/uploads/sc16-openmp-booth-tasking-ruud.pdf
 #ifdef _OPENMP

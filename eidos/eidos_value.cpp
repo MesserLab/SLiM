@@ -1660,10 +1660,16 @@ void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const Eido
 void EidosValue_Int_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-#warning experimental test code
-		//std::sort(values_, values_ + count_);
-		//Eidos_ParallelQuicksort_I(values_, count_);
-		Eidos_ParallelMergesort_I(values_, count_);
+	{
+		// For the ascending int64_t case specifically, we now have a parallel quicksort
+		// algorithm that gives a little speedup.  This is kind of experimental, but has
+		// been tested and seems to be correct.  I wrote a parallel mergesort algorithm
+		// too; its performance is kind of comparable but quicksort gives a bit more
+		// speed with a small number of threads (2-10 threads), so I chose it for now.
+		// This is the only place that sorting has been parallelized so far.  Note that
+		// this function automatically falls back to std::sort when single-threaded.
+		Eidos_ParallelQuicksort_I(values_, count_);
+	}
 	else
 		std::sort(values_, values_ + count_, std::greater<int64_t>());
 }
