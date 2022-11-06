@@ -92,7 +92,7 @@
 
 // This allows us to use Qt::QueuedConnection with EidosErrorContext
 Q_DECLARE_METATYPE(EidosErrorContext)
-static int metatype_id = qRegisterMetaType<EidosErrorContext>();
+static int EidosErrorContext_metatype_id = qRegisterMetaType<EidosErrorContext>();
 
 
 static std::string defaultWFScriptString(void)
@@ -3991,7 +3991,7 @@ void QtSLiMWindow::willExecuteScript(void)
 {
     // Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
     // The goal here is to keep each SLiM window independent in its random number sequence.
-    if (EIDOS_GSL_RNG)
+    if (gEidos_RNG_Initialized)
         qDebug() << "eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!";
 
 	std::swap(sim_RNG, gEidos_RNG_SINGLE);

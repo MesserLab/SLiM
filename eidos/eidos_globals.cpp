@@ -54,6 +54,7 @@
 #include <iomanip>
 #include <sys/param.h>
 #include <regex>
+#include <signal.h>
 
 // added for Eidos_mkstemps() and Eidos_TemporaryDirectoryExists()
 #include <sys/stat.h>
