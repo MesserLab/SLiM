@@ -3132,6 +3132,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
@@ -3146,7 +3147,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 			// select a nucleotide that is different from the ancestral state at this position
 			int8_t ancestral = (int8_t)species.TheChromosome().AncestralSequence()->NucleotideAtIndex(position);
 			
-			nucleotide = (int8_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, 3);	// 0, 1, 2
+			nucleotide = (int8_t)Eidos_rng_uniform_int(rng, 3);	// 0, 1, 2
 			
 			if (nucleotide == ancestral)
 				nucleotide++;

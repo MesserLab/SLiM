@@ -694,16 +694,19 @@ int Chromosome::DrawSortedUniquedMutationPositions(int p_count, IndividualSex p_
 	}
 	
 	// draw all the positions, and keep track of the genomic element type for each
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
+	
 	for (int i = 0; i < p_count; ++i)
 	{
-		int mut_subrange_index = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
+		int mut_subrange_index = static_cast<int>(gsl_ran_discrete(rng, lookup));
 		const GESubrange &subrange = (*subranges)[mut_subrange_index];
 		GenomicElement *source_element = subrange.genomic_element_ptr_;
 		
 		// Draw the position along the chromosome for the mutation, within the genomic element
-		slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(subrange.end_position_ - subrange.start_position_ + 1));
+		slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(mt, subrange.end_position_ - subrange.start_position_ + 1));
 		// old 32-bit position not MT64 code:
-		//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
+		//slim_position_t position = subrange.start_position_ + static_cast<slim_position_t>(Eidos_rng_uniform_int(rng, (uint32_t)(subrange.end_position_ - subrange.start_position_ + 1)));
 		
 		p_positions.emplace_back(position, source_element);
 	}
@@ -993,7 +996,8 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 			
 			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
 			double *nuc_thresholds = genomic_element_type.mm_thresholds + original_nucleotide * 4;
-			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			double draw = Eidos_rng_uniform(rng);
 			
 			if (draw < nuc_thresholds[0])		nucleotide = 0;
 			else if (draw < nuc_thresholds[1])	nucleotide = 1;
@@ -1066,7 +1070,8 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
 			int trinuc = ((int)background_nuc1) * 16 + ((int)original_nucleotide) * 4 + (int)background_nuc3;
 			double *nuc_thresholds = genomic_element_type.mm_thresholds + trinuc * 4;
-			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			double draw = Eidos_rng_uniform(rng);
 			
 			if (draw < nuc_thresholds[0])		nucleotide = 0;
 			else if (draw < nuc_thresholds[1])	nucleotide = 1;
@@ -1167,10 +1172,13 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 	}
 	
 	// draw recombination breakpoints
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
+	
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(rng, lookup));
 		
 		// choose a breakpoint anywhere in the chosen recombination interval with equal probability
 		
@@ -1204,9 +1212,9 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 		// since we guarantee that recombination end positions are in strictly ascending order.  So we should never crash.  :->
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(mt, (*end_positions)[recombination_interval]) + 1);
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(mt, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		p_crossovers.emplace_back(breakpoint);
 	}
@@ -1281,6 +1289,7 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 	// of them, if the uniquing step reduces the set of DSBs, but we don't want to redraw these things if we have to loop back due
 	// to a collision, because such redrawing would be liable to produce bias towards shorter extents.  (Redrawing the crossover/
 	// noncrossover and simple/complex decisions would probably be harmless, but it is simpler to just make all decisions up front.)
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	static std::vector<std::tuple<slim_position_t, slim_position_t, bool, bool>> dsb_infos;	// using a static prevents reallocation
 	dsb_infos.clear();
 	
@@ -1289,8 +1298,8 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 		for (int i = 0; i < p_num_breakpoints; i++)
 		{
 			// If the gene conversion tract mean length is < 2.0, gsl_ran_geometric() will blow up, and we should treat the tract length as zero
-			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
-			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
+			bool noncrossover = (Eidos_rng_uniform(rng) <= non_crossover_fraction_);				// tuple position 2
+			bool simple = (Eidos_rng_uniform(rng) <= simple_conversion_fraction_);					// tuple position 3
 			
 			dsb_infos.emplace_back(0, 0, noncrossover, simple);
 		}
@@ -1299,10 +1308,10 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 	{
 		for (int i = 0; i < p_num_breakpoints; i++)
 		{
-			slim_position_t extent1 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 0
-			slim_position_t extent2 = gsl_ran_geometric(EIDOS_GSL_RNG, gene_conversion_inv_half_length_);	// tuple position 1
-			bool noncrossover = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= non_crossover_fraction_);				// tuple position 2
-			bool simple = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= simple_conversion_fraction_);				// tuple position 3
+			slim_position_t extent1 = gsl_ran_geometric(rng, gene_conversion_inv_half_length_);		// tuple position 0
+			slim_position_t extent2 = gsl_ran_geometric(rng, gene_conversion_inv_half_length_);		// tuple position 1
+			bool noncrossover = (Eidos_rng_uniform(rng) <= non_crossover_fraction_);				// tuple position 2
+			bool simple = (Eidos_rng_uniform(rng) <= simple_conversion_fraction_);					// tuple position 3
 			
 			dsb_infos.emplace_back(extent1, extent2, noncrossover, simple);
 		}
@@ -1316,18 +1325,19 @@ generateDSBs:
 		EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): non-overlapping recombination regions could not be achieved in 100 tries; terminating.  The recombination rate and/or mean gene conversion tract length may be too high." << EidosTerminate();
 	
 	// First draw DSB points; dsb_points contains positions and a flag for whether the breakpoint is at a rate=0.5 position
+	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 	static std::vector<std::pair<slim_position_t, bool>> dsb_points;	// using a static prevents reallocation
 	dsb_points.clear();
 	
 	for (int i = 0; i < p_num_breakpoints; i++)
 	{
 		slim_position_t breakpoint = 0;
-		int recombination_interval = static_cast<int>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup));
+		int recombination_interval = static_cast<int>(gsl_ran_discrete(rng, lookup));
 		
 		if (recombination_interval == 0)
-			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval]) + 1);
+			breakpoint = static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(mt, (*end_positions)[recombination_interval]) + 1);
 		else
-			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64((*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
+			breakpoint = (*end_positions)[recombination_interval - 1] + 1 + static_cast<slim_position_t>(Eidos_rng_uniform_int_MT64(mt, (*end_positions)[recombination_interval] - (*end_positions)[recombination_interval - 1]));
 		
 		if ((*rates)[recombination_interval] == 0.5)
 			dsb_points.emplace_back(breakpoint, true);

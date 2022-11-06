@@ -154,7 +154,6 @@ void Community::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 	// track the random number seed given, if there is one
 	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : Eidos_GenerateSeedFromPIDAndTime());
 	
-	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(rng_seed);
 	
 	if (SLiM_verbosity_level >= 1)

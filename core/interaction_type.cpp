@@ -3877,6 +3877,8 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 	// than the GSL; and for large counts the GSL is surely a win.  Trying to figure out exactly where
 	// the crossover is in all cases would be overkill; my testing indicates the performance difference
 	// between the two methods is not really that large anyway.
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	if (weight_total > 0.0)
 	{
 		if (draw_count > 50)		// the empirically determined crossover point in performance
@@ -3886,7 +3888,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 			
 			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
 			{
-				int hit_index = (int)gsl_ran_discrete(EIDOS_GSL_RNG, gsl_lookup);
+				int hit_index = (int)gsl_ran_discrete(rng, gsl_lookup);
 				
 				draw_indices.emplace_back(hit_index);
 			}
@@ -3898,7 +3900,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 			// Use linear search to do the drawing
 			for (int64_t draw_index = 0; draw_index < draw_count; ++draw_index)
 			{
-				double the_rose_in_the_teeth = Eidos_rng_uniform(EIDOS_GSL_RNG) * weight_total;
+				double the_rose_in_the_teeth = Eidos_rng_uniform(rng) * weight_total;
 				double cumulative_weight = 0.0;
 				int hit_index;
 				
@@ -4164,7 +4166,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count > EIDOS_OMPMIN_INTNEIGHCOUNT)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5231,7 +5233,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2)
+#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count > EIDOS_OMPMIN_TOTNEIGHSTRENGTH)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);

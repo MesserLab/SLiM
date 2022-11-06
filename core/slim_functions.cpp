@@ -1091,10 +1091,12 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		else						return gStaticEidosValue_String_ZeroVec;
 	}
 	
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	if (length == 1)
 	{
 		// Handle the singleton case separately for speed
-		double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+		double runif = Eidos_rng_uniform(rng);
 		
 		if (format == "integer")
 		{
@@ -1119,7 +1121,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			string_result->PushString(gStr_A);
 			else if (runif < pC)	string_result->PushString(gStr_C);
@@ -1136,7 +1138,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			int_result->set_int_no_check(0, value_index);
 			else if (runif < pC)	int_result->set_int_no_check(1, value_index);
@@ -1158,7 +1160,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			nuc_string_ptr[value_index] = 'A';
 			else if (runif < pC)	nuc_string_ptr[value_index] = 'C';

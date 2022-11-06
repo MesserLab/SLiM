@@ -211,10 +211,30 @@ double MutationType::DrawSelectionCoefficient(void) const
 	switch (dfe_type_)
 	{
 		case DFEType::kFixed:			return dfe_parameters_[0];
-		case DFEType::kGamma:			return gsl_ran_gamma(EIDOS_GSL_RNG, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
-		case DFEType::kExponential:		return gsl_ran_exponential(EIDOS_GSL_RNG, dfe_parameters_[0]);
-		case DFEType::kNormal:			return gsl_ran_gaussian(EIDOS_GSL_RNG, dfe_parameters_[1]) + dfe_parameters_[0];
-		case DFEType::kWeibull:			return gsl_ran_weibull(EIDOS_GSL_RNG, dfe_parameters_[0], dfe_parameters_[1]);
+			
+		case DFEType::kGamma:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_gamma(rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		}
+			
+		case DFEType::kExponential:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_exponential(rng, dfe_parameters_[0]);
+		}
+			
+		case DFEType::kNormal:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_gaussian(rng, dfe_parameters_[1]) + dfe_parameters_[0];
+		}
+			
+		case DFEType::kWeibull:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_weibull(rng, dfe_parameters_[0], dfe_parameters_[1]);
+		}
 			
 		case DFEType::kScript:
 		{

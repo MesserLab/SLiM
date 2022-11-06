@@ -112,14 +112,6 @@ bool TypeCheckAssignmentOfEidosValueIntoEidosValue(const EidosValue &p_base_valu
 EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
 	: eidos_context_(p_eidos_context), root_node_(p_script.AST()), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
 {
-	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
-	// initialize the RNG itself, with its own seed; we don't want to override that.
-	if (!EIDOS_GSL_RNG)
-	{
-		Eidos_InitializeRNG();
-		Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
-	}
-	
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
 	if (eidos_context_)
@@ -130,14 +122,6 @@ EidosInterpreter::EidosInterpreter(const EidosScript &p_script, EidosSymbolTable
 EidosInterpreter::EidosInterpreter(const EidosASTNode *p_root_node_, EidosSymbolTable &p_symbols, EidosFunctionMap &p_functions, EidosContext *p_eidos_context, std::ostream &p_outstream, std::ostream &p_errstream)
 	: eidos_context_(p_eidos_context), root_node_(p_root_node_), global_symbols_(&p_symbols), function_map_(p_functions), execution_output_(p_outstream), error_output_(p_errstream)
 {
-	// Initialize the random number generator if and only if it has not already been initialized.  In some cases the Context will want to
-	// initialize the RNG itself, with its own seed; we don't want to override that.
-	if (!EIDOS_GSL_RNG)
-	{
-		Eidos_InitializeRNG();
-		Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
-	}
-	
 #ifdef SLIMGUI
 	// Take a pointer to the context's debugging points; we do not copy, so the context can update the debug points underneath us
 	debug_points_ = eidos_context_->DebugPoints();

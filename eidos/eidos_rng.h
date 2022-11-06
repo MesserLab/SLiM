@@ -34,12 +34,9 @@
 
 #include <stdint.h>
 #include <cmath>
+#include <vector>
 #include "eidos_globals.h"
 
-
-// This cruft belongs to the 64-bit Mersenne Twister code below; it is up here because we need it to define the global RNG
-// struct and state below.  See below for all the rest of the 64-bit MT code, including copyrights and credits and license.
-uint64_t Eidos_MT64_genrand64_int64(void);
 
 // OK, so.  This header defines the Eidos random number generator, which is now a bit of a weird hybrid.  We need to use
 // the GSL's RNG for most purposes, because we want to use its random distributions and so forth.  However, the taus2
@@ -47,21 +44,27 @@ uint64_t Eidos_MT64_genrand64_int64(void);
 // in [0, UINT64_MAX-1].  For that purpose, we also have a 64-bit Mersenne Twister RNG.  We keep the taus2 and MT64
 // generators synchronized, in the sense that we always seed them simultaneously with the same seed value.  As long as
 // the user makes the same draws with the same calls, the fact that there are two generators under the hood shouldn't
-// matter.  This struct defines all of the variables associated with both RNGs; this is the complete Eidos RNG state.
-typedef struct Eidos_RNG_State
+// matter.  This struct defines the state for the Mersenne Twister RNG.
+typedef struct Eidos_MT_State
 {
-	unsigned long int rng_last_seed_ = 0;		// unsigned long int is the type used for seeds in the GSL
-	
-	// GSL taus2 generator
-	gsl_rng *gsl_rng_ = nullptr;
-	
-	// MT64 generator; see below
 	uint64_t *mt_ = nullptr;							// buffer of Eidos_MT64_NN uint64_t
 	int mti_ = 0;
+} Eidos_MT_State;
+
+// This struct defines all of the variables associated with both RNGs; this is the complete Eidos RNG state.
+typedef struct Eidos_RNG_State
+{
+	unsigned long int rng_last_seed_;		// unsigned long int is the type used for seeds in the GSL
+	
+	// GSL taus2 generator
+	gsl_rng *gsl_rng_;
+	
+	// MT64 generator; see below
+	Eidos_MT_State mt_rng_;
 	
 	// random coin-flip generator; based on the MT64 generator now
-	int random_bool_bit_counter_ = 0;
-	uint64_t random_bool_bit_buffer_ = 0;
+	int random_bool_bit_counter_;
+	uint64_t random_bool_bit_buffer_;
 } Eidos_RNG_State;
 
 
@@ -69,18 +72,56 @@ typedef struct Eidos_RNG_State
 // considered to be part of the RNG state; if the Context plays games with swapping different RNGs in and out, those
 // globals need to get swapped as well.  Likewise for the last seed value; this is part of the RNG state in Eidos.
 // The 64-bit Mersenne Twister is also part of the overall global RNG state.
-extern Eidos_RNG_State gEidos_RNG;
+// BCH 11/5/2022: We now keep a single Eidos_RNG_State when running single-threaded, but when running multithreaded we
+// keep one Eidos_RNG_State per thread.  This allows threads to get random numbers without any locking.  This means
+// that each thread will have its own independent random number sequence, and makes the concept of a "seed" a bit
+// nebulous; in fact, each thread's RNG will be seeded with a different value so that they do not all follow the same
+// sequence.  The random number sequence when running multithreaded will not be reproducible; but it really can't be,
+// since multithreading will divide tasks up unpredictably and execute out of linear sequence.
+extern bool gEidos_RNG_Initialized;
 
-// Calls to the GSL should use this macro to avoid hard-coding the internals of Eidos_RNG_State
-#define EIDOS_GSL_RNG	(gEidos_RNG.gsl_rng_)
+#ifndef _OPENMP
+extern Eidos_RNG_State gEidos_RNG_SINGLE;
+#else
+extern std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
+#endif
 
+// Calls to the GSL should use these macros to get the RNG state they need, whether single- or multi-threaded.
+// BCH 11/5/2022: The thread number must now be supplied.  It will be zero when single-threaded, and so is ignored.
+// Since this is now a bit more heavyweight, the RNG for a thread should be obtained outside of any core loops.
+// The most important thing is that when there is a parallel region, the RNG is obtained INSIDE that region!
+// These can be used as follows:
+//
+//	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+//	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
+//	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+//
+#ifndef _OPENMP
+#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_SINGLE.gsl_rng_)
+#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_SINGLE.mt_rng_)
+#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_SINGLE)
+#else
+#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_MULTI[threadnum].gsl_rng_)
+#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_MULTI[threadnum].mt_rng_)
+#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_MULTI[threadnum])
+#endif
+
+#if DEBUG
+#define RNG_INIT_CHECK() if (!gEidos_RNG_Initialized) EIDOS_TERMINATION << "ERROR (RNG_INIT_CHECK): (internal error) the Eidos random number generator is not initialized." << EidosTerminate(nullptr)
+#else
+#define RNG_INIT_CHECK()
+#endif
 
 // generate a new random number seed from the PID and clock time
 unsigned long int Eidos_GenerateSeedFromPIDAndTime(void);
 
 // set up the random number generator with a given seed
+void _Eidos_InitializeOneRNG(Eidos_RNG_State &r);							// only for code that needs its own local RNG
+void _Eidos_FreeOneRNG(Eidos_RNG_State &r);									// only for code that needs its own local RNG
+void _Eidos_SetOneRNGSeed(Eidos_RNG_State &r, unsigned long int p_seed);	// only for code that needs its own local RNG
+
 void Eidos_InitializeRNG(void);
-void Eidos_FreeRNG(Eidos_RNG_State &p_rng);
+void Eidos_FreeRNG(void);
 void Eidos_SetRNGSeed(unsigned long int p_seed);
 
 
@@ -95,7 +136,7 @@ taus_state_t;
 inline __attribute__((always_inline)) unsigned long
 taus_get_inline (void *vstate)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	taus_state_t *state = (taus_state_t *) vstate;
 	
@@ -194,18 +235,18 @@ template <class T> inline void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n
 
 #ifndef USE_GSL_POISSON
 
-static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(gsl_rng *r, double p_mu)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
-		return gsl_ran_poisson(EIDOS_GSL_RNG, p_mu);
+		return gsl_ran_poisson(r, p_mu);
 	
 	unsigned int x = 0;
 	double p = exp(-p_mu);
 	double s = p;
-	double u = Eidos_rng_uniform(EIDOS_GSL_RNG);
+	double u = Eidos_rng_uniform(r);
 	
 	while (u > s)
 	{
@@ -220,13 +261,13 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 }
 
 // This version allows the caller to supply a precalculated exp(-mu) value
-static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(double p_mu, double p_exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson(gsl_rng *r, double p_mu, double p_exp_neg_mu)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
-		return gsl_ran_poisson(EIDOS_GSL_RNG, p_mu);
+		return gsl_ran_poisson(r, p_mu);
 	
 	// Test consistency; normally this is commented out
 	//if (p_exp_neg_mu != exp(-p_mu))
@@ -235,7 +276,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
-	double u = Eidos_rng_uniform(EIDOS_GSL_RNG);
+	double u = Eidos_rng_uniform(r);
 	
 	while (u > s)
 	{
@@ -250,9 +291,9 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 }
 
 // This version specifies that the count is guaranteed not to be zero; zero has been ruled out by a previous test
-static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO(double p_mu, double p_exp_neg_mu)
+static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisson_NONZERO(gsl_rng *r, double p_mu, double p_exp_neg_mu)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	// Defer to the GSL for large values of mu; see comments above.
 	if (p_mu > 250)
@@ -261,7 +302,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 		
 		do
 		{
-			result = gsl_ran_poisson(EIDOS_GSL_RNG, p_mu);
+			result = gsl_ran_poisson(r, p_mu);
 		}
 		while (result == 0);
 		
@@ -275,7 +316,7 @@ static inline __attribute__((always_inline)) unsigned int Eidos_FastRandomPoisso
 	unsigned int x = 0;
 	double p = p_exp_neg_mu;
 	double s = p;
-	double u = Eidos_rng_uniform_pos(EIDOS_GSL_RNG);	// exclude 0.0 so u != s after rescaling
+	double u = Eidos_rng_uniform_pos(r);	// exclude 0.0 so u != s after rescaling
 	
 	// rescale u so that (u > s) is true in the first round
 	u = u * (1.0 - s) + s;
@@ -375,24 +416,24 @@ double Eidos_FastRandomPoisson_PRECALCULATE(double p_mu);	// exp(-mu); can under
 #define Eidos_MT64_LM 0x7FFFFFFFULL /* Least significant 31 bits */
 
 /* initializes mt[NN] with a seed */
-void Eidos_MT64_init_genrand64(uint64_t seed);
+void Eidos_MT64_init_genrand64(Eidos_MT_State *r, uint64_t seed);
 
 /* initialize by an array with array-length */
-void Eidos_MT64_init_by_array64(uint64_t init_key[], uint64_t key_length);
+void Eidos_MT64_init_by_array64(Eidos_MT_State *r, uint64_t init_key[], uint64_t key_length);
 
 /* BCH: fill the next Eidos_MT64_NN words; used internally by genrand64_int64() */
-void _Eidos_MT64_fill();
+void _Eidos_MT64_fill(Eidos_MT_State *r);
 
 /* generates a random number on [0, 2^64-1]-interval */
-inline __attribute__((always_inline)) uint64_t Eidos_MT64_genrand64_int64(void)
+inline __attribute__((always_inline)) uint64_t Eidos_MT64_genrand64_int64(Eidos_MT_State *r)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	/* generate NN words at one time */
-	if (gEidos_RNG.mti_ >= Eidos_MT64_NN)
-		_Eidos_MT64_fill();
+	if (r->mti_ >= Eidos_MT64_NN)
+		_Eidos_MT64_fill(r);
 	
-	uint64_t x = gEidos_RNG.mt_[gEidos_RNG.mti_++];
+	uint64_t x = r->mt_[r->mti_++];
 	
 	x ^= (x >> 29) & 0x5555555555555555ULL;
 	x ^= (x << 17) & 0x71D67FFFEDA60000ULL;
@@ -403,31 +444,31 @@ inline __attribute__((always_inline)) uint64_t Eidos_MT64_genrand64_int64(void)
 }
 
 /* generates a random number on [0, 2^63-1]-interval */
-inline __attribute__((always_inline)) int64_t Eidos_MT64_genrand64_int63(void)
+inline __attribute__((always_inline)) int64_t Eidos_MT64_genrand64_int63(Eidos_MT_State *r)
 {
-	return (int64_t)(Eidos_MT64_genrand64_int64() >> 1);
+	return (int64_t)(Eidos_MT64_genrand64_int64(r) >> 1);
 }
 
 /* generates a random number on [0,1]-real-interval */
-inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real1(void)
+inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real1(Eidos_MT_State *r)
 {
-	return (Eidos_MT64_genrand64_int64() >> 11) * (1.0/9007199254740991.0);
+	return (Eidos_MT64_genrand64_int64(r) >> 11) * (1.0/9007199254740991.0);
 }
 
 /* generates a random number on [0,1)-real-interval */
-inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real2(void)
+inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real2(Eidos_MT_State *r)
 {
-	return (Eidos_MT64_genrand64_int64() >> 11) * (1.0/9007199254740992.0);
+	return (Eidos_MT64_genrand64_int64(r) >> 11) * (1.0/9007199254740992.0);
 }
 
 /* generates a random number on (0,1)-real-interval */
-inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real3(void)
+inline __attribute__((always_inline)) double Eidos_MT64_genrand64_real3(Eidos_MT_State *r)
 {
-	return ((Eidos_MT64_genrand64_int64() >> 12) + 0.5) * (1.0/4503599627370496.0);
+	return ((Eidos_MT64_genrand64_int64(r) >> 12) + 0.5) * (1.0/4503599627370496.0);
 }
 
 /* BCH: generates a random integer in [0, p_n - 1]; parallel to Eidos_rng_uniform_int() above */
-inline __attribute__((always_inline)) uint64_t Eidos_rng_uniform_int_MT64(uint64_t p_n)
+inline __attribute__((always_inline)) uint64_t Eidos_rng_uniform_int_MT64(Eidos_MT_State *r, uint64_t p_n)
 {
 	// OK, so.  The GSL's uniform int method, whose logic we replicate in Eidos_rng_uniform_int(), makes sure
 	// that the probability of each integer is exactly equal by figuring out a scaling, and then looping on
@@ -438,7 +479,7 @@ inline __attribute__((always_inline)) uint64_t Eidos_rng_uniform_int_MT64(uint64
 	// in anywhere near the full range of the generator; we just need a couple of orders of magnitude more
 	// headroom than UINT32_MAX provides.  If we start to use this for a wider range of p_n (such as making it
 	// available in the Eidos APIs), this decision would need to be revisited.  BCH 12 May 2018
-	return Eidos_MT64_genrand64_int64() % p_n;
+	return Eidos_MT64_genrand64_int64(r) % p_n;
 }
 
 
@@ -451,24 +492,24 @@ inline __attribute__((always_inline)) uint64_t Eidos_rng_uniform_int_MT64(uint64
 
 // optimization of this is possible assuming each bit returned by the RNG is independent and usable as a random boolean.
 // the independence of all 64 bits seems to be a solid assumption for the MT64 generator, as far as I can tell.
-static inline __attribute__((always_inline)) bool Eidos_RandomBool()
+static inline __attribute__((always_inline)) bool Eidos_RandomBool(Eidos_RNG_State *r)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	RNG_INIT_CHECK();
 	
 	bool retval;
 	
-	if (gEidos_RNG.random_bool_bit_counter_ > 0)
+	if (r->random_bool_bit_counter_ > 0)
 	{
-		gEidos_RNG.random_bool_bit_counter_--;
-		gEidos_RNG.random_bool_bit_buffer_ >>= 1;
-		retval = gEidos_RNG.random_bool_bit_buffer_ & 0x01;
+		r->random_bool_bit_counter_--;
+		r->random_bool_bit_buffer_ >>= 1;
+		retval = r->random_bool_bit_buffer_ & 0x01;
 	}
 	else
 	{
-		gEidos_RNG.random_bool_bit_buffer_ = Eidos_MT64_genrand64_int64();	// MT64 provides 64 independent bits
-		gEidos_RNG.random_bool_bit_counter_ = 63;				// 64 good bits originally, and we're about to use one
+		r->random_bool_bit_buffer_ = Eidos_MT64_genrand64_int64(&r->mt_rng_);	// MT64 provides 64 independent bits
+		r->random_bool_bit_counter_ = 63;				// 64 good bits originally, and we're about to use one
 		
-		retval = gEidos_RNG.random_bool_bit_buffer_ & 0x01;
+		retval = r->random_bool_bit_buffer_ & 0x01;
 	}
 	
 	return retval;

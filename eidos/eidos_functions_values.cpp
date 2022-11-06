@@ -334,6 +334,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	// and initialize the buffer; all the code paths below use it in essentially the same way
 	THREAD_SAFETY_CHECK();		// usage of statics
 	
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	static int *index_buffer = nullptr;
 	static int buffer_capacity = 0;
 	
@@ -378,7 +380,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			if (sample_size == 1)
 			{
 				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-				double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+				double rose = Eidos_rng_uniform(rng) * weights_sum;
 				double rose_sum = 0.0;
 				int rose_index;
 				
@@ -400,7 +402,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+					double rose = Eidos_rng_uniform(rng) * weights_sum;
 					double rose_sum = 0.0;
 					int rose_index;
 					
@@ -428,7 +430,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					if (weights_sum <= 0.0)
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 					
-					double rose = Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum;
+					double rose = Eidos_rng_uniform(rng) * weights_sum;
 					double rose_sum = 0.0;
 					int rose_index;
 					
@@ -474,7 +476,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			if (sample_size == 1)
 			{
 				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-				int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+				int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
 				int64_t rose_sum = 0;
 				int rose_index;
 				
@@ -496,7 +498,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
 					int64_t rose_sum = 0;
 					int rose_index;
 					
@@ -524,7 +526,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					if (weights_sum <= 0)
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 					
-					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(EIDOS_GSL_RNG) * weights_sum);
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
 					int64_t rose_sum = 0;
 					int rose_index;
 					
@@ -558,7 +560,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			return x_value->GetValueAtIndex((int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, x_count), nullptr);
+			return x_value->GetValueAtIndex((int)Eidos_rng_uniform_int(rng, x_count), nullptr);
 		}
 		else if (replace)
 		{
@@ -567,7 +569,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			EidosValue *result = result_SP.get();
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
-				result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, x_count), *x_value, nullptr);
+				result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(rng, x_count), *x_value, nullptr);
 		}
 		else if ((sample_size == x_count) && (x_value->Type() != EidosValueType::kValueString))
 		{
@@ -581,16 +583,16 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				case EidosValueType::kValueVOID: break;
 				case EidosValueType::kValueNULL: break;
 				case EidosValueType::kValueLogical:
-					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->LogicalVector_Mutable()->data(), x_count);
+					Eidos_ran_shuffle(rng, result->LogicalVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueInt:
-					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->IntVector_Mutable()->data(), x_count);
+					Eidos_ran_shuffle(rng, result->IntVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueFloat:
-					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->FloatVector_Mutable()->data(), x_count);
+					Eidos_ran_shuffle(rng, result->FloatVector_Mutable()->data(), x_count);
 					break;
 				case EidosValueType::kValueObject:
-					Eidos_ran_shuffle(EIDOS_GSL_RNG, result->ObjectElementVector_Mutable()->data(), x_count);
+					Eidos_ran_shuffle(rng, result->ObjectElementVector_Mutable()->data(), x_count);
 					break;
 				default:
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
@@ -612,7 +614,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
-				int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)contender_count);
+				int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)contender_count);
 				result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 				index_buffer[rose_index] = index_buffer[--contender_count];
 			}

@@ -53,6 +53,8 @@ Note that not every commit will be logged here; that is what the Github commit h
 	add gEidosMaxThreads global that has the max number of threads for the session (for pre-allocating per-thread data structures)
 	create per-thread SparseVector pools to allow high-scalability parallelization of spatial interactions
 	add parallel sorting code - quicksort and mergesort, rather experimental at this point, just early work
+	create per-thread random number generators to allow parallelization of code that involves RNG usage
+	parallelize rnorm() as a test case for thread RNGs
 	
 	parallelized loops for:
 		Eidos_ExecuteFunction_sum()
