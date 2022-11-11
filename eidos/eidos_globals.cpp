@@ -923,19 +923,6 @@ EidosTerminate::EidosTerminate(const EidosToken *p_error_token, bool p_print_bac
 
 void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 {
-	// We should never hit this code when in a parallel region.  We might be running at the command line, where normally an error
-	// exits instead of throwing, so it might be OK; but there are various places in Eidos/SLiM where arbitrary code can be run
-	// with gEidosTerminateThrows set to true, even at the command line, so even though it is sometimes safe, we have a strict policy
-	// against using EidosTerminate in a parallel region.
-	if (omp_in_parallel())
-	{
-#pragma omp critical
-		{
-			std::cerr << "ERROR (EidosTerminate): (internal error) multithreaded in EidosTerminate, cannot recover!" << std::endl;
-			raise(SIGTRAP);
-		}
-	}
-	
 	p_out << std::endl;
 	
 	p_out.flush();
@@ -945,6 +932,16 @@ void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 	
 	if (gEidosTerminateThrows)
 	{
+		// We should never hit this code when in a parallel region.  We cannot throw because that isn't allowed from a parallel region.
+		if (omp_in_parallel())
+		{
+#pragma omp critical
+			{
+				std::cerr << "ERROR (EidosTerminate): (internal error) multithreaded in EidosTerminate, cannot recover!" << std::endl;
+				raise(SIGTRAP);
+			}
+		}
+		
 		// In this case, EidosTerminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
 		// causes the Context to display an error message and ends the simulation run, but it does not terminate the app.
 		throw std::runtime_error("A runtime error occurred in Eidos");
