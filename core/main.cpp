@@ -41,10 +41,6 @@
 #include "slim_test.h"
 #include "eidos_symbol_table.h"
 
-#ifdef _OPENMP
-#warning Building slim with OpenMP enabled
-#endif
-
 // Get our Git commit SHA-1, as C string "g_GIT_SHA1"
 #include "../cmake/GitSHA1.h"
 
@@ -68,7 +64,8 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 #ifdef _OPENMP
 		SLIM_OUTSTREAM << "This is a PARALLEL (MULTI-THREADED) build of SLiM." << std::endl;
 #else
-		SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
+		// For now, I don't want to advertise the existence of parallel builds
+		//SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
 #endif
 		SLIM_OUTSTREAM << std::endl;
 		
@@ -100,7 +97,12 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	
 	SLIM_OUTSTREAM << "usage: slim -v[ersion] | -u[sage] | -h[elp] | -testEidos | -testSLiM |" << std::endl;
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
-	SLIM_OUTSTREAM << "   [-d[efine] <def>] [-maxthreads <n>] [<script file>]" << std::endl;
+	SLIM_OUTSTREAM << "   [-d[efine] <def>] ";
+#ifdef _OPENMP
+	// The -maxthreads flag is visible only for a parallel build
+	SLIM_OUTSTREAM << "[-maxthreads <n>] ";
+#endif
+	SLIM_OUTSTREAM << "[<script file>]" << std::endl;
 	
 	if (p_print_full_usage)
 	{
@@ -118,7 +120,10 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -M[emhist]       : print a histogram of SLiM's memory usage" << std::endl;
 		SLIM_OUTSTREAM << "   -x               : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>  : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
+#ifdef _OPENMP
+		// The -maxthreads flag is visible only for a parallel build
 		SLIM_OUTSTREAM << "   -maxthreads <n>  : set the maximum number of threads used" << std::endl;
+#endif
 		SLIM_OUTSTREAM << "   <script file>    : the input script file (stdin may be used instead)" << std::endl;
 	}
 	
@@ -172,7 +177,7 @@ int main(int argc, char *argv[])
 #if 0
 #pragma omp parallel
 	{
-		THREAD_SAFETY_CHECK();		// TEST
+		THREAD_SAFETY_CHECK("TEST");
 	}
 #endif
 	

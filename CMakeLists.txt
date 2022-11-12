@@ -144,13 +144,15 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
 # Report whether the build is parallel or not
 if(PARALLEL)
 	# Use the _OPENMP define to test in code whether the build is parallel
-	# to compile with Clang on macOS, -Xclang also needs to be supplied; it is in Xcode
+	# to compile with Clang on macOS, -Xclang also needs to be supplied; it is set
+	# in the Xcode project, but not here since macOS builds should be done in Xcode
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	link_directories(/usr/local/lib/)
 	message("PARALLEL is ${PARALLEL}")
 else()
-	message("PARALLEL is ${PARALLEL}; use -DPARALLEL=ON to enable OpenMP parallelization")
+	# At least for now, I don't want to advertise the existence of this flag
+	#message("PARALLEL is ${PARALLEL}; use -DPARALLEL=ON to enable OpenMP parallelization")
 endif(PARALLEL)
 
 # Report the build type and SLiMgui build status

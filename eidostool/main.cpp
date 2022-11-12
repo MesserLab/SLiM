@@ -22,9 +22,6 @@
 #include "eidos_test.h"
 
 #include "eidos_openmp.h"
-#ifdef _OPENMP
-#warning Building eidos with OpenMP enabled
-#endif
 
 
 void PrintUsageAndDie();
@@ -32,7 +29,12 @@ void PrintUsageAndDie();
 void PrintUsageAndDie()
 {
 	std::cout << "usage: eidos -version | -usage | -testEidos | [-time] [-mem]" << std::endl;
-	std::cout << "   [-maxthreads <n>] <script file>" << std::endl;
+	std::cout << "   ";
+#ifdef _OPENMP
+	// The -maxthreads flag is visible only for a parallel build
+	std::cout << "[-maxthreads <n>] ";
+#endif
+	std::cout << "<script file>" << std::endl;
 	exit(0);
 }
 
