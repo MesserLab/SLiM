@@ -84,7 +84,7 @@ extern int gEidosMaxThreads;
 
 #else /* ifdef _OPENMP */
 
-// No OpenMP.  This is the "stub header" from the OpenMP 3.1 specification.  I've added "inline" in various spots to
+// No OpenMP.  This is the "stub header" from the OpenMP 4.5 specification.  I've added "inline" in various spots to
 // make it more performant, and __attribute__((unused)) to get rid of warnings, and copied some enum and typedef
 // definitions that for some reason are not included in the provided stub header.
 
@@ -129,6 +129,11 @@ inline int omp_get_dynamic(void)
 	return 0;
 }
 
+inline int omp_get_cancellation(void)
+{
+	return 0;
+}
+
 inline void omp_set_nested(__attribute__((unused)) int nested)
 {
 }
@@ -149,10 +154,10 @@ inline void omp_set_schedule(__attribute__((unused)) omp_sched_t kind, __attribu
 {
 }
 
-inline void omp_get_schedule(omp_sched_t *kind, int *modifier)
+inline void omp_get_schedule(omp_sched_t *kind, int *chunk_size)
 {
 	*kind = omp_sched_static;
-	*modifier = 0;
+	*chunk_size = 0;
 }
 
 inline int omp_get_thread_limit(void)
@@ -208,6 +213,87 @@ inline int omp_in_final(void)
 	return 1;
 }
 
+typedef enum omp_proc_bind_t
+{
+	omp_proc_bind_false = 0,
+	omp_proc_bind_true = 1,
+	omp_proc_bind_master = 2,
+	omp_proc_bind_close = 3,
+	omp_proc_bind_spread = 4
+} omp_proc_bind_t;
+
+inline omp_proc_bind_t omp_get_proc_bind(void)
+{
+	return omp_proc_bind_false;
+}
+
+inline int omp_get_num_places(void)
+{
+	return 0;
+}
+
+inline int omp_get_place_num_procs(__attribute__((unused)) int place_num)
+{
+	return 0;
+}
+
+inline void omp_get_place_proc_ids(__attribute__((unused)) int place_num, __attribute__((unused)) int *ids)
+{
+}
+
+inline int omp_get_place_num(void)
+{
+	return -1;
+}
+
+inline int omp_get_partition_num_places(void)
+{
+	return 0;
+}
+
+inline void omp_get_partition_place_nums(__attribute__((unused)) int *place_nums)
+{
+}
+
+inline void omp_set_default_device(__attribute__((unused)) int device_num)
+{
+}
+
+inline int omp_get_default_device(void)
+{
+	return 0;
+}
+
+inline int omp_get_num_devices(void)
+{
+	return 0;
+}
+
+inline int omp_get_num_teams(void)
+{
+	return 1;
+}
+
+inline int omp_get_team_num(void)
+{
+	return 0;
+}
+
+inline int omp_is_initial_device(void)
+{
+	return 1;
+}
+
+inline int omp_get_initial_device(void)
+{
+	return -10;
+}
+
+inline int omp_get_max_task_priority(void)
+{
+	return 0;
+}
+
 struct __omp_lock
 {
 	int lock;
@@ -221,6 +307,22 @@ inline void omp_init_lock(omp_lock_t *arg)
 {
 	struct __omp_lock *lock = (struct __omp_lock *)arg;
 	lock->lock = UNLOCKED;
+}
+
+typedef enum omp_lock_hint_t
+{
+	omp_lock_hint_none = 0,
+	omp_lock_hint_uncontended = 1,
+	omp_lock_hint_contended = 2,
+	omp_lock_hint_nonspeculative = 4,
+	omp_lock_hint_speculative = 8
+	/* , Add vendor specific constants for lock hints here,
+	 starting from the most-significant bit. */
+} omp_lock_hint_t;
+
+inline void omp_init_lock_with_hint(omp_lock_t *arg, __attribute__((unused)) omp_lock_hint_t hint)
+{
+	omp_init_lock(arg);
 }
 
 inline void omp_destroy_lock(omp_lock_t *arg)
@@ -303,6 +405,11 @@ inline void omp_init_nest_lock(omp_nest_lock_t *arg)
 	nlock->count = 0;
 }
 
+inline void omp_init_nest_lock_with_hint(omp_nest_lock_t *arg, __attribute__((unused)) omp_lock_hint_t hint)
+{
+	omp_init_nest_lock(arg);
+}
+
 inline void omp_destroy_nest_lock(omp_nest_lock_t *arg)
 {
 	struct __omp_nest_lock *nlock=(struct __omp_nest_lock *)arg;
@@ -376,6 +483,107 @@ inline double omp_get_wtick(void)
 	 */
 	return 365. * 86400.;
 }
+
+inline void * omp_target_alloc(size_t size, int device_num)
+{
+	if (device_num != -10)
+		return NULL;
+	return malloc(size);
+}
+
+inline void omp_target_free(void *device_ptr, __attribute__((unused)) int device_num)
+{
+	free(device_ptr);
+}
+
+inline int omp_target_is_present(__attribute__((unused)) void *ptr, __attribute__((unused)) int device_num)
+{
+	return 1;
+}
+
+inline int omp_target_memcpy(void *dst, void *src, size_t length,
+					  size_t dst_offset, size_t src_offset,
+					  int dst_device, int src_device)
+{
+	// only the default device is valid in a stub
+	if (dst_device != -10 || src_device != -10 || ! dst || ! src )
+		return EINVAL;
+	memcpy((char *)dst + dst_offset, (char *)src + src_offset, length);
+	return 0;
+}
+
+inline int omp_target_memcpy_rect(
+						   void *dst, void *src,
+						   size_t element_size,
+						   int num_dims,
+						   const size_t *volume,
+						   const size_t *dst_offsets,
+						   const size_t *src_offsets,
+						   const size_t *dst_dimensions,
+						   const size_t *src_dimensions,
+						   int dst_device_num, int src_device_num)
+{
+	int ret=0;
+	// Both null, return number of dimensions supported,
+	// this stub supports an arbitrary number
+	if (dst == NULL && src == NULL) return INT_MAX;
+	
+	if (!volume || !dst_offsets || !src_offsets
+		|| !dst_dimensions || !src_dimensions
+		|| num_dims < 1 ) {
+		ret = EINVAL;
+		goto done;
+	}
+	if (num_dims == 1) {
+		ret = omp_target_memcpy(dst, src,
+								element_size * volume[0],
+								dst_offsets[0] * element_size,
+								src_offsets[0] * element_size,
+								dst_device_num, src_device_num);
+		if(ret) goto done;
+	} else {
+		size_t dst_slice_size = element_size;
+		size_t src_slice_size = element_size;
+		for (int i=1; i < num_dims; i++) {
+			dst_slice_size *= dst_dimensions[i];
+			src_slice_size *= src_dimensions[i];
+		}
+		size_t dst_off = dst_offsets[0] * dst_slice_size;
+		size_t src_off = src_offsets[0] * src_slice_size;
+		for (size_t i=0; i < volume[0]; i++) {
+			ret = omp_target_memcpy_rect(
+										 (char *)dst + dst_off + dst_slice_size*i,
+										 (char *)src + src_off + src_slice_size*i,
+										 element_size,
+										 num_dims - 1,
+										 volume + 1,
+										 dst_offsets + 1,
+										 src_offsets + 1,
+										 dst_dimensions + 1,
+										 src_dimensions + 1,
+										 dst_device_num,
+										 src_device_num);
+			if (ret) goto done;
+		}
+	}
+done:
+	return ret;
+}
+
+inline int omp_target_associate_ptr(__attribute__((unused)) void *host_ptr, __attribute__((unused)) void *device_ptr,
+									__attribute__((unused)) size_t size, __attribute__((unused)) size_t device_offset,
+									__attribute__((unused)) int device_num)
+{
+	// No association is possible because all host pointers
+	// are considered present
+	return EINVAL;
+}
+
+inline int omp_target_disassociate_ptr(__attribute__((unused)) void *ptr, __attribute__((unused)) int device_num)
+{
+	return EINVAL;
+}
+
 
 #endif /* ifdef _OPENMP */
 
