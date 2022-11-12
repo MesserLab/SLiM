@@ -344,14 +344,15 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_sex_string_M;
 			static EidosValue_SP static_sex_string_O;
 			
-			if (!static_sex_string_H)
+#pragma omp critical (GetProperty_sex_cache)
 			{
-				THREAD_SAFETY_CHECK("Individual::GetProperty(): usage of statics");
-				
-				static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
-				static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
-				static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
-				static_sex_string_O = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("?"));
+				if (!static_sex_string_H)
+				{
+					static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
+					static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
+					static_sex_string_M = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("M"));
+					static_sex_string_O = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("?"));
+				}
 			}
 			
 			switch (sex_)

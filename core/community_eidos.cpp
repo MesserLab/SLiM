@@ -397,12 +397,13 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_model_type_string_WF;
 			static EidosValue_SP static_model_type_string_nonWF;
 			
-			if (!static_model_type_string_WF)
+#pragma omp critical (GetProperty_modelType_cache)
 			{
-				THREAD_SAFETY_CHECK("Community::GetProperty():  usage of statics");
-				
-				static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
-				static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+				if (!static_model_type_string_WF)
+				{
+					static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
+					static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+				}
 			}
 			
 			switch (model_type_)

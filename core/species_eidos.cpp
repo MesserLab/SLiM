@@ -1465,13 +1465,14 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dimensionality_string_xy;
 			static EidosValue_SP static_dimensionality_string_xyz;
 			
-			if (!static_dimensionality_string_x)
+#pragma omp critical (GetProperty_dimensionality_cache)
 			{
-				THREAD_SAFETY_CHECK("Species::GetProperty(): usage of statics");
-				
-				static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
-				static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
-				static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				if (!static_dimensionality_string_x)
+				{
+					static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+					static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+					static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				}
 			}
 			
 			switch (spatial_dimensionality_)
@@ -1497,17 +1498,18 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_periodicity_string_yz;
 			static EidosValue_SP static_periodicity_string_xyz;
 			
-			if (!static_periodicity_string_x)
+#pragma omp critical (GetProperty_periodicity_cache)
 			{
-				THREAD_SAFETY_CHECK("Species::GetProperty(): usage of statics");
-				
-				static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
-				static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
-				static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
-				static_periodicity_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
-				static_periodicity_string_xz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xz"));
-				static_periodicity_string_yz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("yz"));
-				static_periodicity_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				if (!static_periodicity_string_x)
+				{
+					static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+					static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
+					static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
+					static_periodicity_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+					static_periodicity_string_xz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xz"));
+					static_periodicity_string_yz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("yz"));
+					static_periodicity_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				}
 			}
 			
 			if (periodic_x_ && periodic_y_ && periodic_z_)	return static_periodicity_string_xyz;

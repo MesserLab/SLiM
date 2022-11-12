@@ -35,18 +35,20 @@ std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
 
 unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 {
-	THREAD_SAFETY_CHECK("Eidos_GenerateSeedFromPIDAndTime(): usage of statics");
-	
 	static long int hereCounter = 0;
-	pid_t pid = getpid();
-	struct timeval te; 
+	long long milliseconds;
 	
-	gettimeofday(&te, NULL); // get current time
-	
-	long long milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
-	
-	milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
-	milliseconds += (hereCounter++);
+#pragma omp critical (Eidos_GenerateSeedFromPIDAndTime)
+	{
+		pid_t pid = getpid();
+		struct timeval te;
+		
+		gettimeofday(&te, NULL); // get current time
+		
+		milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
+		milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
+		milliseconds += (hereCounter++);
+	}
 	
 	return (unsigned long int)milliseconds;
 }

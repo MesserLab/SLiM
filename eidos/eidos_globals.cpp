@@ -935,7 +935,7 @@ void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 		// We should never hit this code when in a parallel region.  We cannot throw because that isn't allowed from a parallel region.
 		if (omp_in_parallel())
 		{
-#pragma omp critical
+#pragma omp critical (EidosTerminate)
 			{
 				std::cerr << "ERROR (EidosTerminate): (internal error) multithreaded in EidosTerminate, cannot recover!" << std::endl;
 				raise(SIGTRAP);
@@ -2458,21 +2458,22 @@ std::string EidosStringForFloat(double p_value)
 
 bool Eidos_RegexWorks(void)
 {
-	THREAD_SAFETY_CHECK("Eidos_RegexWorks(): usage of statics");
-	
 	// check whether <regex> works, because on some platforms it doesn't (!); test just once and cache the result
 	static bool beenHere = false;
 	static bool regex_works = false;
 	
-	if (!beenHere)
+#pragma omp critical (Eidos_RegexWorks)
 	{
-		std::regex pattern_regex("cd", std::regex_constants::ECMAScript);
-		std::string x_element = "bcd";
-		std::smatch match_info;
-		bool is_match = std::regex_search(x_element, match_info, pattern_regex);
-		
-		regex_works = is_match;
-		beenHere = true;
+		if (!beenHere)
+		{
+			std::regex pattern_regex("cd", std::regex_constants::ECMAScript);
+			std::string x_element = "bcd";
+			std::smatch match_info;
+			bool is_match = std::regex_search(x_element, match_info, pattern_regex);
+			
+			regex_works = is_match;
+			beenHere = true;
+		}
 	}
 	
 	return regex_works;

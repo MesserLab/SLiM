@@ -1485,10 +1485,10 @@ void SLiM_ConfigureContext(void)
 {
 	static bool been_here = false;
 	
+	THREAD_SAFETY_CHECK("SLiM_ConfigureContext(): not warmed up");
+	
 	if (!been_here)
 	{
-		THREAD_SAFETY_CHECK("SLiM_ConfigureContext(): usage of statics");
-		
 		been_here = true;
 		
 		gEidosContextVersion = SLIM_VERSION_FLOAT;

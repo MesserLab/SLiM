@@ -618,14 +618,19 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 //	(integer$)getSeed(void)
 EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	THREAD_SAFETY_CHECK("Eidos_ExecuteFunction_getSeed(): RNG state");
+	unsigned long int last_seed;
 	
-	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+#pragma omp critical (Eidos_RNG_State)
+	{
+		Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(0);	// thread 0 has the original RNG seed requested by the user
+		
+		last_seed = rng_state->rng_last_seed_;
+	}
 	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	EidosValue_SP result_SP(nullptr);
 	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(rng_state->rng_last_seed_));
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(last_seed));
 	
 	return result_SP;
 }

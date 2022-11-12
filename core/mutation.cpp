@@ -232,42 +232,43 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	// Dump the memory layout of a Mutation object.  Note this code needs to be synced tightly with the header, since C++ has no real introspection.
 	static bool been_here = false;
 	
-	if (!been_here)
+#pragma omp critical (Mutation_layout_dump)
 	{
-		THREAD_SAFETY_CHECK("Mutation::Mutation(): should never be run in parallel");
-		
-		char *ptr_base = (char *)this;
-		char *ptr_mutation_type_ptr_ = (char *)&(this->mutation_type_ptr_);
-		char *ptr_position_ = (char *)&(this->position_);
-		char *ptr_selection_coeff_ = (char *)&(this->selection_coeff_);
-		char *ptr_subpop_index_ = (char *)&(this->subpop_index_);
-		char *ptr_origin_tick_ = (char *)&(this->origin_tick_);
-		char *ptr_state_ = (char *)&(this->state_);
-		char *ptr_nucleotide_ = (char *)&(this->nucleotide_);
-		char *ptr_scratch_ = (char *)&(this->scratch_);
-		char *ptr_mutation_id_ = (char *)&(this->mutation_id_);
-		char *ptr_tag_value_ = (char *)&(this->tag_value_);
-		char *ptr_cached_one_plus_sel_ = (char *)&(this->cached_one_plus_sel_);
-		char *ptr_cached_one_plus_dom_sel_ = (char *)&(this->cached_one_plus_dom_sel_);
-		char *ptr_cached_one_plus_haploiddom_sel_ = (char *)&(this->cached_one_plus_haploiddom_sel_);
-		
-		std::cout << "Class Mutation memory layout (sizeof(Mutation) == " << sizeof(Mutation) << ") :" << std::endl << std::endl;
-		std::cout << "   " << (ptr_mutation_type_ptr_ - ptr_base) << " (" << sizeof(MutationType *) << " bytes): MutationType *mutation_type_ptr_" << std::endl;
-		std::cout << "   " << (ptr_position_ - ptr_base) << " (" << sizeof(slim_position_t) << " bytes): const slim_position_t position_" << std::endl;
-		std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t selection_coeff_" << std::endl;
-		std::cout << "   " << (ptr_subpop_index_ - ptr_base) << " (" << sizeof(slim_objectid_t) << " bytes): slim_objectid_t subpop_index_" << std::endl;
-		std::cout << "   " << (ptr_origin_tick_ - ptr_base) << " (" << sizeof(slim_tick_t) << " bytes): const slim_tick_t origin_tick_" << std::endl;
-		std::cout << "   " << (ptr_state_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t state_" << std::endl;
-		std::cout << "   " << (ptr_nucleotide_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t nucleotide_" << std::endl;
-		std::cout << "   " << (ptr_scratch_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t scratch_" << std::endl;
-		std::cout << "   " << (ptr_mutation_id_ - ptr_base) << " (" << sizeof(slim_mutationid_t) << " bytes): const slim_mutationid_t mutation_id_" << std::endl;
-		std::cout << "   " << (ptr_tag_value_ - ptr_base) << " (" << sizeof(slim_usertag_t) << " bytes): slim_usertag_t tag_value_" << std::endl;
-		std::cout << "   " << (ptr_cached_one_plus_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_sel_" << std::endl;
-		std::cout << "   " << (ptr_cached_one_plus_dom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_dom_sel_" << std::endl;
-		std::cout << "   " << (ptr_cached_one_plus_haploiddom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_haploiddom_sel_" << std::endl;
-		std::cout << std::endl;
-		
-		been_here = true;
+		if (!been_here)
+		{
+			char *ptr_base = (char *)this;
+			char *ptr_mutation_type_ptr_ = (char *)&(this->mutation_type_ptr_);
+			char *ptr_position_ = (char *)&(this->position_);
+			char *ptr_selection_coeff_ = (char *)&(this->selection_coeff_);
+			char *ptr_subpop_index_ = (char *)&(this->subpop_index_);
+			char *ptr_origin_tick_ = (char *)&(this->origin_tick_);
+			char *ptr_state_ = (char *)&(this->state_);
+			char *ptr_nucleotide_ = (char *)&(this->nucleotide_);
+			char *ptr_scratch_ = (char *)&(this->scratch_);
+			char *ptr_mutation_id_ = (char *)&(this->mutation_id_);
+			char *ptr_tag_value_ = (char *)&(this->tag_value_);
+			char *ptr_cached_one_plus_sel_ = (char *)&(this->cached_one_plus_sel_);
+			char *ptr_cached_one_plus_dom_sel_ = (char *)&(this->cached_one_plus_dom_sel_);
+			char *ptr_cached_one_plus_haploiddom_sel_ = (char *)&(this->cached_one_plus_haploiddom_sel_);
+			
+			std::cout << "Class Mutation memory layout (sizeof(Mutation) == " << sizeof(Mutation) << ") :" << std::endl << std::endl;
+			std::cout << "   " << (ptr_mutation_type_ptr_ - ptr_base) << " (" << sizeof(MutationType *) << " bytes): MutationType *mutation_type_ptr_" << std::endl;
+			std::cout << "   " << (ptr_position_ - ptr_base) << " (" << sizeof(slim_position_t) << " bytes): const slim_position_t position_" << std::endl;
+			std::cout << "   " << (ptr_selection_coeff_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t selection_coeff_" << std::endl;
+			std::cout << "   " << (ptr_subpop_index_ - ptr_base) << " (" << sizeof(slim_objectid_t) << " bytes): slim_objectid_t subpop_index_" << std::endl;
+			std::cout << "   " << (ptr_origin_tick_ - ptr_base) << " (" << sizeof(slim_tick_t) << " bytes): const slim_tick_t origin_tick_" << std::endl;
+			std::cout << "   " << (ptr_state_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t state_" << std::endl;
+			std::cout << "   " << (ptr_nucleotide_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t nucleotide_" << std::endl;
+			std::cout << "   " << (ptr_scratch_ - ptr_base) << " (" << sizeof(int8_t) << " bytes): const int8_t scratch_" << std::endl;
+			std::cout << "   " << (ptr_mutation_id_ - ptr_base) << " (" << sizeof(slim_mutationid_t) << " bytes): const slim_mutationid_t mutation_id_" << std::endl;
+			std::cout << "   " << (ptr_tag_value_ - ptr_base) << " (" << sizeof(slim_usertag_t) << " bytes): slim_usertag_t tag_value_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_sel_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_dom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_dom_sel_" << std::endl;
+			std::cout << "   " << (ptr_cached_one_plus_haploiddom_sel_ - ptr_base) << " (" << sizeof(slim_selcoeff_t) << " bytes): slim_selcoeff_t cached_one_plus_haploiddom_sel_" << std::endl;
+			std::cout << std::endl;
+			
+			been_here = true;
+		}
 	}
 #endif
 }
