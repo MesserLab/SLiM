@@ -207,7 +207,7 @@ size_t SLiMMemoryUsageForMutationRefcounts(void);
 
 inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
 {
-	THREAD_SAFETY_CHECK();		// gSLiM_Mutation_Block change
+	THREAD_SAFETY_CHECK("SLiM_NewMutationFromBlock(): gSLiM_Mutation_Block change");
 	
 	if (gSLiM_Mutation_FreeIndex == -1)
 		SLiM_IncreaseMutationBlockCapacity();
@@ -224,7 +224,7 @@ inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(vo
 
 inline __attribute__((always_inline)) void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
 {
-	THREAD_SAFETY_CHECK();		// gSLiM_Mutation_Block change
+	THREAD_SAFETY_CHECK("SLiM_DisposeMutationToBlock(): gSLiM_Mutation_Block change");
 	
 	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
 	

@@ -468,7 +468,7 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 
 slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-	THREAD_SAFETY_CHECK();		// SLiM global state read
+	THREAD_SAFETY_CHECK("Species::_InitializePopulationFromTextFile(): SLiM global state read");
 	
 	slim_tick_t file_tick, file_cycle;
 	std::map<slim_polymorphismid_t,MutationIndex> mutations;
@@ -992,7 +992,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #ifndef __clang_analyzer__
 slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-	THREAD_SAFETY_CHECK();		// SLiM global state read
+	THREAD_SAFETY_CHECK("Species::_InitializePopulationFromBinaryFile(): SLiM global state read");
 	
 	std::size_t file_size = 0;
 	slim_tick_t file_tick, file_cycle;
@@ -2004,7 +2004,7 @@ void Species::PrepareForCycle(void)
 			
 			if (!beenHere)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("Species::PrepareForCycle(): usage of statics");
 				
 				std::cerr << "WARNING: mutation run experiment clocks were logged outside of the measurement interval!";
 				beenHere = true;
@@ -4223,7 +4223,7 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
 	// form derived state
-	THREAD_SAFETY_CHECK();		// usage of statics
+	THREAD_SAFETY_CHECK("Species::RecordNewDerivedState(): usage of statics");
 	
 	static std::vector<slim_mutationid_t> derived_mutation_ids;
 	static std::vector<MutationMetadataRec> mutation_metadata;
@@ -4619,7 +4619,7 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	
 	if (!double_buf)
 	{
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("Species::TreeSequenceDataToAscii(): usage of statics");
 		
 		double_buf = (char *)malloc(40 * sizeof(char));
 		if (!double_buf)
@@ -6243,7 +6243,7 @@ void Species::CheckTreeSeqIntegrity(void)
 
 void Species::CrosscheckTreeSeqIntegrity(void)
 {
-	THREAD_SAFETY_CHECK();		// should never be called when parallel
+	THREAD_SAFETY_CHECK("Species::CrosscheckTreeSeqIntegrity(): illegal when parallel");
 	
 #if DEBUG
 	if (!recording_tree_)
@@ -8236,7 +8236,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 
 slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	THREAD_SAFETY_CHECK();		// SLiM global state read
+	THREAD_SAFETY_CHECK("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	std::string directory_path(p_file);
@@ -8303,7 +8303,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	THREAD_SAFETY_CHECK();		// SLiM global state read
+	THREAD_SAFETY_CHECK("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	int ret;

@@ -36,21 +36,21 @@ extern int gEidosMaxThreads;
 
 // THREAD_SAFETY_CHECK(): places in the code that have identified thread safety concerns should use this macro.  It will
 // produce a runtime error for DEBUG builds if it is hit while parallel.  Put it in places that are not currently thread-safe.
-// For example, the RNG, object pools, and other such global state are not thread-safe right now, so they should use this.
+// For example, object pools and other such global state are not thread-safe right now, so they should use this.
 // Many of these places might be made safe with a simple locking protocol, but that has not yet been done, so beware.
 // This tagging of unsafe spots is undoubtedly not comprehensive; I'm just trying to catch the most obvious problems!
 // Note that this macro uses a GCC built-in; it is supported by Clang as well, but may need a tweak for other platforms.
 #ifdef _OPENMP
 
 #if DEBUG
-#define THREAD_SAFETY_CHECK() if (omp_in_parallel()) raise(SIGTRAP);
+#define THREAD_SAFETY_CHECK(s) if (omp_in_parallel()) { std::cerr << "THREAD_SAFETY_CHECK error in " << s; raise(SIGTRAP); }
 #else
-#define THREAD_SAFETY_CHECK()
+#define THREAD_SAFETY_CHECK(s)
 #endif
 
 #else
 
-#define THREAD_SAFETY_CHECK()
+#define THREAD_SAFETY_CHECK(s)
 
 #endif
 
@@ -59,7 +59,7 @@ extern int gEidosMaxThreads;
 
 // Check that the OpenMP version supported by the compiler suffices.  Note that _OPENMP is formatted as a "YYYYMM" date of
 // release.  See https://github.com/Kitware/CMake/blob/v3.16.3/Modules/FindOpenMP.cmake#L384 for dates of release.  For
-// quick reference, "200805=3.0", "201107=3.1", "201307=4.0", "201511=4.5", "201811=5.0".  Right now we require 3.1.
+// quick reference, "200805=3.0", "201107=3.1", "201307=4.0", "201511=4.5", "201811=5.0".  Right now we require 4.5.
 #if (_OPENMP < 201511)
 #error OpenMP version 4.5 or later is required.
 #endif

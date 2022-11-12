@@ -268,7 +268,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 
 int RunEidosTests(void)
 {
-	THREAD_SAFETY_CHECK();		// should never be called when parallel
+	THREAD_SAFETY_CHECK("RunEidosTests(): illegal when parallel");
 	
 	// Reset error counts
 	gEidosTestSuccessCount = 0;

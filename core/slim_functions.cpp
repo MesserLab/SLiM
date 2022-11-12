@@ -51,7 +51,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 	
 	if (!sim_func_signatures_.size())
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Community::SLiMFunctionSignatures(): not warmed up");
 		
 		// Nucleotide utilities
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
@@ -1405,7 +1405,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (!beenHere)
 	{
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
 		
 		Individual *test_ind_layout = individuals_buffer[0];
 	

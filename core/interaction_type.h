@@ -334,7 +334,7 @@ public:
 	
 	static inline void DeleteSparseVectorFreeList(void)
 	{
-		THREAD_SAFETY_CHECK();
+		THREAD_SAFETY_CHECK("InteractionType::DeleteSparseVectorFreeList(): s_freed_sparse_vectors_ change");
 		
 #ifdef _OPENMP
 		// When running multithreaded, free all pools

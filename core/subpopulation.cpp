@@ -3606,7 +3606,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 
 void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
-	THREAD_SAFETY_CHECK();		// usage of statics, probably many other issues
+	THREAD_SAFETY_CHECK("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
 	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
@@ -4810,7 +4810,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
 		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
 		
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
@@ -6532,7 +6532,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		// see sample() for some discussion of this implementation
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
 		
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;
@@ -7504,7 +7504,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Subpopulation_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -7541,7 +7541,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Subpopulation_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

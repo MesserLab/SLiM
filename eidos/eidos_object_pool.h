@@ -153,7 +153,7 @@ public:
 	// usage: new (gXPool->AllocateChunk()) ObjectType(... parameters ...);
 	inline __attribute__((always_inline)) void *AllocateChunk()
 	{
-		THREAD_SAFETY_CHECK();		// EidosObjectPool change
+		THREAD_SAFETY_CHECK("AllocateChunk(): EidosObjectPool change");
 		
 		if (_firstDeleted)
 		{
@@ -177,7 +177,7 @@ public:
 	//	gXPool->DisposeChunk(const_cast<ObjectType*>(object));
 	inline __attribute__((always_inline)) void DisposeChunk(void *content)
 	{
-		THREAD_SAFETY_CHECK();		// EidosObjectPool change
+		THREAD_SAFETY_CHECK("DisposeChunk(): EidosObjectPool change");
 		
 		*((void **)content) = _firstDeleted;
 		_firstDeleted = content;

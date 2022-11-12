@@ -49,7 +49,7 @@ extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID
 
 inline slim_pedigreeid_t SLiM_GetNextPedigreeID(void)
 {
-	THREAD_SAFETY_CHECK();		// gSLiM_next_pedigree_id change
+	THREAD_SAFETY_CHECK("SLiM_GetNextPedigreeID(): gSLiM_next_pedigree_id change");
 	return gSLiM_next_pedigree_id++;
 }
 

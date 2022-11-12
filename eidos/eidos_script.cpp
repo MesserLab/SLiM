@@ -91,7 +91,7 @@ EidosScript::~EidosScript(void)
 
 void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 {
-	THREAD_SAFETY_CHECK();		// token_stream_ change
+	THREAD_SAFETY_CHECK("EidosScript::Tokenize():  token_stream_ change");
 	
 	// set up error tracking for this script
 	// Note: Here and elsewhere in this method, if p_make_bad_tokens is set we do not do error tracking.  This
@@ -862,7 +862,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 {
-	THREAD_SAFETY_CHECK();		// parse_root_ change
+	THREAD_SAFETY_CHECK("EidosScript::Parse_InterpreterBlock(): parse_root_ change");
 	
 	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0, 0);
 	

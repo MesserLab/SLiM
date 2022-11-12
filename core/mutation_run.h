@@ -70,7 +70,7 @@ extern int64_t gSLiM_MutationRun_OperationID;				// use SLiM_GetNextMutationRunO
 
 inline slim_pedigreeid_t SLiM_GetNextMutationRunOperationID(void)
 {
-	THREAD_SAFETY_CHECK();		// gSLiM_MutationRun_OperationID change
+	THREAD_SAFETY_CHECK("SLiM_GetNextMutationRunOperationID(): gSLiM_MutationRun_OperationID change");
 	
 	return ++gSLiM_MutationRun_OperationID;
 }
@@ -186,7 +186,7 @@ public:
 	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
 	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(void)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_mutation_runs_ change
+		THREAD_SAFETY_CHECK("MutationRun::NewMutationRun(): s_freed_mutation_runs_ change");
 		
 		if (s_freed_mutation_runs_.size())
 		{
@@ -215,7 +215,7 @@ public:
 	
 	static inline __attribute__((always_inline)) void FreeMutationRun(MutationRun *p_run)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_mutation_runs_ change
+		THREAD_SAFETY_CHECK("MutationRun::FreeMutationRun(): s_freed_mutation_runs_ change");
 		
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers, avoiding that
 		// free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
@@ -236,7 +236,7 @@ public:
 	
 	static inline void DeleteMutationRunFreeList(void)
 	{
-		THREAD_SAFETY_CHECK();		// s_freed_mutation_runs_ change
+		THREAD_SAFETY_CHECK("MutationRun::DeleteMutationRunFreeList(): s_freed_mutation_runs_ change");
 		
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
@@ -269,14 +269,14 @@ public:
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// Added (nonneutral_mutations_count_ != -1) with the addition of the nonneutral caches; modifying a unique run should not occur after it has cached
-#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK(); if ((intrusive_ref_count_ > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()"); if ((intrusive_ref_count_ > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
 #else
-#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK(); if (intrusive_ref_count_ > 1) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()"); if (intrusive_ref_count_ > 1) LockingViolation();
 #endif
 
 #else
 	
-#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK();
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()");
 	
 #endif
 	
@@ -820,14 +820,14 @@ public:
 // Eidos_intrusive_ptr support
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value)
 {
-	THREAD_SAFETY_CHECK();		// intrusive_ref_count_ change
+	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_add_ref(): MutationRun intrusive_ref_count_ change");
 	
 	++(p_value->intrusive_ref_count_);
 }
 
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const MutationRun *p_value)
 {
-	THREAD_SAFETY_CHECK();		// intrusive_ref_count_ change
+	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_release(): MutationRun intrusive_ref_count_ change");
 	
 	if ((--(p_value->intrusive_ref_count_)) == 0)
 	{

@@ -92,7 +92,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 //	(void)beep([Ns$ soundName = NULL])
 EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-	THREAD_SAFETY_CHECK();		// should be on the main thread only
+	THREAD_SAFETY_CHECK("Eidos_ExecuteFunction_beep(): main thread only");
 	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -618,7 +618,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 //	(integer$)getSeed(void)
 EidosValue_SP Eidos_ExecuteFunction_getSeed(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
-	THREAD_SAFETY_CHECK();		// RNG state
+	THREAD_SAFETY_CHECK("Eidos_ExecuteFunction_getSeed(): RNG state");
 	
 	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 	

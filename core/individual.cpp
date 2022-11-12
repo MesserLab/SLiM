@@ -346,7 +346,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_sex_string_H)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("Individual::GetProperty(): usage of statics");
 				
 				static_sex_string_H = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("H"));
 				static_sex_string_F = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("F"));
@@ -1650,7 +1650,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Individual_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -1690,7 +1690,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Individual_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

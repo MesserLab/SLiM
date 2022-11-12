@@ -208,6 +208,10 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 
 double MutationType::DrawSelectionCoefficient(void) const
 {
+	// BCH 11/11/2022: Note that EIDOS_GSL_RNG(omp_get_thread_num()) can take a little bit of time when running
+	// parallel.  We don't want to pass the RNG in, though, because that would slow down the single-threaded
+	// case, where the EIDOS_GSL_RNG(omp_get_thread_num()) call basically compiles away to a global var access.
+	// So here and in similar places, we fetch the RNG rather than passing it in to keep single-threaded fast.
 	switch (dfe_type_)
 	{
 		case DFEType::kFixed:			return dfe_parameters_[0];
@@ -389,7 +393,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_dfe_string_f)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("MutationType::GetProperty(): usage of statics");
 				
 				static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
 				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
@@ -445,7 +449,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_policy_string_s)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("MutationType::GetProperty(): usage of statics");
 				
 				static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
 				static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
@@ -752,7 +756,7 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("MutationType_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -782,7 +786,7 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("MutationType_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

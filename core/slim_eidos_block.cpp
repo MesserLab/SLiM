@@ -1559,7 +1559,7 @@ const std::vector<EidosPropertySignature_CSP> *SLiMEidosBlock_Class::Properties(
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("SLiMEidosBlock_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		

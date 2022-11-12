@@ -35,7 +35,7 @@ std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
 
 unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 {
-	THREAD_SAFETY_CHECK();		// usage of statics
+	THREAD_SAFETY_CHECK("Eidos_GenerateSeedFromPIDAndTime(): usage of statics");
 	
 	static long int hereCounter = 0;
 	pid_t pid = getpid();
@@ -53,7 +53,7 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 
 void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("_Eidos_InitializeOneRNG(): RNG change");
 	
 	r.rng_last_seed_ = 0;
 	
@@ -71,7 +71,7 @@ void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
 
 void Eidos_InitializeRNG(void)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("Eidos_InitializeRNG(): RNG change");
 	
 	// Allocate the RNG if needed
 	if (gEidos_RNG_Initialized)
@@ -95,7 +95,7 @@ void Eidos_InitializeRNG(void)
 
 void _Eidos_FreeOneRNG(Eidos_RNG_State &r)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("_Eidos_FreeOneRNG(): RNG change");
 	
 	if (r.gsl_rng_)
 	{
@@ -116,7 +116,7 @@ void _Eidos_FreeOneRNG(Eidos_RNG_State &r)
 
 void Eidos_FreeRNG(void)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("Eidos_FreeRNG(): RNG change");
 		
 	if (!gEidos_RNG_Initialized)
 		EIDOS_TERMINATION << "ERROR (Eidos_FreeRNG): (internal error) the Eidos random number generator has not been allocated." << EidosTerminate(nullptr);
@@ -139,7 +139,7 @@ void Eidos_FreeRNG(void)
 
 void _Eidos_SetOneRNGSeed(Eidos_RNG_State &r, unsigned long int p_seed)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("_Eidos_SetOneRNGSeed(): RNG change");
 	
 	// BCH 12 Sept. 2016: it turns out that gsl_rng_taus2 produces exactly the same sequence for seeds 0 and 1.  This is obviously
 	// undesirable; people will often do a set of runs with sequential seeds starting at 0 and counting up, and they will get
@@ -168,7 +168,7 @@ void _Eidos_SetOneRNGSeed(Eidos_RNG_State &r, unsigned long int p_seed)
 
 void Eidos_SetRNGSeed(unsigned long int p_seed)
 {
-	THREAD_SAFETY_CHECK();		// RNG change
+	THREAD_SAFETY_CHECK("Eidos_SetRNGSeed(): RNG change");
 	
 	if (!gEidos_RNG_Initialized)
 		EIDOS_TERMINATION << "ERROR (Eidos_SetRNGSeed): (internal error) the Eidos random number generator has not been allocated." << EidosTerminate(nullptr);

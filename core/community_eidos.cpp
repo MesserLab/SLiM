@@ -105,7 +105,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 	
 	if (!sim_0_signatures_.size())
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Community::ZeroTickFunctionSignatures(): not warmed up");
 		
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
@@ -399,7 +399,7 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_model_type_string_WF)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("Community::GetProperty():  usage of statics");
 				
 				static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
 				static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
@@ -1385,7 +1385,7 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Community_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -1414,7 +1414,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Community_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

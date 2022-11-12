@@ -1175,7 +1175,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosDataFrame_Class::Properties(
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("EidosDataFrame_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -1196,7 +1196,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDataFrame_Class::Methods(void)
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("EidosDataFrame_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
@@ -1221,7 +1221,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosDataFrame_Class::Functions(v
 	
 	if (!functions)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("EidosDataFrame_Class::Functions(): not warmed up");
 		
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;

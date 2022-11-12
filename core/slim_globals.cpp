@@ -56,7 +56,7 @@ EidosValue_String_SP gStaticEidosValue_StringT;
 
 void SLiM_WarmUp(void)
 {
-	THREAD_SAFETY_CHECK();		// should never be called when parallel
+	THREAD_SAFETY_CHECK("SLiM_WarmUp(): illegal when parallel");
 	
 	static bool been_here = false;
 	
@@ -720,7 +720,7 @@ uint8_t *NucleotideArray::NucleotideCharToIntLookup(void)
 	
 	if (!nuc_lookup)
 	{
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("NucleotideArray::NucleotideCharToIntLookup(): usage of statics");
 		
 		nuc_lookup = (uint8_t *)malloc(256 * sizeof(uint8_t));
 		if (!nuc_lookup)
@@ -1487,7 +1487,7 @@ void SLiM_ConfigureContext(void)
 	
 	if (!been_here)
 	{
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("SLiM_ConfigureContext(): usage of statics");
 		
 		been_here = true;
 		

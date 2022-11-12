@@ -1467,7 +1467,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_dimensionality_string_x)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("Species::GetProperty(): usage of statics");
 				
 				static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
 				static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
@@ -1499,7 +1499,7 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			
 			if (!static_periodicity_string_x)
 			{
-				THREAD_SAFETY_CHECK();		// usage of statics
+				THREAD_SAFETY_CHECK("Species::GetProperty(): usage of statics");
 				
 				static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
 				static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
@@ -1810,7 +1810,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	EidosValue *subpops_value = p_arguments[1].get();
 	
 	// Cache the subpops across which we will tally
-	THREAD_SAFETY_CHECK();		// usage of statics
+	THREAD_SAFETY_CHECK("Species::ExecuteMethod_individualsWithPedigreeIDs(): usage of statics");
 	
 	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
 	subpops_to_search.clear();
@@ -2079,7 +2079,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
 		
-		THREAD_SAFETY_CHECK();		// usage of statics
+		THREAD_SAFETY_CHECK("Species::ExecuteMethod_mutationFreqsCounts(): usage of statics");
 		
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
 		
@@ -3289,7 +3289,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Species_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -3325,7 +3325,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK();		// should always be warmed up in advance
+		THREAD_SAFETY_CHECK("Species_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
