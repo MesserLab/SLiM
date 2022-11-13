@@ -89,7 +89,7 @@
 #endif
 
 
-// declared in eidos_openmp.h
+// declared in eidos_openmp.h, set in Eidos_WarmUpOpenMP() when parallel
 int gEidosMaxThreads = 1;
 
 

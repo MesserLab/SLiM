@@ -83,7 +83,7 @@ extern bool gEidos_RNG_Initialized;
 #ifndef _OPENMP
 extern Eidos_RNG_State gEidos_RNG_SINGLE;
 #else
-extern std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
+extern std::vector<Eidos_RNG_State> gEidos_RNG_PERTHREAD;
 #endif
 
 // Calls to the GSL should use these macros to get the RNG state they need, whether single- or multi-threaded.
@@ -101,9 +101,9 @@ extern std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
 #define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_SINGLE.mt_rng_)
 #define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_SINGLE)
 #else
-#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_MULTI[threadnum].gsl_rng_)
-#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_MULTI[threadnum].mt_rng_)
-#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_MULTI[threadnum])
+#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum].gsl_rng_)
+#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_PERTHREAD[threadnum].mt_rng_)
+#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_PERTHREAD[threadnum])
 #endif
 
 #if DEBUG

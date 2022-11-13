@@ -58,14 +58,14 @@ std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
 
 std::vector<std::vector<SparseVector *>> InteractionType::s_freed_sparse_vectors_PERTHREAD;
 #if DEBUG
-std::vector<int> InteractionType::s_sparse_vector_count_PERTHREAD_;
+std::vector<int> InteractionType::s_sparse_vector_count_PERTHREAD;
 #endif
 
 #else
 
-std::vector<SparseVector *> InteractionType::s_freed_sparse_vectors_;
+std::vector<SparseVector *> InteractionType::s_freed_sparse_vectors_SINGLE;
 #if DEBUG
-int InteractionType::s_sparse_vector_count_ = 0;
+int InteractionType::s_sparse_vector_count_SINGLE = 0;
 #endif
 
 #endif
@@ -82,7 +82,7 @@ void InteractionType::_WarmUp(void)
 		// set up per-thread sparse vector pools to avoid lock contention
 		s_freed_sparse_vectors_PERTHREAD.resize(gEidosMaxThreads);
 		#if DEBUG
-		s_sparse_vector_count_PERTHREAD_.resize(gEidosMaxThreads, 0);
+		s_sparse_vector_count_PERTHREAD.resize(gEidosMaxThreads, 0);
 		#endif
 #endif
 		
@@ -1331,9 +1331,9 @@ size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 			usage += free_sv->MemoryUsage();
 	}
 #else
-	usage = s_freed_sparse_vectors_.size() * sizeof(SparseVector);
+	usage = s_freed_sparse_vectors_SINGLE.size() * sizeof(SparseVector);
 	
-	for (SparseVector *free_sv : s_freed_sparse_vectors_)
+	for (SparseVector *free_sv : s_freed_sparse_vectors_SINGLE)
 		usage += free_sv->MemoryUsage();
 #endif
 	

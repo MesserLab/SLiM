@@ -19,7 +19,47 @@
 
 /*
  
- This header should be included instead of omp.h.  It will include omp.h only if we are doing a parallel build of SLiM.
+ This header should be included instead of omp.h.  It will include omp.h only if we are doing a parallel build of SLiM;
+ otherwise, it will provide inline stub implementations of the OpenMP API.  We require OpenMP 4.5.
+ 
+ Some basic instructions for building and using parallel SLiM (spelled out more in the manual):
+ 
+	 on macOS, Apple has disabled OpenMP support in the version of clang they ship, and they do not include the OpenMP library or headers (WTF), so this needs to be fixed to build
+		 first of all, the R folks have figured this out; see https://mac.r-project.org/openmp/ for information and downloads
+		 do "About Xcode" to find out the Xcode version you're using, and download the corresponding openmp ("Release", probably) from that web page
+		 install it as shown there ("sudo tar fvxz <file>.tar.gz -C /"); you may see "tar: Error exit delayed from previous errors" which seems to be fine
+		 the rest of that web page is R-specific and can be ignored
+		 note that we used to use MacPorts or Homebrew to install a separate version of clang; it seems better to use the native clang and patch it up as we do now, but this no longer links in libomp automatically
+	 on other platforms, you may need to get a newer/different compiler to get one with OpenMP support; we have targeted OpenMP 4.5 as a minimum for now
+		 if you need to use a different compiler, you may need to switch CMake over to using that compiler, etc.
+		 you may also need to install the OpenMP library if it doesn't come installed for your toolchain; and the paths for the includes and libomp might be different than in CMakeLists.txt
+		 if you figure how to make this work for a particular platform, please send us step-by-step instructions that we can share with other users!
+	 if building at the command line with CMake, set -DPARALLEL=ON, and do not build SLiMgui (it will error out)
+	 if building in Xcode, use the provided separate version of the project, SLiM_OpenMP.xcodeproj, and the separate targets eidos_multi and slim_multi
+	 with -DPARALLEL=ON, the built executables will be slim_multi and eidos_multi, to make it easier to distinguish them; but of course you may rename them as you see fit
+	 on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
+	 use the -maxthreads <x> command-line option to change the maximum number of threads from OpenMP's default
+
+ At present, we have parallelized these areas (this list may not always be up to date):
+ 
+	Eidos_ExecuteFunction_sum()
+	Eidos_ExecuteFunction_rnorm()
+	Individual::SetProperty_Accelerated_fitnessScaling()
+	Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType()
+	InteractionType::ExecuteMethod_interactingNeighborCount()
+	InteractionType::ExecuteMethod_totalOfNeighborStrengths()
+	EidosValue_Int_vector::Sort()
+ 
+ We allocate per-thread storage (for gEidosMaxThreads threads) at the global level for these facilities:
+ 
+	SparseVector pools; see s_freed_sparse_vectors_PERTHREAD vs. s_freed_sparse_vectors_SINGLE
+	random number generators; see gEidos_RNG_PERTHREAD vs. gEidos_RNG_SINGLE
+ 
+ We use #pragma omp critical to protect some places in the code, with specified names
+ 
+ Places in the code that cannot be encountered when parallel use THREAD_SAFETY_CHECK(), defined below,
+ as a runtime guard; but be aware that it only checks for Debug builds.  Release builds may just produce
+ race conditions are incorrect results with no warning or error.  Always check with a Debug build.
  
  */
 

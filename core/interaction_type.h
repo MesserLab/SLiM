@@ -231,12 +231,12 @@ private:
 #ifdef _OPENMP
 	static std::vector<std::vector<SparseVector *>> s_freed_sparse_vectors_PERTHREAD;
 	#if DEBUG
-	static std::vector<int> s_sparse_vector_count_PERTHREAD_;
+	static std::vector<int> s_sparse_vector_count_PERTHREAD;
 	#endif
 #else
-	static std::vector<SparseVector *> s_freed_sparse_vectors_;
+	static std::vector<SparseVector *> s_freed_sparse_vectors_SINGLE;
 	#if DEBUG
-	static int s_sparse_vector_count_;
+	static int s_sparse_vector_count_SINGLE;
 	#endif
 #endif
 	
@@ -247,26 +247,26 @@ private:
 		SparseVector *sv;
 		
 #ifdef _OPENMP
-		// When running multithreaded, look up the per-thread SparseVector pool to use
+		// When running multithreaded, look up the per-thread SparseVector pool to use, and then use the single-threaded variable names
 		int threadnum = omp_get_thread_num();
-		std::vector<SparseVector *> &s_freed_sparse_vectors_ = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		std::vector<SparseVector *> &s_freed_sparse_vectors_SINGLE = s_freed_sparse_vectors_PERTHREAD[threadnum];
 		#if DEBUG
-		int &s_sparse_vector_count_ = s_sparse_vector_count_PERTHREAD_[threadnum];
+		int &s_sparse_vector_count_SINGLE = s_sparse_vector_count_PERTHREAD[threadnum];
 		#endif
 #endif
 		
-		if (s_freed_sparse_vectors_.size())
+		if (s_freed_sparse_vectors_SINGLE.size())
 		{
-			sv = s_freed_sparse_vectors_.back();
-			s_freed_sparse_vectors_.pop_back();
+			sv = s_freed_sparse_vectors_SINGLE.back();
+			s_freed_sparse_vectors_SINGLE.pop_back();
 			
 			sv->Reset(exerter_subpop->parent_subpop_size_, data_type);
 		}
 		else
 		{
 #if DEBUG
-			if (++s_sparse_vector_count_ > 1)
-				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_ << "..." << std::endl;
+			if (++s_sparse_vector_count_SINGLE > 1)
+				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_SINGLE << "..." << std::endl;
 #endif
 			
 			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
@@ -279,20 +279,20 @@ private:
 	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
 	{
 #ifdef _OPENMP
-		// When running multithreaded, look up the per-thread SparseVector pool to use
+		// When running multithreaded, look up the per-thread SparseVector pool to use, and then use the single-threaded variable names
 		int threadnum = omp_get_thread_num();
-		std::vector<SparseVector *> &s_freed_sparse_vectors_ = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		std::vector<SparseVector *> &s_freed_sparse_vectors_SINGLE = s_freed_sparse_vectors_PERTHREAD[threadnum];
 		#if DEBUG
-		int &s_sparse_vector_count_ = s_sparse_vector_count_PERTHREAD_[threadnum];
+		int &s_sparse_vector_count_SINGLE = s_sparse_vector_count_PERTHREAD[threadnum];
 		#endif
 #endif
 		
 		// We return mutation runs to the free list without resetting them, because we do not know the ncols
 		// value for their next usage.  They would hang on to their internal buffers for reuse.
-		s_freed_sparse_vectors_.emplace_back(sv);
+		s_freed_sparse_vectors_SINGLE.emplace_back(sv);
 		
 #if DEBUG
-		s_sparse_vector_count_--;
+		s_sparse_vector_count_SINGLE--;
 #endif
 	}
 	
@@ -350,16 +350,16 @@ public:
 		}
 		
 		#if DEBUG
-		for (int &count : s_sparse_vector_count_PERTHREAD_)
+		for (int &count : s_sparse_vector_count_PERTHREAD)
 			count = 0;
 		#endif
 #else
-		for (auto sv : s_freed_sparse_vectors_)
+		for (auto sv : s_freed_sparse_vectors_SINGLE)
 			delete (sv);
 		
-		s_freed_sparse_vectors_.clear();
+		s_freed_sparse_vectors_SINGLE.clear();
 		#if DEBUG
-		s_sparse_vector_count_ = 0;
+		s_sparse_vector_count_SINGLE = 0;
 		#endif
 #endif
 	}

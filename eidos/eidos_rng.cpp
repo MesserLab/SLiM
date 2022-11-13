@@ -29,7 +29,7 @@ bool gEidos_RNG_Initialized = false;
 #ifndef _OPENMP
 Eidos_RNG_State gEidos_RNG_SINGLE;
 #else
-std::vector<Eidos_RNG_State> gEidos_RNG_MULTI;
+std::vector<Eidos_RNG_State> gEidos_RNG_PERTHREAD;
 #endif
 
 
@@ -86,10 +86,10 @@ void Eidos_InitializeRNG(void)
 #else
 	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent RNGs" << std::endl;
 	
-	gEidos_RNG_MULTI.resize(gEidosMaxThreads);
+	gEidos_RNG_PERTHREAD.resize(gEidosMaxThreads);
 	
 	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_InitializeOneRNG(gEidos_RNG_MULTI[threadnum]);
+		_Eidos_InitializeOneRNG(gEidos_RNG_PERTHREAD[threadnum]);
 #endif
 	
 	gEidos_RNG_Initialized = true;
@@ -131,9 +131,9 @@ void Eidos_FreeRNG(void)
 	//std::cout << "***** Freeing " << gEidosMaxThreads << " independent RNGs" << std::endl;
 	
 	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_FreeOneRNG(gEidos_RNG_MULTI[threadnum]);
+		_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadnum]);
 	
-	gEidos_RNG_MULTI.resize(0);
+	gEidos_RNG_PERTHREAD.resize(0);
 #endif
 	
 	gEidos_RNG_Initialized = false;
@@ -186,9 +186,9 @@ void Eidos_SetRNGSeed(unsigned long int p_seed)
 	const unsigned long int o = 12345;
 	
 	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_SetOneRNGSeed(gEidos_RNG_MULTI[threadnum], p_seed + threadnum * threadnum * o);
+		_Eidos_SetOneRNGSeed(gEidos_RNG_PERTHREAD[threadnum], p_seed + threadnum * threadnum * o);
 	
-	gEidos_RNG_MULTI.resize(0);
+	gEidos_RNG_PERTHREAD.resize(0);
 #endif
 }
 
