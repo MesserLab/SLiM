@@ -2802,7 +2802,8 @@ void Community::AllSpecies_TSXC_Enable(void)
 	for (Species *species : all_species_)
 		species->TSXC_Enable();
 	
-	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
 
 void Community::AllSpecies_TSF_Enable(void)
@@ -2813,7 +2814,8 @@ void Community::AllSpecies_TSF_Enable(void)
 	for (Species *species : all_species_)
 		species->TSF_Enable();
     
-    SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
 }
 
 

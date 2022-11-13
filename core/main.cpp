@@ -417,7 +417,8 @@ int main(int argc, char *argv[])
 	
 	// announce if we are running a debug build, are skipping runtime checks, etc.
 #if DEBUG
-	SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_ERRSTREAM << "// ********** DEBUG defined – you are not using a release build of SLiM" << std::endl << std::endl;
 #endif
 	
 #ifdef _OPENMP
@@ -427,7 +428,7 @@ int main(int argc, char *argv[])
 	if (SLiM_verbosity_level >= 2)
 		SLIM_ERRSTREAM << "// ********** The -l[ong] command-line option has enabled verbose output (level " << SLiM_verbosity_level << ")" << std::endl << std::endl;
 	
-	if (skip_checks)
+	if (skip_checks && (SLiM_verbosity_level >= 1))
 		SLIM_ERRSTREAM << "// ********** The -x command-line option has disabled some runtime checks" << std::endl << std::endl;
 	
 	// emit defined constants in verbose mode

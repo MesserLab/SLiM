@@ -249,6 +249,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	// Get the maximum number of threads in effect, which might be different from the number requested
 	gEidosMaxThreads = omp_get_max_threads();
 	
+	// Write some diagnostic output about our configuration.  If the verbosity level is 0, outstream will be nullptr.
 	if (outstream)
 	{
 		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << gEidosMaxThreads << " threads)" << std::endl;
