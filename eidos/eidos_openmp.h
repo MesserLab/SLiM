@@ -67,6 +67,7 @@
 #define eidos_openmp_h
 
 #include <signal.h>
+#include <limits.h>
 
 
 // This is a cached result from omp_get_max_threads() after warmup, providing the final number of threads that we will
