@@ -239,7 +239,11 @@
 		slimgui = nullptr;
 	}
 	
-	Eidos_FreeRNG(sim_RNG);
+	if (sim_RNG_initialized)
+	{
+		_Eidos_FreeOneRNG(sim_RNG);
+		sim_RNG_initialized = false;
+	}
 	
 	[self setInvalidSimulation:YES];
 	
@@ -390,7 +394,11 @@
 		focalSpecies = nullptr;
 		slimgui = nullptr;
 		
-		Eidos_FreeRNG(sim_RNG);
+		if (sim_RNG_initialized)
+		{
+			_Eidos_FreeOneRNG(sim_RNG);
+			sim_RNG_initialized = false;
+		}
 		
 		[self setReachedSimulationEnd:YES];
 		[self setInvalidSimulation:YES];
@@ -411,11 +419,28 @@
 		slimgui = nullptr;
 	}
 	
-	// Free the old simulation RNG and let SLiM make one for us
-	Eidos_FreeRNG(sim_RNG);
+	// Free the old simulation RNG and make a new one, to have clean state
+	if (sim_RNG_initialized)
+	{
+		_Eidos_FreeOneRNG(sim_RNG);
+		sim_RNG_initialized = false;
+	}
 	
-	if (EIDOS_GSL_RNG)
-		NSLog(@"gEidos_RNG already set up in startNewSimulationFromScript!");
+	_Eidos_InitializeOneRNG(sim_RNG);
+	sim_RNG_initialized = true;
+	
+	// The Eidos RNG may be set up already; if so, get rid of it.  When we are not running, we keep the
+	// Eidos RNG in an initialized state, to catch errors with the swapping of RNG state.  Nobody should
+	// use it when we have not swapped in our own RNG.
+	if (gEidos_RNG_Initialized)
+	{
+		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
+		gEidos_RNG_Initialized = false;
+	}
+	
+	// Swap in our RNG
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	std::istringstream infile([scriptString UTF8String]);
 	
@@ -424,9 +449,9 @@
 		community = new Community(infile);
 		community->InitializeRNGFromSeed(nullptr);
 		
-		// We take over the RNG instance that Community just made, since each SLiMgui window has its own RNG
-		sim_RNG = gEidos_RNG;
-		EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+		// Swap out our RNG
+		std::swap(sim_RNG, gEidos_RNG_SINGLE);
+		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 		
 		// We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
 		sim_next_pedigree_id = 0;
@@ -3836,12 +3861,13 @@ static int DisplayDigitsForIntegerPart(double x)
 
 - (void)eidosConsoleWindowControllerWillExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
-	// Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
+	// Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_RNG_SINGLE is NULL.
 	// The goal here is to keep each SLiM window independent in its random number sequence.
-	if (EIDOS_GSL_RNG)
+	if (gEidos_RNG_Initialized)
 		NSLog(@"eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!");
 	
-	gEidos_RNG = sim_RNG;
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	// We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
 	gSLiM_next_pedigree_id = sim_next_pedigree_id;
@@ -3859,8 +3885,8 @@ static int DisplayDigitsForIntegerPart(double x)
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
 	// Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
-	sim_RNG = gEidos_RNG;
-	EIDOS_BZERO(&gEidos_RNG, sizeof(Eidos_RNG_State));
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	// Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
 	// Setting to -100000 here is not necessary, but will maybe help find bugs...

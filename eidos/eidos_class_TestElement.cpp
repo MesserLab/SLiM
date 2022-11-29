@@ -201,6 +201,8 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Propertie
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("EidosTestElement_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr__yolk,		false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(EidosTestElement::GetProperty_Accelerated__yolk)->DeclareAcceleratedSet(EidosTestElement::SetProperty_Accelerated__yolk));
@@ -218,6 +220,8 @@ const std::vector<EidosMethodSignature_CSP> *EidosTestElement_Class::Methods(voi
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("EidosTestElement_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr__cubicYolk, kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedImp(EidosTestElement::ExecuteMethod_Accelerated_cubicYolk));
@@ -235,6 +239,8 @@ const std::vector<EidosFunctionSignature_CSP> *EidosTestElement_Class::Functions
 	
 	if (!functions)
 	{
+		THREAD_SAFETY_CHECK("EidosTestElement_Class::Functions(): not warmed up");
+		
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		

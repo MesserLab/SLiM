@@ -288,13 +288,13 @@ public:
 	
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
 	
-	slim_popsize_t DrawParentUsingFitness(void) const;										// WF only: draw an individual from the subpopulation based upon fitness
-	slim_popsize_t DrawFemaleParentUsingFitness(void) const;								// WF only: draw a female from the subpopulation based upon fitness; SEX ONLY
-	slim_popsize_t DrawMaleParentUsingFitness(void) const;									// WF only: draw a male from the subpopulation based upon fitness; SEX ONLY
+	slim_popsize_t DrawParentUsingFitness(gsl_rng *rng) const;								// WF only: draw an individual from the subpopulation based upon fitness
+	slim_popsize_t DrawFemaleParentUsingFitness(gsl_rng *rng) const;						// WF only: draw a female from the subpopulation based upon fitness; SEX ONLY
+	slim_popsize_t DrawMaleParentUsingFitness(gsl_rng *rng) const;							// WF only: draw a male from the subpopulation based upon fitness; SEX ONLY
 
-	slim_popsize_t DrawParentEqualProbability(void) const;									// draw an individual from the subpopulation with equal probabilities
-	slim_popsize_t DrawFemaleParentEqualProbability(void) const;							// draw a female from the subpopulation  with equal probabilities; SEX ONLY
-	slim_popsize_t DrawMaleParentEqualProbability(void) const;								// draw a male from the subpopulation  with equal probabilities; SEX ONLY
+	slim_popsize_t DrawParentEqualProbability(gsl_rng *rng) const;							// draw an individual from the subpopulation with equal probabilities
+	slim_popsize_t DrawFemaleParentEqualProbability(gsl_rng *rng) const;					// draw a female from the subpopulation  with equal probabilities; SEX ONLY
+	slim_popsize_t DrawMaleParentEqualProbability(gsl_rng *rng) const;						// draw a male from the subpopulation  with equal probabilities; SEX ONLY
 	
 	// Returns a new genome object that is cleared to nullptr; call clear_to_empty() afterwards if you need empty mutruns
 	Genome *_NewSubpopGenome_NULL(GenomeType p_genome_type);	// internal use only
@@ -503,7 +503,7 @@ public:
 };
 
 
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentUsingFitness(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentUsingFitness(gsl_rng *rng) const
 {
 #if DEBUG
 	if (sex_enabled_)
@@ -511,23 +511,23 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentUs
 #endif
 	
 	if (lookup_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_parent_));
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(rng, lookup_parent_));
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_));
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_subpop_size_));
 }
 
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentEqualProbability(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawParentEqualProbability(gsl_rng *rng) const
 {
 #if DEBUG
 	if (sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawParentEqualProbability): (internal error) called on a population for which sex is enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_));
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_subpop_size_));
 }
 
 // SEX ONLY
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemaleParentUsingFitness(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemaleParentUsingFitness(gsl_rng *rng) const
 {
 #if DEBUG
 	if (!sex_enabled_)
@@ -535,24 +535,24 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemalePa
 #endif
 	
 	if (lookup_female_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_female_parent_));
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(rng, lookup_female_parent_));
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_first_male_index_));
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_first_male_index_));
 }
 
 // SEX ONLY
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemaleParentEqualProbability(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawFemaleParentEqualProbability(gsl_rng *rng) const
 {
 #if DEBUG
 	if (!sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawFemaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_first_male_index_));
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_first_male_index_));
 }
 
 // SEX ONLY
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMaleParentUsingFitness(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMaleParentUsingFitness(gsl_rng *rng) const
 {
 #if DEBUG
 	if (!sex_enabled_)
@@ -560,20 +560,20 @@ inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMalePare
 #endif
 	
 	if (lookup_male_parent_)
-		return static_cast<slim_popsize_t>(gsl_ran_discrete(EIDOS_GSL_RNG, lookup_male_parent_)) + parent_first_male_index_;
+		return static_cast<slim_popsize_t>(gsl_ran_discrete(rng, lookup_male_parent_)) + parent_first_male_index_;
 	else
-		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
+		return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
 }
 
 // SEX ONLY
-inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMaleParentEqualProbability(void) const
+inline __attribute__((always_inline)) slim_popsize_t Subpopulation::DrawMaleParentEqualProbability(gsl_rng *rng) const
 {
 #if DEBUG
 	if (!sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::DrawMaleParentEqualProbability): (internal error) called on a population for which sex is not enabled." << EidosTerminate();
 #endif
 	
-	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
+	return static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, parent_subpop_size_ - parent_first_male_index_) + parent_first_male_index_);
 }
 
 inline IndividualSex Subpopulation::SexOfIndividual(slim_popsize_t p_individual_index)

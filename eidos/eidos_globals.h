@@ -47,6 +47,7 @@
 
 #endif
 
+#include "eidos_openmp.h"
 #include "eidos_intrusive_ptr.h"
 
 class EidosScript;
@@ -59,6 +60,10 @@ class EidosToken;
 
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
+#ifdef _OPENMP
+void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
+#endif
+
 void Eidos_WarmUp(void);
 
 // This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line
@@ -137,11 +142,15 @@ extern EidosErrorContext gEidosErrorContext;
 
 inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
 {
+	THREAD_SAFETY_CHECK("RestoreErrorPosition(): gEidosErrorContext change");
+	
 	gEidosErrorContext.errorPosition = p_saved_position;
 }
 
 inline __attribute__((always_inline)) void ClearErrorPosition(void)
 {
+	THREAD_SAFETY_CHECK("ClearErrorPosition(): gEidosErrorContext change");
+	
 	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
 }
 
@@ -587,6 +596,10 @@ BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 
 // The <regex> library does not work on Ubuntu 18.04, annoyingly; probably a very old compiler or something.  So we have to check.
 bool Eidos_RegexWorks(void);
+
+// Parallel sorting; these use std::sort when we are not running parallel, or for small jobs
+void Eidos_ParallelQuicksort_I(int64_t *values, int64_t nelements);
+void Eidos_ParallelMergesort_I(int64_t *values, int64_t nelements);
 
 
 // *******************************************************************************************************************

@@ -553,16 +553,21 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		// Draw all the values we will plot; we need our own private RNG so we don't screw up the simulation's.
 		// Drawing selection coefficients could raise, if they are type "s" and there is an error in the script,
 		// so we run the sampling inside a try/catch block; if we get a raise, we just show a "?" in the plot.
+		static bool rng_initialized = false;
 		static Eidos_RNG_State local_rng;
 		
 		sample_size = (mut_type->dfe_type_ == DFEType::kScript) ? 100000 : 1000000;	// large enough to make curves pretty smooth, small enough to be reasonably fast
 		draws.reserve(sample_size);
 		
-		std::swap(local_rng, gEidos_RNG);	// swap in our local RNG
+		if (!rng_initialized)
+		{
+			_Eidos_InitializeOneRNG(local_rng);
+			rng_initialized = true;
+		}
 		
-		if (!EIDOS_GSL_RNG)
-			Eidos_InitializeRNG();
-		Eidos_SetRNGSeed(10);		// arbitrary seed, but the same seed every time
+		_Eidos_SetOneRNGSeed(local_rng, 10);		// arbitrary seed, but the same seed every time
+		
+		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawSelectionCoefficient()
 		
 		//std::clock_t start = std::clock();
 		
@@ -587,7 +592,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		
 		//NSLog(@"Draws took %f seconds", (std::clock() - start) / (double)CLOCKS_PER_SEC);
 		
-		std::swap(local_rng, gEidos_RNG);	// swap out our local RNG; restore the standard RNG
+		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap out our local RNG; restore the standard RNG
 		
 		// figure out axis limits
 		if (draw_negative && !draw_positive)

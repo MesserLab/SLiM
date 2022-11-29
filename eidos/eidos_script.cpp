@@ -91,6 +91,8 @@ EidosScript::~EidosScript(void)
 
 void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 {
+	THREAD_SAFETY_CHECK("EidosScript::Tokenize():  token_stream_ change");
+	
 	// set up error tracking for this script
 	// Note: Here and elsewhere in this method, if p_make_bad_tokens is set we do not do error tracking.  This
 	// is so that we don't overwrite valid error tracking info when we're tokenizing for internal purposes.
@@ -686,6 +688,12 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				std::string identifierString = script_string_.substr(token_start, token_end - token_start + 1);
 				bool contains_illegal = false;
 				
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunknown-warning-option"
+#pragma GCC diagnostic ignored "-Wbidi-chars"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wbidi-chars"
 				contains_illegal = contains_illegal || (identifierString.find("\u2000") != std::string::npos);
 				contains_illegal = contains_illegal || (identifierString.find("\u2001") != std::string::npos);
 				contains_illegal = contains_illegal || (identifierString.find("\u2002") != std::string::npos);
@@ -727,6 +735,8 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 				contains_illegal = contains_illegal || (identifierString.find("\u206d") != std::string::npos);
 				contains_illegal = contains_illegal || (identifierString.find("\u206e") != std::string::npos);
 				contains_illegal = contains_illegal || (identifierString.find("\u206f") != std::string::npos);
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 				
 				if (contains_illegal)
 				{
@@ -852,6 +862,8 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 
 EidosASTNode *EidosScript::Parse_InterpreterBlock(bool p_allow_functions)
 {
+	THREAD_SAFETY_CHECK("EidosScript::Parse_InterpreterBlock(): parse_root_ change");
+	
 	EidosToken temp_token(EidosTokenType::kTokenInterpreterBlock, gEidosStr_empty_string, 0, 0, 0, 0, 0);
 	
 	EidosASTNode *node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(&temp_token);	// the stack-local token is replaced below

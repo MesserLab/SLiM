@@ -105,6 +105,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::ZeroTickFunctionSignat
 	
 	if (!sim_0_signatures_.size())
 	{
+		THREAD_SAFETY_CHECK("Community::ZeroTickFunctionSignatures(): not warmed up");
+		
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeAncestralNucleotides, nullptr, kEidosValueMaskInt | kEidosValueMaskSingleton, "SLiM"))
 									   ->AddIntString("sequence"));
 		sim_0_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gStr_initializeGenomicElement, nullptr, kEidosValueMaskObject, gSLiM_GenomicElement_Class, "SLiM"))
@@ -395,10 +397,13 @@ EidosValue_SP Community::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_model_type_string_WF;
 			static EidosValue_SP static_model_type_string_nonWF;
 			
-			if (!static_model_type_string_WF)
+#pragma omp critical (GetProperty_modelType_cache)
 			{
-				static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
-				static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+				if (!static_model_type_string_WF)
+				{
+					static_model_type_string_WF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("WF"));
+					static_model_type_string_nonWF = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("nonWF"));
+				}
 			}
 			
 			switch (model_type_)
@@ -1381,6 +1386,8 @@ const std::vector<EidosPropertySignature_CSP> *Community_Class::Properties(void)
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("Community_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_allGenomicElementTypes,	true,	kEidosValueMaskObject, gSLiM_GenomicElementType_Class)));
@@ -1408,6 +1415,8 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("Community_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_createLogFile, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_LogFile_Class))->AddString_S(gEidosStr_filePath)->AddString_ON("initialContents", gStaticEidosValueNULL)->AddLogical_OS("append", gStaticEidosValue_LogicalF)->AddLogical_OS("compress", gStaticEidosValue_LogicalF)->AddString_OS("sep", gStaticEidosValue_StringComma)->AddInt_OSN("logInterval", gStaticEidosValueNULL)->AddInt_OSN("flushInterval", gStaticEidosValueNULL));

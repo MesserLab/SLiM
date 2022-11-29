@@ -574,6 +574,8 @@ extern EidosValue_String_SP gStaticEidosValue_StringC;
 extern EidosValue_String_SP gStaticEidosValue_StringG;
 extern EidosValue_String_SP gStaticEidosValue_StringT;
 
+extern const char gSLiM_Nucleotides[4];		// A, C, G, T
+
 
 // *******************************************************************************************************************
 //

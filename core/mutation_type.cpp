@@ -208,13 +208,37 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 
 double MutationType::DrawSelectionCoefficient(void) const
 {
+	// BCH 11/11/2022: Note that EIDOS_GSL_RNG(omp_get_thread_num()) can take a little bit of time when running
+	// parallel.  We don't want to pass the RNG in, though, because that would slow down the single-threaded
+	// case, where the EIDOS_GSL_RNG(omp_get_thread_num()) call basically compiles away to a global var access.
+	// So here and in similar places, we fetch the RNG rather than passing it in to keep single-threaded fast.
 	switch (dfe_type_)
 	{
 		case DFEType::kFixed:			return dfe_parameters_[0];
-		case DFEType::kGamma:			return gsl_ran_gamma(EIDOS_GSL_RNG, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
-		case DFEType::kExponential:		return gsl_ran_exponential(EIDOS_GSL_RNG, dfe_parameters_[0]);
-		case DFEType::kNormal:			return gsl_ran_gaussian(EIDOS_GSL_RNG, dfe_parameters_[1]) + dfe_parameters_[0];
-		case DFEType::kWeibull:			return gsl_ran_weibull(EIDOS_GSL_RNG, dfe_parameters_[0], dfe_parameters_[1]);
+			
+		case DFEType::kGamma:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_gamma(rng, dfe_parameters_[1], dfe_parameters_[0] / dfe_parameters_[1]);
+		}
+			
+		case DFEType::kExponential:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_exponential(rng, dfe_parameters_[0]);
+		}
+			
+		case DFEType::kNormal:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_gaussian(rng, dfe_parameters_[1]) + dfe_parameters_[0];
+		}
+			
+		case DFEType::kWeibull:
+		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			return gsl_ran_weibull(rng, dfe_parameters_[0], dfe_parameters_[1]);
+		}
 			
 		case DFEType::kScript:
 		{
@@ -367,14 +391,17 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dfe_string_w;
 			static EidosValue_SP static_dfe_string_s;
 			
-			if (!static_dfe_string_f)
+#pragma omp critical (GetProperty_distributionType_cache)
 			{
-				static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
-				static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
-				static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
-				static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_n));
-				static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
-				static_dfe_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
+				if (!static_dfe_string_f)
+				{
+					static_dfe_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
+					static_dfe_string_g = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_g));
+					static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
+					static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_n));
+					static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
+					static_dfe_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
+				}
 			}
 			
 			switch (dfe_type_)
@@ -421,11 +448,16 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_policy_string_f;
 			static EidosValue_SP static_policy_string_l;
 			
-			if (!static_policy_string_s)
+#pragma omp critical (GetProperty_mutationStackPolicy_cache)
 			{
-				static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
-				static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
-				static_policy_string_l = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_l));
+				if (!static_policy_string_s)
+				{
+					THREAD_SAFETY_CHECK("MutationType::GetProperty(): usage of statics");
+					
+					static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
+					static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
+					static_policy_string_l = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_l));
+				}
 			}
 			
 			switch (stack_policy_)
@@ -728,6 +760,8 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("MutationType_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,						true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(MutationType::GetProperty_Accelerated_id));
@@ -756,6 +790,8 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("MutationType_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawSelectionCoefficient, kEidosValueMaskFloat))->AddInt_OS("n", gStaticEidosValue_Integer1));

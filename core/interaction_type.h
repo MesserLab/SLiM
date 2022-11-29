@@ -45,6 +45,7 @@
 class Species;
 class Subpopulation;
 class Individual;
+class InteractionType_Class;
 
 
 extern EidosClass *gSLiM_InteractionType_Class;
@@ -126,6 +127,9 @@ class InteractionType : public EidosDictionaryUnretained
 private:
 	typedef EidosDictionaryUnretained super;
 
+	static void _WarmUp(void);					// called internally at startup, do not call
+	friend InteractionType_Class;				// so it can call _WarmUp() for us
+	
 #ifdef SLIMGUI
 public:
 #else
@@ -221,9 +225,19 @@ private:
 	bool clipped_integral_valid_ = false;
 	
 	// A pool of unused SparseVector objects so that, once equilibrated, there is no alloc/realloc activity.  Note this is shared by all species.
-	static std::vector<SparseVector *> s_freed_sparse_vectors_;
-#if DEBUG
-	static int s_sparse_vector_count_;
+	// When built multithreaded, we have per-thread sparse vector pools to avoid lock contention, but single-thread there is one pool.
+	// At present we only use one SparseVector object per pool, but this design will allow new code to access multiple SparseVectors
+	// simultaneously if that becomes useful for more complex functionality.  The overhead of the pools should be quite small.
+#ifdef _OPENMP
+	static std::vector<std::vector<SparseVector *>> s_freed_sparse_vectors_PERTHREAD;
+	#if DEBUG
+	static std::vector<int> s_sparse_vector_count_PERTHREAD;
+	#endif
+#else
+	static std::vector<SparseVector *> s_freed_sparse_vectors_SINGLE;
+	#if DEBUG
+	static int s_sparse_vector_count_SINGLE;
+	#endif
 #endif
 	
 	static inline __attribute__((always_inline)) SparseVector *NewSparseVectorForExerterSubpop(Subpopulation *exerter_subpop, SparseVectorDataType data_type)
@@ -232,22 +246,31 @@ private:
 		// Objects in the free list are not in a reuseable state yet, and must be reset; see FreeSparseVector() below.
 		SparseVector *sv;
 		
-		if (s_freed_sparse_vectors_.size())
+#ifdef _OPENMP
+		// When running multithreaded, look up the per-thread SparseVector pool to use, and then use the single-threaded variable names
+		int threadnum = omp_get_thread_num();
+		std::vector<SparseVector *> &s_freed_sparse_vectors_SINGLE = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		#if DEBUG
+		int &s_sparse_vector_count_SINGLE = s_sparse_vector_count_PERTHREAD[threadnum];
+		#endif
+#endif
+		
+		if (s_freed_sparse_vectors_SINGLE.size())
 		{
-			sv = s_freed_sparse_vectors_.back();
-			s_freed_sparse_vectors_.pop_back();
+			sv = s_freed_sparse_vectors_SINGLE.back();
+			s_freed_sparse_vectors_SINGLE.pop_back();
 			
 			sv->Reset(exerter_subpop->parent_subpop_size_, data_type);
 		}
 		else
 		{
+#if DEBUG
+			if (++s_sparse_vector_count_SINGLE > 1)
+				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_SINGLE << "..." << std::endl;
+#endif
+			
 			sv = new SparseVector(exerter_subpop->parent_subpop_size_);
 			sv->SetDataType(data_type);
-			
-#if DEBUG
-			if (++s_sparse_vector_count_ > 1)
-				std::cout << "new SparseVector(), s_sparse_vector_count_ == " << s_sparse_vector_count_ << "..." << std::endl;
-#endif
 		}
 		
 		return sv;
@@ -255,12 +278,21 @@ private:
 	
 	static inline __attribute__((always_inline)) void FreeSparseVector(SparseVector *sv)
 	{
+#ifdef _OPENMP
+		// When running multithreaded, look up the per-thread SparseVector pool to use, and then use the single-threaded variable names
+		int threadnum = omp_get_thread_num();
+		std::vector<SparseVector *> &s_freed_sparse_vectors_SINGLE = s_freed_sparse_vectors_PERTHREAD[threadnum];
+		#if DEBUG
+		int &s_sparse_vector_count_SINGLE = s_sparse_vector_count_PERTHREAD[threadnum];
+		#endif
+#endif
+		
 		// We return mutation runs to the free list without resetting them, because we do not know the ncols
 		// value for their next usage.  They would hang on to their internal buffers for reuse.
-		s_freed_sparse_vectors_.emplace_back(sv);
+		s_freed_sparse_vectors_SINGLE.emplace_back(sv);
 		
 #if DEBUG
-		s_sparse_vector_count_--;
+		s_sparse_vector_count_SINGLE--;
 #endif
 	}
 	
@@ -304,10 +336,32 @@ public:
 	{
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
-		for (auto sv : s_freed_sparse_vectors_)
+		
+		THREAD_SAFETY_CHECK("InteractionType::DeleteSparseVectorFreeList(): s_freed_sparse_vectors_ change");
+		
+#ifdef _OPENMP
+		// When running multithreaded, free all pools
+		for (auto &pool : s_freed_sparse_vectors_PERTHREAD)
+		{
+			for (auto sv : pool)
+				delete (sv);
+			
+			pool.clear();
+		}
+		
+		#if DEBUG
+		for (int &count : s_sparse_vector_count_PERTHREAD)
+			count = 0;
+		#endif
+#else
+		for (auto sv : s_freed_sparse_vectors_SINGLE)
 			delete (sv);
 		
-		s_freed_sparse_vectors_.clear();
+		s_freed_sparse_vectors_SINGLE.clear();
+		#if DEBUG
+		s_sparse_vector_count_SINGLE = 0;
+		#endif
+#endif
 	}
 	
 	//
@@ -353,7 +407,7 @@ private:
 public:
 	InteractionType_Class(const InteractionType_Class &p_original) = delete;	// no copy-construct
 	InteractionType_Class& operator=(const InteractionType_Class&) = delete;	// no copying
-	inline InteractionType_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	inline InteractionType_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { InteractionType::_WarmUp(); }
 	
 	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;

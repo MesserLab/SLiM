@@ -66,6 +66,8 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 	
 	if (!signatures)
 	{
+		THREAD_SAFETY_CHECK("EidosInterpreter::BuiltInFunctions(): not warmed up");
+		
 		signatures = new std::vector<EidosFunctionSignature_CSP>;
 		
 		// ************************************************************************************

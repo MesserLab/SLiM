@@ -1465,11 +1465,14 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dimensionality_string_xy;
 			static EidosValue_SP static_dimensionality_string_xyz;
 			
-			if (!static_dimensionality_string_x)
+#pragma omp critical (GetProperty_dimensionality_cache)
 			{
-				static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
-				static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
-				static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				if (!static_dimensionality_string_x)
+				{
+					static_dimensionality_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+					static_dimensionality_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+					static_dimensionality_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				}
 			}
 			
 			switch (spatial_dimensionality_)
@@ -1495,15 +1498,18 @@ EidosValue_SP Species::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_periodicity_string_yz;
 			static EidosValue_SP static_periodicity_string_xyz;
 			
-			if (!static_periodicity_string_x)
+#pragma omp critical (GetProperty_periodicity_cache)
 			{
-				static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
-				static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
-				static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
-				static_periodicity_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
-				static_periodicity_string_xz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xz"));
-				static_periodicity_string_yz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("yz"));
-				static_periodicity_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				if (!static_periodicity_string_x)
+				{
+					static_periodicity_string_x = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_x));
+					static_periodicity_string_y = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_y));
+					static_periodicity_string_z = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_z));
+					static_periodicity_string_xy = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xy"));
+					static_periodicity_string_xz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xz"));
+					static_periodicity_string_yz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("yz"));
+					static_periodicity_string_xyz = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("xyz"));
+				}
 			}
 			
 			if (periodic_x_ && periodic_y_ && periodic_z_)	return static_periodicity_string_xyz;
@@ -1806,6 +1812,8 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	EidosValue *subpops_value = p_arguments[1].get();
 	
 	// Cache the subpops across which we will tally
+	THREAD_SAFETY_CHECK("Species::ExecuteMethod_individualsWithPedigreeIDs(): usage of statics");
+	
 	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
 	subpops_to_search.clear();
 	
@@ -2072,6 +2080,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	{
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
+		
+		THREAD_SAFETY_CHECK("Species::ExecuteMethod_mutationFreqsCounts(): usage of statics");
+		
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
 		
 		subpops_to_tally.clear();
@@ -3280,6 +3291,8 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("Species_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_avatar,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -3314,6 +3327,8 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("Species_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSubpop, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Subpopulation_Class))->AddIntString_S("subpopID")->AddInt_S("size")->AddFloat_OS("sexRatio", gStaticEidosValue_Float0Point5)->AddLogical_OS("haploid", gStaticEidosValue_LogicalF));

@@ -66,7 +66,14 @@ typedef Eidos_intrusive_ptr<MutationRun>	MutationRun_SP;
 // MutationRun has a marking mechanism to let us loop through all genomes and perform an operation on each MutationRun once.
 // This counter is used to do that; a client wishing to perform such an operation should increment the counter and then use it
 // in conjuction with operation_id_ below.  Note this is shared by all species.
-extern int64_t gSLiM_MutationRun_OperationID;
+extern int64_t gSLiM_MutationRun_OperationID;				// use SLiM_GetNextMutationRunOperationID() instead, for THREAD_SAFETY_CHECK()
+
+inline slim_pedigreeid_t SLiM_GetNextMutationRunOperationID(void)
+{
+	THREAD_SAFETY_CHECK("SLiM_GetNextMutationRunOperationID(): gSLiM_MutationRun_OperationID change");
+	
+	return ++gSLiM_MutationRun_OperationID;
+}
 
 
 #if DEBUG_MUTATION_RUNS
@@ -179,6 +186,8 @@ public:
 	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
 	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(void)
 	{
+		THREAD_SAFETY_CHECK("MutationRun::NewMutationRun(): s_freed_mutation_runs_ change");
+		
 		if (s_freed_mutation_runs_.size())
 		{
 			// We assume that the object in the free list is in a reuseable state; see FreeMutationRun() below.
@@ -206,6 +215,8 @@ public:
 	
 	static inline __attribute__((always_inline)) void FreeMutationRun(MutationRun *p_run)
 	{
+		THREAD_SAFETY_CHECK("MutationRun::FreeMutationRun(): s_freed_mutation_runs_ change");
+		
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers, avoiding that
 		// free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
 		
@@ -225,6 +236,8 @@ public:
 	
 	static inline void DeleteMutationRunFreeList(void)
 	{
+		THREAD_SAFETY_CHECK("MutationRun::DeleteMutationRunFreeList(): s_freed_mutation_runs_ change");
+		
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
 		for (auto mutrun_iter : s_freed_mutation_runs_)
@@ -251,18 +264,19 @@ public:
 	
 #ifdef SLIM_MUTRUN_CHECK_LOCKING
 	
+	// THREAD_SAFETY_CHECK() here is for intrusive_ref_count_, mostly
 	void LockingViolation(void) const __attribute__((__noreturn__)) __attribute__((cold)) __attribute__((analyzer_noreturn));
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// Added (nonneutral_mutations_count_ != -1) with the addition of the nonneutral caches; modifying a unique run should not occur after it has cached
-#define SLIM_MUTRUN_LOCK_CHECK()	if ((intrusive_ref_count_ > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()"); if ((intrusive_ref_count_ > 1) || (nonneutral_mutations_count_ != -1)) LockingViolation();
 #else
-#define SLIM_MUTRUN_LOCK_CHECK()	if (intrusive_ref_count_ > 1) LockingViolation();
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()"); if (intrusive_ref_count_ > 1) LockingViolation();
 #endif
 
 #else
 	
-#define SLIM_MUTRUN_LOCK_CHECK()	;
+#define SLIM_MUTRUN_LOCK_CHECK()	THREAD_SAFETY_CHECK("SLIM_MUTRUN_LOCK_CHECK()");
 	
 #endif
 	
@@ -806,11 +820,15 @@ public:
 // Eidos_intrusive_ptr support
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_add_ref(const MutationRun *p_value)
 {
+	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_add_ref(): MutationRun intrusive_ref_count_ change");
+	
 	++(p_value->intrusive_ref_count_);
 }
 
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const MutationRun *p_value)
 {
+	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_release(): MutationRun intrusive_ref_count_ change");
+	
 	if ((--(p_value->intrusive_ref_count_)) == 0)
 	{
 		// Do not delete; all MutationRun objects under Eidos_intrusive_ptr should have been allocated

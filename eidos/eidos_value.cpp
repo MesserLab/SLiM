@@ -580,6 +580,8 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		// Finally, set the dimensionality of the result, considering dropped dimensions.  This basically follows the structure
 		// of the indexed operand's dimensions, but (a) resizes to match the size of p_inclusion_indices for the given dimension,
 		// and (b) omits any dimension that has a count of exactly 1, if dropping is requested.
+		THREAD_SAFETY_CHECK("EidosValue::Subset(): usage of statics");
+		
 		static int64_t *static_dim_buffer = nullptr;
 		static int static_dim_buffer_size = -1;
 		
@@ -1658,7 +1660,16 @@ void EidosValue_Int_vector::PushValueFromIndexOfEidosValue(int p_idx, const Eido
 void EidosValue_Int_vector::Sort(bool p_ascending)
 {
 	if (p_ascending)
-		std::sort(values_, values_ + count_);
+	{
+		// For the ascending int64_t case specifically, we now have a parallel quicksort
+		// algorithm that gives a little speedup.  This is kind of experimental, but has
+		// been tested and seems to be correct.  I wrote a parallel mergesort algorithm
+		// too; its performance is kind of comparable but quicksort gives a bit more
+		// speed with a small number of threads (2-10 threads), so I chose it for now.
+		// This is the only place that sorting has been parallelized so far.  Note that
+		// this function automatically falls back to std::sort when single-threaded.
+		Eidos_ParallelQuicksort_I(values_, count_);
+	}
 	else
 		std::sort(values_, values_ + count_, std::greater<int64_t>());
 }
@@ -2126,6 +2137,8 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
+		THREAD_SAFETY_CHECK("EidosValue_Object::EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		
 		gEidosValue_Object_Mutation_Registry.emplace_back(this);
 		registered_for_patching_ = true;
 		
@@ -2142,6 +2155,8 @@ EidosValue_Object::~EidosValue_Object(void)
 	// See comment on EidosValue_Object::EidosValue_Object() above
 	if (registered_for_patching_)
 	{
+		THREAD_SAFETY_CHECK("EidosValue_Object::~EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		
 		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
 		
 		if (erase_iter != gEidosValue_Object_Mutation_Registry.end())

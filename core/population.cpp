@@ -280,6 +280,8 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		species_.AboutToSplitSubpop();
 	}
 	
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	for (slim_popsize_t parent_index = 0; parent_index < subpop.parent_subpop_size_; parent_index++)
 	{
 		// draw individual from p_source_subpop and assign to be a parent in subpop
@@ -295,13 +297,13 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 		if (species_.SexEnabled())
 		{
 			if (parent_index < subpop.parent_first_male_index_)
-				migrant_index = p_source_subpop.DrawFemaleParentUsingFitness();
+				migrant_index = p_source_subpop.DrawFemaleParentUsingFitness(rng);
 			else
-				migrant_index = p_source_subpop.DrawMaleParentUsingFitness();
+				migrant_index = p_source_subpop.DrawMaleParentUsingFitness(rng);
 		}
 		else
 		{
-			migrant_index = p_source_subpop.DrawParentUsingFitness();
+			migrant_index = p_source_subpop.DrawParentUsingFitness(rng);
 		}
 		
 		Genome *source_genome1 = p_source_subpop.parent_genomes_[2 * migrant_index];
@@ -826,7 +828,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else if (positive_count <= weights_length / 4)	// the threshold here is a guess
 		{
 			// there are just a few positive values, so try to be faster about scanning for them by checking for zero first
-			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(EIDOS_GSL_RNG) * weights_sum;
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -848,7 +851,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		else
 		{
 			// there are many positive values, so we need to do a uniform draw and see who gets the rose
-			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(EIDOS_GSL_RNG) * weights_sum;
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			double the_rose_in_the_teeth = Eidos_rng_uniform_pos(rng) * weights_sum;
 			double bachelor_sum = 0.0;
 			
 			for (slim_popsize_t weight_index = 0; weight_index < weights_length; ++weight_index)
@@ -893,7 +897,9 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 #endif
 	
 	// The standard behavior, with no active callbacks, is to draw a male parent using the standard fitness values
-	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness() : p_source_subpop->DrawParentUsingFitness());
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
+	return (sex_enabled ? p_source_subpop->DrawMaleParentUsingFitness(rng) : p_source_subpop->DrawParentUsingFitness(rng));
 }
 
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
@@ -1019,6 +1025,10 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
+	THREAD_SAFETY_CHECK("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
+	
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
 	bool prevent_incidental_selfing = species_.PreventIncidentalSelfing();
@@ -1173,16 +1183,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								if (fractions[2] < 0.0)
 									EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
 								
-								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								gsl_ran_multinomial(rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
 								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 							}
 							else
-								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, selfing_fraction, (unsigned int)migrants_to_generate));
 						}
 						else if (cloning_fraction > 0)
-							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, cloning_fraction, (unsigned int)migrants_to_generate));
 						
 						// generate all selfed, cloned, and autogamous offspring in one shared loop
 						slim_popsize_t migrant_count = 0;
@@ -1218,7 +1228,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					}
 				}
 				
-				Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
+				Eidos_ran_shuffle(rng, planned_offspring, total_children);
 				
 				// Now we can run through our plan vector and generate each planned child in order.
 				slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1272,21 +1282,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							if (cloning_fraction > 0)
 							{
-								double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+								double draw = Eidos_rng_uniform(rng);
 								
 								if (draw < selfing_fraction)							selfed = true;
 								else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 							}
 							else
 							{
-								double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+								double draw = Eidos_rng_uniform(rng);
 								
 								if (draw < selfing_fraction)							selfed = true;
 							}
 						}
 						else if (cloning_fraction > 0)
 						{
-							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+							double draw = Eidos_rng_uniform(rng);
 							
 							if (draw < cloning_fraction)								cloned = true;
 						}
@@ -1301,9 +1311,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					if (cloned)
 					{
 						if (sex_enabled)
-							parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
+							parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(rng) : source_subpop.DrawMaleParentUsingFitness(rng);
 						else
-							parent1 = source_subpop.DrawParentUsingFitness();
+							parent1 = source_subpop.DrawParentUsingFitness(rng);
 						
 						parent2 = parent1;
 						
@@ -1335,12 +1345,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						if (sex_enabled)
 						{
-							parent1 = source_subpop.DrawFemaleParentUsingFitness();
+							parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
 							parent1_sex = IndividualSex::kFemale;
 						}
 						else
 						{
-							parent1 = source_subpop.DrawParentUsingFitness();
+							parent1 = source_subpop.DrawParentUsingFitness(rng);
 							parent1_sex = IndividualSex::kHermaphrodite;
 						}
 						
@@ -1353,13 +1363,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							if (sex_enabled)
 							{
-								parent2 = source_subpop.DrawMaleParentUsingFitness();
+								parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
 								parent2_sex = IndividualSex::kMale;
 							}
 							else
 							{
 								do
-									parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+									parent2 = source_subpop.DrawParentUsingFitness(rng);	// selfing possible!
 								while (prevent_incidental_selfing && (parent2 == parent1));
 								
 								parent2_sex = IndividualSex::kHermaphrodite;
@@ -1445,12 +1455,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				{
 					slim_popsize_t parent1, parent2;
 					
-					parent1 = source_subpop.DrawParentUsingFitness();
+					parent1 = source_subpop.DrawParentUsingFitness(rng);
 					
 					if (!mate_choice_callbacks)
 					{
 						do
-							parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+							parent2 = source_subpop.DrawParentUsingFitness(rng);	// selfing possible!
 						while (prevent_incidental_selfing && (parent2 == parent1));
 					}
 					else
@@ -1466,7 +1476,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							
 							// parent1 was rejected by the callbacks, so we need to redraw a new parent1
 							num_tries++;
-							parent1 = source_subpop.DrawParentUsingFitness();
+							parent1 = source_subpop.DrawParentUsingFitness(rng);
 							
 							if (num_tries > 1000000)
 								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): failed to generate child after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
@@ -1574,7 +1584,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				if (migrant_source_count == 0)
 					num_migrants[0] = (unsigned int)total_children_of_sex;
 				else
-					gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+					gsl_ran_multinomial(rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
 				
 				// loop over all source subpops, including ourselves
 				for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
@@ -1600,16 +1610,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								if (fractions[2] < 0.0)
 									EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
 								
-								gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
+								gsl_ran_multinomial(rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
 								
 								number_to_self = static_cast<slim_popsize_t>(counts[0]);
 								number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 							}
 							else
-								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
+								number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, selfing_fraction, (unsigned int)migrants_to_generate));
 						}
 						else if (cloning_fraction > 0)
-							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
+							number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, cloning_fraction, (unsigned int)migrants_to_generate));
 						
 						// generate all selfed, cloned, and autogamous offspring in one shared loop
 						slim_popsize_t migrant_count = 0;
@@ -1647,7 +1657,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				}
 			}
 			
-			Eidos_ran_shuffle(EIDOS_GSL_RNG, planned_offspring, total_children);
+			Eidos_ran_shuffle(rng, planned_offspring, total_children);
 			
 			// Now we can run through our plan vector and generate each planned child in order.
 			slim_popsize_t child_index_F = 0, child_index_M = total_female_children, child_index;
@@ -1721,21 +1731,21 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					{
 						if (cloning_fraction > 0)
 						{
-							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+							double draw = Eidos_rng_uniform(rng);
 							
 							if (draw < selfing_fraction)							selfed = true;
 							else if (draw < selfing_fraction + cloning_fraction)	cloned = true;
 						}
 						else
 						{
-							double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+							double draw = Eidos_rng_uniform(rng);
 							
 							if (draw < selfing_fraction)							selfed = true;
 						}
 					}
 					else if (cloning_fraction > 0)
 					{
-						double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);
+						double draw = Eidos_rng_uniform(rng);
 						
 						if (draw < cloning_fraction)								cloned = true;
 					}
@@ -1750,9 +1760,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				if (cloned)
 				{
 					if (sex_enabled)
-						parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop->DrawFemaleParentUsingFitness() : source_subpop->DrawMaleParentUsingFitness();
+						parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop->DrawFemaleParentUsingFitness(rng) : source_subpop->DrawMaleParentUsingFitness(rng);
 					else
-						parent1 = source_subpop->DrawParentUsingFitness();
+						parent1 = source_subpop->DrawParentUsingFitness(rng);
 					
 					parent2 = parent1;
 					
@@ -1784,12 +1794,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					if (sex_enabled)
 					{
-						parent1 = source_subpop->DrawFemaleParentUsingFitness();
+						parent1 = source_subpop->DrawFemaleParentUsingFitness(rng);
 						parent1_sex = IndividualSex::kFemale;
 					}
 					else
 					{
-						parent1 = source_subpop->DrawParentUsingFitness();
+						parent1 = source_subpop->DrawParentUsingFitness(rng);
 						parent1_sex = IndividualSex::kHermaphrodite;
 					}
 					
@@ -1802,13 +1812,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					{
 						if (sex_enabled)
 						{
-							parent2 = source_subpop->DrawMaleParentUsingFitness();
+							parent2 = source_subpop->DrawMaleParentUsingFitness(rng);
 							parent2_sex = IndividualSex::kMale;
 						}
 						else
 						{
 							do
-								parent2 = source_subpop->DrawParentUsingFitness();	// selfing possible!
+								parent2 = source_subpop->DrawParentUsingFitness(rng);	// selfing possible!
 							while (prevent_incidental_selfing && (parent2 == parent1));
 							
 							parent2_sex = IndividualSex::kHermaphrodite;
@@ -1864,7 +1874,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// we need to even change the source subpop for our next attempt, so that differential mortality between different
 						// migration sources leads to differential representation in the offspring generation – more offspring from the
 						// subpop that is more successful at contributing migrants.
-						gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, 1, migration_rates, num_migrants);
+						gsl_ran_multinomial(rng, migrant_source_count + 1, 1, migration_rates, num_migrants);
 						
 						for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
 							if (num_migrants[pop_count] > 0)
@@ -1926,7 +1936,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			if (migrant_source_count == 0)
 				num_migrants[0] = (unsigned int)total_children_of_sex;
 			else
-				gsl_ran_multinomial(EIDOS_GSL_RNG, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
+				gsl_ran_multinomial(rng, migrant_source_count + 1, (unsigned int)total_children_of_sex, migration_rates, num_migrants);
 			
 			// loop over all source subpops, including ourselves
 			for (int pop_count = 0; pop_count < migrant_source_count + 1; ++pop_count)
@@ -1952,16 +1962,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							if (fractions[2] < 0.0)
 								EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): selfingRate + cloningRate > 1.0; cannot generate offspring satisfying constraints." << EidosTerminate(nullptr);
 							
-							gsl_ran_multinomial(EIDOS_GSL_RNG, 3, (unsigned int)migrants_to_generate, fractions, counts);
+							gsl_ran_multinomial(rng, 3, (unsigned int)migrants_to_generate, fractions, counts);
 							
 							number_to_self = static_cast<slim_popsize_t>(counts[0]);
 							number_to_clone = static_cast<slim_popsize_t>(counts[1]);
 						}
 						else
-							number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, selfing_fraction, (unsigned int)migrants_to_generate));
+							number_to_self = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, selfing_fraction, (unsigned int)migrants_to_generate));
 					}
 					else if (cloning_fraction > 0)
-						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(EIDOS_GSL_RNG, cloning_fraction, (unsigned int)migrants_to_generate));
+						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, cloning_fraction, (unsigned int)migrants_to_generate));
 					
 					// generate all selfed, cloned, and autogamous offspring in one shared loop
 					slim_popsize_t migrant_count = 0;
@@ -1973,8 +1983,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							while (migrant_count < migrants_to_generate)
 							{
-								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness();
-								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness();
+								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
+								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
 								
 								Individual *new_child = p_subpop.child_individuals_[child_count];
 								new_child->migrant_ = (&source_subpop != &p_subpop);
@@ -1998,11 +2008,11 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						{
 							while (migrant_count < migrants_to_generate)
 							{
-								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness();
+								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness(rng);
 								slim_popsize_t parent2;
 								
 								do
-									parent2 = source_subpop.DrawParentUsingFitness();	// note this does not prohibit selfing!
+									parent2 = source_subpop.DrawParentUsingFitness(rng);	// note this does not prohibit selfing!
 								while (prevent_incidental_selfing && (parent2 == parent1));
 								
 								Individual *new_child = p_subpop.child_individuals_[child_count];
@@ -2034,9 +2044,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							if (number_to_clone > 0)
 							{
 								if (sex_enabled)
-									parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness() : source_subpop.DrawMaleParentUsingFitness();
+									parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(rng) : source_subpop.DrawMaleParentUsingFitness(rng);
 								else
-									parent1 = source_subpop.DrawParentUsingFitness();
+									parent1 = source_subpop.DrawParentUsingFitness(rng);
 								
 								parent2 = parent1;
 								(void)parent2;		// tell the static analyzer that we know we just did a dead store
@@ -2071,12 +2081,12 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								
 								if (sex_enabled)
 								{
-									parent1 = source_subpop.DrawFemaleParentUsingFitness();
+									parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
 									parent1_sex = IndividualSex::kFemale;
 								}
 								else
 								{
-									parent1 = source_subpop.DrawParentUsingFitness();
+									parent1 = source_subpop.DrawParentUsingFitness(rng);
 									parent1_sex = IndividualSex::kHermaphrodite;
 								}
 								
@@ -2096,13 +2106,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								{
 									if (sex_enabled)
 									{
-										parent2 = source_subpop.DrawMaleParentUsingFitness();
+										parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
 										parent2_sex = IndividualSex::kMale;
 									}
 									else
 									{
 										do
-											parent2 = source_subpop.DrawParentUsingFitness();	// selfing possible!
+											parent2 = source_subpop.DrawParentUsingFitness(rng);	// selfing possible!
 										while (prevent_incidental_selfing && (parent2 == parent1));
 										
 										parent2_sex = IndividualSex::kHermaphrodite;
@@ -2282,6 +2292,8 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
+	THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): usage of statics, probably many other issues");
+	
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
 	
@@ -2381,7 +2393,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// swap strands in half of cases to assure random assortment (or in all cases, if use_only_strand_1 == true, meaning that crossover cannot occur)
 	if (do_swap)
 	{
-		if (use_only_strand_1 || Eidos_RandomBool())
+		if (use_only_strand_1 || Eidos_RandomBool(EIDOS_STATE_RNG(omp_get_thread_num())))
 		{
 			std::swap(parent_genome_1_index, parent_genome_2_index);
 			std::swap(parent_genome_1, parent_genome_2);
@@ -3212,6 +3224,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	// and do all addition/removal in a single pass at the end of the process
 	std::vector<slim_position_t> repair_removals;
 	std::vector<Mutation*> repair_additions;
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 	
 	for (int heteroduplex_tract_index = 0; heteroduplex_tract_index < heteroduplex_tract_count; ++heteroduplex_tract_index)
 	{
@@ -3282,7 +3296,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 						{
 							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
 							// make a determination based on the assumption that the noncopy nucleotide is G/C
-							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							repair_toward_noncopy = (Eidos_rng_uniform(rng) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
 							
 							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
 							if (noncopy_nuc_AT)
@@ -3294,7 +3308,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				}
 				
 				// The default is unbiased repair; if we are biased we goto over this default
-				repair_toward_noncopy = Eidos_RandomBool();
+				repair_toward_noncopy = Eidos_RandomBool(rng_state);
 				
 			biasedRepair1:
 				advance_noncopy = true;
@@ -3320,7 +3334,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 						{
 							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
 							// make a determination based on the assumption that the noncopy nucleotide is G/C
-							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							repair_toward_noncopy = (Eidos_rng_uniform(rng) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
 							
 							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
 							if (noncopy_nuc_AT)
@@ -3332,7 +3346,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				}
 				
 				// The default is unbiased repair; if we are biased we goto over this default
-				repair_toward_noncopy = Eidos_RandomBool();
+				repair_toward_noncopy = Eidos_RandomBool(rng_state);
 				
 			biasedRepair2:
 				advance_noncopy = false;
@@ -3371,7 +3385,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 						{
 							// One nucleotide is A/T, the other is G/C, so GC bias is relevant here;
 							// make a determination based on the assumption that the noncopy nucleotide is G/C
-							repair_toward_noncopy = (Eidos_rng_uniform(EIDOS_GSL_RNG) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
+							repair_toward_noncopy = (Eidos_rng_uniform(rng) <= gBGC_coeff_scaled);	// 1.0 means always repair toward GC
 							
 							// If the noncopy nucleotide is the A/T one, then our determination needs to be flipped
 							if (noncopy_nuc_AT)
@@ -3383,7 +3397,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				}
 				
 				// The default is unbiased repair; if we are biased we goto over this default
-				repair_toward_noncopy = Eidos_RandomBool();
+				repair_toward_noncopy = Eidos_RandomBool(rng_state);
 				
 			biasedRepair3:
 				advance_noncopy = true;
@@ -3552,6 +3566,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
+	THREAD_SAFETY_CHECK("Population::DoRecombinantMutation(): usage of statics, probably many other issues");
+
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
 	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
 #if DEBUG
@@ -4102,6 +4118,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
+	THREAD_SAFETY_CHECK("Population::DoClonalMutation(): usage of statics, probably many other issues");
+
 #if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
@@ -4794,7 +4812,7 @@ void Population::UniqueMutationRuns(void)
 	std::multimap<int64_t, MutationRun *> runmap;
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
 	
-	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
@@ -5305,7 +5323,7 @@ void Population::AssessMutationRuns(void)
 		slim_position_t mutrun_length = 0;
 		int64_t mutation_total = 0;
 		
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
@@ -5559,7 +5577,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		if (can_tally_runs)
 		{
 			slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
@@ -5848,7 +5866,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	
 	// then increment the refcounts through all pointers to Mutation in all genomes
 	slim_refcount_t total_genome_count = 0;
-	int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 	{
@@ -6246,7 +6264,7 @@ void Population::RemoveAllFixedMutations(void)
 		//std::cout << "Removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
 		
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
@@ -6574,6 +6592,8 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
 			{
+				THREAD_SAFETY_CHECK("Population::PrintAll(): usage of statics");
+				
 				static char double_buf[40];
 				
 				if (spatial_output_count >= 1)
@@ -7050,6 +7070,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 		candidates.emplace_back(s);
 	
 	std::vector<Genome *> sample; 
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -7062,7 +7083,7 @@ void Population::PrintSample_SLiM(std::ostream &p_out, Subpopulation &p_subpop, 
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_SLiM): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -7098,6 +7119,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 		candidates.emplace_back(s);
 	
 	std::vector<Genome *> sample; 
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -7110,7 +7132,7 @@ void Population::PrintSample_MS(std::ostream &p_out, Subpopulation &p_subpop, sl
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_MS): not enough eligible genomes for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 			genome_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid
@@ -7148,6 +7170,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 		candidates.emplace_back(s);
 	
 	std::vector<Genome *> sample; 
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (slim_popsize_t s = 0; s < p_sample_size; s++)
 	{
@@ -7161,7 +7184,7 @@ void Population::PrintSample_VCF(std::ostream &p_out, Subpopulation &p_subpop, s
 			if (candidates.size() == 0)
 				EIDOS_TERMINATION << "ERROR (Population::PrintSample_VCF): not enough eligible individuals for sampling without replacement." << EidosTerminate();
 			
-			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidates.size()));
+			candidate_index = static_cast<slim_popsize_t>(Eidos_rng_uniform_int(rng, (uint32_t)candidates.size()));
 			individual_index = candidates[candidate_index];
 			
 			// If we're sampling without replacement, remove the index we have just taken; either we will use it or it is invalid

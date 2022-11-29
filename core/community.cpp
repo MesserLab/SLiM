@@ -154,7 +154,6 @@ void Community::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 	// track the random number seed given, if there is one
 	unsigned long int rng_seed = (p_override_seed_ptr ? *p_override_seed_ptr : Eidos_GenerateSeedFromPIDAndTime());
 	
-	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(rng_seed);
 	
 	if (SLiM_verbosity_level >= 1)
@@ -1553,7 +1552,7 @@ bool Community::_RunOneTick(void)
 		
 		{
 			// do a bulk operation to tally up mutation run and genome counts
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			{
@@ -1579,7 +1578,7 @@ bool Community::_RunOneTick(void)
 		
 		{
 			// do a bulk operation to tally up mutation run external buffer usage efficiency
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 			{
@@ -2803,7 +2802,8 @@ void Community::AllSpecies_TSXC_Enable(void)
 	for (Species *species : all_species_)
 		species->TSXC_Enable();
 	
-	SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording with crosschecks (-TSXC)." << std::endl << std::endl;
 }
 
 void Community::AllSpecies_TSF_Enable(void)
@@ -2814,7 +2814,8 @@ void Community::AllSpecies_TSF_Enable(void)
 	for (Species *species : all_species_)
 		species->TSF_Enable();
     
-    SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
+	if (SLiM_verbosity_level >= 1)
+		SLIM_ERRSTREAM << "// ********** Turning on tree-sequence recording without crosschecks (-TSF)." << std::endl << std::endl;
 }
 
 

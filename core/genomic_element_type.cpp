@@ -101,7 +101,8 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	if (!lookup_mutation_type_)
 		EIDOS_TERMINATION << "ERROR (GenomicElementType::DrawMutationType): empty mutation type vector for genomic element type." << EidosTerminate();
 	
-	return mutation_type_ptrs_[gsl_ran_discrete(EIDOS_GSL_RNG, lookup_mutation_type_)];
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	return mutation_type_ptrs_[gsl_ran_discrete(rng, lookup_mutation_type_)];
 }
 
 void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP p_mutation_matrix)
@@ -454,6 +455,8 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("GenomicElementType_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,					true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(GenomicElementType::GetProperty_Accelerated_id));
@@ -476,6 +479,8 @@ const std::vector<EidosMethodSignature_CSP> *GenomicElementType_Class::Methods(v
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("GenomicElementType_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMutationFractions, kEidosValueMaskVOID))->AddIntObject("mutationTypes", gSLiM_MutationType_Class)->AddNumeric("proportions"));

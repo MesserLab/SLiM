@@ -268,6 +268,8 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 
 int RunEidosTests(void)
 {
+	THREAD_SAFETY_CHECK("RunEidosTests(): illegal when parallel");
+	
 	// Reset error counts
 	gEidosTestSuccessCount = 0;
 	gEidosTestFailureCount = 0;
@@ -374,7 +376,6 @@ int RunEidosTests(void)
 	
 	// Do some tests of our custom math functions
 #if 0
-	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	int64_t totals[17];		// note 17 is prime
@@ -391,7 +392,6 @@ int RunEidosTests(void)
 	
 #if 0
 	//#ifndef USE_GSL_POISSON
-	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	double total;
@@ -745,19 +745,16 @@ int RunEidosTests(void)
 		eidos_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
 		mixed_taus = (unsigned long int *)malloc(100000 * sizeof(unsigned long int));
 		
-		Eidos_InitializeRNG();
 		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 100000; ++iter)
 			gsl_taus[iter] = gsl_rng_get(EIDOS_GSL_RNG);
 		
-		Eidos_InitializeRNG();
 		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 100000; ++iter)
 			eidos_taus[iter] = taus_get_inline(EIDOS_GSL_RNG->state);
 		
-		Eidos_InitializeRNG();
 		Eidos_SetRNGSeed(10);
 		
 		for (iter = 0; iter < 50000; ++iter)
@@ -1267,7 +1264,6 @@ int RunEidosTests(void)
 #endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
-	Eidos_InitializeRNG();
 	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	// return a standard Unix result code indicating success (0) or failure (1);

@@ -45,8 +45,13 @@ class Subpopulation;
 extern EidosClass *gSLiM_Individual_Class;
 
 // A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
-extern slim_pedigreeid_t gSLiM_next_pedigree_id;
+extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_CHECK()
 
+inline slim_pedigreeid_t SLiM_GetNextPedigreeID(void)
+{
+	THREAD_SAFETY_CHECK("SLiM_GetNextPedigreeID(): gSLiM_next_pedigree_id change");
+	return gSLiM_next_pedigree_id++;
+}
 
 class Individual : public EidosDictionaryUnretained
 {
@@ -132,7 +137,7 @@ public:
 	// parental and grandparental information from the supplied parents.
 	inline __attribute__((always_inline)) void TrackParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
 	{
-		pedigree_id_ = gSLiM_next_pedigree_id++;
+		pedigree_id_ = SLiM_GetNextPedigreeID();
 		
 		genome1_->genome_id_ = pedigree_id_ * 2;
 		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
@@ -157,7 +162,7 @@ public:
 	
 	inline __attribute__((always_inline)) void TrackParentage_Uniparental(Individual &p_parent)
 	{
-		pedigree_id_ = gSLiM_next_pedigree_id++;
+		pedigree_id_ = SLiM_GetNextPedigreeID();
 		
 		genome1_->genome_id_ = pedigree_id_ * 2;
 		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
@@ -182,7 +187,7 @@ public:
 	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
 	inline __attribute__((always_inline)) void TrackParentage_Parentless()
 	{
-		pedigree_id_ = gSLiM_next_pedigree_id++;
+		pedigree_id_ = SLiM_GetNextPedigreeID();
 		
 		genome1_->genome_id_ = pedigree_id_ * 2;
 		genome2_->genome_id_ = pedigree_id_ * 2 + 1;

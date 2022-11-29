@@ -85,10 +85,14 @@
 #include "slim_test.h"
 #include "log_file.h"
 
+#ifdef _OPENMP
+#error Building SLiMgui to run in parallel is not currently supported.
+#endif
+
 
 // This allows us to use Qt::QueuedConnection with EidosErrorContext
 Q_DECLARE_METATYPE(EidosErrorContext)
-static int metatype_id = qRegisterMetaType<EidosErrorContext>();
+static int EidosErrorContext_metatype_id = qRegisterMetaType<EidosErrorContext>();
 
 
 static std::string defaultWFScriptString(void)
@@ -793,9 +797,13 @@ QtSLiMWindow::~QtSLiMWindow()
 		delete slimgui;
 		slimgui = nullptr;
 	}
-
-    Eidos_FreeRNG(sim_RNG);
-    
+	
+	if (sim_RNG_initialized)
+	{
+    	_Eidos_FreeOneRNG(sim_RNG);
+    	sim_RNG_initialized = false;
+	}
+	
     // The console is owned by us, and it owns the variable browser.  Since the parent
     // relationships are set up, they should be released by Qt automatically.
     if (consoleController)
@@ -1698,8 +1706,12 @@ void QtSLiMWindow::checkForSimulationTermination(void)
         focalSpecies = nullptr;
         slimgui = nullptr;
 
-        Eidos_FreeRNG(sim_RNG);
-
+		if (sim_RNG_initialized)
+		{
+        	_Eidos_FreeOneRNG(sim_RNG);
+        	sim_RNG_initialized = false;
+		}
+		
         setReachedSimulationEnd(true);
         setInvalidSimulation(true);
     }
@@ -1722,11 +1734,28 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     // forget any script block coloring
     ui->scriptTextEdit->clearScriptBlockColoring();
 
-    // Free the old simulation RNG and let SLiM make one for us
-    Eidos_FreeRNG(sim_RNG);
-
-    if (EIDOS_GSL_RNG)
-        qDebug() << "gEidos_RNG already set up in startNewSimulationFromScript!";
+	// Free the old simulation RNG and make a new one, to have clean state
+	if (sim_RNG_initialized)
+	{
+		_Eidos_FreeOneRNG(sim_RNG);
+		sim_RNG_initialized = false;
+	}
+	
+	_Eidos_InitializeOneRNG(sim_RNG);
+	sim_RNG_initialized = true;
+	
+	// The Eidos RNG may be set up already; if so, get rid of it.  When we are not running, we keep the
+	// Eidos RNG in an initialized state, to catch errors with the swapping of RNG state.  Nobody should
+	// use it when we have not swapped in our own RNG.
+	if (gEidos_RNG_Initialized)
+	{
+		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
+		gEidos_RNG_Initialized = false;
+	}
+	
+	// Swap in our RNG
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 
     std::istringstream infile(scriptString);
 
@@ -1736,9 +1765,9 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
         community->InitializeRNGFromSeed(nullptr);
         community->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
-        // We take over the RNG instance that Community just made, since each SLiMgui window has its own RNG
-        sim_RNG = gEidos_RNG;
-        gEidos_RNG = Eidos_RNG_State();     // zero it out
+		// Swap out our RNG
+		std::swap(sim_RNG, gEidos_RNG_SINGLE);
+		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 
         // We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
         sim_next_pedigree_id = 0;
@@ -3962,10 +3991,11 @@ void QtSLiMWindow::willExecuteScript(void)
 {
     // Whenever we are about to execute script, we swap in our random number generator; at other times, gEidos_rng is NULL.
     // The goal here is to keep each SLiM window independent in its random number sequence.
-    if (EIDOS_GSL_RNG)
+    if (gEidos_RNG_Initialized)
         qDebug() << "eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!";
 
-    gEidos_RNG = sim_RNG;
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 
     // We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
     gSLiM_next_pedigree_id = sim_next_pedigree_id;
@@ -3983,8 +4013,8 @@ void QtSLiMWindow::willExecuteScript(void)
 void QtSLiMWindow::didExecuteScript(void)
 {
     // Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
-    sim_RNG = gEidos_RNG;
-    gEidos_RNG = Eidos_RNG_State();     // zero it out
+	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 
     // Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
     // Setting to -100000 here is not necessary, but will maybe help find bugs...

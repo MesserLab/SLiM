@@ -649,7 +649,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -695,7 +695,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? gSLiM_next_pedigree_id++ : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -3606,6 +3606,8 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 
 void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
+	THREAD_SAFETY_CHECK("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
+	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
 	Individual **individual_data = parent_individuals_.data();
@@ -3636,6 +3638,8 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	}
 	
 	// pre-plan mortality; this avoids issues with callbacks accessing the subpop state while buffers are being modified
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	if (no_callbacks)
 	{
 		// this is the simple case with no callbacks and thus no shuffle buffer
@@ -3647,7 +3651,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 			
 			if (fitness <= 0.0)			survived = false;
 			else if (fitness >= 1.0)	survived = true;
-			else						survived = (Eidos_rng_uniform(EIDOS_GSL_RNG) < fitness);
+			else						survived = (Eidos_rng_uniform(rng) < fitness);
 			
 			survival_buffer[individual_index] = survived;
 		}
@@ -3662,7 +3666,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 			slim_popsize_t individual_index = shuffle_buf[shuffle_index];
 			Individual *individual = individual_data[individual_index];
 			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
-			double draw = Eidos_rng_uniform(EIDOS_GSL_RNG);		// always need a draw to pass to the callback
+			double draw = Eidos_rng_uniform(rng);		// always need a draw to pass to the callback
 			uint8_t survived = (draw < fitness);
 			
 			// run the survival() callbacks to allow the above decision to be modified
@@ -4303,7 +4307,9 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 		if (sex_value_type == EidosValueType::kValueNULL)
 		{
 			// in sexual simulations, NULL (the default) means pick a sex with equal probability
-			sex = (Eidos_RandomBool() ? IndividualSex::kMale : IndividualSex::kFemale);
+			Eidos_RNG_State *rng = EIDOS_STATE_RNG(omp_get_thread_num());
+			
+			sex = (Eidos_RandomBool(rng) ? IndividualSex::kMale : IndividualSex::kFemale);
 		}
 		else if (sex_value_type == EidosValueType::kValueString)
 		{
@@ -4322,7 +4328,11 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 			double sex_prob = p_sex_value->FloatAtIndex(0, nullptr);
 			
 			if ((sex_prob >= 0.0) && (sex_prob <= 1.0))
-				sex = ((Eidos_rng_uniform(EIDOS_GSL_RNG) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+				sex = ((Eidos_rng_uniform(rng) < sex_prob) ? IndividualSex::kMale : IndividualSex::kFemale);
+			}
 			else
 				EIDOS_TERMINATION << "ERROR (Subpopulation::GenomeConfigurationForSex): probability " << sex_prob << " out of range [0.0, 1.0] for parameter sex." << EidosTerminate();
 		}
@@ -4800,6 +4810,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
 		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
+		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
+		
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
 		
@@ -5989,6 +6001,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
 	EidosValue_SP result_SP = EidosValue_SP(float_result);
 	int value_index = 0;
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	switch (dimensionality)
 	{
@@ -5996,7 +6009,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
 			}
 			break;
 		}
@@ -6004,8 +6017,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
 			}
 			break;
 		}
@@ -6013,9 +6026,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		{
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(EIDOS_GSL_RNG) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
 			}
 			break;
 		}
@@ -6424,7 +6437,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
@@ -6436,10 +6450,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			// with replacement, we can just do a series of independent draws
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
-				int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+				int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
 				
 				if ((excluded_index != -1) && (sample_index >= excluded_index))
 					sample_index++;
@@ -6454,8 +6469,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			// a sample size of two without replacement is expected to be common (interacting pairs) so optimize for it
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-			int sample_index1 = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+			int sample_index1 = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index1 >= excluded_index))
 				sample_index1++;
@@ -6466,7 +6482,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			
 			do
 			{
-				sample_index2 = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+				sample_index2 = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
 				
 				if ((excluded_index != -1) && (sample_index2 >= excluded_index))
 					sample_index2++;
@@ -6486,11 +6502,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// count of at least 30 since with a smaller size than that building the index vector won't hurt much anyway.
 	// I'm limiting this to 20 tries, so we don't spend too much time on it; the ideal limit will of course depend on
 	// the number of candidates versus the number of *valid* candidates, and there's no way to know.
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	if ((sample_size == 1) && (candidate_count >= 30))
 	{
 		for (int try_count = 0; try_count < 20; ++try_count)
 		{
-			int sample_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, candidate_count) + first_candidate_index;
+			int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
 			
 			if ((excluded_index != -1) && (sample_index >= excluded_index))
 				sample_index++;
@@ -6514,6 +6532,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		// see sample() for some discussion of this implementation
+		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
+		
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;
 		
@@ -6583,7 +6603,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-			int rose_index = (int)Eidos_rng_uniform_int(EIDOS_GSL_RNG, (uint32_t)candidate_count);
+			int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
 			
 			result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
 			
@@ -7484,6 +7504,8 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("Subpopulation_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_id,								true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Subpopulation::GetProperty_Accelerated_id));
@@ -7519,6 +7541,8 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("Subpopulation_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));

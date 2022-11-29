@@ -51,6 +51,7 @@ class Community;
 	SLiMgui *slimgui;						// the SLiMgui Eidos class instance for this window
 	
 	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
+	bool sim_RNG_initialized;
 	Eidos_RNG_State sim_RNG;
 	slim_pedigreeid_t sim_next_pedigree_id;
 	slim_mutationid_t sim_next_mutation_id;

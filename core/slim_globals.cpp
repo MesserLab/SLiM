@@ -56,6 +56,8 @@ EidosValue_String_SP gStaticEidosValue_StringT;
 
 void SLiM_WarmUp(void)
 {
+	THREAD_SAFETY_CHECK("SLiM_WarmUp(): illegal when parallel");
+	
 	static bool been_here = false;
 	
 	if (!been_here)
@@ -669,6 +671,8 @@ std::ostream& operator<<(std::ostream& p_out, IndividualSex p_sex)
 	return p_out;
 }
 
+const char gSLiM_Nucleotides[4] = {'A', 'C', 'G', 'T'};
+
 
 #pragma mark -
 #pragma mark NucleotideArray
@@ -716,6 +720,8 @@ uint8_t *NucleotideArray::NucleotideCharToIntLookup(void)
 	
 	if (!nuc_lookup)
 	{
+		THREAD_SAFETY_CHECK("NucleotideArray::NucleotideCharToIntLookup(): usage of statics");
+		
 		nuc_lookup = (uint8_t *)malloc(256 * sizeof(uint8_t));
 		if (!nuc_lookup)
 			EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotideCharToIntLookup): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
@@ -944,7 +950,6 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 	else
 	{
 		// return a singleton string for the whole sequence, "TATA"; we munge the std::string inside the EidosValue to avoid memory copying, very naughty
-		static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 		EidosValue_String_singleton *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(""));
 		std::string &nuc_string = string_result->StringValue_Mutable();
 		
@@ -953,7 +958,7 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 		char *nuc_string_ptr = &nuc_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
 		
 		for (int value_index = 0; value_index < length; ++value_index)
-			nuc_string_ptr[value_index] = nuc_chars[NucleotideAtIndex(start + value_index)];
+			nuc_string_ptr[value_index] = gSLiM_Nucleotides[NucleotideAtIndex(start + value_index)];
 		
 		return EidosValue_SP(string_result);
 	}
@@ -963,10 +968,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 
 void NucleotideArray::WriteNucleotidesToBuffer(char *buffer) const
 {
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
-	
 	for (std::size_t index = 0; index < length_; ++index)
-		buffer[index] = nuc_chars[NucleotideAtIndex(index)];
+		buffer[index] = gSLiM_Nucleotides[NucleotideAtIndex(index)];
 }
 
 void NucleotideArray::ReadNucleotidesFromBuffer(const char *buffer)
@@ -1025,7 +1028,6 @@ void NucleotideArray::ReadCompressedNucleotides(char **buffer, char *end)
 std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array)
 {
 	// Emit FASTA format with 70 bases per line
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 	std::size_t index = 0;
 	std::string nuc_string;
 	
@@ -1035,7 +1037,7 @@ std::ostream& operator<<(std::ostream& p_out, const NucleotideArray &p_nuc_array
 	while (index + 70 <= p_nuc_array.length_)
 	{
 		for (int line_index = 0; line_index < 70; ++line_index)
-			nuc_string[line_index] = nuc_chars[p_nuc_array.NucleotideAtIndex(index + line_index)];
+			nuc_string[line_index] = gSLiM_Nucleotides[p_nuc_array.NucleotideAtIndex(index + line_index)];
 		
 		p_out << nuc_string << std::endl;
 		index += 70;
@@ -1482,6 +1484,8 @@ const std::string &gStr_reproduction = EidosRegisteredString("reproduction", gID
 void SLiM_ConfigureContext(void)
 {
 	static bool been_here = false;
+	
+	THREAD_SAFETY_CHECK("SLiM_ConfigureContext(): not warmed up");
 	
 	if (!been_here)
 	{

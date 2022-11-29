@@ -341,6 +341,8 @@ void LogFile::_OutputValue(std::ostringstream &p_out, EidosValue *p_value)
 
 void LogFile::AppendNewRow(void)
 {
+	THREAD_SAFETY_CHECK("LogFile::AppendNewRow(): filesystem write");
+	
 	std::vector<const std::string *> line_vec;
 	std::string header_line;
 	std::string row_line;
@@ -1088,6 +1090,8 @@ const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) c
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("LogFile_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_filePath,			true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
@@ -1107,6 +1111,8 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("LogFile_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		// our own methods

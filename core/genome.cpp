@@ -88,6 +88,8 @@ void Genome::WillModifyRun(slim_mutrun_index_t p_run_index)
 
 void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
+	THREAD_SAFETY_CHECK("Genome::BulkOperationStart(): s_bulk_operation_id_");
+	
 	if (s_bulk_operation_id_ != 0)
 	{
 		//EIDOS_TERMINATION << "ERROR (Genome::BulkOperationStart): (internal error) unmatched bulk operation start." << EidosTerminate();
@@ -108,6 +110,8 @@ void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mu
 
 bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
+	THREAD_SAFETY_CHECK("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
+	
 	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
 	if (p_mutrun_index >= mutrun_count_)
@@ -161,6 +165,8 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 
 void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
+	THREAD_SAFETY_CHECK("Genome::BulkOperationEnd(): s_bulk_operation_id_");
+	
 	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
 		s_bulk_operation_runs_.clear();
@@ -410,6 +416,9 @@ void Genome::record_derived_states(Species *p_species) const
 	// in a given genome that was just created by readFromPopulationFile() or some similar situation.  It should
 	// make calls to record the derived state at each position in the genome that has any mutation.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	THREAD_SAFETY_CHECK("Genome::record_derived_states(): usage of statics");
+
 	static std::vector<Mutation *> record_vec;
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
@@ -979,7 +988,6 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 	if (length > INT_MAX)
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the returned vector would exceed the maximum vector length in Eidos." << EidosTerminate();
 	
-	static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 	EidosValue_String *format_value = (EidosValue_String *)p_arguments[2].get();
 	const std::string &format = format_value->StringRefAtIndex(0, nullptr);
 	
@@ -1093,7 +1101,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 				int8_t nuc = mut->nucleotide_;
 				
 				if (nuc != -1)
-					string_ptr[pos - start] = nuc_chars[nuc];
+					string_ptr[pos - start] = gSLiM_Nucleotides[nuc];
 				
 				walker.NextMutation();
 			}
@@ -1217,7 +1225,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 				int8_t nuc = mut->nucleotide_;
 				
 				if (nuc != -1)
-					(*char_vec)[pos - start] = nuc_chars[nuc];
+					(*char_vec)[pos - start] = gSLiM_Nucleotides[nuc];
 				
 				walker.NextMutation();
 			}
@@ -1652,7 +1660,6 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 			// Get the ancestral nucleotide at this position; this will be index 0
 			// Indices 1..n will be used for the corresponding mutations in nonnuc_based
 			// Note that this means it is 
-			static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 			int ancestral_nuc_index = p_ancestral_seq->NucleotideAtIndex(mut_position);		// 0..3 for ACGT
 			
 			// Emit a single call line for all of the nucleotide-based mutations
@@ -1690,7 +1697,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 					
 					// emit REF ("A" etc.)
-					p_out << nuc_chars[ancestral_nuc_index];
+					p_out << gSLiM_Nucleotides[ancestral_nuc_index];
 					p_out << "\t";
 					
 					// emit ALT ("T" etc.)
@@ -1703,7 +1710,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 								p_out << ',';
 							firstEmitted = false;
 							
-							p_out << nuc_chars[nuc_index];
+							p_out << gSLiM_Nucleotides[nuc_index];
 						}
 					}
 					
@@ -1725,7 +1732,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 						}
 					}
 					p_out << ";DP=1000;";
-					p_out << "AA=" << nuc_chars[ancestral_nuc_index];
+					p_out << "AA=" << gSLiM_Nucleotides[ancestral_nuc_index];
 					
 					p_out << "\tGT";
 					
@@ -1787,7 +1794,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				p_out << "1\t" << (mut_position + 1) << "\t.\t";			// +1 because VCF uses 1-based positions
 				
 				// emit REF ("A" etc.)
-				p_out << nuc_chars[ancestral_nuc_index];
+				p_out << gSLiM_Nucleotides[ancestral_nuc_index];
 				p_out << "\t";
 				
 				// emit ALT ("T" etc.)
@@ -1795,7 +1802,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				{
 					if (polymorphism != nuc_based.front())
 						p_out << ',';
-					p_out << nuc_chars[polymorphism->mutation_ptr_->nucleotide_];
+					p_out << gSLiM_Nucleotides[polymorphism->mutation_ptr_->nucleotide_];
 				}
 				
 				// emit QUAL (1000), FILTER (PASS)
@@ -1867,7 +1874,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				
 				p_out << "DP=1000;";
 				
-				p_out << "AA=" << nuc_chars[ancestral_nuc_index];
+				p_out << "AA=" << gSLiM_Nucleotides[ancestral_nuc_index];
 				
 				p_out << "\tGT";
 				
@@ -2030,6 +2037,8 @@ const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) co
 	
 	if (!properties)
 	{
+		THREAD_SAFETY_CHECK("Genome_Class::Properties(): not warmed up");
+		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_genomePedigreeID,true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Genome::GetProperty_Accelerated_genomePedigreeID));
@@ -2051,6 +2060,8 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 	
 	if (!methods)
 	{
+		THREAD_SAFETY_CHECK("Genome_Class::Methods(): not warmed up");
+		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
@@ -2310,7 +2321,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			continue;
 		
 		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		
 		Genome::BulkOperationStart(operation_id, mutrun_index);
 		
@@ -2656,7 +2667,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	for (slim_mutrun_index_t mutrun_index : mutrun_indexes)
 	{
-		int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
 		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
@@ -2812,6 +2823,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 		// With a zero-length target, frequencies are undefined so it is an error; to keep life simple, we make it an error for counts too
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot calculate counts/frequencies in a zero-length Genome vector (divide by zero)." << EidosTerminate();
 	}
+	
+	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
 	
 	static std::vector<Genome *> target_genomes;	// prevent reallocation by using a static
 	
@@ -2985,6 +2998,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
+	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
+	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
 	
@@ -3117,6 +3132,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	for (int mut_index = 0; mut_index < segsites; ++mut_index)
 	{
@@ -3131,7 +3147,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 			// select a nucleotide that is different from the ancestral state at this position
 			int8_t ancestral = (int8_t)species.TheChromosome().AncestralSequence()->NucleotideAtIndex(position);
 			
-			nucleotide = (int8_t)Eidos_rng_uniform_int(EIDOS_GSL_RNG, 3);	// 0, 1, 2
+			nucleotide = (int8_t)Eidos_rng_uniform_int(rng, 3);	// 0, 1, 2
 			
 			if (nucleotide == ancestral)
 				nucleotide++;
@@ -3215,6 +3231,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
+	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
+	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
 	
@@ -4089,7 +4107,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				continue;
 			
 			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-			int64_t operation_id = ++gSLiM_MutationRun_OperationID;
+			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 			
 			Genome::BulkOperationStart(operation_id, mutrun_index);
 			

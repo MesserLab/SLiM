@@ -51,6 +51,8 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 	
 	if (!sim_func_signatures_.size())
 	{
+		THREAD_SAFETY_CHECK("Community::SLiMFunctionSignatures(): not warmed up");
+		
 		// Nucleotide utilities
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToNucleotides", SLiM_ExecuteFunction_codonsToNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt("codons")->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
@@ -1089,10 +1091,12 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		else						return gStaticEidosValue_String_ZeroVec;
 	}
 	
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
 	if (length == 1)
 	{
 		// Handle the singleton case separately for speed
-		double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+		double runif = Eidos_rng_uniform(rng);
 		
 		if (format == "integer")
 		{
@@ -1117,7 +1121,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			string_result->PushString(gStr_A);
 			else if (runif < pC)	string_result->PushString(gStr_C);
@@ -1134,7 +1138,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			int_result->set_int_no_check(0, value_index);
 			else if (runif < pC)	int_result->set_int_no_check(1, value_index);
@@ -1156,7 +1160,7 @@ EidosValue_SP SLiM_ExecuteFunction_randomNucleotides(const std::vector<EidosValu
 		
 		for (int value_index = 0; value_index < length; ++value_index)
 		{
-			double runif = Eidos_rng_uniform(EIDOS_GSL_RNG);
+			double runif = Eidos_rng_uniform(rng);
 			
 			if (runif < pA)			nuc_string_ptr[value_index] = 'A';
 			else if (runif < pC)	nuc_string_ptr[value_index] = 'C';
@@ -1251,7 +1255,6 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 		nuc_string.resize(length);	// create space for all the nucleotides we will generate
 		
 		char *nuc_string_ptr = &nuc_string[0];	// data() returns a const pointer, but this is safe in C++11 and later
-		static const char nuc_chars[4] = {'A', 'C', 'G', 'T'};
 		
 		for (int codon_index = 0; codon_index < codons_length; ++codon_index)
 		{
@@ -1264,9 +1267,9 @@ EidosValue_SP SLiM_ExecuteFunction_codonsToNucleotides(const std::vector<EidosVa
 			int nuc2 = (codon >> 2) & 0x03;
 			int nuc3 = codon & 0x03;
 			
-			nuc_string_ptr[codon_index * 3] = nuc_chars[nuc1];
-			nuc_string_ptr[codon_index * 3 + 1] = nuc_chars[nuc2];
-			nuc_string_ptr[codon_index * 3 + 2] = nuc_chars[nuc3];
+			nuc_string_ptr[codon_index * 3] = gSLiM_Nucleotides[nuc1];
+			nuc_string_ptr[codon_index * 3 + 1] = gSLiM_Nucleotides[nuc2];
+			nuc_string_ptr[codon_index * 3 + 2] = gSLiM_Nucleotides[nuc3];
 		}
 		
 		return EidosValue_SP(string_result);
@@ -1402,6 +1405,8 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (!beenHere)
 	{
+		THREAD_SAFETY_CHECK("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
+		
 		Individual *test_ind_layout = individuals_buffer[0];
 	
 		if (((&(test_ind_layout->spatial_x_)) + 1 != (&(test_ind_layout->spatial_y_))) ||

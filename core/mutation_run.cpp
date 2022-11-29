@@ -277,6 +277,8 @@ Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type,
 
 const std::vector<Mutation *> *MutationRun::derived_mutation_ids_at_position(slim_position_t p_position) const
 {
+	THREAD_SAFETY_CHECK("MutationRun::derived_mutation_ids_at_position(): usage of statics");
+	
 	static std::vector<Mutation *> return_vec;
 	
 	// First clear out whatever might be left over from last time
