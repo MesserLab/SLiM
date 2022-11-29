@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1210"
+   LastUpgradeVersion = "1220"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -14,24 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "985724AE1AD478630047C223"
-               BuildableName = "EidosScribe.app"
-               BlueprintName = "EidosScribe"
-               ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "985724C01AD478640047C223"
-               BuildableName = "SLiMscribeTests.xctest"
-               BlueprintName = "SLiMscribeTests"
-               ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+               BlueprintIdentifier = "98D7EC9F28CE58FC00DEAAC4"
+               BuildableName = "slim_multi"
+               BlueprintName = "slim_multi"
+               ReferencedContainer = "container:SLiM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -41,30 +27,11 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "985724AE1AD478630047C223"
-            BuildableName = "EidosScribe.app"
-            BlueprintName = "EidosScribe"
-            ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "985724C01AD478640047C223"
-               BuildableName = "SLiMscribeTests.xctest"
-               BlueprintName = "SLiMscribeTests"
-               ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -77,12 +44,42 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "985724AE1AD478630047C223"
-            BuildableName = "EidosScribe.app"
-            BlueprintName = "EidosScribe"
-            ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+            BlueprintIdentifier = "98D7EC9F28CE58FC00DEAAC4"
+            BuildableName = "slim_multi"
+            BlueprintName = "slim_multi"
+            ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "-time"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-mem"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-maxthreads 4"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-seed 10"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/E_sum_float.slim&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/S_interactingNeighborCount_2D.slim&quot;"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/S_totalOfNeighborStrengths_2D.slim&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+      </CommandLineArguments>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -94,10 +91,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "985724AE1AD478630047C223"
-            BuildableName = "EidosScribe.app"
-            BlueprintName = "EidosScribe"
-            ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+            BlueprintIdentifier = "98D7EC9F28CE58FC00DEAAC4"
+            BuildableName = "slim_multi"
+            BlueprintName = "slim_multi"
+            ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

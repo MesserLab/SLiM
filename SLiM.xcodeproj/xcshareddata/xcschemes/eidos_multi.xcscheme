@@ -17,7 +17,7 @@
                BlueprintIdentifier = "98D7EB8328CE557C00DEAAC4"
                BuildableName = "eidos_multi"
                BlueprintName = "eidos_multi"
-               ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+               ReferencedContainer = "container:SLiM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,7 +47,7 @@
             BlueprintIdentifier = "98D7EB8328CE557C00DEAAC4"
             BuildableName = "eidos_multi"
             BlueprintName = "eidos_multi"
-            ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+            ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,7 +64,7 @@
             BlueprintIdentifier = "98D7EB8328CE557C00DEAAC4"
             BuildableName = "eidos_multi"
             BlueprintName = "eidos_multi"
-            ReferencedContainer = "container:SLiM_OpenMP.xcodeproj">
+            ReferencedContainer = "container:SLiM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
