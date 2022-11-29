@@ -81,6 +81,7 @@ extern int gEidosMaxThreads;
 // Many of these places might be made safe with a simple locking protocol, but that has not yet been done, so beware.
 // This tagging of unsafe spots is undoubtedly not comprehensive; I'm just trying to catch the most obvious problems!
 // Note that this macro uses a GCC built-in; it is supported by Clang as well, but may need a tweak for other platforms.
+// This macros checks only for DEBUG builds!  When working on parallel code, be sure to check correctness with DEBUG!
 #ifdef _OPENMP
 
 #if DEBUG

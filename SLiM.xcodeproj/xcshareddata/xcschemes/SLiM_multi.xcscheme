@@ -52,6 +52,14 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
+            argument = "-version"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-usage"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-time"
             isEnabled = "YES">
          </CommandLineArgument>
@@ -60,12 +68,20 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-maxthreads 4"
-            isEnabled = "YES">
+            argument = "-seed 1"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "-seed 10"
-            isEnabled = "YES">
+            argument = "-maxthreads 4"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-testEidos"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-testSLiM"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/bhaller/Desktop/benchmarking/SLiM-Benchmarks/models/E_sum_float.slim&quot;"

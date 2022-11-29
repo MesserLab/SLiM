@@ -13,6 +13,7 @@
 #include <string>
 #include <ctime>
 #include <chrono>
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -35,7 +36,7 @@ void PrintUsageAndDie()
 	std::cout << "[-maxthreads <n>] ";
 #endif
 	std::cout << "<script file>" << std::endl;
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, const char * argv[])
@@ -80,17 +81,18 @@ int main(int argc, const char * argv[])
 		if (strcmp(arg, "-version") == 0 || strcmp(arg, "-v") == 0)
 		{
 			std::cout << "Eidos version " << EIDOS_VERSION_STRING << ", built " << __DATE__ << " " __TIME__ << std::endl;
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 		
 		// -testEidos or -te: run Eidos tests and quit
 		if (strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
-			gEidosTerminateThrows = true;
 #ifdef _OPENMP
-			Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&std::cerr, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
+			
+			gEidosTerminateThrows = true;
 			
 			int test_result = RunEidosTests();
 			
@@ -119,7 +121,7 @@ int main(int argc, const char * argv[])
 			if ((max_thread_count < 1) || (max_thread_count > 1024))
 			{
 				std::cout << "The -maxthreads command-line option enforces a range of [1, 1024]." << std::endl;
-				exit(0);
+				exit(EXIT_FAILURE);
 			}
 			
 			continue;
@@ -127,7 +129,7 @@ int main(int argc, const char * argv[])
 			if (count != 1)
 			{
 				std::cout << "The -maxthreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
-				exit(0);
+				exit(EXIT_FAILURE);
 			}
 #endif
 		}
@@ -145,11 +147,11 @@ int main(int argc, const char * argv[])
 	
 	// announce if we are running a debug build, etc.
 #ifdef DEBUG
-	std::cout << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
+	std::cerr << "// ********** DEBUG defined – you are not using a release build of Eidos" << std::endl << std::endl;
 #endif
 	
 #ifdef _OPENMP
-	Eidos_WarmUpOpenMP(&std::cout, changed_max_thread_count, (int)max_thread_count, true);
+	Eidos_WarmUpOpenMP(&std::cerr, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 	
 	// keep time (we do this whether or not the -time flag was passed)

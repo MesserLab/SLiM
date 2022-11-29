@@ -25,6 +25,7 @@
 #include "eidos_globals.h"
 #include "eidos_rng.h"
 
+#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -268,6 +269,7 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 
 int RunEidosTests(void)
 {
+	// This function should never be called when parallel, but individual tests are allowed to go parallel internally
 	THREAD_SAFETY_CHECK("RunEidosTests(): illegal when parallel");
 	
 	// Reset error counts
@@ -1267,7 +1269,7 @@ int RunEidosTests(void)
 	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
-	return (gEidosTestFailureCount > 0) ? 1 : 0;
+	return (gEidosTestFailureCount > 0) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 #pragma mark literals & identifiers

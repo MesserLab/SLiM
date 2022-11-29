@@ -26,6 +26,7 @@
 #include "mutation_run.h"
 #include "interaction_type.h"
 
+#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -285,6 +286,7 @@ std::string nonWF_prefix("initialize() { initializeSLiMModelType('nonWF'); } ");
 
 int RunSLiMTests(void)
 {
+	// This function should never be called when parallel, but individual tests are allowed to go parallel internally
 	THREAD_SAFETY_CHECK("RunSLiMTests(): illegal when parallel");
 	
 	// Test SLiM.  The goal here is not really to test that the core code of SLiM is working properly – that simulations
@@ -364,7 +366,7 @@ int RunSLiMTests(void)
 #endif
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
-	return (gSLiMTestFailureCount > 0) ? 1 : 0;
+	return (gSLiMTestFailureCount > 0) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 #pragma mark basic tests

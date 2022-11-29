@@ -406,7 +406,7 @@ void Eidos_WarmUp(void)
 		if (&gEidosImage_Class->ClassName() != &gEidosStr_Image)
 		{
 			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!";
-			exit(0);
+			exit(EXIT_FAILURE);
 		}
 
 #if (defined(_MSC_VER) && _MSC_VER <= 1900) || (defined(__MINGW32__) && !defined(_UCRT))

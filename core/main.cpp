@@ -28,6 +28,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <ctime>
@@ -130,7 +131,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	if (p_print_header || p_print_full_usage)
 		SLIM_OUTSTREAM << std::endl;
 	
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 #if SLIM_LEAK_CHECKING
@@ -235,7 +236,7 @@ int main(int argc, char *argv[])
 						if ((verbosity < 0) || (verbosity > 2))
 						{
 							SLIM_ERRSTREAM << "Verbosity level supplied to -l[ong] must be 0, 1, or 2." << std::endl;
-							exit(0);
+							exit(EXIT_FAILURE);
 						}
 						
 						SLiM_verbosity_level = verbosity;
@@ -305,17 +306,18 @@ int main(int argc, char *argv[])
 			else
 				SLIM_OUTSTREAM << "Git commit SHA-1: " << std::string(g_GIT_SHA1) << std::endl;
 			
-			exit(0);
+			exit(EXIT_SUCCESS);
 		}
 		
 		// -testEidos or -te: run Eidos tests and quit
 		if (strcmp(arg, "--testEidos") == 0 || strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
-			gEidosTerminateThrows = true;
 #ifdef _OPENMP
 			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
+			
+			gEidosTerminateThrows = true;
 			
 			int test_result = RunEidosTests();
 			
@@ -326,12 +328,13 @@ int main(int argc, char *argv[])
 		// -testSLiM or -ts: run SLiM tests and quit
 		if (strcmp(arg, "--testSLiM") == 0 || strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
-			gEidosTerminateThrows = true;
 #ifdef _OPENMP
 			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
 #endif
 			Eidos_WarmUp();
 			SLiM_WarmUp();
+			
+			gEidosTerminateThrows = true;
 			
 			int test_result = RunSLiMTests();
 			
@@ -373,7 +376,7 @@ int main(int argc, char *argv[])
 			if ((max_thread_count < 1) || (max_thread_count > 1024))
 			{
 				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, 1024]." << std::endl;
-				exit(0);
+				exit(EXIT_FAILURE);
 			}
 			
 			continue;
@@ -381,7 +384,7 @@ int main(int argc, char *argv[])
 			if (count != 1)
 			{
 				SLIM_OUTSTREAM << "The -maxthreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
-				exit(0);
+				exit(EXIT_FAILURE);
 			}
 #endif
 		}
