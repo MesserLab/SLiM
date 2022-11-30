@@ -48,6 +48,7 @@ development head (in the master branch):
 	split reproduction in nonWF models into a two-stage process of reproduction for all species, then merging for all species, to allow multispecies interactions to be used; no consequence for single-species models
 	add a new build flag: if -D BUILD_NATIVE=ON is set, -march=native is passed to the compiler and a native build, usable only on the build machine itself, is produced for better optimization
 	add a new build flag: if -D BUILD_LTO=ON is set, link-time optimization is enabled (if the compilers say they support it), for better optimization; if the build then fails, don't use it
+	fix a major performance issue for nearestNeighbors(), nearestNeighborsOfPoint(), and subsetIndividuals() with very large subpopulation size
 	
 
 version 4.0.1 (Eidos version 3.0.1):

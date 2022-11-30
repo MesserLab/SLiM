@@ -2839,7 +2839,7 @@ void InteractionType::FindNeighborsA_1(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_capcheck_NORR(p_individuals[root->individual_index_]);
 	
 	if (dx > 0)
 	{
@@ -2875,7 +2875,7 @@ void InteractionType::FindNeighborsA_2(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_capcheck_NORR(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 2) p_phase = 0;
 	
@@ -2913,7 +2913,7 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	double dx2 = dx * dx;
 	
 	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
-		p_result_vec.push_object_element_NORR(p_individuals[root->individual_index_]);
+		p_result_vec.push_object_element_capcheck_NORR(p_individuals[root->individual_index_]);
 	
 	if (++p_phase >= 3) p_phase = 0;
 	
@@ -3263,7 +3263,7 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 				
 				Individual *best_individual = p_subpop->parent_individuals_[best_rec->individual_index_];
 				
-				p_result_vec.push_object_element_NORR(best_individual);
+				p_result_vec.push_object_element_capcheck_NORR(best_individual);
 			}
 			
 			free(best);
@@ -4662,7 +4662,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	EnsureKDTreePresent(exerter_subpop_data);
 	
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve((int)count);
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+		result_vec->reserve((int)count);
 	
 	FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
 	
@@ -4713,7 +4716,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	
 	// Find the neighbors
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->reserve((int)count);
+	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+	if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+		result_vec->reserve((int)count);
 	
 	FindNeighbors(exerter_subpop, exerter_subpop_data, point_array, (int)count, *result_vec, nullptr);
 	

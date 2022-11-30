@@ -6714,11 +6714,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 		excluded_index = -1;
 	
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->reserve(candidate_count);
+	EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get());
 	
 	if (!tag_specified && !ageMin_specified && !ageMax_specified && !migrant_specified)
 	{
-		// usually there will be no specifed tag/ageMin/ageMax, so handle it more quickly
+		// usually there will be no specifed tag/ageMin/ageMax, so handle it more quickly; reserve since we know the size within 1
+		result->reserve(candidate_count);
+		
 		if (excluded_index == -1)
 		{
 			for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
@@ -6737,7 +6739,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 	}
 	else
 	{
-		// this is the full case, a bit slower
+		// this is the full case, a bit slower; we might reject the large majority of individuals, so we don't reserve here
 		for (int value_index = first_candidate_index; value_index <= last_candidate_index; ++value_index)
 		{
 			Individual *candidate = parent_individuals_[value_index];
@@ -6753,7 +6755,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_subsetIndividuals(EidosGlobalStringID
 			if (value_index == excluded_index)
 				continue;
 			
-			result->push_object_element_no_check_NORR(parent_individuals_[value_index]);
+			result->push_object_element_capcheck_NORR(parent_individuals_[value_index]);
 		}
 	}
 	
