@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Run the SLiM model and load the resulting .trees
-subprocess.check_output(["slim", "-m", "-s", "0", "./recipe_17.4.slim"])
-ts = tskit.load("./recipe_17.4.trees")
+subprocess.check_output(["slim", "-m", "-s", "0", "./diversity.slim"])
+ts = tskit.load("./diversity.trees")
 ts = ts.simplify()
 
 # Measure the tree height at each base position

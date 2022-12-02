@@ -4,11 +4,11 @@
 
 import msprime, tskit
 
-ts = tskit.load("./recipe_17.1.trees")
+ts = tskit.load("./overlay.trees")
 ts = ts.simplify()
 
 for t in ts.trees():
     assert t.num_roots == 1, ("not coalesced! on segment {} to {}".format(t.interval[0], t.interval[1]))
 
 mutated = msprime.sim_mutations(ts, rate=1e-7, random_seed=1, keep=True)
-mutated.dump("./recipe_17.1_overlaid.trees")
+mutated.dump("./overlay_II.trees")

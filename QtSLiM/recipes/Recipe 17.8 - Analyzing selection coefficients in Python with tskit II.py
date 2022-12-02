@@ -2,7 +2,7 @@
 
 import tskit
 
-ts = tskit.load("recipe_17.7.trees")
+ts = tskit.load("selcoeff.trees")
 
 # selection coefficients of all selected mutations
 coeffs = []

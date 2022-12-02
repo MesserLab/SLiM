@@ -2,7 +2,7 @@
 
 import tskit
 
-ts = tskit.load("recipe_17.8_II.trees").simplify()
+ts = tskit.load("coalasex_II.trees").simplify()
 
 for tree in ts.trees():
     for root in tree.roots:

@@ -21,7 +21,7 @@ initialize() {
 		stop(sim.cycle + ": LOST");
 	else if (sum(sim.mutationFrequencies(NULL, mut)) == 1.0)
 	{
-		sim.treeSeqOutput("recipe_17.10_decap.trees");
+		sim.treeSeqOutput("decap.trees");
 		sim.simulationFinished();
 	}
 }

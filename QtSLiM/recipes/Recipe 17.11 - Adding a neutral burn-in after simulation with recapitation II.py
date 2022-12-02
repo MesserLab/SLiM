@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the .trees file
-ts = tskit.load("recipe_17.10_decap.trees")    # no simplify!
+ts = tskit.load("decap.trees")    # no simplify!
 
 # Calculate tree heights, giving uncoalesced sites the maximum time
 def tree_heights(ts):
@@ -28,7 +28,7 @@ plt.show()
 
 # Recapitate!
 recap = pyslim.recapitate(ts, ancestral_Ne=1e5, recombination_rate=3e-10, random_seed=1)
-recap.dump("recipe_17.10_recap.trees")
+recap.dump("recap.trees")
 
 # Plot the tree heights after recapitation
 breakpoints = list(recap.breakpoints())

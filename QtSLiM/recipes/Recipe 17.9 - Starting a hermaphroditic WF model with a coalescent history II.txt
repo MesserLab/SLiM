@@ -13,14 +13,14 @@ initialize() {
 	initializeRecombinationRate(1e-8);
 }
 1 late() {
-	sim.readFromPopulationFile("recipe_17.8.trees");
+	sim.readFromPopulationFile("coalasex.trees");
 	target = sample(sim.subpopulations.genomes, 1);
 	target.addNewDrawnMutation(m2, 10000);
 }
 1: late() {
 	if (sim.mutationsOfType(m2).size() == 0) {
 		print(sim.substitutions.size() ? "FIXED" else "LOST");
-		sim.treeSeqOutput("recipe_17.8_II.trees");
+		sim.treeSeqOutput("coalasex_II.trees");
 		sim.simulationFinished();
 	}
 }

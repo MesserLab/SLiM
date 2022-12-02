@@ -12,7 +12,7 @@ initialize() {
 1 early() {
 	sim.addSubpop("p1", 500);
 }
-20000 late() { sim.treeSeqOutput("./recipe_17.7.trees"); }
+20000 late() { sim.treeSeqOutput("./selcoeff.trees"); }
 
 // Part II of this recipe, which is a Python script, may be found in
 // the Recipes archive downloadable at https://messerlab.org/slim/

@@ -43,4 +43,4 @@ tables.mutations.add_row(
         metadata=mut_metadata)
 
 slim_ts = tables.tree_sequence()
-slim_ts.dump("recipe_17.9.trees")
+slim_ts.dump("coalsex.trees")

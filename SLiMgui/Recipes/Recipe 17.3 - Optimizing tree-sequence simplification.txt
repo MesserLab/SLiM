@@ -1,0 +1,13 @@
+// Keywords: tree-sequence recording, tree sequence recording, simplification
+
+initialize() {
+	setSeed(0);
+	initializeTreeSeq(simplificationInterval=1000);
+	initializeMutationRate(0);
+	initializeMutationType("m1", 0.5, "f", 0.0);
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+}
+1 early() { sim.addSubpop("p1", 10000); }
+50001 late() { }
