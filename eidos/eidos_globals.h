@@ -227,6 +227,7 @@ public:
 // Memory-monitoring calls.  See the .cpp for comments.  These return a size in bytes.
 size_t Eidos_GetPeakRSS(void);
 size_t Eidos_GetCurrentRSS(void);
+size_t Eidos_GetVMUsage(void);
 
 // Memory limits, retrieved by calling "ulimit -m"; cached internally.  Returns a size in bytes; 0 means "no limit".
 size_t Eidos_GetMaxRSS(void);
@@ -852,6 +853,7 @@ extern const std::string &gEidosStr_executeLambda;
 extern const std::string &gEidosStr__executeLambda_OUTER;
 extern const std::string &gEidosStr_ls;
 extern const std::string &gEidosStr_rm;
+extern const std::string &gEidosStr_usage;
 
 extern const std::string &gEidosStr_if;
 extern const std::string &gEidosStr_else;
@@ -974,6 +976,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID__executeLambda_OUTER,
 	gEidosID_ls,
 	gEidosID_rm,
+	gEidosID_usage,
 
 	gEidosID_if,
 	gEidosID_else,

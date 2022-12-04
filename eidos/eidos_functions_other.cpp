@@ -1179,19 +1179,38 @@ EidosValue_SP Eidos_ExecuteFunction_time(__attribute__((unused)) const std::vect
 	return result_SP;
 }
 
-//	(float$)usage([logical$ peak = F])
+//	(float$)usage([ls$ type = "rss"])
 EidosValue_SP Eidos_ExecuteFunction_usage(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
-	EidosValue_SP result_SP(nullptr);
+	EidosValue *type_value = p_arguments[0].get();
+	size_t usage = 0;
 	
-	bool peak = p_arguments[0]->LogicalAtIndex(0, nullptr);
+	if (type_value->Type() == EidosValueType::kValueLogical)
+	{
+		// old-style API, through SLiM 4.0.1 (but still supported): logical value, F == current RSS, T == peak RSS
+		bool peak = type_value->LogicalAtIndex(0, nullptr);
+		
+		usage = (peak ? Eidos_GetPeakRSS() : Eidos_GetCurrentRSS());
+	}
+	else
+	{
+		// new-style API, after SLiM 4.0.1: string value, "rss" == current RSS, "rss_peak" = peak RSS, "vm" = current VM
+		std::string type = type_value->StringAtIndex(0, nullptr);
+		
+		if (type == "rss")
+			usage = Eidos_GetCurrentRSS();
+		else if (type == "rss_peak")
+			usage = Eidos_GetPeakRSS();
+		else if (type == "vm")
+			usage = Eidos_GetVMUsage();
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_usage): usage() did not recognize the requested type, '" << type << "'; type should be 'rss', 'rss_peak', or 'vm'." << EidosTerminate(nullptr);
+	}
 	
-	size_t usage = (peak ? Eidos_GetPeakRSS() : Eidos_GetCurrentRSS());
 	double usage_MB = usage / (1024.0 * 1024.0);
-	
-	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
 	
 	return result_SP;
 }

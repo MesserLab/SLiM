@@ -1126,6 +1126,51 @@ size_t Eidos_GetCurrentRSS(void)
 #endif
 }
 
+/**
+ *This is my own code, patterned after Nadeau's code above
+ *
+ * Returns the current virtual memory use measured
+ * in bytes, or zero if the value cannot be determined on this OS.
+ */
+size_t Eidos_GetVMUsage(void)
+{
+#if defined(_WIN32)
+	/* Windows -------------------------------------------------- */
+	// see https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
+	PROCESS_MEMORY_COUNTERS info;
+	GetProcessMemoryInfo( GetCurrentProcess( ), &info, sizeof(info) );
+	return (size_t)info.PagefileUsage;
+	
+#elif defined(__APPLE__) && defined(__MACH__)
+	/* OSX ------------------------------------------------------ */
+	struct mach_task_basic_info info;
+	mach_msg_type_number_t infoCount = MACH_TASK_BASIC_INFO_COUNT;
+	if ( task_info( mach_task_self( ), MACH_TASK_BASIC_INFO,
+				   (task_info_t)&info, &infoCount ) != KERN_SUCCESS )
+		return (size_t)0L;		/* Can't access? */
+	return (size_t)info.virtual_size;
+	
+#elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
+	/* Linux ---------------------------------------------------- */
+	// see https://man7.org/linux/man-pages/man5/proc.5.html
+	long vmsize = 0L;
+	FILE* fp = NULL;
+	if ( (fp = fopen( "/proc/self/statm", "r" )) == NULL )
+		return (size_t)0L;		/* Can't open? */
+	if ( fscanf( fp, "%ld", &vmsize ) != 1 )
+	{
+		fclose( fp );
+		return (size_t)0L;		/* Can't read? */
+	}
+	fclose( fp );
+	return (size_t)vmsize * (size_t)sysconf( _SC_PAGESIZE);
+	
+#else
+	/* AIX, BSD, Solaris, and Unknown OS ------------------------ */
+	return (size_t)0L;			/* Unsupported. */
+#endif
+}
+
 size_t Eidos_GetMaxRSS(void)
 {
 	THREAD_SAFETY_CHECK("Eidos_GetMaxRSS(): usage of statics");
@@ -2912,6 +2957,7 @@ const std::string &gEidosStr_executeLambda = EidosRegisteredString("executeLambd
 const std::string &gEidosStr__executeLambda_OUTER = EidosRegisteredString("_executeLambda_OUTER", gEidosID__executeLambda_OUTER);
 const std::string &gEidosStr_ls = EidosRegisteredString("ls", gEidosID_ls);
 const std::string &gEidosStr_rm = EidosRegisteredString("rm", gEidosID_rm);
+const std::string &gEidosStr_usage = EidosRegisteredString("usage", gEidosID_usage);
 
 // mostly language keywords
 const std::string &gEidosStr_if = EidosRegisteredString("if", gEidosID_if);

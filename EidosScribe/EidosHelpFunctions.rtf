@@ -6142,27 +6142,47 @@ If
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 \expnd0\expndtw0\kerning0
-(float$)usage([logical$\'a0peak\'a0=\'a0F])\
+(float$)usage(\kerning1\expnd0\expndtw0 [ls$\'a0type\'a0=\'a0"rss"]\expnd0\expndtw0\kerning0
+)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\fs20 \cf2 Returns the 
-\f0\b current (or peak) memory usage
+\f3\fs20 \cf2 \kerning1\expnd0\expndtw0 Returns the 
+\f0\b memory usage
 \f3\b0 .  This is the amount of memory used by the current process, in MB (megabytes); multiply by 
 \f1\fs18 1024*1024
-\f3\fs20  to get the usage in bytes.  If 
-\f1\fs18 peak
-\f3\fs20  is 
-\f1\fs18 F
-\f3\fs20  (the default), the current memory usage is returned; if 
-\f1\fs18 peak
-\f3\fs20  is 
-\f1\fs18 T
-\f3\fs20 , the maximum memory usage over the history of the process is returned.  Memory usage is a surprisingly complex topic; the particular metric reported by 
+\f3\fs20  to get the usage in bytes.\
+Memory usage is a surprisingly complex topic.  One metric reported by 
 \f1\fs18 usage()
-\f3\fs20  is the resident set size, or RSS, which includes memory usage from shared libraries, but does not include memory that is swapped out or has never been used.  For most purposes, RSS is a useful metric of memory usage from a practical perspective.  On some platforms (AIX, BSD, Solaris) the memory usage reported may be zero, but it should be correct on both macOS and Linux platforms.\
-This function can be useful for documenting the memory usage of long runs as they are in progress; in SLiM, it could also be used to trigger tree-sequence simplification with a call to 
+\f3\fs20  is the resident set size, or RSS, which includes memory usage from shared libraries, but does not include memory that is swapped out or has never been used.  For most purposes, RSS is a useful metric of memory usage from a practical perspective.  On some platforms (AIX, BSD, Solaris) the memory usage reported may be zero, but it should be correct on both macOS and Linux platforms.  On macOS, memory pages that have not been used for a while may get compressed by the kernel to reduce the RSS of the process; the RSS metric reported by 
+\f1\fs18 usage()
+\f3\fs20  will reflect the compressed size of such pages, not their original size, so surprising decreases in memory usage may be observed when the kernel decides to compress some memory pages.  The RSS is requested with a 
+\f1\fs18 type
+\f3\fs20  of 
+\f1\fs18 "rss"
+\f3\fs20 , which is the default; for historical reasons, it can also be requested with a 
+\f1\fs18 type
+\f3\fs20  of 
+\f1\fs18 F
+\f3\fs20 .\
+Another metric reported by 
+\f1\fs18 usage()
+\f3\fs20  is the peak RSS.  This is just the highest RSS value that has ever been recorded by the kernel.  It should generally mirror the behavior of RSS, except that it ratchets upward monotonically.  The peak RSS is requested with a 
+\f1\fs18 type
+\f3\fs20  of 
+\f1\fs18 "rss_peak"
+\f3\fs20 ; for historical reasons, it can also be requested with a 
+\f1\fs18 type
+\f3\fs20  of 
+\f1\fs18 T
+\f3\fs20 .\
+The third metric currently reported by 
+\f1\fs18 usage()
+\f3\fs20  is the virtual memory usage.  This is essentially the amount of memory used by pages that have been assigned to the process, whether those pages are resident, compressed, or swapped.  It is typically much larger than the RSS, because it includes various types of memory that are not counted in the RSS; indeed, for some system configurations the virtual memory usage can be reported as being the entire memory space of the computer.  Whether it is a useful metric will be platform-dependent; 
+\f7\i caveat emptor
+\f3\i0 .\
+This function can be useful for documenting the memory usage of long runs as they are in progress.  In SLiM, the RSS could also be used to trigger tree-sequence simplification with a call to 
 \f1\fs18 treeSeqSimplify()
-\f3\fs20 , to reduce memory usage when it becomes too large, but keep in mind that the simplification process itself may cause a substantial spike in memory usage.\
+\f3\fs20 , to reduce memory usage when it becomes too large, but keep in mind that the simplification process itself may cause a substantial spike in memory usage, and that page compression and swaps may reduce the RSS even though the memory actually used by tree-sequence recording continues to increase.\
 When running under SLiM, other tools for monitoring memory usage include the 
 \f1\fs18 slim
 \f3\fs20  command-line options 
@@ -6170,10 +6190,13 @@ When running under SLiM, other tools for monitoring memory usage include the
 \f3\fs20  and 
 \f1\fs18 -M[emhist]
 \f3\fs20 , and the 
+\f1\fs18 usage()
+\f3\fs20  and 
 \f1\fs18 outputUsage()
-\f3\fs20  method of 
+\f3\fs20  methods of 
 \f1\fs18 Community
-\f3\fs20 ; see the SLiM manual for more information.\
+\f3\fs20 ; see the SLiM manual for more information.\expnd0\expndtw0\kerning0
+\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (float)version(\cf2 \expnd0\expndtw0\kerning0

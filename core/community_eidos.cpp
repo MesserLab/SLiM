@@ -561,6 +561,7 @@ EidosValue_SP Community::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, 
 		case gID_registerInteractionCallback:	return ExecuteMethod_registerInteractionCallback(p_method_id, p_arguments, p_interpreter);
 		case gID_rescheduleScriptBlock:			return ExecuteMethod_rescheduleScriptBlock(p_method_id, p_arguments, p_interpreter);
 		case gID_simulationFinished:			return ExecuteMethod_simulationFinished(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_usage:					return ExecuteMethod_usage(p_method_id, p_arguments, p_interpreter);
 		default:								return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -937,6 +938,7 @@ EidosValue_SP Community::ExecuteMethod_subpopulationsWithIDs(EidosGlobalStringID
 EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BEWARE: See also the -usage() method, which must be maintained in parallel with this
 	std::ostream &out = p_interpreter.ExecutionOutputStream();
 	
 	// Save flags/precision and set to precision 1
@@ -1369,6 +1371,36 @@ EidosValue_SP Community::ExecuteMethod_simulationFinished(EidosGlobalStringID p_
 	return gStaticEidosValueVOID;
 }
 
+//	*********************	– (float$)usage(void)
+//
+EidosValue_SP Community::ExecuteMethod_usage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BEWARE: See also the -outputUsage() method, which must be maintained in parallel with this
+	
+	// Tally up usage across the simulation
+	SLiMMemoryUsage_Community usage_community;
+	SLiMMemoryUsage_Species usage_all_species;
+	
+	EIDOS_BZERO(&usage_all_species, sizeof(SLiMMemoryUsage_Species));
+	
+	TabulateSLiMMemoryUsage_Community(&usage_community, &p_interpreter.SymbolTable());
+	
+	for (Species *species : all_species_)
+	{
+		SLiMMemoryUsage_Species usage_one_species;
+		
+		species->TabulateSLiMMemoryUsage_Species(&usage_one_species);
+		AccumulateMemoryUsageIntoTotal_Species(usage_one_species, usage_all_species);
+	}
+	
+	size_t usage = usage_community.totalMemoryUsage + usage_all_species.totalMemoryUsage;
+	double usage_MB = usage / (1024.0 * 1024.0);
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(usage_MB));
+	
+	return result_SP;
+}
+
 
 //
 //	Community_Class
@@ -1434,6 +1466,7 @@ const std::vector<EidosMethodSignature_CSP> *Community_Class::Methods(void) cons
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_simulationFinished, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_speciesWithIDs, kEidosValueMaskObject, gSLiM_Species_Class))->AddInt("ids"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subpopulationsWithIDs, kEidosValueMaskObject, gSLiM_Subpopulation_Class))->AddInt("ids"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_usage, kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

@@ -1053,18 +1053,26 @@ The
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
 \'96\'a0(void)outputUsage(void)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Output the current memory usage of the simulation to Eidos\'92s output stream.  The specifics of what is printed, and in what format, should not be relied upon as they may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
 \f1\i all
-\f4\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.  To get the 
+\f4\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.  To get the same memory usage reported by 
+\f3\fs18 outputUsage()
+\f4\fs20 , but as a 
+\f3\fs18 float$
+\f4\fs20  value, use the 
+\f3\fs18 Community
+\f4\fs20  method 
+\f3\fs18 usage()
+\f4\fs20 .  To get the 
 \f1\i total
 \f4\i0  memory usage of the running process (either current or peak), use the Eidos function 
 \f3\fs18 usage()
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(object<SLiMEidosBlock>$)registerEarlyEvent(Nis$\'a0id, string$\'a0source, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL]\cf2 , [No<Species>$\'a0ticksSpec\'a0=\'a0NULL]\cf0 )\
+\f3\fs18 \cf0 \'96\'a0(object<SLiMEidosBlock>$)registerEarlyEvent(Nis$\'a0id, string$\'a0source, [Ni$\'a0start\'a0=\'a0NULL], [Ni$\'a0end\'a0=\'a0NULL]\cf2 , [No<Species>$\'a0ticksSpec\'a0=\'a0NULL]\cf0 )\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf0 Register a block of Eidos source code, represented as the 
@@ -1375,6 +1383,22 @@ Note that new script blocks can also be created and scheduled using the
 \f4\fs20  object can be found with a given 
 \f3\fs18 id
 \f4\fs20 , an error results.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float$)usage(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Return the current memory usage of the simulation.  The specifics of what is totalled up should not be relied upon as it may change from version to version of SLiM.  This method is primarily useful for understanding where the memory usage of a simulation predominantly resides, for debugging or optimization.  Note that it does not capture 
+\f1\i all
+\f4\i0  memory usage by the process; rather, it summarizes the memory usage by SLiM and Eidos in directly allocated objects and buffers.  To see details of this internal memory usage, use the 
+\f3\fs18 Community
+\f4\fs20  method 
+\f3\fs18 outputUsage()
+\f4\fs20 .  To get the 
+\f1\i total
+\f4\i0  memory usage of the running process (either current or peak), use the Eidos function 
+\f3\fs18 usage()
+\f4\fs20 .\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.4  Class Genome\
@@ -5854,7 +5878,8 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -5984,7 +6009,8 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and
