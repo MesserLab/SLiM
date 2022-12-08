@@ -75,6 +75,13 @@
 extern int gEidosMaxThreads;
 
 
+// We want to use SIGTRAP to catch problems in the debugger in a few key spots, but it doesn't exist on Windows.
+// So we will just define SIGTRAP to be SIGABRT instead; SIGABRT is supported on Windows.
+#ifdef _WIN32
+#define SIGTRAP SIGABRT
+#endif
+
+
 // THREAD_SAFETY_CHECK(): places in the code that have identified thread safety concerns should use this macro.  It will
 // produce a runtime error for DEBUG builds if it is hit while parallel.  Put it in places that are not currently thread-safe.
 // For example, object pools and other such global state are not thread-safe right now, so they should use this.
