@@ -381,6 +381,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for schedule(dynamic, 1024) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1)
 			for (int value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
@@ -391,16 +392,25 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 		result_SP = EidosValue_SP(float_result);
 		
+		bool saw_error = false;
+		
+#pragma omp parallel for schedule(dynamic, 1024) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
 			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
 			double sigma = (sigma_singleton ? sigma0 : arg_sigma->FloatAtIndex(value_index, nullptr));
 			
 			if (sigma <= 0.0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma) << " supplied)." << EidosTerminate(nullptr);
+			{
+				saw_error = true;
+				continue;
+			}
 			
 			float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu, sigma), value_index);
 		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -736,17 +746,25 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 			
 			if ((probability0 == 0.5) && (size0 == 1))
 			{
-				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
-				
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check(Eidos_RandomBool(rng_state) ? 1 : 0, draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result) if(num_draws >= EIDOS_OMPMIN_RBINOM_1)
+				{
+					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(dynamic, 1024)
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						int_result->set_int_no_check(Eidos_RandomBool(rng_state) ? 1 : 0, draw_index);
+				}
 			}
 			else
 			{
-				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-				
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check(gsl_ran_binomial(rng, probability0, size0), draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, probability0, size0) if(num_draws >= EIDOS_OMPMIN_RBINOM_2)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(dynamic, 1024)
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						int_result->set_int_no_check(gsl_ran_binomial(rng, probability0, size0), draw_index);
+				}
 			}
 		}
 	}
@@ -755,20 +773,37 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
-		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		bool saw_error1 = false, saw_error2 = false;
 		
-		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, size_singleton, prob_singleton, size0, probability0, arg_size, arg_prob) reduction(||: saw_error1) reduction(||: saw_error2) if(num_draws >= EIDOS_OMPMIN_RBINOM_3)
 		{
-			int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex(draw_index, nullptr));
-			double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex(draw_index, nullptr));
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-			if (size < 0)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0 (" << size << " supplied)." << EidosTerminate(nullptr);
-			if ((probability < 0.0) || (probability > 1.0) || std::isnan(probability))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0] (" << EidosStringForFloat(probability) << " supplied)." << EidosTerminate(nullptr);
-			
-			int_result->set_int_no_check(gsl_ran_binomial(rng, probability, size), draw_index);
+#pragma omp for schedule(dynamic, 1024)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				int size = (size_singleton ? size0 : (int)arg_size->IntAtIndex((int)draw_index, nullptr));
+				double probability = (prob_singleton ? probability0 : arg_prob->FloatAtIndex((int)draw_index, nullptr));
+				
+				if (size < 0)
+				{
+					saw_error1 = true;
+					continue;
+				}
+				if ((probability < 0.0) || (probability > 1.0) || std::isnan(probability))
+				{
+					saw_error2 = true;
+					continue;
+				}
+				
+				int_result->set_int_no_check(gsl_ran_binomial(rng, probability, size), draw_index);
+			}
 		}
+		
+		if (saw_error1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires size >= 0." << EidosTerminate(nullptr);
+		if (saw_error2)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rbinom): function rbinom() requires probability in [0.0, 1.0]." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -894,17 +929,25 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 			
 			if (count0 == 2)
 			{
-				Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
-				
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check(Eidos_RandomBool(rng_state) + min_value0, draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_1)
+				{
+					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(dynamic, 1024)
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						int_result->set_int_no_check(Eidos_RandomBool(rng_state) + min_value0, draw_index);
+				}
 			}
 			else
 			{
-				Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
-				
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(mt, count0) + min_value0, draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0, count0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_2)
+				{
+					Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(dynamic, 1024)
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(mt, count0) + min_value0, draw_index);
+				}
 			}
 		}
 	}
@@ -913,19 +956,31 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
-		Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
+		bool saw_error = false;
 		
-		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RDUNIF_3)
 		{
-			int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex(draw_index, nullptr));
-			int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex(draw_index, nullptr));
-			int64_t count = (max_value - min_value) + 1;
+			Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 			
-			if (max_value < min_value)
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
-			
-			int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(mt, count) + min_value, draw_index);
+#pragma omp for schedule(dynamic, 1024)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex((int)draw_index, nullptr));
+				int64_t max_value = (max_singleton ? max_value0 : arg_max->IntAtIndex((int)draw_index, nullptr));
+				int64_t count = (max_value - min_value) + 1;
+				
+				if (max_value < min_value)
+				{
+					saw_error = true;
+					continue;
+				}
+				
+				int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(mt, count) + min_value, draw_index);
+			}
 		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rdunif): function rdunif() requires min <= max." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -1000,14 +1055,14 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 	if (!mu_singleton && (arg_mu_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rexp): function rexp() requires mu to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	if (mu_singleton)
 	{
 		double mu0 = arg_mu->FloatAtIndex(0, nullptr);
 		
 		if (num_draws == 1)
 		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(gsl_ran_exponential(rng, mu0)));
 		}
 		else
@@ -1015,8 +1070,14 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->set_float_no_check(gsl_ran_exponential(rng, mu0), draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, mu0) if(num_draws >= EIDOS_OMPMIN_REXP_1)
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+#pragma omp for schedule(dynamic, 1024)
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					float_result->set_float_no_check(gsl_ran_exponential(rng, mu0), draw_index);
+			}
 		}
 	}
 	else
@@ -1024,11 +1085,17 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(float_result);
 		
-		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, arg_mu) if(num_draws >= EIDOS_OMPMIN_REXP_2)
 		{
-			double mu = arg_mu->FloatAtIndex(draw_index, nullptr);
-			
-			float_result->set_float_no_check(gsl_ran_exponential(rng, mu), draw_index);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+#pragma omp for schedule(dynamic, 1024)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				double mu = arg_mu->FloatAtIndex((int)draw_index, nullptr);
+				
+				float_result->set_float_no_check(gsl_ran_exponential(rng, mu), draw_index);
+			}
 		}
 	}
 	
@@ -1669,8 +1736,6 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 	if (!lambda_singleton && (arg_lambda_count != num_draws))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda to be of length 1 or n." << EidosTerminate(nullptr);
 	
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	// Here we ignore USE_GSL_POISSON and always use the GSL.  This is because we don't know whether lambda (otherwise known as mu) is
 	// small or large, and because we don't know what level of accuracy is demanded by whatever the user is doing with the deviates,
 	// and so forth; it makes sense to just rely on the GSL for maximal accuracy and reliability.
@@ -1684,6 +1749,8 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 		
 		if (num_draws == 1)
 		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gsl_ran_poisson(rng, lambda0)));
 		}
 		else
@@ -1691,8 +1758,14 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				int_result->set_int_no_check(gsl_ran_poisson(rng, lambda0), draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, lambda0) if(num_draws >= EIDOS_OMPMIN_RPOIS_1)
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+#pragma omp for schedule(dynamic, 1024)
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					int_result->set_int_no_check(gsl_ran_poisson(rng, lambda0), draw_index);
+			}
 		}
 	}
 	else
@@ -1700,15 +1773,29 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(int_result);
 		
-		for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+		bool saw_error = false;
+		
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, arg_lambda) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RPOIS_2)
 		{
-			double lambda = arg_lambda->FloatAtIndex(draw_index, nullptr);
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-			if ((lambda <= 0.0) || std::isnan(lambda))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0 (" << EidosStringForFloat(lambda) << " supplied)." << EidosTerminate(nullptr);
-			
-			int_result->set_int_no_check(gsl_ran_poisson(rng, lambda), draw_index);
+#pragma omp for schedule(dynamic, 1024)
+			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+			{
+				double lambda = arg_lambda->FloatAtIndex((int)draw_index, nullptr);
+				
+				if ((lambda <= 0.0) || std::isnan(lambda))
+				{
+					saw_error = true;
+					continue;
+				}
+				
+				int_result->set_int_no_check(gsl_ran_poisson(rng, lambda), draw_index);
+			}
 		}
+		
+		if (saw_error)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rpois): function rpois() requires lambda > 0.0." << EidosTerminate(nullptr);
 	}
 	
 	return result_SP;
@@ -1739,13 +1826,14 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 	
 	double min_value0 = (arg_min_count ? arg_min->FloatAtIndex(0, nullptr) : 0.0);
 	double max_value0 = (arg_max_count ? arg_max->FloatAtIndex(0, nullptr) : 1.0);
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	if (min_singleton && max_singleton && (min_value0 == 0.0) && (max_value0 == 1.0))
 	{
 		// With the default min and max, we can streamline quite a bit
 		if (num_draws == 1)
 		{
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(Eidos_rng_uniform(rng)));
 		}
 		else
@@ -1753,8 +1841,14 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-				float_result->set_float_no_check(Eidos_rng_uniform(rng), draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result) if(num_draws >= EIDOS_OMPMIN_RUNIF_1)
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+#pragma omp for schedule(dynamic, 1024)
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+					float_result->set_float_no_check(Eidos_rng_uniform(rng), draw_index);
+			}
 		}
 	}
 	else
@@ -1768,6 +1862,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			
 			if (num_draws == 1)
 			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
 				result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(Eidos_rng_uniform(rng) * range0 + min_value0));
 			}
 			else
@@ -1775,8 +1871,14 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 				result_SP = EidosValue_SP(float_result);
 				
-				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
-					float_result->set_float_no_check(Eidos_rng_uniform(rng) * range0 + min_value0, draw_index);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, range0, min_value0) if(num_draws >= EIDOS_OMPMIN_RUNIF_2)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(dynamic, 1024)
+					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+						float_result->set_float_no_check(Eidos_rng_uniform(rng) * range0 + min_value0, draw_index);
+				}
 			}
 		}
 		else
@@ -1784,17 +1886,31 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-			for (int draw_index = 0; draw_index < num_draws; ++draw_index)
+			bool saw_error = false;
+			
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RUNIF_3)
 			{
-				double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex(draw_index, nullptr));
-				double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex(draw_index, nullptr));
-				double range = max_value - min_value;
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-				if (range < 0.0)
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << EidosTerminate(nullptr);
-				
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * range + min_value, draw_index);
+#pragma omp for schedule(dynamic, 1024)
+				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
+				{
+					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex((int)draw_index, nullptr));
+					double max_value = (max_singleton ? max_value0 : arg_max->FloatAtIndex((int)draw_index, nullptr));
+					double range = max_value - min_value;
+					
+					if (range < 0.0)
+					{
+						saw_error = true;
+						continue;
+					}
+					
+					float_result->set_float_no_check(Eidos_rng_uniform(rng) * range + min_value, draw_index);
+				}
 			}
+			
+			if (saw_error)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_runif): function runif() requires min < max." << EidosTerminate(nullptr);
 		}
 	}
 	

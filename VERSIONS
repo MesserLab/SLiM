@@ -38,7 +38,7 @@ PARALLEL changes (now in the master branch):
 	create per-thread SparseVector pools to allow high-scalability parallelization of spatial interactions
 	add parallel sorting code - quicksort and mergesort, rather experimental at this point, just early work
 	create per-thread random number generators to allow parallelization of code that involves RNG usage
-	parallelize rnorm() as a test case for thread RNGs
+	parallelize dnorm(), rbinom(), rdunif(), rexp(), rnorm(), rpois(), runif()
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
