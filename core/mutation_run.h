@@ -34,6 +34,10 @@
 #include "eidos_intrusive_ptr.h"
 #include "eidos_object_pool.h"
 
+#ifdef _OPENMP
+#include "eidos_openmp.h"
+#endif
+
 #include <string.h>
 #include <assert.h>
 
@@ -177,6 +181,11 @@ private:
 public:
 	
 	int64_t operation_id_ = 0;		// used to mark the MutationRun objects that have been handled by a global operation
+#ifdef _OPENMP
+	// this lock is used to protect operation_id_ when an operation is being done in parallel
+	// we #ifdef it because we don't want even the stub overhead when running single-threaded
+	omp_lock_t mutrun_LOCK;
+#endif
 	
 	// Allocation and disposal of MutationRun objects should go through these funnels.  The point of this architecture
 	// is to re-use the instances completely.  We don't use EidosObjectPool here because it would construct/destruct the
@@ -257,6 +266,9 @@ public:
 	inline MutationRun(void) : intrusive_ref_count_(0) {		// constructed empty
 #if DEBUG_MUTATION_RUNS
 		gSLiM_ConstructedMutrunCount++;
+#endif
+#ifdef _OPENMP
+		omp_init_lock(&mutrun_LOCK);
 #endif
 	}
 	~MutationRun(void);

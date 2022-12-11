@@ -3355,6 +3355,10 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 // nonWF only:
 void Subpopulation::ReproduceSubpopulation(void)
 {
+	// if there are no reproduction() callbacks active, we can avoid all the work
+	if (registered_reproduction_callbacks_.size() == 0)
+		return;
+	
 	if (species_.RandomizingCallbackOrder())
 	{
 		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);

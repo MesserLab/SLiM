@@ -226,6 +226,10 @@ void Genome::TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p
 
 void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 {
+	// This version of this method can only be used when running single-threaded
+	// (including slim_multi when the caller has decided not to start a thread team).
+	THREAD_SAFETY_CHECK("TallyGenomeMutationReferences() called when multithreaded");
+	
 #if DEBUG
 	if (mutrun_count_ == 0)
 		NullGenomeAccessError();
@@ -281,6 +285,105 @@ void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 		}
 	}
 }
+
+#ifdef _OPENMP
+void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
+{
+	// This version of this method must be used when running multi-threaded
+	
+#if DEBUG
+	if (mutrun_count_ == 0)
+		NullGenomeAccessError();
+#endif
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	
+	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
+	{
+		MutationRun *mutrun = mutruns_[run_index].get();
+		
+		if (mutrun->operation_id_ != p_operation_id)
+		{
+			// We need to protect this operation with a per-mutrun lock because it is
+			// being done in parallel; see Population::TallyMutationReferences_FAST()
+			omp_set_lock(&mutrun->mutrun_LOCK);
+			
+			if (mutrun->operation_id_ == p_operation_id)
+			{
+				// somebody else did the operation for this mutation run before we did
+				omp_unset_lock(&mutrun->mutrun_LOCK);
+				continue;
+			}
+			
+			// change operation_id_ atomically so other threads are guaranteed to see it change
+#pragma omp atomic write
+			mutrun->operation_id_ = p_operation_id;
+			omp_unset_lock(&mutrun->mutrun_LOCK);
+			
+			slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
+			
+			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+			
+			// Do 16 reps
+			while (genome_iter + 16 <= genome_end_iter)
+			{
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+			}
+			
+			// Do 4 reps
+			while (genome_iter + 4 <= genome_end_iter)
+			{
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+			}
+			
+			// Finish off
+			while (genome_iter != genome_end_iter)
+			{
+#pragma omp atomic update
+				*(refcount_block_ptr + (*genome_iter++)) += use_count;
+			}
+		}
+	}
+}
+#endif
 
 void Genome::MakeNull(void)
 {

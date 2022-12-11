@@ -149,6 +149,8 @@ extern int gEidosMaxThreads;
 #define EIDOS_OMPMIN_INTNEIGHCOUNT			10
 #define EIDOS_OMPMIN_TOTNEIGHSTRENGTH		10
 
+#define EIDOS_OMPMIN_MUTTALLY				100000
+
 #else /* ifdef _OPENMP */
 
 // No OpenMP.  This is the "stub header" from the OpenMP 4.5 specification.  I've added "inline" in various spots to

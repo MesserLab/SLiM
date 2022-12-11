@@ -210,6 +210,9 @@ public:
 	
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
 	void TallyGenomeMutationReferences(int64_t p_operation_id);
+#ifdef _OPENMP
+	void TallyGenomeMutationReferences_OMP(int64_t p_operation_id);		// used when doing tallying in parallel
+#endif
 	
 	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method
 	{

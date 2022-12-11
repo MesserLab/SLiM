@@ -61,6 +61,10 @@ MutationRun::~MutationRun(void)
 	if (nonneutral_mutations_)
 		free(nonneutral_mutations_);
 #endif
+	
+#ifdef _OPENMP
+	omp_destroy_lock(&mutrun_LOCK);
+#endif
 }
 
 #ifdef SLIM_MUTRUN_CHECK_LOCKING

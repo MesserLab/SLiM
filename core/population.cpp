@@ -5612,7 +5612,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 			//	FAST CASE: TALLY MUTATIONRUN OBJECTS AS CHUNKS
 			//
 			
-			// Give the core work to our fast worker method; this is mostly for easier performance monitoring
+			// Give the core work to our fast worker method
 			slim_refcount_t total_genome_count = TallyMutationReferences_FAST();
 			
 			// set up the cache info
@@ -5868,41 +5868,103 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	slim_refcount_t total_genome_count = 0;
 	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+#ifdef _OPENMP
+	// Even when running in parallel, we do not necessarily want to do this tallying in
+	// parallel; the speedup is not large even when mutation density is pretty high, and
+	// when mutation density is low it is probably not a win at all.  The logic for
+	// making this choice needs to be improved; perhaps it should be evaluated at runtime.
+	// To support both modes of operation, we have to duplicate the logic below, both
+	// with and without the OMP pragmas, especially since a different version of the
+	// TallyGenomeMutationReferences_OMP() method is used for the two cases.
+	bool tally_in_parallel = true;
+	
+	int registry_size;
+	MutationRegistry(&registry_size);
+	
+	if (registry_size < EIDOS_OMPMIN_MUTTALLY)
+		tally_in_parallel = false;
+	
+	if (!tally_in_parallel)
+#endif
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-		// when the parental generation is active and the child generation is invalid.
-		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-		
-		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
-			// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
-			// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
-			// we can now have null genomes even with autosomes; but it is still worthwhile.
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
+			Subpopulation *subpop = subpop_pair.second;
 			
-			total_genome_count += subpop_genome_count;
-		}
-		else
-		{
-			// When we're modeling non-autosomes, we need to check for null genomes
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
+			// when the parental generation is active and the child generation is invalid.
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
 			{
-				Genome &genome = *subpop_genomes[i];
+				// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
+				// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
+				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
+				// we can now have null genomes even with autosomes; but it is still worthwhile.
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
 				
-				if (!genome.IsNull())
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				// When we're modeling non-autosomes, we need to check for null genomes
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
-					genome.TallyGenomeMutationReferences(operation_id);
-					total_genome_count++;	// count only non-null genomes to determine fixation
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						genome.TallyGenomeMutationReferences(operation_id);
+						total_genome_count++;	// count only non-null genomes to determine fixation
+					}
 				}
 			}
 		}
 	}
+#ifdef _OPENMP
+	else
+	{
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
+			// when the parental generation is active and the child generation is invalid.
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+			{
+				// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
+				// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
+				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
+				// we can now have null genomes even with autosomes; but it is still worthwhile.
+#pragma omp parallel for schedule(dynamic,10) default(none) shared(subpop_genome_count, subpop_genomes, operation_id)
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					subpop_genomes[i]->TallyGenomeMutationReferences_OMP(operation_id);
+				
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				// When we're modeling non-autosomes, we need to check for null genomes
+#pragma omp parallel for schedule(dynamic,10) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) reduction(+: total_genome_count)
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						genome.TallyGenomeMutationReferences_OMP(operation_id);
+						total_genome_count++;	// count only non-null genomes to determine fixation
+					}
+				}
+			}
+		}
+	}
+#endif
 	
 	return total_genome_count;
 }
