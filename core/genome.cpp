@@ -307,16 +307,28 @@ void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
 			// being done in parallel; see Population::TallyMutationReferences_FAST()
 			omp_set_lock(&mutrun->mutrun_LOCK);
 			
-			if (mutrun->operation_id_ == p_operation_id)
+			// The check above might have gotten a stale value.  Now that we have the lock, we
+			// need to check the operation_id_ again atomically, which flushes before reading.
+			int64_t op_id;
+			
+#pragma omp atomic read
+			op_id = mutrun->operation_id_;
+			
+			if (op_id == p_operation_id)
 			{
 				// somebody else did the operation for this mutation run before we did
 				omp_unset_lock(&mutrun->mutrun_LOCK);
 				continue;
 			}
 			
-			// change operation_id_ atomically so other threads are guaranteed to see it change
+			// Change operation_id_ atomically, which flushes after writing.  Other threads
+			// will need to access this atomically to flush as well; that is done above.
 #pragma omp atomic write
 			mutrun->operation_id_ = p_operation_id;
+			
+			// We are now definitively responsible for tallying this mutation run.  We can let go of
+			// the lock now; operation_id_ will ward off other threads, so we don't need to hold
+			// the lock while doing the actual tallying below.
 			omp_unset_lock(&mutrun->mutrun_LOCK);
 			
 			slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
@@ -324,7 +336,9 @@ void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 			
-			// Do 16 reps
+			// Do 16 reps; all updates must be atomic since other threads are tallying into the same
+			// counters.  Note that atomic operations automatically flush on entry and exit, so
+			// other threads are guaranteed to see changes we make to these tallies.
 			while (genome_iter + 16 <= genome_end_iter)
 			{
 #pragma omp atomic update
