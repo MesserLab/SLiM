@@ -5878,11 +5878,25 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	// TallyGenomeMutationReferences_OMP() method is used for the two cases.
 	bool tally_in_parallel = true;
 	
-	int registry_size;
-	MutationRegistry(&registry_size);
-	
-	if (registry_size < EIDOS_OMPMIN_MUTTALLY)
+	if (gEidosMaxThreads < 10)
+	{
+		// Empirically, we need at least ten threads for this to be worthwhile;
+		// the locking and the atomic updates slow things down a whole lot
+		// We could make per-thread refcount blocks that we increment into,
+		// and then do a sum reduction over all of them at the end, to get
+		// rid of the atomic updates, but that seems unlikely to be worth it
 		tally_in_parallel = false;
+	}
+	
+	if (tally_in_parallel)
+	{
+		// Require at least a minimum number of mutations for it to be worthwhile
+		int registry_size;
+		MutationRegistry(&registry_size);
+		
+		if (registry_size < EIDOS_OMPMIN_MUTTALLY)
+			tally_in_parallel = false;
+	}
 	
 	if (!tally_in_parallel)
 #endif
