@@ -760,10 +760,16 @@ public:
 	
 	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
 	{
+#ifdef _OPENMP
+		// When running in parallel, only one thread can update the nonneutral cache; other threads must wait for it to be done
+		omp_set_lock(&mutrun_LOCK);
+#endif
+		
 		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
 		{
 			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
 			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
+#pragma omp atomic write
 			nonneutral_change_validation_ = p_nonneutral_change_counter;
 			
 			switch (p_nonneutral_regime)
@@ -778,6 +784,10 @@ public:
 			recached_run_ = true;
 #endif
 		}
+		
+#ifdef _OPENMP
+		omp_unset_lock(&mutrun_LOCK);
+#endif
 		
 #if DEBUG
 		check_nonneutral_mutation_cache();

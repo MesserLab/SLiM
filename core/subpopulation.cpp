@@ -1517,38 +1517,70 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
-				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
-					double fitness = parent_individuals_[female_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
+					// a separate loop for parallelization of the no-callback case
+#pragma omp parallel for default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness)
+					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 					{
-						if (!mutationEffect_callbacks_exist)
+						double fitness = parent_individuals_[female_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							
+#ifdef SLIMGUI
+							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
-						
+						{
 #ifdef SLIMGUI
-						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
 #endif
+						}
 						
-						fitness *= subpop_fitness_scaling;
+						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+						totalFemaleFitness += fitness;
 					}
-					else
+				}
+				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
+				{
+					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 					{
+						double fitness = parent_individuals_[female_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
+							if (!mutationEffect_callbacks_exist)
+								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(female_index);
+							else if (single_mutationEffect_callback)
+								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(female_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							else
+								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(female_index, p_mutationEffect_callbacks);
+							
+							// multiply in the effects of any fitnessEffect() callbacks
+							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, female_index);
+							
 #ifdef SLIMGUI
-						parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
 #endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
+						else
+						{
+#ifdef SLIMGUI
+							parent_individuals_[female_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						}
+						
+						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+						totalFemaleFitness += fitness;
 					}
-					
-					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFemaleFitness += fitness;
 				}
 			}
 			else
@@ -1693,38 +1725,70 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
-				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
-					double fitness = parent_individuals_[male_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
+					// a separate loop for parallelization of the no-callback case
+#pragma omp parallel for default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness)
+					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 					{
-						if (!mutationEffect_callbacks_exist)
+						double fitness = parent_individuals_[male_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							
+#ifdef SLIMGUI
+							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
-						
+						{
 #ifdef SLIMGUI
-						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
 #endif
+						}
 						
-						fitness *= subpop_fitness_scaling;
+						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+						totalMaleFitness += fitness;
 					}
-					else
+				}
+				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
+				{
+					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 					{
+						double fitness = parent_individuals_[male_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
+							if (!mutationEffect_callbacks_exist)
+								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(male_index);
+							else if (single_mutationEffect_callback)
+								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(male_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							else
+								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(male_index, p_mutationEffect_callbacks);
+							
+							// multiply in the effects of any fitnessEffect() callbacks
+							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, male_index);
+							
 #ifdef SLIMGUI
-						parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
 #endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
+						else
+						{
+#ifdef SLIMGUI
+							parent_individuals_[male_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						}
+						
+						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+						totalMaleFitness += fitness;
 					}
-					
-					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
-					totalMaleFitness += fitness;
 				}
 			}
 			else
@@ -1877,38 +1941,70 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
-				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
-					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
-					
-					if (fitness > 0.0)
+					// a separate loop for parallelization of the no-callback case
+#pragma omp parallel for default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness)
+					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 					{
-						if (!mutationEffect_callbacks_exist)
+						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
 							fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
-						else if (single_mutationEffect_callback)
-							fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							
+#ifdef SLIMGUI
+							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
 						else
-							fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
-						
-						// multiply in the effects of any fitnessEffect() callbacks
-						if (fitnessEffect_callbacks_exist && (fitness > 0.0))
-							fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
-						
+						{
 #ifdef SLIMGUI
-						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
 #endif
+						}
 						
-						fitness *= subpop_fitness_scaling;
+						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+						totalFitness += fitness;
 					}
-					else
+				}
+				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
+				{
+					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 					{
+						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
+						
+						if (fitness > 0.0)
+						{
+							if (!mutationEffect_callbacks_exist)
+								fitness *= FitnessOfParentWithGenomeIndices_NoCallbacks(individual_index);
+							else if (single_mutationEffect_callback)
+								fitness *= FitnessOfParentWithGenomeIndices_SingleCallback(individual_index, p_mutationEffect_callbacks, single_callback_mut_type);
+							else
+								fitness *= FitnessOfParentWithGenomeIndices_Callbacks(individual_index, p_mutationEffect_callbacks);
+							
+							// multiply in the effects of any fitnessEffect() callbacks
+							if (fitnessEffect_callbacks_exist && (fitness > 0.0))
+								fitness *= ApplyFitnessEffectCallbacks(p_fitnessEffect_callbacks, individual_index);
+							
 #ifdef SLIMGUI
-						parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
 #endif
+							
+							fitness *= subpop_fitness_scaling;
+						}
+						else
+						{
+#ifdef SLIMGUI
+							parent_individuals_[individual_index]->cached_unscaled_fitness_ = fitness;
+#endif
+						}
+						
+						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+						totalFitness += fitness;
 					}
-					
-					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
-					totalFitness += fitness;
 				}
 			}
 			else
