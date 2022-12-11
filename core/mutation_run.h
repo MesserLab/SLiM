@@ -760,16 +760,14 @@ public:
 	
 	inline __attribute__((always_inline)) void beginend_nonneutral_pointers(const MutationIndex **p_mutptr_iter, const MutationIndex **p_mutptr_max, int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
 	{
-#ifdef _OPENMP
-		// When running in parallel, only one thread can update the nonneutral cache; other threads must wait for it to be done
-		omp_set_lock(&mutrun_LOCK);
-#endif
-		
 		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
 		{
+			// When running parallel, all nonneutral caches must be validated
+			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
+			THREAD_SAFETY_CHECK("beginend_nonneutral_pointers()");
+			
 			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
 			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately
-#pragma omp atomic write
 			nonneutral_change_validation_ = p_nonneutral_change_counter;
 			
 			switch (p_nonneutral_regime)
@@ -785,10 +783,6 @@ public:
 #endif
 		}
 		
-#ifdef _OPENMP
-		omp_unset_lock(&mutrun_LOCK);
-#endif
-		
 #if DEBUG
 		check_nonneutral_mutation_cache();
 #endif
@@ -797,6 +791,40 @@ public:
 		*p_mutptr_iter = nonneutral_mutations_;
 		*p_mutptr_max = nonneutral_mutations_ + nonneutral_mutations_count_;
 	}
+	
+#ifdef _OPENMP
+	// This is used by Subpopulation::FixNonNeutralCaches_OMP() to validate
+	// these caches; it starts a new task if the nonneutral cache is invalid
+	// This method is called from within a "single" construct.
+	inline __attribute__((always_inline)) void validate_nonneutral_cache(int32_t p_nonneutral_change_counter, int32_t p_nonneutral_regime)
+	{
+		if ((nonneutral_change_validation_ != p_nonneutral_change_counter) || (nonneutral_mutations_count_ == -1))
+		{
+			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
+			// reasons (most notably being a new mutation run that has not yet cached), validate it with an OpenMP task
+			// We set up these variables to prevent ourselves from seeing the cache as invalid again
+			nonneutral_change_validation_ = p_nonneutral_change_counter;
+			nonneutral_mutations_count_ = 0;
+			
+#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+			// PROFILING
+			recached_run_ = true;
+#endif
+			
+			// I tried splitting the below code out into its own non-inline method,
+			// but that seemed to trigger a compiler bug, so here we are.
+#pragma omp task
+			{
+				switch (p_nonneutral_regime)
+				{
+					case 1: cache_nonneutral_mutations_REGIME_1(); break;
+					case 2: cache_nonneutral_mutations_REGIME_2(); break;
+					case 3: cache_nonneutral_mutations_REGIME_3(); break;
+				}
+			}
+		}
+	}
+#endif
 	
 #if defined(SLIMGUI) && (SLIMPROFILING == 1)
 	// PROFILING

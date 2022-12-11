@@ -366,6 +366,9 @@ public:
 	void CheckIndividualIntegrity(void);
 	
 	IndividualSex SexOfIndividual(slim_popsize_t p_individual_index);						// return the sex of the individual at the given index; uses child_generation_valid_
+#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
+	void FixNonNeutralCaches_OMP(void);
+#endif
 	void UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks);	// update fitness values based upon current mutations
 
 	// calculate the fitness of a given individual; the x dominance coeff is used only if the X is modeled

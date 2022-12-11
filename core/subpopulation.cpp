@@ -1211,6 +1211,38 @@ void Subpopulation::SetName(const std::string &p_name)
 	name_ = p_name;
 }
 
+#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
+void Subpopulation::FixNonNeutralCaches_OMP(void)
+{
+	// This is used in the parallel fitness evaluation case to fix caches up front
+	// This is task-based; note the top-level parallel is *not* a parallel for loop!
+#pragma omp parallel default(none)
+	{
+#pragma omp single
+		{
+			int32_t nonneutral_change_counter = species_.nonneutral_change_counter_;
+			int32_t nonneutral_regime = species_.last_nonneutral_regime_;
+			slim_popsize_t genomeCount = parent_subpop_size_ * 2;
+			
+			for (slim_popsize_t genome_index = 0; genome_index < genomeCount; genome_index++)
+			{
+				Genome *genome = parent_genomes_[genome_index];
+				const int32_t mutrun_count = genome->mutrun_count_;
+				
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					MutationRun *mutrun = genome->mutruns_[run_index].get();
+					
+					// This will start a new task if the mutrun needs to validate
+					// its nonneutral cache.  It avoids doing so more than once.
+					mutrun->validate_nonneutral_cache(nonneutral_change_counter, nonneutral_regime);
+				}
+			}
+		}
+	}
+}
+#endif
+
 void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks)
 {
 	const std::map<slim_objectid_t,MutationType*> &mut_types = species_.MutationTypes();
@@ -1520,7 +1552,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
-#pragma omp parallel for default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness)
+					
+#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
+					// we need to fix the nonneutral caches in a separate pass first
+					// because all the correct caches need to get flushed to everyone
+					// before beginning fitness evaluation, for efficiency
+					// beginend_nonneutral_pointers() handles the non-parallel case
+					FixNonNeutralCaches_OMP();
+#endif
+					
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 					{
 						double fitness = parent_individuals_[female_index]->fitness_scaling_;
@@ -1728,7 +1769,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
-#pragma omp parallel for default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness)
+					// note that we rely on the fixup of non-neutral caches done above
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 					{
 						double fitness = parent_individuals_[male_index]->fitness_scaling_;
@@ -1944,7 +1986,16 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
-#pragma omp parallel for default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness)
+					
+#if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
+					// we need to fix the nonneutral caches in a separate pass first
+					// because all the correct caches need to get flushed to everyone
+					// before beginning fitness evaluation, for efficiency
+					// beginend_nonneutral_pointers() handles the non-parallel case
+					FixNonNeutralCaches_OMP();
+#endif
+					
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 					{
 						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
