@@ -52,6 +52,7 @@ development head (in the master branch):
 	add a new build flag: if -D BUILD_LTO=ON is set, link-time optimization is enabled (if the compilers say they support it), for better optimization; if the build then fails, don't use it
 	fix a major performance issue for nearestNeighbors(), nearestNeighborsOfPoint(), and subsetIndividuals() with very large subpopulation size
 	memory usage debugging improvements: add a "vm" option to the usage() function, add a usage() method to Community
+	switch from Quickselect to std::nth_element() for choosing medians when building the k-d tree; might break backward reproducibility in some edge cases
 	
 
 version 4.0.1 (Eidos version 3.0.1):
