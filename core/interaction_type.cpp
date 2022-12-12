@@ -1369,91 +1369,31 @@ inline __attribute__((always_inline)) void swap(SLiM_kdNode *p_x, SLiM_kdNode *p
 // find median for phase 0 (x)
 SLiM_kdNode *InteractionType::FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end)
 {
-	SLiM_kdNode *p, *store, *md = start + (end - start) / 2;	// md is the location where the median will eventually be placed
-	double pivot;
-	
-	while (1)
-	{
-		if (end == start + 1) return start;						// if end==start+1 we have reached the base case of the recursion, so return
-		
-		pivot = md->x[0];										// get a pivot value from md, which is effectively a random guess
-		
-		swap(md, end - 1);										// place the pivot value at the very end of our range
-		for (store = p = start; p < end; p++)					// loop p over our range and partition into values < vs. >= pivot
-		{
-			if (p->x[0] < pivot)								// p is less than the pivot, so store it on the left side
-			{
-				if (p != store)
-					swap(p, store);
-				store++;
-			}
-		}
-		swap(store, end - 1);									// move the pivot value, at end-1, to the end of the store
-		
-		if (store == md)		return md;						// pivot position == median; we happened to choose the median as pivot, so we're done!
-		else if (store > md)	end = store;					// pivot position > median, so look for the median to the left of pivot
-		else					start = store + 1;				// pivot position < median, so look for the median to the right of pivot
-	}
+	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
+	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
+	SLiM_kdNode *mid = start + (end - start) / 2;
+	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[0] < i2.x[0]; });
+	return mid;
 }
 
 // find median for phase 1 (y)
 SLiM_kdNode *InteractionType::FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end)
 {
-	SLiM_kdNode *p, *store, *md = start + (end - start) / 2;
-	double pivot;
-	
-	while (1)
-	{
-		if (end == start + 1) return start;
-		
-		pivot = md->x[1];
-		
-		swap(md, end - 1);
-		for (store = p = start; p < end; p++)
-		{
-			if (p->x[1] < pivot)
-			{
-				if (p != store)
-					swap(p, store);
-				store++;
-			}
-		}
-		swap(store, end - 1);
-		
-		if (store == md)		return md;
-		else if (store > md)	end = store;
-		else					start = store + 1;
-	}
+	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
+	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
+	SLiM_kdNode *mid = start + (end - start) / 2;
+	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[1] < i2.x[1]; });
+	return mid;
 }
 
 // find median for phase 2 (z)
 SLiM_kdNode *InteractionType::FindMedian_p2(SLiM_kdNode *start, SLiM_kdNode *end)
 {
-	SLiM_kdNode *p, *store, *md = start + (end - start) / 2;
-	double pivot;
-	
-	while (1)
-	{
-		if (end == start + 1) return start;
-		
-		pivot = md->x[2];
-		
-		swap(md, end - 1);
-		for (store = p = start; p < end; p++)
-		{
-			if (p->x[2] < pivot)
-			{
-				if (p != store)
-					swap(p, store);
-				store++;
-			}
-		}
-		swap(store, end - 1);
-		
-		if (store == md)		return md;
-		else if (store > md)	end = store;
-		else					start = store + 1;
-	}
+	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
+	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
+	SLiM_kdNode *mid = start + (end - start) / 2;
+	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[2] < i2.x[2]; });
+	return mid;
 }
 
 // make k-d tree recursively for the 1D case for phase 0 (x)
