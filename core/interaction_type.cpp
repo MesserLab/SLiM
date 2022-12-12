@@ -1372,7 +1372,7 @@ SLiM_kdNode *InteractionType::FindMedian_p0(SLiM_kdNode *start, SLiM_kdNode *end
 	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
 	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
 	SLiM_kdNode *mid = start + (end - start) / 2;
-	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[0] < i2.x[0]; });
+	std::nth_element(start, mid, end, [](const SLiM_kdNode &i1, const SLiM_kdNode &i2) { return i1.x[0] < i2.x[0]; });
 	return mid;
 }
 
@@ -1382,7 +1382,7 @@ SLiM_kdNode *InteractionType::FindMedian_p1(SLiM_kdNode *start, SLiM_kdNode *end
 	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
 	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
 	SLiM_kdNode *mid = start + (end - start) / 2;
-	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[1] < i2.x[1]; });
+	std::nth_element(start, mid, end, [](const SLiM_kdNode &i1, const SLiM_kdNode &i2) { return i1.x[1] < i2.x[1]; });
 	return mid;
 }
 
@@ -1392,7 +1392,7 @@ SLiM_kdNode *InteractionType::FindMedian_p2(SLiM_kdNode *start, SLiM_kdNode *end
 	// BCH 12/11/2022: This used to use Quickselect, but we encounterested issues with this hitting
 	// its O(n^2) worst case.  Now we use the STL std::nth_element(), which seems to do better.
 	SLiM_kdNode *mid = start + (end - start) / 2;
-	std::nth_element(start, mid, end, [](SLiM_kdNode &i1, SLiM_kdNode &i2) { return i1.x[2] < i2.x[2]; });
+	std::nth_element(start, mid, end, [](const SLiM_kdNode &i1, const SLiM_kdNode &i2) { return i1.x[2] < i2.x[2]; });
 	return mid;
 }
 
