@@ -381,7 +381,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(dynamic, 1024) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1)
+#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1)
 			for (int value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
@@ -394,7 +394,7 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		bool saw_error = false;
 		
-#pragma omp parallel for schedule(dynamic, 1024) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2)
+#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
 			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
@@ -750,7 +750,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 				{
 					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 					
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 						int_result->set_int_no_check(Eidos_RandomBool(rng_state) ? 1 : 0, draw_index);
 				}
@@ -761,7 +761,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 						int_result->set_int_no_check(gsl_ran_binomial(rng, probability0, size0), draw_index);
 				}
@@ -933,7 +933,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 				{
 					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 					
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 						int_result->set_int_no_check(Eidos_RandomBool(rng_state) + min_value0, draw_index);
 				}
@@ -944,7 +944,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 				{
 					Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 					
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 						int_result->set_int_no_check(Eidos_rng_uniform_int_MT64(mt, count0) + min_value0, draw_index);
 				}
@@ -962,7 +962,7 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 		{
 			Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 			
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
 				int64_t min_value = (min_singleton ? min_value0 : arg_min->IntAtIndex((int)draw_index, nullptr));
@@ -1074,7 +1074,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->set_float_no_check(gsl_ran_exponential(rng, mu0), draw_index);
 			}
@@ -1089,7 +1089,7 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
 				double mu = arg_mu->FloatAtIndex((int)draw_index, nullptr);
@@ -1667,7 +1667,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				float_result->set_float_no_check(gsl_ran_gaussian(rng, sigma0) + mu0, draw_index);
 		}
@@ -1678,7 +1678,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
 				double mu = arg_mu->FloatAtIndex((int)draw_index, nullptr);
@@ -1695,7 +1695,7 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 			for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 			{
 				double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex((int)draw_index, nullptr));
@@ -1762,7 +1762,7 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 					int_result->set_int_no_check(gsl_ran_poisson(rng, lambda0), draw_index);
 			}
@@ -1845,7 +1845,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 					float_result->set_float_no_check(Eidos_rng_uniform(rng), draw_index);
 			}
@@ -1875,7 +1875,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 					for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 						float_result->set_float_no_check(Eidos_rng_uniform(rng) * range0 + min_value0, draw_index);
 				}
@@ -1892,7 +1892,7 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-#pragma omp for schedule(dynamic, 1024)
+#pragma omp for schedule(static)
 				for (int64_t draw_index = 0; draw_index < num_draws; ++draw_index)
 				{
 					double min_value = (min_singleton ? min_value0 : arg_min->FloatAtIndex((int)draw_index, nullptr));
