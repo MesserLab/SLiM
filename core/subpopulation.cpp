@@ -1462,7 +1462,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_F_1)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_F_1)
 				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
 					double fitness = parent_individuals_[female_index]->fitness_scaling_;
@@ -1494,7 +1494,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_F_2)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_F_2)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				}
@@ -1680,7 +1680,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_M_1)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_M_1)
 				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
 					double fitness = parent_individuals_[male_index]->fitness_scaling_;
@@ -1712,7 +1712,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_M_2)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_M_2)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				}
@@ -1900,7 +1900,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_ASEX_1)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_1)
 				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 				{
 					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
@@ -1932,7 +1932,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
-#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_ASEX_2)
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_2)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				}
@@ -3801,7 +3801,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	if (no_callbacks)
 	{
 		// this is the simple case with no callbacks and thus no shuffle buffer
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, survival_buffer, parent_subpop_size_) firstprivate(individual_data) if(parent_subpop_size_ > EIDOS_OMPMIN_SURVIVAL)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, survival_buffer, parent_subpop_size_) firstprivate(individual_data) if(parent_subpop_size_ >= EIDOS_OMPMIN_SURVIVAL)
 		{
 			uint8_t *survival_buf_perthread = survival_buffer;
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
