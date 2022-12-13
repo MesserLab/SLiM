@@ -1462,6 +1462,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_F_1)
 				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 				{
 					double fitness = parent_individuals_[female_index]->fitness_scaling_;
@@ -1493,6 +1494,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_F_2)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 				}
@@ -1678,6 +1680,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_M_1)
 				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 				{
 					double fitness = parent_individuals_[male_index]->fitness_scaling_;
@@ -1709,6 +1712,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_SEX_M_2)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 				}
