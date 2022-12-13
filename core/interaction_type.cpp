@@ -3483,17 +3483,23 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 
 	// Now treat cases according to spatiality
+	bool saw_error = false;
+	
 	if (spatiality_ == 1)
 	{
 		if (spatiality_string_ == "x")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
@@ -3505,13 +3511,17 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "y")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
@@ -3523,18 +3533,22 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "z")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
-				double integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA, periodic_x);
+				double integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA, periodic_z);
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
@@ -3544,13 +3558,17 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "xy")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
@@ -3563,13 +3581,17 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "xz")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
@@ -3582,13 +3604,17 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "yz")
 		{
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
 				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
 				if (receiver_index_in_subpop < 0)
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+				{
+					saw_error = true;
+					continue;
+				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
@@ -3604,6 +3630,10 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		// FIXME
 	}
+	
+	// deferred raises, for OpenMP compatibility
+	if (saw_error)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 	
 	return EidosValue_SP(float_result);
 }
@@ -4219,7 +4249,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	// note that we pass our own parameters through to clippedIntegral()!  So our APIs need to be the same!
 	// Actually, we now have an extra parameter, exerterSubpop(), compared to clippedIntegral(); but we
 	// do not need it to use that parameter (because we require identical bounds above), so it's OK.
-	EidosValue_SP clipped_integrals = ExecuteMethod_clippedIntegral(p_method_id, p_arguments, p_interpreter);
+	EidosValue_SP clipped_integrals_SP = ExecuteMethod_clippedIntegral(p_method_id, p_arguments, p_interpreter);
+	EidosValue *clipped_integrals = clipped_integrals_SP.get();
 	
 	if (receivers_count == 1)
 	{
@@ -4263,18 +4294,26 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	{
 		// Loop over the requested individuals and get the totals
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+		bool saw_error_1 = false, saw_error_2 = false;
 		
+#pragma omp parallel for schedule(dynamic) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
 			slim_popsize_t receiver_index_in_subpop = receiver->index_;
 			
 			if (receiver_index_in_subpop < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			{
+				saw_error_1 = true;
+				continue;
+			}
 			
 			// SPECIES CONSISTENCY CHECK
 			if (receiver_subpop != receiver->subpopulation_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			{
+				saw_error_2 = true;
+				continue;
+			}
 			
 			// Check sex-specificity for the receiver; if the individual is disqualified, the local density of interacters is zero
 			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
@@ -4309,6 +4348,12 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			
 			FreeSparseVector(sv);
 		}
+		
+		// deferred raises, for OpenMP compatibility
+		if (saw_error_1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		if (saw_error_2)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
