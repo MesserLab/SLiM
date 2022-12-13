@@ -1549,6 +1549,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
+				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
@@ -1766,6 +1767,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
+				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
@@ -1894,6 +1896,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_ASEX_1)
 				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 				{
 					double fitness = parent_individuals_[individual_index]->fitness_scaling_;
@@ -1925,6 +1928,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+#pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ > EIDOS_OMPMIN_FITNESS_ASEX_2)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 				}
@@ -1983,6 +1987,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (!needs_shuffle)
 			{
+				// FIXME should have some additional criterion for whether to go parallel with this, like the number of mutations
 				if (!mutationEffect_callbacks_exist && !fitnessEffect_callbacks_exist)
 				{
 					// a separate loop for parallelization of the no-callback case
@@ -3789,28 +3794,34 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	}
 	
 	// pre-plan mortality; this avoids issues with callbacks accessing the subpop state while buffers are being modified
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	if (no_callbacks)
 	{
 		// this is the simple case with no callbacks and thus no shuffle buffer
-		for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, survival_buffer, parent_subpop_size_) firstprivate(individual_data) if(parent_subpop_size_ > EIDOS_OMPMIN_SURVIVAL)
 		{
-			Individual *individual = individual_data[individual_index];
-			double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
-			uint8_t survived;
+			uint8_t *survival_buf_perthread = survival_buffer;
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
-			if (fitness <= 0.0)			survived = false;
-			else if (fitness >= 1.0)	survived = true;
-			else						survived = (Eidos_rng_uniform(rng) < fitness);
-			
-			survival_buffer[individual_index] = survived;
+#pragma omp for schedule(dynamic, 100)
+			for (int individual_index = 0; individual_index < parent_subpop_size_; ++individual_index)
+			{
+				Individual *individual = individual_data[individual_index];
+				double fitness = individual->cached_fitness_UNSAFE_;	// never overridden in nonWF models, so this is safe with no check
+				uint8_t survived;
+				
+				if (fitness <= 0.0)			survived = false;
+				else if (fitness >= 1.0)	survived = true;
+				else						survived = (Eidos_rng_uniform(rng) < fitness);
+				
+				survival_buf_perthread[individual_index] = survived;
+			}
 		}
 	}
 	else
 	{
 		// this is the complex case with callbacks, and therefore a shuffle buffer to randomize processing order
 		slim_popsize_t *shuffle_buf = species_.BorrowShuffleBuffer(parent_subpop_size_);
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 		
 		for (slim_popsize_t shuffle_index = 0; shuffle_index < parent_subpop_size_; shuffle_index++)
 		{
@@ -3912,8 +3923,12 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 void Subpopulation::IncrementIndividualAges(void)
 {
 	// Loop through our individuals and increment all their ages by one
-	for (Individual *individual : parent_individuals_)
-		individual->age_++;
+	std::vector<Individual *> &parents = parent_individuals_;
+	size_t parent_count = parents.size();
+	
+#pragma omp parallel for schedule(static) default(none) shared(parent_count) firstprivate(parents) if(parent_count >= EIDOS_OMPMIN_AGEINC)
+	for (size_t parent_index = 0; parent_index < parent_count; ++parent_index)
+		(parents[parent_index]->age_)++;
 }
 
 size_t Subpopulation::MemoryUsageForParentTables(void)

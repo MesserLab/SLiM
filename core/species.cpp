@@ -2349,8 +2349,15 @@ void Species::nonWF_MergeOffspring(void)
 	
 	// clear the "migrant" property on all individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-		for (Individual *individual : subpop_pair.second->parent_individuals_)
-			individual->migrant_ = false;
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		std::vector<Individual *> &parents = subpop->parent_individuals_;
+		size_t parent_count = parents.size();
+		
+#pragma omp parallel for schedule(static) default(none) shared(parent_count) firstprivate(parents)  if(parent_count > EIDOS_OMPMIN_MIGRANTCLEAR)
+		for (size_t parent_index = 0; parent_index < parent_count; ++parent_index)
+			parents[parent_index]->migrant_ = false;
+	}
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
 	population_.cached_tally_genome_count_ = 0;

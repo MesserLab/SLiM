@@ -41,6 +41,9 @@ PARALLEL changes (now in the master branch):
 	parallelize dnorm(), rbinom(), rdunif(), rexp(), rnorm(), rpois(), runif()
 	parallelize tallying mutation refcounts, for the optimized fast case
 	parallelize fitness evaluation for mutations, when there are no mutationEffect() or fitnessEffect() callbacks
+	parallelize non-mutation fitness evaluation (asexual only, for now)
+	parallelize some minor tick cycle bookkeeping: incrementing individual ages, clearing the migrant flag
+	parallelize the viability/survival tick cycle stage's survival evaluation (without callbacks)
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
