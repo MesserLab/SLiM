@@ -4774,7 +4774,7 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 			case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
 			case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
 			case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
-			default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): (internal error) unsupported spatiality" << EidosTerminate();
+			default: neighborCount = 0; break;	// unsupported value
 		}
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
@@ -4782,18 +4782,26 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 	else
 	{
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
+		bool saw_error_1 = false, saw_error_2 = false;
 		
+#pragma omp parallel for schedule(dynamic, 10) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEIGHCOUNT)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
 			slim_popsize_t receiver_index_in_subpop = receiver->index_;
 			
 			if (receiver_index_in_subpop < 0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+			{
+				saw_error_1 = true;
+				continue;
+			}
 			
 			// SPECIES CONSISTENCY CHECK
 			if (receiver_subpop != receiver->subpopulation_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			{
+				saw_error_2 = true;
+				continue;
+			}
 			
 			// Find the neighbors
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
@@ -4805,11 +4813,17 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 				case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
 				case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
 				case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
-				default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): (internal error) unsupported spatiality" << EidosTerminate();
+				default: neighborCount = 0; break;	// unsupported value
 			}
 			
 			result_vec->set_int_no_check(neighborCount, receiver_index);
 		}
+		
+		// deferred raises, for OpenMP compatibility
+		if (saw_error_1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+		if (saw_error_2)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}

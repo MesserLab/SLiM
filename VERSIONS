@@ -44,7 +44,7 @@ PARALLEL changes (now in the master branch):
 	parallelize non-mutation-based fitness evaluation (i.e., only fitnessScaling values)
 	parallelize some minor tick cycle bookkeeping: incrementing individual ages, clearing the migrant flag
 	parallelize the viability/survival tick cycle stage's survival evaluation (without callbacks)
-	parallelize localPopulationDensity() and clippedIntegral()
+	parallelize localPopulationDensity(), clippedIntegral(), and neighborCount()
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
