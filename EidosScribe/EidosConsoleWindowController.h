@@ -82,6 +82,8 @@ extern NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey;
 - (void)showWindow;
 - (void)hideWindow;
 
+- (void)displayStartupMessage;
+
 // Tell the controller that the console window should be disposed of, not just closed; breaks retain loops
 - (void)cleanup;
 

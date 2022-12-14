@@ -187,8 +187,6 @@ void Eidos_SetRNGSeed(unsigned long int p_seed)
 	
 	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
 		_Eidos_SetOneRNGSeed(gEidos_RNG_PERTHREAD[threadnum], p_seed + threadnum * threadnum * o);
-	
-	gEidos_RNG_PERTHREAD.resize(0);
 #endif
 }
 

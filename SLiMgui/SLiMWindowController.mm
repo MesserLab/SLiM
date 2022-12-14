@@ -241,7 +241,14 @@
 	
 	if (sim_RNG_initialized)
 	{
-		_Eidos_FreeOneRNG(sim_RNG);
+#ifndef _OPENMP
+		_Eidos_FreeOneRNG(sim_RNG_SINGLE);
+#else
+		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+			_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+		
+		sim_RNG_PERTHREAD.resize(0);
+#endif
 		sim_RNG_initialized = false;
 	}
 	
@@ -350,6 +357,27 @@
 		[browserButton setState:NSOffState];
 }
 
+- (void)displayStartupMessage
+{
+	NSDictionary *statusAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor textColor] size:11.0];
+	NSString *statusString = [NSString stringWithFormat:@"SLiM %s, %@ build.", SLIM_VERSION_STRING,
+#if DEBUG
+							  @"debug"
+#else
+							  @"release"
+#endif
+							  ];
+	
+#ifdef _OPENMP
+	statusString = [statusString stringByAppendingFormat:@"  Running SLiM in parallel with %d threads.", gEidosMaxThreads];
+#endif
+	
+	NSMutableAttributedString *statusAttrString = [[[NSMutableAttributedString alloc] initWithString:statusString attributes:statusAttrs] autorelease];
+	
+	[statusAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [statusAttrString length])];
+	[scriptStatusTextField setAttributedStringValue:statusAttrString];
+}
+
 - (void)showTerminationMessage:(NSString *)terminationMessage
 {
 	NSAlert *alert = [[NSAlert alloc] init];
@@ -396,7 +424,14 @@
 		
 		if (sim_RNG_initialized)
 		{
-			_Eidos_FreeOneRNG(sim_RNG);
+#ifndef _OPENMP
+			_Eidos_FreeOneRNG(sim_RNG_SINGLE);
+#else
+			for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+				_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+			
+			sim_RNG_PERTHREAD.resize(0);
+#endif
 			sim_RNG_initialized = false;
 		}
 		
@@ -422,11 +457,25 @@
 	// Free the old simulation RNG and make a new one, to have clean state
 	if (sim_RNG_initialized)
 	{
-		_Eidos_FreeOneRNG(sim_RNG);
+#ifndef _OPENMP
+		_Eidos_FreeOneRNG(sim_RNG_SINGLE);
+#else
+		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+			_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+		
+		sim_RNG_PERTHREAD.resize(0);
+#endif
 		sim_RNG_initialized = false;
 	}
 	
-	_Eidos_InitializeOneRNG(sim_RNG);
+#ifndef _OPENMP
+	_Eidos_InitializeOneRNG(sim_RNG_SINGLE);
+#else
+	sim_RNG_PERTHREAD.resize(gEidosMaxThreads);
+	
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		_Eidos_InitializeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+#endif
 	sim_RNG_initialized = true;
 	
 	// The Eidos RNG may be set up already; if so, get rid of it.  When we are not running, we keep the
@@ -434,12 +483,22 @@
 	// use it when we have not swapped in our own RNG.
 	if (gEidos_RNG_Initialized)
 	{
+#ifndef _OPENMP
 		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
+#else
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
 		gEidos_RNG_Initialized = false;
 	}
 	
 	// Swap in our RNG
-	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+#ifndef _OPENMP
+	std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
+#else
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	std::istringstream infile([scriptString UTF8String]);
@@ -450,7 +509,12 @@
 		community->InitializeRNGFromSeed(nullptr);
 		
 		// Swap out our RNG
-		std::swap(sim_RNG, gEidos_RNG_SINGLE);
+#ifndef _OPENMP
+		std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
+#else
+		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+			std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
 		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 		
 		// We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
@@ -3866,7 +3930,12 @@ static int DisplayDigitsForIntegerPart(double x)
 	if (gEidos_RNG_Initialized)
 		NSLog(@"eidosConsoleWindowControllerWillExecuteScript: gEidos_rng already set up!");
 	
-	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+#ifndef _OPENMP
+	std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
+#else
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	// We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
@@ -3885,7 +3954,12 @@ static int DisplayDigitsForIntegerPart(double x)
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
 	// Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
-	std::swap(sim_RNG, gEidos_RNG_SINGLE);
+#ifndef _OPENMP
+	std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
+#else
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
 	
 	// Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript

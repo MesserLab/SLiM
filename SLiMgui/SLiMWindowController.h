@@ -52,7 +52,11 @@ class Community;
 	
 	// state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	bool sim_RNG_initialized;
-	Eidos_RNG_State sim_RNG;
+#ifndef _OPENMP
+	Eidos_RNG_State sim_RNG_SINGLE;
+#else
+	std::vector<Eidos_RNG_State> sim_RNG_PERTHREAD;
+#endif
 	slim_pedigreeid_t sim_next_pedigree_id;
 	slim_mutationid_t sim_next_mutation_id;
 	bool sim_suppress_warnings;
@@ -216,6 +220,8 @@ class Community;
 - (NSColor *)colorForGenomicElementType:(GenomicElementType *)elementType withID:(slim_objectid_t)elementTypeID;
 
 - (void)updateRecycleHighlightForChangeCount:(int)changeCount;
+
+- (void)displayStartupMessage;
 
 
 //

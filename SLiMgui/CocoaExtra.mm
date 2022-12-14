@@ -567,7 +567,9 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		
 		_Eidos_SetOneRNGSeed(local_rng, 10);		// arbitrary seed, but the same seed every time
 		
-		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap in our local RNG for DrawSelectionCoefficient()
+		Eidos_RNG_State *slim_rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+		
+		std::swap(local_rng, *slim_rng_state);	// swap in our local RNG for DrawSelectionCoefficient()
 		
 		//std::clock_t start = std::clock();
 		
@@ -592,7 +594,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 		
 		//NSLog(@"Draws took %f seconds", (std::clock() - start) / (double)CLOCKS_PER_SEC);
 		
-		std::swap(local_rng, gEidos_RNG_SINGLE);	// swap out our local RNG; restore the standard RNG
+		std::swap(local_rng, *slim_rng_state);	// swap out our local RNG; restore the standard RNG
 		
 		// figure out axis limits
 		if (draw_negative && !draw_positive)

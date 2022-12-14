@@ -31,10 +31,6 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#ifdef _OPENMP
-#error Building SLiMguiLegacy to run in parallel is not currently supported.
-#endif
-
 
 // User defaults keys
 NSString *defaultsLaunchActionKey = @"LaunchAction";
@@ -223,10 +219,11 @@ typedef enum SLiMLaunchAction
 	
 	// Warm up our back ends before anything else happens, including our own class objects
 #ifdef _OPENMP
-	// Right now SLiMguiLegacy is set to be single-threaded; multithreading in the GUI doesn't seem to work well, because the threads
-	// have to sleep when inactive, which seems to completely kill the performance – it ends up slower than single-threaded
-	// BCH 4 August 2020: Note that building the GUI apps multithreaded is disallowed, with #error directives, so this is dead code
-	Eidos_WarmUpOpenMP(&std::cout, true, 1, false);								// single-threaded, let threads sleep
+	// Multithreading in SLiMguiLegacy is not for end user use; this is for testing/debugging only.
+	// We always use 4 threads; we don't want to hog the whole machine, just run with a couple threads.
+	// We pass false for active_threads to let the worker threads sleep, otherwise the CPU is pegged
+	// the whole time SLiMgui is running, even when sitting idle.
+	Eidos_WarmUpOpenMP(&std::cout, true, 4, false);
 #endif
 	
 	Eidos_WarmUp();
@@ -312,6 +309,7 @@ typedef enum SLiMLaunchAction
 		SLiMDocument *doc = [[NSDocumentController sharedDocumentController] openUntitledDocumentAndDisplay:YES error:NULL];
 		
 		[doc setTransient:YES];
+		[[doc slimWindowController] displayStartupMessage];
 	}
 }
 

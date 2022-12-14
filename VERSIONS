@@ -25,6 +25,7 @@ PARALLEL changes (now in the master branch):
 		added "-fno-math-errno" to the project-level Other C++ Flags, to match the main project
 		added $(OTHER_CPLUSPLUSFLAGS) to that build setting for slim_multi and eidos_multi, to inherit from the project's settings
 		require 10.13 or later for eidos_multi and slim_multi, since that's the macOS version that the R libomp packages target
+		added SLiMguiLegacy_multi and EidosScribe_multi targets/schemes to the project for debugging/testing purposes; not intended for end users!
 	modify CMakeLists.txt to add a "PARALLEL" flag that can be set to "ON" to enable OpenMP with the -fopenmp flag
 	modify CMakeLists.txt to add /usr/local/include to all targets (through GSL_INCLUDES, which should maybe get cleaned up somehow)
 	modify CMakeLists.txt to build executables eidos_multi and slim_multi when PARALLEL is ON, and to link in libomp

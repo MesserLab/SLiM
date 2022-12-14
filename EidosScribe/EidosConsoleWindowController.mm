@@ -168,6 +168,27 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 	[scriptWindow performClose:nil];
 }
 
+- (void)displayStartupMessage
+{
+	NSDictionary *statusAttrs = [NSDictionary eidosTextAttributesWithColor:[NSColor textColor] size:11.0];
+	NSString *statusString = [NSString stringWithFormat:@"Eidos %s, %@ build.", EIDOS_VERSION_STRING,
+#if DEBUG
+							  @"debug"
+#else
+							  @"release"
+#endif
+							  ];
+	
+#ifdef _OPENMP
+	statusString = [statusString stringByAppendingFormat:@"  Running Eidos in parallel with %d threads.", gEidosMaxThreads];
+#endif
+	
+	NSMutableAttributedString *statusAttrString = [[[NSMutableAttributedString alloc] initWithString:statusString attributes:statusAttrs] autorelease];
+	
+	[statusAttrString addAttribute:NSBaselineOffsetAttributeName value:[NSNumber numberWithFloat:2.0] range:NSMakeRange(0, [statusAttrString length])];
+	[statusTextField setAttributedStringValue:statusAttrString];
+}
+
 - (void)cleanup
 {
 	delete global_symbols;
