@@ -699,6 +699,47 @@ EidosValue_SP Eidos_ExecuteFunction_ls(__attribute__((unused)) const std::vector
 	return gStaticEidosValueVOID;
 }
 
+//	(integer$)parallelGetNumThreads(void)
+EidosValue_SP Eidos_ExecuteFunction_parallelGetNumThreads(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidosNumThreads));
+	
+	return result_SP;
+}
+
+//	(integer$)parallelGetMaxThreads(void)
+EidosValue_SP Eidos_ExecuteFunction_parallelGetMaxThreads(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidosMaxThreads));
+	
+	return result_SP;
+}
+
+//	(void)parallelSetNumThreads([Ni$ numThreads = NULL])
+EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+	EidosValue *numThreads_value = p_arguments[0].get();
+	
+	int64_t numThreads = gEidosMaxThreads;		// the default value, used for NULL
+	
+	if (numThreads_value->Type() == EidosValueType::kValueInt)
+		numThreads = numThreads_value->IntAtIndex(0, nullptr);
+	
+	if (numThreads < 1)
+		numThreads = 1;
+	if (numThreads > gEidosMaxThreads)
+		numThreads = gEidosMaxThreads;
+	
+	gEidosNumThreads = (int)numThreads;
+	omp_set_num_threads((int)numThreads);
+	
+	return gStaticEidosValueVOID;
+}
+
 //	(void)rm([Ns variableNames = NULL])		// [logical$ removeConstants = F] removed in SLiM 4
 EidosValue_SP Eidos_ExecuteFunction_rm(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {

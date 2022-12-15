@@ -74,6 +74,11 @@
 // be using (maximum) in parallel regions.  This can be used to preallocate per-thread data structures.
 extern int gEidosMaxThreads;
 
+// This is the number of threads that will be used in the next parallel region to execute, as set by the Eidos
+// function parallelSetNumThreads().  This will generally be equal to omp_get_max_threads().  It will be clamped
+// to the interval [1, gEidosMaxThreads].
+extern int gEidosNumThreads;
+
 
 // We want to use SIGTRAP to catch problems in the debugger in a few key spots, but it doesn't exist on Windows.
 // So we will just define SIGTRAP to be SIGABRT instead; SIGABRT is supported on Windows.

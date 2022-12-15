@@ -91,6 +91,7 @@
 
 // declared in eidos_openmp.h, set in Eidos_WarmUpOpenMP() when parallel
 int gEidosMaxThreads = 1;
+int gEidosNumThreads = 1;
 
 
 // Require 64-bit; apparently there are some issues on 32-bit, and nobody should be doing that anyway
@@ -248,6 +249,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	
 	// Get the maximum number of threads in effect, which might be different from the number requested
 	gEidosMaxThreads = omp_get_max_threads();
+	gEidosNumThreads = gEidosMaxThreads;
 	
 	// Write some diagnostic output about our configuration.  If the verbosity level is 0, outstream will be nullptr.
 	if (outstream)

@@ -180,7 +180,7 @@ NSString *EidosDefaultsSuppressScriptCheckSuccessPanelKey = @"EidosSuppressScrip
 							  ];
 	
 #ifdef _OPENMP
-	statusString = [statusString stringByAppendingFormat:@"  Running Eidos in parallel with %d threads.", gEidosMaxThreads];
+	statusString = [statusString stringByAppendingFormat:@"  Running Eidos in parallel with %d threads maximum.", gEidosMaxThreads];
 #endif
 	
 	NSMutableAttributedString *statusAttrString = [[[NSMutableAttributedString alloc] initWithString:statusString attributes:statusAttrs] autorelease];

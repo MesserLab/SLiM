@@ -5878,7 +5878,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	// TallyGenomeMutationReferences_OMP() method is used for the two cases.
 	bool tally_in_parallel = true;
 	
-	if (gEidosMaxThreads < 10)
+	if (gEidosNumThreads < 10)
 	{
 		// Empirically, we need at least ten threads for this to be worthwhile;
 		// the locking and the atomic updates slow things down a whole lot

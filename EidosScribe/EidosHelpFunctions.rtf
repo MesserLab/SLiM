@@ -5693,6 +5693,49 @@ Returns a
 \f3\fs20  to request full information on the current symbol table chain.  This will show which symbol table a given symbol is defined in, as well as revealing whether there are other symbols with the same name that have been masked by a local definition.  This is mostly useful for debugging.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f1\fs18 \cf2 (integer$)parallelGetNumThreads(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Gets the number of threads
+\f3\b0  that will be used in subsequent parallel (i.e., multithreaded) regions, as set with 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20 .  If Eidos is not configured to run multithreaded, this function will return 
+\f1\fs18 1
+\f3\fs20 .  See also 
+\f1\fs18 parallelGetMaxThreads()
+\f3\fs20 , which returns the maximum number of threads that can be used.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (integer$)parallelGetMaxThreads(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Gets the maximum number of threads
+\f3\b0  that can be used in parallel (i.e., multithreaded) regions.  This is configured externally; it may be OpenMP\'92s default number of threads for the hardware platform being used, or may be set by an environment variable or command-line option).  If Eidos is not configured to run multithreaded, this function will return 
+\f1\fs18 1
+\f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)parallelSetNumThreads([Ni$\'a0numThreads\'a0=\'a0NULL])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Sets the number of threads
+\f3\b0  that will be used in subsequent parallel (i.e., multithreaded) regions.  If Eidos is not configured to run multithreaded, this function will have no effect.  The requested number of threads will be clamped to the interval [
+\f1\fs18 1
+\f3\fs20 , 
+\f1\fs18 maxThreads
+\f3\fs20 ], where 
+\f1\fs18 maxThreads
+\f3\fs20  is the maximum number of threads configured externally (either by OpenMP\'92s default, or by an environment variable or command-line option).  The maximum number of threads (the value of 
+\f1\fs18 maxThreads
+\f3\fs20 ) can be obtained from 
+\f1\fs18 parallelGetMaxThreads()
+\f3\fs20 .  Passing 
+\f1\fs18 NULL
+\f3\fs20  (the default) is equivalent to passing 
+\f1\fs18 maxThreads
+\f3\fs20 , and thus can be used to easily reset Eidos to the number of threads for which it is configured to run.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
