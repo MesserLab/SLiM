@@ -15,7 +15,7 @@ R"V0G0N(
 // random data.  These tests are thus complementary to those in eidos_test.cpp.
 
 // Note that this test file gets subdivided and run in chunks; this improves error reporting.  See
-// _RunUserDefinedFunctionTests() in eidos_test.cpp.
+// _RunUserDefinedFunctionTests() in eidos_test_functions_other.cpp.
 
 // ***********************************************************************************************
 

@@ -48,6 +48,7 @@ PARALLEL changes (now in the master branch):
 	parallelize localPopulationDensity(), clippedIntegral(), and neighborCount()
 	add gEidosNumThreads global that has the currently requested number of threads (usually equal to gEidosMaxThreads)
 	add functions to Eidos to support parallel execution: parallelGetNumThreads(), parallelGetMaxThreads(), and parallelSetNumThreads()
+	add unit tests for parallelized functions in Eidos, comparing against the same functions non-parallel
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

@@ -1520,17 +1520,46 @@ void _RunUserDefinedFunctionTests(void)
 	const std::string &builtins_test_string =
 #include "eidos_test_builtins.h"
 	;
-	std::vector<std::string> test_strings = Eidos_string_split(builtins_test_string, "// ***********************************************************************************************");
-	
-	//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
 	{
-		for (std::string &test_string : test_strings)
+		std::vector<std::string> test_strings = Eidos_string_split(builtins_test_string, "// ***********************************************************************************************");
+		
+		//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
 		{
-			std::string test_string_fixed = test_string + "\nreturn T;\n";
-			
-			EidosAssertScriptSuccess_L(test_string_fixed, true);
+			for (std::string &test_string : test_strings)
+			{
+				std::string test_string_fixed = test_string + "\nreturn T;\n";
+				
+				EidosAssertScriptSuccess_L(test_string_fixed, true);
+			}
 		}
 	}
+	
+	// Tests of parallelization of Eidos functions; this is here just because the above test is here
+#ifdef _OPENMP
+	const std::string &parallelization_test_string =
+#include "eidos_test_parallel.h"
+	;
+	{
+		std::vector<std::string> test_strings = Eidos_string_split(parallelization_test_string, "// ***********************************************************************************************");
+		
+		//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
+		{
+			for (std::string &test_string : test_strings)
+			{
+				std::string test_string_fixed = test_string + "\nreturn T;\n";
+				
+				// Note that we ensure that we are using the maximum number of threads at start & end
+				gEidosNumThreads = gEidosMaxThreads;
+				omp_set_num_threads(gEidosMaxThreads);
+				
+				EidosAssertScriptSuccess_L(test_string_fixed, true);
+				
+				gEidosNumThreads = gEidosMaxThreads;
+				omp_set_num_threads(gEidosMaxThreads);
+			}
+		}
+	}
+#endif
 }
 
 #pragma mark void EidosValue

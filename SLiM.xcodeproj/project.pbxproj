@@ -1471,6 +1471,7 @@
 		982B50C52704048E006E91BC /* nbinomial.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nbinomial.c; sourceTree = "<group>"; };
 		98321F921B406B67007337A3 /* eidos_globals.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_globals.cpp; sourceTree = "<group>"; };
 		98321F931B406B67007337A3 /* eidos_globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_globals.h; sourceTree = "<group>"; };
+		98330C48294AB34300B452E2 /* eidos_test_parallel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_test_parallel.h; sourceTree = "<group>"; };
 		98332A9D1FDB98ED00274FF0 /* mvgauss.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mvgauss.c; sourceTree = "<group>"; };
 		98332AA51FDB997E00274FF0 /* gsl_matrix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_matrix.h; path = matrix/gsl_matrix.h; sourceTree = "<group>"; };
 		98332AA71FDB99AA00274FF0 /* gsl_vector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_vector.h; path = vector/gsl_vector.h; sourceTree = "<group>"; };
@@ -2035,6 +2036,7 @@
 				985F3EFB24BA2F1500E712E0 /* eidos_test_functions_vector.cpp */,
 				985F3EF124BA2A8C00E712E0 /* eidos_test_functions_other.cpp */,
 				98D2C3B21F91C56E00E5EB3A /* eidos_test_builtins.h */,
+				98330C48294AB34300B452E2 /* eidos_test_parallel.h */,
 			);
 			name = "unit tests";
 			sourceTree = "<group>";
