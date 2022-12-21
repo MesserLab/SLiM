@@ -471,7 +471,11 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	THREAD_SAFETY_CHECK("Species::_InitializePopulationFromTextFile(): SLiM global state read");
 	
 	slim_tick_t file_tick, file_cycle;
-	std::map<slim_polymorphismid_t,MutationIndex> mutations;
+#if EIDOS_ROBIN_HOOD_HASHING
+	robin_hood::unordered_flat_map<slim_polymorphismid_t,MutationIndex> mutations;
+#elif STD_UNORDERED_MAP_HASHING
+	std::unordered_map<slim_polymorphismid_t,MutationIndex> mutations;
+#endif
 	std::string line, sub; 
 	std::ifstream infile(p_file);
 	int age_output_count = 0;

@@ -61,6 +61,7 @@ development head (in the master branch):
 	fix a major performance issue for nearestNeighbors(), nearestNeighborsOfPoint(), and subsetIndividuals() with very large subpopulation size
 	memory usage debugging improvements: add a "vm" option to the usage() function, add a usage() method to Community
 	switch from Quickselect to std::nth_element() for choosing medians when building the k-d tree; might break backward reproducibility in some edge cases
+	improve performance of reading text SLiM-format population files, as produced by outputFull()
 	
 
 version 4.0.1 (Eidos version 3.0.1):
