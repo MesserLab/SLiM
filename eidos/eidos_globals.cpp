@@ -628,7 +628,9 @@ std::ostringstream gEidosTermination;
 bool gEidosTerminated;
 
 
-/** Print a demangled stack backtrace of the caller function to FILE* out. */
+// Print a demangled stack backtrace of the caller function to FILE* out.
+// Note that in Cocoa this works better: NSLog(@"%@", NSThread.callStackSymbols);
+// For a shortened backtrace: NSLog(@"%@", [NSThread.callStackSymbols subarrayWithRange:NSMakeRange(0, MIN(5UL, NSThread.callStackSymbols.count))]);
 void Eidos_PrintStacktrace(FILE *p_out, unsigned int p_max_frames)
 {
 	fprintf(p_out, "stack trace:\n");

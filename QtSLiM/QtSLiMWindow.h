@@ -73,7 +73,7 @@ private:
     
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	bool sim_RNG_initialized = false;
-    Eidos_RNG_State sim_RNG;
+    Eidos_RNG_State sim_RNG;                // QtSLiM never runs multithreaded, so we do not need the _PERTHREAD variant here
     slim_pedigreeid_t sim_next_pedigree_id = 0;
     slim_mutationid_t sim_next_mutation_id = 0;
     bool sim_suppress_warnings = false;

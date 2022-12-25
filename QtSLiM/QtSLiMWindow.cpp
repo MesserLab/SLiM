@@ -1784,6 +1784,10 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
     }
     catch (...)
     {
+        // BCH 12/25/2022: adding this to swap out our RNG after a raise, seems better...
+		std::swap(sim_RNG, gEidos_RNG_SINGLE);
+		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+        
         if (community)
             community->simulation_valid_ = false;
         setReachedSimulationEnd(true);

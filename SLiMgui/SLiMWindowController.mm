@@ -250,6 +250,7 @@
 		sim_RNG_PERTHREAD.resize(0);
 #endif
 		sim_RNG_initialized = false;
+		//NSLog(@"-[SLiMWindowController cleanup]: freed sim_RNG");
 	}
 	
 	[self setInvalidSimulation:YES];
@@ -433,6 +434,7 @@
 			sim_RNG_PERTHREAD.resize(0);
 #endif
 			sim_RNG_initialized = false;
+			//NSLog(@"-[SLiMWindowController checkForSimulationTermination]: freed sim_RNG");
 		}
 		
 		[self setReachedSimulationEnd:YES];
@@ -466,6 +468,7 @@
 		sim_RNG_PERTHREAD.resize(0);
 #endif
 		sim_RNG_initialized = false;
+		//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: freed sim_RNG");
 	}
 	
 #ifndef _OPENMP
@@ -477,6 +480,7 @@
 		_Eidos_InitializeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
 #endif
 	sim_RNG_initialized = true;
+	//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: initialized sim_RNG");
 	
 	// The Eidos RNG may be set up already; if so, get rid of it.  When we are not running, we keep the
 	// Eidos RNG in an initialized state, to catch errors with the swapping of RNG state.  Nobody should
@@ -486,10 +490,13 @@
 #ifndef _OPENMP
 		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
 #else
-	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-		_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadIndex]);
+		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+			_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadIndex]);
+		
+		// note that we do not resize the gEidos_RNG_PERTHREAD vector; it stays at its final size
 #endif
 		gEidos_RNG_Initialized = false;
+		//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: freed gEidos_RNG");
 	}
 	
 	// Swap in our RNG
@@ -500,6 +507,7 @@
 		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
 #endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+	//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: swapped IN simRNG (sim_RNG_initialized == %@, gEidos_RNG_Initialized == %@)", sim_RNG_initialized ? @"YES" : @"NO", gEidos_RNG_Initialized ? @"YES" : @"NO");
 	
 	std::istringstream infile([scriptString UTF8String]);
 	
@@ -516,6 +524,7 @@
 			std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
 #endif
 		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+		//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: swapped OUT simRNG (sim_RNG_initialized == %@, gEidos_RNG_Initialized == %@)", sim_RNG_initialized ? @"YES" : @"NO", gEidos_RNG_Initialized ? @"YES" : @"NO");
 		
 		// We also reset various Eidos/SLiM instance state; each SLiMgui window is independent
 		sim_next_pedigree_id = 0;
@@ -532,6 +541,16 @@
 	}
 	catch (...)
 	{
+		// BCH 12/25/2022: adding this to swap out our RNG after a raise, seems better...
+#ifndef _OPENMP
+		std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
+#else
+		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+			std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
+#endif
+		std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+		//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: swapped OUT simRNG (sim_RNG_initialized == %@, gEidos_RNG_Initialized == %@)", sim_RNG_initialized ? @"YES" : @"NO", gEidos_RNG_Initialized ? @"YES" : @"NO");
+		
 		if (community)
 			community->simulation_valid_ = false;
 		[self setReachedSimulationEnd:YES];
@@ -3940,6 +3959,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
 #endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+	//NSLog(@"-[SLiMWindowController eidosConsoleWindowControllerWillExecuteScript]: swapped IN simRNG (sim_RNG_initialized == %@, gEidos_RNG_Initialized == %@)", sim_RNG_initialized ? @"YES" : @"NO", gEidos_RNG_Initialized ? @"YES" : @"NO");
 	
 	// We also swap in the pedigree id and mutation id counters; each SLiMgui window is independent
 	gSLiM_next_pedigree_id = sim_next_pedigree_id;
@@ -3957,6 +3977,7 @@ static int DisplayDigitsForIntegerPart(double x)
 - (void)eidosConsoleWindowControllerDidExecuteScript:(EidosConsoleWindowController *)eidosConsoleController
 {
 	// Swap our random number generator back out again; see -eidosConsoleWindowControllerWillExecuteScript
+	// Note that gEidos_RNG_Initialized can be false; this gets called even when an error has invalidated the simulation
 #ifndef _OPENMP
 	std::swap(sim_RNG_SINGLE, gEidos_RNG_SINGLE);
 #else
@@ -3964,6 +3985,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		std::swap(sim_RNG_PERTHREAD[threadIndex], gEidos_RNG_PERTHREAD[threadIndex]);
 #endif
 	std::swap(sim_RNG_initialized, gEidos_RNG_Initialized);
+	//NSLog(@"-[SLiMWindowController eidosConsoleWindowControllerDidExecuteScript]: swapped OUT simRNG (sim_RNG_initialized == %@, gEidos_RNG_Initialized == %@)", sim_RNG_initialized ? @"YES" : @"NO", gEidos_RNG_Initialized ? @"YES" : @"NO");
 	
 	// Swap out our pedigree id and mutation id counters; see -eidosConsoleWindowControllerWillExecuteScript
 	// Setting to -100000 here is not necessary, but will maybe help find bugs...
