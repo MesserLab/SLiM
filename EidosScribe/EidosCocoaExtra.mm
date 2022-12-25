@@ -274,7 +274,7 @@
 		[paragraphStyle setDefaultTabInterval:tabInterval];
 		
 		for (int tabStop = 1; tabStop <= 20; ++tabStop)
-			[tabs addObject:[[NSTextTab alloc] initWithTextAlignment:NSLeftTextAlignment location:tabInterval * tabStop options:@{}]];	// @{} suppresses a non-null warning, but should not be necessary; Apple header bug
+			[tabs addObject:[[NSTextTab alloc] initWithTextAlignment:NSTextAlignmentLeft location:tabInterval * tabStop options:@{}]];	// @{} suppresses a non-null warning, but should not be necessary; Apple header bug
 		
 		[paragraphStyle setTabStops:tabs];
 	}

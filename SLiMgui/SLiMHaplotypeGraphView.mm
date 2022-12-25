@@ -189,7 +189,7 @@
 	[sp setAllowedFileTypes:@[@"jpg"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			[data writeToURL:[sp URL] atomically:YES];
 			

@@ -91,7 +91,10 @@ class Community;
 	
 	// outlets
 	IBOutlet NSButton *buttonForDrawer;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	IBOutlet NSDrawer *drawer;
+#pragma GCC diagnostic pop
 	
 	IBOutlet NSTableView *mutTypeTableView;
 	IBOutlet NSTableColumn *mutTypeIDColumn;

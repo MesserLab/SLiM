@@ -795,12 +795,12 @@
 
 - (void)mouseDown:(NSEvent *)theEvent
 {
-	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	NSUInteger modifiers = [theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
 	
 	// If the control key is down, the click will be interpreted by super as a context-menu click even with option down, so we can let that through.
 	// Otherwise, option-clicks produce discontiguous selections that we want to prevent since we are not prepared to deal with them.  Instead, we
 	// use option-clicks to indicate that the word clicked on should be looked up in EidosHelpController.
-	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+	if ((modifiers & NSEventModifierFlagOption) && !(modifiers & NSEventModifierFlagControl))
 	{
 		NSPoint windowPoint = [theEvent locationInWindow];
 		NSRect windowRect = NSMakeRect(windowPoint.x, windowPoint.y, 0, 0);
@@ -890,10 +890,10 @@
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)theEvent
 {
-	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	NSUInteger modifiers = [theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
 	
 	// We need this to keep the help controller window in front after an option-click, otherwise AppKit forces us back on top again
-	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+	if ((modifiers & NSEventModifierFlagOption) && !(modifiers & NSEventModifierFlagControl))
 		return YES;
 	
 	return NO;
@@ -901,10 +901,10 @@
 
 - (BOOL)shouldDelayWindowOrderingForEvent:(NSEvent *)theEvent
 {
-	NSUInteger modifiers = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
+	NSUInteger modifiers = [theEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;		// BCH 4/7/2016: NSEventModifierFlags not defined in 10.9
 	
 	// We need this to keep the help controller window in front after an option-click, otherwise AppKit forces us back on top again
-	if ((modifiers & NSAlternateKeyMask) && !(modifiers & NSControlKeyMask))
+	if ((modifiers & NSEventModifierFlagOption) && !(modifiers & NSEventModifierFlagControl))
 		return YES;
 	
 	return NO;
@@ -921,12 +921,12 @@
 			NSEventType eventType = [event type];
 			NSTimeInterval eventTime = [event timestamp];
 			
-			if (eventType == NSLeftMouseDown)
+			if (eventType == NSEventTypeLeftMouseDown)
 			{
 				// This is the mouseDown of the double-click; we do not want to modify the selection here, just log the time
 				doubleDownTime = eventTime;
 			}
-			else if (eventType == NSLeftMouseUp)
+			else if (eventType == NSEventTypeLeftMouseUp)
 			{
 				// After the double-click interval since the second mouseDown, the mouseUp is no longer eligible
 				if (eventTime - doubleDownTime <= [NSEvent doubleClickInterval])

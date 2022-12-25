@@ -6676,17 +6676,17 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 				
 				if (spatial_output_count >= 1)
 				{
-					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_x_);		// necessary precision for non-lossiness
+					snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_x_);		// necessary precision for non-lossiness
 					p_out << " " << double_buf;
 				}
 				if (spatial_output_count >= 2)
 				{
-					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_y_);		// necessary precision for non-lossiness
+					snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_y_);		// necessary precision for non-lossiness
 					p_out << " " << double_buf;
 				}
 				if (spatial_output_count >= 3)
 				{
-					sprintf(double_buf, "%.*g", EIDOS_DBL_DIGS, individual.spatial_z_);		// necessary precision for non-lossiness
+					snprintf(double_buf, 40, "%.*g", EIDOS_DBL_DIGS, individual.spatial_z_);		// necessary precision for non-lossiness
 					p_out << " " << double_buf;
 				}
 			}

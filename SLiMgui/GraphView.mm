@@ -550,7 +550,7 @@
 		
 		// Frame the legend and erase it with a slightly translucent wash
 		[[NSColor colorWithCalibratedWhite:0.95 alpha:0.9] set];
-		NSRectFillUsingOperation(legendRect, NSCompositeSourceOver);
+		NSRectFillUsingOperation(legendRect, NSCompositingOperationSourceOver);
 		
 		[[NSColor colorWithCalibratedWhite:0.3 alpha:1.0] set];
 		NSFrameRect(legendRect);
@@ -869,7 +869,7 @@
 	[sp setAllowedFileTypes:@[@"pdf"]];
 	
 	[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			[pdfData writeToURL:[sp URL] atomically:YES];
 			
@@ -912,7 +912,7 @@
 		[sp setAllowedFileTypes:@[@"txt"]];
 		
 		[sp beginSheetModalForWindow:[controller window] completionHandler:^(NSInteger result) {
-			if (result == NSFileHandlingPanelOKButton)
+			if (result == NSModalResponseOK)
 			{
 				[dataString writeToURL:[sp URL] atomically:YES encoding:NSUTF8StringEncoding error:NULL];
 				

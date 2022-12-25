@@ -108,8 +108,7 @@
 	
 	// Set our version number string
 	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
-	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
+	NSString *versionString = [NSString stringWithFormat:@"version %@", bundleVersionString];
 	
 	[aboutVersionTextField setStringValue:versionString];
 	
@@ -187,7 +186,7 @@
 {
 	// EidosScribe runs the standard Eidos test suite on launch if the option key is down.
 	// You would probably not want to do this in your own Context.
-	if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+	if ([NSEvent modifierFlags] & NSEventModifierFlagOption)
 		RunEidosTests();
 }
 

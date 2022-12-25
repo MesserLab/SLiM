@@ -382,7 +382,7 @@
 {
 	NSAlert *alert = [[NSAlert alloc] init];
 	
-	[alert setAlertStyle:NSCriticalAlertStyle];
+	[alert setAlertStyle:NSAlertStyleCritical];
 	[alert setMessageText:@"Simulation Runtime Error"];
 	[alert setInformativeText:[NSString stringWithFormat:@"%@\nThis error has invalidated the simulation; it cannot be run further.  Once the script is fixed, you can recycle the simulation and try again.", terminationMessage]];
 	[alert addButtonWithTitle:@"OK"];
@@ -979,7 +979,7 @@
 	
 	NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
 	
-	[paragraphStyle setAlignment:NSCenterTextAlignment];
+	[paragraphStyle setAlignment:NSTextAlignmentCenter];
 	[attrStr addAttribute:NSParagraphStyleAttributeName value:paragraphStyle range:NSMakeRange(0, [attrStr length])];
 	[[column headerCell] setAttributedStringValue:attrStr];
 	
@@ -1281,7 +1281,10 @@
 {
 	NSRect windowFrame = [window frame];
 	NSRect mainWindowFrame = [[self window] frame];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	BOOL drawerIsOpen = ([drawer state] == NSDrawerOpenState);
+#pragma GCC diagnostic pop
 	int oldOpenedGraphCount = openedGraphCount++;
 	
 	// try along the bottom first
@@ -2675,7 +2678,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSWarningAlertStyle];
+		[alert setAlertStyle:NSAlertStyleWarning];
 		[alert setMessageText:@"Release build required"];
 		[alert setInformativeText:@"In order to obtain accurate timing information that is relevant to the actual runtime of a model, profiling requires that you are running a Release build of SLiMgui.  If you are running SLiMgui from within Xcode, please choose the Release build configuration from the Edit Scheme panel."];
 		[alert addButtonWithTitle:@"OK"];
@@ -2696,7 +2699,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSWarningAlertStyle];
+		[alert setAlertStyle:NSAlertStyleWarning];
 		[alert setMessageText:@"Profiling disabled"];
 		[alert setInformativeText:@"Profiling has been disabled in this build of SLiMgui.  If you are running SLiMgui from within Xcode, please change the definition of SLIMPROFILING to 1 in the SLiMgui target."];
 		[alert addButtonWithTitle:@"OK"];
@@ -3035,7 +3038,7 @@ static int DisplayDigitsForIntegerPart(double x)
 			// On failure, we show an alert describing the error, and highlight the relevant script line
 			NSAlert *alert = [[NSAlert alloc] init];
 			
-			[alert setAlertStyle:NSWarningAlertStyle];
+			[alert setAlertStyle:NSAlertStyleWarning];
 			[alert setMessageText:@"Script error"];
 			[alert setInformativeText:errorDiagnostic];
 			[alert addButtonWithTitle:@"OK"];
@@ -3061,7 +3064,7 @@ static int DisplayDigitsForIntegerPart(double x)
 			{
 				NSAlert *alert = [[NSAlert alloc] init];
 				
-				[alert setAlertStyle:NSInformationalAlertStyle];
+				[alert setAlertStyle:NSAlertStyleInformational];
 				[alert setMessageText:@"No script errors"];
 				[alert setInformativeText:@"No errors found."];
 				[alert addButtonWithTitle:@"OK"];
@@ -3213,7 +3216,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[op setDirectoryURL:url];
 	
 	[op beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			NSURL *fileURL = [op URL];
 			const char *filePath = [fileURL fileSystemRepresentation];
@@ -3301,7 +3304,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			NSString *currentScriptString = [scriptTextView string];
 			
@@ -3326,7 +3329,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			NSString *currentOutputString = [outputTextView string];
 			
@@ -3351,7 +3354,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[sp setAllowedFileTypes:@[@"txt"]];
 	
 	[sp beginSheetModalForWindow:[self window] completionHandler:^(NSInteger result) {
-		if (result == NSFileHandlingPanelOKButton)
+		if (result == NSModalResponseOK)
 		{
 			std::ostringstream outstring;
 //			const std::vector<std::string> &input_parameters = community->InputParameters();
@@ -3789,7 +3792,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		[sharedHelp checkDocumentationForDuplicatePointers];
 		
 		// Run startup tests, iff the option key is down; NOTE THAT THIS CAUSES MASSIVE LEAKING DUE TO RAISES INSIDE EIDOS!
-		if ([NSEvent modifierFlags] & NSAlternateKeyMask)
+		if ([NSEvent modifierFlags] & NSEventModifierFlagOption)
 		{
 			// We will be executing scripts, so bracket that with our delegate method call
 			[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];

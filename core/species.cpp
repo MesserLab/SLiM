@@ -4682,7 +4682,7 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 				text_mutation_metadata.append(",");
 				
 				static_assert(sizeof(slim_selcoeff_t) == 4, "use EIDOS_DBL_DIGS if slim_selcoeff_t is double");
-				sprintf(double_buf, "%.*g", EIDOS_FLT_DIGS, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
+				snprintf(double_buf, 40, "%.*g", EIDOS_FLT_DIGS, struct_mutation_metadata->selection_coeff_);		// necessary precision for non-lossiness
 				text_mutation_metadata.append(double_buf);
 				text_mutation_metadata.append(",");
 				

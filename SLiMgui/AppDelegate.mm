@@ -270,7 +270,7 @@ typedef enum SLiMLaunchAction
 	{
 		NSAlert *alert = [[NSAlert alloc] init];
 		
-		[alert setAlertStyle:NSCriticalAlertStyle];
+		[alert setAlertStyle:NSAlertStyleCritical];
 		[alert setMessageText:@"Missing font"];
 		[alert setInformativeText:[NSString stringWithFormat:@"The standard system font %@ is required for SLiMgui to run, but appears to be missing.  Please check your macOS installation.\n\nSLiMgui will now exit.", fontName]];
 		[alert addButtonWithTitle:@"OK"];
@@ -364,8 +364,7 @@ typedef enum SLiMLaunchAction
 	
 	// Set our version number string
 	NSString *bundleVersionString = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-	NSString *bundleVersion = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"];
-	NSString *versionString = [NSString stringWithFormat:@"%@ (build %@)", bundleVersionString, bundleVersion];
+	NSString *versionString = [NSString stringWithFormat:@"version %@", bundleVersionString];
 	
 	[aboutVersionTextField setStringValue:versionString];
 	
