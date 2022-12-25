@@ -2005,8 +2005,6 @@
 		981DC34328E26F09000ABE91 /* dependencies */ = {
 			isa = PBXGroup;
 			children = (
-				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
-				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */,
 				985A11861BBA07CB009EE1FF /* eidos_object_pool.h */,
 				9809F8BD24F32B3E00D312E4 /* eidos_tinycolormap.h */,
@@ -2280,6 +2278,8 @@
 			isa = PBXGroup;
 			children = (
 				9873B12328CE26CD00582D83 /* eidos_openmp.h */,
+				98E9A6B71A3CE35E000AD4FC /* eidos_rng.h */,
+				98E9A6B61A3CE35E000AD4FC /* eidos_rng.cpp */,
 				98321F931B406B67007337A3 /* eidos_globals.h */,
 				98321F921B406B67007337A3 /* eidos_globals.cpp */,
 				98A5134E1B66B69E005A753D /* eidos_token.h */,
