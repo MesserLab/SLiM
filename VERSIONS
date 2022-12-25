@@ -64,6 +64,7 @@ development head (in the master branch):
 	improve performance of reading text SLiM-format population files, as produced by outputFull()
 	move minimum system requirement up to 10.13 (the oldest SDK supported by Xcode 14.2); the command-line tools should still run on older systems
 	clean up some old usage that is now flagged by Xcode (sprintf to snprintf, deprecated Cocoa API, old build-numbering scripts in the project)
+	advance copyrights to 2023
 	
 
 version 4.0.1 (Eidos version 3.0.1):

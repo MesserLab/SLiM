@@ -3,7 +3,7 @@
 //  SLiM_OpenMP
 //
 //  Created by Benjamin C. Haller on 8/4/20.
-//  Copyright (c) 2014-2022 Philipp Messer.  All rights reserved.
+//  Copyright (c) 2014-2023 Philipp Messer.  All rights reserved.
 //	A product of the Messer Lab, http://messerlab.org/slim/
 //
 
