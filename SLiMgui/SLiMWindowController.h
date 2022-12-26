@@ -55,7 +55,7 @@ class Community;
 #ifndef _OPENMP
 	Eidos_RNG_State sim_RNG_SINGLE;
 #else
-	std::vector<Eidos_RNG_State> sim_RNG_PERTHREAD;
+	std::vector<Eidos_RNG_State *> sim_RNG_PERTHREAD;	// pointers to per-thread allocations, for "first touch" optimization
 #endif
 	slim_pedigreeid_t sim_next_pedigree_id;
 	slim_mutationid_t sim_next_mutation_id;

@@ -29,7 +29,7 @@ bool gEidos_RNG_Initialized = false;
 #ifndef _OPENMP
 Eidos_RNG_State gEidos_RNG_SINGLE;
 #else
-std::vector<Eidos_RNG_State> gEidos_RNG_PERTHREAD;
+std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
 
@@ -55,8 +55,7 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 
 void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
 {
-	THREAD_SAFETY_CHECK("_Eidos_InitializeOneRNG(): RNG change");
-	
+	// Note that this is now called from each thread, when running parallel
 	r.rng_last_seed_ = 0;
 	
 	r.gsl_rng_ = gsl_rng_alloc(gsl_rng_taus2);	// the assumption of taus2 is hard-coded in eidos_rng.h
@@ -88,8 +87,14 @@ void Eidos_InitializeRNG(void)
 	
 	gEidos_RNG_PERTHREAD.resize(gEidosMaxThreads);
 	
-	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_InitializeOneRNG(gEidos_RNG_PERTHREAD[threadnum]);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD)
+	{
+		// Each thread allocates and initializes its own Eidos_RNG_State, for "first touch" optimization
+		int threadnum = omp_get_thread_num();
+		Eidos_RNG_State *rng_state = (Eidos_RNG_State *)calloc(1, sizeof(Eidos_RNG_State));
+		_Eidos_InitializeOneRNG(*rng_state);
+		gEidos_RNG_PERTHREAD[threadnum] = rng_state;
+	}
 #endif
 	
 	gEidos_RNG_Initialized = true;
@@ -130,8 +135,13 @@ void Eidos_FreeRNG(void)
 #else
 	//std::cout << "***** Freeing " << gEidosMaxThreads << " independent RNGs" << std::endl;
 	
-	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadnum]);
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+	{
+		Eidos_RNG_State *rng_state = gEidos_RNG_PERTHREAD[threadIndex];
+		_Eidos_FreeOneRNG(*rng_state);
+		gEidos_RNG_PERTHREAD[threadIndex] = nullptr;
+		free(rng_state);
+	}
 	
 	gEidos_RNG_PERTHREAD.resize(0);
 #endif
@@ -185,8 +195,8 @@ void Eidos_SetRNGSeed(unsigned long int p_seed)
 	// I think?  But this scheme should be revisited, and possibly even under user control.  FIXME
 	const unsigned long int o = 12345;
 	
-	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
-		_Eidos_SetOneRNGSeed(gEidos_RNG_PERTHREAD[threadnum], p_seed + threadnum * threadnum * o);
+	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
+		_Eidos_SetOneRNGSeed(*gEidos_RNG_PERTHREAD[threadIndex], p_seed + threadIndex * threadIndex * o);
 #endif
 }
 

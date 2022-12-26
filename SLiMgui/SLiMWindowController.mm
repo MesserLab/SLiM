@@ -245,7 +245,12 @@
 		_Eidos_FreeOneRNG(sim_RNG_SINGLE);
 #else
 		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-			_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+		{
+			Eidos_RNG_State *rng_state = sim_RNG_PERTHREAD[threadIndex];
+			_Eidos_FreeOneRNG(*rng_state);
+			sim_RNG_PERTHREAD[threadIndex] = nullptr;
+			free(rng_state);
+		}
 		
 		sim_RNG_PERTHREAD.resize(0);
 #endif
@@ -429,7 +434,12 @@
 			_Eidos_FreeOneRNG(sim_RNG_SINGLE);
 #else
 			for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-				_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+			{
+				Eidos_RNG_State *rng_state = sim_RNG_PERTHREAD[threadIndex];
+				_Eidos_FreeOneRNG(*rng_state);
+				sim_RNG_PERTHREAD[threadIndex] = nullptr;
+				free(rng_state);
+			}
 			
 			sim_RNG_PERTHREAD.resize(0);
 #endif
@@ -463,7 +473,12 @@
 		_Eidos_FreeOneRNG(sim_RNG_SINGLE);
 #else
 		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-			_Eidos_FreeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+		{
+			Eidos_RNG_State *rng_state = sim_RNG_PERTHREAD[threadIndex];
+			_Eidos_FreeOneRNG(*rng_state);
+			sim_RNG_PERTHREAD[threadIndex] = nullptr;
+			free(rng_state);
+		}
 		
 		sim_RNG_PERTHREAD.resize(0);
 #endif
@@ -476,8 +491,14 @@
 #else
 	sim_RNG_PERTHREAD.resize(gEidosMaxThreads);
 	
-	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-		_Eidos_InitializeOneRNG(sim_RNG_PERTHREAD[threadIndex]);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD)
+	{
+		// Each thread allocates and initializes its own Eidos_RNG_State, for "first touch" optimization
+		int threadnum = omp_get_thread_num();
+		Eidos_RNG_State *rng_state = (Eidos_RNG_State *)calloc(1, sizeof(Eidos_RNG_State));
+		_Eidos_InitializeOneRNG(*rng_state);
+		sim_RNG_PERTHREAD[threadnum] = rng_state;
+	}
 #endif
 	sim_RNG_initialized = true;
 	//NSLog(@"-[SLiMWindowController startNewSimulationFromScript]: initialized sim_RNG");
@@ -491,7 +512,12 @@
 		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
 #else
 		for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-			_Eidos_FreeOneRNG(gEidos_RNG_PERTHREAD[threadIndex]);
+		{
+			Eidos_RNG_State *rng_state = gEidos_RNG_PERTHREAD[threadIndex];
+			_Eidos_FreeOneRNG(*rng_state);
+			gEidos_RNG_PERTHREAD[threadIndex] = nullptr;
+			free(rng_state);
+		}
 		
 		// note that we do not resize the gEidos_RNG_PERTHREAD vector; it stays at its final size
 #endif

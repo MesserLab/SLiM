@@ -78,12 +78,14 @@ typedef struct Eidos_RNG_State
 // nebulous; in fact, each thread's RNG will be seeded with a different value so that they do not all follow the same
 // sequence.  The random number sequence when running multithreaded will not be reproducible; but it really can't be,
 // since multithreading will divide tasks up unpredictably and execute out of linear sequence.
+// BCH 12/26/2022: The per-thread RNGs are now allocated separately, on the thread that will use them, so they get
+// kept in the best place in memory for that thread ("first touch").
 extern bool gEidos_RNG_Initialized;
 
 #ifndef _OPENMP
 extern Eidos_RNG_State gEidos_RNG_SINGLE;
 #else
-extern std::vector<Eidos_RNG_State> gEidos_RNG_PERTHREAD;
+extern std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
 // Calls to the GSL should use these macros to get the RNG state they need, whether single- or multi-threaded.
@@ -101,9 +103,9 @@ extern std::vector<Eidos_RNG_State> gEidos_RNG_PERTHREAD;
 #define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_SINGLE.mt_rng_)
 #define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_SINGLE)
 #else
-#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum].gsl_rng_)
-#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_PERTHREAD[threadnum].mt_rng_)
-#define EIDOS_STATE_RNG(threadnum)	(&gEidos_RNG_PERTHREAD[threadnum])
+#define EIDOS_GSL_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum]->gsl_rng_)
+#define EIDOS_MT_RNG(threadnum)		(&gEidos_RNG_PERTHREAD[threadnum]->mt_rng_)
+#define EIDOS_STATE_RNG(threadnum)	(gEidos_RNG_PERTHREAD[threadnum])
 #endif
 
 #if DEBUG
