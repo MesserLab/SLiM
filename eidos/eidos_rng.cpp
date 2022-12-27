@@ -99,9 +99,9 @@ void Eidos_InitializeRNG(void)
 		_Eidos_InitializeOneRNG(*rng_state);
 		gEidos_RNG_PERTHREAD[threadnum] = rng_state;
 	}
-#endif
 	
 	omp_set_dynamic(old_dynamic);
+#endif
 	
 	gEidos_RNG_Initialized = true;
 }

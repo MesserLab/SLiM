@@ -12,7 +12,7 @@ R"V0G0N(
 
 // ***********************************************************************************************
 
-// test that the number of threads is working proerly
+// test that the number of threads is working properly
 
 if (parallelGetNumThreads() <= 1) stop('running single-threaded in eidos_test_parallel');
 
@@ -25,6 +25,106 @@ if (parallelGetNumThreads() != 1) stop('failed to switch to single-threaded in e
 // test that the number of threads does not persist across tests
 
 if (parallelGetNumThreads() <= 1) stop('number of threads did not reset in eidos_test_parallel');
+
+// ***********************************************************************************************
+
+// (float)abs(float x)											// EIDOS_OMPMIN_ABS_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = abs(x);
+parallelSetNumThreads(1);
+y1 = abs(x);
+if (!identical(y1, yN)) stop('parallel abs(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)ceil(float x)											// EIDOS_OMPMIN_CEIL
+
+x = runif(1000000, -100, 100);
+yN = ceil(x);
+parallelSetNumThreads(1);
+y1 = ceil(x);
+if (!identical(y1, yN)) stop('parallel ceil(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)exp(float x)											// EIDOS_OMPMIN_EXP_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = exp(x);
+parallelSetNumThreads(1);
+y1 = exp(x);
+if (!identical(y1, yN)) stop('parallel exp(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)floor(float x)										// EIDOS_OMPMIN_FLOOR
+
+x = runif(1000000, -100, 100);
+yN = floor(x);
+parallelSetNumThreads(1);
+y1 = floor(x);
+if (!identical(y1, yN)) stop('parallel floor(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)log(float x)											// EIDOS_OMPMIN_LOG_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = log(x);
+parallelSetNumThreads(1);
+y1 = log(x);
+if (!identical(y1, yN)) stop('parallel log(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)log10(float x)										// EIDOS_OMPMIN_LOG10_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = log10(x);
+parallelSetNumThreads(1);
+y1 = log10(x);
+if (!identical(y1, yN)) stop('parallel log10(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)log2(float x)											// EIDOS_OMPMIN_LOG2_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = log2(x);
+parallelSetNumThreads(1);
+y1 = log2(x);
+if (!identical(y1, yN)) stop('parallel log2(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)round(float x)										// EIDOS_OMPMIN_ROUND
+
+x = runif(1000000, -100, 100);
+yN = round(x);
+parallelSetNumThreads(1);
+y1 = round(x);
+if (!identical(y1, yN)) stop('parallel round(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)sqrt(float x)											// EIDOS_OMPMIN_SQRT
+
+x = runif(1000000, -100, 100);
+yN = sqrt(x);
+parallelSetNumThreads(1);
+y1 = sqrt(x);
+if (!identical(y1, yN)) stop('parallel sqrt(float x) failed test');
+
+// ***********************************************************************************************
+
+// (float)trunc(float x)										// EIDOS_OMPMIN_TRUNC
+
+x = runif(1000000, -100, 100);
+yN = trunc(x);
+parallelSetNumThreads(1);
+y1 = trunc(x);
+if (!identical(y1, yN)) stop('parallel trunc(float x) failed test');
 
 // ***********************************************************************************************
 

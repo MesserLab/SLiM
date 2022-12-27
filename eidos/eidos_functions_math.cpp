@@ -110,10 +110,12 @@ EidosValue_SP Eidos_ExecuteFunction_abs(const std::vector<EidosValue_SP> &p_argu
 			// We have x_count != 1, so the type of x_value must be EidosValue_Float_vector; we can use the fast API
 			const double *float_data = x_value->FloatVector()->data();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			double *float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_ABS_FLOAT)
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				float_result->set_float_no_check(fabs(float_data[value_index]), value_index);
+				float_result_data[value_index] = fabs(float_data[value_index]);
 		}
 	}
 	
@@ -257,10 +259,12 @@ EidosValue_SP Eidos_ExecuteFunction_ceil(const std::vector<EidosValue_SP> &p_arg
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatVector()->data();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
 		result_SP = EidosValue_SP(float_result);
 		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_CEIL)
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(ceil(float_data[value_index]), value_index);
+			float_result_data[value_index] = ceil(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -426,19 +430,31 @@ EidosValue_SP Eidos_ExecuteFunction_exp(const std::vector<EidosValue_SP> &p_argu
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
 	if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(exp(x_value->FloatAtIndex(0, nullptr))));
 	}
-	else
+	else if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(exp(x_value->FloatAtIndex(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
+		result_SP = EidosValue_SP(float_result);
+		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_EXP_FLOAT)
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = exp(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -463,10 +479,12 @@ EidosValue_SP Eidos_ExecuteFunction_floor(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatVector()->data();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
 		result_SP = EidosValue_SP(float_result);
 		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_FLOOR)
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(floor(float_data[value_index]), value_index);
+			float_result_data[value_index] = floor(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -778,19 +796,31 @@ EidosValue_SP Eidos_ExecuteFunction_log(const std::vector<EidosValue_SP> &p_argu
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
 	if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log(x_value->FloatAtIndex(0, nullptr))));
 	}
-	else
+	else if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(log(x_value->FloatAtIndex(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
+		result_SP = EidosValue_SP(float_result);
+		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG_FLOAT)
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = log(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -804,19 +834,31 @@ EidosValue_SP Eidos_ExecuteFunction_log10(const std::vector<EidosValue_SP> &p_ar
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
 	if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log10(x_value->FloatAtIndex(0, nullptr))));
 	}
-	else
+	else if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(log10(x_value->FloatAtIndex(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
+		result_SP = EidosValue_SP(float_result);
+		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG10_FLOAT)
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = log10(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -830,19 +872,31 @@ EidosValue_SP Eidos_ExecuteFunction_log2(const std::vector<EidosValue_SP> &p_arg
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
 	if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(log2(x_value->FloatAtIndex(0, nullptr))));
 	}
-	else
+	else if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(log2(x_value->FloatAtIndex(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
+		result_SP = EidosValue_SP(float_result);
+		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_LOG2_FLOAT)
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = log2(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -940,10 +994,12 @@ EidosValue_SP Eidos_ExecuteFunction_round(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatVector()->data();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
 		result_SP = EidosValue_SP(float_result);
 		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_ROUND)
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(round(float_data[value_index]), value_index);
+			float_result_data[value_index] = round(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -2469,19 +2525,31 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int x_count = x_value->Count();
 	
 	if (x_count == 1)
 	{
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sqrt(x_value->FloatAtIndex(0, nullptr))));
 	}
-	else
+	else if (x_type == EidosValueType::kValueInt)
 	{
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			float_result->set_float_no_check(sqrt(x_value->FloatAtIndex(value_index, nullptr)), value_index);
+	}
+	else if (x_type == EidosValueType::kValueFloat)
+	{
+		const double *float_data = x_value->FloatVector()->data();
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
+		result_SP = EidosValue_SP(float_result);
+		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_SQRT_FLOAT)
+		for (int value_index = 0; value_index < x_count; ++value_index)
+			float_result_data[value_index] = sqrt(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);
@@ -2547,10 +2615,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			const int64_t *int_data = x_value->IntVector()->data();
 			double sum_d = 0;
 
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(int_data) reduction(+: sum_d) if(x_count >= EIDOS_OMPMIN_SUM_INTEGER)
-			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_integer.txt
-			// We use clang loop vectorize(enable) here because clang is worried about changing the order of the FP additions; this reassures it
-#pragma clang loop vectorize(enable)
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int_data) reduction(+: sum_d) if(parallel:x_count >= EIDOS_OMPMIN_SUM_INTEGER)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum_d += int_data[value_index];
 
@@ -2577,10 +2642,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 			const double *float_data = x_value->FloatVector()->data();
 			double sum = 0;
 			
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float_data) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_FLOAT)
-			// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_float.txt
-			// We use clang loop vectorize(enable) here because clang is worried about changing the order of the FP additions; this reassures it
-#pragma clang loop vectorize(enable)
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data) reduction(+: sum) if(parallel:x_count >= EIDOS_OMPMIN_SUM_FLOAT)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 				sum += float_data[value_index];
 			
@@ -2593,8 +2655,7 @@ EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_argu
 		const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
 		int64_t sum = 0;
 		
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(logical_data) reduction(+: sum) if(x_count >= EIDOS_OMPMIN_SUM_LOGICAL)
-		// BCH 7/5/2019: Timed in SLiM-Benchmarks with T_sum_logical.txt
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(logical_data) reduction(+: sum) if(parallel:x_count >= EIDOS_OMPMIN_SUM_LOGICAL)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			sum += logical_data[value_index];
 		
@@ -2671,10 +2732,12 @@ EidosValue_SP Eidos_ExecuteFunction_trunc(const std::vector<EidosValue_SP> &p_ar
 		// We have x_count != 1 and x_value is guaranteed to be an EidosValue_Float, so we can use the fast API
 		const double *float_data = x_value->FloatVector()->data();
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+		double *float_result_data = float_result->data();
 		result_SP = EidosValue_SP(float_result);
 		
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(float_data, float_result_data) if(parallel:x_count >= EIDOS_OMPMIN_TRUNC)
 		for (int value_index = 0; value_index < x_count; ++value_index)
-			float_result->set_float_no_check(trunc(float_data[value_index]), value_index);
+			float_result_data[value_index] = trunc(float_data[value_index]);
 	}
 	
 	result_SP->CopyDimensionsFromValue(x_value);

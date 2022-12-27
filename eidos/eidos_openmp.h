@@ -124,9 +124,19 @@ extern int gEidosNumThreads;
 // Define minimum counts for all the parallel loops we use.  Some of these loops are in SLiM, so we violate encapsulation
 // here a bit; a slim_openmp.h header could be created to alleviate that if it's a problem, but it seems harmless for now.
 // These counts are collected in one place to make it easier to optimize their values in a pre-build optimization pass.
+#define EIDOS_OMPMIN_ABS_FLOAT				2000
+#define EIDOS_OMPMIN_CEIL					2000
+#define EIDOS_OMPMIN_EXP_FLOAT				2000
+#define EIDOS_OMPMIN_FLOOR					2000
+#define EIDOS_OMPMIN_LOG_FLOAT				2000
+#define EIDOS_OMPMIN_LOG10_FLOAT			2000
+#define EIDOS_OMPMIN_LOG2_FLOAT				2000
+#define EIDOS_OMPMIN_ROUND					2000
+#define EIDOS_OMPMIN_SQRT_FLOAT				2000
 #define EIDOS_OMPMIN_SUM_INTEGER			2000
 #define EIDOS_OMPMIN_SUM_FLOAT				2000
 #define EIDOS_OMPMIN_SUM_LOGICAL			6000
+#define EIDOS_OMPMIN_TRUNC					2000
 
 #define EIDOS_OMPMIN_SET_FITNESS_S1			900
 #define EIDOS_OMPMIN_SET_FITNESS_S2			1500
