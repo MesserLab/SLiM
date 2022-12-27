@@ -234,9 +234,8 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	const char *dynamic_policy = "false";
 	setenv("OMP_DYNAMIC", dynamic_policy, 0);
 	
-	// "true" prevents threads migrating between cores; "false" seems to result in better performance, for me on macOS,
-	// but I suspect that for users on HPC setting this to "true" will likely improve performance
-	const char *bind_policy = "false";
+	// "true" prevents threads migrating between cores; this generally improves performance, especially with per-thread memory usage
+	const char *bind_policy = "true";
 	setenv("OMP_PROC_BIND", bind_policy, 0);
 	
 	// We do not support nested parallelism; we set the relevant ICVs here to make sure it is off, overriding defaults/environment

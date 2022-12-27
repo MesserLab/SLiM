@@ -87,7 +87,11 @@ void Eidos_InitializeRNG(void)
 	
 	gEidos_RNG_PERTHREAD.resize(gEidosMaxThreads);
 	
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD)
+	// We want to try to guarantee that every thread sets up its RNG, even if OMP_DYNAMIC is true
+	int old_dynamic = omp_get_dynamic();
+	omp_set_dynamic(false);
+	
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD) num_threads(gEidosMaxThreads)
 	{
 		// Each thread allocates and initializes its own Eidos_RNG_State, for "first touch" optimization
 		int threadnum = omp_get_thread_num();
@@ -96,6 +100,8 @@ void Eidos_InitializeRNG(void)
 		gEidos_RNG_PERTHREAD[threadnum] = rng_state;
 	}
 #endif
+	
+	omp_set_dynamic(old_dynamic);
 	
 	gEidos_RNG_Initialized = true;
 }
