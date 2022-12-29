@@ -255,16 +255,27 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	{
 		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << gEidosMaxThreads << " threads)" << std::endl;
 		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
+		
+		// Look for devices (GPUs, accelerators) that we are able to offload to.
+		// Note that OpenMP offloading to the GPUs on Apple Silicon is not currently supported by any compiler.
+		// Other devices may not be visible unless you build slim_multi with a special build of your compiler;
+		// see https://stackoverflow.com/a/66337011/2752221 for some details.
+		int num_devices = omp_get_num_devices();
+		int default_device = omp_get_default_device();
+		
+		if (num_devices > 0)
+		{
+			(*outstream) << "// ********** OpenMP target device count (GPUs, accelerators): " << num_devices << std::endl;
+			(*outstream) << "// ********** Default target device for OpenMP offloading: " << default_device << std::endl;
+		}
 	}
 	
 #ifdef EIDOS_GUI
-	// The SLiM_OpenMP project enabled OpenMP project-wide, so the GUI apps build with OpenMP enabled.  However,
-	// they really don't work well multithreaded.  They have to allow threads to sleep (otherwise they peg the
+	// The GUI apps don't work well multithreaded.  They have to allow threads to sleep (otherwise they peg the
 	// CPU the whole time they're running), and that is so inefficient that it makes the apps actually run much
 	// slower than if they were just single-threaded, as far as I can tell.  I think the threads fall asleep
-	// whenever they get suspended at all, and then waking them up again is heavyweight.  Or something.
-	// BCH 4 August 2020: Note that I have disallowed building the GUI apps multithreaded at all, with #error
-	// directives in their code, so this is dead code for the time being.
+	// whenever they get suspended at all, and then waking them up again is heavyweight.  So running them
+	// multithreaded is really just for my own development/testing work; end users should not do so.
 	if (outstream)
 		(*outstream) << "// ********** RUNNING SLIMGUI / EIDOSSCRIBE WITH OPENMP IS NOT RECOMMENDED!" << std::endl;
 #endif
