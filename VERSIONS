@@ -55,6 +55,7 @@ PARALLEL changes (now in the master branch):
 	use a minimum chunk size of 10 for all dynamic schedules; problems that parallelize should always be at least that big, I imagine
 	switch to OMP_PROC_BIND == true by default; keep threads with the data they're working on, recommended practice
 	parallelize more Eidos math functions: abs(float), ceil(), exp(float), floor(), log(float), log10(float), log2(float), round(), sqrt(float), trunc()
+	parallelize Eidos min/max functions: max(int), max(float), min(int), min(float), pmax(int), pmax(float), pmin(int), pmin(float)
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

@@ -98,6 +98,130 @@ if (!identical(y1, yN)) stop('parallel log2(float x) failed test');
 
 // ***********************************************************************************************
 
+// (integer)max(integer x)										// EIDOS_OMPMIN_MAX_INT
+
+x = rdunif(1000000, -100000000, 100000000);
+yN = max(x);
+parallelSetNumThreads(1);
+y1 = max(x);
+if (!identical(y1, yN)) stop('parallel max(integer x) failed test');
+
+// ***********************************************************************************************
+
+// (float)max(float x)											// EIDOS_OMPMIN_MAX_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = max(x);
+parallelSetNumThreads(1);
+y1 = max(x);
+if (!identical(y1, yN)) stop('parallel max(float x) failed test');
+
+// ***********************************************************************************************
+
+// (integer)min(integer x)										// EIDOS_OMPMIN_MIN_INT
+
+x = rdunif(1000000, -100000000, 100000000);
+yN = min(x);
+parallelSetNumThreads(1);
+y1 = min(x);
+if (!identical(y1, yN)) stop('parallel min(integer x) failed test');
+
+// ***********************************************************************************************
+
+// (float)min(float x)											// EIDOS_OMPMIN_MIN_FLOAT
+
+x = runif(1000000, -100, 100);
+yN = min(x);
+parallelSetNumThreads(1);
+y1 = min(x);
+if (!identical(y1, yN)) stop('parallel min(float x) failed test');
+
+// ***********************************************************************************************
+
+// (integer)pmax(integer x, integer$ y)							// EIDOS_OMPMIN_PMAX_INT_1
+
+x = rdunif(1000000, -100000000, 100000000);
+yN = pmax(x, 1703);
+parallelSetNumThreads(1);
+y1 = pmax(x, 1703);
+if (!identical(y1, yN)) stop('parallel max(integer x, integer$ y) failed test');
+
+// ***********************************************************************************************
+
+// (integer)pmax(integer x, integer y)							// EIDOS_OMPMIN_PMAX_INT_2
+
+a = rdunif(1000000, -100000000, 100000000);
+b = rdunif(1000000, -100000000, 100000000);
+yN = pmax(a, b);
+parallelSetNumThreads(1);
+y1 = pmax(a, b);
+if (!identical(y1, yN)) stop('parallel max(integer x, integer y) failed test');
+
+// ***********************************************************************************************
+
+// (float)pmax(float x, float$ y)								// EIDOS_OMPMIN_PMAX_FLOAT_1
+
+x = runif(1000000, -100000000, 100000000);
+yN = pmax(x, 1703.0);
+parallelSetNumThreads(1);
+y1 = pmax(x, 1703.0);
+if (!identical(y1, yN)) stop('parallel max(float x, float$ y) failed test');
+
+// ***********************************************************************************************
+
+// (float)pmax(float x, float y)								// EIDOS_OMPMIN_PMAX_FLOAT_2
+
+a = runif(1000000, -100000000, 100000000);
+b = runif(1000000, -100000000, 100000000);
+yN = pmax(a, b);
+parallelSetNumThreads(1);
+y1 = pmax(a, b);
+if (!identical(y1, yN)) stop('parallel max(float x, float y) failed test');
+
+// ***********************************************************************************************
+
+// (integer)pmin(integer x, integer$ y)							// EIDOS_OMPMIN_PMIN_INT_1
+
+x = rdunif(1000000, -100000000, 100000000);
+yN = pmin(x, 1703);
+parallelSetNumThreads(1);
+y1 = pmin(x, 1703);
+if (!identical(y1, yN)) stop('parallel max(integer x, integer$ y) failed test');
+
+// ***********************************************************************************************
+
+// (integer)pmin(integer x, integer y)							// EIDOS_OMPMIN_PMIN_INT_2
+
+a = rdunif(1000000, -100000000, 100000000);
+b = rdunif(1000000, -100000000, 100000000);
+yN = pmin(a, b);
+parallelSetNumThreads(1);
+y1 = pmin(a, b);
+if (!identical(y1, yN)) stop('parallel max(integer x, integer y) failed test');
+
+// ***********************************************************************************************
+
+// (float)pmin(float x, float$ y)								// EIDOS_OMPMIN_PMIN_FLOAT_1
+
+x = runif(1000000, -100000000, 100000000);
+yN = pmin(x, 1703.0);
+parallelSetNumThreads(1);
+y1 = pmin(x, 1703.0);
+if (!identical(y1, yN)) stop('parallel max(float x, float$ y) failed test');
+
+// ***********************************************************************************************
+
+// (float)pmin(float x, float y)								// EIDOS_OMPMIN_PMIN_FLOAT_2
+
+a = runif(1000000, -100000000, 100000000);
+b = runif(1000000, -100000000, 100000000);
+yN = pmin(a, b);
+parallelSetNumThreads(1);
+y1 = pmin(a, b);
+if (!identical(y1, yN)) stop('parallel max(float x, float y) failed test');
+
+// ***********************************************************************************************
+
 // (float)round(float x)										// EIDOS_OMPMIN_ROUND
 
 x = runif(1000000, -100, 100);

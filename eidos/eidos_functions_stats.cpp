@@ -218,16 +218,21 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 				if (max < temp)
 					max = temp;
 			}
-			else
+			else if (arg_count > 1)
 			{
 				const int64_t *int_data = arg_value->IntVector()->data();
+				int64_t loop_max = INT64_MIN;
 				
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(max: loop_max) if(arg_count >= EIDOS_OMPMIN_MAX_INT)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					int64_t temp = int_data[value_index];
-					if (max < temp)
-						max = temp;
+					if (loop_max < temp)
+						loop_max = temp;
 				}
+				
+				if (max < loop_max)
+					max = loop_max;
 			}
 		}
 		
@@ -256,18 +261,27 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 			else
 			{
 				const double *float_data = arg_value->FloatVector()->data();
+				double loop_max = -std::numeric_limits<double>::infinity();
+				bool saw_NAN = false;
 				
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(max: loop_max) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MAX_FLOAT)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
 					
-					// if there is a NAN the result is always NAN, so we don't need to scan further
+					// if there is a NAN the result is always NAN, but we can't return from a parallel region
 					if (std::isnan(temp))
-						return gStaticEidosValue_FloatNAN;
+						saw_NAN = true;
 					
-					if (max < temp)
-						max = temp;
+					if (loop_max < temp)
+						loop_max = temp;
 				}
+				
+				if (saw_NAN)
+					return gStaticEidosValue_FloatNAN;
+				
+				if (max < loop_max)
+					max = loop_max;
 			}
 		}
 		
@@ -479,16 +493,21 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 				if (min > temp)
 					min = temp;
 			}
-			else
+			else if (arg_count > 1)
 			{
 				const int64_t *int_data = arg_value->IntVector()->data();
+				int64_t loop_min = INT64_MAX;
 				
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(min: loop_min) if(arg_count >= EIDOS_OMPMIN_MIN_INT)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					int64_t temp = int_data[value_index];
-					if (min > temp)
-						min = temp;
+					if (loop_min > temp)
+						loop_min = temp;
 				}
+				
+				if (min > loop_min)
+					min = loop_min;
 			}
 		}
 		
@@ -517,18 +536,27 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 			else
 			{
 				const double *float_data = arg_value->FloatVector()->data();
+				double loop_min = std::numeric_limits<double>::infinity();
+				bool saw_NAN = false;
 				
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(min: loop_min) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MIN_FLOAT)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
 					
-					// if there is a NAN the result is always NAN, so we don't need to scan further
+					// if there is a NAN the result is always NAN, but we can't return from a parallel region
 					if (std::isnan(temp))
-						return gStaticEidosValue_FloatNAN;
+						saw_NAN = true;
 					
-					if (min > temp)
-						min = temp;
+					if (loop_min > temp)
+						loop_min = temp;
 				}
+				
+				if (saw_NAN)
+					return gStaticEidosValue_FloatNAN;
+				
+				if (min > loop_min)
+					min = loop_min;
 			}
 		}
 		
@@ -641,28 +669,46 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
 			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
+			// BCH 12/27/2022: This and the corresponding loop in pmin() show an unusually high variance in execution time, for the same data.
+			// The benchmark model typically runs in either 7-8 seconds, or 11-12 seconds, not in between.  Timing indicates that this is due
+			// to an overall slowdown of the whole process, not a 3-4 second pause with a massive one-time stall.  I suspect that there is
+			// something about this loop that tends to encourage macOS to move the thread to an efficiency core, as bizarre as that sounds.
+			// (I'm... too sexy for my core... too sexy for my core... core's going to offload me...)  Well, it's the only hypothesis left.
+			// I tried upping the QoS ("quality of service") setting for the process to encourage it to stay on the performance cores, but
+			// that actually made things worse, maybe by increasing contention with UI-based apps.  Removing SIMD from this loop makes no
+			// difference.  I looked at the alignment of int0_data and int_result_data, and that is uncorrelated with the performance issue.
+			// I haven't figured out how to confirm my hypothesis with profiling tools yet.  It's a mystery.  Leaving this comment here
+			// for posterity.  It's not a big deal in the grand scheme of things, but I would love to know what's going on.  FIXME
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_1)
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				int_result->set_int_no_check(std::max(int0_data[value_index], y_singleton_value), value_index);
+			{
+				int64_t int0_value = int0_data[value_index];
+				int_result_data[value_index] = ((int0_value > y_singleton_value) ? int0_value : y_singleton_value);
+			}
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatVector()->data();
 			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_1)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
-				if (std::isnan(float0_data[value_index]) || std::isnan(y_singleton_value))
-					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				double float0_value = float0_data[value_index];
+				if (std::isnan(float0_value) || std::isnan(y_singleton_value))
+					float_result_data[value_index] = std::numeric_limits<double>::quiet_NaN();
 				else
-					float_result->set_float_no_check(std::max(float0_data[value_index], y_singleton_value), value_index);
+					float_result_data[value_index] = ((float0_value > y_singleton_value) ? float0_value : y_singleton_value);
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -691,28 +737,38 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int0_data = x_value->IntVector()->data();
-			const int64_t *int1_data = y_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int1_data = y_value->IntVector()->data();
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_2)
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				int_result->set_int_no_check(std::max(int0_data[value_index], int1_data[value_index]), value_index);
+			{
+				int64_t int0_value = int0_data[value_index];
+				int64_t int1_value = int1_data[value_index];
+				int_result_data[value_index] = (int0_value > int1_value) ? int0_value : int1_value;
+			}
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float0_data = x_value->FloatVector()->data();
-			const double *float1_data = y_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float1_data = y_value->FloatVector()->data();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_2)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
+				double float0_value = float0_data[value_index];
+				double float1_value = float1_data[value_index];
 				if (std::isnan(float0_data[value_index]) || std::isnan(float1_data[value_index]))
-					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+					float_result_data[value_index] = std::numeric_limits<double>::quiet_NaN();
 				else
-					float_result->set_float_no_check(std::max(float0_data[value_index], float1_data[value_index]), value_index);
+					float_result_data[value_index] = ((float0_value > float1_value) ? float0_value : float1_value);
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -807,28 +863,36 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
 			int64_t y_singleton_value = y_value->IntAtIndex(0, nullptr);
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_1)
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				int_result->set_int_no_check(std::min(int0_data[value_index], y_singleton_value), value_index);
+			{
+				int64_t int0_value = int0_data[value_index];
+				int_result_data[value_index] = ((int0_value < y_singleton_value) ? int0_value : y_singleton_value);
+			}
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatVector()->data();
 			double y_singleton_value = y_value->FloatAtIndex(0, nullptr);
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_1)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
-				if (std::isnan(float0_data[value_index]) || std::isnan(y_singleton_value))
-					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+				double float0_value = float0_data[value_index];
+				if (std::isnan(float0_value) || std::isnan(y_singleton_value))
+					float_result_data[value_index] = std::numeric_limits<double>::quiet_NaN();
 				else
-					float_result->set_float_no_check(std::min(float0_data[value_index], y_singleton_value), value_index);
+					float_result_data[value_index] = ((float0_value < y_singleton_value) ? float0_value : y_singleton_value);
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
@@ -857,28 +921,38 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 		}
 		else if (x_type == EidosValueType::kValueInt)
 		{
-			const int64_t *int0_data = x_value->IntVector()->data();
-			const int64_t *int1_data = y_value->IntVector()->data();
+			const int64_t * __restrict__ int0_data = x_value->IntVector()->data();
+			const int64_t * __restrict__ int1_data = y_value->IntVector()->data();
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_2)
 			for (int value_index = 0; value_index < x_count; ++value_index)
-				int_result->set_int_no_check(std::min(int0_data[value_index], int1_data[value_index]), value_index);
+			{
+				int64_t int0_value = int0_data[value_index];
+				int64_t int1_value = int1_data[value_index];
+				int_result_data[value_index] = (int0_value < int1_value) ? int0_value : int1_value;
+			}
 		}
 		else if (x_type == EidosValueType::kValueFloat)
 		{
-			const double *float0_data = x_value->FloatVector()->data();
-			const double *float1_data = y_value->FloatVector()->data();
+			const double * __restrict__ float0_data = x_value->FloatVector()->data();
+			const double * __restrict__ float1_data = y_value->FloatVector()->data();
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_2)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
+				double float0_value = float0_data[value_index];
+				double float1_value = float1_data[value_index];
 				if (std::isnan(float0_data[value_index]) || std::isnan(float1_data[value_index]))
-					float_result->set_float_no_check(std::numeric_limits<double>::quiet_NaN(), value_index);
+					float_result_data[value_index] = std::numeric_limits<double>::quiet_NaN();
 				else
-					float_result->set_float_no_check(std::min(float0_data[value_index], float1_data[value_index]), value_index);
+					float_result_data[value_index] = ((float0_value < float1_value) ? float0_value : float1_value);
 			}
 		}
 		else if (x_type == EidosValueType::kValueString)
