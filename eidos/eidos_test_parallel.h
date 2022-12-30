@@ -98,6 +98,90 @@ if (!identical(y1, yN)) stop('parallel log2(float x) failed test');
 
 // ***********************************************************************************************
 
+// (integer)match(integer x, integer table)						// EIDOS_OMPMIN_MATCH_INT
+
+table = sample(0:999, 500, replace=F);
+x = rdunif(1000000, 0, 999);
+yN = match(x, table);
+parallelSetNumThreads(1);
+y1 = match(x, table);
+if (!identical(y1, yN)) stop('parallel match(integer x, integer table) failed test');
+
+// ***********************************************************************************************
+
+// (integer)match(float x, float table)							// EIDOS_OMPMIN_MATCH_FLOAT
+
+table = sample(0.0:999, 500, replace=F);
+x = sample(table, 1000000, replace=T);
+yN = match(x, table);
+parallelSetNumThreads(1);
+y1 = match(x, table);
+if (!identical(y1, yN)) stop('parallel match(float x, float table) failed test');
+
+// ***********************************************************************************************
+
+// (integer)match(string x, string table)						// EIDOS_OMPMIN_MATCH_STRING
+
+table = asString(sample(0:999, 500, replace=F));
+x = asString(rdunif(1000000, 0, 999));
+yN = match(x, table);
+parallelSetNumThreads(1);
+y1 = match(x, table);
+if (!identical(y1, yN)) stop('parallel match(string x, string table) failed test');
+
+// ***********************************************************************************************
+
+// (integer)match(object x, object table)						// EIDOS_OMPMIN_MATCH_OBJECT
+
+table = sapply(0:499, "Dictionary('a', applyValue);");
+x = sample(table, 1000000, replace=T);
+yN = match(x, table);
+parallelSetNumThreads(1);
+y1 = match(x, table);
+if (!identical(y1, yN)) stop('parallel match(object x, object table) failed test');
+
+// ***********************************************************************************************
+
+// (integer)sample(integer x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_R_INT
+
+x = 0:1000;
+yN = sample(x, 10000000, replace=T);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T);
+if (abs(mean(yN) - mean(y1)) > 0.5) stop('parallel sample(integer x) failed test');
+
+// ***********************************************************************************************
+
+// (integer)sample(float x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_R_FLOAT
+
+x = 0.0:1000;
+yN = sample(x, 10000000, replace=T);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T);
+if (abs(mean(yN) - mean(y1)) > 0.5) stop('parallel sample(float x) failed test');
+
+// ***********************************************************************************************
+
+// (integer)sample(object x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_R_OBJECT
+
+x = sapply(0:1000, "Dictionary('a', applyValue);");
+yN = sample(x, 10000000, replace=T);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T);
+if (abs(mean(yN.getValue("a")) - mean(y1.getValue("a"))) > 0.5) stop('parallel sample(object x) failed test');
+
+// ***********************************************************************************************
+
+// (integer)tabulate(integer bin)								// EIDOS_OMPMIN_TABULATE
+
+values = rdunif(10000000, min=0, max=10000);
+yN = tabulate(values);
+parallelSetNumThreads(1);
+y1 = tabulate(values);
+if (!identical(y1, yN)) stop('parallel tabulate(integer bin) failed test');
+
+// ***********************************************************************************************
+
 // (integer)max(integer x)										// EIDOS_OMPMIN_MAX_INT
 
 x = rdunif(1000000, -100000000, 100000000);

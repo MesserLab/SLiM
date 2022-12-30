@@ -278,6 +278,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValueType x_type = x_value->Type();
 	int64_t sample_size = p_arguments[1]->IntAtIndex(0, nullptr);
 	bool replace = p_arguments[2]->LogicalAtIndex(0, nullptr);
 	EidosValue *weights_value = p_arguments[3].get();
@@ -329,17 +330,55 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	if (!replace && (sample_size == 1))
 		replace = true;
 	
+	// full shuffle; optimized case for everything but std::string, which is difficult as usual
+	// and is handled below, because gsl_ran_shuffle() can't move std::string safely
+	if (!weights_value && !replace && (sample_size == x_count) && (sample_size != 1) && (x_type != EidosValueType::kValueString))
+	{
+		gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		
+		result_SP = x_value->CopyValues();
+		EidosValue *result = result_SP.get();
+		
+		// These full shuffles could be parallelized pretty well, and it would provide a substantial speedup for
+		// the non-parallel case too since it's a better algorithm.  Eidos_ran_shuffle() implements an algorithm
+		// called the Fisher-Yates shuffle.  An algorithm called MergeShuffle is about twice as fast non-parallel,
+		// and parallelizes well (https://arxiv.org/abs/1508.03167, https://ceur-ws.org/Vol-2113/paper3.pdf).
+		// There is an open-source implementation at https://github.com/axel-bacher/mergeshuffle.  This would
+		// also benefit everywhere else in the code that uses Eidos_ran_shuffle(), including the shuffle buffer.  FIXME
+		
+		switch (x_type)
+		{
+			case EidosValueType::kValueVOID: break;
+			case EidosValueType::kValueNULL: break;
+			case EidosValueType::kValueLogical:
+				Eidos_ran_shuffle(main_thread_rng, result->LogicalVector_Mutable()->data(), x_count);
+				break;
+			case EidosValueType::kValueInt:
+				Eidos_ran_shuffle(main_thread_rng, result->IntVector_Mutable()->data(), x_count);
+				break;
+			case EidosValueType::kValueFloat:
+				Eidos_ran_shuffle(main_thread_rng, result->FloatVector_Mutable()->data(), x_count);
+				break;
+			case EidosValueType::kValueObject:
+				Eidos_ran_shuffle(main_thread_rng, result->ObjectElementVector_Mutable()->data(), x_count);
+				break;
+			default:
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
+		}
+		
+		return result_SP;
+	}
+	
 	// several algorithms below use a buffer of indexes; we share that here as static locals
 	// whenever sampling without replacement, we resize the buffer to the needed capacity here, too,
 	// and initialize the buffer; all the code paths below use it in essentially the same way
 	THREAD_SAFETY_CHECK("Eidos_ExecuteFunction_sample(): usage of statics");
 	
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	static int *index_buffer = nullptr;
 	static int buffer_capacity = 0;
+	bool needs_index_buffer = !replace;		// if we are sampling without replacement, we will need this buffer
 	
-	if (!replace)
+	if (needs_index_buffer)
 	{
 		if (x_count > buffer_capacity)
 		{
@@ -351,6 +390,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
+#pragma omp parallel for schedule(static) default(none) shared(index_buffer, x_count) if(x_count > EIDOS_OMPMIN_SAMPLE_1)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			index_buffer[value_index] = value_index;
 	}
@@ -358,6 +398,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	// the algorithm used depends on whether weights were supplied
 	if (weights_value)
 	{
+		gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		
 		// handle the weights vector with separate cases for float and integer, so we can access it directly for speed
 		if (weights_type == EidosValueType::kValueFloat)
 		{
@@ -380,7 +422,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			if (sample_size == 1)
 			{
 				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-				double rose = Eidos_rng_uniform(rng) * weights_sum;
+				double rose = Eidos_rng_uniform(main_thread_rng) * weights_sum;
 				double rose_sum = 0.0;
 				int rose_index;
 				
@@ -402,7 +444,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					double rose = Eidos_rng_uniform(rng) * weights_sum;
+					double rose = Eidos_rng_uniform(main_thread_rng) * weights_sum;
 					double rose_sum = 0.0;
 					int rose_index;
 					
@@ -430,7 +472,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					if (weights_sum <= 0.0)
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 					
-					double rose = Eidos_rng_uniform(rng) * weights_sum;
+					double rose = Eidos_rng_uniform(main_thread_rng) * weights_sum;
 					double rose_sum = 0.0;
 					int rose_index;
 					
@@ -476,7 +518,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			if (sample_size == 1)
 			{
 				// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-				int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
+				int64_t rose = (int64_t)ceil(Eidos_rng_uniform(main_thread_rng) * weights_sum);
 				int64_t rose_sum = 0;
 				int rose_index;
 				
@@ -498,7 +540,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				
 				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 				{
-					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(main_thread_rng) * weights_sum);
 					int64_t rose_sum = 0;
 					int rose_index;
 					
@@ -526,7 +568,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					if (weights_sum <= 0)
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 					
-					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(rng) * weights_sum);
+					int64_t rose = (int64_t)ceil(Eidos_rng_uniform(main_thread_rng) * weights_sum);
 					int64_t rose_sum = 0;
 					int rose_index;
 					
@@ -560,42 +602,102 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		if (sample_size == 1)
 		{
 			// a sample size of 1 is very common; make it as fast as we can by getting a singleton EidosValue directly from x
-			return x_value->GetValueAtIndex((int)Eidos_rng_uniform_int(rng, x_count), nullptr);
+			gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
+			return x_value->GetValueAtIndex((int)Eidos_rng_uniform_int(main_thread_rng, x_count), nullptr);
 		}
 		else if (replace)
 		{
 			// with replacement, we can just do a series of independent draws
-			result_SP = x_value->NewMatchingType();
-			EidosValue *result = result_SP.get();
-			
-			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
-				result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(rng, x_count), *x_value, nullptr);
-		}
-		else if ((sample_size == x_count) && (x_value->Type() != EidosValueType::kValueString))
-		{
-			// full shuffle; optimized case for everything but std::string, which is difficult as usual
-			// and is handled below, because gsl_ran_shuffle() can't move std::string safely
-			result_SP = x_value->CopyValues();
-			EidosValue *result = result_SP.get();
-			
-			switch (x_value->Type())
+			if (x_count == 1)
 			{
-				case EidosValueType::kValueVOID: break;
-				case EidosValueType::kValueNULL: break;
-				case EidosValueType::kValueLogical:
-					Eidos_ran_shuffle(rng, result->LogicalVector_Mutable()->data(), x_count);
-					break;
-				case EidosValueType::kValueInt:
-					Eidos_ran_shuffle(rng, result->IntVector_Mutable()->data(), x_count);
-					break;
-				case EidosValueType::kValueFloat:
-					Eidos_ran_shuffle(rng, result->FloatVector_Mutable()->data(), x_count);
-					break;
-				case EidosValueType::kValueObject:
-					Eidos_ran_shuffle(rng, result->ObjectElementVector_Mutable()->data(), x_count);
-					break;
-				default:
-					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): (internal error) unsupported type in sample()" << EidosTerminate(nullptr);
+				// If there is only one element to sample from, there is no need to draw elements
+				// This case removes the possibility of x_value being singleton from the branches below
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					result->PushValueFromIndexOfEidosValue(0, *x_value, nullptr);
+			}
+			else if (x_type == EidosValueType::kValueInt)
+			{
+				const int64_t *int_data = x_value->IntVector()->data();
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(sample_size);
+				int64_t *int_result_data = int_result->data();
+				result_SP = EidosValue_SP(int_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(int_data, int_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_INT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int32_t sample = Eidos_rng_uniform_int(rng, x_count);
+						int_result_data[samples_generated] = int_data[sample];
+					}
+				}
+			}
+			else if (x_type == EidosValueType::kValueFloat)
+			{
+				const double *float_data = x_value->FloatVector()->data();
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
+				double *float_result_data = float_result->data();
+				result_SP = EidosValue_SP(float_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(float_data, float_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_FLOAT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int32_t sample = Eidos_rng_uniform_int(rng, x_count);
+						float_result_data[samples_generated] = float_data[sample];
+					}
+				}
+			}
+			else if (x_type == EidosValueType::kValueObject)
+			{
+				EidosObject * const *object_data = x_value->ObjectElementVector()->data();
+				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
+				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
+				EidosObject **object_result_data = object_result->data();
+				result_SP = EidosValue_SP(object_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(object_data, object_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_OBJECT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int32_t sample = Eidos_rng_uniform_int(rng, x_count);
+						EidosObject *object_element = object_data[sample];
+						object_result_data[samples_generated] = object_element;
+					}
+				}
+				
+				if (object_class->UsesRetainRelease())
+				{
+					// Retain all of the objects chosen; this is not done in parallel because it would require locks
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						EidosObject *object_element = object_result_data[samples_generated];
+						static_cast<EidosDictionaryRetained *>(object_element)->Retain();		// unsafe cast to avoid virtual function overhead
+					}
+				}
+			}
+			else
+			{
+				// This handles the logical and string cases
+				gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					result->PushValueFromIndexOfEidosValue((int)Eidos_rng_uniform_int(main_thread_rng, x_count), *x_value, nullptr);
 			}
 		}
 		else
@@ -606,6 +708,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			// gsl_ran_choose() does a gsl_rng_uniform() call for every element in x_value()!  We only do one
 			// Eidos_rng_uniform_int() call per element in sample_size, at the price of a separate index buffer
 			// and a lack of re-entrancy and thread-safety.  This is a *lot* faster for sample_size << x_count.
+			gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
 			result_SP = x_value->NewMatchingType();
 			EidosValue *result = result_SP.get();
 			
@@ -614,7 +718,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
 			{
-				int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)contender_count);
+				int rose_index = (int)Eidos_rng_uniform_int(main_thread_rng, (uint32_t)contender_count);
 				result->PushValueFromIndexOfEidosValue(index_buffer[rose_index], *x_value, nullptr);
 				index_buffer[rose_index] = index_buffer[--contender_count];
 			}
@@ -1637,6 +1741,7 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 	{
 		// We can use the fast vector API; we want match() to be very fast since it is a common bottleneck
 		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+		int64_t *int_result_data = int_result->data();
 		result_SP = EidosValue_SP(int_result);
 		
 		int table_index;
@@ -1678,12 +1783,13 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueInt); please report this." << EidosTerminate(nullptr);
 				}
 				
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(int_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_INT)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(int_data0[value_index]);
 					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
 					
-					int_result->set_int_no_check(find_index, value_index);
+					int_result_data[value_index] = find_index;
 				}
 			}
 			else
@@ -1724,12 +1830,13 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueFloat); please report this." << EidosTerminate(nullptr);
 				}
 				
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(float_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_FLOAT)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(float_data0[value_index]);
 					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
 					
-					int_result->set_int_no_check(find_index, value_index);
+					int_result_data[value_index] = find_index;
 				}
 			}
 			else
@@ -1772,12 +1879,14 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueString); please report this." << EidosTerminate(nullptr);
 				}
 				
+				// Note that if string_vec0 were firstprivate, OpenMP would copy the data, NOT the reference!!!
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex, string_vec0) firstprivate(int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_STRING)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(string_vec0[value_index]);
 					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
 					
-					int_result->set_int_no_check(find_index, value_index);
+					int_result_data[value_index] = find_index;
 				}
 			}
 			else
@@ -1816,12 +1925,13 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueObject); please report this." << EidosTerminate(nullptr);
 				}
 				
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(objelement_vec0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_OBJECT)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(objelement_vec0[value_index]);
 					int64_t find_index = (find_iter == fromValueToIndex.end()) ? -1 : find_iter->second;
 					
-					int_result->set_int_no_check(find_index, value_index);
+					int_result_data[value_index] = find_index;
 				}
 			}
 			else
@@ -2085,14 +2195,14 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *bin_value = p_arguments[0].get();
-	int bin_count = bin_value->Count();
+	int value_count = bin_value->Count();			// the name "bin_count" is just too confusing
 	
 	EidosValue *maxbin_value = p_arguments[1].get();
 	EidosValueType maxbin_type = maxbin_value->Type();
 	
 	// set up to work with either a singleton or a non-singleton vector
-	int64_t singleton_value = (bin_count == 1) ? bin_value->IntAtIndex(0, nullptr) : 0;
-	const int64_t *int_data = (bin_count == 1) ? &singleton_value : bin_value->IntVector()->data();
+	int64_t singleton_value = (value_count == 1) ? bin_value->IntAtIndex(0, nullptr) : 0;
+	const int64_t *int_data = (value_count == 1) ? &singleton_value : bin_value->IntVector()->data();
 	
 	// determine maxbin
 	int64_t maxbin;
@@ -2100,7 +2210,9 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	if (maxbin_type == EidosValueType::kValueNULL)
 	{
 		maxbin = 0;
-		for (int value_index = 0; value_index < bin_count; ++value_index)
+		
+#pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE)
+		for (int value_index = 0; value_index < value_count; ++value_index)
 		{
 			int64_t value = int_data[value_index];
 			if (value > maxbin)
@@ -2116,23 +2228,59 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_tabulate): function tabulate() requires maxbin to be greater than or equal to 0." << EidosTerminate(nullptr);
 	
 	// set up the result vector and zero it out
-	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(maxbin + 1);
+	int64_t num_bins = maxbin + 1;
+	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_bins);
+	int64_t *result_data = int_result->data();
 	result_SP = EidosValue_SP(int_result);
 	
-	for (int result_index = 0; result_index <= maxbin; ++result_index)
-		int_result->set_int_no_check(0, result_index);
+	for (int bin_index = 0; bin_index < num_bins; ++bin_index)
+		result_data[bin_index] = 0;
 	
 	// do the tabulation
-	int64_t *result_data = int_result->data();
-	
-	for (int value_index = 0; value_index < bin_count; ++value_index)
+#ifdef _OPENMP
+	if ((value_count > EIDOS_OMPMIN_TABULATE) && (gEidosNumThreads > 1))
 	{
-		int64_t value = int_data[value_index];
-		
-		if ((value >= 0) && (value <= maxbin))
-			result_data[value]++;
+		// Our custom OpenMP implementation has some extra overhead that we want to avoid when running single-threaded
+		// We make completely separate tallies in each thread, and then do a reduction at the end into result_data.
+		// I tried some other approaches – per-thread locks, and atomic updates – and they were much slower.
+#pragma omp parallel default(none) shared(value_count, num_bins) firstprivate(int_data, result_data)
+		{
+			int64_t *perthread_tallies = (int64_t *)calloc(num_bins, sizeof(int64_t));
+			
+#pragma omp for schedule(dynamic, 1000) nowait
+			for (int value_index = 0; value_index < value_count; ++value_index)
+			{
+				int64_t value = int_data[value_index];
+				
+				if ((value >= 0) && (value < num_bins))
+				{
+					// I tried using per-bin locks instead, but the locking overhead was huge.
+					perthread_tallies[value]++;
+				}
+			}
+			
+#pragma omp critical
+			{
+				// Given the nowait on the for loop above, there is some hope that the threads won't stack up too badly here
+				for (int bin_index = 0; bin_index < num_bins; ++bin_index)
+					result_data[bin_index] += perthread_tallies[bin_index];
+			}
+			
+			free(perthread_tallies);
+		}
 	}
-	
+	else
+#endif
+	{
+		// Non-parallel implementation
+		for (int value_index = 0; value_index < value_count; ++value_index)
+		{
+			int64_t value = int_data[value_index];
+			
+			if ((value >= 0) && (value <= maxbin))
+				result_data[value]++;
+		}
+	}
 	return result_SP;
 }
 

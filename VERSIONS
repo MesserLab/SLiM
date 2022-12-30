@@ -56,6 +56,7 @@ PARALLEL changes (now in the master branch):
 	switch to OMP_PROC_BIND == true by default; keep threads with the data they're working on, recommended practice
 	parallelize more Eidos math functions: abs(float), ceil(), exp(float), floor(), log(float), log10(float), log2(float), round(), sqrt(float), trunc()
 	parallelize Eidos min/max functions: max(int), max(float), min(int), min(float), pmax(int), pmax(float), pmin(int), pmin(float)
+	parallelize match(), tabulate(), sample (int/float/object, replace=T, weights=NULL)
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
