@@ -177,11 +177,13 @@ public:
 	
 	inline __attribute__((always_inline)) void Retain(void)
 	{
+		THREAD_SAFETY_CHECK("EidosDictionaryRetained::Retain(): EidosDictionaryRetained refcount_ change");
 		refcount_++;
 	}
 
 	inline __attribute__((always_inline)) void Release(void)
 	{
+		THREAD_SAFETY_CHECK("EidosDictionaryRetained::Retain(): EidosDictionaryRetained refcount_ change");
 		if ((--refcount_) == 0)
 			SelfDelete();
 	}
