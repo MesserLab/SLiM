@@ -208,7 +208,13 @@ inline __attribute__((always_inline)) uint32_t Eidos_rng_uniform_int(gsl_rng *p_
 // The gsl_ran_shuffle() function leans very heavily on gsl_rng_uniform_int(), which is very slow
 // as mentioned above.  This is essentially same code as gsl_ran_shuffle(), but calls Eidos_rng_uniform_int().
 // It is also templated, to take advantage of std::swap(), which is faster than the GSL's generalized
-// swap() function.
+// swap() function.  This uses the Fisher-Yates algorithm.  BCH 12/30/2022: I tried using a different
+// algorithm called MergeShuffle (https://arxiv.org/abs/1508.03167), which is a parallelizable algorithm
+// with code available on GitHub; the authors claim that it is faster than Fisher-Yates.  For me it was
+// about twice as slow, in the sequential case, and with the speedup from parallelization it was still
+// a little slower.  It looks like their observed speed was due to cache locality (less of a win now,
+// as caches get ever bigger) and hand-tuned assembly code (not an option for us), and maybe also a
+// custom fast RNG optimized for generating single random bits.  So, Fisher-Yates it is.
 template <class T> inline void Eidos_ran_shuffle(gsl_rng *r, T *base, uint32_t n)
 {
 	for (uint32_t i = n - 1; i > 0; i--)

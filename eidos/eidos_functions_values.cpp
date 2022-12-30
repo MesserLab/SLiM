@@ -339,13 +339,6 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		result_SP = x_value->CopyValues();
 		EidosValue *result = result_SP.get();
 		
-		// These full shuffles could be parallelized pretty well, and it would provide a substantial speedup for
-		// the non-parallel case too since it's a better algorithm.  Eidos_ran_shuffle() implements an algorithm
-		// called the Fisher-Yates shuffle.  An algorithm called MergeShuffle is about twice as fast non-parallel,
-		// and parallelizes well (https://arxiv.org/abs/1508.03167, https://ceur-ws.org/Vol-2113/paper3.pdf).
-		// There is an open-source implementation at https://github.com/axel-bacher/mergeshuffle.  This would
-		// also benefit everywhere else in the code that uses Eidos_ran_shuffle(), including the shuffle buffer.  FIXME
-		
 		switch (x_type)
 		{
 			case EidosValueType::kValueVOID: break;
