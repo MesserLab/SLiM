@@ -2560,6 +2560,7 @@ EidosValue_SP Eidos_ExecuteFunction_sqrt(const std::vector<EidosValue_SP> &p_arg
 //	(numeric$)sum(lif x)
 EidosValue_SP Eidos_ExecuteFunction_sum(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	// BEWARE: this is called by Eidos_ExecuteFunction_mean(), which assumes that arguments match!
 	EidosValue_SP result_SP(nullptr);
 	
 	EidosValue *x_value = p_arguments[0].get();

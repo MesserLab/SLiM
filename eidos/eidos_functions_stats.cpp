@@ -322,7 +322,7 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 }
 
 //	(float$)mean(lif x)
-EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	
@@ -341,72 +341,10 @@ EidosValue_SP Eidos_ExecuteFunction_mean(const std::vector<EidosValue_SP> &p_arg
 	}
 	else
 	{
-		EidosValueType x_type = x_value->Type();
-		double sum = 0;
-		
-#if EIDOS_HAS_OVERFLOW_BUILTINS
-		if (x_type == EidosValueType::kValueInt)
-		{
-			// Accelerated integer case
-			const int64_t *int_data = x_value->IntVector()->data();
-			int64_t sum_i = 0;
-			
-			// We do a tricky thing here.  We want to try to compute in integer, but switch to float if we overflow.
-			// If we do overflow, we want to minimize numerical error by accumulating in integer for as long as we
-			// can, and then throwing the integer accumulator over into the float accumulator only when it is about
-			// to overflow.  We perform both computations in parallel, and use integer for the result if we can.
-			for (int value_index = 0; value_index < x_count; ++value_index)
-			{
-				int64_t old_sum = sum_i;
-				int64_t temp = int_data[value_index];
-				
-				bool overflow = Eidos_add_overflow(old_sum, temp, &sum_i);
-				
-				// switch to float computation on overflow, and accumulate in the float sum just before overflow
-				if (overflow)
-				{
-					sum += old_sum;
-					sum_i = temp;		// start integer accumulation again from 0 until it overflows again
-				}
-			}
-			
-			sum += sum_i;			// add in whatever integer accumulation has not overflowed
-		}
-#else
-		if (x_type == EidosValueType::kValueInt)
-		{
-			// Accelerated integer case
-			const int64_t *int_data = x_value->IntVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				sum += int_data[value_index];
-		}
-#endif
-		else if (x_type == EidosValueType::kValueFloat)
-		{
-			// Accelerated float case
-			const double *float_data = x_value->FloatVector()->data();
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				sum += float_data[value_index];
-		}
-		else if (x_type == EidosValueType::kValueLogical)
-		{
-			// Accelerated logical case
-			const eidos_logical_t *logical_data = x_value->LogicalVector()->data();
-			int64_t logical_sum = 0;
-			
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				logical_sum += logical_data[value_index];
-			
-			sum = logical_sum;	// avoid floating-point roundoff issues
-		}
-		else
-		{
-			// General case, never hit
-			for (int value_index = 0; value_index < x_count; ++value_index)
-				sum += x_value->FloatAtIndex(value_index, nullptr);
-		}
+		// Call sum() to do the addition for us, since it takes exactly the same arguments; it will return numeric$ which we treat as float$
+		// Note this means we inherit the parallelization/vectorization behavior of sum(); we have no separate benchmarks for mean()
+		EidosValue_SP sum_value = Eidos_ExecuteFunction_sum(p_arguments, p_interpreter);
+		double sum = sum_value->FloatAtIndex(0, nullptr);
 		
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(sum / x_count));
 	}
