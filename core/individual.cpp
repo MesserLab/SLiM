@@ -1011,7 +1011,7 @@ bool Individual::_SetFitnessScaling_N(const double *source_data, EidosObject **p
 	// potential race condition if the same Individual is referenced more than once in
 	// p_values; that is considered a bug in the user's script, and we could check for it
 	// in DEBUG mode if we wanted to.
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(p_values_size) firstprivate(p_values, source_data) reduction(||: saw_error) if(parallel:p_values_size >= EIDOS_OMPMIN_SET_FITNESS_S2)
+#pragma omp parallel for schedule(static) default(none) shared(p_values_size) firstprivate(p_values, source_data) reduction(||: saw_error) if(p_values_size >= EIDOS_OMPMIN_SET_FITNESS_S2)
 	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 	{
 		double source_value = source_data[value_index];
