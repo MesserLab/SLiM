@@ -55,12 +55,12 @@ public:
 	EidosGlobalStringID call_id_;
 	
 	EidosValueMask return_mask_;						// a mask specifying the exact return type; the singleton flag is used, the optional flag is not
-	const EidosClass *return_class_;				// optional type-check for object returns; used only if the return is an object and this is not nullptr
+	const EidosClass *return_class_;					// optional type-check for object returns; used only if the return is an object and this is not nullptr
 	
 	std::vector<EidosValueMask> arg_masks_;				// the expected types for each argument, as a mask
 	std::vector<std::string> arg_names_;				// the argument names as std::strings; will be gEidosStr_ELLIPSIS for an ellipsis argument
 	std::vector<EidosGlobalStringID> arg_name_IDs_;		// the argument names as EidosGlobalStringIDs, allowing fast argument list processing; will be gEidosID_ELLIPSIS for an ellipsis argument
-	std::vector<const EidosClass *> arg_classes_;	// the expected object classes for each argument; nullptr unless the argument is object type and specified an element type
+	std::vector<const EidosClass *> arg_classes_;		// the expected object classes for each argument; nullptr unless the argument is object type and specified an element type
 	std::vector<EidosValue_SP> arg_defaults_;			// default values for each argument; will be nullptr for required arguments
 	
 	bool has_optional_args_ = false;					// if true, at least one optional argument has been added
