@@ -722,6 +722,13 @@ EidosInstanceMethodSignature::~EidosInstanceMethodSignature(void)
 
 EidosInstanceMethodSignature *EidosInstanceMethodSignature::DeclareAcceleratedImp(Eidos_AcceleratedMethodImp p_imper)
 {
+	/*
+	 BCH 1/2/2023: Commented out these checks.  They are well-intentioned but excessively strict.  The class itself knows
+	 what it is doing.  Some methods might consistently return all one type or all a different type, depending on the
+	 parameters passed; there is nothing wrong with that.  It would be more unusual, but the same is technically true
+	 for the object element class, too.  And in the end, the implementation could concatenate values of different types
+	 together on its own, if that turned out to be necessary.  I'm removing this because it is now in the way.
+	 
 	uint32_t retmask = (return_mask_ & kEidosValueMaskFlagStrip);
 	
 	if ((retmask != kEidosValueMaskVOID) && 
@@ -735,6 +742,7 @@ EidosInstanceMethodSignature *EidosInstanceMethodSignature::DeclareAcceleratedIm
 	
 	if ((retmask == (kEidosValueMaskObject | kEidosValueMaskSingleton)) && (return_class_ == nullptr))
 		EIDOS_TERMINATION << "ERROR (EidosInstanceMethodSignature::DeclareAcceleratedImp): (internal error) only object methods that declare their class may be accelerated." << EidosTerminate(nullptr);
+	*/
 	
 	accelerated_imp_ = true;
 	accelerated_imper_ = p_imper;
