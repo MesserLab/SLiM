@@ -57,6 +57,9 @@ PARALLEL changes (now in the master branch):
 	parallelize more Eidos math functions: abs(float), ceil(), exp(float), floor(), log(float), log10(float), log2(float), round(), sqrt(float), trunc()
 	parallelize Eidos min/max functions: max(int), max(float), min(int), min(float), pmax(int), pmax(float), pmin(int), pmin(float)
 	parallelize match(), tabulate(), sample (int/float/object, replace=T, weights=NULL), mean(l/i/f)
+	parallelize Individual -relatedness(), -countOfMutationsOfType(), -setSpatialPosition(); Species -individualsWithPedigreeIDs()
+	parallelize Subpopulation -pointInBounds(), -pointReflected(), -pointStopped(), pointPeriodic(), pointUniform()
+	parallelize Genome -containsMarkerMutation()
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

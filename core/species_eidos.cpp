@@ -1915,12 +1915,63 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 				EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_individualsWithPedigreeIDs): (internal error) SLiM encountered a raise from an internal hash table; please report this." << EidosTerminate(nullptr);
 			}
 			
-			for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+#ifdef _OPENMP
+			if (pedigreeIDs_count >= EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
 			{
-				auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
+				// separate parallel implementation, since the logic is somewhat different
+				result->resize_no_initialize(pedigreeIDs_count);
+
+				Individual **result_data = (Individual **)result->data();
+				bool any_unmatched = false;
 				
-				if (find_iter != fromIDToIndividual.end())
-					result->push_object_element_no_check_NORR(find_iter->second);
+#pragma omp parallel for schedule(static) default(none) shared(pedigreeIDs_count, fromIDToIndividual) firstprivate(pedigree_id_data, result_data) reduction(||: any_unmatched) // if(EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
+				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+				{
+					auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
+					
+					if (find_iter != fromIDToIndividual.end())
+					{
+						result_data[value_index] = find_iter->second;
+					}
+					else
+					{
+						result_data[value_index] = nullptr;
+						any_unmatched = true;
+					}
+				}
+				
+				// because of the parallelization, we had to insert nullptrs into the result vector and then compact it afterwards
+				// this compaction needs to preserve order, so it shifts elements down rather than backfilling from the end
+				if (any_unmatched)
+				{
+					int next_unfilled_index = 0;
+					
+					for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+					{
+						Individual *result_ind = result_data[value_index];
+						
+						if (result_ind != nullptr)
+						{
+							if (value_index != next_unfilled_index)
+								result_data[next_unfilled_index] = result_ind;
+							
+							next_unfilled_index++;
+						}
+					}
+					
+					result->resize_no_initialize(next_unfilled_index);
+				}
+			}
+			else
+#endif
+			{
+				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
+				{
+					auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);
+					
+					if (find_iter != fromIDToIndividual.end())
+						result->push_object_element_no_check_NORR(find_iter->second);
+				}
 			}
 		}
 		

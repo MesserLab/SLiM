@@ -834,7 +834,7 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 {
 	switch (p_method_id)
 	{
-		case gID_containsMarkerMutation:		return ExecuteMethod_containsMarkerMutation(p_method_id, p_arguments, p_interpreter);
+		//case gID_containsMarkerMutation:		return ExecuteMethod_Accelerated_containsMarkerMutation(p_method_id, p_arguments, p_interpreter);
 		//case gID_containsMutations:			return ExecuteMethod_Accelerated_containsMutations(p_method_id, p_arguments, p_interpreter);
 		case gID_countOfMutationsOfType:		return ExecuteMethod_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_mutationsOfType:				return ExecuteMethod_mutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -847,32 +847,103 @@ EidosValue_SP Genome::ExecuteInstanceMethod(EidosGlobalStringID p_method_id, con
 
 //	*********************	- (Nlo<Mutation>$)containsMarkerMutation(io<MutationType>$ mutType, integer$ position, [returnMutation$ = F])
 //
-EidosValue_SP Genome::ExecuteMethod_containsMarkerMutation(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	EidosValue *position_value = p_arguments[1].get();
 	EidosValue *returnMutation_value = p_arguments[2].get();
 	
-	if (IsNull())
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
-	
-	Species &species = individual_->subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "containsMarkerMutation()");		// SPECIES CONSISTENCY CHECK
-	slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
-	slim_position_t last_position = species.TheChromosome().last_position_;
-	
-	if (marker_position > last_position)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
-	
-	Mutation *mut = mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
-	
-	eidos_logical_t returnMutation = returnMutation_value->LogicalAtIndex(0, nullptr);
-	
-	if (returnMutation == false)
-		return (mut ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+	if (p_elements_size)
+	{
+		// SPECIES CONSISTENCY CHECK
+		Species *genomes_species = Community::SpeciesForGenomesVector((Genome **)p_elements, (int)p_elements_size);
+		
+		if (!genomes_species)
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() requires that all target genomes belong to the same species." << EidosTerminate();
+		
+		Species &species = *genomes_species;
+		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "containsMarkerMutation()");		// SPECIES CONSISTENCY CHECK
+		slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
+		slim_position_t last_position = species.TheChromosome().last_position_;
+		
+		if (marker_position > last_position)
+			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() position " << marker_position << " is past the end of the chromosome." << EidosTerminate();
+		
+		eidos_logical_t returnMutation = returnMutation_value->LogicalAtIndex(0, nullptr);
+		
+		if (p_elements_size == 1)
+		{
+			Genome *element = (Genome *)(p_elements[0]);
+			
+			if (!element->IsNull())
+			{
+				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
+				
+				if (returnMutation == false)
+					return (mut ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+				else
+					return (mut ? EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mut, gSLiM_Mutation_Class)) : (EidosValue_SP)gStaticEidosValueNULL);
+			}
+		}
+		else if (returnMutation == false)
+		{
+			// We will return a logical vector, T/F for each target genome; parallelized
+			EidosValue_Logical *result_logical_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
+			bool null_genome_seen = false;
+			
+#pragma omp parallel for schedule(dynamic, 10) default(none) shared(p_elements_size) firstprivate(p_elements, mutation_type_ptr, marker_position, last_position, result_logical_vec) reduction(||: null_genome_seen) if(p_elements_size >= EIDOS_OMPMIN_CONTAINS_MARKER_MUT)
+			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+			{
+				Genome *element = (Genome *)(p_elements[element_index]);
+				
+				if (element->IsNull())
+				{
+					null_genome_seen = true;
+					continue;
+				}
+				
+				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
+				
+				result_logical_vec->set_logical_no_check(mut != nullptr, element_index);
+			}
+			
+			if (!null_genome_seen)
+				return EidosValue_SP(result_logical_vec);
+		}
+		else // (returnMutation == true)
+		{
+			// We will return an object<Mutation> vector, one Mutation (or NULL) for each target genome; not parallelized, for now
+			EidosValue_Object_vector *result_obj_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->reserve(p_elements_size);
+			bool null_genome_seen = false;
+			
+			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+			{
+				Genome *element = (Genome *)(p_elements[element_index]);
+				
+				if (element->IsNull())
+				{
+					null_genome_seen = true;
+					continue;
+				}
+				
+				Mutation *mut = element->mutation_with_type_and_position(mutation_type_ptr, marker_position, last_position);
+				
+				if (mut)
+					result_obj_vec->push_object_element_RR(mut);
+			}
+			
+			if (!null_genome_seen)
+				return EidosValue_SP(result_obj_vec);
+		}
+		
+		// we drop through to here when a null genome is encountered
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() cannot be called on a null genome." << EidosTerminate();
+	}
 	else
-		return (mut ? EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(mut, gSLiM_Mutation_Class)) : (EidosValue_SP)gStaticEidosValueNULL);
+	{
+		return gStaticEidosValue_Logical_ZeroVec;
+	}
 }
 
 //	*********************	- (logical)containsMutations(object<Mutation> mutations)
@@ -2184,7 +2255,7 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addMutations, kEidosValueMaskVOID))->AddObject("mutations", gSLiM_Mutation_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewDrawnMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_addNewMutation, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject("mutationType", gSLiM_MutationType_Class)->AddNumeric("selectionCoeff")->AddInt("position")->AddIntObject_ON("originSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddIntString_ON("nucleotide", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMarkerMutation, kEidosValueMaskLogical | kEidosValueMaskSingleton | kEidosValueMaskNULL | kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class)->AddInt_S("position")->AddLogical_OS("returnMutation", gStaticEidosValue_LogicalF))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMarkerMutation));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class))->DeclareAcceleratedImp(Genome::ExecuteMethod_Accelerated_containsMutations));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_positionsOfMutationsOfType, kEidosValueMaskInt))->AddIntObject_S("mutType", gSLiM_MutationType_Class));

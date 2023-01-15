@@ -1564,7 +1564,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
-#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness)
+#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness) // FIXME needs if()
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 					{
 						double fitness = parent_individuals_[female_index]->fitness_scaling_;
@@ -1776,7 +1776,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				{
 					// a separate loop for parallelization of the no-callback case
 					// note that we rely on the fixup of non-neutral caches done above
-#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness)
+#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness) // FIXME needs if()
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 					{
 						double fitness = parent_individuals_[male_index]->fitness_scaling_;
@@ -2004,7 +2004,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
-#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness)
+#pragma omp parallel for schedule(dynamic, 10) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness) // FIXME needs if()
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 					{
 						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
@@ -5797,39 +5797,55 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 	
 	// multiple-point case, new in SLiM 3
 	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(point_count);
+	eidos_logical_t *logical_result_data = logical_result->data();
 	
 	switch (dimensionality)
 	{
 		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_));
+				double x = point_buf[point_index];
+				eidos_logical_t in_bounds = ((x >= bx0) && (x <= bx1));
 				
-				logical_result->set_logical_no_check(in_bounds, point_index);
+				logical_result_data[point_index] = in_bounds;
 			}
 			break;
+		}
 		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				double y = *(point_buf++);
-				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_));
+				double x = point_buf[point_index * 2];
+				double y = point_buf[point_index * 2 + 1];
+				eidos_logical_t in_bounds = ((x >= bx0) && (x <= bx1) && (y >= by0) && (y <= by1));
 				
-				logical_result->set_logical_no_check(in_bounds, point_index);
+				logical_result_data[point_index] = in_bounds;
 			}
 			break;
+		}
 		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				double y = *(point_buf++);
-				double z = *(point_buf++);
-				eidos_logical_t in_bounds = ((x >= bounds_x0_) && (x <= bounds_x1_) && (y >= bounds_y0_) && (y <= bounds_y1_) && (z >= bounds_z0_) && (z <= bounds_z1_));
+				double x = point_buf[point_index * 3];
+				double y = point_buf[point_index * 3 + 1];
+				double z = point_buf[point_index * 3 + 2];
+				eidos_logical_t in_bounds = ((x >= bx0) && (x <= bx1) && (y >= by0) && (y <= by1) && (z >= bz0) && (z <= bz1));
 				
-				logical_result->set_logical_no_check(in_bounds, point_index);
+				logical_result_data[point_index] = in_bounds;
 			}
 			break;
+		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointInBounds): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
@@ -5876,76 +5892,91 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
 	const double *point_buf = float_vec->data();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
-	int value_index = 0;
+	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
 	{
 		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index];
 				while (true)
 				{
-					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					if (x < bx0) x = bx0 + (bx0 - x);
+					else if (x > bx1) x = bx1 - (x - bx1);
 					else break;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index] = x;
 			}
 			break;
+		}
 		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index * 2];
 				while (true)
 				{
-					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					if (x < bx0) x = bx0 + (bx0 - x);
+					else if (x > bx1) x = bx1 - (x - bx1);
 					else break;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index * 2] = x;
 				
-				double y = *(point_buf++);
+				double y = point_buf[point_index * 2 + 1];
 				while (true)
 				{
-					if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
-					else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+					if (y < by0) y = by0 + (by0 - y);
+					else if (y > by1) y = by1 - (y - by1);
 					else break;
 				}
-				float_result->set_float_no_check(y, value_index++);
+				float_result_data[point_index * 2 + 1] = y;
 			}
 			break;
+		}
 		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index * 3];
 				while (true)
 				{
-					if (x < bounds_x0_) x = bounds_x0_ + (bounds_x0_ - x);
-					else if (x > bounds_x1_) x = bounds_x1_ - (x - bounds_x1_);
+					if (x < bx0) x = bx0 + (bx0 - x);
+					else if (x > bx1) x = bx1 - (x - bx1);
 					else break;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index * 3] = x;
 				
-				double y = *(point_buf++);
+				double y = point_buf[point_index * 3 + 1];
 				while (true)
 				{
-					if (y < bounds_y0_) y = bounds_y0_ + (bounds_y0_ - y);
-					else if (y > bounds_y1_) y = bounds_y1_ - (y - bounds_y1_);
+					if (y < by0) y = by0 + (by0 - y);
+					else if (y > by1) y = by1 - (y - by1);
 					else break;
 				}
-				float_result->set_float_no_check(y, value_index++);
+				float_result_data[point_index * 3 + 1] = y;
 				
-				double z = *(point_buf++);
+				double z = point_buf[point_index * 3 + 2];
 				while (true)
 				{
-					if (z < bounds_z0_) z = bounds_z0_ + (bounds_z0_ - z);
-					else if (z > bounds_z1_) z = bounds_z1_ - (z - bounds_z1_);
+					if (z < bz0) z = bz0 + (bz0 - z);
+					else if (z > bz1) z = bz1 - (z - bz1);
 					else break;
 				}
-				float_result->set_float_no_check(z, value_index++);
+				float_result_data[point_index * 3 + 2] = z;
 			}
 			break;
+		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointReflected): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
@@ -5985,40 +6016,55 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
 	const double *point_buf = float_vec->data();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
-	int value_index = 0;
+	double *float_result_data = float_result->data();
 	
 	switch (dimensionality)
 	{
 		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+				double x = point_buf[point_index];
+				float_result_data[point_index] = std::max(bx0, std::min(bx1, x));
 			}
 			break;
+		}
 		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+				double x = point_buf[point_index * 2];
+				float_result_data[point_index * 2] = std::max(bx0, std::min(bx1, x));
 				
-				double y = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_y0_, std::min(bounds_y1_, y)), value_index++);
+				double y = point_buf[point_index * 2 + 1];
+				float_result_data[point_index * 2 + 1] = std::max(by0, std::min(by1, y));
 			}
 			break;
+		}
 		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_x0_, std::min(bounds_x1_, x)), value_index++);
+				double x = point_buf[point_index * 3];
+				float_result_data[point_index * 3] = std::max(bx0, std::min(bx1, x));
 				
-				double y = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_y0_, std::min(bounds_y1_, y)), value_index++);
+				double y = point_buf[point_index * 3 + 1];
+				float_result_data[point_index * 3 + 1] = std::max(by0, std::min(by1, y));
 				
-				double z = *(point_buf++);
-				float_result->set_float_no_check(std::max(bounds_z0_, std::min(bounds_z1_, z)), value_index++);
+				double z = point_buf[point_index * 3 + 2];
+				float_result_data[point_index * 3 + 2] = std::max(bz0, std::min(bz1, z));
 			}
 			break;
+		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointStopped): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
@@ -6072,7 +6118,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	const EidosValue_Float_vector *float_vec = point_value->FloatVector();
 	const double *point_buf = float_vec->data();
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(value_count);
-	int value_index = 0;
+	double *float_result_data = float_result->data();
 	
 	// Wrap coordinates; note that we assume here that bounds_x0_ == bounds_y0_ == bounds_z0_ == 0,
 	// which is enforced when periodic boundary conditions are set, in setSpatialBounds().  Note also
@@ -6082,65 +6128,80 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 	switch (dimensionality)
 	{
 		case 1:
+		{
+			double bx1 = bounds_x1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, periodic_x) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index];
 				if (periodic_x)
 				{
-					while (x < 0.0)			x += bounds_x1_;
-					while (x > bounds_x1_)	x -= bounds_x1_;
+					while (x < 0.0)			x += bx1;
+					while (x > bx1)			x -= bx1;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index] = x;
 			}
 			break;
+		}
 		case 2:
+		{
+			double bx1 = bounds_x1_, by1 = bounds_y1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, periodic_x, periodic_y) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index * 2];
 				if (periodic_x)
 				{
-					while (x < 0.0)			x += bounds_x1_;
-					while (x > bounds_x1_)	x -= bounds_x1_;
+					while (x < 0.0)			x += bx1;
+					while (x > bx1)			x -= bx1;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index * 2] = x;
 				
-				double y = *(point_buf++);
+				double y = point_buf[point_index * 2 + 1];
 				if (periodic_y)
 				{
-					while (y < 0.0)			y += bounds_y1_;
-					while (y > bounds_y1_)	y -= bounds_y1_;
+					while (y < 0.0)			y += by1;
+					while (y > by1)			y -= by1;
 				}
-				float_result->set_float_no_check(y, value_index++);
+				float_result_data[point_index * 2 + 1] = y;
 			}
 			break;
+		}
 		case 3:
+		{
+			double bx1 = bounds_x1_, by1 = bounds_y1_, bz1 = bounds_z1_;
+			
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, bz1, periodic_x, periodic_y, periodic_z) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = *(point_buf++);
+				double x = point_buf[point_index * 3];
 				if (periodic_x)
 				{
-					while (x < 0.0)			x += bounds_x1_;
-					while (x > bounds_x1_)	x -= bounds_x1_;
+					while (x < 0.0)			x += bx1;
+					while (x > bx1)			x -= bx1;
 				}
-				float_result->set_float_no_check(x, value_index++);
+				float_result_data[point_index * 3] = x;
 				
-				double y = *(point_buf++);
+				double y = point_buf[point_index * 3 + 1];
 				if (periodic_y)
 				{
-					while (y < 0.0)			y += bounds_y1_;
-					while (y > bounds_y1_)	y -= bounds_y1_;
+					while (y < 0.0)			y += by1;
+					while (y > by1)			y -= by1;
 				}
-				float_result->set_float_no_check(y, value_index++);
+				float_result_data[point_index * 3 + 1] = y;
 				
-				double z = *(point_buf++);
+				double z = point_buf[point_index * 3 + 2];
 				if (periodic_z)
 				{
-					while (z < 0.0)			z += bounds_z1_;
-					while (z > bounds_z1_)	z -= bounds_z1_;
+					while (z < 0.0)			z += bz1;
+					while (z > bz1)			z -= bz1;
 				}
-				float_result->set_float_no_check(z, value_index++);
+				float_result_data[point_index * 3 + 2] = z;
 			}
 			break;
+		}
 		default:
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointPeriodic): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
@@ -6169,36 +6230,59 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	
 	int64_t length_out = point_count * dimensionality;
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	double *float_result_data = float_result->data();
 	EidosValue_SP result_SP = EidosValue_SP(float_result);
-	int value_index = 0;
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
 	switch (dimensionality)
 	{
 		case 1:
 		{
-			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				
+#pragma omp for schedule(static)
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					float_result_data[point_index] = Eidos_rng_uniform(rng) * xsize + xbase;
+				}
 			}
 			break;
 		}
 		case 2:
 		{
-			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
+				
+#pragma omp for schedule(static)
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					float_result_data[point_index * 2] = Eidos_rng_uniform(rng) * xsize + xbase;
+					float_result_data[point_index * 2 + 1] = Eidos_rng_uniform(rng) * ysize + ybase;
+				}
 			}
 			break;
 		}
 		case 3:
 		{
-			for (int64_t point_index = 0; point_index < point_count; ++point_index)
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM)
 			{
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_x1_ - bounds_x0_) + bounds_x0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_y1_ - bounds_y0_) + bounds_y0_, value_index++);
-				float_result->set_float_no_check(Eidos_rng_uniform(rng) * (bounds_z1_ - bounds_z0_) + bounds_z0_, value_index++);
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
+				double ysize = bounds_y1_ - bounds_y0_, ybase = bounds_y0_;
+				double zsize = bounds_z1_ - bounds_z0_, zbase = bounds_z0_;
+				
+#pragma omp for schedule(static)
+				for (int64_t point_index = 0; point_index < point_count; ++point_index)
+				{
+					float_result_data[point_index * 3] = Eidos_rng_uniform(rng) * xsize + xbase;
+					float_result_data[point_index * 3 + 1] = Eidos_rng_uniform(rng) * ysize + ybase;
+					float_result_data[point_index * 3 + 2] = Eidos_rng_uniform(rng) * zsize + zbase;
+				}
 			}
 			break;
 		}

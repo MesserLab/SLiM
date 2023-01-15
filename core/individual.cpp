@@ -1178,7 +1178,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_interpreter);
-		case gID_countOfMutationsOfType:	return ExecuteMethod_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
+		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_uniqueMutationsOfType:		return ExecuteMethod_uniqueMutationsOfType(p_method_id, p_arguments, p_interpreter);
@@ -1241,49 +1241,68 @@ EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_
 
 //	*********************	- (integer$)countOfMutationsOfType(io<MutationType>$ mutType)
 //
-EidosValue_SP Individual::ExecuteMethod_countOfMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObject **p_elements, size_t p_elements_size, EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (p_elements_size == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
+	
+	// SPECIES CONSISTENCY CHECK
+	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
+	
+	if (species == nullptr)
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType): sumOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+	
 	EidosValue *mutType_value = p_arguments[0].get();
-	Species &species = subpopulation_->species_;
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	int match_count = 0;
-	
-	if (!genome1_->IsNull())
+	EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(p_elements_size);
+
+#pragma omp parallel for schedule(dynamic) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, integer_result) if(p_elements_size >= EIDOS_OMPMIN_COUNT_OF_MUTS_OF_TYPE)
+	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
-		int mutrun_count = genome1_->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		Individual *element = (Individual *)(p_elements[element_index]);
+		Genome *genome1 = element->genome1_;
+		Genome *genome2 = element->genome2_;
+		int match_count = 0;
+	
+		if (!genome1->IsNull())
 		{
-			MutationRun *mutrun = genome1_->mutruns_[run_index].get();
-			int genome1_count = mutrun->size();
-			const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
+			int mutrun_count = genome1->mutrun_count_;
 			
-			for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
-				if ((mut_block_ptr + genome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-					++match_count;
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				MutationRun *mutrun = genome1->mutruns_[run_index].get();
+				int genome1_count = mutrun->size();
+				const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
+				
+				for (int mut_index = 0; mut_index < genome1_count; ++mut_index)
+					if ((mut_block_ptr + genome1_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+						++match_count;
+			}
 		}
-	}
-	if (!genome2_->IsNull())
-	{
-		int mutrun_count = genome2_->mutrun_count_;
-		
-		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		if (!genome2->IsNull())
 		{
-			MutationRun *mutrun = genome2_->mutruns_[run_index].get();
-			int genome2_count = mutrun->size();
-			const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
+			int mutrun_count = genome2->mutrun_count_;
 			
-			for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
-				if ((mut_block_ptr + genome2_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
-					++match_count;
+			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			{
+				MutationRun *mutrun = genome2->mutruns_[run_index].get();
+				int genome2_count = mutrun->size();
+				const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
+				
+				for (int mut_index = 0; mut_index < genome2_count; ++mut_index)
+					if ((mut_block_ptr + genome2_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
+						++match_count;
+			}
 		}
+		
+		integer_result->set_int_no_check(match_count, element_index);
 	}
 	
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(match_count));
+	return EidosValue_SP(integer_result);
 }
 
 //	*********************	- (float)relatedness(o<Individual> individuals)
@@ -1323,6 +1342,9 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 		
 		if (pedigree_tracking_enabled)
 		{
+			// this parallelizes the case of one_individual.relatedness(many_individuals)
+			// it would be nice to also parallelize the case of many_individuals.relatedness(one_individual); that would require accelerating this method
+#pragma omp parallel for schedule(dynamic, 100) default(none) shared(individuals_count, individuals_value) firstprivate(float_result) if(individuals_count >= EIDOS_OMPMIN_RELATEDNESS)
 			for (int value_index = 0; value_index < individuals_count; ++value_index)
 			{
 				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
@@ -1369,7 +1391,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_elements_size);
 	
-#pragma omp parallel for schedule(static) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, float_result) if(p_elements_size >= EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE)
+#pragma omp parallel for schedule(dynamic) default(none) shared(p_elements_size) firstprivate(p_elements, mut_block_ptr, mutation_type_ptr, float_result) if(p_elements_size >= EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE)
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
 		Individual *element = (Individual *)(p_elements[element_index]);
@@ -1693,7 +1715,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_containsMutations, kEidosValueMaskLogical))->AddObject("mutations", gSLiM_Mutation_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
+		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
@@ -1790,6 +1812,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				case 1:
 				{
 					double x = position_value->FloatAtIndex(0, nullptr);
+					
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1801,6 +1825,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				{
 					double x = position_value->FloatAtIndex(0, nullptr);
 					double y = position_value->FloatAtIndex(1, nullptr);
+					
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1814,6 +1840,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					double x = position_value->FloatAtIndex(0, nullptr);
 					double y = position_value->FloatAtIndex(1, nullptr);
 					double z = position_value->FloatAtIndex(2, nullptr);
+					
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y, z) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1834,37 +1862,83 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 		const EidosValue_Float_vector *position_vec = position_value->FloatVector();
 		const double *positions = position_vec->data();
 		
-		switch (dimensionality)
+#ifdef _OPENMP
+		if (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2)
 		{
-			case 1:
+			switch (dimensionality)
 			{
-				for (int target_index = 0; target_index < target_size; ++target_index)
+				case 1:
 				{
-					Individual *target = targets[target_index];
-					target->spatial_x_ = *(positions++);
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						targets[target_index]->spatial_x_ = positions[target_index];
+					}
+					break;
 				}
-				break;
+				case 2:
+				{
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						const double *target_pos = positions + target_index * 2;
+						
+						target->spatial_x_ = target_pos[0];
+						target->spatial_y_ = target_pos[1];
+					}
+					break;
+				}
+				case 3:
+				{
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						const double *target_pos = positions + target_index * 3;
+						
+						target->spatial_x_ = target_pos[0];
+						target->spatial_y_ = target_pos[1];
+						target->spatial_z_ = target_pos[2];
+					}
+					break;
+				}
 			}
-			case 2:
+		} else
+#endif
+		{
+			switch (dimensionality)
 			{
-				for (int target_index = 0; target_index < target_size; ++target_index)
+				case 1:
 				{
-					Individual *target = targets[target_index];
-					target->spatial_x_ = *(positions++);
-					target->spatial_y_ = *(positions++);
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = *(positions++);
+					}
+					break;
 				}
-				break;
-			}
-			case 3:
-			{
-				for (int target_index = 0; target_index < target_size; ++target_index)
+				case 2:
 				{
-					Individual *target = targets[target_index];
-					target->spatial_x_ = *(positions++);
-					target->spatial_y_ = *(positions++);
-					target->spatial_z_ = *(positions++);
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = *(positions++);
+						target->spatial_y_ = *(positions++);
+					}
+					break;
 				}
-				break;
+				case 3:
+				{
+					for (int target_index = 0; target_index < target_size; ++target_index)
+					{
+						Individual *target = targets[target_index];
+						target->spatial_x_ = *(positions++);
+						target->spatial_y_ = *(positions++);
+						target->spatial_z_ = *(positions++);
+					}
+					break;
+				}
 			}
 		}
 	}

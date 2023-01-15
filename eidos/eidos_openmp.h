@@ -124,6 +124,8 @@ extern int gEidosNumThreads;
 // Define minimum counts for all the parallel loops we use.  Some of these loops are in SLiM, so we violate encapsulation
 // here a bit; a slim_openmp.h header could be created to alleviate that if it's a problem, but it seems harmless for now.
 // These counts are collected in one place to make it easier to optimize their values in a pre-build optimization pass.
+
+// Eidos: math functions
 #define EIDOS_OMPMIN_ABS_FLOAT				2000
 #define EIDOS_OMPMIN_CEIL					2000
 #define EIDOS_OMPMIN_EXP_FLOAT				2000
@@ -138,6 +140,7 @@ extern int gEidosNumThreads;
 #define EIDOS_OMPMIN_SUM_LOGICAL			6000
 #define EIDOS_OMPMIN_TRUNC					2000
 
+// Eidos: max(), min(), pmax(), pmin()
 #define EIDOS_OMPMIN_MAX_INT				2000
 #define EIDOS_OMPMIN_MAX_FLOAT				2000
 #define EIDOS_OMPMIN_MIN_INT				2000
@@ -151,6 +154,7 @@ extern int gEidosNumThreads;
 #define EIDOS_OMPMIN_PMIN_FLOAT_1			2000
 #define EIDOS_OMPMIN_PMIN_FLOAT_2			2000
 
+// Eidos: match(), sample(), tabulate()
 #define EIDOS_OMPMIN_MATCH_INT				2000
 #define EIDOS_OMPMIN_MATCH_FLOAT			2000
 #define EIDOS_OMPMIN_MATCH_STRING			2000
@@ -161,10 +165,23 @@ extern int gEidosNumThreads;
 #define EIDOS_OMPMIN_SAMPLE_R_OBJECT		2000
 #define EIDOS_OMPMIN_TABULATE				2000
 
+// SLiM methods/properties
+#define EIDOS_OMPMIN_CONTAINS_MARKER_MUT	900
+#define EIDOS_OMPMIN_COUNT_OF_MUTS_OF_TYPE	2
+#define EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS	2000
+#define EIDOS_OMPMIN_POINT_IN_BOUNDS		2000
+#define EIDOS_OMPMIN_POINT_PERIODIC			2000
+#define EIDOS_OMPMIN_POINT_REFLECTED		2000
+#define EIDOS_OMPMIN_POINT_STOPPED			2000
+#define EIDOS_OMPMIN_POINT_UNIFORM			2000
+#define EIDOS_OMPMIN_RELATEDNESS			2000
 #define EIDOS_OMPMIN_SET_FITNESS_S1			900
 #define EIDOS_OMPMIN_SET_FITNESS_S2			1500
+#define EIDOS_OMPMIN_SET_SPATIAL_POS_1		10000
+#define EIDOS_OMPMIN_SET_SPATIAL_POS_2		10000
 #define EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE	2
 
+// Distribution draws and related
 #define EIDOS_OMPMIN_DNORM_1				10000
 #define EIDOS_OMPMIN_DNORM_2				10000
 #define EIDOS_OMPMIN_RBINOM_1				10000
@@ -184,6 +201,7 @@ extern int gEidosNumThreads;
 #define EIDOS_OMPMIN_RUNIF_2				10000
 #define EIDOS_OMPMIN_RUNIF_3				10000
 
+// Spatial queries
 #define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1		10000
 #define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2		10000
 #define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3		10000
@@ -195,6 +213,7 @@ extern int gEidosNumThreads;
 #define EIDOS_OMPMIN_NEIGHCOUNT				10
 #define EIDOS_OMPMIN_TOTNEIGHSTRENGTH		10
 
+// SLiM core
 #define EIDOS_OMPMIN_AGEINC					10000
 #define EIDOS_OMPMIN_FITNESS_ASEX_1			10000
 #define EIDOS_OMPMIN_FITNESS_ASEX_2			10000
