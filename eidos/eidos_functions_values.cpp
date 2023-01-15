@@ -2240,7 +2240,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 		{
 			int64_t *perthread_tallies = (int64_t *)calloc(num_bins, sizeof(int64_t));
 			
-#pragma omp for schedule(dynamic, 1000) nowait
+#pragma omp for schedule(dynamic, 1024) nowait
 			for (int value_index = 0; value_index < value_count; ++value_index)
 			{
 				int64_t value = int_data[value_index];

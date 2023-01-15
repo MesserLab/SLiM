@@ -5955,7 +5955,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 				// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
 				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
 				// we can now have null genomes even with autosomes; but it is still worthwhile.
-#pragma omp parallel for schedule(dynamic,10) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) // if(EIDOS_OMPMIN_MUTTALLY)
+#pragma omp parallel for schedule(dynamic,16) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) // if(EIDOS_OMPMIN_MUTTALLY)
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 					subpop_genomes[i]->TallyGenomeMutationReferences_OMP(operation_id);
 				
@@ -5964,7 +5964,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 			else
 			{
 				// When we're modeling non-autosomes, we need to check for null genomes
-#pragma omp parallel for schedule(dynamic,10) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) reduction(+: total_genome_count) // if(EIDOS_OMPMIN_MUTTALLY)
+#pragma omp parallel for schedule(dynamic,16) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) reduction(+: total_genome_count) // if(EIDOS_OMPMIN_MUTTALLY)
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
 					Genome &genome = *subpop_genomes[i];

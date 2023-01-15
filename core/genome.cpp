@@ -892,7 +892,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 			EidosValue_Logical *result_logical_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_elements_size);
 			bool null_genome_seen = false;
 			
-#pragma omp parallel for schedule(dynamic, 10) default(none) shared(p_elements_size) firstprivate(p_elements, mutation_type_ptr, marker_position, last_position, result_logical_vec) reduction(||: null_genome_seen) if(p_elements_size >= EIDOS_OMPMIN_CONTAINS_MARKER_MUT)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(p_elements_size) firstprivate(p_elements, mutation_type_ptr, marker_position, last_position, result_logical_vec) reduction(||: null_genome_seen) if(p_elements_size >= EIDOS_OMPMIN_CONTAINS_MARKER_MUT)
 			for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 			{
 				Genome *element = (Genome *)(p_elements[element_index]);
