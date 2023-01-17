@@ -52,7 +52,9 @@ PARALLEL changes (now in the master branch):
 	add nowait clause on parallel for loops that would otherwise have a double barrier
 	shift to allocating per-thread RNGs in parallelized allocations, so "first touch" places each RNG in memory close to that thread's core
 	switch to dynamic scheduling for rbinom() and rdunif(), which seem to need it for unclear reasons
-	use a minimum chunk size of 10 for all dynamic schedules; problems that parallelize should always be at least that big, I imagine
+	use a minimum chunk size of 16 for all dynamic schedules; problems that parallelize should always be at least that big, I imagine
+		the exception is countOfMutationsOfType() / sumOfMutationsOfType() and similar, because they do so much work per iteration that they can be worth going parallel even for two iterations
+		note that we never use schedule(guided) because its implementation in GCC is brain-dead; see https://stackoverflow.com/a/43047074/2752221
 	switch to OMP_PROC_BIND == true by default; keep threads with the data they're working on, recommended practice
 	parallelize more Eidos math functions: abs(float), ceil(), exp(float), floor(), log(float), log10(float), log2(float), round(), sqrt(float), trunc()
 	parallelize Eidos min/max functions: max(int), max(float), min(int), min(float), pmax(int), pmax(float), pmin(int), pmin(float)
