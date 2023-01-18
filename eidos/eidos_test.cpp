@@ -378,7 +378,7 @@ int RunEidosTests(void)
 	
 	// Do some tests of our custom math functions
 #if 0
-	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_SetRNGSeed(Eidos_GenerateRNGSeed());
 	
 	int64_t totals[17];		// note 17 is prime
 	
@@ -394,7 +394,7 @@ int RunEidosTests(void)
 	
 #if 0
 	//#ifndef USE_GSL_POISSON
-	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_SetRNGSeed(Eidos_GenerateRNGSeed());
 	
 	double total;
 	int i;
@@ -1266,7 +1266,7 @@ int RunEidosTests(void)
 #endif
 	
 	// If we ran tests, the random number seed has been set; let's set it back to a good seed value
-	Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+	Eidos_SetRNGSeed(Eidos_GenerateRNGSeed());
 	
 	// return a standard Unix result code indicating success (0) or failure (1);
 	return (gEidosTestFailureCount > 0) ? EXIT_FAILURE : EXIT_SUCCESS;

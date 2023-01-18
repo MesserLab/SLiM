@@ -62,6 +62,7 @@ PARALLEL changes (now in the master branch):
 	parallelize Individual -relatedness(), -countOfMutationsOfType(), -setSpatialPosition(); Species -individualsWithPedigreeIDs()
 	parallelize Subpopulation -pointInBounds(), -pointReflected(), -pointStopped(), pointPeriodic(), pointUniform()
 	parallelize Genome -containsMarkerMutation()
+	change how RNG seeding works, for single-threaded and multi-threaded runs: use /dev/random to generate initial seeds, and for multi-threaded runs, use /dev/random even when a seed is supplied by the user
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

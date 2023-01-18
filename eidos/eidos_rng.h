@@ -114,8 +114,8 @@ extern std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #define RNG_INIT_CHECK()
 #endif
 
-// generate a new random number seed from the PID and clock time
-unsigned long int Eidos_GenerateSeedFromPIDAndTime(void);
+// generate a new random number seed from the system - from /dev/random, or from PID and clock time, etc.
+unsigned long int Eidos_GenerateRNGSeed(void);
 
 // set up the random number generator with a given seed
 void _Eidos_InitializeOneRNG(Eidos_RNG_State &r);							// only for code that needs its own local RNG

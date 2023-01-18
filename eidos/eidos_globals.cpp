@@ -297,7 +297,7 @@ void Eidos_WarmUp(void)
 		
 		// Initialize the random number generator with a random-ish seed.  This seed may be overridden by the Context downstream.
 		Eidos_InitializeRNG();
-		Eidos_SetRNGSeed(Eidos_GenerateSeedFromPIDAndTime());
+		Eidos_SetRNGSeed(Eidos_GenerateRNGSeed());
 		
 		// Set up the vector of Eidos constant names
 		gEidosConstantNames.emplace_back(gEidosStr_T);

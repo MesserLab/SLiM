@@ -20,7 +20,9 @@
 
 #include "eidos_rng.h"
 
+#include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/time.h>
 
 
@@ -33,12 +35,15 @@ std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
 
-unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
+static unsigned long int _Eidos_GenerateRNGSeed(void)
 {
+#ifdef _WIN32
+	// on Windows, we continue to hash together the PID and the time; I think there is a
+	// Windows API for cryptographic random numbers, though.  FIXME
 	static long int hereCounter = 0;
 	long long milliseconds;
 	
-#pragma omp critical (Eidos_GenerateSeedFromPIDAndTime)
+#pragma omp critical (Eidos_GenerateRNGSeed)
 	{
 		pid_t pid = getpid();
 		struct timeval te;
@@ -47,10 +52,45 @@ unsigned long int Eidos_GenerateSeedFromPIDAndTime(void)
 		
 		milliseconds = te.tv_sec*1000LL + te.tv_usec/1000;	// calculate milliseconds
 		milliseconds += (pid * (long long)10000000);		// try to make the pid matter a lot, to separate runs made on different cores close in time
-		milliseconds += (hereCounter++);
+		milliseconds += (hereCounter * (long long)100000);	// make successive calls to this function be widely separated in their seeds
+		hereCounter++;
 	}
 	
 	return (unsigned long int)milliseconds;
+#else
+	// on other platforms, we now use /dev/random as a source of seeds, which is more reliably random
+	// thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code
+	unsigned long int seed;
+	
+#pragma omp critical (Eidos_GenerateRNGSeed)
+	{
+		int fd = open("/dev/random", O_RDONLY);
+		read(fd, &seed, sizeof(seed));
+		close(fd);
+	}
+	
+	return seed;
+#endif
+}
+
+unsigned long int Eidos_GenerateRNGSeed(void)
+{
+	// We impose an extra restriction that _Eidos_GenerateRNGSeed() does not worry about: we require
+	// that the seed be greater than zero, as an int64_t.  We achieve that by just forcing it to be
+	// true; if _Eidos_GenerateRNGSeed() is generating cryptographically secure seeds, that ought
+	// to be harmless.  We do this so that the seed reported to the user always matches the seed
+	// value generated (otherwise a discrepancy is visible in SLiMgui).
+	int64_t seed_i64;
+	
+	do
+	{
+		unsigned long int seed = _Eidos_GenerateRNGSeed();
+		unsigned long int clipped_seed = (seed & INT64_MAX);	// shave off the top bit
+		
+		seed_i64 = (int64_t)clipped_seed;
+	} while (seed_i64 == 0);
+	
+	return (unsigned long int)seed_i64;
 }
 
 void _Eidos_InitializeOneRNG(Eidos_RNG_State &r)
@@ -91,17 +131,26 @@ void Eidos_InitializeRNG(void)
 	int old_dynamic = omp_get_dynamic();
 	omp_set_dynamic(false);
 	
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD) num_threads(gEidosMaxThreads)
+	// Check that each RNG was initialized by a different thread, as intended below;
+	// this is not required, but it improves memory locality throughout the run
+	bool threadObserved[gEidosMaxThreads];
+	
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, threadObserved) num_threads(gEidosMaxThreads)
 	{
 		// Each thread allocates and initializes its own Eidos_RNG_State, for "first touch" optimization
 		int threadnum = omp_get_thread_num();
 		Eidos_RNG_State *rng_state = (Eidos_RNG_State *)calloc(1, sizeof(Eidos_RNG_State));
 		_Eidos_InitializeOneRNG(*rng_state);
 		gEidos_RNG_PERTHREAD[threadnum] = rng_state;
-	}
+		threadObserved[threadnum] = true;
+	}	// end omp parallel
 	
 	omp_set_dynamic(old_dynamic);
-#endif
+	
+	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
+		if (!threadObserved[threadnum])
+			std::cerr << "WARNING: parallel RNGs were not correctly initialized on their corresponding threads; this may cause slower random number generation." << std::endl;
+#endif	// end _OPENMP
 	
 	gEidos_RNG_Initialized = true;
 }
@@ -194,15 +243,16 @@ void Eidos_SetRNGSeed(unsigned long int p_seed)
 #ifndef _OPENMP
 	_Eidos_SetOneRNGSeed(gEidos_RNG_SINGLE, p_seed);
 #else
-	// Each thread's RNG gets a different seed.  This is a bit tricky; if the base seed is 1, we don't want to just use
-	// seeds of 1,2,3,4 or some such, because then a seed of 2 would give 2,3,4 and a lot of numbers would be repeated.
-	// So we start with the seed and then use a square; 1 gives 1,1+o,1+4o,1+9o while 2 gives 2,2+o,2+4o,2+9o, which
-	// will not intersect.  If two runs do intersect in one seed used, they should be disjoint in the other seeds used,
-	// I think?  But this scheme should be revisited, and possibly even under user control.  FIXME
-	const unsigned long int o = 12345;
-	
+	// Each thread's RNG gets a different seed.  We do not attempt to use the supplied seed at all, because parallel
+	// random number generation is going to be non-reproducible anyway.  Instead, we just use system-generated seed
+	// values for all threads.
 	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
-		_Eidos_SetOneRNGSeed(*gEidos_RNG_PERTHREAD[threadIndex], p_seed + threadIndex * threadIndex * o);
+	{
+		_Eidos_SetOneRNGSeed(*gEidos_RNG_PERTHREAD[threadIndex], Eidos_GenerateRNGSeed());
+		
+		// We nevertheless want to return the same seed value that the user requested
+		gEidos_RNG_PERTHREAD[threadIndex]->rng_last_seed_ = p_seed;
+	}
 #endif
 }
 
