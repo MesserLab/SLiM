@@ -58,13 +58,15 @@ static unsigned long int _Eidos_GenerateRNGSeed(void)
 	
 	return (unsigned long int)milliseconds;
 #else
-	// on other platforms, we now use /dev/random as a source of seeds, which is more reliably random
+	// on other platforms, we now use /dev/urandom as a source of seeds, which is more reliably random
 	// thanks to https://security.stackexchange.com/a/184211/288172 for the basis of this code
+	// chose urandom rather than random to avoid stalls if the random pool's entropy is low;
+	// semi-pseudorandom seeds should be good enough for our purposes here
 	unsigned long int seed;
 	
 #pragma omp critical (Eidos_GenerateRNGSeed)
 	{
-		int fd = open("/dev/random", O_RDONLY);
+		int fd = open("/dev/urandom", O_RDONLY);
 		read(fd, &seed, sizeof(seed));
 		close(fd);
 	}
@@ -243,15 +245,14 @@ void Eidos_SetRNGSeed(unsigned long int p_seed)
 #ifndef _OPENMP
 	_Eidos_SetOneRNGSeed(gEidos_RNG_SINGLE, p_seed);
 #else
-	// Each thread's RNG gets a different seed.  We do not attempt to use the supplied seed at all, because parallel
-	// random number generation is going to be non-reproducible anyway.  Instead, we just use system-generated seed
-	// values for all threads.
+	// Each thread's RNG gets a different seed.  We use the user-supplied seed for thread 0, so that non-parallel
+	// code continues to reproduce the same random number sequence.  For other threads, we use system-generated seed
+	// values.  This is non-reproducible, but parallel code involving the RNG is non-reproducible anyway.
 	for (int threadIndex = 0; threadIndex < gEidosMaxThreads; ++threadIndex)
 	{
-		_Eidos_SetOneRNGSeed(*gEidos_RNG_PERTHREAD[threadIndex], Eidos_GenerateRNGSeed());
+		unsigned long int thread_seed = (threadIndex == 0 ? p_seed : Eidos_GenerateRNGSeed());
 		
-		// We nevertheless want to return the same seed value that the user requested
-		gEidos_RNG_PERTHREAD[threadIndex]->rng_last_seed_ = p_seed;
+		_Eidos_SetOneRNGSeed(*gEidos_RNG_PERTHREAD[threadIndex], thread_seed);
 	}
 #endif
 }
