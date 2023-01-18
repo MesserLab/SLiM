@@ -706,7 +706,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			result_SP = x_value->NewMatchingType();
 			EidosValue *result = result_SP.get();
 			
-			// do the sampling
+			// do the sampling; this is not parallelized because of contention over index_buffer removals
 			int64_t contender_count = x_count;
 			
 			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)

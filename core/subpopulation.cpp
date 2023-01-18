@@ -6704,16 +6704,33 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 			// with replacement, we can just do a series of independent draws
 			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
-			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			EidosObject **object_result_data = result->data();
 			
-			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(candidate_count, first_candidate_index, excluded_index, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_1)
 			{
-				int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
-				if ((excluded_index != -1) && (sample_index >= excluded_index))
-					sample_index++;
-				
-				result->set_object_element_no_check_NORR(parent_individuals_[sample_index], samples_generated);
+#pragma omp for schedule(static)
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
+					
+					if ((excluded_index != -1) && (sample_index >= excluded_index))
+						sample_index++;
+					
+					object_result_data[samples_generated] = parent_individuals_[sample_index];
+				}
+			}
+			
+			// Retain all of the objects chosen; this is not done in parallel because it would require locks
+			// This is dead code at the moment, because Individual does not use retain/release
+			if (gSLiM_Individual_Class->UsesRetainRelease())
+			{
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					EidosObject *object_element = object_result_data[samples_generated];
+					static_cast<EidosDictionaryRetained *>(object_element)->Retain();		// unsafe cast to avoid virtual function overhead
+				}
 			}
 			
 			return result_SP;
@@ -6756,10 +6773,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	// count of at least 30 since with a smaller size than that building the index vector won't hurt much anyway.
 	// I'm limiting this to 20 tries, so we don't spend too much time on it; the ideal limit will of course depend on
 	// the number of candidates versus the number of *valid* candidates, and there's no way to know.
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
-	
 	if ((sample_size == 1) && (candidate_count >= 30))
 	{
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		
 		for (int try_count = 0; try_count < 20; ++try_count)
 		{
 			int sample_index = (int)Eidos_rng_uniform_int(rng, candidate_count) + first_candidate_index;
@@ -6848,21 +6865,54 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		// do the sampling
 		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		EidosValue_Object_vector *result = ((EidosValue_Object_vector *)result_SP.get())->resize_no_initialize(sample_size);
+		EidosObject **object_result_data = result->data();
 		
-		for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+		if (replace)
 		{
+			// base case with replacement
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(candidate_count, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2)
+			{
+				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				
+#pragma omp for schedule(static)
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
+					
+					object_result_data[samples_generated] = parent_individuals_[index_buffer[rose_index]];
+				}
+			}
+			
+			// Retain all of the objects chosen; this is not done in parallel because it would require locks
+			// This is dead code at the moment, because Individual does not use retain/release
+			if (gSLiM_Individual_Class->UsesRetainRelease())
+			{
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					EidosObject *object_element = object_result_data[samples_generated];
+					static_cast<EidosDictionaryRetained *>(object_element)->Retain();		// unsafe cast to avoid virtual function overhead
+				}
+			}
+		}
+		else
+		{
+			// base case without replacement; this is not parallelized because of contention over index_buffer removals
+			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+			
+			for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+			{
 #if DEBUG
 			// this error should never occur, since we checked the count above
 			if (candidate_count <= 0)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_sampleIndividuals): (internal error) sampleIndividuals() ran out of eligible individuals from which to sample." << EidosTerminate(nullptr);		// CODE COVERAGE: This is dead code
 #endif
 			
-			int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
-			
-			result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
-			
-			if (!replace)
+				int rose_index = (int)Eidos_rng_uniform_int(rng, (uint32_t)candidate_count);
+				
+				result->set_object_element_no_check_NORR(parent_individuals_[index_buffer[rose_index]], samples_generated);
+				
 				index_buffer[rose_index] = index_buffer[--candidate_count];
+			}
 		}
 	}
 	
@@ -7396,52 +7446,83 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	if (map_iter != spatial_maps_.end())
 	{
 		SpatialMap *map = map_iter->second;
-		EidosValue_Float_vector *float_result;
+		int map_spatiality = map->spatiality_;
+		EidosValue_Float_vector *float_result = nullptr;
+		EidosValue_Float_singleton *float_singleton_result = nullptr;
+		
 		int x_count;
 		
-		if (point->Count() == map->spatiality_)
+		if (point->Count() == map_spatiality)
 		{
 			x_count = 1;
-			float_result = nullptr;
+			float_singleton_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0.0));
 		}
-		else if (point->Count() % map->spatiality_ == 0)
+		else if (point->Count() % map_spatiality == 0)
 		{
-			x_count = point->Count() / map->spatiality_;
+			x_count = point->Count() / map_spatiality;
 			float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
 		}
 		else
 			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() length of point must match spatiality of map " << map_name << ", or be a multiple thereof." << EidosTerminate();
 		
+		// decode the spatiality type up front, to avoid string compares and raises in the loop
+		int spatiality_type = 0;
+		
+		switch (map_spatiality)
+		{
+			case 1:
+			{
+				if (map->spatiality_string_ == "x")			spatiality_type = 1;
+				else if (map->spatiality_string_ == "y")	spatiality_type = 2;
+				else if (map->spatiality_string_ == "z")	spatiality_type = 3;
+				break;
+			}
+			case 2:
+			{
+				if (map->spatiality_string_ == "xy")		spatiality_type = 4;
+				else if (map->spatiality_string_ == "yz")	spatiality_type = 5;
+				else if (map->spatiality_string_ == "xz")	spatiality_type = 6;
+				break;
+			}
+			case 3:
+			{
+				if (map->spatiality_string_ == "xyz")		spatiality_type = 7;
+				break;
+			}
+		}
+		
+		if (spatiality_type == 0)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
+		
+#pragma omp parallel for schedule(static) default(none) shared(x_count, float_singleton_result) firstprivate(map, map_spatiality, spatiality_type, point, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 		{
 			// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
 			// There is doubtless a way to make this code smarter, but brute force is sometimes best...
-			double map_value;
+			double map_value = 0;
 			
-			switch (map->spatiality_)
+			switch (map_spatiality)
 			{
 				case 1:
 				{
 					double point_vec[1];
 					int value_offset = value_index;
 					
-					if (map->spatiality_string_ == "x")
+					if (spatiality_type == 1) // "x"
 					{
 						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
 						point_vec[0] = SLiMClampCoordinate(x);
 					}
-					else if (map->spatiality_string_ == "y")
+					else if (spatiality_type == 2) // "y"
 					{
 						double y = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
 						point_vec[0] = SLiMClampCoordinate(y);
 					}
-					else if (map->spatiality_string_ == "z")
+					else if (spatiality_type == 3) // "z"
 					{
 						double z = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 						point_vec[0] = SLiMClampCoordinate(z);
 					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 					
 					map_value = map->ValueAtPoint_S1(point_vec);
 					break;
@@ -7451,7 +7532,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					double point_vec[2];
 					int value_offset = value_index * 2;
 					
-					if (map->spatiality_string_ == "xy")
+					if (spatiality_type == 4) // "xy"
 					{
 						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
 						point_vec[0] = SLiMClampCoordinate(x);
@@ -7459,7 +7540,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 						double y = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
 						point_vec[1] = SLiMClampCoordinate(y);
 					}
-					else if (map->spatiality_string_ == "yz")
+					else if (spatiality_type == 5) // "yz"
 					{
 						double y = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_y0_) / (bounds_y1_ - bounds_y0_);
 						point_vec[0] = SLiMClampCoordinate(y);
@@ -7467,7 +7548,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 						double z = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 						point_vec[1] = SLiMClampCoordinate(z);
 					}
-					else if (map->spatiality_string_ == "xz")
+					else if (spatiality_type == 6) // "xz"
 					{
 						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
 						point_vec[0] = SLiMClampCoordinate(x);
@@ -7475,8 +7556,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 						double z = (point->FloatAtIndex(1 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 						point_vec[1] = SLiMClampCoordinate(z);
 					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 					
 					map_value = map->ValueAtPoint_S2(point_vec);
 					break;
@@ -7486,7 +7565,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 					double point_vec[3];
 					int value_offset = value_index * 3;
 					
-					if (map->spatiality_string_ == "xyz")
+					if (spatiality_type == 7) // "xyz"
 					{
 						double x = (point->FloatAtIndex(0 + value_offset, nullptr) - bounds_x0_) / (bounds_x1_ - bounds_x0_);
 						point_vec[0] = SLiMClampCoordinate(x);
@@ -7497,25 +7576,22 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 						double z = (point->FloatAtIndex(2 + value_offset, nullptr) - bounds_z0_) / (bounds_z1_ - bounds_z0_);
 						point_vec[2] = SLiMClampCoordinate(z);
 					}
-					else
-						EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 					
 					map_value = map->ValueAtPoint_S3(point_vec);
 					break;
-				}
-				default:
-				{
-					EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): (internal error) unrecognized spatiality." << EidosTerminate();
 				}
 			}
 			
 			if (float_result)
 				float_result->set_float_no_check(map_value, value_index);
 			else
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(map_value));
+				float_singleton_result->SetValue(map_value);
 		}
 		
-		return EidosValue_SP(float_result);
+		if (float_result)
+			return EidosValue_SP(float_result);
+		else
+			return EidosValue_SP(float_singleton_result);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_spatialMapValue): spatialMapValue() could not find map with name " << map_name << "." << EidosTerminate();
