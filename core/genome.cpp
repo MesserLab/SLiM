@@ -1089,6 +1089,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 				if ((mut_block_ptr + mut_ptr[mut_index])->mutation_type_ptr_ == mutation_type_ptr)
 					++match_count;
 		}
+		
+		integer_result->set_int_no_check(match_count, element_index);
 	}
 	
 	if (saw_error)
