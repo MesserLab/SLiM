@@ -5805,7 +5805,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_;
 			
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index];
@@ -5819,7 +5819,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
 			
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 2];
@@ -5834,7 +5834,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
 			
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count <= EIDOS_OMPMIN_POINT_IN_BOUNDS)
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 3];
