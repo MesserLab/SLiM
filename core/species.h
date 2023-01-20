@@ -326,8 +326,12 @@ private:
 	bool retain_coalescent_only_ = true;		// true if "retain" keeps only individuals for coalescent nodes, not also individuals for unary nodes
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
-	tsk_table_collection_t tables_;
-	tsk_bookmark_t table_position_;
+	
+#define MAX_TABLE_COLLECTION_COUNT	4
+	int table_collection_count;
+	tsk_table_collection_t tables_vec_[MAX_TABLE_COLLECTION_COUNT];
+	tsk_table_collection_t &tables_base_ = tables_vec_[0];		// used for node table access, etc.
+	tsk_bookmark_t table_position_[MAX_TABLE_COLLECTION_COUNT];
 	
     std::vector<tsk_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;

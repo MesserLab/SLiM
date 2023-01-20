@@ -2929,7 +2929,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 		p_usage->speciesObjects_count = 1;
 		p_usage->speciesObjects = (sizeof(Species) - sizeof(Chromosome)) * p_usage->speciesObjects_count;	// Chromosome is handled separately above
 		
-		p_usage->speciesTreeSeqTables = recording_tree_ ? MemoryUsageForTables(tables_) : 0;
+		p_usage->speciesTreeSeqTables = recording_tree_ ? MemoryUsageForTables(tables_vec_) : 0;
 	}
 	
 	// Subpopulation
@@ -3863,7 +3863,7 @@ void Species::SimplifyTreeSequence(void)
 	}
 	
 	// the tables need to have a population table to be able to sort it
-	WritePopulationTable(&tables_);
+	WritePopulationTable(&tables_base_);
 	
 	// sort the table collection
 	tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
@@ -4066,7 +4066,10 @@ bool Species::_SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 void Species::RecordTablePosition(void)
 {
 	// keep the current table position for rewinding if a proposed child is rejected
-	tsk_table_collection_record_num_rows(&tables_, &table_position_);
+	for (int index = 0; index < table_collection_count; ++index)
+	{
+		tsk_table_collection_record_num_rows(&tables_vec_[index], &table_position_[index]);
+	}
 }
 
 void Species::AllocateTreeSequenceTables(void)
@@ -4082,13 +4085,21 @@ void Species::AllocateTreeSequenceTables(void)
 	// Set up the table collection before loading a saved population or starting a simulation
 	
 	//INITIALIZE NODE AND EDGE TABLES.
-	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
-	if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
+	table_collection_count = gEidosMaxThreads;
 	
-	tables_initialized_ = true;
-	tables_.sequence_length = (double)chromosome_->last_position_ + 1;
+	for (int index = 0; index < table_collection_count; ++index)
+	{
+		tsk_table_collection_t &tc = tables_vec_[index];
+		
+		int ret = tsk_table_collection_init(&tc, TSK_TC_NO_EDGE_METADATA);
+		if (ret != 0) handle_error("AllocateTreeSequenceTables()", ret);
+		
+		// each table collection uses the same coordinates
+		tc.sequence_length = (double)chromosome_->last_position_ + 1;
+	}
 	
 	RecordTablePosition();
+	tables_initialized_ = true;
 }
 
 void Species::SetCurrentNewIndividual(__attribute__((unused))Individual *p_individual)
@@ -4123,7 +4134,10 @@ void Species::RetractNewIndividual()
 	// around the code since it seems to keep coming back...
 	//current_new_individual_ = nullptr;
 	
-	tsk_table_collection_truncate(&tables_, &table_position_);
+	for (int index = 0; index < table_collection_count; ++index)
+	{
+		tsk_table_collection_truncate(&tables_vec_[index], &table_position_[index]);
+	}
 }
 
 void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genome *p_new_genome, 
@@ -4150,7 +4164,7 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
-	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_.nodes, flags, time, (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
+	tsk_id_t offspringTSKID = tsk_node_table_add_row(&tables_base_.nodes, flags, time, (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
 		TSK_NULL, metadata, (tsk_size_t)metadata_length);
 	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
@@ -4182,6 +4196,7 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 		right = (*p_breakpoints)[i];
 
 		tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
+		// loop over table collections, intersect l/r range with l/r range of each collection, add that intersection to each collection
 		int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 		if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 		
@@ -4191,6 +4206,7 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	
 	right = (double)chromosome_->last_position_+1;
 	tsk_id_t parent = (tsk_id_t) (polarity ? genome1TSKID : genome2TSKID);
+	// loop over table collections, intersect l/r range with l/r range of each collection, add that intersection to each collection
 	int ret = tsk_edge_table_add_row(&tables_.edges, left, right, parent, offspringTSKID, NULL, 0);
 	if (ret < 0) handle_error("tsk_edge_table_add_row", ret);
 }
@@ -4230,6 +4246,7 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
 	double tsk_position = (double) p_position;
 
+	// figure out which table we're in, do it to that one
 	tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
@@ -4317,6 +4334,7 @@ void Species::CheckAutoSimplification(void)
 			// We could, in principle, calculate actual memory used based on number of rows * sizeof(column), etc.,
 			// but that seems like overkill; adding together the number of rows in all the tables should be a
 			// reasonable proxy, and this whole thing is just a heuristic that needs to be tailored anyway.
+			// loop over tables and sum
 			uint64_t old_table_size = (uint64_t)tables_.nodes.num_rows;
 			old_table_size += (uint64_t)tables_.edges.num_rows;
 			old_table_size += (uint64_t)tables_.sites.num_rows;
