@@ -3259,14 +3259,14 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (ind_count == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
-		AddIndividualsToTable(&ind, 1, &tables_base_, &tabled_individuals_hash_, flag);
+		AddIndividualsToTable(&ind, 1, &table_collection_vec_[0], &tabled_individuals_hash_, flag);
 	}
 	else
 	{
 		const EidosValue_Object_vector *ind_vector = individuals_value->ObjectElementVector();
 		EidosObject * const *oe_buffer = ind_vector->data();
 		Individual * const *ind_buffer = (Individual * const *)oe_buffer;
-		AddIndividualsToTable(ind_buffer, ind_count, &tables_base_, &tabled_individuals_hash_, flag);
+		AddIndividualsToTable(ind_buffer, ind_count, &table_collection_vec_[0], &tabled_individuals_hash_, flag);
 	}
 	
 	return gStaticEidosValueVOID;

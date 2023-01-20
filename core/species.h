@@ -78,6 +78,11 @@ enum class SLiMFileFormat
 #pragma mark treeseq recording metadata records
 #pragma mark -
 
+// We keep a table collection per thread, up to a maximum number defined here.  This allows parallelization
+// of tree-sequence sorting and simplification.  The maximum here can be set higher; the only impact is on
+// memory usage per species.  But beyond a certain point it will cease to scale, so 32 seems good for now.
+#define SLIM_MAX_TABLE_COLLECTION_COUNT	32
+
 // These structs are used by the tree-rec code to record all metadata about an object that needs to be saved.
 // Note that this information is a snapshot taken at one point in time, and may become stale; be careful.
 // Changing these structs will break binary compatibility in our output files, and requires changes elsewhere.
@@ -327,11 +332,12 @@ private:
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
 	
-#define MAX_TABLE_COLLECTION_COUNT	4
-	int table_collection_count;
-	tsk_table_collection_t tables_vec_[MAX_TABLE_COLLECTION_COUNT];
-	tsk_table_collection_t &tables_base_ = tables_vec_[0];		// used for node table access, etc.
-	tsk_bookmark_t table_position_[MAX_TABLE_COLLECTION_COUNT];
+	int table_collection_count_;				// the number of table collections in use; beyond that, they are uninitialized and unused
+	tsk_table_collection_t table_collection_vec_[SLIM_MAX_TABLE_COLLECTION_COUNT];	// a table collection, in charge of a "chunk" of the genome
+	tsk_bookmark_t table_position_[SLIM_MAX_TABLE_COLLECTION_COUNT];				// that table collection's bookmark
+	slim_position_t table_collection_first_pos_[SLIM_MAX_TABLE_COLLECTION_COUNT];	// that table collection's first base position (inclusive)
+	slim_position_t table_collection_last_pos_[SLIM_MAX_TABLE_COLLECTION_COUNT];	// that table collection's last base position (inclusive)
+	slim_position_t table_collection_chunk_length_;									// the "chunk" length per table collection
 	
     std::vector<tsk_id_t> remembered_genomes_;
 	//Individual *current_new_individual_;
