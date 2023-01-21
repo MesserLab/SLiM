@@ -332,7 +332,7 @@ private:
 	
 	bool tables_initialized_ = false;			// not checked everywhere, just when allocing and freeing, to avoid crashes
 	
-	int table_collection_count_;				// the number of table collections in use; beyond that, they are uninitialized and unused
+	int table_collection_count_;				// the number of table collections in use; beyond this count, they are uninitialized and unused
 	tsk_table_collection_t table_collection_vec_[SLIM_MAX_TABLE_COLLECTION_COUNT];	// a table collection, in charge of a "chunk" of the genome
 	tsk_bookmark_t table_position_[SLIM_MAX_TABLE_COLLECTION_COUNT];				// that table collection's bookmark
 	slim_position_t table_collection_first_pos_[SLIM_MAX_TABLE_COLLECTION_COUNT];	// that table collection's first base position (inclusive)
@@ -508,6 +508,7 @@ public:
 #pragma mark -
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
+	
 	void AboutToSplitSubpop(void);	// see Population::AddSubpopulationSplit()
 	
 	static void handle_error(std::string msg, int error);
@@ -563,6 +564,14 @@ public:
 	void _InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map);	// given tree-seq tables, makes individuals, genomes, and mutations
 	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map);	// initialize the population from an tskit text file
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
+	
+	// This splits table collection 0 into more than one, modifying the data structures of the Species
+	// This is used at the end of a .trees file read, to split the single table collection read
+	void __SplitTableCollection(void);
+	
+	// This joins the table collections of the Species into a new table collection which it returns; it does not modify the Species
+	// This is used before writing a .trees file, and a few other spots perhaps, to join the table collections into one
+	tsk_table_collection_t __JoinTableCollection(void);
 	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
 	void TSXC_Enable(void);
