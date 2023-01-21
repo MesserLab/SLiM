@@ -3813,11 +3813,10 @@ void Species::SimplifyTreeSequence(void)
 	if (table_collection_vec_[0].nodes.num_rows == 0)
 		return;
 	
-#ifdef _OPENMP
 	// Here we just simplify table_collection_vec_[0]; this needs to be adapted to handle multiple table collections
 #warning implement me!
-#endif
-	tsk_table_collection_t &tc = table_collection_vec_[0];
+	// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
+	tsk_table_collection_t &tables_ = table_collection_vec_[0];
 	std::vector<tsk_id_t> samples;
 	
 	// BCH 7/27/2019: We now build a hash table containing all of the entries of remembered_genomes_,
@@ -3873,7 +3872,7 @@ void Species::SimplifyTreeSequence(void)
 	}
 	
 	// the tables need to have a population table to be able to sort it
-	WritePopulationTable(&tc);
+	WritePopulationTable(&tables_);
 	
 	// sort the table collection
 	tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
@@ -3895,7 +3894,7 @@ void Species::SimplifyTreeSequence(void)
 	// FIXME for additional speed we could perhaps be smart about only sorting the portions of the edge table
 	// that need it, but the tricky thing is that all the old stuff has to be at the bottom of the table, not the top...
 	tsk_table_sorter_t sorter;
-	int ret = tsk_table_sorter_init(&sorter, &tc, /* flags */ flags);
+	int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
 	if (ret != 0) handle_error("tsk_table_sorter_init", ret);
 	
 	sorter.sort_edges = slim_sort_edges;
@@ -3912,13 +3911,13 @@ void Species::SimplifyTreeSequence(void)
 #endif
 	
 	// remove redundant sites we added
-	ret = tsk_table_collection_deduplicate_sites(&tc, 0);
+	ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
 	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
 	
 	// simplify
 	flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
 	if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
-	ret = tsk_table_collection_simplify(&tc, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
+	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
 	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
 	
 	// update map of remembered_genomes_, which are now the first n entries in the node table
@@ -3926,7 +3925,7 @@ void Species::SimplifyTreeSequence(void)
 		remembered_genomes_[i] = i;
 	
 	// remake our hash table of pedigree ids to tsk_ids, since simplify reordered the individuals table
-	BuildTabledIndividualsHash(&tc, &tabled_individuals_hash_);
+	BuildTabledIndividualsHash(&tables_, &tabled_individuals_hash_);
 	
 	// reset current position, used to rewind individuals that are rejected by modifyChild()
 	RecordTablePosition();
@@ -4066,8 +4065,7 @@ bool Species::_SubpopulationIDInUse(slim_objectid_t p_subpop_id)
 	// assume that *any* metadata means we can't use the subpop, which means we
 	// won't clobber any existing metadata, although there might be subpops
 	// with metadata not put in by SLiM.
-	if (RecordingTreeSequence())
-	{
+	if (RecordingTreeSequence()) {
 		// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
 		tsk_table_collection_t &tables_ = table_collection_vec_[0];		// the population table is always in table collection 0
 		
@@ -4119,9 +4117,7 @@ void Species::AllocateTreeSequenceTables(void)
 	// However, each table collection must comprise at least one base position
 	// FIXME maybe this ought to be higher than one, for performance reasons?  one is pretty crazy...
 	slim_position_t total_sequence_length = chromosome_->last_position_ + 1;
-	
-	table_collection_count_ = std::min(gEidosMaxThreads, SLIM_MAX_TABLE_COLLECTION_COUNT);
-	table_collection_count_ = (int)std::min((int64_t)table_collection_count_, total_sequence_length);
+	table_collection_count_ = __TableCollectionCountForSequenceLength(total_sequence_length);
 	table_collection_chunk_length_ = (slim_position_t)std::ceil(total_sequence_length / (double)table_collection_count_);
 	
 	for (int tc_index = 0; tc_index < table_collection_count_; ++tc_index)
@@ -4208,9 +4204,8 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	
 	const char *metadata = (char *)&metadata_rec;
 	size_t metadata_length = sizeof(GenomeMetadataRec)/sizeof(char);
-	tsk_id_t offspringTSKID = tsk_node_table_add_row(&table_collection_vec_[0].nodes, flags, time,
-													 (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
-													 TSK_NULL, metadata, (tsk_size_t)metadata_length);
+	tsk_id_t offspringTSKID = tsk_node_table_add_row(&table_collection_vec_[0].nodes, flags, time, (tsk_id_t)p_new_genome->individual_->subpopulation_->subpopulation_id_,
+		TSK_NULL, metadata, (tsk_size_t)metadata_length);
 	if (offspringTSKID < 0) handle_error("tsk_node_table_add_row", offspringTSKID);
 	
 	p_new_genome->tsk_node_id_ = offspringTSKID;
@@ -4261,6 +4256,7 @@ void Species::RecordNewGenome(std::vector<slim_position_t> *p_breakpoints, Genom
 	// loop, and there should not really be a loop over table collections at all; it should just keep track of the
 	// "current" table collection as it goes through the break points.  But I don't really understand what this code
 	// does well enough to fix it properly.
+#warning fix me!
 	for (int tc_index = 0; tc_index < table_collection_count_; ++tc_index)
 	{
 		tsk_table_collection_t &tc = table_collection_vec_[tc_index];
@@ -4345,7 +4341,6 @@ void Species::RecordNewDerivedState(const Genome *p_genome, slim_position_t p_po
 	// This site may already exist, but we add it anyway, and deal with that in deduplicate_sites().
 	double tsk_position = (double) p_position;
 
-	// figure out which table we're in, do it to that one
 	tsk_id_t site_id = tsk_site_table_add_row(&tables_.sites, tsk_position, NULL, 0, NULL, 0);
 	if (site_id < 0) handle_error("tsk_site_table_add_row", site_id);
 	
@@ -4517,8 +4512,6 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 	tsk_table_collection_t &tables_ = table_collection_vec_[0];	// in read/write code we assume a single consolidated table collection
 	int ret = tsk_table_collection_init(&tables_, TSK_TC_NO_EDGE_METADATA);
 	if (ret != 0) handle_error("TreeSequenceDataFromAscii()", ret);
-	
-	tables_initialized_ = true;
 	
 	ret = table_collection_load_text(&tables_,
 									 MspTxtNodeTable,
@@ -6030,22 +6023,9 @@ void Species::WriteTreeSequence(std::string &p_recording_tree_path, bool p_binar
 		SimplifyTreeSequence();
 	}
 	
-	// We need to merge our table collections together in order to write them out
-	tsk_table_collection_t output_tables;
-	
-	if (table_collection_count_ == 1)
-	{
-		// In the single-collection case this is trivial; we just copy the table collection so that
-		// modifications we do for writing don't affect the original tables
-		ret = tsk_table_collection_copy(&table_collection_vec_[0], &output_tables, 0);
-		if (ret < 0) handle_error("tsk_table_collection_copy", ret);
-	}
-	else
-	{
-		// In the multi-threaded case we need to make a new table collection, merge table into it, join edges, etc.
-		// This method allocates a new table collection and returns it to the caller, we now own it
-		output_tables = __JoinTableCollection();
-	}
+	// We need to merge our table collections together into a new collection in order to write them out
+	// Note that in the single-collection case this still makes a copy of the collection (as desired)
+	tsk_table_collection_t output_tables = __JoinTableCollection();
 	
 	//
 	// From this point onward we have a single table collection, output_tables, and the write logic can ignore parallelism
@@ -6406,13 +6386,14 @@ void Species::CheckTreeSeqIntegrity(void)
 	// SLiM's parallel data structures (done in CrosscheckTreeSeqIntegrity()), just on their own.
 	if (table_collection_count_ == 1)
 	{
-		// In the single-collection case this is easy, just call in to tskit
+		// In the single-collection case this is easy, just call tsk_table_collection_check_integrity()
 		int ret = tsk_table_collection_check_integrity(&table_collection_vec_[0], TSK_NO_CHECK_POPULATION_REFS);
 		if (ret < 0) handle_error("tsk_table_collection_check_integrity()", ret);
 	}
 	else
 	{
-		// I'm not sure what this looks like in the multi-collection case, punting
+		// I'm not sure what this looks like in the multi-collection case; does each individual
+		// table collection pass tsk_table_collection_check_integrity(), or only the joined collection?
 #warning implement me!
 	}
 }
@@ -6429,6 +6410,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	// With one table collection, we can use it directly.  With more than one, for now we do a join and check the
 	// joined collection (ouch).  It would be great to be able to do a crosscheck with the unjoined collections.
 	// Also, if we do a join here then we maybe don't need to do a copy below?  So this logic needs to be sorted out.
+	// But I think for early debugging work for the pull request, this might suffice.
 	tsk_table_collection_t joined_tables;
 	tsk_table_collection_t *tc_ptr = nullptr;
 	
@@ -6442,7 +6424,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		tc_ptr = &joined_tables;
 	}
 	
-	tsk_table_collection_t &tc = *tc_ptr;
+	tsk_table_collection_t &tables_ = *tc_ptr;
 	
 	// first crosscheck the substitutions multimap against SLiM's substitutions vector
 	{
@@ -6499,7 +6481,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		if (!tables_copy)
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		
-		ret = tsk_table_collection_copy(&tc, tables_copy, 0);
+		ret = tsk_table_collection_copy(&tables_, tables_copy, 0);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_table_collection_copy()", ret);
 		
 		// our tables copy needs to have a population table now, since this is required to build a tree sequence
@@ -6739,7 +6721,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 	// check that tabled_individuals_hash_ is the right size and has all the right entries
 	if (recording_tree_)
 	{
-		tsk_individual_table_t &individuals = tc.individuals;
+		tsk_individual_table_t &individuals = tables_.individuals;
 
 		if (individuals.num_rows != tabled_individuals_hash_.size())
 			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) tabled_individuals_hash_ size (" << tabled_individuals_hash_.size() << ") does not match the individuals table size (" << individuals.num_rows << ")." << EidosTerminate();
@@ -8490,6 +8472,9 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	}
 	
 	// read the files from disk
+	// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
+	tsk_table_collection_t &tables_ = table_collection_vec_[0];	// in read/write code we assume a single consolidated table collection
+	
 	std::string edge_path = directory_path + "/EdgeTable.txt";
 	std::string node_path = directory_path + "/NodeTable.txt";
 	std::string site_path = directory_path + "/SiteTable.txt";
@@ -8500,15 +8485,15 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	
 	TreeSequenceDataFromAscii(node_path, edge_path, site_path, mutation_path, individual_path, population_path, provenance_path);
 	
-	// read in the tree sequence metadata first
-	// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
-	tsk_table_collection_t &tables_ = table_collection_vec_[0];	// in read/write code we assume a single consolidated table collection
+	tables_initialized_ = true;
+	table_collection_count_ = 1;
 	
 	slim_tick_t metadata_tick;
 	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
 	
+	// read in the tree sequence metadata first so we have file version information
 	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
 	
 	// make the corresponding SLiM objects
@@ -8523,9 +8508,8 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 	}
 	else
 	{
-#ifdef _OPENMP
+		// if tree-seq is on, split the table collection for parallelization, as needed
 		__SplitTableCollection();
-#endif
 	}
 	
 	return metadata_tick;
@@ -8551,6 +8535,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 		recording_mutations_ = true;
 	}
 	
+	// read the tables from disk
 	// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
 	tsk_table_collection_t &tables_ = table_collection_vec_[0];	// in read/write code we assume a single consolidated table collection
 	
@@ -8558,6 +8543,7 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	if (ret != 0) handle_error("tsk_table_collection_load", ret);
 	
 	tables_initialized_ = true;
+	table_collection_count_ = 1;
 	
 	// BCH 4/25/2019: if indexes are present on tables_ we want to drop them; they are synced up
 	// with the edge table, but we plan to modify the edge table so they will become invalid anyway, and
@@ -8625,33 +8611,80 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 	}
 	else
 	{
-#ifdef _OPENMP
+		// if tree-seq is on, split the table collection for parallelization, as needed
 		__SplitTableCollection();
-#endif
 	}
 	
 	return metadata_tick;
 }
 
+int Species::__TableCollectionCountForSequenceLength(slim_position_t p_sequence_length)
+{
+	// This centralizes the logic for how many table collections we ought to use,
+	// depending on threads and sequence length and so forth.
+	
+	// We now make a table collection for each thread in our thread pool, up to our maximum
+	// However, each table collection must comprise at least one base position
+	// FIXME maybe this ought to be higher than one, for performance reasons?
+	int collection_count = std::min(gEidosMaxThreads, SLIM_MAX_TABLE_COLLECTION_COUNT);
+	collection_count = (int)std::min((int64_t)collection_count, p_sequence_length);
+	
+	if ((collection_count < 1) || (collection_count > SLIM_MAX_TABLE_COLLECTION_COUNT))
+		EIDOS_TERMINATION << "ERROR (Species::__TableCollectionCountForSequenceLength): (internal error) illegal table collection count." << EidosTerminate();
+	
+	return collection_count;
+}
+
 void Species::__SplitTableCollection(void)
 {
 	// This takes the single table collection in table_collection_vec_[0] and splits
-	// it into a set of table collections.  See AllocateTreeSequenceTables() for the
-	// logic for how many table collections we ought to have, other variables that need
-	// to be adjusted for the split, etc.
+	// it into a set of table collections, modifying the table collections of the species.
+	slim_position_t total_sequence_length = chromosome_->last_position_ + 1;
+	int collection_count = __TableCollectionCountForSequenceLength(total_sequence_length);
+	
+	if (collection_count == 1)
+	{
+		table_collection_count_ = 1;
+		table_collection_chunk_length_ = total_sequence_length;
+		table_collection_first_pos_[0] = 0;
+		table_collection_last_pos_[0] = total_sequence_length - 1;
+	}
+	else
+	{
 #warning implement me!
+		// set up variables as above; see AllocateTreeSequenceTables() for guidance
+	}
 }
 
 tsk_table_collection_t Species::__JoinTableCollection(void)
 {
 	// This takes the set of table collections in table_collection_vec_ and joins
 	// it into one, which it returns.  It does not modify the table collections
-	// of the Species, unlike __SplitTableCollection().  See AllocateTreeSequenceTables()
-	// for other variables that need to be adjusted for the join, etc.
-#warning implement me!
-	tsk_table_collection_t joined;
+	// of the Species, unlike __SplitTableCollection().
 	
-	return joined;
+	if (table_collection_count_ == 1)
+	{
+		// We are expected to return a new table collection, even if there is just one;
+		// this is because callers of this method typically want a copy they can modify anyway
+		tsk_table_collection_t tables_copy;
+		
+		int ret = tsk_table_collection_copy(&table_collection_vec_[0], &tables_copy, 0);
+		if (ret < 0) handle_error("tsk_table_collection_copy", ret);
+		
+		return tables_copy;
+	}
+	else
+	{
+		// We have more than one table collection, so we need to join them together
+#warning implement me!
+		tsk_table_collection_t tables_joined;
+	
+		return tables_joined;
+	}
+	
+	// Note that unlike __SplitTableCollection() this does not modify variables such
+	// as table_collection_count_, table_collection_chunk_length_, etc., because
+	// we never replace our intrinsic table collections with a joined collection
 }
 
 size_t Species::MemoryUsageForTables(tsk_table_collection_t &p_tables)

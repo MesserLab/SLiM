@@ -508,7 +508,6 @@ public:
 #pragma mark -
 	inline __attribute__((always_inline)) bool RecordingTreeSequence(void) const											{ return recording_tree_; }
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
-	
 	void AboutToSplitSubpop(void);	// see Population::AddSubpopulationSplit()
 	
 	static void handle_error(std::string msg, int error);
@@ -565,12 +564,15 @@ public:
 	slim_tick_t _InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map);	// initialize the population from an tskit text file
 	slim_tick_t _InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_remap);	// initialize the population from an tskit binary file
 	
-	// This splits table collection 0 into more than one, modifying the data structures of the Species
-	// This is used at the end of a .trees file read, to split the single table collection read
+	// This calculates the number of table collections to use, based on various heuristics
+	int __TableCollectionCountForSequenceLength(slim_position_t p_sequence_length);
+	
+	// This splits table collection 0 into more than one collection, modifying the data structures of the Species.
+	// This is used at the end of a .trees file read, to split the single table collection that was read in.
 	void __SplitTableCollection(void);
 	
-	// This joins the table collections of the Species into a new table collection which it returns; it does not modify the Species
-	// This is used before writing a .trees file, and a few other spots perhaps, to join the table collections into one
+	// This joins the table collections of the Species into a new table collection which it returns; it does not modify
+	// the data structures of the Species.  This is used before writing a .trees file, to join the table collections into one.
 	tsk_table_collection_t __JoinTableCollection(void);
 	
 	size_t MemoryUsageForTables(tsk_table_collection_t &p_tables);
