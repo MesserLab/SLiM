@@ -174,7 +174,7 @@ private:
 #ifdef SLIMGUI
 public:
 	
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
 	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
 	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
@@ -189,7 +189,7 @@ public:
 	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
 	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
-#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#endif	// (SLIMPROFILING == 1)
 
 #else
 private:
@@ -417,7 +417,7 @@ public:
 	slim_popsize_t *BorrowShuffleBuffer(slim_popsize_t p_buffer_size);
 	void ReturnShuffleBuffer(void);
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 	void CollectSLiMguiMutationProfileInfo(void);

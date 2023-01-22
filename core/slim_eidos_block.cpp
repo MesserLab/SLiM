@@ -116,7 +116,7 @@ EidosASTNode *SLiMEidosScript::Parse_SpeciesSpecifier(void)
 		species_name = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 		node->AddChild(species_name);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif
@@ -150,7 +150,7 @@ EidosASTNode *SLiMEidosScript::Parse_TicksSpecifier(void)
 		species_name = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 		node->AddChild(species_name);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif

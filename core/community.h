@@ -110,7 +110,7 @@ public:
 	
 	bool simulation_valid_ = true;													// set to false if a terminating condition is encountered while running in SLiMgui
 
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	// PROFILING : Community keeps track of script timing counts
 	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
 	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
@@ -121,7 +121,7 @@ public:
 	SLiMMemoryUsage_Species profile_last_memory_usage_AllSpecies;
 	SLiMMemoryUsage_Species profile_total_memory_usage_AllSpecies;
 	int64_t total_memory_tallies_;		// this is the total number of accumulations, for both Community and all Species under it
-#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#endif	// (SLIMPROFILING == 1)
 
 #else
 private:
@@ -257,7 +257,7 @@ public:
 	slim_tick_t EstimatedLastTick(void);											// derived from the last tick in which an Eidos block is registered
 	void SimulationHasFinished(void);
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	void CollectSLiMguiMemoryUsageProfileInfo(void);
 #endif

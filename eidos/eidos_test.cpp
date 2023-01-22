@@ -35,10 +35,10 @@
 #include <ctime>
 
 #if 0
-#if ((defined(SLIMGUI) && (SLIMPROFILING == 1)) || defined(EIDOS_GUI))
 // includes for the timing code in RunEidosTests(), which is normally #if 0
 #include "sys/time.h"	// for gettimeofday()
 #include <chrono>
+#if defined(__APPLE__) && defined(__MACH__)
 #include <mach/mach_time.h>
 #endif
 #endif
@@ -1002,10 +1002,7 @@ int RunEidosTests(void)
 		std::cout << "10000000 calls to clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
-	// Note that at present this code is in eidos_test.cpp but runs only when running in SLiMgui,
-	// which never happens; this is for historical reasons, and the code can be moved if needed
-	
+#if defined(__APPLE__) && defined(__MACH__)
 	// mach_absolute_time()
 	{
 		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
@@ -1036,6 +1033,8 @@ int RunEidosTests(void)
 		std::cout << "10000000 calls to mach_continuous_time(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
 	
+#endif
+	
 	// Eidos_ProfileTime()
 	{
 		double start_time = static_cast<double>(std::clock()) / CLOCKS_PER_SEC;
@@ -1050,8 +1049,6 @@ int RunEidosTests(void)
 		
 		std::cout << "10000000 calls to Eidos_ProfileTime(): time == " << (end_time - start_time) << ", total_time == " << (total_time / 1000000000.0) << std::endl;
 	}
-	
-#endif
 	
 	/*
 	 

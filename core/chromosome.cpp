@@ -757,7 +757,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 // apply mutation() to a generated mutation; we might return nullptr (proposed mutation rejected), the original proposed mutation (it was accepted), or a replacement Mutation *
 Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -923,7 +923,7 @@ Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, 
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)]);
 #endif

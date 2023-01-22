@@ -93,7 +93,7 @@ private:
     int partialUpdateCount_ = 0;
     std::clock_t elapsedCPUClock_ = 0;      // kept even when not profiling, for status bar updates
 
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
     // profiling-related variables
     QDateTime profileStartDate_;
     QDateTime profileEndDate_;

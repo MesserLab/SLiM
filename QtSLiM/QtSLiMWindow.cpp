@@ -2890,7 +2890,7 @@ void QtSLiMWindow::updateWindowMenu(void)
 //  profiling
 //
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 
 void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat)
 {
@@ -3984,7 +3984,7 @@ void QtSLiMWindow::endProfiling(void)
     profileEndDate_ = QDateTime::currentDateTime();
 }
 
-#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+#endif	// (SLIMPROFILING == 1)
 
 
 //
@@ -4057,7 +4057,7 @@ bool QtSLiMWindow::runSimOneTick(void)
     // We always take a start clock measurement, to tally elapsed time spent running the model
     clock_t startCPUClock = clock();
     
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	if (profilePlayOn_)
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
@@ -4079,7 +4079,7 @@ bool QtSLiMWindow::runSimOneTick(void)
     
     elapsedCPUClock_ += (endCPUClock - startCPUClock);
     
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	if (profilePlayOn_)
         profileElapsedCPUClock += (endCPUClock - startCPUClock);
 #endif
@@ -4216,7 +4216,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 	}
 #endif
     
-#if (SLIMPROFILING == 0)
+#if (SLIMPROFILING != 1)
 	if (playType == PlayType::kProfilePlay)
 	{
         ui->profileButton->setChecked(false);
@@ -4264,7 +4264,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 		if (consoleController)
             consoleController->invalidateSymbolTableAndFunctionMap();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
 		if (playType == PlayType::kProfilePlay)
 		{
@@ -4282,7 +4282,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 	}
 	else
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// close out profiling information if necessary
 		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 		{
@@ -4324,7 +4324,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
         
 		updateAfterTickFull(true);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
 		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
 			displayProfileResults();

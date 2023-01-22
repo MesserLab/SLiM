@@ -169,12 +169,12 @@ private:
 	
 	int32_t nonneutral_change_validation_ = 0;					// compared to sim.nonneutral_change_counter_ to detect changes
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 // PROFILING
 	
 	bool recached_run_ = false;
 	
-#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+#endif	// (SLIMPROFILING == 1)
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	
@@ -777,7 +777,7 @@ public:
 				case 3: cache_nonneutral_mutations_REGIME_3(); break;
 			}
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			recached_run_ = true;
 #endif
@@ -806,7 +806,7 @@ public:
 			nonneutral_change_validation_ = p_nonneutral_change_counter;
 			nonneutral_mutations_count_ = 0;
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			recached_run_ = true;
 #endif
@@ -826,7 +826,7 @@ public:
 	}
 #endif
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	inline __attribute__((always_inline)) void tally_nonneutral_mutations(int64_t *p_mutation_count, int64_t *p_nonneutral_count, int64_t *p_recached_count)
 	{
@@ -841,7 +841,7 @@ public:
 			recached_run_ = false;
 		}
 	}
-#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+#endif	// (SLIMPROFILING == 1)
 	
 #endif	// SLIM_USE_NONNEUTRAL_CACHES
 	

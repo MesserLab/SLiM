@@ -216,14 +216,14 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bo
 	
 	for (EidosASTNode *child_node : root_node_->children_)
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
 		EidosValue_SP statement_result_SP = FastEvaluateNode(child_node);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(child_node->profile_total_);
 #endif
@@ -859,14 +859,14 @@ EidosValue_SP EidosInterpreter::Evaluate_CompoundStatement(const EidosASTNode *p
 	
 	for (EidosASTNode *child_node : p_node->children_)
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
 		EidosValue_SP statement_result_SP = FastEvaluateNode(child_node);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(child_node->profile_total_);
 #endif
@@ -5248,14 +5248,14 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		// Handle a static singleton logical true super fast; no need for type check, count, etc
 		EidosASTNode *true_node = p_node->children_[1];
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 		SLIM_PROFILE_BLOCK_START_CONDITION(true_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 		
 		result_SP = FastEvaluateNode(true_node);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END_CONDITION(true_node->profile_total_);
 #endif
@@ -5267,14 +5267,14 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		{
 			EidosASTNode *false_node = p_node->children_[2];
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 			SLIM_PROFILE_BLOCK_START_CONDITION(false_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 			
 			result_SP = FastEvaluateNode(false_node);
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			SLIM_PROFILE_BLOCK_END_CONDITION(false_node->profile_total_);
 #endif
@@ -5292,14 +5292,14 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		{
 			EidosASTNode *true_node = p_node->children_[1];
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 			SLIM_PROFILE_BLOCK_START_CONDITION(true_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 			
 			result_SP = FastEvaluateNode(true_node);
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			SLIM_PROFILE_BLOCK_END_CONDITION(true_node->profile_total_);
 #endif
@@ -5308,14 +5308,14 @@ EidosValue_SP EidosInterpreter::Evaluate_If(const EidosASTNode *p_node)
 		{
 			EidosASTNode *false_node = p_node->children_[2];
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 			SLIM_PROFILE_BLOCK_START_CONDITION(false_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 			
 			result_SP = FastEvaluateNode(false_node);
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			SLIM_PROFILE_BLOCK_END_CONDITION(false_node->profile_total_);
 #endif
@@ -5359,14 +5359,14 @@ EidosValue_SP EidosInterpreter::Evaluate_Do(const EidosASTNode *p_node)
 		// execute the do...while loop's statement by evaluating its node; evaluation values get thrown away
 		EidosASTNode *statement_node = p_node->children_[0];
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 		SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 		
 		EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5493,14 +5493,14 @@ EidosValue_SP EidosInterpreter::Evaluate_While(const EidosASTNode *p_node)
 		// execute the while loop's statement by evaluating its node; evaluation values get thrown away
 		EidosASTNode *statement_node = p_node->children_[1];
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 		SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 		
 		EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5695,14 +5695,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			{
 				EidosASTNode *statement_node = p_node->children_[2];
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 				SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 				
 				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING
 				SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5733,14 +5733,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				
 				EidosASTNode *statement_node = p_node->children_[2];
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 				SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 				
 				EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING
 				SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5777,14 +5777,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 				{
 					EidosASTNode *statement_node = p_node->children_[2];
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 					SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 					
 					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING
 					SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5820,14 +5820,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 						
 						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING
 						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5853,14 +5853,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 						
 						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING
 						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5886,14 +5886,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 						
 						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING
 						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5919,14 +5919,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 						
 						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING
 						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -5954,14 +5954,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 						
 						EidosASTNode *statement_node = p_node->children_[2];
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 						SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 						
 						EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 						
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 						// PROFILING
 						SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif
@@ -6007,14 +6007,14 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					// execute the for loop's statement by evaluating its node; evaluation values get thrown away
 					EidosASTNode *statement_node = p_node->children_[2];
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING: profile child statement unless it is a compound statement (which does its own profiling)
 					SLIM_PROFILE_BLOCK_START_CONDITION(statement_node->token_->token_type_ != EidosTokenType::kTokenLBrace);
 #endif
 					
 					EidosValue_SP statement_value = FastEvaluateNode(statement_node);
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING
 					SLIM_PROFILE_BLOCK_END_CONDITION(statement_node->profile_total_);
 #endif

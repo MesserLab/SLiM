@@ -1055,7 +1055,7 @@ EidosASTNode *EidosScript::Parse_SelectionStatement(void)
 		test_expr = Parse_Expr();
 		node->AddChild(test_expr);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif
@@ -1095,7 +1095,7 @@ EidosASTNode *EidosScript::Parse_DoWhileStatement(void)
 	{
 		node = new (gEidosASTNodePool->AllocateChunk()) EidosASTNode(current_token_);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif
@@ -1145,7 +1145,7 @@ EidosASTNode *EidosScript::Parse_WhileStatement(void)
 		test_expr = Parse_Expr();
 		node->AddChild(test_expr);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif
@@ -1189,7 +1189,7 @@ EidosASTNode *EidosScript::Parse_ForStatement(void)
 		range_expr = Parse_Expr();
 		node->AddChild(range_expr);
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		node->full_range_end_token_ = current_token_;
 #endif
@@ -1742,7 +1742,7 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				
 				// now we have reached our end bracket and can close up
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING
 				node->full_range_end_token_ = current_token_;
 #endif
@@ -1761,7 +1761,7 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				
 				if (current_token_type_ == EidosTokenType::kTokenRParen)
 				{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING
 					node->full_range_end_token_ = current_token_;
 #endif
@@ -1772,7 +1772,7 @@ EidosASTNode *EidosScript::Parse_PostfixExpr(void)
 				{
 					Parse_ArgumentExprList(node);	// Parse_ArgumentExprList() adds the arguments directly to the function call node
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING
 					node->full_range_end_token_ = current_token_;
 #endif

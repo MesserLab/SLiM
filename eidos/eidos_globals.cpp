@@ -113,7 +113,7 @@ int gEidosDebugIndent = 0;
 #pragma mark Profiling support
 #pragma mark -
 
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 // PROFILING
 
 int gEidosProfilingClientCount = 0;
@@ -205,7 +205,7 @@ void Eidos_PrepareForProfiling(void)
 	//std::cout << "Profile lag internal to block: " << gEidos_ProfileLag_double << " ticks, " << gEidos_ProfileLagSeconds << " seconds" << std::endl;
 }
 
-#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#endif	// (SLIMPROFILING == 1)
 
 
 #pragma mark -

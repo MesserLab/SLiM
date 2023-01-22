@@ -542,7 +542,7 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -732,7 +732,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 				
 				community_.executing_block_type_ = old_executing_block_type;
 				
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 				// PROFILING
 				SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
@@ -758,7 +758,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		community_.executing_block_type_ = old_executing_block_type;
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
@@ -805,7 +805,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			
 			community_.executing_block_type_ = old_executing_block_type;
 			
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 			// PROFILING
 			SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
@@ -881,7 +881,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 		
 		community_.executing_block_type_ = old_executing_block_type;
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
@@ -891,7 +891,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)]);
 #endif
@@ -905,7 +905,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -995,7 +995,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 					community_.executing_block_type_ = old_executing_block_type;
 					community_.focal_modification_child_ = nullptr;
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 					// PROFILING
 					SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
@@ -1013,7 +1013,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 	community_.executing_block_type_ = old_executing_block_type;
 	community_.focal_modification_child_ = nullptr;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)]);
 #endif
@@ -2145,7 +2145,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2281,7 +2281,7 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)]);
 #endif

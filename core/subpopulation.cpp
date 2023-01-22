@@ -2245,7 +2245,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 
 double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2391,7 +2391,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 		}
 	}
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)]);
 #endif
@@ -2401,7 +2401,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 
 double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2526,7 +2526,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 		}
 	}
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)]);
 #endif
@@ -3414,7 +3414,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 // nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -3502,7 +3502,7 @@ void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_r
 		}
 	}
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)]);
 #endif
@@ -3628,7 +3628,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 // nonWF only:
 bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -3756,7 +3756,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 		move_destination->nonWF_survival_moved_individuals_.emplace_back(p_individual);
 	}
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)]);
 #endif

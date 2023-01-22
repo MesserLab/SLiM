@@ -2060,14 +2060,14 @@ void Species::MaintainTreeSequence(void)
 		CheckTreeSeqIntegrity();
 #endif
 					
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
 		
 		CheckAutoSimplification();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(community_.profile_stage_totals_[8]);
 #endif
@@ -3530,7 +3530,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	}
 }
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 // PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 void Species::CollectSLiMguiMutationProfileInfo(void)

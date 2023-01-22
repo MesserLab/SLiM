@@ -1163,7 +1163,7 @@ double InteractionType::ClippedIntegral_2D(double indDistanceA1, double indDista
 
 double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -1280,7 +1280,7 @@ double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Indivi
 	
 	community_.executing_block_type_ = old_executing_block_type;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(community_.profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)]);
 #endif

@@ -72,7 +72,7 @@ class Community;
 	int partialUpdateCount;
 	SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 	
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	// profiling-related variables
 	NSDate *profileEndDate;
 	std::clock_t profileElapsedCPUClock;

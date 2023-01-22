@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <unordered_map>
 
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 
 #if defined(__APPLE__) && defined(__MACH__)
 // On macOS we use mach_absolute_time() for profiling (only in SLiMgui when profiling is enabled)
@@ -246,7 +246,10 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 #pragma mark Profiling support
 #pragma mark -
 
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+// BCH 1/22/2023: Note that profiling can now be enabled for both command-line and GUI builds.  It is enabled
+// when SLIMPROFILING is defined to 1; if it is undefined, 0, or any other value, profiling is disabled.
+
+#if (SLIMPROFILING == 1)
 // PROFILING
 
 extern int gEidosProfilingClientCount;	// if non-zero, profiling is happening in some context
@@ -342,7 +345,7 @@ void Eidos_PrepareForProfiling(void);
 		(slim__accumulator) += slim__corrected_ticks;																														\
 	}
 
-#endif	// (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#endif	// (SLIMPROFILING == 1)
 
 
 // *******************************************************************************************************************

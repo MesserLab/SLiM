@@ -487,7 +487,7 @@ void EidosASTNode::PrintTreeWithIndent(std::ostream &p_outstream, int p_indent) 
 	}
 }
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 // PROFILING
 
 void EidosASTNode::ZeroProfileTotals(void) const
@@ -572,7 +572,7 @@ void EidosASTNode::FullUTF16Range(int32_t *p_start, int32_t *p_end) const
 	*p_end = end;
 }
 
-#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+#endif	// (SLIMPROFILING == 1)
 
 
 

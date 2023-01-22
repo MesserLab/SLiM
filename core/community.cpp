@@ -1728,7 +1728,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	if (SLiM_verbosity_level >= 1)
 		SLIM_OUTSTREAM << "// RunInitializeCallbacks():" << std::endl;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -1777,7 +1777,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	// start at the beginning; note that tree_seq_tick_ will not equal tick_ until after reproduction
 	SetTick(tick_start_);
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(profile_stage_totals_[0]);
 #endif
@@ -1786,7 +1786,7 @@ void Community::AllSpecies_RunInitializeCallbacks(void)
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	if (gEidosProfilingClientCount)
 		CollectSLiMguiMemoryUsageProfileInfo();
@@ -1876,7 +1876,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 	SLiMEidosBlockType old_executing_block_type = executing_block_type_;
 	executing_block_type_ = p_script_block->type_;
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
 #endif
@@ -1903,7 +1903,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 		throw;
 	}
 	
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_END(profile_callback_totals_[(int)executing_block_type_]);
 #endif
@@ -1980,7 +1980,7 @@ void Community::AllSpecies_PurgeRemovedObjects(void)
 //
 bool Community::_RunOneTickWF(void)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
@@ -1994,7 +1994,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 0: Execute first() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2008,7 +2008,7 @@ bool Community::_RunOneTickWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
 #endif
@@ -2021,7 +2021,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 1: Execute early() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2035,7 +2035,7 @@ bool Community::_RunOneTickWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
@@ -2049,7 +2049,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 2: Generate offspring: evolve all subpopulations
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2088,7 +2088,7 @@ bool Community::_RunOneTickWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
@@ -2102,7 +2102,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 3: Remove fixed mutations and associated tasks
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2121,7 +2121,7 @@ bool Community::_RunOneTickWF(void)
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
@@ -2135,7 +2135,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 4: Swap generations
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2146,7 +2146,7 @@ bool Community::_RunOneTickWF(void)
 			if (species->Active())
 				species->WF_SwapGenerations();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
@@ -2160,7 +2160,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 5: Execute late() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2174,7 +2174,7 @@ bool Community::_RunOneTickWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
@@ -2188,7 +2188,7 @@ bool Community::_RunOneTickWF(void)
 	// Stage 6: Calculate fitness values for the new parental generation
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2217,7 +2217,7 @@ bool Community::_RunOneTickWF(void)
 			if (species->Active())
 				species->FinishMutationRunExperimentTiming();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
 #endif
@@ -2269,7 +2269,7 @@ bool Community::_RunOneTickWF(void)
 		gEidosErrorContext.currentScript = nullptr;
 		gEidosErrorContext.executingRuntimeScript = false;
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		if (gEidosProfilingClientCount)
 			CollectSLiMguiMemoryUsageProfileInfo();
@@ -2296,7 +2296,7 @@ bool Community::_RunOneTickWF(void)
 //
 bool Community::_RunOneTickNonWF(void)
 {
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
@@ -2310,7 +2310,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 0: Execute first() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2324,7 +2324,7 @@ bool Community::_RunOneTickNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[1]);
 #endif
@@ -2372,7 +2372,7 @@ bool Community::_RunOneTickNonWF(void)
 		}
 #endif
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2421,7 +2421,7 @@ bool Community::_RunOneTickNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[2]);
 #endif
@@ -2436,7 +2436,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 2: Execute early() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2450,7 +2450,7 @@ bool Community::_RunOneTickNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[3]);
 #endif
@@ -2465,7 +2465,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 3: Calculate fitness values for the new population
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2497,7 +2497,7 @@ bool Community::_RunOneTickNonWF(void)
 		// Deregister any interaction() callbacks that have been scheduled for deregistration, since it is now safe to do so
 		DeregisterScheduledInteractionBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[4]);
 #endif
@@ -2512,7 +2512,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 4: Viability/survival selection
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2536,7 +2536,7 @@ bool Community::_RunOneTickNonWF(void)
 		// the stage is done, so deregister script blocks as requested
 		DeregisterScheduledScriptBlocks();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[5]);
 #endif
@@ -2551,7 +2551,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 5: Remove fixed mutations and associated tasks
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2562,7 +2562,7 @@ bool Community::_RunOneTickNonWF(void)
 			if (species->Active())
 				species->MaintainMutationRegistry();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[6]);
 #endif
@@ -2577,7 +2577,7 @@ bool Community::_RunOneTickNonWF(void)
 	// Stage 6: Execute late() script events for the current cycle
 	//
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_START();
 #endif
@@ -2596,7 +2596,7 @@ bool Community::_RunOneTickNonWF(void)
 			if (species->Active())
 				species->FinishMutationRunExperimentTiming();
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		SLIM_PROFILE_BLOCK_END(profile_stage_totals_[7]);
 #endif
@@ -2659,7 +2659,7 @@ bool Community::_RunOneTickNonWF(void)
 		gEidosErrorContext.currentScript = nullptr;
 		gEidosErrorContext.executingRuntimeScript = false;
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// PROFILING
 		if (gEidosProfilingClientCount)
 			CollectSLiMguiMemoryUsageProfileInfo();
@@ -2735,7 +2735,7 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 	SumUpMemoryUsage_Community(*p_usage);
 }
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 // PROFILING
 void Community::CollectSLiMguiMemoryUsageProfileInfo(void)
 {

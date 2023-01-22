@@ -263,7 +263,7 @@
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
 	
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	[profileEndDate release];
 	profileEndDate = nil;
 #endif
@@ -1527,7 +1527,7 @@
 	// Gah.  Multithreading with UI sucks.
 }
 
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 
 static int DisplayDigitsForIntegerPart(double x)
 {
@@ -2522,7 +2522,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	profileEndDate = [[NSDate date] retain];
 }
 
-#endif	// defined(SLIMGUI) && (SLIMPROFILING == 1)
+#endif	// (SLIMPROFILING == 1)
 
 - (BOOL)runSimOneTick
 {
@@ -2535,7 +2535,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 	[self eidosConsoleWindowControllerWillExecuteScript:_consoleController];
 	
-#if (defined(SLIMGUI) && (SLIMPROFILING == 1))
+#if (SLIMPROFILING == 1)
 	if (profilePlayOn)
 	{
 		// We put the wall clock measurements on the inside since we want those to be maximally accurate,
@@ -2743,7 +2743,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	}
 #endif
 	
-#if (SLIMPROFILING == 0)
+#if (SLIMPROFILING != 1)
 	if (isProfileAction)
 	{
 		[profileButton setState:NSOffState];
@@ -2789,7 +2789,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		// invalidate the console symbols, and don't validate them until we are done
 		[_consoleController invalidateSymbolTableAndFunctionMap];
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
 		if (isProfileAction)
 		{
@@ -2806,7 +2806,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	}
 	else
 	{
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// close out profiling information if necessary
 		if (isProfileAction && community && !invalidSimulation)
 		{
@@ -2843,7 +2843,7 @@ static int DisplayDigitsForIntegerPart(double x)
 		if ([self reachedSimulationEnd])
 			[self forceImmediateMenuUpdate];
 		
-#if defined(SLIMGUI) && (SLIMPROFILING == 1)
+#if (SLIMPROFILING == 1)
 		// If we just finished profiling, display a report
 		if (isProfileAction && community && !invalidSimulation)
 			[self displayProfileResults];
