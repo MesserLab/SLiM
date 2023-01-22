@@ -263,11 +263,6 @@
 	[continuousPlayStartDate release];
 	continuousPlayStartDate = nil;
 	
-#if (SLIMPROFILING == 1)
-	[profileEndDate release];
-	profileEndDate = nil;
-#endif
-	
 	[genomicElementColorRegistry release];
 	genomicElementColorRegistry = nil;
 	
@@ -1565,11 +1560,14 @@ static int DisplayDigitsForIntegerPart(double x)
 	NSDictionary *optima3_d = @{NSFontAttributeName : optima3};
 	NSDictionary *menlo11_d = @{NSFontAttributeName : menlo11};
 	
-	NSString *startDateString = [NSDateFormatter localizedStringFromDate:continuousPlayStartDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
+	NSDate *profileStartDate = [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)community->profile_start_date];
+	NSDate *profileEndDate = [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)community->profile_end_date];
+	
+	NSString *startDateString = [NSDateFormatter localizedStringFromDate:profileStartDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
 	NSString *endDateString = [NSDateFormatter localizedStringFromDate:profileEndDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
-	NSTimeInterval elapsedWallClockTime = [profileEndDate timeIntervalSinceDate:continuousPlayStartDate];
-	double elapsedCPUTimeInSLiM = profileElapsedCPUClock / (double)CLOCKS_PER_SEC;
-	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(profileElapsedWallClock);
+	NSTimeInterval elapsedWallClockTime = [profileEndDate timeIntervalSinceDate:profileStartDate];
+	double elapsedCPUTimeInSLiM = community->profile_elapsed_CPU_clock / (double)CLOCKS_PER_SEC;
+	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(community->profile_elapsed_wall_clock);
 	
 	[content eidosAppendString:@"Profile Report\n" attributes:@{NSFontAttributeName : optima18b}];
 	[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -1584,7 +1582,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time inside SLiM core (corrected): %0.2f s\n", (double)elapsedWallClockTimeInSLiM] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core (uncorrected): %0.2f s\n", (double)elapsedCPUTimeInSLiM] attributes:optima13_d];
-	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed ticks: %d%@\n", (int)continuousPlayTicksCompleted, (profileStartTick == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed ticks: %d%@\n", (int)continuousPlayTicksCompleted, (community->profile_start_tick == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block external overhead: %0.2f ticks (%0.4g s)\n", gEidos_ProfileOverheadTicks, gEidos_ProfileOverheadSeconds] attributes:optima13_d];
@@ -2441,87 +2439,6 @@ static int DisplayDigitsForIntegerPart(double x)
 		[self colorScript:script withProfileCountsFromNode:child elapsedTime:elapsedTime baseIndex:baseIndex];
 }
 
-- (void)startProfiling
-{
-	// prepare for profiling by measuring profile block overhead and lag
-	Eidos_PrepareForProfiling();
-	
-	// initialize counters
-	profileElapsedCPUClock = 0;
-	profileElapsedWallClock = 0;
-	profileStartTick = community->Tick();
-	
-	// call this first, purely for its side effect of emptying out any pending profile counts
-	// note that the accumulators governed by this method get zeroed out down below
-	for (Species *focal_species : community->all_species_)
-		focal_species->CollectSLiMguiMutationProfileInfo();
-	
-	// zero out profile counts for cycle stages
-	for (int i = 0; i < 9; ++i)
-		community->profile_stage_totals_[i] = 0;
-	
-	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
-	community->profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
-	
-	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
-	std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
-	
-	for (SLiMEidosBlock *script_block : script_blocks)
-		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
-			script_block->root_node_->ZeroProfileTotals();
-	
-	// zero out profile counts for all user-defined functions
-	EidosFunctionMap &function_map = community->FunctionMap();
-	
-	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
-	{
-		const EidosFunctionSignature *signature = functionPairIter->second.get();
-		
-		if (signature->body_script_ && signature->user_defined_)
-			signature->body_script_->AST()->ZeroProfileTotals();
-	}
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	// zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
-	for (Species *focal_species : community->all_species_)
-	{
-		focal_species->profile_mutcount_history_.clear();
-		focal_species->profile_nonneutral_regime_history_.clear();
-		focal_species->profile_mutation_total_usage_ = 0;
-		focal_species->profile_nonneutral_mutation_total_ = 0;
-		focal_species->profile_mutrun_total_usage_ = 0;
-		focal_species->profile_unique_mutrun_total_ = 0;
-		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
-		focal_species->profile_max_mutation_index_ = 0;
-	}
-#endif
-	
-	// zero out memory usage metrics
-	EIDOS_BZERO(&community->profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
-	EIDOS_BZERO(&community->profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
-	EIDOS_BZERO(&community->profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
-	EIDOS_BZERO(&community->profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
-	community->total_memory_tallies_ = 0;
-}
-
-- (void)endProfiling
-{
-	[profileEndDate release];
-	profileEndDate = [[NSDate date] retain];
-}
-
 #endif	// (SLIMPROFILING == 1)
 
 - (BOOL)runSimOneTick
@@ -2545,10 +2462,10 @@ static int DisplayDigitsForIntegerPart(double x)
 		
 		stillRunning = community->RunOneTick();
 		
-		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
+		SLIM_PROFILE_BLOCK_END(community->profile_elapsed_wall_clock);
 		std::clock_t endCPUClock = std::clock();
 		
-		profileElapsedCPUClock += (endCPUClock - startCPUClock);
+		community->profile_elapsed_CPU_clock += (endCPUClock - startCPUClock);
 	}
 	else
 #endif
@@ -2792,10 +2709,7 @@ static int DisplayDigitsForIntegerPart(double x)
 #if (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
 		if (isProfileAction)
-		{
-			gEidosProfilingClientCount++;
-			[self startProfiling];
-		}
+			community->StartProfiling();
 #endif
 		
 		// start playing/profiling
@@ -2809,10 +2723,7 @@ static int DisplayDigitsForIntegerPart(double x)
 #if (SLIMPROFILING == 1)
 		// close out profiling information if necessary
 		if (isProfileAction && community && !invalidSimulation)
-		{
-			[self endProfiling];
-			gEidosProfilingClientCount--;
-		}
+			community->StopProfiling();
 #endif
 		
 		// keep the button off; this works for the button itself automatically, but when the menu item is chosen this is needed

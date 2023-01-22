@@ -1985,7 +1985,7 @@ bool Community::_RunOneTickWF(void)
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
-			species->CollectSLiMguiMutationProfileInfo();
+			species->CollectMutationProfileInfo();
 #endif
 #endif
 	
@@ -2301,7 +2301,7 @@ bool Community::_RunOneTickNonWF(void)
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (gEidosProfilingClientCount)
 		for (Species *species : all_species_)
-			species->CollectSLiMguiMutationProfileInfo();
+			species->CollectMutationProfileInfo();
 #endif
 #endif
 	
@@ -2737,6 +2737,92 @@ void Community::TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_u
 
 #if (SLIMPROFILING == 1)
 // PROFILING
+void Community::StartProfiling(void)
+{
+	gEidosProfilingClientCount++;
+	
+	// prepare for profiling by measuring profile block overhead and lag
+	Eidos_PrepareForProfiling();
+	
+	// initialize counters
+	profile_elapsed_CPU_clock = 0;
+	profile_elapsed_wall_clock = 0;
+	profile_start_tick = Tick();
+	
+	// call this first, purely for its side effect of emptying out any pending profile counts
+	// note that the accumulators governed by this method get zeroed out down below
+	for (Species *focal_species : all_species_)
+		focal_species->CollectMutationProfileInfo();
+	
+	// zero out profile counts for cycle stages
+	for (int i = 0; i < 9; ++i)
+		profile_stage_totals_[i] = 0;
+	
+	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
+	profile_callback_totals_[(int)(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
+	
+	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
+	std::vector<SLiMEidosBlock*> &script_blocks = AllScriptBlocks();
+	
+	for (SLiMEidosBlock *script_block : script_blocks)
+		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
+			script_block->root_node_->ZeroProfileTotals();
+	
+	// zero out profile counts for all user-defined functions
+	EidosFunctionMap &function_map = FunctionMap();
+	
+	for (auto functionPairIter = function_map.begin(); functionPairIter != function_map.end(); ++functionPairIter)
+	{
+		const EidosFunctionSignature *signature = functionPairIter->second.get();
+		
+		if (signature->body_script_ && signature->user_defined_)
+			signature->body_script_->AST()->ZeroProfileTotals();
+	}
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	// zero out mutation run metrics that are collected by CollectMutationProfileInfo()
+	for (Species *focal_species : all_species_)
+	{
+		focal_species->profile_mutcount_history_.clear();
+		focal_species->profile_nonneutral_regime_history_.clear();
+		focal_species->profile_mutation_total_usage_ = 0;
+		focal_species->profile_nonneutral_mutation_total_ = 0;
+		focal_species->profile_mutrun_total_usage_ = 0;
+		focal_species->profile_unique_mutrun_total_ = 0;
+		focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
+		focal_species->profile_max_mutation_index_ = 0;
+	}
+#endif
+	
+	// zero out memory usage metrics
+	EIDOS_BZERO(&profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
+	EIDOS_BZERO(&profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	EIDOS_BZERO(&profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
+	total_memory_tallies_ = 0;
+	
+	time(&profile_start_date);
+}
+
+void Community::StopProfiling(void)
+{
+	time(&profile_end_date);
+	
+	gEidosProfilingClientCount--;
+}
+
 void Community::CollectSLiMguiMemoryUsageProfileInfo(void)
 {
 	// Gather the data

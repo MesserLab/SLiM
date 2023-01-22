@@ -173,24 +173,6 @@ private:
 
 #ifdef SLIMGUI
 public:
-	
-#if (SLIMPROFILING == 1)
-	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
-	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
-	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
-	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
-	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across cycles
-	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
-	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across cycles
-	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
-	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
-	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
-#endif	// SLIM_USE_NONNEUTRAL_CACHES
-#endif	// (SLIMPROFILING == 1)
-
 #else
 private:
 #endif
@@ -383,6 +365,23 @@ public:
 	std::unordered_set<slim_objectid_t> subpop_ids_;								// all subpop IDs ever used, even if no longer in use
 	std::unordered_set<std::string> subpop_names_;									// all subpop names ever used, except for subpop ID names ("p1", "p2", etc.)
 	
+#if (SLIMPROFILING == 1)
+	// PROFILING : Species keeps track of its memory usage profile info and mutation-related profile info
+	SLiMMemoryUsage_Species profile_last_memory_usage_Species;
+	SLiMMemoryUsage_Species profile_total_memory_usage_Species;
+	
+#if SLIM_USE_NONNEUTRAL_CACHES
+	std::vector<int32_t> profile_mutcount_history_;									// a record of the mutation run count used in each cycle
+	std::vector<int32_t> profile_nonneutral_regime_history_;						// a record of the nonneutral regime used in each cycle
+	int64_t profile_mutation_total_usage_;											// how many (non-unique) mutations were used by mutation runs, summed across cycles
+	int64_t profile_nonneutral_mutation_total_;										// of profile_mutation_total_usage_, how many were deemed to be nonneutral
+	int64_t profile_mutrun_total_usage_;											// how many (non-unique) mutruns were used by genomes, summed across cycles
+	int64_t profile_unique_mutrun_total_;											// of profile_mutrun_total_usage_, how many unique mutruns existed, summed across cycles
+	int64_t profile_mutrun_nonneutral_recache_total_;								// of profile_unique_mutrun_total_, how many mutruns regenerated their nonneutral cache
+	int64_t profile_max_mutation_index_;											// the largest mutation index seen over the course of the profile
+#endif	// SLIM_USE_NONNEUTRAL_CACHES
+#endif	// (SLIMPROFILING == 1)
+	
 	Species(const Species&) = delete;																	// no copying
 	Species& operator=(const Species&) = delete;														// no copying
 	Species(Community &p_community, slim_objectid_t p_species_id, const std::string &p_name);			// construct a Species from a community / id / name
@@ -420,7 +419,7 @@ public:
 #if (SLIMPROFILING == 1)
 	// PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
-	void CollectSLiMguiMutationProfileInfo(void);
+	void CollectMutationProfileInfo(void);
 #endif
 #endif
 	

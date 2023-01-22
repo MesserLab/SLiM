@@ -107,22 +107,7 @@ private:
 	
 #ifdef SLIMGUI
 public:
-	
 	bool simulation_valid_ = true;													// set to false if a terminating condition is encountered while running in SLiMgui
-
-#if (SLIMPROFILING == 1)
-	// PROFILING : Community keeps track of script timing counts
-	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
-	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
-	
-	// PROFILING : Community keeps track of its memory usage profile info (as does Species)
-	SLiMMemoryUsage_Community profile_last_memory_usage_Community;
-	SLiMMemoryUsage_Community profile_total_memory_usage_Community;
-	SLiMMemoryUsage_Species profile_last_memory_usage_AllSpecies;
-	SLiMMemoryUsage_Species profile_total_memory_usage_AllSpecies;
-	int64_t total_memory_tallies_;		// this is the total number of accumulations, for both Community and all Species under it
-#endif	// (SLIMPROFILING == 1)
-
 #else
 private:
 #endif
@@ -184,6 +169,26 @@ public:
 	// provenance-related stuff: remembering the seed and command-line args
 	unsigned long int original_seed_;												// the initial seed value, from the user via the -s CLI option, or auto-generated
 	std::vector<std::string> cli_params_;											// CLI parameters; an empty vector when run in SLiMgui, at least for now
+	
+#if (SLIMPROFILING == 1)
+	// PROFILING : Community now keeps track of overall profiling variables
+	time_t profile_start_date;
+	time_t profile_end_date;
+	std::clock_t profile_elapsed_CPU_clock;
+	eidos_profile_t profile_elapsed_wall_clock;
+	slim_tick_t profile_start_tick;
+	
+	// PROFILING : Community keeps track of script timing counts
+	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification
+	eidos_profile_t profile_callback_totals_[13];									// profiling clocks; these follow SLiMEidosBlockType, except no SLiMEidosUserDefinedFunction
+	
+	// PROFILING : Community keeps track of its memory usage profile info (as does Species)
+	SLiMMemoryUsage_Community profile_last_memory_usage_Community;
+	SLiMMemoryUsage_Community profile_total_memory_usage_Community;
+	SLiMMemoryUsage_Species profile_last_memory_usage_AllSpecies;
+	SLiMMemoryUsage_Species profile_total_memory_usage_AllSpecies;
+	int64_t total_memory_tallies_;		// this is the total number of accumulations, for both Community and all Species under it
+#endif	// (SLIMPROFILING == 1)
 	
 	Community(const Community&) = delete;											// no copying
 	Community& operator=(const Community&) = delete;								// no copying
@@ -259,6 +264,9 @@ public:
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
+	void StartProfiling(void);
+	void StopProfiling(void);
+	
 	void CollectSLiMguiMemoryUsageProfileInfo(void);
 #endif
 	

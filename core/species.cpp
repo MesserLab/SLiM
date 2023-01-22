@@ -3533,7 +3533,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #if (SLIMPROFILING == 1)
 // PROFILING
 #if SLIM_USE_NONNEUTRAL_CACHES
-void Species::CollectSLiMguiMutationProfileInfo(void)
+void Species::CollectMutationProfileInfo(void)
 {
 	// maintain our history of the number of mutruns per genome and the nonneutral regime
 	profile_mutcount_history_.emplace_back(chromosome_->mutrun_count_);

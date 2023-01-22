@@ -93,15 +93,6 @@ private:
     int partialUpdateCount_ = 0;
     std::clock_t elapsedCPUClock_ = 0;      // kept even when not profiling, for status bar updates
 
-#if (SLIMPROFILING == 1)
-    // profiling-related variables
-    QDateTime profileStartDate_;
-    QDateTime profileEndDate_;
-    std::clock_t profileElapsedCPUClock = 0;
-    eidos_profile_t profileElapsedWallClock = 0;
-    slim_tick_t profileStartTick = 0;
-#endif
-    
     QtSLiMPopulationTableModel *populationTableModel_ = nullptr;
     QtSLiMEidosConsole *consoleController = nullptr;
     QtSLiMTablesDrawer *tablesDrawerController = nullptr;
@@ -208,8 +199,6 @@ public:
 
     void colorScriptWithProfileCountsFromNode(const EidosASTNode *node, double elapsedTime, int32_t baseIndex, QTextDocument *doc, QTextCharFormat &baseFormat);
     void displayProfileResults(void);
-    void startProfiling(void);
-    void endProfiling(void);
     
     void willExecuteScript(void);
     void didExecuteScript(void);

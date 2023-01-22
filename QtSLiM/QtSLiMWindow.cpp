@@ -3065,11 +3065,14 @@ void QtSLiMWindow::displayProfileResults(void)
 #endif
     
     // Build the report attributed string
-    QString startDateString = profileStartDate_.toString("M/d/yy, h:mm:ss AP");
-    QString endDateString = profileEndDate_.toString("M/d/yy, h:mm:ss AP");
-    double elapsedWallClockTime = (profileStartDate_.msecsTo(profileEndDate_)) / 1000.0;
-    double elapsedCPUTimeInSLiM = profileElapsedCPUClock / static_cast<double>(CLOCKS_PER_SEC);
-	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(profileElapsedWallClock);
+    QDateTime profileStartDate = QDateTime::fromSecsSinceEpoch(community->profile_start_date);
+	QDateTime profileEndDate = QDateTime::fromSecsSinceEpoch(community->profile_end_date);
+	
+    QString startDateString = profileStartDate.toString("M/d/yy, h:mm:ss AP");
+    QString endDateString = profileEndDate.toString("M/d/yy, h:mm:ss AP");
+    double elapsedWallClockTime = (profileStartDate.msecsTo(profileEndDate)) / 1000.0;
+    double elapsedCPUTimeInSLiM = community->profile_elapsed_CPU_clock / static_cast<double>(CLOCKS_PER_SEC);
+	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(community->profile_elapsed_wall_clock);
     
     tc.insertText("Profile Report\n", optima18b_d);
     tc.insertText(" \n", optima3_d);
@@ -3084,7 +3087,7 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
-    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(continuousPlayTicksCompleted_).arg((profileStartTick == 0) ? " (including initialize)" : ""), optima13_d);
+    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(continuousPlayTicksCompleted_).arg((community->profile_start_tick == 0) ? " (including initialize)" : ""), optima13_d);
     tc.insertText(" \n", optima8_d);
     
     tc.insertText(QString("Profile block external overhead: %1 ticks (%2 s)\n").arg(gEidos_ProfileOverheadTicks, 0, 'f', 2).arg(gEidos_ProfileOverheadSeconds, 0, 'g', 4), optima13_d);
@@ -3902,88 +3905,6 @@ void QtSLiMWindow::displayProfileResults(void)
     profile_window->show();    
 }
 
-void QtSLiMWindow::startProfiling(void)
-{
-	// prepare for profiling by measuring profile block overhead and lag
-	Eidos_PrepareForProfiling();
-	
-	// initialize counters
-	profileElapsedCPUClock = 0;
-	profileElapsedWallClock = 0;
-	profileStartTick = community->Tick();
-	
-    // call this first, purely for its side effect of emptying out any pending profile counts
-	// note that the accumulators governed by this method get zeroed out down below
-    for (Species *species : community->all_species_)
-        species->CollectSLiMguiMutationProfileInfo();
-	
-	// zero out profile counts for cycle stages
-    for (int i = 0; i < 9; ++i)
-		community->profile_stage_totals_[i] = 0;
-	
-	// zero out profile counts for callback types (note SLiMEidosUserDefinedFunction is excluded; that is not a category we profile)
-    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventFirst)] = 0;
-    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventEarly)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosEventLate)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInitializeCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationEffectCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosFitnessEffectCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosInteractionCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMateChoiceCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosModifyChildCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosRecombinationCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosMutationCallback)] = 0;
-	community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosReproductionCallback)] = 0;
-    community->profile_callback_totals_[static_cast<int>(SLiMEidosBlockType::SLiMEidosSurvivalCallback)] = 0;
-	
-	// zero out profile counts for script blocks; dynamic scripts will be zeroed on construction
-	std::vector<SLiMEidosBlock*> &script_blocks = community->AllScriptBlocks();
-	
-	for (SLiMEidosBlock *script_block : script_blocks)
-		if (script_block->type_ != SLiMEidosBlockType::SLiMEidosUserDefinedFunction)	// exclude user-defined functions; not user-visible as blocks
-			script_block->root_node_->ZeroProfileTotals();
-	
-	// zero out profile counts for all user-defined functions
-	EidosFunctionMap &function_map = community->FunctionMap();
-	
-	for (auto functionPairIter : function_map)
-	{
-		const EidosFunctionSignature *signature = functionPairIter.second.get();
-		
-		if (signature->body_script_ && signature->user_defined_)
-			signature->body_script_->AST()->ZeroProfileTotals();
-	}
-	
-#if SLIM_USE_NONNEUTRAL_CACHES
-    // zero out mutation run metrics that are collected by CollectSLiMguiMutationProfileInfo()
-    for (Species *species : community->all_species_)
-    {
-        Species *focal_species = species;
-        
-        focal_species->profile_mutcount_history_.clear();
-        focal_species->profile_nonneutral_regime_history_.clear();
-        focal_species->profile_mutation_total_usage_ = 0;
-        focal_species->profile_nonneutral_mutation_total_ = 0;
-        focal_species->profile_mutrun_total_usage_ = 0;
-        focal_species->profile_unique_mutrun_total_ = 0;
-        focal_species->profile_mutrun_nonneutral_recache_total_ = 0;
-        focal_species->profile_max_mutation_index_ = 0;
-    }
-#endif
-	
-	// zero out memory usage metrics
-    EIDOS_BZERO(&community->profile_last_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
-	EIDOS_BZERO(&community->profile_total_memory_usage_Community, sizeof(SLiMMemoryUsage_Community));
-	EIDOS_BZERO(&community->profile_last_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
-	EIDOS_BZERO(&community->profile_total_memory_usage_AllSpecies, sizeof(SLiMMemoryUsage_Species));
-	community->total_memory_tallies_ = 0;
-}
-
-void QtSLiMWindow::endProfiling(void)
-{
-    profileEndDate_ = QDateTime::currentDateTime();
-}
-
 #endif	// (SLIMPROFILING == 1)
 
 
@@ -4066,7 +3987,7 @@ bool QtSLiMWindow::runSimOneTick(void)
 
 		stillRunning = community->RunOneTick();
 
-		SLIM_PROFILE_BLOCK_END(profileElapsedWallClock);
+		SLIM_PROFILE_BLOCK_END(community->profile_elapsed_wall_clock);
 	}
     else
 #endif
@@ -4081,7 +4002,7 @@ bool QtSLiMWindow::runSimOneTick(void)
     
 #if (SLIMPROFILING == 1)
 	if (profilePlayOn_)
-        profileElapsedCPUClock += (endCPUClock - startCPUClock);
+        community->profile_elapsed_CPU_clock += (endCPUClock - startCPUClock);
 #endif
     
     didExecuteScript();
@@ -4267,11 +4188,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 #if (SLIMPROFILING == 1)
 		// prepare profiling information if necessary
 		if (playType == PlayType::kProfilePlay)
-		{
-			gEidosProfilingClientCount++;
-			startProfiling();
-            profileStartDate_ = QDateTime::currentDateTime();
-		}
+			community->StartProfiling();
 #endif
 		
 		// start playing/profiling
@@ -4285,10 +4202,7 @@ void QtSLiMWindow::playOrProfile(PlayType playType)
 #if (SLIMPROFILING == 1)
 		// close out profiling information if necessary
 		if ((playType == PlayType::kProfilePlay) && community && !invalidSimulation_)
-		{
-			endProfiling();
-			gEidosProfilingClientCount--;
-		}
+			community->StopProfiling();
 #endif
 		
         // stop our recurring perform request

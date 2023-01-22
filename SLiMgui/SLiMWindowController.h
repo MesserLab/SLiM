@@ -72,14 +72,6 @@ class Community;
 	int partialUpdateCount;
 	SLiMPlaySliderToolTipWindow *playSpeedToolTipWindow;
 	
-#if (SLIMPROFILING == 1)
-	// profiling-related variables
-	NSDate *profileEndDate;
-	std::clock_t profileElapsedCPUClock;
-	eidos_profile_t profileElapsedWallClock;
-	slim_tick_t profileStartTick;
-#endif
-	
 	// display-related variables
 	NSMutableDictionary *genomicElementColorRegistry;
 	BOOL zoomedChromosomeShowsRateMaps;
