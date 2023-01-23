@@ -185,8 +185,6 @@ private:
 	slim_tick_t tick_modulo_ = 1;													// the species is active every tick_modulo_ ticks
 	slim_tick_t tick_phase_ = 1;													// the species is first active in tick tick_phase_
 	
-	std::string avatar_;															// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
-	
 	std::string color_;																// color to use when displayed (in SLiMgui)
 	float color_red_, color_green_, color_blue_;									// cached color components from color_; should always be in sync
 	
@@ -339,6 +337,7 @@ public:
 	Chromosome *chromosome_;					// the chromosome, which defines genomic elements
 	Population population_;						// the population, which contains sub-populations
 
+	std::string avatar_;						// a string used as the "avatar" for this species in SLiMgui, and perhaps elsewhere
 	std::string name_;							// the `name` property; "sim" by default, configurable in script (not by setting the property)
 	std::string description_;					// the `description` property; the empty string by default
 	slim_objectid_t species_id_;				// the identifier for the species, which its index into the Community's species vector

@@ -1524,17 +1524,6 @@
 
 #if (SLIMPROFILING == 1)
 
-static int DisplayDigitsForIntegerPart(double x)
-{
-	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
-	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
-	double digits = ceil(log10(floor(x)));
-	
-	if (std::isfinite(digits))
-		return (int)digits;
-	return 1;
-}
-
 - (void)displayProfileResults
 {
 	[[NSBundle mainBundle] loadNibNamed:@"ProfileReport" owner:self topLevelObjects:NULL];
@@ -1565,9 +1554,10 @@ static int DisplayDigitsForIntegerPart(double x)
 	
 	NSString *startDateString = [NSDateFormatter localizedStringFromDate:profileStartDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
 	NSString *endDateString = [NSDateFormatter localizedStringFromDate:profileEndDate dateStyle:NSDateFormatterShortStyle timeStyle:NSDateFormatterMediumStyle];
-	NSTimeInterval elapsedWallClockTime = [profileEndDate timeIntervalSinceDate:profileStartDate];
+	double elapsedWallClockTime = (std::chrono::duration_cast<std::chrono::microseconds>(community->profile_end_clock - community->profile_start_clock).count()) / (double)1000000L;
 	double elapsedCPUTimeInSLiM = community->profile_elapsed_CPU_clock / (double)CLOCKS_PER_SEC;
 	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(community->profile_elapsed_wall_clock);
+	slim_tick_t elapsedSLiMTicks = community->profile_end_tick - community->profile_start_tick;
 	
 	[content eidosAppendString:@"Profile Report\n" attributes:@{NSFontAttributeName : optima18b}];
 	[content eidosAppendString:@"\n" attributes:optima3_d];
@@ -1582,7 +1572,7 @@ static int DisplayDigitsForIntegerPart(double x)
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time inside SLiM core (corrected): %0.2f s\n", (double)elapsedWallClockTimeInSLiM] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core (uncorrected): %0.2f s\n", (double)elapsedCPUTimeInSLiM] attributes:optima13_d];
-	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed ticks: %d%@\n", (int)continuousPlayTicksCompleted, (community->profile_start_tick == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
+	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed ticks: %d%@\n", (int)elapsedSLiMTicks, (community->profile_start_tick == 0) ? @" (including initialize)" : @""] attributes:optima13_d];
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
 	[content eidosAppendString:[NSString stringWithFormat:@"Profile block external overhead: %0.2f ticks (%0.4g s)\n", gEidos_ProfileOverheadTicks, gEidos_ProfileOverheadSeconds] attributes:optima13_d];

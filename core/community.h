@@ -29,6 +29,7 @@
 
 
 #include <vector>
+#include <chrono>
 
 #include "species.h"
 #include "slim_globals.h"
@@ -172,11 +173,14 @@ public:
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING : Community now keeps track of overall profiling variables
-	time_t profile_start_date;
-	time_t profile_end_date;
-	std::clock_t profile_elapsed_CPU_clock;
-	eidos_profile_t profile_elapsed_wall_clock;
-	slim_tick_t profile_start_tick;
+	time_t profile_start_date;														// resolution of seconds, easy to convert to a date string
+	time_t profile_end_date;														// resolution of seconds, easy to convert to a date string
+	std::chrono::steady_clock::time_point profile_start_clock;						// sub-second resolution, good for elapsed time
+	std::chrono::steady_clock::time_point profile_end_clock;						// sub-second resolution, good for elapsed time
+	std::clock_t profile_elapsed_CPU_clock;											// elapsed CPU time inside SLiM
+	eidos_profile_t profile_elapsed_wall_clock;										// elapsed wall time inside SLiM
+	slim_tick_t profile_start_tick;													// the SLiM tick when profiling started
+	slim_tick_t profile_end_tick;													// the SLiM tick when profiling ended
 	
 	// PROFILING : Community keeps track of script timing counts
 	eidos_profile_t profile_stage_totals_[9];										// profiling clocks; index 0 is initialize(), the rest follow sequentially; [8] is TS simplification

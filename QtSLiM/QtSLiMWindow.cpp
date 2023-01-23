@@ -2922,17 +2922,6 @@ void QtSLiMWindow::colorScriptWithProfileCountsFromNode(const EidosASTNode *node
         colorScriptWithProfileCountsFromNode(child, elapsedTime, baseIndex, doc, baseFormat);
 }
 
-static int DisplayDigitsForIntegerPart(double x)
-{
-	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
-	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
-	double digits = ceil(log10(floor(x)));
-	
-	if (std::isfinite(digits))
-		return (int)digits;
-	return 1;
-}
-
 void QtSLiMWindow::displayProfileResults(void)
 {
     // Make a new window to show the profile results
@@ -3070,9 +3059,10 @@ void QtSLiMWindow::displayProfileResults(void)
 	
     QString startDateString = profileStartDate.toString("M/d/yy, h:mm:ss AP");
     QString endDateString = profileEndDate.toString("M/d/yy, h:mm:ss AP");
-    double elapsedWallClockTime = (profileStartDate.msecsTo(profileEndDate)) / 1000.0;
+	double elapsedWallClockTime = (std::chrono::duration_cast<std::chrono::microseconds>(community->profile_end_clock - community->profile_start_clock).count()) / (double)1000000L;
     double elapsedCPUTimeInSLiM = community->profile_elapsed_CPU_clock / static_cast<double>(CLOCKS_PER_SEC);
 	double elapsedWallClockTimeInSLiM = Eidos_ElapsedProfileTime(community->profile_elapsed_wall_clock);
+	slim_tick_t elapsedSLiMTicks = community->profile_end_tick - community->profile_start_tick;
     
     tc.insertText("Profile Report\n", optima18b_d);
     tc.insertText(" \n", optima3_d);
@@ -3087,7 +3077,7 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
-    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(continuousPlayTicksCompleted_).arg((community->profile_start_tick == 0) ? " (including initialize)" : ""), optima13_d);
+    tc.insertText(QString("Elapsed ticks: %1%2\n").arg(elapsedSLiMTicks).arg((community->profile_start_tick == 0) ? " (including initialize)" : ""), optima13_d);
     tc.insertText(" \n", optima8_d);
     
     tc.insertText(QString("Profile block external overhead: %1 ticks (%2 s)\n").arg(gEidos_ProfileOverheadTicks, 0, 'f', 2).arg(gEidos_ProfileOverheadSeconds, 0, 'g', 4), optima13_d);
@@ -3821,7 +3811,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesObjects / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
 		tc.insertText(attributedStringForByteCount(mem_last_S.speciesObjects, final_total, colored_menlo), colored_menlo);
-		tc.insertText(" : Species object\n", optima13_d);
+		tc.insertText(" : Species objects\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
 		tc.insertText(attributedStringForByteCount(mem_tot_S.speciesTreeSeqTables / div, average_total, colored_menlo), colored_menlo);

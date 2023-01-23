@@ -2516,6 +2516,17 @@ std::string EidosStringForFloat(double p_value)
 	}
 }
 
+int DisplayDigitsForIntegerPart(double x)
+{
+	// This function just uses log10 to give the number of digits needed to display the integer part of a double.
+	// The reason it's split out into a function is that the result, for x==0, is -inf, and we want to return 1.
+	double digits = ceil(log10(floor(x)));
+	
+	if (std::isfinite(digits))
+		return (int)digits;
+	return 1;
+}
+
 bool Eidos_RegexWorks(void)
 {
 	// check whether <regex> works, because on some platforms it doesn't (!); test just once and cache the result

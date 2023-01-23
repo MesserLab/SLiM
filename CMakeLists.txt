@@ -8,8 +8,7 @@
 # This will make a Release build, with optimization and without debugging symbols, by default.
 # The built executables will be placed in the build directory upon successful completion. The optional
 # -j argument specifies the number of threads to use for the build, which should be a value related 
-# to the number of cores available on your machine. Typically this value does not exceed the number of cores.
-
+# to the number of cores available on your machine (typically less than or equal to the number of cores).
 # 
 # You can also explicitly make a Release build; this is typically done in a directory named "Release"
 # instead of "build":
@@ -26,14 +25,12 @@
 #   cmake -D CMAKE_BUILD_TYPE=Debug ../SLiM
 #   make 
 #
-
-# To build the Qt5-based GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed, then 
-# configure with:
+# To build the Qt5-based GUI, make sure you have the Qt5 Widgets, Core, and Gui libraries installed,
+# then configure with:
 #   cd build
 #   cmake -D BUILD_SLIMGUI=ON ../SLiM
 #   make -j10
-
-
+#
 # In all cases the concept is the same: make a build directory of some name, cd into it, run cmake
 # to set up the build (with a CMAKE_BUILD_TYPE flag if desired, otherwise Release will be used by
 # default), then run make to actually do the build.  This setup (1) keeps all build products out of
@@ -52,21 +49,34 @@
 # file has changed.
 
 
-cmake_minimum_required (VERSION 2.8 FATAL_ERROR)
+cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
 project(SLiM)
 if(WIN32)
     include(ExternalProject)
 endif()
 
+
+#
+#	BUILD OPTIONS
+#
+
 # Make a Release build by default
 if(NOT CMAKE_BUILD_TYPE) 
     set(CMAKE_BUILD_TYPE Release)
 endif(NOT CMAKE_BUILD_TYPE)
 
-# Add "-D BUILD_SLIMGUI=ON" to the command line to build SLiMgui
+# Add "-D BUILD_SLIMGUI=ON" to the CMake command to build SLiMgui
+# This requires that Qt 5, a widget framework, is installed
 option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
+
+# Add "-D PARALLEL=ON" to the CMake command to make a parallel (multi-threaded) build
+# This is supported only for the command-line tools, not for SLiMgui
 option(PARALLEL "Build parallel versions of eidos and slim" OFF)
+
+# Add "-D PROFILE=ON" to the CMake command to make a build of command-line slim with runtime profiling
+# This makes SLiM slower, so it is not for production use, only for SLiM model development
+option(PROFILE "Build slim for runtime profiling" OFF)
 
 # Add "-D BUILD_NATIVE=ON" to build natively for the build machine's architecture
 # this can result in better optimization, but the executable will only run on the build machine,
@@ -78,21 +88,11 @@ option(BUILD_NATIVE "Build native for the build machine" OFF)
 option(BUILD_LTO "Build with link-time optimization" OFF)
 
 
-# Report the build type and SLiMgui build status first
-message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
-
-if(BUILD_SLIMGUI)
-	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
-else()
-	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
-endif()
-
-
 # obtain the Git commit SHA-1; see ./cmake/_README.txt and https://stackoverflow.com/a/4318642/2752221
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 include(GetGitRevisionDescription)
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
-#message("GIT_SHA1 is ${GIT_SHA1}")
+#message(STATUS "GIT_SHA1 is ${GIT_SHA1}")
 
 
 # Use the flags below for [all / Debug / Release] builds; these flags are built in to cmake
@@ -135,11 +135,37 @@ if(WIN32)
         "${PROJECT_SOURCE_DIR}/QtSLiM/QtSLiMWindow.cpp")
 endif()
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1 -DSLIMPROFILING=0")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -Og -DDEBUG=1")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DSLIMPROFILING=1")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+# Check/fix some build flags
+if(BUILD_SLIMGUI)
+	if(PARALLEL)
+		message(FATAL_ERROR "PARALLEL is not allowed for SLiMgui; running SLiMgui multi-threaded is not supported")
+    	endif(PARALLEL)
+	if(CMAKE_BUILD_TYPE STREQUAL Release)
+		# When building SLiMgui, runtime profiling is enabled for Release builds automatically
+    		set(PROFILE ON)
+	else()
+		# When building SLiMgui, runtime profiling is not allowed for Debug builds
+		if (PROFILE)
+			message(FATAL_ERROR "PROFILE is not allowed for Debug builds")
+    		endif(PROFILE)
+	endif(CMAKE_BUILD_TYPE STREQUAL Release)
+else()
+	message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+	if(CMAKE_BUILD_TYPE STREQUAL Release)
+		# When building SLiM, runtime profiling is allowed for Release builds, but is not automatically enabled
+	else()
+		# When building SLiM, runtime profiling is not allowed for Debug builds
+		if (PROFILE)
+			message(FATAL_ERROR "PROFILE is not allowed for Debug builds")
+    		endif(PROFILE)
+	endif(CMAKE_BUILD_TYPE STREQUAL Release)
+endif(BUILD_SLIMGUI)
 
 # Report whether the build is parallel or not
 if(PARALLEL)
@@ -149,19 +175,31 @@ if(PARALLEL)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	link_directories(/usr/local/lib/)
-	message("PARALLEL is ${PARALLEL}")
+	message(STATUS "PARALLEL is ${PARALLEL}")
 else()
 	# At least for now, I don't want to advertise the existence of this flag
-	#message("PARALLEL is ${PARALLEL}; use -DPARALLEL=ON to enable OpenMP parallelization")
+	#message(STATUS "PARALLEL is ${PARALLEL}; use -DPARALLEL=ON to enable OpenMP parallelization")
 endif(PARALLEL)
 
+# Report whether the build has runtime profiling support or not
+if(PROFILE)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSLIMPROFILING=1")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLIMPROFILING=1")
+	message(STATUS "PROFILE is ${PROFILE}")
+else()
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSLIMPROFILING=0")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLIMPROFILING=0")
+	# At least for now, I don't want to advertise the existence of this flag
+	#message(STATUS "PROFILE is ${PROFILE}; use -PROFILE=ON to enable runtime profiling")
+endif(PROFILE)
+
 # Report the build type and SLiMgui build status
-message("CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
+message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
 
 if(BUILD_SLIMGUI)
-	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
+	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}")
 else()
-	message("BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
+	message(STATUS "BUILD_SLIMGUI is ${BUILD_SLIMGUI}; use -DBUILD_SLIMGUI=ON to enable building SLiMgui")
 endif()
 
 # Windows compat

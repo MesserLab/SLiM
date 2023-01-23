@@ -80,6 +80,7 @@ development head (in the master branch):
 	move minimum system requirement up to 10.13 (the oldest SDK supported by Xcode 14.2); the command-line tools should still run on older systems
 	clean up some old usage that is now flagged by Xcode (sprintf to snprintf, deprecated Cocoa API, old build-numbering scripts in the project)
 	advance copyrights to 2023
+	add the ability to generate profiles at the command line as well as in SLiMgui, making it possible to profile SLiM when running parallel
 	
 
 version 4.0.1 (Eidos version 3.0.1):

@@ -2814,11 +2814,14 @@ void Community::StartProfiling(void)
 	total_memory_tallies_ = 0;
 	
 	time(&profile_start_date);
+	profile_start_clock = std::chrono::steady_clock::now();
 }
 
 void Community::StopProfiling(void)
 {
 	time(&profile_end_date);
+	profile_end_clock = std::chrono::steady_clock::now();
+	profile_end_tick = Tick();
 	
 	gEidosProfilingClientCount--;
 }

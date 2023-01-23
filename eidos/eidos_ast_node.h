@@ -133,6 +133,7 @@ public:
 	eidos_profile_t ConvertProfileTotalsToSelfCounts(void) const;
 	eidos_profile_t TotalOfSelfCounts(void) const;
 	
+	void FullUTF8Range(int32_t *p_start, int32_t *p_end) const;
 	void FullUTF16Range(int32_t *p_start, int32_t *p_end) const;
 #endif
 };

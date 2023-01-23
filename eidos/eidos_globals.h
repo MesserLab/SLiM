@@ -575,6 +575,8 @@ extern int gEidosFloatOutputPrecision;		// precision used for output of float va
 
 std::string EidosStringForFloat(double p_value);
 
+int DisplayDigitsForIntegerPart(double x);	// number of digits needed to display the integer part of a double
+
 // Fisher-Yates Shuffle: choose a random subset of a std::vector, without replacement.
 // see https://stackoverflow.com/questions/9345087/choose-m-elements-randomly-from-a-vector-containing-n-elements
 // see also https://ideone.com/3A3cv for demo code using this

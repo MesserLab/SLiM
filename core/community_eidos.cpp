@@ -1013,7 +1013,7 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "   MutationType objects (" << usage_all_species.mutationTypeObjects_count << "): " << PrintBytes(usage_all_species.mutationTypeObjects) << std::endl;
 	
 	// Species (including the Population object)
-	out << "   Species object: " << PrintBytes(usage_all_species.speciesObjects) << std::endl;
+	out << "   Species objects: " << PrintBytes(usage_all_species.speciesObjects) << std::endl;
 	out << "      Tree-sequence tables: " << PrintBytes(usage_all_species.speciesTreeSeqTables) << std::endl;
 	
 	// Subpopulation
