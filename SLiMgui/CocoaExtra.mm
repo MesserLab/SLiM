@@ -1136,7 +1136,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 @implementation NSString (SLiMBytes)
 + (NSString *)stringForByteCount:(int64_t)bytes
 {
-	if (bytes > 512L * 1024L * 1024L * 1024L)
+	if (bytes > 512LL * 1024L * 1024L * 1024L)
 		return [NSString stringWithFormat:@"%0.2f TB", bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0)];
 	else if (bytes > 512L * 1024L * 1024L)
 		return [NSString stringWithFormat:@"%0.2f GB", bytes / (1024.0 * 1024.0 * 1024.0)];

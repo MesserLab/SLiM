@@ -192,7 +192,7 @@ static std::string StringForByteCount(int64_t bytes)
 {
 	char buf[128];		// used for printf-style formatted strings
 	
-	if (bytes > 512L * 1024L * 1024L * 1024L)
+	if (bytes > 512LL * 1024L * 1024L * 1024L)
 	{
 		snprintf(buf, 128, "%0.2f", bytes / (1024.0 * 1024.0 * 1024.0 * 1024.0));
 		return std::string(buf).append(" TB");
