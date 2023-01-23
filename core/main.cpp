@@ -369,8 +369,6 @@ static std::string HTMLMakeSpacesNonBreaking(const char *data)
 
 static void WriteProfileResults(std::string profile_output_path, std::string model_name, Community *community)
 {
-	std::cerr << std::endl << "// writing profile results to " << profile_output_path << std::endl;
-	
 	std::ofstream fout(profile_output_path);
 	char buf[256];		// used for printf-style formatted strings
 	
@@ -1042,7 +1040,7 @@ int main(int argc, char *argv[])
 #if (SLIMPROFILING == 1)
 	slim_tick_t profile_start_tick = 0;
 	slim_tick_t profile_end_tick = INT32_MAX;
-	std::string profile_output_path = "/Users/bhaller/Desktop/slim_profile.html";
+	std::string profile_output_path = "slim_profile.html";
 #endif
 	
 	// Test the thread-safety check; enable this #if to confirm that this macro is working
@@ -1469,6 +1467,7 @@ int main(int argc, char *argv[])
 		// Run the simulation to its natural end
 #if (SLIMPROFILING == 1)
 		bool profiling_started = false;
+		bool wrote_profile_report = false;
 #endif
 		
 		while (true)
@@ -1505,6 +1504,10 @@ int main(int argc, char *argv[])
 				profiling_started = false;
 				
 				WriteProfileResults(profile_output_path, model_name, community);
+				wrote_profile_report = true;
+				
+				// terminate at the end of this tick, since the goal was to produce a profile
+				tick_result = false;
 			}
 #else
 			tick_result = community->RunOneTick();
@@ -1543,6 +1546,15 @@ int main(int argc, char *argv[])
 			}
 #endif
 		}
+		
+#if (SLIMPROFILING == 1)
+		// We write the profile report path at end, so it doesn't get lost in the middle of the output
+		if (wrote_profile_report)
+		{
+			std::cerr << std::endl << "// profiled from tick " << community->profile_start_tick << " to " << community->profile_end_tick << std::endl;
+			std::cerr << "// wrote profile results to " << profile_output_path << std::endl << std::endl;
+		}
+#endif
 		
 		// clean up; but most of this is an unnecessary waste of time in the command-line context
 		Eidos_FlushFiles();
