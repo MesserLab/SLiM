@@ -1421,6 +1421,17 @@ enum _SLiMGlobalStringID : int {
 
 static_assert((int)gID_LastSLiMEntry <= (int)gEidosID_LastContextEntry, "the Context's last EidosGlobalStringID is greater than Eidos's upper limit");
 
+
+// *******************************************************************************************************************
+//
+//	Profiling
+//
+#pragma mark -
+#pragma mark Profiling
+#pragma mark -
+
+void WriteProfileResults(std::string profile_output_path, std::string model_name, Community *community);
+
 #endif /* defined(__SLiM__slim_globals__) */
 
 
