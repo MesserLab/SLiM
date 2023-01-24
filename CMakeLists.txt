@@ -71,11 +71,11 @@ endif(NOT CMAKE_BUILD_TYPE)
 option(BUILD_SLIMGUI "Build the Qt5-based GUI for SLiM" OFF)
 
 # Add "-D PARALLEL=ON" to the CMake command to make a parallel (multi-threaded) build
-# This is supported only for the command-line tools, not for SLiMgui
+# This is supported only for the command-line tools, not for SLiMgui; do not set BUILD_SLIMGUI
 option(PARALLEL "Build parallel versions of eidos and slim" OFF)
 
 # Add "-D PROFILE=ON" to the CMake command to make a build of command-line slim with runtime profiling
-# This makes SLiM slower, so it is not for production use, only for SLiM model development
+# This makes SLiM slower, so it is not for production use.  It may be set ON only for Release builds.
 option(PROFILE "Build slim for runtime profiling" OFF)
 
 # Add "-D BUILD_NATIVE=ON" to build natively for the build machine's architecture
@@ -141,38 +141,10 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Og -DDEBUG=1")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Check/fix some build flags
-if(BUILD_SLIMGUI)
-	if(PARALLEL)
-		message(FATAL_ERROR "PARALLEL is not allowed for SLiMgui; running SLiMgui multi-threaded is not supported")
-    	endif(PARALLEL)
-	if(CMAKE_BUILD_TYPE STREQUAL Release)
-		# When building SLiMgui, runtime profiling is enabled for Release builds automatically
-    		set(PROFILE ON)
-	else()
-		# When building SLiMgui, runtime profiling is not allowed for Debug builds
-		if (PROFILE)
-			message(FATAL_ERROR "PROFILE is not allowed for Debug builds")
-    		endif(PROFILE)
-	endif(CMAKE_BUILD_TYPE STREQUAL Release)
-else()
-	message(STATUS "CMAKE_BUILD_TYPE is ${CMAKE_BUILD_TYPE}")
-	if(CMAKE_BUILD_TYPE STREQUAL Release)
-		# When building SLiM, runtime profiling is allowed for Release builds, but is not automatically enabled
-	else()
-		# When building SLiM, runtime profiling is not allowed for Debug builds
-		if (PROFILE)
-			message(FATAL_ERROR "PROFILE is not allowed for Debug builds")
-    		endif(PROFILE)
-	endif(CMAKE_BUILD_TYPE STREQUAL Release)
-endif(BUILD_SLIMGUI)
-
 # Report whether the build is parallel or not
 if(PARALLEL)
-	# Use the _OPENMP define to test in code whether the build is parallel
-	# to compile with Clang on macOS, -Xclang also needs to be supplied; it is set
-	# in the Xcode project, but not here since macOS builds should be done in Xcode
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp ")
+	# -Xclang is also needed on macOS; it is not set here since macOS builds are done in Xcode
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 	link_directories(/usr/local/lib/)
 	message(STATUS "PARALLEL is ${PARALLEL}")
@@ -183,12 +155,9 @@ endif(PARALLEL)
 
 # Report whether the build has runtime profiling support or not
 if(PROFILE)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSLIMPROFILING=1")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLIMPROFILING=1")
+	# compile flags for this get set at the end of this script
 	message(STATUS "PROFILE is ${PROFILE}")
 else()
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DSLIMPROFILING=0")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSLIMPROFILING=0")
 	# At least for now, I don't want to advertise the existence of this flag
 	#message(STATUS "PROFILE is ${PROFILE}; use -PROFILE=ON to enable runtime profiling")
 endif(PROFILE)
@@ -303,6 +272,7 @@ if(PARALLEL)
 else()
 	set(TARGET_NAME eidos)
 endif(PARALLEL)
+
 file(GLOB_RECURSE EIDOS_SOURCES  ${PROJECT_SOURCE_DIR}/eidos/*.cpp  ${PROJECT_SOURCE_DIR}/eidostool/*.cpp)
 add_executable(${TARGET_NAME} ${EIDOS_SOURCES})
 target_include_directories(${TARGET_NAME} PRIVATE ${GSL_INCLUDES} "${PROJECT_SOURCE_DIR}/eidos")
@@ -362,3 +332,52 @@ else()
 endif()
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_SLIMGUI)
+
+
+# Deal with the PROFILE and PARALLEL flags, which interact and are handled in a complex way.
+#
+# For SLiMgui, profiling is always on for Release builds, always off for Debug builds; PROFILE does not affect it
+# For slim, profiling follows the PROFILE setting for Release builds, but in Debug builds it is an error for PROFILE to be on
+# For eidos, profiling is always off; the eidos command-line tool does not support profiling on its own, only in SLiM
+#
+# Note that SLiMgui cannot be built parallel; if you want to build parallel, do not set BUILD_SLIMGUI
+
+if(PROFILE)
+	if(CMAKE_BUILD_TYPE STREQUAL Debug)
+		message(FATAL_ERROR "PROFILE is not allowed for Debug builds")
+	endif()
+
+	if(PARALLEL)
+		target_compile_definitions( eidos_multi PRIVATE SLIMPROFILING=0)
+		target_compile_definitions( slim_multi PRIVATE SLIMPROFILING=1)
+	else()
+		target_compile_definitions( eidos PRIVATE SLIMPROFILING=0)
+		target_compile_definitions( slim PRIVATE SLIMPROFILING=1)
+	endif(PARALLEL)
+else()
+	if(PARALLEL)
+		target_compile_definitions( eidos_multi PRIVATE SLIMPROFILING=0)
+		target_compile_definitions( slim_multi PRIVATE SLIMPROFILING=0)
+	else()
+		target_compile_definitions( eidos PRIVATE SLIMPROFILING=0)
+		target_compile_definitions( slim PRIVATE SLIMPROFILING=0)
+	endif(PARALLEL)
+endif(PROFILE)
+
+if(BUILD_SLIMGUI)
+	if(CMAKE_BUILD_TYPE STREQUAL Release)
+		target_compile_definitions( SLiMgui PRIVATE SLIMPROFILING=1)
+	else()
+		target_compile_definitions( SLiMgui PRIVATE SLIMPROFILING=0)
+	endif(CMAKE_BUILD_TYPE STREQUAL Release)
+
+	if(PARALLEL)
+		message(FATAL_ERROR "PARALLEL is not allowed for SLiMgui; running SLiMgui multi-threaded is not supported.  If you wish to build SLiM parallel, do not set BUILD_SLIMGUI for that build.")
+	endif()
+endif(BUILD_SLIMGUI)
+
+
+
+
+
+
