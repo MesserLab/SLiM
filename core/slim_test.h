@@ -57,6 +57,7 @@ extern void _RunNonWFTests(void);
 extern void _RunTreeSeqTests(std::string temp_path);
 extern void _RunNucleotideFunctionTests(void);
 extern void _RunNucleotideMethodTests(void);
+extern void _RunParallelSLiMTests();
 
 // Test function shared strings
 extern std::string gen1_setup;

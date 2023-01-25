@@ -341,6 +341,10 @@ int RunSLiMTests(void)
 	_RunNucleotideMethodTests();
 	_RunSLiMTimingTests();
 	
+#ifdef _OPENMP
+	_RunParallelSLiMTests();
+#endif
+	
 	_RunInteractionTypeTests();		// many tests, time-consuming, so do this last
 	
 	// ************************************************************************************
@@ -971,6 +975,40 @@ void _RunSLiMTimingTests(void)
 	}
 #endif
 }
+
+#pragma mark SLiM timing tests
+extern void _RunParallelSLiMTests()
+{
+	// Tests of parallelization of SLiM functions/methods/core code; see also eidos_test_parallel.h
+#ifdef _OPENMP
+	const std::string &parallelization_test_string =
+#include "slim_test_parallel.h"
+	;
+	{
+		std::vector<std::string> test_strings = Eidos_string_split(parallelization_test_string, "// ***********************************************************************************************");
+		
+		//for (int testidx = 0; testidx < 100; testidx++)	// uncomment this for a more thorough stress test
+		{
+			for (std::string &test_string : test_strings)
+			{
+				// Skip empty tests
+				if (test_string.find("initialize()") == std::string::npos)
+					continue;
+				
+				// Note that we ensure that we are using the maximum number of threads at start & end
+				gEidosNumThreads = gEidosMaxThreads;
+				omp_set_num_threads(gEidosMaxThreads);
+				
+				SLiMAssertScriptSuccess(test_string);
+				
+				gEidosNumThreads = gEidosMaxThreads;
+				omp_set_num_threads(gEidosMaxThreads);
+			}
+		}
+	}
+#endif
+}
+
 
 
 

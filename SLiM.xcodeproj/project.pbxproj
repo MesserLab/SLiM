@@ -1546,6 +1546,7 @@
 		984D5FAC1E3AF0D200473719 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		984D5FB21E3AF18C00473719 /* EidosTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = EidosTests.mm; sourceTree = "<group>"; };
 		984D5FB41E3AF1F000473719 /* SLiMTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SLiMTests.mm; sourceTree = "<group>"; };
+		984F20AF298087850079D4D2 /* slim_test_parallel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = slim_test_parallel.h; sourceTree = "<group>"; };
 		9850D8DF2063098E006BFD2E /* tables.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = tables.c; path = treerec/tskit/tables.c; sourceTree = "<group>"; };
 		985301EB1B72582E001520DF /* change_cloning_rate.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = change_cloning_rate.pdf; sourceTree = "<group>"; };
 		9854D2562278B9F7001D43BC /* core.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = core.c; path = treerec/tskit/core.c; sourceTree = "<group>"; };
@@ -2174,6 +2175,7 @@
 				9807C0F324BA21B7008CC658 /* slim_test_core.cpp */,
 				985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */,
 				9807C0F724BA21E3008CC658 /* slim_test_other.cpp */,
+				984F20AF298087850079D4D2 /* slim_test_parallel.h */,
 			);
 			path = core;
 			sourceTree = "<group>";

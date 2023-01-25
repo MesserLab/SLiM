@@ -64,6 +64,7 @@ PARALLEL changes (now in the master branch):
 	parallelize Genome -containsMarkerMutation()
 	change how RNG seeding works, for single-threaded and multi-threaded runs: use /dev/random to generate initial seeds, and for multi-threaded runs, use /dev/random for seeds for all threads beyond thread 0
 	parallelize Genome -countOfMutationsOfType(), Subpopulation -spatialMapValue() and -sampleIndividuals()
+	add unit tests for various SLiM methods that have been parallelized
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

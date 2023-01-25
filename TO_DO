@@ -73,6 +73,9 @@ a useful LaTeX equation editor:
 
 find all instances of a string (or regex) in the commit history:
 	git --no-pager log -G"pedigree"
+	
+to get a text diff of changes to the Xcode project file:
+	git --no-pager diff --text SLiM.xcodeproj/project.pbxproj
 
 to dump class memory layouts in Xcode:
 	add -Xclang and -fdump-record-layouts to "Other C++ Flags" in the project
