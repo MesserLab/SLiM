@@ -1810,14 +1810,17 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 	fout << "<p>Run start: " << start_date_string << "<BR>\n";
 	fout << "Run end: " << end_date_string << "</p>\n\n";
 	
+#ifdef _OPENMP
+	fout << "<p>Maximum parallel threads: " << gEidosMaxThreads << "</p>\n\n";
+#endif
 	
 	snprintf(buf, 256, "%0.2f s", elapsedWallClockTime);
 	fout << "<p>Elapsed wall clock time: " << buf << "<BR>\n";
 	
-	snprintf(buf, 256, "%0.2f s", elapsedCPUTimeInSLiM);
+	snprintf(buf, 256, "%0.2f s", elapsedWallClockTimeInSLiM);
 	fout << "Elapsed wall clock time inside SLiM core (corrected): " << buf << "<BR>\n";
 	
-	snprintf(buf, 256, "%0.2f", elapsedWallClockTimeInSLiM);
+	snprintf(buf, 256, "%0.2f", elapsedCPUTimeInSLiM);
 	fout << "Elapsed CPU time inside SLiM core (uncorrected): " << buf << " s" << "<BR>\n";
 	
 	fout << "Elapsed ticks: " << elapsedSLiMTicks << ((community->profile_start_tick == 0) ? " (including initialize)" : "") << "</p>\n\n";

@@ -257,8 +257,8 @@ extern int gEidosProfilingClientCount;	// if non-zero, profiling is happening in
 // Profiling clocks; note that these can overflow, we don't care, only (t2-t1) ever matters and that is overflow-robust
 
 extern uint64_t gEidos_ProfileCounter;			// incremented by Eidos_ProfileTime() every time it is called
-extern double gEidos_ProfileOverheadTicks;		// the overhead in ticks for one profile call, in ticks
-extern double gEidos_ProfileOverheadSeconds;	// the overhead in ticks for one profile call, in seconds
+extern double gEidos_ProfileOverheadTicks;		// the overhead for one profile call, in ticks
+extern double gEidos_ProfileOverheadSeconds;	// the overhead for one profile call, in seconds
 extern double gEidos_ProfileLagTicks;			// the clocked length of an empty profile block, in ticks
 extern double gEidos_ProfileLagSeconds;			// the clocked length of an empty profile block, in seconds
 

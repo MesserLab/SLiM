@@ -1569,6 +1569,11 @@
 	[content eidosAppendString:[NSString stringWithFormat:@"Run end: %@\n", endDateString] attributes:optima13_d];
 	[content eidosAppendString:@"\n" attributes:optima8_d];
 	
+#ifdef _OPENMP
+	[content eidosAppendString:[NSString stringWithFormat:@"Maximum parallel threads: %d\n", gEidosMaxThreads] attributes:optima13_d];
+	[content eidosAppendString:@"\n" attributes:optima8_d];
+#endif
+	
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time: %0.2f s\n", (double)elapsedWallClockTime] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed wall clock time inside SLiM core (corrected): %0.2f s\n", (double)elapsedWallClockTimeInSLiM] attributes:optima13_d];
 	[content eidosAppendString:[NSString stringWithFormat:@"Elapsed CPU time inside SLiM core (uncorrected): %0.2f s\n", (double)elapsedCPUTimeInSLiM] attributes:optima13_d];

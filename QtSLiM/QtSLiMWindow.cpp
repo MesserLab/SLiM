@@ -3074,6 +3074,11 @@ void QtSLiMWindow::displayProfileResults(void)
     tc.insertText("Run end: " + endDateString + "\n", optima13_d);
     tc.insertText(" \n", optima8_d);
     
+#ifdef _OPENMP
+    tc.insertText(QString("Maximum parallel threads: %1\n").arg(gEidosMaxThreads), optima13_d);
+    tc.insertText(" \n", optima8_d);
+#endif
+    
     tc.insertText(QString("Elapsed wall clock time: %1 s\n").arg(elapsedWallClockTime, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed wall clock time inside SLiM core (corrected): %1 s\n").arg(elapsedWallClockTimeInSLiM, 0, 'f', 2), optima13_d);
     tc.insertText(QString("Elapsed CPU time inside SLiM core (uncorrected): %1 s\n").arg(elapsedCPUTimeInSLiM, 0, 'f', 2), optima13_d);
