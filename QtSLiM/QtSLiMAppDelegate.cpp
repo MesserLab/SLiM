@@ -173,6 +173,17 @@ QtSLiMAppDelegate::QtSLiMAppDelegate(QObject *p_parent) : QObject(p_parent)
     gSLiM_SLiMgui_Class = new SLiMgui_Class(gStr_SLiMgui, gEidosDictionaryUnretained_Class);
     gSLiM_SLiMgui_Class->CacheDispatchTables();
 
+    // Free the Eidos RNG; we want it to be uninitialized whenever we are not executing a
+    // simulation.  We keep our own RNG state, per-window.  Note that SLiMguiLegacy does
+    // not contain code corresponding to this in its delegate, because the order of its
+    // initialization is different; the Eidos RNG gets freed by -startNewSimulationFromScript
+    // before it causes any trouble.
+	if (gEidos_RNG_Initialized)
+	{
+		_Eidos_FreeOneRNG(gEidos_RNG_SINGLE);
+		gEidos_RNG_Initialized = false;
+	}
+    
     // Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
     app_cwd_ = Eidos_CurrentDirectory();
 

@@ -232,6 +232,10 @@ typedef enum SLiMLaunchAction
 	gSLiM_SLiMgui_Class = new SLiMgui_Class(gStr_SLiMgui, gEidosDictionaryUnretained_Class);
 	gSLiM_SLiMgui_Class->CacheDispatchTables();
 	
+	// QtSLiM frees the RNG that Eidos_WarmUp() just made, here.  We could do that too; it would
+	// do no harm.  But with the initialization order in SLiMguiLegacy, it will be freed by
+	// startNewSimulationFromScript anyway, before any problems arise.
+	
 	// Remember our current working directory, to return to whenever we are not inside SLiM/Eidos
 	app_cwd_ = Eidos_CurrentDirectory();
 	//NSLog(@"current directory == %s", app_cwd_.c_str());
