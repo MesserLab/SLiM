@@ -368,6 +368,10 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 	
 	if (mu_singleton && sigma_singleton)
 	{
+		// Note that this case, EIDOS_OMPMIN_DNORM_1, running SINGLE-threaded, got about 20% slower from SLiM 4.0.1 to now.  I have looked into it
+		// and have no idea why.  My best hypothesis is that it is due to a change in the compiler/toolchain treatment of this code.  The only code
+		// change here is the addition of the omp pragma, and removing that makes no difference.  A profile shows nothing, reverting the whole
+		// function shows nothing, doing an Archive build shows nothing.  Total mystery, without delving into the assembly code.  Such is life.
 		if (sigma0 <= 0.0)
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dnorm): function dnorm() requires sd > 0.0 (" << EidosStringForFloat(sigma0) << " supplied)." << EidosTerminate(nullptr);
 		

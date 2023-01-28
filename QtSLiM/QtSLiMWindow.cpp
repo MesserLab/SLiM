@@ -2578,7 +2578,7 @@ void QtSLiMWindow::updateUIEnabling(void)
     ui->dumpPopulationButton->setEnabled(!invalidSimulation_);
     ui->debugOutputButton->setEnabled(true);
     ui->graphPopupButton->setEnabled(!invalidSimulation_);
-    ui->changeDirectoryButton->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
+    ui->changeDirectoryButton->setEnabled(!continuousPlayOn_);
     
     ui->scriptTextEdit->setReadOnly(continuousPlayOn_);
     ui->outputTextEdit->setReadOnly(true);
@@ -2609,6 +2609,9 @@ void QtSLiMWindow::updateUIEnabling(void)
 
 void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 {
+    // Enable/disable actions (i.e., menu items) when our window is active.  Note that this
+    // does not enable/disable buttons; that is done in QtSLiMWindow::updateUIEnabling().
+    
     ui->actionClose->setEnabled(true);
     ui->actionSave->setEnabled(true);
     ui->actionSaveAs->setEnabled(true);
@@ -2636,7 +2639,7 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionExecuteAll->setEnabled(false);
     ui->actionExecuteSelection->setEnabled(false);
     ui->actionDumpPopulationState->setEnabled(!invalidSimulation_);
-    ui->actionChangeWorkingDirectory->setEnabled(!invalidSimulation_ && !continuousPlayOn_);
+    ui->actionChangeWorkingDirectory->setEnabled(!continuousPlayOn_);
     
     // see QtSLiMWindow::graphPopupButtonRunMenu() for parallel code involving the graph popup button
     Species *displaySpecies = focalDisplaySpecies();
@@ -2666,6 +2669,9 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
 
 void QtSLiMWindow::updateMenuEnablingINACTIVE(QWidget *p_focusWidget, QWidget *focusWindow)
 {
+    // Enable/disable actions (i.e., menu items) when our window is inactive.  Note that this
+    // does not enable/disable buttons; that is done in QtSLiMWindow::updateUIEnabling().
+    
     QWidget *currentActiveWindow = QApplication::activeWindow();
     ui->actionClose->setEnabled(currentActiveWindow ? true : false);
     
