@@ -39,6 +39,9 @@ private:
 	typedef EidosDictionaryRetained super;
 	
 protected:
+	// We keep a user-defined order for our keys, overriding Dictionary's sorted key order
+	std::vector<std::string> sorted_keys_;
+	
 	virtual void Raise_UsesStringKeys() const override;
 	
 public:
@@ -58,9 +61,16 @@ public:
 	virtual bool KeysAreStrings(void) const override { return true; }
 	virtual bool KeysAreIntegers(void) const override { return false; }
 	
-	// custom behaviors for addition of keys (don't sort) and contents change (check row lengths)
+	// Provides the keys in the user-visible order: sorted for Dictionary, user-defined for DataFrame
+	virtual std::vector<std::string> SortedKeys_StringKeys(void) const override;
+	virtual std::vector<int64_t> SortedKeys_IntegerKeys(void) const override;
+	
+	// custom behaviors for addition/removal of keys (don't sort) and contents change (check row lengths)
 	virtual void KeyAddedToDictionary_StringKeys(const std::string &p_key) override;
 	virtual void KeyAddedToDictionary_IntegerKeys(int64_t p_key) override;
+	virtual void KeyRemovedFromDictionary_StringKeys(const std::string &p_key) override;
+	virtual void KeyRemovedFromDictionary_IntegerKeys(int64_t p_key) override;
+	virtual void AllKeysRemoved(void) override;
 	virtual void ContentsChanged(const std::string &p_operation_name) override;
 	
 	//

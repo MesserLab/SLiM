@@ -48,75 +48,72 @@ void EidosDictionaryUnretained::Raise_UsesIntegerKeys() const
 	EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::Raise_UsesIntegerKeys): the target Dictionary object is configured to use integer keys; a string key cannot be used." << EidosTerminate(nullptr);
 }
 
+std::vector<std::string> EidosDictionaryUnretained::SortedKeys_StringKeys(void) const
+{
+	// Dictionary provides keys in sorted order, which is done on demand.  Many use cases
+	// never need the keys at all, or only once, so we do not maintain the keys sorted.
+	const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
+	
+	std::vector<std::string> string_keys;
+	
+	if (dict_symbols)
+	{
+		for (auto &iter : *dict_symbols)
+			string_keys.push_back(iter.first);
+		
+		std::sort(string_keys.begin(), string_keys.end());
+	}
+	
+	return string_keys;
+}
+
+std::vector<int64_t> EidosDictionaryUnretained::SortedKeys_IntegerKeys(void) const
+{
+	// Dictionary provides keys in sorted order, which is done on demand.  Many use cases
+	// never need the keys at all, or only once, so we do not maintain the keys sorted.
+	const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
+	
+	std::vector<int64_t> integer_keys;
+	
+	if (dict_symbols)
+	{
+		for (auto &iter : *dict_symbols)
+			integer_keys.push_back(iter.first);
+		
+		std::sort(integer_keys.begin(), integer_keys.end());
+	}
+	
+	return integer_keys;
+}
+
 void EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys(const std::string &p_key)
 {
-	if (!state_ptr_)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys): (internal error) no state_ptr_." << EidosTerminate(nullptr);
-	
-	AssertKeysAreStrings();
-	
-	std::vector<std::string> &sorted_keys = ((EidosDictionaryState_StringKeys *)state_ptr_)->sorted_keys_;
-	
-	auto iter = std::find(sorted_keys.begin(), sorted_keys.end(), p_key);
-	
-	if (iter == sorted_keys.end())
-	{
-		sorted_keys.emplace_back(p_key);
-		
-		// Dictionary keeps its keys in sorted order regardless of the order in which they are added
-		// Sorting every time would be painful with many keys, but we don't expect that...
-		std::sort(sorted_keys.begin(), sorted_keys.end());
-	}
+	// Dictionary does not need to do any extra work when a key is added; this is for subclasses
 }
 
 void EidosDictionaryUnretained::KeyAddedToDictionary_IntegerKeys(int64_t p_key)
 {
-	if (!state_ptr_)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_IntegerKeys): (internal error) no state_ptr_." << EidosTerminate(nullptr);
-	
-	AssertKeysAreIntegers();
-	
-	std::vector<int64_t> &sorted_keys = ((EidosDictionaryState_IntegerKeys *)state_ptr_)->sorted_keys_;
-	
-	auto iter = std::find(sorted_keys.begin(), sorted_keys.end(), p_key);
-	
-	if (iter == sorted_keys.end())
-	{
-		sorted_keys.emplace_back(p_key);
-		
-		// Dictionary keeps its keys in sorted order regardless of the order in which they are added
-		// Sorting every time would be painful with many keys, but we don't expect that...
-		std::sort(sorted_keys.begin(), sorted_keys.end());
-	}
+	// Dictionary does not need to do any extra work when a key is added; this is for subclasses
+}
+
+void EidosDictionaryUnretained::KeyRemovedFromDictionary_StringKeys(const std::string &p_key)
+{
+	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
+}
+
+void EidosDictionaryUnretained::KeyRemovedFromDictionary_IntegerKeys(int64_t p_key)
+{
+	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
+}
+
+void EidosDictionaryUnretained::AllKeysRemoved(void)
+{
+	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
 }
 
 void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_name)
 {
-	// Check that SortedKeys matches DictionarySymbols().
-	if (!state_ptr_)
-		return;
-	
-	size_t symbols_count, keys_count;
-	
-	if (KeysAreStrings())
-	{
-		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
-		const std::vector<std::string> *keys = SortedKeys_StringKeys();
-		
-		symbols_count = symbols->size();
-		keys_count = keys->size();
-	}
-	else	// KeysAreIntegers()
-	{
-		const EidosDictionaryHashTable_IntegerKeys *symbols = DictionarySymbols_IntegerKeys();
-		const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
-		
-		symbols_count = symbols->size();
-		keys_count = keys->size();
-	}
-	
-	if (symbols_count != keys_count)
-		EIDOS_TERMINATION << "ERROR (EidosDataFrame::ContentsChanged): (internal error) DataFrame found key count mismatch after " << p_operation_name << "." << EidosTerminate(nullptr);
+	// Dictionary does not need to do any extra work when contents are changed; this is for subclasses
 }
 
 std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
@@ -211,8 +208,8 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimit
 	bool keysAreStrings = KeysAreStrings();
 	const EidosDictionaryHashTable_StringKeys *symbols_string = nullptr;
 	const EidosDictionaryHashTable_IntegerKeys *symbols_integer = nullptr;
-	const std::vector<std::string> *keys_string = nullptr;
-	const std::vector<int64_t> *keys_integer = nullptr;
+	std::vector<std::string> keys_string;
+	std::vector<int64_t> keys_integer;
 	size_t keys_count;
 	int longest_col = 0;
 	
@@ -220,7 +217,7 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimit
 	{
 		symbols_string = DictionarySymbols_StringKeys();
 		keys_string = SortedKeys_StringKeys();
-		keys_count = keys_string->size();
+		keys_count = keys_string.size();
 		
 		for (auto const &kv_pair : *symbols_string)
 			longest_col = std::max(longest_col, kv_pair.second->Count());
@@ -229,7 +226,7 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimit
 	{
 		symbols_integer = DictionarySymbols_IntegerKeys();
 		keys_integer = SortedKeys_IntegerKeys();
-		keys_count = keys_integer->size();
+		keys_count = keys_integer.size();
 		
 		for (auto const &kv_pair : *symbols_integer)
 			longest_col = std::max(longest_col, kv_pair.second->Count());
@@ -252,9 +249,9 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimit
 			first = false;
 			
 			if (keysAreStrings)
-				ss << Eidos_string_escaped_CSV((*keys_string)[i]);
+				ss << Eidos_string_escaped_CSV(keys_string[i]);
 			else
-				ss << (*keys_integer)[i];
+				ss << keys_integer[i];
 		}
 		
 		string_result->PushString(ss.str());
@@ -276,14 +273,14 @@ EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimit
 			
 			if (keysAreStrings)
 			{
-				auto col_iter = symbols_string->find((*keys_string)[i]);
+				auto col_iter = symbols_string->find(keys_string[i]);
 				
 				if (col_iter != symbols_string->end())
 					value = col_iter->second.get();
 			}
 			else
 			{
-				auto col_iter = symbols_integer->find((*keys_integer)[i]);
+				auto col_iter = symbols_integer->find(keys_integer[i]);
 				
 				if (col_iter != symbols_integer->end())
 					value = col_iter->second.get();
@@ -393,12 +390,7 @@ void EidosDictionaryUnretained::SetKeyValue_StringKeys(const std::string &key, E
 		if (state_ptr)
 		{
 			state_ptr->dictionary_symbols_.erase(key);
-			
-			// Remove it from our sorted keys
-			auto iter = std::find(state_ptr->sorted_keys_.begin(), state_ptr->sorted_keys_.end(), key);
-			
-			if (iter != state_ptr->sorted_keys_.end())
-				state_ptr->sorted_keys_.erase(iter);
+			KeyRemovedFromDictionary_StringKeys(key);
 		}
 	}
 	else
@@ -444,12 +436,7 @@ void EidosDictionaryUnretained::SetKeyValue_IntegerKeys(int64_t key, EidosValue_
 		if (state_ptr)
 		{
 			state_ptr->dictionary_symbols_.erase(key);
-			
-			// Remove it from our sorted keys
-			auto iter = std::find(state_ptr->sorted_keys_.begin(), state_ptr->sorted_keys_.end(), key);
-			
-			if (iter != state_ptr->sorted_keys_.end())
-				state_ptr->sorted_keys_.erase(iter);
+			KeyRemovedFromDictionary_IntegerKeys(key);
 		}
 	}
 	else
@@ -520,30 +507,30 @@ EidosValue_SP EidosDictionaryUnretained::AllKeys(void) const
 {
 	if (KeysAreStrings())
 	{
-		const std::vector<std::string> *keys = SortedKeys_StringKeys();
-		int key_count = keys ? (int)keys->size() : 0;
+		const std::vector<std::string> keys = SortedKeys_StringKeys();
+		int key_count = (int)keys.size();
 		
 		if (key_count == 0)
 			return gStaticEidosValue_String_ZeroVec;
 		
 		EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(key_count);
 		
-		for (const std::string &key : *keys)
+		for (const std::string &key : keys)
 			string_result->PushString(key);
 		
 		return EidosValue_SP(string_result);
 	}
 	else
 	{
-		const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
-		int key_count = keys ? (int)keys->size() : 0;
+		const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
+		int key_count = (int)keys.size();
 		
 		if (key_count == 0)
 			return gStaticEidosValue_Integer_ZeroVec;
 		
 		EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(key_count);
 		
-		for (int64_t key : *keys)
+		for (int64_t key : keys)
 			integer_result->push_int_no_check(key);
 		
 		return EidosValue_SP(integer_result);
@@ -561,7 +548,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 		AssertKeysAreStrings();
 		
 		const EidosDictionaryHashTable_StringKeys *source_symbols = p_source->DictionarySymbols_StringKeys();
-		const std::vector<std::string> *source_keys = p_source->SortedKeys_StringKeys();
+		const std::vector<std::string> source_keys = p_source->SortedKeys_StringKeys();
 		
 		if (source_symbols && source_symbols->size())
 		{
@@ -574,7 +561,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 				state_ptr_ = state_ptr;
 			}
 			
-			for (const std::string &key : *source_keys)
+			for (const std::string &key : source_keys)
 			{
 				auto kv_pair = source_symbols->find(key);
 				const EidosValue_SP &value = kv_pair->second;
@@ -600,7 +587,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 		AssertKeysAreIntegers();
 		
 		const EidosDictionaryHashTable_IntegerKeys *source_symbols = p_source->DictionarySymbols_IntegerKeys();
-		const std::vector<int64_t> *source_keys = p_source->SortedKeys_IntegerKeys();
+		const std::vector<int64_t> source_keys = p_source->SortedKeys_IntegerKeys();
 		
 		if (source_symbols && source_symbols->size())
 		{
@@ -613,7 +600,7 @@ void EidosDictionaryUnretained::AddKeysAndValuesFrom(EidosDictionaryUnretained *
 				state_ptr_ = state_ptr;
 			}
 			
-			for (int64_t key : *source_keys)
+			for (int64_t key : source_keys)
 			{
 				auto kv_pair = source_symbols->find(key);
 				const EidosValue_SP &value = kv_pair->second;
@@ -663,14 +650,14 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 				state_ptr_ = state_ptr;
 			}
 			
-			const std::vector<std::string> *source_keys = p_source->SortedKeys_StringKeys();
-			const std::vector<std::string> *keys = SortedKeys_StringKeys();
+			const std::vector<std::string> source_keys = p_source->SortedKeys_StringKeys();
+			const std::vector<std::string> keys = SortedKeys_StringKeys();
 			
 			// This is for DataFrame's rbind(), which wants columns to match exactly (if any columns are already there)
-			if (p_require_column_match && keys->size() && (*keys != *source_keys))
+			if (p_require_column_match && keys.size() && (keys != source_keys))
 				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
 			
-			for (const std::string &key : *source_keys)
+			for (const std::string &key : source_keys)
 			{
 				auto kv_pair = source_symbols->find(key);
 				const EidosValue_SP &keyvalue = kv_pair->second;
@@ -715,14 +702,14 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 				state_ptr_ = state_ptr;
 			}
 			
-			const std::vector<int64_t> *source_keys = p_source->SortedKeys_IntegerKeys();
-			const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
+			const std::vector<int64_t> source_keys = p_source->SortedKeys_IntegerKeys();
+			const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
 			
 			// This is for DataFrame's rbind(), which wants columns to match exactly (if any columns are already there)
-			if (p_require_column_match && keys->size() && (*keys != *source_keys))
+			if (p_require_column_match && keys.size() && (keys != source_keys))
 				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
 			
-			for (int64_t key : *source_keys)
+			for (int64_t key : source_keys)
 			{
 				auto kv_pair = source_symbols->find(key);
 				const EidosValue_SP &keyvalue = kv_pair->second;
@@ -1073,10 +1060,10 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	if (KeysAreStrings())
 	{
 		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
-		const std::vector<std::string> *keys = SortedKeys_StringKeys();
+		const std::vector<std::string> keys = SortedKeys_StringKeys();
 		bool drop = drop_value->LogicalAtIndex(0, nullptr);
 		
-		for (const std::string &key : *keys)
+		for (const std::string &key : keys)
 		{
 			auto kv_pair = symbols->find(key);
 			
@@ -1092,10 +1079,10 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_getRowValues(EidosGlobalS
 	else	// KeysAreIntegers()
 	{
 		const EidosDictionaryHashTable_IntegerKeys *symbols = DictionarySymbols_IntegerKeys();
-		const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
+		const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
 		bool drop = drop_value->LogicalAtIndex(0, nullptr);
 		
-		for (int64_t key : *keys)
+		for (int64_t key : keys)
 		{
 			auto kv_pair = symbols->find(key);
 			
@@ -1190,18 +1177,18 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_identicalContents(EidosGl
 	// in sorted order, so this just compares to check that the keys are equal.
 	if (KeysAreStrings())
 	{
-		const std::vector<std::string> *x_keys = x_dict->SortedKeys_StringKeys();
-		const std::vector<std::string> *keys = SortedKeys_StringKeys();
+		const std::vector<std::string> x_keys = x_dict->SortedKeys_StringKeys();
+		const std::vector<std::string> keys = SortedKeys_StringKeys();
 		
-		if (*x_keys != *keys)
+		if (x_keys != keys)
 			return gStaticEidosValue_LogicalF;
 	}
 	else	// KeysAreIntegers()
 	{
-		const std::vector<int64_t> *x_keys = x_dict->SortedKeys_IntegerKeys();
-		const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
+		const std::vector<int64_t> x_keys = x_dict->SortedKeys_IntegerKeys();
+		const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
 		
-		if (*x_keys != *keys)
+		if (x_keys != keys)
 			return gStaticEidosValue_LogicalF;
 	}
 	

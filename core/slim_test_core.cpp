@@ -758,7 +758,7 @@ void _RunSpeciesTests(std::string temp_path)
 	}
 	)", __LINE__);
 	
-	// Test sim EidosDictionaryUnretained functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	// Test sim EidosDictionaryUnretained functionality: - (+)getValue(is$ key) and - (void)setValue(is$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 7:9); sim.setValue('bar', 'baz'); } 10 early() { if (identical(sim.getValue('foo'), 7:9) & identical(sim.getValue('bar'), 'baz')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 3:5); sim.setValue('foo', 'foobar'); } 10 early() { if (identical(sim.getValue('foo'), 'foobar')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 3:5); sim.setValue('foo', NULL); } 10 early() { if (isNULL(sim.getValue('foo'))) stop(); }", __LINE__);
@@ -1192,7 +1192,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(20); } 2 early() { if (p1.individualCount == 20) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.setSubpopulationSize(-1); stop(); }", "out of range", __LINE__);
 	
-	// Test Subpopulation EidosDictionaryUnretained functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	// Test Subpopulation EidosDictionaryUnretained functionality: - (+)getValue(is$ key) and - (void)setValue(is$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setValue('foo', 7:9); p1.setValue('bar', 'baz'); } 10 early() { if (identical(p1.getValue('foo'), 7:9) & identical(p1.getValue('bar'), 'baz')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setValue('foo', 3:5); p1.setValue('foo', 'foobar'); } 10 early() { if (identical(p1.getValue('foo'), 'foobar')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { p1.setValue('foo', 3:5); p1.setValue('foo', NULL); } 10 early() { if (isNULL(p1.getValue('foo'))) stop(); }", __LINE__);
@@ -1803,7 +1803,7 @@ void _RunIndividualTests(void)
 	//SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[1]) < 1.0) stop(); }", __LINE__);
 	//SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals[0].relatedness(p1.individuals[1:9]) < 1.0)) stop(); }", __LINE__);
 	
-	// Test Individual EidosDictionaryUnretained functionality: - (+)getValue(string$ key) and - (void)setValue(string$ key, + value)
+	// Test Individual EidosDictionaryUnretained functionality: - (+)getValue(is$ key) and - (void)setValue(is$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals[0]; i.setValue('foo', 7:9); i.setValue('bar', 'baz'); if (identical(i.getValue('foo'), 7:9) & identical(i.getValue('bar'), 'baz')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals[0]; i.setValue('foo', 3:5); i.setValue('foo', 'foobar'); if (identical(i.getValue('foo'), 'foobar')) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals[0]; i.setValue('foo', 3:5); i.setValue('foo', NULL); if (isNULL(i.getValue('foo'))) stop(); }", __LINE__);

@@ -75,7 +75,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		return dataframe;
 	}
 	
-	const std::vector<std::string> &keys = *SortedKeys_StringKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
+	const std::vector<std::string> keys = SortedKeys_StringKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
 	
 	if (index_type == EidosValueType::kValueInt)
 	{
@@ -151,9 +151,9 @@ EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
 		return dataframe;
 	
 	// Otherwise, we subset to get the result value for each key we contain
-	const std::vector<std::string> *keys = SortedKeys_StringKeys();
+	const std::vector<std::string> keys = SortedKeys_StringKeys();
 	
-	for (const std::string &key : *keys)
+	for (const std::string &key : keys)
 	{
 		auto kv_pair = symbols->find(key);
 		
@@ -169,48 +169,73 @@ EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
 	return dataframe;
 }
 
+std::vector<std::string> EidosDataFrame::SortedKeys_StringKeys(void) const
+{
+	AssertKeysAreStrings();
+	
+	// Provide our keys in their user-defined order (without sorting as Dictionary does)
+	return sorted_keys_;
+}
+
+std::vector<int64_t> EidosDataFrame::SortedKeys_IntegerKeys(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosDataFrame::SortedKeys_IntegerKeys): (internal error) DataFrame does not support integer keys." << EidosTerminate(nullptr);
+}
+
 void EidosDataFrame::KeyAddedToDictionary_StringKeys(const std::string &p_key)
 {
 	if (!state_ptr_)
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys): (internal error) no state_ptr_." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosDataFrame::KeyAddedToDictionary_StringKeys): (internal error) no state_ptr_." << EidosTerminate(nullptr);
 	
 	AssertKeysAreStrings();
 	
-	EidosDictionaryState_StringKeys *state_ptr = (EidosDictionaryState_StringKeys *)state_ptr_;
+	// Maintain our user-defined key ordering
+	auto iter = std::find(sorted_keys_.begin(), sorted_keys_.end(), p_key);
 	
-	if (!state_ptr_)
-	{
-		state_ptr = new EidosDictionaryState_StringKeys();
-		state_ptr->keys_are_integers_ = false;
-		state_ptr_ = state_ptr;
-	}
-	
-	std::vector<std::string> &sorted_keys = state_ptr->sorted_keys_;
-	
-	auto iter = std::find(sorted_keys.begin(), sorted_keys.end(), p_key);
-	
-	if (iter == sorted_keys.end())
-	{
-		// DataFrame keeps its keys in the order in which they are added
-		sorted_keys.emplace_back(p_key);
-	}
+	if (iter == sorted_keys_.end())
+		sorted_keys_.emplace_back(p_key);
 }
 
 void EidosDataFrame::KeyAddedToDictionary_IntegerKeys(int64_t p_key)
 {
-	EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys): (internal error) an integer key cannot be added to a DataFrame." << EidosTerminate(nullptr);
+	EIDOS_TERMINATION << "ERROR (EidosDataFrame::KeyAddedToDictionary_IntegerKeys): (internal error) DataFrame does not support integer keys." << EidosTerminate(nullptr);
+}
+
+void EidosDataFrame::KeyRemovedFromDictionary_StringKeys(const std::string &p_key)
+{
+	// Maintain our user-defined key ordering
+	auto iter = std::find(sorted_keys_.begin(), sorted_keys_.end(), p_key);
+	
+	if (iter != sorted_keys_.end())
+		sorted_keys_.erase(iter);
+}
+
+void EidosDataFrame::KeyRemovedFromDictionary_IntegerKeys(int64_t p_key)
+{
+	EIDOS_TERMINATION << "ERROR (EidosDataFrame::KeyRemovedFromDictionary_IntegerKeys): (internal error) DataFrame does not support integer keys." << EidosTerminate(nullptr);
+}
+
+void EidosDataFrame::AllKeysRemoved(void)
+{
+	// Maintain our user-defined key ordering
+	sorted_keys_.clear();
 }
 
 void EidosDataFrame::ContentsChanged(const std::string &p_operation_name)
 {
 	AssertKeysAreStrings();
 	
-	// This checks that DictionarySymbols() and SortedKeys() match
-	super::ContentsChanged(p_operation_name);
+	if (!state_ptr_)
+		return;
+	
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
+	
+	// Check that sorted_keys_ matches DictionarySymbols_StringKeys()
+	if (symbols->size() != sorted_keys_.size())
+		EIDOS_TERMINATION << "ERROR (EidosDataFrame::ContentsChanged): (internal error) DataFrame found key count mismatch after " << p_operation_name << "." << EidosTerminate(nullptr);
 	
 	// Go through all of our columns and check that they are the same size
 	// Also check that all are simple vectors, not matrices or arrays
-	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	int row_count = -1;
 	
 	if (!symbols)
@@ -242,18 +267,18 @@ void EidosDataFrame::Print(std::ostream &p_ostream) const
 	// We have to pre-plan our output: go through all of our elements, generate their output string, and calculate the width of each column.
 	// We put all of those strings into a temporary data structure that we build here, organized by column.  We thus keep all the output in
 	// memory; that would be an issue for a *very* large dataframe, but that seems unlikely.
-	const std::vector<std::string> *keys = SortedKeys_StringKeys();
+	const std::vector<std::string> keys = SortedKeys_StringKeys();
 	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	std::ostringstream ss;
 	
-	if (keys)
+	if (keys.size())
 	{
 		// First, assemble our planned output
 		std::vector<std::vector<std::string>> output;
 		std::vector<int> column_widths;
 		int row_count = RowCount(), col_count = ColumnCount();
 		
-		for (const std::string &key : *keys)
+		for (const std::string &key : keys)
 		{
 			std::vector<std::string> col_output;
 			
@@ -447,9 +472,9 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 	//result_SP->resize_no_initialize(data_count);
 	
 	// Fill in all the values, in sorted column order
-	const std::vector<std::string> *keys = SortedKeys_StringKeys();
+	const std::vector<std::string> keys = SortedKeys_StringKeys();
 	
-	for (const std::string &key : *keys)
+	for (const std::string &key : keys)
 	{
 		auto key_iter = symbols->find(key);
 		

@@ -62,23 +62,21 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 // used by all code that does not need to modify the dictionary.
 //
 // The dictionary_symbols_ hash table has no order for the keys.  We want to define an ordering; for Dictionary the
-// ordering is sorted, for DataFrame it is user-defined.  This vector determines the user-visible ordering.  Whenever
-// a new key is added, call KeyAddedToDictionary() to register it.  The SortedKeys() accessor should be used by all
-// code that does not need to modify the keys.
+// ordering is sorted and computed on demand, for DataFrame it is user-defined and maintained by that class.  To allow
+// DataFrame to maintain the correct ordering, call KeyAddedToDictionary_X() to register a new key when it is added,
+// KeyRemovedFromDictionary_X() or AllKeysRemoved() when a key is removed, and ContentsChanged() at the end of a
+// change operation (once, for either a single change or an aggregated set of changes).  The SortedKeys_X() accessors
+// provide the correct sorted order for both classes, but perform a sort for Dictionary, so should be used minimally.
 struct EidosDictionaryState_StringKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
-	
 	EidosDictionaryHashTable_StringKeys dictionary_symbols_;
-	std::vector<std::string> sorted_keys_;
 };
 
 struct EidosDictionaryState_IntegerKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
-	
 	EidosDictionaryHashTable_IntegerKeys dictionary_symbols_;
-	std::vector<int64_t> sorted_keys_;
 };
 
 // This class is known in Eidos as "DictionaryBase"
@@ -124,13 +122,16 @@ public:
 	const EidosDictionaryHashTable_StringKeys *DictionarySymbols_StringKeys(void) const { AssertKeysAreStrings(); return state_ptr_ ? &(((EidosDictionaryState_StringKeys *)state_ptr_)->dictionary_symbols_) : nullptr; }
 	const EidosDictionaryHashTable_IntegerKeys *DictionarySymbols_IntegerKeys(void) const { AssertKeysAreIntegers(); return state_ptr_ ? &(((EidosDictionaryState_IntegerKeys *)state_ptr_)->dictionary_symbols_) : nullptr; }
 	
-	const std::vector<std::string> *SortedKeys_StringKeys(void) const { AssertKeysAreStrings(); return state_ptr_ ? &(((EidosDictionaryState_StringKeys *)state_ptr_)->sorted_keys_) : nullptr; }
-	const std::vector<int64_t> *SortedKeys_IntegerKeys(void) const { AssertKeysAreIntegers(); return state_ptr_ ? &(((EidosDictionaryState_IntegerKeys *)state_ptr_)->sorted_keys_) : nullptr; }
+	// Provides the keys in the user-visible order: sorted for Dictionary, user-defined for DataFrame
+	virtual std::vector<std::string> SortedKeys_StringKeys(void) const;
+	virtual std::vector<int64_t> SortedKeys_IntegerKeys(void) const;
 	
-	// This method must be called whenever a key is added to the DictionarySymbols(), to add it to SortedKeys() correctly
-	// The correct way to add new keys is different for Dictionary than for DataFrame, so always use this accessor
+	// These methods must always be called when a key is added or removed, to allow subclasses like DataFrame to do additional work
 	virtual void KeyAddedToDictionary_StringKeys(const std::string &p_key);
 	virtual void KeyAddedToDictionary_IntegerKeys(int64_t p_key);
+	virtual void KeyRemovedFromDictionary_StringKeys(const std::string &p_key);
+	virtual void KeyRemovedFromDictionary_IntegerKeys(int64_t p_key);
+	virtual void AllKeysRemoved(void);
 	
 	// This method must be called at the end of any code that changes the contents of the dictionary; it checks several invariants
 	// Low-level accessors (RemoveAllKeys(), SetKeyValue(), etc.) should *not* call this; the top-level code controlling the change should
@@ -143,13 +144,15 @@ public:
 		
 		if (KeysAreStrings())
 		{
-			const std::vector<std::string> *keys = SortedKeys_StringKeys();
-			return (int)keys->size();
+			const EidosDictionaryHashTable_StringKeys &string_keys = ((EidosDictionaryState_StringKeys *)state_ptr_)->dictionary_symbols_;
+			
+			return (int)string_keys.size();
 		}
 		else
 		{
-			const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
-			return (int)keys->size();
+			const EidosDictionaryHashTable_IntegerKeys &integer_keys = ((EidosDictionaryState_IntegerKeys *)state_ptr_)->dictionary_symbols_;
+			
+			return (int)integer_keys.size();
 		}
 	}
 	
@@ -170,14 +173,14 @@ public:
 				EidosDictionaryState_StringKeys *state_ptr = ((EidosDictionaryState_StringKeys *)state_ptr_);
 				
 				state_ptr->dictionary_symbols_.clear();
-				state_ptr->sorted_keys_.clear();
+				AllKeysRemoved();
 			}
 			else
 			{
 				EidosDictionaryState_IntegerKeys *state_ptr = ((EidosDictionaryState_IntegerKeys *)state_ptr_);
 				
 				state_ptr->dictionary_symbols_.clear();
-				state_ptr->sorted_keys_.clear();
+				AllKeysRemoved();
 			}
 		}
 	}

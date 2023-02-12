@@ -525,20 +525,19 @@ void LogFile::TickEndCallout(void)
 	}
 }
 
-EidosValue_SP LogFile::AllKeys(void) const
+std::vector<std::string> LogFile::SortedKeys_StringKeys(void) const
 {
 	// We want to return the column names in order, so we have to override EidosDictionaryUnretained here
 	// Our column_names_ vector should correspond to EidosDictionaryUnretained's state, just with a fixed order
-	if (!header_logged_)
-		return gStaticEidosValue_String_ZeroVec;
+	std::vector<std::string> string_keys;
 	
-	int column_count = (int)column_names_.size();
-	EidosValue_String_vector *string_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_String_vector())->Reserve(column_count);
+	if (header_logged_)
+	{
+		for (const std::string &column_name : column_names_)
+			string_keys.push_back(column_name);
+	}
 	
-	for (const std::string &column_name : column_names_)
-		string_result->PushString(column_name);
-	
-	return EidosValue_SP(string_result);
+	return string_keys;
 }
 
 const EidosClass *LogFile::Class(void) const

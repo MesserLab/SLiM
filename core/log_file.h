@@ -132,7 +132,7 @@ public:
 	void AppendNewRow(void);
 	void TickEndCallout(void);
 	
-	virtual EidosValue_SP AllKeys(void) const override;	// provide keys in column order
+	virtual std::vector<std::string> SortedKeys_StringKeys(void) const override;	// provide keys in column order
 	
 	//
 	// Eidos support
