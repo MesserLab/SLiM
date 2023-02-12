@@ -37,10 +37,17 @@
 #pragma mark EidosDataFrame
 #pragma mark -
 
+void EidosDataFrame::Raise_UsesStringKeys(void) const
+{
+	EIDOS_TERMINATION << "ERROR (EidosDataFrame::Raise_UsesStringKeys): cannot use an integer key with the target DataFrame object; DataFrame always uses string keys." << EidosTerminate(nullptr);
+}
+
 int EidosDataFrame::RowCount(void) const
 {
+	AssertKeysAreStrings();
+	
 	// Get our row count; we don't cache this so we don't have to worry about validating the cache
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	
 	if (!symbols || (symbols->size() == 0))
 		return 0;
@@ -52,10 +59,12 @@ int EidosDataFrame::RowCount(void) const
 
 EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 {
+	AssertKeysAreStrings();
+	
 	EidosDataFrame *dataframe = new EidosDataFrame();
 	EidosValueType index_type = index_value->Type();
 	int index_count = index_value->Count();
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	
 	if (!symbols)
 	{
@@ -66,7 +75,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 		return dataframe;
 	}
 	
-	const std::vector<std::string> &keys = *SortedKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
+	const std::vector<std::string> &keys = *SortedKeys_StringKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
 	
 	if (index_type == EidosValueType::kValueInt)
 	{
@@ -85,7 +94,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 			if (value_iter == symbols->end())
 				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): (internal error) no value for defined key." << EidosTerminate(nullptr);
 			
-			dataframe->SetKeyValue(key, value_iter->second);
+			dataframe->SetKeyValue_StringKeys(key, value_iter->second);
 		}
 	}
 	else if (index_type == EidosValueType::kValueString)
@@ -99,7 +108,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 			if (value_iter == symbols->end())
 				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): key " << key << " is not defined in the target DataFrame." << EidosTerminate(nullptr);
 			
-			dataframe->SetKeyValue(key, value_iter->second);
+			dataframe->SetKeyValue_StringKeys(key, value_iter->second);
 		}
 	}
 	else // (index_type == EidosValueType::kValueLogical)
@@ -121,7 +130,7 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 				if (value_iter == symbols->end())
 					EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): (internal error) no value for defined key." << EidosTerminate(nullptr);
 				
-				dataframe->SetKeyValue(key, value_iter->second);
+				dataframe->SetKeyValue_StringKeys(key, value_iter->second);
 			}
 		}
 	}
@@ -131,16 +140,18 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 
 EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
 {
+	AssertKeysAreStrings();
+	
 	EidosDataFrame *dataframe = new EidosDataFrame();
 	
 	// With no columns, the indices don't matter, and the result is a new empty dictionary
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	
 	if (!symbols || (symbols->size() == 0))
 		return dataframe;
 	
 	// Otherwise, we subset to get the result value for each key we contain
-	const std::vector<std::string> *keys = SortedKeys();
+	const std::vector<std::string> *keys = SortedKeys_StringKeys();
 	
 	for (const std::string &key : *keys)
 	{
@@ -152,18 +163,29 @@ EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
 		EidosValue_SP subset = SubsetEidosValue(kv_pair->second.get(), index_value, nullptr, /* p_raise_range_errors */ true);
 		
 		if (!drop || subset->Count())
-			dataframe->SetKeyValue(kv_pair->first, subset);
+			dataframe->SetKeyValue_StringKeys(kv_pair->first, subset);
 	}
 	
 	return dataframe;
 }
 
-void EidosDataFrame::KeyAddedToDictionary(const std::string &p_key)
+void EidosDataFrame::KeyAddedToDictionary_StringKeys(const std::string &p_key)
 {
 	if (!state_ptr_)
-		state_ptr_ = new EidosDictionaryState();
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys): (internal error) no state_ptr_." << EidosTerminate(nullptr);
 	
-	std::vector<std::string> &sorted_keys = state_ptr_->sorted_keys_;
+	AssertKeysAreStrings();
+	
+	EidosDictionaryState_StringKeys *state_ptr = (EidosDictionaryState_StringKeys *)state_ptr_;
+	
+	if (!state_ptr_)
+	{
+		state_ptr = new EidosDictionaryState_StringKeys();
+		state_ptr->keys_are_integers_ = false;
+		state_ptr_ = state_ptr;
+	}
+	
+	std::vector<std::string> &sorted_keys = state_ptr->sorted_keys_;
 	
 	auto iter = std::find(sorted_keys.begin(), sorted_keys.end(), p_key);
 	
@@ -174,14 +196,21 @@ void EidosDataFrame::KeyAddedToDictionary(const std::string &p_key)
 	}
 }
 
+void EidosDataFrame::KeyAddedToDictionary_IntegerKeys(int64_t p_key)
+{
+	EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys): (internal error) an integer key cannot be added to a DataFrame." << EidosTerminate(nullptr);
+}
+
 void EidosDataFrame::ContentsChanged(const std::string &p_operation_name)
 {
+	AssertKeysAreStrings();
+	
 	// This checks that DictionarySymbols() and SortedKeys() match
 	super::ContentsChanged(p_operation_name);
 	
 	// Go through all of our columns and check that they are the same size
 	// Also check that all are simple vectors, not matrices or arrays
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	int row_count = -1;
 	
 	if (!symbols)
@@ -213,8 +242,8 @@ void EidosDataFrame::Print(std::ostream &p_ostream) const
 	// We have to pre-plan our output: go through all of our elements, generate their output string, and calculate the width of each column.
 	// We put all of those strings into a temporary data structure that we build here, organized by column.  We thus keep all the output in
 	// memory; that would be an issue for a *very* large dataframe, but that seems unlikely.
-	const std::vector<std::string> *keys = SortedKeys();
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const std::vector<std::string> *keys = SortedKeys_StringKeys();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	std::ostringstream ss;
 	
 	if (keys)
@@ -373,9 +402,11 @@ EidosValue_SP EidosDataFrame::ExecuteInstanceMethod(EidosGlobalStringID p_method
 EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	AssertKeysAreStrings();
+	
 	// First determine what type the matrix would be, and check that all columns match that type
 	int64_t nrow = RowCount();
-	const EidosDictionaryHashTable *symbols = DictionarySymbols();
+	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	int64_t ncol = symbols->size();
 	EidosValue_SP type_template;
 	const EidosClass *class_template = nullptr;
@@ -416,7 +447,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 	//result_SP->resize_no_initialize(data_count);
 	
 	// Fill in all the values, in sorted column order
-	const std::vector<std::string> *keys = SortedKeys();
+	const std::vector<std::string> *keys = SortedKeys_StringKeys();
 	
 	for (const std::string &key : *keys)
 	{
@@ -443,6 +474,8 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
+	AssertKeysAreStrings();
+	
 	// This method is similar to addKeysAndValuesFrom(), with a couple of differences.  One, a collision in column names
 	// is an error, rather than the existing column being replaced.  Two, the lengths of all columns must be the same
 	// (basic DataFrame requirement).  Three, this method handles multiple adds; source does not have to be a singleton,
@@ -474,6 +507,8 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_i
 EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
+	AssertKeysAreStrings();
+	
 	// This method is similar to appendKeysAndValuesFrom(), with a couple of differences.  One, the column names of
 	// the dictionary being appended must match in value and order.  Two, the lengths of all columns must be the same
 	// (basic DataFrame requirement).  Three, this method handles multiple adds; source does not have to be a singleton,
@@ -505,6 +540,8 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_i
 EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
+	AssertKeysAreStrings();
+	
 	EidosValue *rows_value = p_arguments[0].get();
 	EidosValue *cols_value = p_arguments[1].get();
 	EidosValue_SP result_SP(nullptr);
@@ -540,7 +577,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 	// Then return the resulting DataFrame, or if it contains exactly one column, return the vector of values from that column instead
 	if (cols_subset->ColumnCount() == 1)
 	{
-		const EidosDictionaryHashTable *symbols = cols_subset->DictionarySymbols();
+		const EidosDictionaryHashTable_StringKeys *symbols = cols_subset->DictionarySymbols_StringKeys();
 		auto col_iter = symbols->begin();
 		
 		result_SP = col_iter->second;
@@ -561,6 +598,8 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 EidosValue_SP EidosDataFrame::ExecuteMethod_subsetColumns(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
+	AssertKeysAreStrings();
+	
 	EidosValue *index_value = p_arguments[0].get();
 	EidosDataFrame *objectElement = SubsetColumns(index_value);
 	objectElement->ContentsChanged("subsetColumns()");
@@ -578,6 +617,8 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subsetColumns(EidosGlobalStringID p_
 EidosValue_SP EidosDataFrame::ExecuteMethod_subsetRows(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_interpreter)
+	AssertKeysAreStrings();
+	
 	EidosValue *index_value = p_arguments[0].get();
 	EidosValue *drop_value = p_arguments[1].get();
 	EidosDataFrame *objectElement = SubsetRows(index_value, drop_value->LogicalAtIndex(0, nullptr));
@@ -1151,7 +1192,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 		else
 			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_readCSV): (internal error) unrecognized column type." << EidosTerminate(nullptr);
 		
-		objectElement->SetKeyValue(columnNames[col_index], column_values);
+		objectElement->SetKeyValue_StringKeys(columnNames[col_index], column_values);
 	}
 	
 	objectElement->ContentsChanged("readCSV()");

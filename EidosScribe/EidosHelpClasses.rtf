@@ -132,7 +132,13 @@
 \f3\fs18 DataFrame
 \f4\fs20 ) to make a copy, or with a singleton string in JSON format.  See the 
 \f3\fs18 Dictionary
-\f4\fs20  class for further documentation.\
+\f4\fs20  class for further documentation.  However, note that 
+\f3\fs18 DataFrame
+\f4\fs20  can only use 
+\f3\fs18 string
+\f4\fs20  keys; 
+\f3\fs18 integer
+\f4\fs20  keys are not allowed.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.2.1  
@@ -533,7 +539,19 @@ Alternatively, key-value pairs can be passed to set up the initial state of the 
 \f3\fs18 setValue("a", 0:3)
 \f4\fs20  and then 
 \f3\fs18 setValue("b", c("foo", "bar"))
-\f4\fs20  on it; it is just a shorthand for convenience.\
+\f4\fs20  on it; it is just a shorthand for convenience.  Keys may be of type 
+\f3\fs18 string
+\f4\fs20  or 
+\f3\fs18 integer
+\f4\fs20 , but must all be of the same type; 
+\f3\fs18 Dictionary
+\f4\fs20  supports using either 
+\f3\fs18 string
+\f4\fs20  or 
+\f3\fs18 integer
+\f4\fs20  keys, but they cannot be mixed in a single 
+\f3\fs18 Dictionary
+\f4\fs20  object.\
 Another alternative is to call 
 \f3\fs18 Dictionary()
 \f4\fs20  with a singleton 
@@ -581,14 +599,16 @@ A final alternative is to call
 \f1\fs22  properties\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 allKeys => (string)\
+\f3\i0\fs18 \cf2 allKeys => (is)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 A vector containing all of the 
 \f3\fs18 string
+\f4\fs20  or 
+\f3\fs18 integer
 \f4\fs20  keys that have been assigned values using 
 \f3\fs18 setValue()
-\f4\fs20 , in sorted (alphabetical) order.\
+\f4\fs20 , in sorted (ascending alphabetic or numeric) order.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf2 5.3.2  
@@ -740,7 +760,7 @@ If the values of
 \f4\fs20 , the key will be omitted from the returned dictionary.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(*)getValue(string$\'a0key)\
+\f3\fs18 \cf2 \'96\'a0(*)getValue(is$\'a0key)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Returns the value previously set for the dictionary entry identifier 
@@ -808,7 +828,9 @@ Note that if
 The default 
 \f3\fs18 "slim"
 \f4\fs20  format is intended for simple, informal use where a very easily parseable string is desired.  For a simple dictionary containing only keys with singleton non-object values, this will be a semicolon-delimited string like 
-\f3\fs18 "key1=value1;key2=value2;"
+\f3\fs18 '"string1"=value1;"string2"=value2;'
+\f4\fs20  or 
+\f3\fs18 'int1=value1;int2=value2;'
 \f4\fs20 .  Values of type 
 \f3\fs18 string
 \f4\fs20  will be quoted, and will be escaped with backslash escape sequences, including 
@@ -824,12 +846,16 @@ The default
 \f4\fs20 , and 
 \f3\fs18 \\n
 \f4\fs20 .  Values that are not singleton will be separated by spaces, such as 
-\f3\fs18 "key1=1 2 3;"
+\f3\fs18 '"string1"=1 2 3;'
 \f4\fs20 , while values that are themselves dictionaries will be delimited by braces, such as 
-\f3\fs18 "key1=\{key1=value1;key2=value2;\};"
-\f4\fs20 .  Keys, since they are also of type 
+\f3\fs18 '"string1"=\{int1=value1;int2=value2;\};'
+\f4\fs20 .  Keys that are of type 
 \f3\fs18 string
-\f4\fs20 , will be quoted and backslash-escaped if necessary, but simple keys that do not require that treatment will be serialized without quotes for simplicity.  No facility for parsing 
+\f4\fs20  will be quoted (always; note that this is a change in behavior starting in SLiM 4.1) and backslash-escaped (as needed, as for 
+\f3\fs18 string
+\f4\fs20  values); keys that are of type 
+\f3\fs18 integer
+\f4\fs20  are not quoted.  No facility for parsing 
 \f3\fs18 "slim"
 \f4\fs20  serializations back into Eidos is presently provided.\
 The 
@@ -860,7 +886,11 @@ The
 \f3\fs18 Dictionary("a", 1, "b", Dictionary("x", 2))
 \f4\fs20  would be serialized into JSON as 
 \f3\fs18 '\{"a":[1],"b":[\{"x":[2]\}]\}'
-\f4\fs20 .  Documentation on the JSON format can be found online.\
+\f4\fs20 .  Note that dictionaries that use 
+\f3\fs18 integer
+\f4\fs20  keys cannot be serialized into JSON, because JSON does not support 
+\f3\fs18 integer
+\f4\fs20  keys.  Documentation on the JSON format can be found online.\
 The 
 \f3\fs18 "csv"
 \f4\fs20  and 
@@ -883,7 +913,11 @@ The
 \f3\fs18 FALSE
 \f4\fs20 , without quotes.  A header line providing the names of the columns (i.e., the keys of the target 
 \f3\fs18 Dictionary
-\f4\fs20 ) will always be generated; those column names will also be quoted.  One 
+\f4\fs20 ) will always be generated; those column names will also be quoted (if the keys of the dictionary are type 
+\f3\fs18 string
+\f4\fs20 ; 
+\f3\fs18 integer
+\f4\fs20  keys are not quoted).  One 
 \f3\fs18 string
 \f4\fs20  element will be generated for each row of the target, plus one 
 \f3\fs18 string
@@ -898,12 +932,20 @@ The
 \f4\fs20  (as long as there are no ragged columns or missing values), as well as in other software such as R and Excel.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)setValue(string$\'a0key, *\'a0value)\
+\f3\fs18 \cf2 \'96\'a0(void)setValue(is$\'a0key, *\'a0value)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Sets a value for the dictionary entry identifier 
 \f3\fs18 key
-\f4\fs20 .  The value, which may be of any type, can be fetched later using 
+\f4\fs20 .  The key may be a 
+\f3\fs18 string
+\f4\fs20  or an 
+\f3\fs18 integer
+\f4\fs20 ; either is allowed, unless the target dictionary has already begun using keys of a given type, in which case it must continue using the same key type (a given dictionary cannot have both 
+\f3\fs18 string
+\f4\fs20  and 
+\f3\fs18 integer
+\f4\fs20  keys).  The value, which may be of any type, can be fetched later using 
 \f3\fs18 getValue()
 \f4\fs20 .  If 
 \f3\fs18 value

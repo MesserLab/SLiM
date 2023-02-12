@@ -25,14 +25,20 @@
 #include "eidos_class_Object.h"
 #include "json_fwd.hpp"
 
-
-#include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
 #include "robin_hood.h"
-typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
+typedef robin_hood::unordered_flat_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
 #elif STD_UNORDERED_MAP_HASHING
 #include <unordered_map>
-typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
+typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable_StringKeys;
+#endif
+
+#if EIDOS_ROBIN_HOOD_HASHING
+#include "robin_hood.h"
+typedef robin_hood::unordered_flat_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
+#elif STD_UNORDERED_MAP_HASHING
+#include <unordered_map>
+typedef std::unordered_map<int64_t, EidosValue_SP> EidosDictionaryHashTable_IntegerKeys;
 #endif
 
 
@@ -42,20 +48,37 @@ typedef std::unordered_map<std::string, EidosValue_SP> EidosDictionaryHashTable;
 
 extern EidosClass *gEidosDictionaryUnretained_Class;
 
-// This is a helper class for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
+// These are helpers for EidosDictionaryUnretained.  The purpose is to put all of its ivars into an allocated block,
 // so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
 // actually used (which it usually isn't, since many SLiM objects inherit from Dictionary but rarely use it).
-struct EidosDictionaryState
+//
+// EidosDictionary now supports keys that are either strings (the original semantics) or integers (new in SLiM 4.1).
+// A given dictionary must use one or the other; the key types cannot be mixed within one dictionary, for API and
+// implementation simplicity.  The keys_are_integers_ flag controls which type of key is used; this is set when this
+// struct is created.  Note that code in Eidos_WarmUp() verifies that this flag is at the same memory location in both
+// structs, so that we can access that flag without knowing which struct type we are using.
+//
+// The dictionary_symbols_ hash table contains the values we are tracking.  Note that DictionarySymbols() should be
+// used by all code that does not need to modify the dictionary.
+//
+// The dictionary_symbols_ hash table has no order for the keys.  We want to define an ordering; for Dictionary the
+// ordering is sorted, for DataFrame it is user-defined.  This vector determines the user-visible ordering.  Whenever
+// a new key is added, call KeyAddedToDictionary() to register it.  The SortedKeys() accessor should be used by all
+// code that does not need to modify the keys.
+struct EidosDictionaryState_StringKeys
 {
-	// This hash table contains the values we are tracking.  Note that DictionarySymbols() should be
-	// used by all code that does not need to modify the dictionary.
-	EidosDictionaryHashTable dictionary_symbols_;
+	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
 	
-	// The dictionary_symbols_ table has no order for the keys.  We want to define an ordering; for
-	// Dictionary the ordering is sorted, for DataFrame it is user-defined.  This vector determines
-	// the user-visible ordering.  Whenever a new key is added, call KeyAddedToDictionary() to register it.
-	// The SortedKeys() accessor should be used by all code that does not need to modify the keys.
+	EidosDictionaryHashTable_StringKeys dictionary_symbols_;
 	std::vector<std::string> sorted_keys_;
+};
+
+struct EidosDictionaryState_IntegerKeys
+{
+	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
+	
+	EidosDictionaryHashTable_IntegerKeys dictionary_symbols_;
+	std::vector<int64_t> sorted_keys_;
 };
 
 // This class is known in Eidos as "DictionaryBase"
@@ -65,7 +88,15 @@ private:
 	typedef EidosObject super;
 
 protected:
-	EidosDictionaryState *state_ptr_ = nullptr;
+	void *state_ptr_ = nullptr;	// pointer to EidosDictionaryState_StringKeys or EidosDictionaryState_IntegerKeys
+	
+	// Raise exceptions saying "keys are expected to be string, but are not string" etc.
+	virtual void Raise_UsesStringKeys(void) const;
+	virtual void Raise_UsesIntegerKeys(void) const;
+	
+	// Assert that our keys are of a given type; if not, an exception is raised; if it is undecided, neither method raises
+	inline void AssertKeysAreStrings(void) const { if (!KeysAreStrings()) Raise_UsesIntegerKeys(); }
+	inline void AssertKeysAreIntegers(void) const { if (!KeysAreIntegers()) Raise_UsesStringKeys(); }
 	
 public:
 	EidosDictionaryUnretained(const EidosDictionaryUnretained &p_original) = delete;				// no copy-construct
@@ -76,24 +107,52 @@ public:
 	{
 		if (state_ptr_)
 		{
-			delete state_ptr_;
+			if (KeysAreStrings())
+				delete (EidosDictionaryState_StringKeys *)state_ptr_;
+			else
+				delete (EidosDictionaryState_IntegerKeys *)state_ptr_;
+			
 			state_ptr_ = nullptr;
 		}
 	}
 	
+	// Test which type our keys are; if that is undecided, both methods return true
+	virtual bool KeysAreStrings(void) const { return (!state_ptr_ || !((EidosDictionaryState_StringKeys *)state_ptr_)->keys_are_integers_); }
+	virtual bool KeysAreIntegers(void) const { return (!state_ptr_ || ((EidosDictionaryState_IntegerKeys *)state_ptr_)->keys_are_integers_); }
+	
 	// Whenever possible, access should go through these accessors to control modification of our symbols
-	const EidosDictionaryHashTable *DictionarySymbols(void) const { return state_ptr_ ? &(state_ptr_->dictionary_symbols_) : nullptr; }
-	const std::vector<std::string> *SortedKeys(void) const { return state_ptr_ ? &(state_ptr_->sorted_keys_) : nullptr; }
+	const EidosDictionaryHashTable_StringKeys *DictionarySymbols_StringKeys(void) const { AssertKeysAreStrings(); return state_ptr_ ? &(((EidosDictionaryState_StringKeys *)state_ptr_)->dictionary_symbols_) : nullptr; }
+	const EidosDictionaryHashTable_IntegerKeys *DictionarySymbols_IntegerKeys(void) const { AssertKeysAreIntegers(); return state_ptr_ ? &(((EidosDictionaryState_IntegerKeys *)state_ptr_)->dictionary_symbols_) : nullptr; }
+	
+	const std::vector<std::string> *SortedKeys_StringKeys(void) const { AssertKeysAreStrings(); return state_ptr_ ? &(((EidosDictionaryState_StringKeys *)state_ptr_)->sorted_keys_) : nullptr; }
+	const std::vector<int64_t> *SortedKeys_IntegerKeys(void) const { AssertKeysAreIntegers(); return state_ptr_ ? &(((EidosDictionaryState_IntegerKeys *)state_ptr_)->sorted_keys_) : nullptr; }
 	
 	// This method must be called whenever a key is added to the DictionarySymbols(), to add it to SortedKeys() correctly
 	// The correct way to add new keys is different for Dictionary than for DataFrame, so always use this accessor
-	virtual void KeyAddedToDictionary(const std::string &p_key);
+	virtual void KeyAddedToDictionary_StringKeys(const std::string &p_key);
+	virtual void KeyAddedToDictionary_IntegerKeys(int64_t p_key);
 	
 	// This method must be called at the end of any code that changes the contents of the dictionary; it checks several invariants
 	// Low-level accessors (RemoveAllKeys(), SetKeyValue(), etc.) should *not* call this; the top-level code controlling the change should
 	virtual void ContentsChanged(const std::string &p_operation_name);
 	
-	int KeyCount(void) const { const std::vector<std::string> *keys = SortedKeys(); return keys ? (int)keys->size() : 0; }
+	int KeyCount(void) const
+	{
+		if (!state_ptr_)
+			return 0;
+		
+		if (KeysAreStrings())
+		{
+			const std::vector<std::string> *keys = SortedKeys_StringKeys();
+			return (int)keys->size();
+		}
+		else
+		{
+			const std::vector<int64_t> *keys = SortedKeys_IntegerKeys();
+			return (int)keys->size();
+		}
+	}
+	
 	virtual EidosValue_SP AllKeys(void) const;
 	
 	std::string Serialization_SLiM(void) const;
@@ -106,13 +165,27 @@ public:
 		if (state_ptr_)
 		{
 			// We keep state_ptr_ allocated to try to avoid allocation thrash
-			state_ptr_->dictionary_symbols_.clear();
-			state_ptr_->sorted_keys_.clear();
+			if (KeysAreStrings())
+			{
+				EidosDictionaryState_StringKeys *state_ptr = ((EidosDictionaryState_StringKeys *)state_ptr_);
+				
+				state_ptr->dictionary_symbols_.clear();
+				state_ptr->sorted_keys_.clear();
+			}
+			else
+			{
+				EidosDictionaryState_IntegerKeys *state_ptr = ((EidosDictionaryState_IntegerKeys *)state_ptr_);
+				
+				state_ptr->dictionary_symbols_.clear();
+				state_ptr->sorted_keys_.clear();
+			}
 		}
 	}
 	
-	void SetKeyValue(const std::string &key, EidosValue_SP value);
-	EidosValue_SP GetValueForKey(const std::string &key);
+	void SetKeyValue_StringKeys(const std::string &key, EidosValue_SP value);
+	void SetKeyValue_IntegerKeys(int64_t key, EidosValue_SP value);
+	EidosValue_SP GetValueForKey_StringKeys(const std::string &key);
+	EidosValue_SP GetValueForKey_IntegerKeys(int64_t key);
 	
 	void AddKeysAndValuesFrom(EidosDictionaryUnretained *p_source, bool p_allow_replace = true);
 	void AppendKeysAndValuesFrom(EidosDictionaryUnretained *p_source, bool p_require_column_match = false);

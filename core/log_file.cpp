@@ -46,6 +46,11 @@ LogFile::~LogFile(void)
 {
 }
 
+void LogFile::Raise_UsesStringKeys(void) const
+{
+	EIDOS_TERMINATION << "ERROR (LogFile::Raise_UsesStringKeys): cannot use an integer key with the target LogFile object; LogFile always uses string keys." << EidosTerminate(nullptr);
+}
+
 void LogFile::ConfigureFile(const std::string &p_filePath, std::vector<const std::string *> &p_initialContents, bool p_append, bool p_compress, const std::string &p_sep)
 {
 	user_file_path_ = p_filePath;
@@ -444,7 +449,7 @@ void LogFile::AppendNewRow(void)
 #endif
 					
 					if (generated_value_1->Type() != EidosValueType::kValueNULL)
-						SetKeyValue(column_names_[column_index], std::move(generated_value_1));
+						SetKeyValue_StringKeys(column_names_[column_index], std::move(generated_value_1));
 					
 					column_index++;
 					
@@ -454,7 +459,7 @@ void LogFile::AppendNewRow(void)
 					break;
 				}
 				case LogFileGeneratorType::kGenerator_SuppliedColumn:
-					generated_value = supplied_values_.GetValueForKey(column_names_[column_index]);
+					generated_value = supplied_values_.GetValueForKey_StringKeys(column_names_[column_index]);
 					break;
 			}
 			
@@ -471,7 +476,7 @@ void LogFile::AppendNewRow(void)
 #endif
 			
 			if (generated_value->Type() != EidosValueType::kValueNULL)
-				SetKeyValue(column_names_[column_index], std::move(generated_value));
+				SetKeyValue_StringKeys(column_names_[column_index], std::move(generated_value));
 			
 			column_index++;
 		}
@@ -1027,7 +1032,7 @@ EidosValue_SP LogFile::ExecuteMethod_setSuppliedValue(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setSuppliedValue): column name " << column_name << " is not a supplied column; use addSuppliedColumn() to create a column whose value can be supplied to LogFile." << EidosTerminate();
 	
 	// remember the supplied value
-	supplied_values_.SetKeyValue(column_name, value);
+	supplied_values_.SetKeyValue_StringKeys(column_name, value);
 	
 	return gStaticEidosValueVOID;
 }
@@ -1137,7 +1142,7 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
 		//methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
-		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddString_S("key")->AddAny("value")));
+		//methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_setValue, kEidosValueMaskVOID))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr)->AddAny("value")));
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

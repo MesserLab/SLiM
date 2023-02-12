@@ -38,6 +38,9 @@ class EidosDataFrame : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 	
+protected:
+	virtual void Raise_UsesStringKeys() const override;
+	
 public:
 	EidosDataFrame(const EidosDataFrame &p_original) = delete;		// no copy-construct
 	EidosDataFrame& operator=(const EidosDataFrame&) = delete;		// no copying
@@ -51,8 +54,13 @@ public:
 	EidosDataFrame *SubsetColumns(EidosValue *index_value);
 	EidosDataFrame *SubsetRows(EidosValue *index_value, bool drop = false);
 	
+	// custom behaviors for string/integer keys: DataFrame does not allow integer keys
+	virtual bool KeysAreStrings(void) const override { return true; }
+	virtual bool KeysAreIntegers(void) const override { return false; }
+	
 	// custom behaviors for addition of keys (don't sort) and contents change (check row lengths)
-	virtual void KeyAddedToDictionary(const std::string &p_key) override;
+	virtual void KeyAddedToDictionary_StringKeys(const std::string &p_key) override;
+	virtual void KeyAddedToDictionary_IntegerKeys(int64_t p_key) override;
 	virtual void ContentsChanged(const std::string &p_operation_name) override;
 	
 	//

@@ -420,7 +420,21 @@ void Eidos_WarmUp(void)
 			std::cerr << "***** Class name mismatch in Eidos_WarmUp()!";
 			exit(EXIT_FAILURE);
 		}
-
+		
+		// Check that EidosDictionaryState_StringKeys and EidosDictionaryState_IntegerKeys have matching layouts
+		// as far as keys_are_integers_ is concerned, so that that flag can distinguish between them
+		{
+			void *dict_state_ptr = nullptr;
+			uint8_t *flag_addr_string_keys = &(((EidosDictionaryState_StringKeys *)dict_state_ptr)->keys_are_integers_);
+			uint8_t *flag_addr_integer_keys = &(((EidosDictionaryState_IntegerKeys *)dict_state_ptr)->keys_are_integers_);
+			
+			if (flag_addr_string_keys != flag_addr_integer_keys)
+			{
+				std::cerr << "***** EidosDictionaryState layout mismatch in Eidos_WarmUp()!";
+				exit(EXIT_FAILURE);
+			}
+		}
+		
 #if (defined(_MSC_VER) && _MSC_VER <= 1900) || (defined(__MINGW32__) && !defined(_UCRT))
 		// Work around non-conformance of Microsoft's printf %e format specifier,
 		// which uses 3 digits for the exponent instead of 2.

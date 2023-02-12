@@ -61,6 +61,9 @@ class LogFile : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 
+protected:
+	virtual void Raise_UsesStringKeys() const override;
+	
 #ifdef SLIMGUI
 public:
 #else

@@ -2683,9 +2683,12 @@ EidosValue_SP Species::ExecuteMethod_readFromPopulationFile(EidosGlobalStringID 
 		EidosDictionaryUnretained *subpopMap_dict = dynamic_cast<EidosDictionaryUnretained *>(subpopMap_element);
 		
 		if (!subpopMap_dict)
-			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): (internal) subpopMap object did not convert to EidosDictionaryUnretained." << EidosTerminate();	// should never happen
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): (internal) subpopMap object did not convert to EidosDictionaryUnretained." << EidosTerminate();
 		
-		const EidosDictionaryHashTable *subpopMap_hash = subpopMap_dict->DictionarySymbols();
+		if (!subpopMap_dict->KeysAreStrings())
+			EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_readFromPopulationFile): subpopMap must use strings for its keys; integer keys are not presently supported." << EidosTerminate();
+		
+		const EidosDictionaryHashTable_StringKeys *subpopMap_hash = subpopMap_dict->DictionarySymbols_StringKeys();
 		
 		for (auto &subpopMap_pair : *subpopMap_hash)
 		{
