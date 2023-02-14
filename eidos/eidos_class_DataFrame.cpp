@@ -189,6 +189,9 @@ void EidosDataFrame::KeyAddedToDictionary_StringKeys(const std::string &p_key)
 	
 	AssertKeysAreStrings();
 	
+	// call super
+	super::KeyAddedToDictionary_StringKeys(p_key);
+	
 	// Maintain our user-defined key ordering
 	auto iter = std::find(sorted_keys_.begin(), sorted_keys_.end(), p_key);
 	
@@ -196,13 +199,16 @@ void EidosDataFrame::KeyAddedToDictionary_StringKeys(const std::string &p_key)
 		sorted_keys_.emplace_back(p_key);
 }
 
-void EidosDataFrame::KeyAddedToDictionary_IntegerKeys(int64_t p_key)
+void EidosDataFrame::KeyAddedToDictionary_IntegerKeys(__attribute__((unused)) int64_t p_key)
 {
 	EIDOS_TERMINATION << "ERROR (EidosDataFrame::KeyAddedToDictionary_IntegerKeys): (internal error) DataFrame does not support integer keys." << EidosTerminate(nullptr);
 }
 
 void EidosDataFrame::KeyRemovedFromDictionary_StringKeys(const std::string &p_key)
 {
+	// call super
+	super::KeyRemovedFromDictionary_StringKeys(p_key);
+	
 	// Maintain our user-defined key ordering
 	auto iter = std::find(sorted_keys_.begin(), sorted_keys_.end(), p_key);
 	
@@ -210,13 +216,16 @@ void EidosDataFrame::KeyRemovedFromDictionary_StringKeys(const std::string &p_ke
 		sorted_keys_.erase(iter);
 }
 
-void EidosDataFrame::KeyRemovedFromDictionary_IntegerKeys(int64_t p_key)
+void EidosDataFrame::KeyRemovedFromDictionary_IntegerKeys(__attribute__((unused)) int64_t p_key)
 {
 	EIDOS_TERMINATION << "ERROR (EidosDataFrame::KeyRemovedFromDictionary_IntegerKeys): (internal error) DataFrame does not support integer keys." << EidosTerminate(nullptr);
 }
 
 void EidosDataFrame::AllKeysRemoved(void)
 {
+	// call super
+	super::AllKeysRemoved();
+	
 	// Maintain our user-defined key ordering
 	sorted_keys_.clear();
 }
@@ -224,6 +233,9 @@ void EidosDataFrame::AllKeysRemoved(void)
 void EidosDataFrame::ContentsChanged(const std::string &p_operation_name)
 {
 	AssertKeysAreStrings();
+	
+	// call super
+	super::ContentsChanged(p_operation_name);
 	
 	if (!state_ptr_)
 		return;

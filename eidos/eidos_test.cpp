@@ -52,6 +52,7 @@ static int gEidosTestFailureCount = 0;
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result)
 {
+	{
 	EidosScript script(p_script_string, -1);
 	EidosValue_SP result;
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
@@ -138,6 +139,12 @@ void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP 
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (EidosAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logical_t p_logical)
@@ -193,6 +200,7 @@ void EidosAssertScriptSuccess_SV(const std::string &p_script_string, std::initia
 // Instantiates and runs the script, and prints an error if the script does not cause an exception to be raised
 void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_position, const char *p_reason_snip)
 {
+	{
 	std::string reason_snip(p_reason_snip);
 	EidosScript script(p_script_string, -1);
 	EidosSymbolTable symbol_table(EidosSymbolTableType::kGlobalVariablesTable, gEidosConstantsSymbolTable);
@@ -265,6 +273,12 @@ void EidosAssertScriptRaise(const std::string &p_script_string, const int p_bad_
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (EidosAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 int RunEidosTests(void)

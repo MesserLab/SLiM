@@ -947,21 +947,24 @@ The
 \f3\fs18 integer
 \f4\fs20  keys).  The value, which may be of any type, can be fetched later using 
 \f3\fs18 getValue()
-\f4\fs20 .  If 
+\f4\fs20 .  Setting a key to a value of 
+\f3\fs18 NULL
+\f4\fs20  removes that key from the dictionary.\
+If 
 \f3\fs18 value
 \f4\fs20  is of type 
 \f3\fs18 object
-\f4\fs20 , the object class must internally be under retain-release memory management; among SLiM\'92s Eidos classes, only 
-\f3\fs18 Chromosome
+\f4\fs20 , any 
+\f3\fs18 object
+\f4\fs20  class is allowed; all objects may be added as values to a dictionary.  However, additional scoping restrictions may apply if the 
+\f3\fs18 object
+\f4\fs20  class is not under an internal memory-management scheme called \'93retain-release\'94; in particular, it may not be legal to keep an object in a dictionary \'93long term\'94 if it is not under retain-release, where \'93long term\'94 is a scoping semantic defined by the Context.  All object classes defined by Eidos itself (
+\f3\fs18 Dictionary
 \f4\fs20 , 
-\f3\fs18 Mutation
-\f4\fs20 , and 
-\f3\fs18 Substitution
-\f4\fs20  presently are (see the Eidos manual\'92s documentation for 
-\f3\fs18 defineConstant()
-\f4\fs20  for further discussion).  Setting a key to a value of 
-\f3\fs18 NULL
-\f4\fs20  removes that key from the dictionary.\
+\f3\fs18 DataFrame
+\f4\fs20 , 
+\f3\fs18 Image
+\f4\fs20 ) are under retain-release, so this restriction does not affect pure Eidos code.  See the SLiM manual (section \'93SLiM scoping rules\'94) for further discussion of this topic.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf2 5.4  Class Image\

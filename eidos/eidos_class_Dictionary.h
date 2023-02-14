@@ -58,6 +58,14 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 // struct is created.  Note that code in Eidos_WarmUp() verifies that this flag is at the same memory location in both
 // structs, so that we can access that flag without knowing which struct type we are using.
 //
+// EidosDictionary also (as of SLiM 4.1) can contain objects of any class.  It used to only allow objects that are
+// under the "retain-release" memory management system, in order to guarantee that no objects were kept long-term
+// unless under retain-release.  That guarantee is now satisfied, instead, by EidosDictionaryUnretained keeping
+// track of whether it contains non-retain-release objects, with a flag, and a global counter keeps track of how
+// many such dictionaries are extant.  That counter can be checked to throw an error if a non-retain-release object
+// is kept across a "long-term boundary" (a point in the code when non-retain-release objects are freed and references
+// to them would become stale).  The contains_non_retain_release_objects_ flag tracks this state.
+//
 // The dictionary_symbols_ hash table contains the values we are tracking.  Note that DictionarySymbols() should be
 // used by all code that does not need to modify the dictionary.
 //
@@ -70,14 +78,20 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 struct EidosDictionaryState_StringKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
+	uint8_t contains_non_retain_release_objects_;	// 0 if none are contained, 1 if any are contained
 	EidosDictionaryHashTable_StringKeys dictionary_symbols_;
 };
 
 struct EidosDictionaryState_IntegerKeys
 {
 	uint8_t keys_are_integers_;		// 0 for EidosDictionaryState_StringKeys, 1 for EidosDictionaryState_IntegerKeys
+	uint8_t contains_non_retain_release_objects_;	// 0 if none are contained, 1 if any are contained
 	EidosDictionaryHashTable_IntegerKeys dictionary_symbols_;
 };
+
+// This is a global counter of how many dictionaries exist that have their contains_non_retain_release_objects_ set.
+// It can be checked at "long-term boundaries" to ensure that only retain-released objects are kept long term.
+extern int64_t gEidos_DictionaryNonRetainReleaseReferenceCounter;
 
 // This class is known in Eidos as "DictionaryBase"
 class EidosDictionaryUnretained : public EidosObject
@@ -101,18 +115,7 @@ public:
 	EidosDictionaryUnretained& operator= (const EidosDictionaryUnretained &p_original) = delete;	// no assignment
 	inline EidosDictionaryUnretained(void) { }
 	
-	inline virtual ~EidosDictionaryUnretained(void) override
-	{
-		if (state_ptr_)
-		{
-			if (KeysAreStrings())
-				delete (EidosDictionaryState_StringKeys *)state_ptr_;
-			else
-				delete (EidosDictionaryState_IntegerKeys *)state_ptr_;
-			
-			state_ptr_ = nullptr;
-		}
-	}
+	virtual ~EidosDictionaryUnretained(void) override;
 	
 	// Test which type our keys are; if that is undecided, both methods return true
 	virtual bool KeysAreStrings(void) const { return (!state_ptr_ || !((EidosDictionaryState_StringKeys *)state_ptr_)->keys_are_integers_); }
@@ -127,6 +130,7 @@ public:
 	virtual std::vector<int64_t> SortedKeys_IntegerKeys(void) const;
 	
 	// These methods must always be called when a key is added or removed, to allow subclasses like DataFrame to do additional work
+	// Subclassers should call super; the base class may have essential behavior
 	virtual void KeyAddedToDictionary_StringKeys(const std::string &p_key);
 	virtual void KeyAddedToDictionary_IntegerKeys(int64_t p_key);
 	virtual void KeyRemovedFromDictionary_StringKeys(const std::string &p_key);
@@ -135,6 +139,7 @@ public:
 	
 	// This method must be called at the end of any code that changes the contents of the dictionary; it checks several invariants
 	// Low-level accessors (RemoveAllKeys(), SetKeyValue(), etc.) should *not* call this; the top-level code controlling the change should
+	// Subclassers should call super; the base class may have essential behavior
 	virtual void ContentsChanged(const std::string &p_operation_name);
 	
 	int KeyCount(void) const

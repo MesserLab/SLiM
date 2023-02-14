@@ -395,6 +395,7 @@ void Eidos_WarmUp(void)
 		gEidosDataFrame_Class =				new EidosDataFrame_Class(				gEidosStr_DataFrame,		gEidosDictionaryRetained_Class);
 		gEidosImage_Class =					new EidosImage_Class(					gEidosStr_Image,			gEidosDictionaryRetained_Class);
 		gEidosTestElement_Class =			new EidosTestElement_Class(				gEidosStr__TestElement,		gEidosDictionaryRetained_Class);
+		gEidosTestElementNRR_Class =		new EidosTestElementNRR_Class(			gEidosStr__TestElementNRR,	gEidosObject_Class);
 		
 		// This has to be allocated after gEidosObject_Class has been initialized above; the other global permanents must be initialized
 		// before that point, however, since properties and method signatures may use some of those global permanent values
@@ -427,8 +428,10 @@ void Eidos_WarmUp(void)
 			void *dict_state_ptr = nullptr;
 			uint8_t *flag_addr_string_keys = &(((EidosDictionaryState_StringKeys *)dict_state_ptr)->keys_are_integers_);
 			uint8_t *flag_addr_integer_keys = &(((EidosDictionaryState_IntegerKeys *)dict_state_ptr)->keys_are_integers_);
+			uint8_t *flag_addr_string_contains = &(((EidosDictionaryState_StringKeys *)dict_state_ptr)->contains_non_retain_release_objects_);
+			uint8_t *flag_addr_integer_contains = &(((EidosDictionaryState_IntegerKeys *)dict_state_ptr)->contains_non_retain_release_objects_);
 			
-			if (flag_addr_string_keys != flag_addr_integer_keys)
+			if ((flag_addr_string_keys != flag_addr_integer_keys) || (flag_addr_string_contains != flag_addr_integer_contains))
 			{
 				std::cerr << "***** EidosDictionaryState layout mismatch in Eidos_WarmUp()!";
 				exit(EXIT_FAILURE);
@@ -1026,6 +1029,28 @@ std::string Eidos_GetUntrimmedRaiseMessage(void)
 	{
 		return gEidosStr_empty_string;
 	}
+}
+
+
+#pragma mark -
+#pragma mark Debugging support
+#pragma mark -
+
+void CheckLongTermBoundary()
+{
+	THREAD_SAFETY_CHECK("CheckLongTermBoundary(): illegal when parallel");
+	
+	// Right now, EidosDictionary is the only part of Eidos that is smart about long-term
+	// boundaries, so we just need to check its state.  But in future, we could allow the
+	// user to call defineGlobal() with a non-retain-release object as long as they fix
+	// the reference by the next long-term boundary.
+	bool violation = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter != 0)
+		violation = true;
+	
+	if (violation)
+		EIDOS_TERMINATION << "ERROR (CheckLongTermBoundary): A long-term reference has been kept to an Eidos object that is not under retain-release memory management.  For example, a SLiM Individual or Subpopulation may have been placed in a global dictionary.  This is illegal; only objects that are under retain-release memory management can be kept long-term." << EidosTerminate(nullptr);
 }
 
 
@@ -3049,6 +3074,7 @@ const std::string &gEidosStr_stringRepresentation = EidosRegisteredString("strin
 
 // strings for EidosTestElement
 const std::string &gEidosStr__TestElement = EidosRegisteredString("_TestElement", gEidosID__TestElement);
+const std::string &gEidosStr__TestElementNRR = EidosRegisteredString("_TestElementNRR", gEidosID__TestElementNRR);
 const std::string &gEidosStr__yolk = EidosRegisteredString("_yolk", gEidosID__yolk);
 const std::string &gEidosStr__increment = EidosRegisteredString("_increment", gEidosID__increment);
 const std::string &gEidosStr__cubicYolk = EidosRegisteredString("_cubicYolk", gEidosID__cubicYolk);

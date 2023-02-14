@@ -1438,6 +1438,30 @@ void _RunClassTests(std::string temp_path)
 		}
 	}
 	
+	// Test EidosDictionary's interaction with retain-released and non-retain-released objects using EidosTestElement and EidosTestElementNRR
+	// Note that these tests will leak instances of EidosTestElementNRR; since it is not under retain-release there is no way to know when to release it!
+	// They will also cause warning to be emitted to the console, so they are disabled by default; but they worked last time I checked
+#if 0
+	EidosAssertScriptSuccess_L("_Test(5000); T;", true);
+	EidosAssertScriptSuccess_L("_TestNRR(5001); T;", true);
+	EidosAssertScriptSuccess_L("x = _Test(5002); T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5003); T;", true);
+	EidosAssertScriptSuccess_L("x = _Test(5004); x = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5005); x = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _Test(5006); y = Dictionary('a', x); T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5007); y = Dictionary('a', x); T;", true);											// logs - y references x
+	EidosAssertScriptSuccess_L("x = _Test(5008); y = Dictionary('a', x); y = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5009); y = Dictionary('a', x); y = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _Test(5010); y = Dictionary('a', x); z = Dictionary(y); y = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5011); y = Dictionary('a', x); z = Dictionary(y); y = 5; T;", true);				// logs - z references x (copied from y)
+	EidosAssertScriptSuccess_L("x = _Test(5011); y = Dictionary('a', x); z = Dictionary(y); y = 5; z = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5012); y = Dictionary('a', x); z = Dictionary(y); y = 5; z = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _Test(5013); y = Dictionary('a', x); z = Dictionary('b', y); y = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5014); y = Dictionary('a', x); z = Dictionary('b', y); y = 5; T;", true);			// logs - z retains y, which references x
+	EidosAssertScriptSuccess_L("x = _Test(5015); y = Dictionary('a', x); z = Dictionary('b', y); y = 5; z = 5; T;", true);
+	EidosAssertScriptSuccess_L("x = _TestNRR(5016); y = Dictionary('a', x); z = Dictionary('b', y); y = 5; z = 5; T;", true);
+#endif
+	
 	// Test EidosImage properties and methods – but how?  If it were possible to construct an Image from a matrix, that would provide an avenue for testing...
 	// That is what we do here now, but we can only test grayscale images since we can only generate grayscale images, at present... FIXME
 	EidosAssertScriptSuccess_L("m = matrix(0:14, nrow=3, ncol=5); i = Image(m); i.bitsPerChannel == 8;", true);

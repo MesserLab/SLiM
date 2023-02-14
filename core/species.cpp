@@ -387,6 +387,9 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 	if (file_format == SLiMFileFormat::kFormatUnrecognized)
 		EIDOS_TERMINATION << "ERROR (Species::InitializePopulationFromFile): initialization file is invalid." << EidosTerminate();
 	
+	// readPopulationFromFile() should define a long-term boundary; the user shouldn't keep references to non-retain-release objects across it
+	CheckLongTermBoundary();
+	
 	// start by cleaning out all variable/constant references to the species or any population object underneath it
 	_CleanAllReferencesToSpecies(p_interpreter);
 	

@@ -19,8 +19,8 @@
 
 /*
  
- The class EidosTestElement is an object element class (i.e. an element class for EidosValue_Object) for testing of Eidos's objects.
- It just encapsulates an integer value, so it is not useful for anything but testing.
+ Two classes are defined in this file, EidosTestElement and EidosTestElementNRR.  They are object element classes
+ (i.e. element classes for EidosValue_Object) for testing of Eidos's objects.  They are not user-visible.
  
  */
 
@@ -29,6 +29,13 @@
 
 #include "eidos_value.h"
 
+
+//
+// EidosTestElement is used for testing.  It is a subclass of EidosDictionaryRetained,
+// and is under retain-release.  It is instantiated with a hidden constructor:
+//
+//		(object<_TestElement>$)_Test(integer$ value)
+//
 
 extern EidosClass *gEidosTestElement_Class;
 
@@ -80,6 +87,58 @@ public:
 	virtual const std::vector<EidosMethodSignature_CSP> *Methods(void) const override;
 	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
 };
+
+
+//
+// EidosTestElementNRR is used for testing.  It is a direct subclass of EidosObject and is
+// not under retain-release (thus "NRR").  It is instantiated with a hidden constructor:
+//
+//		(object<_TestElementNRR>$)_TestNRR(integer$ value)
+//
+
+extern EidosClass *gEidosTestElementNRR_Class;
+
+
+class EidosTestElementNRR : public EidosObject
+{
+private:
+	typedef EidosObject super;
+
+private:
+	int64_t yolk_;
+	
+public:
+	EidosTestElementNRR(const EidosTestElementNRR &p_original) = delete;	// no copy-construct
+	EidosTestElementNRR& operator=(const EidosTestElementNRR&) = delete;	// no copying
+	
+	explicit EidosTestElementNRR(int64_t p_value);
+	virtual ~EidosTestElementNRR(void) override;
+	
+	//
+	// Eidos support
+	//
+	virtual const EidosClass *Class(void) const override;
+	virtual void Print(std::ostream &p_ostream) const override;
+	
+	virtual EidosValue_SP GetProperty(EidosGlobalStringID p_property_id) override;
+	virtual void SetProperty(EidosGlobalStringID p_property_id, const EidosValue &p_value) override;
+};
+
+class EidosTestElementNRR_Class : public EidosClass
+{
+private:
+	typedef EidosClass super;
+
+public:
+	EidosTestElementNRR_Class(const EidosTestElementNRR_Class &p_original) = delete;	// no copy-construct
+	EidosTestElementNRR_Class& operator=(const EidosTestElementNRR_Class&) = delete;	// no copying
+	inline EidosTestElementNRR_Class(const std::string &p_class_name, EidosClass *p_superclass) : super(p_class_name, p_superclass) { }
+	
+	virtual const std::vector<EidosPropertySignature_CSP> *Properties(void) const override;
+	virtual const std::vector<EidosFunctionSignature_CSP> *Functions(void) const override;
+};
+
+
 
 
 #endif /* defined(__Eidos__eidos_class_test_element__) */

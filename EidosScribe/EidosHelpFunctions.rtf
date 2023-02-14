@@ -4914,6 +4914,7 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -5460,20 +5461,7 @@ If
 \f1\fs18 symbol
 \f3\fs20  and the value specified by 
 \f1\fs18 value
-\f3\fs20 .  Syntactically, the value may be any value at all; semantically, however, if 
-\f1\fs18 value
-\f3\fs20  is of 
-\f1\fs18 object
-\f3\fs20  type then 
-\f1\fs18 value
-\f3\fs20 \'92s class must be under retain/release memory management internally.  This restriction is necessary because if the Context defines the point in time when a given object ceases to exist (rather than that being governed by retain/release), then a defined constant referencing that object would become invalid, which must be prevented.  At present, among the classes defined by SLiM, only 
-\f1\fs18 Chromosome
-\f3\fs20 , 
-\f1\fs18 Mutation
-\f3\fs20 , and 
-\f1\fs18 Substitution
-\f3\fs20  are under retain/release; all object classes built into Eidos are under retain/release.\
-The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
+\f3\fs20 .  The name cannot previously be defined in any way (i.e., as either a variable or a constant).  The defined constant acts identically to intrinsic Eidos constants such as 
 \f1\fs18 T
 \f3\fs20 , 
 \f1\fs18 NAN
@@ -5486,34 +5474,39 @@ The name cannot previously be defined in any way (i.e., as either a variable or 
 \f3\fs20 , 
 \f1\fs18 sapply()
 \f3\fs20 , or a Context-defined script block.\
+Syntactically, 
+\f1\fs18 value
+\f3\fs20  may be any value at all; semantically, however, if 
+\f1\fs18 value
+\f3\fs20  is of 
+\f1\fs18 object
+\f3\fs20  type then 
+\f1\fs18 value
+\f3\fs20 \'92s class must be under an internal memory-management scheme called \'93retain-release\'94.  Objects that are not under retain-release can cease to exist whenever the Context is finished using them, and thus a defined constant referencing such an object could become invalid, which must be prevented.  Objects that are under retain-release will not cease to exist if they are referenced by a global constant; the reference to them from the global constant \'93retains\'94 them and keeps them in existence.  All object classes built into Eidos are under retain-release; see the SLiM manual (section \'93SLiM scoping rules\'94) for discussion of which SLiM object classes are under retain-release.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)defineGlobal(string$\'a0symbol, *\'a0value)\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Defines a new global variable
 \f3\b0  with the name 
 \f1\fs18 symbol
 \f3\fs20  and the value specified by 
 \f1\fs18 value
-\f3\fs20 .  Syntactically, the value may be any value at all; semantically, however, if 
+\f3\fs20 .  The name cannot previously be defined as a constant.  The result is similar to a standard variable assignment with operator 
+\f1\fs18 =
+\f3\fs20 , except that the variable is always defined in the global scope (even if the 
+\f1\fs18 defineGlobal()
+\f3\fs20  call is made inside a user-defined function or other locally-scoped block, such as a SLiM event or callback).  This means that the variable will remain defined even after the current scope is exited.  Note that global variables can be hidden by local variables with the same name; unlike defined constants, such scoped masking is allowed.\
+Syntactically, 
+\f1\fs18 value
+\f3\fs20  may be any value at all; semantically, however, if 
 \f1\fs18 value
 \f3\fs20  is of 
 \f1\fs18 object
 \f3\fs20  type then 
 \f1\fs18 value
-\f3\fs20 \'92s class must be under retain/release memory management internally.  This restriction is necessary because if the Context defines the point in time when a given object ceases to exist (rather than that being governed by retain/release), then a defined global variable referencing that object would become invalid, which must be prevented.  At present, among the classes defined by SLiM, only 
-\f1\fs18 Chromosome
-\f3\fs20 , 
-\f1\fs18 Mutation
-\f3\fs20 , and 
-\f1\fs18 Substitution
-\f3\fs20  are under retain/release; all object classes built into Eidos are under retain/release.\
-The name cannot previously be defined as a constant.  The result is similar to a standard variable assignment with operator 
-\f1\fs18 =
-\f3\fs20 , except that the variable is always defined in the global scope (even if the 
-\f1\fs18 defineGlobal()
-\f3\fs20  call is made inside a user-defined function or other locally-scoped block, such as a SLiM event or callback).  This means that the variable will remain defined even after the current scope is exited.  Note that global variables can be hidden by local variables with the same name; unlike defined constants, such scoped masking is allowed.\
+\f3\fs20 \'92s class must be under an internal memory-management scheme called \'93retain-release\'94.  Objects that are not under retain-release can cease to exist whenever the Context is finished using them, and thus a global variable referencing such an object could become invalid, which must be prevented.  Objects that are under retain-release will not cease to exist if they are referenced by a global variable; the reference to them from the global variable \'93retains\'94 them and keeps them in existence.  All object classes built into Eidos are under retain-release; see the SLiM manual (section \'93SLiM scoping rules\'94) for discussion of which SLiM object classes are under retain-release.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (\cf2 \expnd0\expndtw0\kerning0
@@ -5798,8 +5791,9 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

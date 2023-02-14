@@ -45,6 +45,7 @@ static int gSLiMTestFailureCount = 0;
 // Instantiates and runs the script, and prints an error if the result does not match expectations
 void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumber)
 {
+	{
 	gSLiMTestFailureCount++;	// assume failure; we will fix this at the end if we succeed
 	
 	Community *community = nullptr;
@@ -96,10 +97,17 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (SLiMAssertScriptSuccess): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string &p_reason_snip, int p_lineNumber, bool p_expect_error_position)
 {
+	{
 	Community *community = nullptr;
 	
 	try {
@@ -197,10 +205,17 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (SLiMAssertScriptRaise): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 {
+	{
 	Community *community = nullptr;
 	
 	try {
@@ -257,6 +272,12 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	
 	gEidosErrorContext.currentScript = nullptr;
 	gEidosErrorContext.executingRuntimeScript = false;
+	
+	if (gEidos_DictionaryNonRetainReleaseReferenceCounter > 0)
+		std::cerr << "WARNING (SLiMAssertScriptStop): gEidos_DictionaryNonRetainReleaseReferenceCounter == " << gEidos_DictionaryNonRetainReleaseReferenceCounter << " at end of test!" << std::endl;
+	}
+	
+	gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
 }
 
 
@@ -487,6 +508,56 @@ void _RunBasicTests(void)
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction(NULL,'F') {subpop.addCrossed(individual, subpop.sampleIndividuals(1,sex='M'));} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addCloned(individual);} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
 	SLiMAssertScriptStop("initialize() {initializeSLiMModelType('nonWF');initializeSex('Y');} reproduction() {subpop.addEmpty();} 1 early() {sim.addSubpop('p1', 20);} early() {p1.fitnessScaling = 20 / p1.individualCount;} 5 late() {stop();}", __LINE__);
+	
+	// Test "long-term boundary" checks; note that Eidos has more complete checks in eidos_test_functions_other.cpp,
+	// so here we are only testing specifically that SLiM catches long-term boundary violations correctly
+	std::string ltb1_script(R"V0G0N(
+							
+							initialize() {
+							initializeMutationRate(1e-7);
+							initializeMutationType('m1', 0.5, 'f', 0.0);
+							initializeGenomicElementType('g1', m1, 1.0);
+							initializeGenomicElement(g1, 0, 99999);
+							initializeRecombinationRate(1e-8);
+							}
+							1 early() { sim.addSubpop('p1', 500); x = Dictionary('a', p1); }
+							5 late() { sim.outputFull(); }
+							
+							)V0G0N");
+	
+	SLiMAssertScriptSuccess(ltb1_script);	// x is scoped, so there is no long-term reference
+	
+	std::string ltb2_script(R"V0G0N(
+							
+							initialize() {
+							initializeMutationRate(1e-7);
+							initializeMutationType('m1', 0.5, 'f', 0.0);
+							initializeGenomicElementType('g1', m1, 1.0);
+							initializeGenomicElement(g1, 0, 99999);
+							initializeRecombinationRate(1e-8);
+							}
+							1 early() { sim.addSubpop('p1', 500); defineGlobal('x', Dictionary('a', p1)); }
+							5 late() { sim.outputFull(); }
+							
+							)V0G0N");
+	
+	SLiMAssertScriptRaise(ltb2_script, "long-term reference has been kept", 0, false);	// x is not scoped, so there is a long-term reference
+	
+	std::string ltb3_script(R"V0G0N(
+							
+							initialize() {
+							initializeMutationRate(1e-7);
+							initializeMutationType('m1', 0.5, 'f', 0.0);
+							initializeGenomicElementType('g1', m1, 1.0);
+							initializeGenomicElement(g1, 0, 99999);
+							initializeRecombinationRate(1e-8);
+							}
+							1 early() { sim.addSubpop('p1', 500); sim.setValue('x', Dictionary('a', p1)); }
+							5 late() { sim.outputFull(); }
+							
+							)V0G0N");
+	
+	SLiMAssertScriptRaise(ltb3_script, "long-term reference has been kept", 0, false);	// sim.getValue('x') is not scoped, so there is a long-term reference
 }
 
 #pragma mark Individual relatedness tests

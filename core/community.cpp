@@ -1699,6 +1699,7 @@ bool Community::_RunOneTick(void)
 	if (tick_ == 0)
 	{
 		AllSpecies_RunInitializeCallbacks();
+		CheckLongTermBoundary();
 		return true;
 	}
 	else
@@ -2014,6 +2015,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	// ******************************************************************
@@ -2041,6 +2043,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2094,6 +2097,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2127,6 +2131,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2152,6 +2157,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2180,6 +2186,7 @@ bool Community::_RunOneTickWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_CheckIntegrity();
 	
 	
@@ -2229,6 +2236,8 @@ bool Community::_RunOneTickWF(void)
 			species->population_.SurveyPopulation();
 #endif
 	}
+	
+	CheckLongTermBoundary();
 	
 	
 	// ******************************************************************
@@ -2330,6 +2339,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2427,6 +2437,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2456,6 +2467,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2503,6 +2515,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2542,6 +2555,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2568,6 +2582,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	
@@ -2602,6 +2617,7 @@ bool Community::_RunOneTickNonWF(void)
 #endif
 	}
 	
+	CheckLongTermBoundary();
 	AllSpecies_PurgeRemovedObjects();
 	AllSpecies_CheckIntegrity();
 	

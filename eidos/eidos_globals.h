@@ -215,6 +215,15 @@ public:
 };
 #endif
 
+// Eidos defines the concept of "long-term boundaries", which are moments in time when Eidos objects
+// that are not under retain-release memory management could be freed.  Keeping a reference to such
+// an object between long-term boundaries is generally safe; keeping a reference to such an object
+// across a long-term boundary is generally NOT safe.  This function should be called, internally by
+// Eidos and externally by the Context, at such boundaries, and code should not free Eidos objects
+// (except local temporaries) without calling this function first.  This allows internal bookkeeping
+// to check for violations of the long-term boundary conventions.
+void CheckLongTermBoundary();
+
 
 // *******************************************************************************************************************
 //
@@ -905,6 +914,7 @@ extern const std::string &gEidosStr_str;
 extern const std::string &gEidosStr_stringRepresentation;
 
 extern const std::string &gEidosStr__TestElement;
+extern const std::string &gEidosStr__TestElementNRR;
 extern const std::string &gEidosStr__yolk;
 extern const std::string &gEidosStr__increment;
 extern const std::string &gEidosStr__cubicYolk;
@@ -1028,6 +1038,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_stringRepresentation,
 
 	gEidosID__TestElement,
+	gEidosID__TestElementNRR,
 	gEidosID__yolk,
 	gEidosID__increment,
 	gEidosID__cubicYolk,

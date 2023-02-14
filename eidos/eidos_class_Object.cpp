@@ -303,6 +303,7 @@ std::vector<EidosClass *> EidosClass::RegisteredClasses(bool p_builtin, bool p_c
 		// heuristic that wouldn't hard-code some detail about SLiM here...
 		if ((class_object == gEidosObject_Class) ||
 			(class_object == gEidosTestElement_Class) ||
+			(class_object == gEidosTestElementNRR_Class) ||
 			(class_object == gEidosDictionaryUnretained_Class) ||
 			(class_object == gEidosDictionaryRetained_Class) ||
 			(class_object == gEidosDataFrame_Class) ||

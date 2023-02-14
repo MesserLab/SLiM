@@ -31,12 +31,48 @@
 #include <string>
 
 
+int64_t gEidos_DictionaryNonRetainReleaseReferenceCounter = 0;
+
+
 //
 // EidosDictionaryUnretained
 //
 #pragma mark -
 #pragma mark EidosDictionaryUnretained
 #pragma mark -
+
+EidosDictionaryUnretained::~EidosDictionaryUnretained(void)
+{
+	// maintain the global counter of dictionaries that contain non-retain-released objects
+	if (state_ptr_)
+	{
+		uint8_t contains = ((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_;
+		
+		if (contains)
+		{
+#pragma omp critical (EidosDictionary_Internal)
+			{
+				gEidos_DictionaryNonRetainReleaseReferenceCounter--;
+				
+				if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
+					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::~EidosDictionaryUnretained): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative" << EidosTerminate(nullptr);
+				
+				//std::cerr << "=== dictionary " << this << " INC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+			}
+		}
+	}
+	
+	// delete our internal state
+	if (state_ptr_)
+	{
+		if (KeysAreStrings())
+			delete (EidosDictionaryState_StringKeys *)state_ptr_;
+		else
+			delete (EidosDictionaryState_IntegerKeys *)state_ptr_;
+		
+		state_ptr_ = nullptr;
+	}
+}
 
 void EidosDictionaryUnretained::Raise_UsesStringKeys() const
 {
@@ -86,22 +122,22 @@ std::vector<int64_t> EidosDictionaryUnretained::SortedKeys_IntegerKeys(void) con
 	return integer_keys;
 }
 
-void EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys(const std::string &p_key)
+void EidosDictionaryUnretained::KeyAddedToDictionary_StringKeys(__attribute__((unused)) const std::string &p_key)
 {
 	// Dictionary does not need to do any extra work when a key is added; this is for subclasses
 }
 
-void EidosDictionaryUnretained::KeyAddedToDictionary_IntegerKeys(int64_t p_key)
+void EidosDictionaryUnretained::KeyAddedToDictionary_IntegerKeys(__attribute__((unused)) int64_t p_key)
 {
 	// Dictionary does not need to do any extra work when a key is added; this is for subclasses
 }
 
-void EidosDictionaryUnretained::KeyRemovedFromDictionary_StringKeys(const std::string &p_key)
+void EidosDictionaryUnretained::KeyRemovedFromDictionary_StringKeys(__attribute__((unused)) const std::string &p_key)
 {
 	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
 }
 
-void EidosDictionaryUnretained::KeyRemovedFromDictionary_IntegerKeys(int64_t p_key)
+void EidosDictionaryUnretained::KeyRemovedFromDictionary_IntegerKeys(__attribute__((unused)) int64_t p_key)
 {
 	// Dictionary does not need to do any extra work when a key is removed; this is for subclasses
 }
@@ -113,7 +149,79 @@ void EidosDictionaryUnretained::AllKeysRemoved(void)
 
 void EidosDictionaryUnretained::ContentsChanged(const std::string &p_operation_name)
 {
-	// Dictionary does not need to do any extra work when contents are changed; this is for subclasses
+	// Here we keep track of whether or not we contain any non-retain-release objects
+	// Note that we don't need to scan down into contained Dictionary objects;
+	// we retain them, and they will do their own checks of their own contents
+	if (!state_ptr_)
+		return;
+	
+	uint8_t old_contains = ((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_;
+	uint8_t new_contains = false;
+	
+	if (KeysAreStrings())
+	{
+		const EidosDictionaryHashTable_StringKeys *dict_symbols = DictionarySymbols_StringKeys();
+		
+		for (auto &iter : *dict_symbols)
+		{
+			EidosValue *value = iter.second.get();
+			
+			if ((value->Type() == EidosValueType::kValueObject) && (value->Count() > 0))
+			{
+				const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+				
+				if (!value_class->UsesRetainRelease())
+				{
+					new_contains = true;
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		const EidosDictionaryHashTable_IntegerKeys *dict_symbols = DictionarySymbols_IntegerKeys();
+		
+		for (auto &iter : *dict_symbols)
+		{
+			EidosValue *value = iter.second.get();
+			
+			if ((value->Type() == EidosValueType::kValueObject) && (value->Count() > 0))
+			{
+				const EidosClass *value_class = ((EidosValue_Object *)value)->Class();
+				
+				if (!value_class->UsesRetainRelease())
+				{
+					new_contains = true;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (old_contains != new_contains)
+	{
+		((EidosDictionaryState_StringKeys *)state_ptr_)->contains_non_retain_release_objects_ = new_contains;
+		
+#pragma omp critical (EidosDictionary_Internal)
+		{
+			if (new_contains)
+			{
+				gEidos_DictionaryNonRetainReleaseReferenceCounter++;
+				
+				//std::cerr << "=== dictionary " << this << " INC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+			}
+			else
+			{
+				gEidos_DictionaryNonRetainReleaseReferenceCounter--;
+				
+				if (gEidos_DictionaryNonRetainReleaseReferenceCounter < 0)
+					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ContentsChanged): (internal error) gEidos_DictionaryNonRetainReleaseReferenceCounter is negative in operation " << p_operation_name << EidosTerminate(nullptr);
+				
+				//std::cerr << "   === dictionary " << this << " DEC   ->   " << gEidos_DictionaryNonRetainReleaseReferenceCounter << std::endl;
+			}
+		}
+	}
 }
 
 std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
@@ -374,15 +482,9 @@ void EidosDictionaryUnretained::SetKeyValue_StringKeys(const std::string &key, E
 	EidosDictionaryState_StringKeys *state_ptr = (EidosDictionaryState_StringKeys *)state_ptr_;
 	EidosValueType value_type = value->Type();
 	
-	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
-	// See also Eidos_ExecuteFunction_defineConstant() and Eidos_ExecuteFunction_defineGlobal(), which enforce the same rule
-	if (value_type == EidosValueType::kValueObject)
-	{
-		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
-		
-		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue_StringKeys): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
-	}
+	// BCH 2/12/2023: We now allow objects to be put into dictionaries whether they use retain-release or not,
+	// so we no longer check for that here.  See EidosDictionaryUnretained::ContentsChanged() and search for
+	// contains_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
 	
 	if (value_type == EidosValueType::kValueNULL)
 	{
@@ -420,15 +522,9 @@ void EidosDictionaryUnretained::SetKeyValue_IntegerKeys(int64_t key, EidosValue_
 	EidosDictionaryState_IntegerKeys *state_ptr = (EidosDictionaryState_IntegerKeys *)state_ptr_;
 	EidosValueType value_type = value->Type();
 	
-	// Object values can only be remembered if their class is under retain/release, so that we have control over the object lifetime
-	// See also Eidos_ExecuteFunction_defineConstant() and Eidos_ExecuteFunction_defineGlobal(), which enforce the same rule
-	if (value_type == EidosValueType::kValueObject)
-	{
-		const EidosClass *value_class = ((EidosValue_Object *)value.get())->Class();
-		
-		if (!value_class->UsesRetainRelease())
-			EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::SetKeyValue_StringKeys): Dictionary can only accept object classes that are under retain/release memory management internally; class " << value_class->ClassName() << " is not.  This restriction is necessary in order to guarantee that the kept object elements remain valid." << EidosTerminate(nullptr);
-	}
+	// BCH 2/12/2023: We now allow objects to be put into dictionaries whether they use retain-release or not,
+	// so we no longer check for that here.  See EidosDictionaryUnretained::ContentsChanged() and search for
+	// contains_non_retain_release_objects_ and gEidos_DictionaryNonRetainReleaseReferenceCounter.
 	
 	if (value_type == EidosValueType::kValueNULL)
 	{
