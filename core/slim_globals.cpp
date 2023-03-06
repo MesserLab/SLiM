@@ -1764,8 +1764,12 @@ static std::string HTMLMakeSpacesNonBreaking(const char *data)
 
 void WriteProfileResults(std::string profile_output_path, std::string model_name, Community *community)
 {
-	std::ofstream fout(profile_output_path);
+	std::string resolved_path = Eidos_ResolvedPath(profile_output_path);
+	std::ofstream fout(resolved_path);
 	char buf[256];		// used for printf-style formatted strings
+	
+	if (!fout.is_open())
+		EIDOS_TERMINATION << std::endl << "ERROR (WriteProfileResults): Could not open profile output path " << profile_output_path << EidosTerminate();
 	
 	//
 	//	HTML header
@@ -2418,6 +2422,10 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 	
 	fout << "</body>" << "\n";
 	fout << "</html>" << std::endl;
+	
+	fout.close();
+	if (!fout)
+		EIDOS_TERMINATION << std::endl << "ERROR (WriteProfileResults): Could not write to profile output path " << profile_output_path << EidosTerminate();
 }
 #endif
 
