@@ -3900,7 +3900,7 @@ static void DrawByWeights(int draw_count, const double *weights, int n_weights, 
 	}
 }
 
-//	*********************	– (object<Individual>)drawByStrength(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL])
+//	*********************	– (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
 //
 EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -3908,15 +3908,42 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
+	EidosValue *returnDict_value = p_arguments[3].get();
 	
-	// receiver_value is guaranteed to be singleton; let's get the info on it
-	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
-	slim_popsize_t receiver_index_in_subpop = receiver->index_;
+	eidos_logical_t returnDict = returnDict_value->LogicalAtIndex(0, nullptr);
+	Subpopulation *receiver_subpop = nullptr;
 	
-	if (receiver_index_in_subpop < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+	if (!returnDict)
+	{
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (receiver_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is singleton when returnDict is F; if you want to process multiple receivers in a single call, pass returnDict=T." << EidosTerminate();
+		
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		
+		receiver_subpop = receiver->subpopulation_;
+	}
+	else
+	{
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		if (receiver_value->Count() == 0)
+		{
+			// With no receivers, return an empty Dictionary
+			EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+			EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+			
+			dictionary->ContentsChanged("InteractionType::ExecuteMethod_drawByStrength()");
+			
+			// objectElement is now retained by result_SP, so we can release it
+			dictionary->Release();
+			
+			return result_SP;
+		}
+		
+		receiver_subpop = ((Individual *)receiver_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
+	}
 	
-	Subpopulation *receiver_subpop = receiver->subpopulation_;
+	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
 	CheckSpeciesCompatibility(receiver_species);
@@ -3938,105 +3965,222 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	if (count > exerter_subpop_size)
 		count = exerter_subpop_size;
 	
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	// Check sex-specificity for the receiver; if the individual is disqualified, no draws can occur and the return is empty
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	if (spatiality_ == 0)
+	if (!returnDict)
 	{
-		// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
-		slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
-		std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (count == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
-		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-		double total_interaction_strength = 0.0;
-		std::vector<double> cached_strength;
-		std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+		// receiver_value is guaranteed to be singleton; let's get the info on it
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		slim_popsize_t receiver_index_in_subpop = receiver->index_;
 		
-		for (slim_popsize_t exerter_index_in_subpop = 0; exerter_index_in_subpop < exerter_subpop_size; ++exerter_index_in_subpop)
+		if (receiver_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+		
+		// Check sex-specificity for the receiver; if the individual is disqualified, no draws can occur and the return is empty
+		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		
+		if (spatiality_ == 0)
 		{
-			Individual *exerter = exerters[exerter_index_in_subpop];
-			double strength = 0;
+			// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
+			slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
+			std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
 			
-			if (exerter_index_in_subpop != receiver_index)
-				if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (IFType::kFixed), which is required
+			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			double total_interaction_strength = 0.0;
+			std::vector<double> cached_strength;
+			std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
 			
-			total_interaction_strength += strength;
-			cached_strength.emplace_back(strength);
-		}
-		
-		if (total_interaction_strength > 0.0)
-		{
-			std::vector<int> strength_indices;
-			
-			result_vec->resize_no_initialize(count);
-			DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
-			
-			for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+			for (slim_popsize_t exerter_index_in_subpop = 0; exerter_index_in_subpop < exerter_subpop_size; ++exerter_index_in_subpop)
 			{
-				int strength_index = strength_indices[result_index];
-				Individual *chosen_individual = exerters[strength_index];
+				Individual *exerter = exerters[exerter_index_in_subpop];
+				double strength = 0;
 				
-				result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+				if (exerter_index_in_subpop != receiver_index)
+					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (IFType::kFixed), which is required
+				
+				total_interaction_strength += strength;
+				cached_strength.emplace_back(strength);
 			}
+			
+			if (total_interaction_strength > 0.0)
+			{
+				std::vector<int> strength_indices;
+				
+				result_vec->resize_no_initialize(count);
+				DrawByWeights((int)count, cached_strength.data(), exerter_subpop_size, total_interaction_strength, strength_indices);
+				
+				for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+				{
+					int strength_index = strength_indices[result_index];
+					Individual *chosen_individual = exerters[strength_index];
+					
+					result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+				}
+			}
+			
+			return EidosValue_SP(result_vec);
 		}
-		
-		return EidosValue_SP(result_vec);
+		else
+		{
+			// Spatial case; we use the k-d tree to get strengths for all neighbors.
+			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
+			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+			
+			EnsureKDTreePresent(exerter_subpop_data);
+			
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			uint32_t nnz;
+			const uint32_t *columns;
+			const sv_value_t *strengths;
+			std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
+			
+			strengths = sv->Strengths(&nnz, &columns);
+			
+			// Total the interaction strengths, and gather a vector of strengths as doubles
+			double total_interaction_strength = 0.0;
+			
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+			{
+				sv_value_t strength = strengths[col_index];
+				
+				total_interaction_strength += strength;
+				double_strengths.emplace_back((double)strength);
+			}
+			
+			// Draw individuals
+			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			
+			if (total_interaction_strength > 0.0)
+			{
+				std::vector<int> strength_indices;
+				std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+				
+				result_vec->resize_no_initialize(count);
+				DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+				
+				for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+				{
+					int strength_index = strength_indices[result_index];
+					Individual *chosen_individual = exerters[columns[strength_index]];
+					
+					result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+				}
+			}
+			
+			InteractionType::FreeSparseVector(sv);
+			return EidosValue_SP(result_vec);
+		}
 	}
 	else
 	{
-		// Spatial case; we use the k-d tree to get strengths for all neighbors.
-		InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		// We start by making a Dictionary with an empty Individual vector for each receiver
+		if (spatiality_ == 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() supports returning a Dictionary of results, with returnDict=T, only in the spatial case." << EidosTerminate();
 		
-		EnsureKDTreePresent(exerter_subpop_data);
+		EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+		int receivers_count = receiver_value->Count();
+		EidosValue_Object_vector **result_vectors = (EidosValue_Object_vector **)malloc(receivers_count * sizeof(EidosValue_Object_vector *));
 		
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-		uint32_t nnz;
-		const uint32_t *columns;
-		const sv_value_t *strengths;
-		std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
-		
-		strengths = sv->Strengths(&nnz, &columns);
-		
-		// Total the interaction strengths, and gather a vector of strengths as doubles
-		double total_interaction_strength = 0.0;
-		
-		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
-			sv_value_t strength = strengths[col_index];
+			EidosValue_Object_vector *empty_individuals_vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
 			
-			total_interaction_strength += strength;
-			double_strengths.emplace_back((double)strength);
+			dictionary->SetKeyValue_IntegerKeys(receiver_index, EidosValue_SP(empty_individuals_vec));
+			result_vectors[receiver_index] = empty_individuals_vec;
 		}
 		
-		// Draw individuals
-		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		dictionary->ContentsChanged("InteractionType::ExecuteMethod_drawByStrength()");
 		
-		if (total_interaction_strength > 0.0)
+		// objectElement is now retained by result_SP, so we can release it
+		dictionary->Release();
+		
+		if (count > 0)
 		{
-			std::vector<int> strength_indices;
-			std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+			bool saw_error_1 = false, saw_error_2 = false;
 			
-			result_vec->resize_no_initialize(count);
-			DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
+			EnsureKDTreePresent(exerter_subpop_data);
 			
-			for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
-				int strength_index = strength_indices[result_index];
-				Individual *chosen_individual = exerters[columns[strength_index]];
+				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
+				slim_popsize_t receiver_index_in_subpop = receiver->index_;
 				
-				result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+				if (receiver_index_in_subpop < 0)
+				{
+					saw_error_1 = true;
+					continue;
+				}
+				
+				// SPECIES CONSISTENCY CHECK
+				if (receiver_subpop != receiver->subpopulation_)
+				{
+					saw_error_2 = true;
+					continue;
+				}
+				
+				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+				
+				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
+				
+				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				uint32_t nnz;
+				const uint32_t *columns;
+				const sv_value_t *strengths;
+				std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
+				
+				strengths = sv->Strengths(&nnz, &columns);
+				
+				// Total the interaction strengths, and gather a vector of strengths as doubles
+				double total_interaction_strength = 0.0;
+				
+				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				{
+					sv_value_t strength = strengths[col_index];
+					
+					total_interaction_strength += strength;
+					double_strengths.emplace_back((double)strength);
+				}
+				
+				// Draw individuals
+				if (total_interaction_strength > 0.0)
+				{
+					std::vector<int> strength_indices;
+					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+					
+					result_vec->resize_no_initialize(count);
+					DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+					
+					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					{
+						int strength_index = strength_indices[result_index];
+						Individual *chosen_individual = exerters[columns[strength_index]];
+						
+						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					}
+				}
+				
+				InteractionType::FreeSparseVector(sv);
 			}
+			
+			// deferred raises, for OpenMP compatibility
+			if (saw_error_1)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+			if (saw_error_2)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		}
 		
-		FreeSparseVector(sv);
-		return EidosValue_SP(result_vec);
+		free(result_vectors);
+		return result_SP;
 	}
 }
 
@@ -4477,7 +4621,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	return EidosValue_SP(result_vec);
 }
 
-//	*********************	– (object<Individual>)nearestInteractingNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL])
+//	*********************	– (object)nearestInteractingNeighbors(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
 //
 EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4485,30 +4629,57 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
+	EidosValue *returnDict_value = p_arguments[3].get();
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the interaction be spatial." << EidosTerminate();
 	
-	// receiver_value is guaranteed to be singleton; let's get the info on it
-	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
-	slim_popsize_t receiver_index_in_subpop = receiver->index_;
+	eidos_logical_t returnDict = returnDict_value->LogicalAtIndex(0, nullptr);
+	Subpopulation *receiver_subpop = nullptr;
 	
-	if (receiver_index_in_subpop < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+	if (!returnDict)
+	{
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (receiver_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is singleton when returnDict is F; if you want to process multiple receivers in a single call, pass returnDict=T." << EidosTerminate();
+		
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		
+		receiver_subpop = receiver->subpopulation_;
+	}
+	else
+	{
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		if (receiver_value->Count() == 0)
+		{
+			// With no receivers, return an empty Dictionary
+			EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+			EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+			
+			dictionary->ContentsChanged("InteractionType::ExecuteMethod_nearestInteractingNeighbors()");
+			
+			// objectElement is now retained by result_SP, so we can release it
+			dictionary->Release();
+			
+			return result_SP;
+		}
+		
+		receiver_subpop = ((Individual *)receiver_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
+	}
 	
-	Subpopulation *receiver_subpop = receiver->subpopulation_;
+	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
 	CheckSpeciesCompatibility(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 	
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
+	std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	EnsureKDTreePresent(exerter_subpop_data);
@@ -4522,83 +4693,213 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	if (count > exerter_subpop_size)
 		count = exerter_subpop_size;
 	
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	// Check sex-specificity for the receiver; if the individual is disqualified, there are no interacting neighbors
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	// Find the neighbors
-	std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-	FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-	uint32_t nnz;
-	const uint32_t *columns;
-	const sv_value_t *distances;
-	
-	distances = sv->Distances(&nnz, &columns);
-	
-	if (count >= nnz)
+	if (!returnDict)
 	{
-		// return all of the individuals in the row
-		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(nnz);
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (count == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	
+		// receiver_value is guaranteed to be singleton; let's get the info on it
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		slim_popsize_t receiver_index_in_subpop = receiver->index_;
 		
-		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			result_vec->set_object_element_no_check_NORR(exerters[columns[col_index]], col_index);
+		if (receiver_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 		
-		FreeSparseVector(sv);
-		return EidosValue_SP(result_vec);
-	}
-	else if (count == 1)
-	{
-		// return the individual in the row with the smallest distance
-		uint32_t min_col_index = UINT32_MAX;
-		double min_distance = INFINITY;
+		// Check sex-specificity for the receiver; if the individual is disqualified, there are no interacting neighbors
+		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
-		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			if (distances[col_index] < min_distance)
-			{
-				min_distance = distances[col_index];
-				min_col_index = col_index;
-			}
+		// Find the neighbors
+		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
+		FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+		uint32_t nnz;
+		const uint32_t *columns;
+		const sv_value_t *distances;
 		
-		if (min_distance < INFINITY)
+		distances = sv->Distances(&nnz, &columns);
+		
+		if (count >= nnz)
 		{
-			FreeSparseVector(sv);
-			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(exerters[columns[min_col_index]], gSLiM_Individual_Class));
-		}
-	}
-	else	// (count < nnz)
-	{
-		// return the <count> individuals with the smallest distances
-		std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
-		
-		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			neighbors.emplace_back(col_index, distances[col_index]);
-		
-		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
-			return l.second < r.second;
-		});
-		
-		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(count);
-		
-		for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
-		{
-			Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
+			// return all of the individuals in the row
+			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(nnz);
 			
-			result_vec->set_object_element_no_check_NORR(exerter, neighbor_index);
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				result_vec->set_object_element_no_check_NORR(exerters[columns[col_index]], col_index);
+			
+			FreeSparseVector(sv);
+			return EidosValue_SP(result_vec);
+		}
+		else if (count == 1)
+		{
+			// return the individual in the row with the smallest distance
+			uint32_t min_col_index = UINT32_MAX;
+			double min_distance = INFINITY;
+			
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				if (distances[col_index] < min_distance)
+				{
+					min_distance = distances[col_index];
+					min_col_index = col_index;
+				}
+			
+			if (min_distance < INFINITY)
+			{
+				FreeSparseVector(sv);
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(exerters[columns[min_col_index]], gSLiM_Individual_Class));
+			}
+		}
+		else	// (count < nnz)
+		{
+			// return the <count> individuals with the smallest distances
+			std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
+			
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				neighbors.emplace_back(col_index, distances[col_index]);
+			
+			std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
+				return l.second < r.second;
+			});
+			
+			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(count);
+			
+			for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
+			{
+				Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
+				
+				result_vec->set_object_element_no_check_NORR(exerter, neighbor_index);
+			}
+			
+			FreeSparseVector(sv);
+			return EidosValue_SP(result_vec);
 		}
 		
 		FreeSparseVector(sv);
-		return EidosValue_SP(result_vec);
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 	}
-	
-	FreeSparseVector(sv);
-	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+	else
+	{
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		// We start by making a Dictionary with an empty Individual vector for each receiver
+		EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+		int receivers_count = receiver_value->Count();
+		EidosValue_Object_vector **result_vectors = (EidosValue_Object_vector **)malloc(receivers_count * sizeof(EidosValue_Object_vector *));
+		
+		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+		{
+			EidosValue_Object_vector *empty_individuals_vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+			
+			dictionary->SetKeyValue_IntegerKeys(receiver_index, EidosValue_SP(empty_individuals_vec));
+			result_vectors[receiver_index] = empty_individuals_vec;
+		}
+		
+		dictionary->ContentsChanged("InteractionType::ExecuteMethod_nearestInteractingNeighbors()");
+		
+		// objectElement is now retained by result_SP, so we can release it
+		dictionary->Release();
+		
+		if (count > 0)
+		{
+			bool saw_error_1 = false, saw_error_2 = false;
+			
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, exerters, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTINTNEIGH)
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+			{
+				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
+				slim_popsize_t receiver_index_in_subpop = receiver->index_;
+				
+				if (receiver_index_in_subpop < 0)
+				{
+					saw_error_1 = true;
+					continue;
+				}
+				
+				// SPECIES CONSISTENCY CHECK
+				if (receiver_subpop != receiver->subpopulation_)
+				{
+					saw_error_2 = true;
+					continue;
+				}
+				
+				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+				
+				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
+				
+				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+				FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				uint32_t nnz;
+				const uint32_t *columns;
+				const sv_value_t *distances;
+				
+				distances = sv->Distances(&nnz, &columns);
+				
+				if (count >= nnz)
+				{
+					// return all of the individuals in the row
+					result_vec->resize_no_initialize(nnz);
+					
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+						result_vec->set_object_element_no_check_NORR(exerters[columns[col_index]], col_index);
+				}
+				else if (count == 1)
+				{
+					// return the individual in the row with the smallest distance
+					uint32_t min_col_index = UINT32_MAX;
+					double min_distance = INFINITY;
+					
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+						if (distances[col_index] < min_distance)
+						{
+							min_distance = distances[col_index];
+							min_col_index = col_index;
+						}
+					
+					if (min_distance < INFINITY)
+					{
+						result_vec->resize_no_initialize(1);
+						result_vec->set_object_element_no_check_NORR(exerters[columns[min_col_index]], 0);
+					}
+				}
+				else	// (count < nnz)
+				{
+					// return the <count> individuals with the smallest distances
+					std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
+					
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+						neighbors.emplace_back(col_index, distances[col_index]);
+					
+					std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
+						return l.second < r.second;
+					});
+					
+					result_vec->resize_no_initialize(count);
+					
+					for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
+					{
+						Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
+						
+						result_vec->set_object_element_no_check_NORR(exerter, neighbor_index);
+					}
+				}
+				
+				FreeSparseVector(sv);
+			}
+			
+			// deferred raises, for OpenMP compatibility
+			if (saw_error_1)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+			if (saw_error_2)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
+		}
+		
+		free(result_vectors);
+		return result_SP;
+	}
 }
 
-//	*********************	– (object<Individual>)nearestNeighbors(object<Individual>$ receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL])
+//	*********************	– (object)nearestNeighbors(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
 //
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4606,24 +4907,50 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
+	EidosValue *returnDict_value = p_arguments[3].get();
 	
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the interaction be spatial." << EidosTerminate();
 	
-	// receiver_value is guaranteed to be singleton; let's get the info on it
-	Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
-	slim_popsize_t receiver_index_in_subpop = receiver->index_;
+	eidos_logical_t returnDict = returnDict_value->LogicalAtIndex(0, nullptr);
+	Subpopulation *receiver_subpop = nullptr;
 	
-	if (receiver_index_in_subpop < 0)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+	if (!returnDict)
+	{
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (receiver_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the receiver is singleton when returnDict is F; if you want to process multiple receivers in a single call, pass returnDict=T." << EidosTerminate();
+		
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		
+		receiver_subpop = receiver->subpopulation_;
+	}
+	else
+	{
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		if (receiver_value->Count() == 0)
+		{
+			// With no receivers, return an empty Dictionary
+			EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+			EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+			
+			dictionary->ContentsChanged("InteractionType::ExecuteMethod_nearestNeighbors()");
+			
+			// objectElement is now retained by result_SP, so we can release it
+			dictionary->Release();
+			
+			return result_SP;
+		}
+		
+		receiver_subpop = ((Individual *)receiver_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
+	}
 	
-	Subpopulation *receiver_subpop = receiver->subpopulation_;
+	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
 	CheckSpeciesCompatibility(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 	
 	// figure out the exerter subpopulation and get info on it
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
@@ -4640,21 +4967,102 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	if (count > exerter_subpop_size)
 		count = exerter_subpop_size;
 	
-	if (count == 0)
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	// Find the neighbors
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
-	
-	EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
-	
-	if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
-		result_vec->reserve((int)count);
-	
-	FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
-	
-	return EidosValue_SP(result_vec);
+	if (!returnDict)
+	{
+		// This is the single-threaded, single-receiver case; it returns a vector of Individual objects
+		if (count == 0)
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		
+		// receiver_value is guaranteed to be singleton; let's get the info on it
+		Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(0, nullptr);
+		slim_popsize_t receiver_index_in_subpop = receiver->index_;
+		
+		if (receiver_index_in_subpop < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+		
+		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+		
+		// Find the neighbors
+		InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+		EnsureKDTreePresent(exerter_subpop_data);
+		
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		
+		if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+			result_vec->reserve((int)count);
+		
+		FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
+		
+		return EidosValue_SP(result_vec);
+	}
+	else
+	{
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		// We start by making a Dictionary with an empty Individual vector for each receiver
+		EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
+		EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+		int receivers_count = receiver_value->Count();
+		EidosValue_Object_vector **result_vectors = (EidosValue_Object_vector **)malloc(receivers_count * sizeof(EidosValue_Object_vector *));
+		
+		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+		{
+			EidosValue_Object_vector *empty_individuals_vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class);
+			
+			dictionary->SetKeyValue_IntegerKeys(receiver_index, EidosValue_SP(empty_individuals_vec));
+			result_vectors[receiver_index] = empty_individuals_vec;
+		}
+		
+		dictionary->ContentsChanged("InteractionType::ExecuteMethod_nearestNeighbors()");
+		
+		// objectElement is now retained by result_SP, so we can release it
+		dictionary->Release();
+		
+		if (count > 0)
+		{
+			bool saw_error_1 = false, saw_error_2 = false;
+			
+			InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+			EnsureKDTreePresent(exerter_subpop_data);
+			
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTNEIGH)
+			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
+			{
+				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
+				slim_popsize_t receiver_index_in_subpop = receiver->index_;
+				
+				if (receiver_index_in_subpop < 0)
+				{
+					saw_error_1 = true;
+					continue;
+				}
+				
+				// SPECIES CONSISTENCY CHECK
+				if (receiver_subpop != receiver->subpopulation_)
+				{
+					saw_error_2 = true;
+					continue;
+				}
+				
+				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
+				
+				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
+				
+				if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+					result_vec->reserve((int)count);
+				
+				FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
+			}
+			
+			// deferred raises, for OpenMP compatibility
+			if (saw_error_1)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+			if (saw_error_2)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that all receivers be in the same subpopulation." << EidosTerminate();
+		}
+		
+		free(result_vectors);
+		return result_SP;
+	}
 }
 
 //	*********************	– (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1])
@@ -5352,13 +5760,13 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_clippedIntegral, kEidosValueMaskFloat))->AddObject_N("receivers", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_distanceFromPoint, kEidosValueMaskFloat))->AddFloat("point")->AddObject("exerters", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_drawByStrength, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_evaluate, kEidosValueMaskVOID))->AddIntObject("subpops", gSLiM_Subpopulation_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactingNeighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_localPopulationDensity, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interactionDistance, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestInteractingNeighbors, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighbors, kEidosValueMaskObject, nullptr))->AddObject("receiver", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL)->AddLogical_OS("returnDict", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCountOfPoint, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class));

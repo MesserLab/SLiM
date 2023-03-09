@@ -3468,10 +3468,12 @@ This method replaces the
 \f4\fs20  method that existed prior to SLiM 4.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Individual>)drawByStrength(object<Individual>$\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(object)drawByStrength(object<Individual>\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL], [logical$\'a0returnDict\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns up to 
+\f4\fs20 \cf2 Returns an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector containing up to 
 \f3\fs18 count
 \f4\fs20  individuals drawn from 
 \f3\fs18 exerterSubpop
@@ -3479,7 +3481,7 @@ This method replaces the
 \f3\fs18 NULL
 \f4\fs20  (the default), then from the subpopulation of 
 \f3\fs18 receiver
-\f4\fs20 .  The probability of drawing particular individuals is proportional to the strength of interaction they exert upon 
+\f4\fs20 , which must be singleton in the default mode of operation (but see below).  The probability of drawing particular individuals is proportional to the strength of interaction they exert upon 
 \f3\fs18 receiver
 \f4\fs20 .  All exerters must belong to a single subpopulation (but not necessarily the same subpopulation as 
 \f3\fs18 receiver
@@ -3493,6 +3495,41 @@ This method may be used with either spatial or non-spatial interactions, but wil
 \f4\fs20 , rather than drawing individuals one at a time.  Note that if no individuals exert a non-zero interaction strength upon 
 \f3\fs18 receiver
 \f4\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
+Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+\f3\fs18 receiver
+\f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 returnDict
+\f4\fs20 , rather than the default of 
+\f3\fs18 F
+\f4\fs20  (the operation of which is described above).  In this mode, the return value is a 
+\f3\fs18 Dictionary
+\f4\fs20  object instead of a vector of 
+\f3\fs18 Individual
+\f4\fs20  objects.  This dictionary uses 
+\f3\fs18 integer
+\f4\fs20  keys that range from 
+\f3\fs18 0
+\f4\fs20  to 
+\f3\fs18 N-1
+\f4\fs20 , where 
+\f3\fs18 N
+\f4\fs20  is the number of individuals passed in 
+\f3\fs18 receiver
+\f4\fs20 ; these keys thus correspond directly to the indices of the individuals in 
+\f3\fs18 receiver
+\f4\fs20 , and there is one entry in the dictionary for each receiver.  The value in the dictionary, for a given 
+\f3\fs18 integer
+\f4\fs20  key, is an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector with the individuals drawn for the corresponding receiver, exactly as described above for the non-vectorized case.  The results for each receiver can therefore be obtained from the returned dictionary with 
+\f3\fs18 getValue()
+\f4\fs20 , passing the index of the receiver.  The speed of this mode of operation will probably be similar to the speed of making 
+\f3\fs18 N
+\f4\fs20  separate non-vectorized calls to 
+\f3\fs18 drawByStrength()
+\f4\fs20 , when running single-threaded.  When running multi-threaded, however, a substantial performance improvement may be realized by using the vectorized version of this method, since the queries can then be executed in parallel.  In this mode of operation, all receivers must belong to the same subpopulation.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)evaluate(io<Subpopulation>\'a0subpops)
@@ -3652,10 +3689,12 @@ To see the point of this method, consider a receiver located near the edge of th
 \f4\i0  of the interaction function does still matter; it determines the relative weights used for exerters at different distances from the position of the receiver.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Individual>)nearestInteractingNeighbors(object<Individual>$\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(object)nearestInteractingNeighbors(object<Individual>\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL], [logical$\'a0returnDict\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns up to 
+\f4\fs20 \cf2 Returns an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector containing up to 
 \f3\fs18 count
 \f4\fs20  interacting individuals that are spatially closest to 
 \f3\fs18 receiver
@@ -3665,8 +3704,10 @@ To see the point of this method, consider a receiver located near the edge of th
 \f3\fs18 exerterSubpop
 \f4\fs20  (or, if that is 
 \f3\fs18 NULL
-\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method returns only individuals which can exert an interaction upon the receiver.  To obtain all of the interacting individuals within the maximum interaction distance of 
-\f3\fs18 individual
+\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method returns only individuals which can exert an interaction upon 
+\f3\fs18 receiver
+\f4\fs20 , which must be singleton in the default mode of operation (but see below).  To obtain all of the interacting individuals within the maximum interaction distance of 
+\f3\fs18 receiver
 \f4\fs20 , simply pass a value for 
 \f3\fs18 count
 \f4\fs20  that is greater than or equal to the size of the exerter subpopulation.  Note that if fewer than 
@@ -3683,23 +3724,62 @@ To see the point of this method, consider a receiver located near the edge of th
 Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the receiver (due to sex-segregation, e.g.).  (It will also never return the receiver as a neighbor of itself.)  To find all neighbors of the receiver, whether they can interact with it or not, use 
 \f3\fs18 nearestNeighbors()
 \f4\fs20 .\
+Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+\f3\fs18 receiver
+\f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 returnDict
+\f4\fs20 , rather than the default of 
+\f3\fs18 F
+\f4\fs20  (the operation of which is described above).  In this mode, the return value is a 
+\f3\fs18 Dictionary
+\f4\fs20  object instead of a vector of 
+\f3\fs18 Individual
+\f4\fs20  objects.  This dictionary uses 
+\f3\fs18 integer
+\f4\fs20  keys that range from 
+\f3\fs18 0
+\f4\fs20  to 
+\f3\fs18 N-1
+\f4\fs20 , where 
+\f3\fs18 N
+\f4\fs20  is the number of individuals passed in 
+\f3\fs18 receiver
+\f4\fs20 ; these keys thus correspond directly to the indices of the individuals in 
+\f3\fs18 receiver
+\f4\fs20 , and there is one entry in the dictionary for each receiver.  The value in the dictionary, for a given 
+\f3\fs18 integer
+\f4\fs20  key, is an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector with the interacting neighbors found for the corresponding receiver, exactly as described above for the non-vectorized case.  The results for each receiver can therefore be obtained from the returned dictionary with 
+\f3\fs18 getValue()
+\f4\fs20 , passing the index of the receiver.  The speed of this mode of operation will probably be similar to the speed of making 
+\f3\fs18 N
+\f4\fs20  separate non-vectorized calls to 
+\f3\fs18 nearestInteractingNeighbors()
+\f4\fs20 , when running single-threaded.  When running multi-threaded, however, a substantial performance improvement may be realized by using the vectorized version of this method, since the queries can then be executed in parallel.  In this mode of operation, all receivers must belong to the same subpopulation.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<Individual>)nearestNeighbors(object<Individual>$\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL])\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \'96\'a0(object)nearestNeighbors(object<Individual>\'a0receiver, [integer$\'a0count\'a0=\'a01], [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL], [logical$\'a0returnDict\'a0=\'a0F])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Returns up to 
+\f4\fs20 \cf2 Returns an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector containing up to 
 \f3\fs18 count
 \f4\fs20  individuals that are spatially closest to 
-\f3\fs18 individual
+\f3\fs18 receiver
 \f4\fs20 , according to the distance metric of the 
 \f3\fs18 InteractionType
 \f4\fs20 , from among the exerters in 
 \f3\fs18 exerterSubpop
 \f4\fs20  (or, if that is 
 \f3\fs18 NULL
-\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  To obtain all of the individuals within the maximum interaction distance of 
-\f3\fs18 individual
+\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  In the default mode of operation, 
+\f3\fs18 receiver
+\f4\fs20  must be singleton (but see below).  To obtain all of the individuals within the maximum interaction distance of 
+\f3\fs18 receiver
 \f4\fs20 , simply pass a value for 
 \f3\fs18 count
 \f4\fs20  that is greater than or equal to the size of 
@@ -3713,10 +3793,44 @@ Note that this method uses interaction eligibility as a criterion; it will not r
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.  If the 
 \f3\fs18 InteractionType
 \f4\fs20  is non-spatial, this method may not be called.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the receiver due to sex-segregation.  (It will never return the receiver as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the receiver, use 
+Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the receiver due to sex-segregation.  (It will never return the receiver as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the receiver, use 
 \f3\fs18 nearestInteractingNeighbors()
 \f4\fs20 .\
+Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+\f3\fs18 receiver
+\f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 returnDict
+\f4\fs20 , rather than the default of 
+\f3\fs18 F
+\f4\fs20  (the operation of which is described above).  In this mode, the return value is a 
+\f3\fs18 Dictionary
+\f4\fs20  object instead of a vector of 
+\f3\fs18 Individual
+\f4\fs20  objects.  This dictionary uses 
+\f3\fs18 integer
+\f4\fs20  keys that range from 
+\f3\fs18 0
+\f4\fs20  to 
+\f3\fs18 N-1
+\f4\fs20 , where 
+\f3\fs18 N
+\f4\fs20  is the number of individuals passed in 
+\f3\fs18 receiver
+\f4\fs20 ; these keys thus correspond directly to the indices of the individuals in 
+\f3\fs18 receiver
+\f4\fs20 , and there is one entry in the dictionary for each receiver.  The value in the dictionary, for a given 
+\f3\fs18 integer
+\f4\fs20  key, is an 
+\f3\fs18 object<Individual>
+\f4\fs20  vector with the neighbors found for the corresponding receiver, exactly as described above for the non-vectorized case.  The results for each receiver can therefore be obtained from the returned dictionary with 
+\f3\fs18 getValue()
+\f4\fs20 , passing the index of the receiver.  The speed of this mode of operation will probably be similar to the speed of making 
+\f3\fs18 N
+\f4\fs20  separate non-vectorized calls to 
+\f3\fs18 nearestNeighbors()
+\f4\fs20 , when running single-threaded.  When running multi-threaded, however, a substantial performance improvement may be realized by using the vectorized version of this method, since the queries can then be executed in parallel.  In this mode of operation, all receivers must belong to the same subpopulation.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Individual>)nearestNeighborsOfPoint(float\'a0point, io<Subpopulation>$\'a0exerterSubpop, [integer$\'a0count\'a0=\'a01])\

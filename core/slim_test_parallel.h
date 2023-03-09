@@ -164,6 +164,13 @@ initialize() {
 
 // ***********************************************************************************************
 
+// test InteractionType -drawByStrength()
+
+// This cannot be tested by comparison, since its results are stochastic.
+// It gets tested by other means instead, such as ny InteractionType test suite.
+
+// ***********************************************************************************************
+
 // test Species -individualsWithPedigreeIDs()
 
 initialize() {
@@ -229,6 +236,54 @@ initialize() {
 	
 	if (!identical(a, b))
 		stop("parallel InteractionType -localPopulationDensity() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestInteractingNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestInteractingNeighbors(inds, returnDict=T);
+	parallelSetNumThreads(1);
+	b = i1.nearestInteractingNeighbors(inds, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestInteractingNeighbors() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestNeighbors(inds, returnDict=T);
+	parallelSetNumThreads(1);
+	b = i1.nearestNeighbors(inds, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestNeighbors() failed test");
 }
 
 // ***********************************************************************************************
