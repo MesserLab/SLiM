@@ -36,7 +36,6 @@
 #include "subpopulation.h"
 
 #include "mutation_run.h"
-#include "sparse_vector.h"
 
 #include <string>
 #include <vector>

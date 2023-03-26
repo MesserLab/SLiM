@@ -1905,6 +1905,230 @@ inline __attribute__((always_inline)) double dist_sq3(SLiM_kdNode *a, double *b)
 }
 
 // add neighbors to the sparse vector in 1D
+void InteractionType::BuildSV_Presences_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector)
+{
+	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_1(root->right, nd, p_focal_individual_index, p_sparse_vector);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_1(root->left, nd, p_focal_individual_index, p_sparse_vector);
+	}
+}
+
+// add neighbors to the sparse vector in 2D
+void InteractionType::BuildSV_Presences_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbors to the sparse vector in 3D
+void InteractionType::BuildSV_Presences_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_3(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbors to the sparse vector in 1D (exerter sex-specific)
+void InteractionType::BuildSV_Presences_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter)
+{
+	double d = dist_sq1(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[0] - nd[0];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
+	}
+}
+
+// add neighbors to the sparse vector in 2D (exerter sex-specific)
+void InteractionType::BuildSV_Presences_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (++p_phase >= 2) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+	}
+}
+
+// add neighbors to the sparse vector in 3D (exerter sex-specific)
+void InteractionType::BuildSV_Presences_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
+{
+	double d = dist_sq3(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
+		p_sparse_vector->AddEntryPresence(root->individual_index_);
+	
+	if (++p_phase >= 3) p_phase = 0;
+	
+	if (dx > 0)
+	{
+		if (root->left)
+			BuildSV_Presences_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->right)
+			BuildSV_Presences_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+	}
+	else
+	{
+		if (root->right)
+			BuildSV_Presences_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+		
+		if (dx2 > max_distance_sq_) return;
+		
+		if (root->left)
+			BuildSV_Presences_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
+	}
+}
+
+// add neighbors to the sparse vector in 1D
 void InteractionType::BuildSV_Distances_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector)
 {
 	double d = dist_sq1(root, nd);
@@ -2272,6 +2496,72 @@ void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_
 		if (dx2 > max_distance_sq_)		return;
 		if (root->left)					BuildSV_Strengths_c_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
+}
+
+void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+{
+#if DEBUG
+	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
+	CheckSpeciesCompatibility(receiver->subpopulation_->species_);
+	CheckSpeciesCompatibility(exerter_subpop->species_);
+	
+	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
+	if (!exerter_subpop_data.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	
+	// SparseVector relies on the k-d tree, so this is an error for now
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) request for k-d tree information from a non-spatial interaction." << EidosTerminate();
+	
+	// For spatial models, the caller should guarantee that the k-d tree is already present
+	if (!exerter_subpop_data.kd_nodes_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
+	
+	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
+	CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
+	
+	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
+	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	
+	// The caller should be handing us a sparse vector set up for distance data
+	if (sv->DataType() != SparseVectorDataType::kPresences)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the sparse vector is not configured for presences." << EidosTerminate();
+	
+	// The caller should guarantee that the receiver is not a new juvenile, because they need to have a saved position
+	if (receiver->index_ < 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the receiver is a new juvenile." << EidosTerminate();
+#endif
+	
+	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
+	slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
+	
+	if (exerter_sex_ == IndividualSex::kUnspecified)
+	{
+		// Without a specified exerter sex, we can add each exerter with no sex test
+		if (spatiality_ == 2)		BuildSV_Presences_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Presences_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Presences_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
+	}
+	else
+	{
+		// With a specified exerter sex, we use a special version of BuildSV_Presences_X() that tests for that by range
+		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
+		
+		if (exerter_sex_ == IndividualSex::kMale)
+			start_exerter = exerter_subpop_data.first_male_index_;
+		else if (exerter_sex_ == IndividualSex::kFemale)
+			after_end_exerter = exerter_subpop_data.first_male_index_;
+		else
+			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
+		
+		if (spatiality_ == 2)		BuildSV_Presences_SS_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
+		else if (spatiality_ == 1)	BuildSV_Presences_SS_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter);
+		else if (spatiality_ == 3)	BuildSV_Presences_SS_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
+	}
+	
+	// After building the sparse vector above, we mark it finished
+	sv->Finished();
 }
 
 void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
@@ -3956,14 +4246,13 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	
-	// Check the count
+	// Check the count; note that we do NOT clamp count to exerter_subpop_size, since draws are done with replacement!
 	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
-	if (count > exerter_subpop_size)
-		count = exerter_subpop_size;
+	bool optimize_fixed_interaction_strengths = ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (if_type_ == IFType::kFixed));
 	
 	if (!returnDict)
 	{
@@ -4032,43 +4321,74 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			
 			EnsureKDTreePresent(exerter_subpop_data);
 			
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-			uint32_t nnz;
-			const uint32_t *columns;
-			const sv_value_t *strengths;
-			std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
-			
-			strengths = sv->Strengths(&nnz, &columns);
-			
-			// Total the interaction strengths, and gather a vector of strengths as doubles
-			double total_interaction_strength = 0.0;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			{
-				sv_value_t strength = strengths[col_index];
-				
-				total_interaction_strength += strength;
-				double_strengths.emplace_back((double)strength);
-			}
-			
-			// Draw individuals
 			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			SparseVector *sv = nullptr;
 			
-			if (total_interaction_strength > 0.0)
+			if (optimize_fixed_interaction_strengths)
 			{
-				std::vector<int> strength_indices;
-				std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+				// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
+				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				uint32_t nnz;
+				const uint32_t *columns;
 				
-				result_vec->resize_no_initialize(count);
-				DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+				sv->Presences(&nnz, &columns);
 				
-				for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+				if (nnz > 0)
 				{
-					int strength_index = strength_indices[result_index];
-					Individual *chosen_individual = exerters[columns[strength_index]];
+					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
-					result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					result_vec->resize_no_initialize(count);
+					
+					for (int64_t result_index = 0; result_index < count; ++result_index)
+					{
+						int exerter_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+						Individual *chosen_individual = exerters[exerter_index];
+						
+						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					}
+				}
+			}
+			else
+			{
+				// General case, getting strengths and doing weighted draws
+				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				uint32_t nnz;
+				const uint32_t *columns;
+				const sv_value_t *strengths;
+				std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
+				
+				strengths = sv->Strengths(&nnz, &columns);
+				
+				// Total the interaction strengths, and gather a vector of strengths as doubles
+				double total_interaction_strength = 0.0;
+				
+				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				{
+					sv_value_t strength = strengths[col_index];
+					
+					total_interaction_strength += strength;
+					double_strengths.emplace_back((double)strength);
+				}
+				
+				// Draw individuals
+				if (total_interaction_strength > 0.0)
+				{
+					std::vector<int> strength_indices;
+					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+					
+					result_vec->resize_no_initialize(count);
+					DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+					
+					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					{
+						int strength_index = strength_indices[result_index];
+						Individual *chosen_individual = exerters[columns[strength_index]];
+						
+						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+					}
 				}
 			}
 			
@@ -4108,7 +4428,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 			EnsureKDTreePresent(exerter_subpop_data);
 			
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4130,42 +4450,73 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				
 				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
+				SparseVector *sv = nullptr;
 				
-				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-				uint32_t nnz;
-				const uint32_t *columns;
-				const sv_value_t *strengths;
-				std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
-				
-				strengths = sv->Strengths(&nnz, &columns);
-				
-				// Total the interaction strengths, and gather a vector of strengths as doubles
-				double total_interaction_strength = 0.0;
-				
-				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				if (optimize_fixed_interaction_strengths)
 				{
-					sv_value_t strength = strengths[col_index];
+					// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
+					sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+					FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+					uint32_t nnz;
+					const uint32_t *columns;
 					
-					total_interaction_strength += strength;
-					double_strengths.emplace_back((double)strength);
-				}
-				
-				// Draw individuals
-				if (total_interaction_strength > 0.0)
-				{
-					std::vector<int> strength_indices;
-					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+					sv->Presences(&nnz, &columns);
 					
-					result_vec->resize_no_initialize(count);
-					DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
-					
-					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					if (nnz > 0)
 					{
-						int strength_index = strength_indices[result_index];
-						Individual *chosen_individual = exerters[columns[strength_index]];
+						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 						
-						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						result_vec->resize_no_initialize(count);
+						
+						for (int64_t result_index = 0; result_index < count; ++result_index)
+						{
+							int exerter_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+							Individual *chosen_individual = exerters[exerter_index];
+							
+							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						}
+					}
+				}
+				else
+				{
+					// General case, getting strengths and doing weighted draws
+					sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+					uint32_t nnz;
+					const uint32_t *columns;
+					const sv_value_t *strengths;
+					std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
+					
+					strengths = sv->Strengths(&nnz, &columns);
+					
+					// Total the interaction strengths, and gather a vector of strengths as doubles
+					double total_interaction_strength = 0.0;
+					
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+					{
+						sv_value_t strength = strengths[col_index];
+						
+						total_interaction_strength += strength;
+						double_strengths.emplace_back((double)strength);
+					}
+					
+					// Draw individuals
+					if (total_interaction_strength > 0.0)
+					{
+						std::vector<int> strength_indices;
+						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						
+						result_vec->resize_no_initialize(count);
+						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+						
+						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						{
+							int strength_index = strength_indices[result_index];
+							Individual *chosen_individual = exerters[columns[strength_index]];
+							
+							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						}
 					}
 				}
 				
@@ -4219,7 +4570,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that the interaction be spatial." << EidosTerminate();
 	
 	if (receivers_count == 0)
-		return gStaticEidosValue_Float_ZeroVec;
+		return gStaticEidosValue_Integer_ZeroVec;
 	
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
@@ -4264,13 +4615,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			return gStaticEidosValue_Integer0;
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-		FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);	// FIXME all we actually need is nnz!
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+		FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
 		
-		// Get the sparse vector data
 		uint32_t nnz;
-		
-		sv->Distances(&nnz);
+		sv->Presences(&nnz);
 		
 		InteractionType::FreeSparseVector(sv);
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(nnz));
@@ -4307,13 +4656,11 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			}
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-			FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);	// FIXME all we actually need is nnz!
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+			FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
 			
-			// Get the sparse vector data
 			uint32_t nnz;
-			
-			sv->Distances(&nnz);
+			sv->Presences(&nnz);
 			
 			InteractionType::FreeSparseVector(sv);
 			result_vec->set_int_no_check(nnz, receiver_index);
@@ -4396,6 +4743,9 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	EidosValue_SP clipped_integrals_SP = ExecuteMethod_clippedIntegral(p_method_id, p_arguments, p_interpreter);
 	EidosValue *clipped_integrals = clipped_integrals_SP.get();
 	
+	// Decide whether we can use our optimized case below
+	bool optimize_fixed_interaction_strengths = ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (if_type_ == IFType::kFixed));
+	
 	if (receivers_count == 1)
 	{
 		// Just one value, so we can return a singleton and skip some work
@@ -4406,23 +4756,41 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		
 		// Check sex-specificity for the receiver; if the individual is disqualified, the local density of interacters is zero
 		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != first_receiver->sex_))
-			return gStaticEidosValue_Integer0;
+			return gStaticEidosValue_Float0;
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+		double total_strength;
+		SparseVector *sv;
 		
-		// Get the sparse vector data
-		uint32_t nnz;
-		const sv_value_t *strengths;
-		
-		strengths = sv->Strengths(&nnz);
-		
-		// Total the interaction strengths
-		double total_strength = 0.0;
-		
-		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-			total_strength += strengths[col_index];
+		if (optimize_fixed_interaction_strengths)
+		{
+			// Optimized case for fixed interaction strength and no callbacks
+			sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+			FillSparseVectorForReceiverPresences(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			
+			uint32_t nnz;
+			sv->Presences(&nnz);
+			
+			total_strength = nnz * if_param1_;
+		}
+		else
+		{
+			// General case, totalling strengths
+			sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+			FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			
+			// Get the sparse vector data
+			uint32_t nnz;
+			const sv_value_t *strengths;
+			
+			strengths = sv->Strengths(&nnz);
+			
+			// Total the interaction strengths
+			total_strength = 0.0;
+			
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				total_strength += strengths[col_index];
+		}
 		
 		// Add the interaction strength for the focal individual to the focal point, since it counts for density
 		if (receiver_subpop == exerter_subpop)
@@ -4440,7 +4808,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4467,20 +4835,37 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			}
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			double total_strength;
+			SparseVector *sv;
 			
-			// Get the sparse vector data
-			uint32_t nnz;
-			const sv_value_t *strengths;
-			
-			strengths = sv->Strengths(&nnz);
-			
-			// Total the interaction strengths
-			double total_strength = 0.0;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				total_strength += strengths[col_index];
+			if (optimize_fixed_interaction_strengths)
+			{
+				// Optimized case for fixed interaction strength and no callbacks
+				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
+				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				
+				uint32_t nnz;
+				sv->Presences(&nnz);
+				total_strength = nnz * if_param1_;
+			}
+			else
+			{
+				// General case, totalling strengths
+				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				
+				// Get the sparse vector data
+				uint32_t nnz;
+				const sv_value_t *strengths;
+				
+				strengths = sv->Strengths(&nnz);
+				
+				// Total the interaction strengths
+				total_strength = 0.0;
+				
+				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+					total_strength += strengths[col_index];
+			}
 			
 			// Add the interaction strength for the focal individual to the focal point, since it counts for density
 			if (receiver_subpop == exerter_subpop)
@@ -4827,7 +5212,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 				
 				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
 				
-				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
+				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
 				FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
 				uint32_t nnz;
 				const uint32_t *columns;
@@ -4889,9 +5274,9 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 			
 			// deferred raises, for OpenMP compatibility
 			if (saw_error_1)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 			if (saw_error_2)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		}
 		
 		free(result_vectors);
@@ -5132,7 +5517,7 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCount): neighborCount() requires that the interaction be spatial." << EidosTerminate();
 	
 	if (receivers_count == 0)
-		return gStaticEidosValue_Float_ZeroVec;
+		return gStaticEidosValue_Integer_ZeroVec;
 	
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
@@ -5619,7 +6004,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		
 		// Check sex-specificity for the receiver; if the individual is disqualified, the total is zero
 		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-			return gStaticEidosValue_Integer0;
+			return gStaticEidosValue_Float0;
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);

@@ -160,7 +160,8 @@ std::ostream &operator<<(std::ostream &p_outstream, const SparseVector &p_vector
 	
 	p_outstream << "   ";
 	
-	if (p_vector.value_type_ == SparseVectorDataType::kDistances)			p_outstream << "distances";
+	if (p_vector.value_type_ == SparseVectorDataType::kPresences)			p_outstream << "presences";
+	else if (p_vector.value_type_ == SparseVectorDataType::kDistances)		p_outstream << "distances";
 	else if (p_vector.value_type_ == SparseVectorDataType::kStrengths)		p_outstream << "strengths";
 	else
 	{

@@ -43,6 +43,7 @@ typedef float sv_value_t;
 // This enum designates the type of value being stored by SparseVector.  It is used for consistency checking in DEBUG builds.
 typedef enum {
 	kNoData = 0,
+	kPresences,
 	kDistances,
 	kStrengths
 } SparseVectorDataType;
@@ -78,6 +79,7 @@ public:
 	// Building a sparse vector has to be done in column order, one entry at a time, and then has to be Finished().
 	// You can supply either distances or strengths; SparseVector does not store both simultaneously.  You should
 	// declare in advance which type of value you intend to store; this is checked when building DEBUG.
+	void AddEntryPresence(const uint32_t p_column);
 	void AddEntryDistance(const uint32_t p_column, sv_value_t p_distance);
 	void AddEntryStrength(const uint32_t p_column, sv_value_t p_strength);
 	void Finished(void);
@@ -93,6 +95,9 @@ public:
 	sv_value_t Strength(uint32_t p_column) const;
 	
 	// Access to the sparse vector's data
+	void Presences(uint32_t *p_nnz) const;
+	void Presences(uint32_t *p_nnz, const uint32_t **p_columns) const;
+	
 	const sv_value_t *Distances(uint32_t *p_nnz) const;
 	const sv_value_t *Distances(uint32_t *p_nnz, const uint32_t **p_columns) const;
 	void Distances(uint32_t *p_nnz, uint32_t **p_columns, sv_value_t **p_distances);	// non-const
@@ -119,6 +124,24 @@ inline void SparseVector::Reset(unsigned int p_ncols, SparseVectorDataType data_
 	finished_ = false;
 	value_type_ = data_type;
 	ResizeToFitMaxNNZ(ncols_);
+}
+
+inline void SparseVector::AddEntryPresence(const uint32_t p_column)
+{
+#if DEBUG
+	if (finished_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryPresence): adding entry to sparse vector that is finished." << EidosTerminate(nullptr);
+	if (p_column >= ncols_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryPresence): adding column beyond the end of the sparse vector." << EidosTerminate(nullptr);
+	if (value_type_ != SparseVectorDataType::kPresences)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryPresence): sparse vector is not specialized for presences." << EidosTerminate(nullptr);
+	if (nnz_ >= nnz_capacity_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::AddEntryPresence): insufficient capacity allocated." << EidosTerminate(nullptr);
+#endif
+	
+	// insert the new entry
+	columns_[nnz_] = p_column;
+	nnz_++;
 }
 
 inline void SparseVector::AddEntryDistance(const uint32_t p_column, sv_value_t p_distance)
@@ -167,10 +190,38 @@ inline __attribute__((always_inline)) void SparseVector::Finished(void)
 #endif
 	
 	if (value_type_ == SparseVectorDataType::kNoData)
-		EIDOS_TERMINATION << "ERROR (SparseVector::Distance): sparse vector was never specialized to distances or strengths." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (SparseVector::Distance): sparse vector was never specialized to presences, distances, or strengths." << EidosTerminate(nullptr);
 	
 	finished_ = true;
 }
+
+inline void SparseVector::Presences(uint32_t *p_nnz) const
+{
+#if DEBUG
+	// should be done building the vector
+	if (!finished_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Presences): sparse vector is not finished being built." << EidosTerminate(nullptr);
+	if (value_type_ != SparseVectorDataType::kPresences)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Presences): sparse vector is not specialized for presences." << EidosTerminate(nullptr);
+#endif
+	
+	*p_nnz = (uint32_t)nnz_;	// cast should be safe, the number of entries is 32-bit
+}
+
+inline void SparseVector::Presences(uint32_t *p_nnz, const uint32_t **p_columns) const
+{
+#if DEBUG
+	// should be done building the vector
+	if (!finished_)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Presences): sparse vector is not finished being built." << EidosTerminate(nullptr);
+	if (value_type_ != SparseVectorDataType::kPresences)
+		EIDOS_TERMINATION << "ERROR (SparseVector::Presences): sparse vector is not specialized for presences." << EidosTerminate(nullptr);
+#endif
+	
+	*p_nnz = (uint32_t)nnz_;	// cast should be safe, the number of entries is 32-bit
+	*p_columns = columns_;
+}
+
 inline const sv_value_t *SparseVector::Distances(uint32_t *p_nnz) const
 {
 #if DEBUG

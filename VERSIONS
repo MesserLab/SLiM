@@ -87,6 +87,9 @@ development head (in the master branch):
 	extend the Eidos Dictionary class (and DataFrame) to allow integer keys, making it more of a general "associative array" class that can represent ragged arrays and similar structures
 		as a side effect, "slim" type dictionary serialization now *always* quotes string keys (policy change), to distinguish, e.g., "10" (string) from 10 (integer) in serialized output
 	extend the Eidos Dictionary class (and DataFrame) to allow objects of all classes to be added; dictionaries containing objects that are not under retain-release just can't be kept long-term
+	improve InteractionType performance for certain queries, especially drawByStrength() with fixed interaction strength
+	bug fix: drawByStrength() would return at most N individuals, where N is the size of the exerter subpop; but this is incorrect since draws are with replacement
+	bug fix: neighborCount() and interactingNeighborCount() would return float(0) instead of integer(0) in certain circumstances, totalOfNeighborStrengths() would return integer(0) instead of float(0)
 	
 
 version 4.0.1 (Eidos version 3.0.1):
