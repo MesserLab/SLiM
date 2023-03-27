@@ -132,6 +132,9 @@ public:
 	void AppendNewRow(void);
 	void TickEndCallout(void);
 	
+	inline const std::string &UserFilePath(void) const { return user_file_path_; }
+	inline const std::string &ResolvedFilePath(void) const { return resolved_file_path_; }
+	
 	virtual std::vector<std::string> SortedKeys_StringKeys(void) const override;	// provide keys in column order
 	
 	//
