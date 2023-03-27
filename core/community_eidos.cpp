@@ -634,6 +634,20 @@ EidosValue_SP Community::ExecuteMethod_createLogFile(EidosGlobalStringID p_metho
 	logfile->SetFlushInterval(explicitFlushing, flushInterval);
 	logfile->ConfigureFile(filePath, initialContents, append, do_compress, sep);
 	
+	// Check for duplicate LogFiles using the same path; this is a common error so I'm making it illegal
+	std::string &resolved_path = logfile->resolved_file_path_;
+	
+	for (LogFile *existing_log_file : log_file_registry_)
+	{
+		if (existing_log_file != logfile)
+		{
+			std::string &existing_path = existing_log_file->resolved_file_path_;
+			
+			if (resolved_path == existing_path)
+				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_createLogFile): createLogFile() cannot create a new log file at " << resolved_path << " because an existing log file is already using that path." << EidosTerminate();
+		}
+	}
+	
 	return result_SP;
 }
 

@@ -91,6 +91,7 @@ development head (in the master branch):
 	bug fix: drawByStrength() would return at most N individuals, where N is the size of the exerter subpop; but this is incorrect since draws are with replacement
 	bug fix: neighborCount() and interactingNeighborCount() would return float(0) instead of integer(0) in certain circumstances, totalOfNeighborStrengths() would return integer(0) instead of float(0)
 	add recipe 14.16, "modeling biallelic loci in script" (complementing recipes 14.15 I and 14.15 II, which show how to do it with built-in mutations and a mutation() callback)
+	disallow multiple log files at the same path, since this is a common mistake and there's no clear use for it
 	
 
 version 4.0.1 (Eidos version 3.0.1):
