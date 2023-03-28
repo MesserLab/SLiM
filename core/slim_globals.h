@@ -291,7 +291,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  EidosDictionaryRetained : EidosDictionaryUnretained subclass that provides retain/release memory management
  
  GenomicElement : EidosObject subclass, allocated with new and never deleted
- SLiMgui : EidosObject subclass, allocated with new and never deleted
+ SLiMgui : EidosDictionaryUnretained subclass, allocated with new and never deleted
  GenomicElementType : EidosDictionaryUnretained subclass, allocated with new and never deleted
  MutationType : EidosDictionaryUnretained subclass, allocated with new and never deleted
  InteractionType : EidosDictionaryUnretained subclass, allocated with new and never deleted
@@ -343,6 +343,21 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  release; manipulating large vectors of Mutation objects in Eidos is now ~3x slower than it used to be.  The large
  advantages of being able to keep Mutation objects long-term seemed to justify this; no similar advantages seem to
  exist for the other SLiM classes that would justify this additional overhead.
+ 
+ BCH 3/28/2023: Apropos of the previous paragraph, I looked into having the managed-lifetime objects that live for
+ the whole simulation (Community, Species, GenomicElementType, MutationType, InteractionType, SLiMgui) behave like
+ they're under retain-release (so they can be put into Dictionaries and defined as global constants and so forth),
+ but it proved difficult and fragile.  There are two choices for this.  You could actually put these objects under
+ retain-release, and design things so that at the end of the simulation they get a Release() call and that trigger
+ causes their deallocation.  The problem with that is that retained references to them - even their self_symbol_ -
+ make it so they don't actually get deallocated at the point in time that they should be, and so they leak.  A way
+ to break retain cycles would be needed, but that's a very complex thing.  The other possible approach is for them
+ to just pretend to be under retain-release, but to get forced to dealloc at the end of the simulation, regardless
+ of their retain count.  The problem in this case is that Release() calls will come in for the objects after their
+ deallocation; trying to prevent that by chasing down and clearing every retained reference before deallocation is
+ a very complex thing too.  What is really needed is a weak-reference scheme where only the simulation's reference
+ is strong, and all other references are weak and get cleared when the strong reference is released; but again, it
+ is a very complex thing to implement.  In the end I decided it wasn't worth the time, effort, and complexity.
  
  BCH 5/24/2022: Adding a new note regarding memory policy in multispecies SLiM.  The above points still apply, but
  it is worth emphasizing that the shared global pools now apply across species.  Multiple species share a pool for
