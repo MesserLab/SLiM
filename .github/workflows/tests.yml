@@ -32,18 +32,29 @@ jobs:
         # BCH 1/30/2021: removing macos-11.0 for now because GitHub isn't running it properly
         # see https://github.com/actions/virtual-environments/issues/2486 for more info
         # also relevant: https://github.com/actions/virtual-environments/issues/2381
-        os: [ubuntu-20.04, ubuntu-22.04, macos-10.15, macos-11, macos-12]
-        python: [ 3.8 ]
+        # BCH 3/28/2023: adding it back in (it is now named macos-11) to see if it now works
         include:
           # Ubuntu with the oldest supported GCC (used to be 4.8, but with 20.04 it is 7, sadly).
           - os: ubuntu-20.04
             gcc: 7
+            python: 3.8
           # Ubuntu with the most recent GCC (on 20.04, that is 11).
           - os: ubuntu-20.04
             gcc: 11
+            python: 3.8
           # Ubuntu with the most recent GCC (on 22.04, that is 12).
           - os: ubuntu-22.04
             gcc: 12
+            python: 3.9
+          # macOS, oldest supported version
+          - os: macos-10.15
+            python: 3.8
+          # macOS, intermediate version
+          - os: macos-11
+            python: 3.9
+          # macOS, newest supported version
+          - os: macos-12
+            python: 3.9
 
     steps:
       - name: Checkout
