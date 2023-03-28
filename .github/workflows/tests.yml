@@ -35,15 +35,15 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04, macos-10.15, macos-11, macos-12]
         python: [ 3.8 ]
         include:
-          # Ubuntu with the oldest supported GCC.
+          # Ubuntu with the oldest supported GCC (used to be 4.8, but with 20.04 it is 7, sadly).
           - os: ubuntu-20.04
-            gcc: 4.8
-          # Ubuntu with the most recent GCC.
+            gcc: 7
+          # Ubuntu with the most recent GCC (on 20.04, that is 11).
           - os: ubuntu-20.04
             gcc: 11
-          # Ubuntu with the most recent GCC.
+          # Ubuntu with the most recent GCC (on 22.04, that is 12).
           - os: ubuntu-22.04
-            gcc: 11
+            gcc: 12
 
     steps:
       - name: Checkout
@@ -163,7 +163,7 @@ jobs:
           # Ubuntu with the oldest supported Qt and GCC.
           - os: ubuntu-20.04
             qt: 5.9.5
-            gcc: 4.8
+            gcc: 7
           # Ubuntu with the most recent Qt and GCC.
           - os: ubuntu-20.04
             qt: 5.15.2
@@ -171,7 +171,7 @@ jobs:
           # Ubuntu with the most recent Qt and GCC.
           - os: ubuntu-22.04
             qt: 5.15.2
-            gcc: 11
+            gcc: 12
           # MacOS with oldest supported Qt.
           - os: macos-10.15
             qt: 5.9.5
