@@ -1216,6 +1216,7 @@ void _RunClassTests(std::string temp_path)
 	EidosAssertScriptSuccess_S("a = Dictionary('{\"a\": \"b\"}'); a.serialize('json');", "{\"a\":[\"b\"]}");
 	EidosAssertScriptSuccess_S("a = Dictionary('{\"a\": [\"b\"]}'); a.serialize('json');", "{\"a\":[\"b\"]}");
 	EidosAssertScriptSuccess_L("a = Dictionary(); a.setValue('logical_empty', logical(0)); a.setValue('logical_T', T); a.setValue('logical_F', F); a.setValue('logical_vector', c(T, F, T, F)); a.setValue('int_empty', integer(0)); a.setValue('int_singleton', 1); a.setValue('int_vector', 1:3); a.setValue('float_empty', float(0)); a.setValue('float_singleton', 1.0); a.setValue('float_vector', 1.0:3); a.setValue('string_empty', string(0)); a.setValue('string_singleton', 'foo'); a.setValue('string_vector', c('foo', 'bar', 'baz')); sa_json = a.serialize('json'); b = Dictionary(sa_json); sb_json = b.serialize('json'); identical(sa_json,sb_json);", true);
+	EidosAssertScriptSuccess_L("x = Dictionary('a', 5:7, 'b', 'foo'); x.setValue('c', Dictionary('d', 18)); y = x.serialize('json'); z = Dictionary(y); z = z.serialize('json'); identical(y, z);", true);
 	
 	// DataFrame(...)
 	// identicalContents()

@@ -984,7 +984,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 								EidosDictionaryRetained *element_dictionary = new EidosDictionaryRetained();
 								if (value[element_index].type() == nlohmann::json::value_t::object)
 									element_dictionary->AddJSONFrom(value[element_index]);
-								object_value->push_object_element_NORR(element_dictionary);
+								object_value->push_object_element_RR(element_dictionary);
 							}
 							
 							state_ptr->dictionary_symbols_[key] = EidosValue_SP(object_value);
