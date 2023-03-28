@@ -49,10 +49,7 @@ jobs:
           # macOS, oldest supported version
           - os: macos-10.15
             python: 3.8
-          # macOS, intermediate version
-          - os: macos-11
-            python: 3.9
-          # macOS, newest supported version
+          # macOS, newest supported version (we skip 11 to save on build minutes)
           - os: macos-12
             python: 3.9
 
@@ -183,16 +180,13 @@ jobs:
           - os: ubuntu-22.04
             qt: 5.15.2
             gcc: 12
-          # MacOS with oldest supported Qt.
+          # old MacOS with oldest supported Qt.
           - os: macos-10.15
             qt: 5.9.5
-          # MacOS with most recent Qt.
+          # old MacOS with most recent Qt.
           - os: macos-10.15
             qt: 5.15.2
-          # MacOS with most recent Qt.
-          - os: macos-11
-            qt: 5.15.2
-          # MacOS with most recent Qt.
+          # new MacOS with most recent Qt. (we skip macOS 11 to save on build minutes)
           - os: macos-12
             qt: 5.15.2
 
