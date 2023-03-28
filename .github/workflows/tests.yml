@@ -32,14 +32,17 @@ jobs:
         # BCH 1/30/2021: removing macos-11.0 for now because GitHub isn't running it properly
         # see https://github.com/actions/virtual-environments/issues/2486 for more info
         # also relevant: https://github.com/actions/virtual-environments/issues/2381
-        os: [ubuntu-18.04, ubuntu-20.04, macos-10.15]
+        os: [ubuntu-20.04, ubuntu-22.04, macos-10.15, macos-11, macos-12]
         python: [ 3.8 ]
         include:
           # Ubuntu with the oldest supported GCC.
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             gcc: 4.8
           # Ubuntu with the most recent GCC.
           - os: ubuntu-20.04
+            gcc: 11
+          # Ubuntu with the most recent GCC.
+          - os: ubuntu-22.04
             gcc: 11
 
     steps:
@@ -158,11 +161,15 @@ jobs:
       matrix:
         include:
           # Ubuntu with the oldest supported Qt and GCC.
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             qt: 5.9.5
             gcc: 4.8
           # Ubuntu with the most recent Qt and GCC.
           - os: ubuntu-20.04
+            qt: 5.15.2
+            gcc: 11
+          # Ubuntu with the most recent Qt and GCC.
+          - os: ubuntu-22.04
             qt: 5.15.2
             gcc: 11
           # MacOS with oldest supported Qt.
@@ -170,6 +177,12 @@ jobs:
             qt: 5.9.5
           # MacOS with most recent Qt.
           - os: macos-10.15
+            qt: 5.15.2
+          # MacOS with most recent Qt.
+          - os: macos-11
+            qt: 5.15.2
+          # MacOS with most recent Qt.
+          - os: macos-12
             qt: 5.15.2
 
     steps:
