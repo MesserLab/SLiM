@@ -714,8 +714,8 @@ int main(int argc, char *argv[])
 		Eidos_FlushFiles();
 		
 #if SLIM_LEAK_CHECKING
-		delete sim;
-		sim = nullptr;
+		community->Release();
+		community = nullptr;
 		clean_up_leak_false_positives();
 		
 		// sleep() to give time to assess leaks at the command line
