@@ -424,18 +424,29 @@ void Eidos_WarmUp(void)
 		
 		// Check that EidosDictionaryState_StringKeys and EidosDictionaryState_IntegerKeys have matching layouts
 		// as far as keys_are_integers_ is concerned, so that that flag can distinguish between them
+		// BCH 3/27/2023: we have to actually allocate objects here to avoid getting flagged by UBSan...
 		{
-			void *dict_state_ptr = nullptr;
-			uint8_t *flag_addr_string_keys = &(((EidosDictionaryState_StringKeys *)dict_state_ptr)->keys_are_integers_);
-			uint8_t *flag_addr_integer_keys = &(((EidosDictionaryState_IntegerKeys *)dict_state_ptr)->keys_are_integers_);
-			uint8_t *flag_addr_string_contains = &(((EidosDictionaryState_StringKeys *)dict_state_ptr)->contains_non_retain_release_objects_);
-			uint8_t *flag_addr_integer_contains = &(((EidosDictionaryState_IntegerKeys *)dict_state_ptr)->contains_non_retain_release_objects_);
+			EidosDictionaryState_StringKeys *dict_state_ptr_string = new EidosDictionaryState_StringKeys;
+			EidosDictionaryState_IntegerKeys *dict_state_ptr_integer = new EidosDictionaryState_IntegerKeys;
 			
-			if ((flag_addr_string_keys != flag_addr_integer_keys) || (flag_addr_string_contains != flag_addr_integer_contains))
+			uint8_t *flag_addr_string_keys = &((dict_state_ptr_string)->keys_are_integers_);
+			uint8_t *flag_addr_integer_keys = &((dict_state_ptr_integer)->keys_are_integers_);
+			uint8_t *flag_addr_string_contains = &((dict_state_ptr_string)->contains_non_retain_release_objects_);
+			uint8_t *flag_addr_integer_contains = &((dict_state_ptr_integer)->contains_non_retain_release_objects_);
+			
+			size_t string_keys_offset = flag_addr_string_keys - (uint8_t *)dict_state_ptr_string;
+			size_t integer_keys_offset = flag_addr_integer_keys - (uint8_t *)dict_state_ptr_integer;
+			size_t string_contains_offset = flag_addr_string_contains - (uint8_t *)dict_state_ptr_string;
+			size_t integer_contains_offset = flag_addr_integer_contains - (uint8_t *)dict_state_ptr_integer;
+			
+			if ((string_keys_offset != integer_keys_offset) || (string_contains_offset != integer_contains_offset))
 			{
 				std::cerr << "***** EidosDictionaryState layout mismatch in Eidos_WarmUp()!";
 				exit(EXIT_FAILURE);
 			}
+			
+			delete dict_state_ptr_string;
+			delete dict_state_ptr_integer;
 		}
 		
 #if (defined(_MSC_VER) && _MSC_VER <= 1900) || (defined(__MINGW32__) && !defined(_UCRT))
