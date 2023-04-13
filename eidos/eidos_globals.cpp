@@ -1779,7 +1779,7 @@ bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outs
 	
 	//std::cout << "_Eidos_FlushZipBuffer() called for " << file_path << std::endl;
 	
-	gzFile gzf = z_gzopen(file_path.c_str(), "ab");
+	gzFile gzf = gzopen(file_path.c_str(), "ab");
 	
 	if (!gzf)
 		return false;
@@ -1893,7 +1893,7 @@ void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::st
 		{
 			// this code can handle both the append and the non-append case, but the append case may generate very low-quality
 			// compression (potentially even worse than the uncompressed data) due to having an excess of gzip headers
-			gzFile gzf = z_gzopen(p_file_path.c_str(), p_append ? "ab" : "wb");
+			gzFile gzf = gzopen(p_file_path.c_str(), p_append ? "ab" : "wb");
 			
 			if (!gzf)
 				EIDOS_TERMINATION << "#ERROR (Eidos_WriteToFile): could not write to file at path " << p_file_path << "." << EidosTerminate(nullptr);

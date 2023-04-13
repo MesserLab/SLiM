@@ -373,7 +373,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	if (do_compress)
 	{
 		// compression using zlib; very different from the no-compression case, unfortunately, because here we use C-based APIs
-		gzFile gzf = z_gzdopen(fd, "wb");
+		gzFile gzf = gzdopen(fd, "wb");
 		
 		if (!gzf)
 		{

@@ -29,6 +29,10 @@
 
 #include "zutil.h"      /* for Z_U4, Z_U8, z_crc_t, and FAR definitions */
 
+// BCH 12 April 2023: adding pragmas to disable spurious warnings
+#pragma GCC diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+
  /*
   A CRC of a message is computed on N braids of words in the message, where
   each word consists of W bytes (4 or 8). If N is 3, for example, then three
@@ -1078,9 +1082,6 @@ unsigned long ZEXPORT crc32(crc, buf, len)
 }
 
 /* ========================================================================= */
-// BCH 9/29/2021: This function appears to be unused in this branch of the code,
-// and produces a warning on Windows, so I'm going to just #if it out.
-#if 0
 uLong ZEXPORT crc32_combine64(crc1, crc2, len2)
     uLong crc1;
     uLong crc2;
@@ -1091,7 +1092,6 @@ uLong ZEXPORT crc32_combine64(crc1, crc2, len2)
 #endif /* DYNAMIC_CRC_TABLE */
     return multmodp(x2nmodp(len2, 3), crc1) ^ (crc2 & 0xffffffff);
 }
-#endif
 
 /* ========================================================================= */
 uLong ZEXPORT crc32_combine(crc1, crc2, len2)
