@@ -93,6 +93,7 @@ development head (in the master branch):
 	add recipe 14.16, "modeling biallelic loci in script" (complementing recipes 14.15 I and 14.15 II, which show how to do it with built-in mutations and a mutation() callback)
 	disallow multiple log files at the same path, since this is a common mistake and there's no clear use for it
 	bug fix: problem with reading in JSON that contains an "object" (i.e., a dictionary) inside the top-level object
+	update the zlib code in eidos_zlib to version 1.2.13 (13 Oct 2022), fixing some issues (see zlib ChangeLog file)
 	
 
 version 4.0.1 (Eidos version 3.0.1):
