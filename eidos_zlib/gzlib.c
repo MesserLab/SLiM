@@ -72,8 +72,7 @@ char ZLIB_INTERNAL *gz_strwinerror(error)
 #endif /* UNDER_CE */
 
 /* Reset gzip file state */
-local void gz_reset(state)
-    gz_statep state;
+local void gz_reset(gz_statep state)	// BCH: rearranged to get rid of prototype warning
 {
     state->x.have = 0;              /* no output data available */
     if (state->mode == GZ_READ) {   /* for reading ... */
@@ -90,10 +89,7 @@ local void gz_reset(state)
 }
 
 /* Open a gzip file either by name or file descriptor. */
-local gzFile gz_open(path, fd, mode)
-    const void *path;
-    int fd;
-    const char *mode;
+local gzFile gz_open(const void *path, int fd, const char *mode)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
     z_size_t len;
@@ -269,25 +265,19 @@ local gzFile gz_open(path, fd, mode)
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzopen(path, mode)
-    const char *path;
-    const char *mode;
+gzFile ZEXPORT gzopen(const char *path, const char *mode)	// BCH: rearranged to get rid of prototype warning
 {
     return gz_open(path, -1, mode);
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzopen64(path, mode)
-    const char *path;
-    const char *mode;
+gzFile ZEXPORT gzopen64(const char *path, const char *mode)	// BCH: rearranged to get rid of prototype warning
 {
     return gz_open(path, -1, mode);
 }
 
 /* -- see zlib.h -- */
-gzFile ZEXPORT gzdopen(fd, mode)
-    int fd;
-    const char *mode;
+gzFile ZEXPORT gzdopen(int fd, const char *mode)	// BCH: rearranged to get rid of prototype warning
 {
     char *path;         /* identifier for error messages */
     gzFile gz;
@@ -315,9 +305,7 @@ gzFile ZEXPORT gzopen_w(path, mode)
 #endif
 
 /* -- see zlib.h -- */
-int ZEXPORT gzbuffer(file, size)
-    gzFile file;
-    unsigned size;
+int ZEXPORT gzbuffer(gzFile file, unsigned size)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -342,8 +330,7 @@ int ZEXPORT gzbuffer(file, size)
 }
 
 /* -- see zlib.h -- */
-int ZEXPORT gzrewind(file)
-    gzFile file;
+int ZEXPORT gzrewind(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -365,10 +352,7 @@ int ZEXPORT gzrewind(file)
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gzseek64(file, offset, whence)
-    gzFile file;
-    z_off64_t offset;
-    int whence;
+z_off64_t ZEXPORT gzseek64(gzFile file, z_off64_t offset, int whence)	// BCH: rearranged to get rid of prototype warning
 {
     unsigned n;
     z_off64_t ret;
@@ -442,10 +426,7 @@ z_off64_t ZEXPORT gzseek64(file, offset, whence)
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gzseek(file, offset, whence)
-    gzFile file;
-    z_off_t offset;
-    int whence;
+z_off_t ZEXPORT gzseek(gzFile file, z_off_t offset, int whence)	// BCH: rearranged to get rid of prototype warning
 {
     z_off64_t ret;
 
@@ -454,8 +435,7 @@ z_off_t ZEXPORT gzseek(file, offset, whence)
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gztell64(file)
-    gzFile file;
+z_off64_t ZEXPORT gztell64(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -471,8 +451,7 @@ z_off64_t ZEXPORT gztell64(file)
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gztell(file)
-    gzFile file;
+z_off_t ZEXPORT gztell(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     z_off64_t ret;
 
@@ -481,8 +460,7 @@ z_off_t ZEXPORT gztell(file)
 }
 
 /* -- see zlib.h -- */
-z_off64_t ZEXPORT gzoffset64(file)
-    gzFile file;
+z_off64_t ZEXPORT gzoffset64(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     z_off64_t offset;
     gz_statep state;
@@ -504,8 +482,7 @@ z_off64_t ZEXPORT gzoffset64(file)
 }
 
 /* -- see zlib.h -- */
-z_off_t ZEXPORT gzoffset(file)
-    gzFile file;
+z_off_t ZEXPORT gzoffset(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     z_off64_t ret;
 
@@ -514,8 +491,7 @@ z_off_t ZEXPORT gzoffset(file)
 }
 
 /* -- see zlib.h -- */
-int ZEXPORT gzeof(file)
-    gzFile file;
+int ZEXPORT gzeof(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -531,9 +507,7 @@ int ZEXPORT gzeof(file)
 }
 
 /* -- see zlib.h -- */
-const char * ZEXPORT gzerror(file, errnum)
-    gzFile file;
-    int *errnum;
+const char * ZEXPORT gzerror(gzFile file, int *errnum)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -552,8 +526,7 @@ const char * ZEXPORT gzerror(file, errnum)
 }
 
 /* -- see zlib.h -- */
-void ZEXPORT gzclearerr(file)
-    gzFile file;
+void ZEXPORT gzclearerr(gzFile file)	// BCH: rearranged to get rid of prototype warning
 {
     gz_statep state;
 
@@ -578,10 +551,7 @@ void ZEXPORT gzclearerr(file)
    memory).  Simply save the error message as a static string.  If there is an
    allocation failure constructing the error message, then convert the error to
    out of memory. */
-void ZLIB_INTERNAL gz_error(state, err, msg)
-    gz_statep state;
-    int err;
-    const char *msg;
+void ZLIB_INTERNAL gz_error(gz_statep state, int err, const char *msg)	// BCH: rearranged to get rid of prototype warning
 {
     /* free previously allocated message and clear */
     if (state->msg != NULL) {

@@ -60,10 +60,7 @@ local uLong adler32_combine_ OF((uLong adler1, uLong adler2, z_off64_t len2));
 #endif
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_z(adler, buf, len)
-    uLong adler;
-    const Bytef *buf;
-    z_size_t len;
+uLong ZEXPORT adler32_z(uLong adler, const Bytef *buf, z_size_t len)	// BCH: rearranged to get rid of prototype warning
 {
     unsigned long sum2;
     unsigned n;
@@ -131,19 +128,13 @@ uLong ZEXPORT adler32_z(adler, buf, len)
 }
 
 /* ========================================================================= */
-uLong ZEXPORT adler32(adler, buf, len)
-    uLong adler;
-    const Bytef *buf;
-    uInt len;
+uLong ZEXPORT adler32(uLong adler, const Bytef *buf, uInt len)	// BCH: rearranged to get rid of prototype warning
 {
     return adler32_z(adler, buf, len);
 }
 
 /* ========================================================================= */
-local uLong adler32_combine_(adler1, adler2, len2)
-    uLong adler1;
-    uLong adler2;
-    z_off64_t len2;
+local uLong adler32_combine_(uLong adler1, uLong adler2, z_off64_t len2)	// BCH: rearranged to get rid of prototype warning
 {
     unsigned long sum1;
     unsigned long sum2;
@@ -169,10 +160,7 @@ local uLong adler32_combine_(adler1, adler2, len2)
 }
 
 /* ========================================================================= */
-uLong ZEXPORT adler32_combine(adler1, adler2, len2)
-    uLong adler1;
-    uLong adler2;
-    z_off_t len2;
+uLong ZEXPORT adler32_combine(uLong adler1, uLong adler2, z_off_t len2)	// BCH: rearranged to get rid of prototype warning
 {
     return adler32_combine_(adler1, adler2, len2);
 }
