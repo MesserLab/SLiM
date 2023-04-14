@@ -4906,6 +4906,13 @@ void Population::UniqueMutationRuns(void)
 	double time_spent = static_cast<double>(end - begin) / CLOCKS_PER_SEC;
 	
 	std::cout << "UniqueMutationRuns(): \n   " << total_mutruns << " run pointers analyzed\n   " << total_preexisting << " runs pre-existing\n   " << total_uniqued_away << " duplicate runs discovered and uniqued away\n   " << (total_mutruns - total_identical) << " final uniqued mutation runs\n   " << total_hash_collisions << " hash collisions\n   " << time_spent << " seconds elapsed" << std::endl;
+#else
+    // get rid of unused variable warnings
+    (void)total_hash_collisions;
+    (void)total_mutruns;
+    (void)total_preexisting;
+    (void)total_uniqued_away;
+    (void)total_identical;
 #endif
 	
 	if (total_final != total_mutruns - total_identical)

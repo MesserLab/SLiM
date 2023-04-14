@@ -22,7 +22,6 @@
 #include "QtSLiMHaplotypeOptions.h"
 #include "QtSLiMHaplotypeProgress.h"
 #include "QtSLiMExtras.h"
-#include "QtSLiMAppDelegate.h"
 
 #include <QOpenGLFunctions>
 #include <QDialog>
@@ -1501,6 +1500,10 @@ void QtSLiMHaplotypeManager::greedySolve(int64_t *distances, size_t genome_count
 			if (node_groups[node_index] != universal_group)
 				qDebug() << "node of non-matching group seen (group" << node_groups[node_index] << ")";
 		}
+        
+        // suppress "variable set but not used" warnings, since we may want these bookkeeping variables at some point...
+        (void)degree1_count;
+        (void)degree2_count;
 	}
 	
 	if (progressPanel_ && progressPanel_->haplotypeProgressIsCancelled())

@@ -1324,6 +1324,9 @@ out:
     tsk_safe_free(state);
     tsk_safe_free(summary);
     tsk_safe_free(running_sum);
+    
+    (void)tree_index;    // BCH: suppress "variable set but not used" warning; I submitted an issue about that, so this change can hopefully get overwritten next merge
+    
     return ret;
 }
 
