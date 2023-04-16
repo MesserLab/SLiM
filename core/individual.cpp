@@ -45,8 +45,8 @@ bool Individual::s_any_individual_or_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
-	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1),
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
@@ -58,13 +58,6 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	if (!p_genome1 || !p_genome2)
 		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for genome." << EidosTerminate();
 #endif
-	
-	// Make our genomes use the correct pedigree IDs, if we're doing pedigree recording
-	if (p_pedigree_id != -1)
-	{
-		p_genome1->genome_id_ = p_pedigree_id * 2;
-		p_genome2->genome_id_ = p_pedigree_id * 2 + 1;
-	}
 	
 	// Set up the pointers from our genomes to us
 	p_genome1->individual_ = this;

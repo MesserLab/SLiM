@@ -1027,7 +1027,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 {
 	THREAD_SAFETY_CHECK("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// for use outside of parallel blocks
 	
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
@@ -1326,7 +1326,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->migrant_ = false;
 						
 						if (pedigrees_enabled)
-							new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1397,9 +1397,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						if (pedigrees_enabled)
 						{
 							if (selfed)
-								new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
+								new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
 							else
-								new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 						}
 						
 						// TREE SEQUENCE RECORDING
@@ -1487,7 +1487,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = false;
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1775,7 +1775,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
+						new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1846,9 +1846,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					if (pedigrees_enabled)
 					{
 						if (selfed)
-							new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
 						else
-							new_child->TrackParentage_Biparental(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+							new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 					}
 					
 					// TREE SEQUENCE RECORDING
@@ -1912,6 +1912,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		// some setup overhead, including the Eidos_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
 		// the fact that the individuals might be in a non-random order, because of this code path.  BEWARE!
 		
+		// In some cases the code below parallelizes, when we're running multithreaded.  The main condition, already satisfied simply by virtue of
+		// being in this code path, is that there are no callbacks enabled, of any type, that influence the process of reproduction.  This is because
+		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed.
+#ifdef _OPENMP
+		bool can_parallelize = !species_.TheChromosome().using_DSB_model_;
+#endif
+		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
 		// In nonsexual simulations number_of_sexes == 1 and this loops just once.
 		slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
@@ -1973,168 +1980,189 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else if (cloning_fraction > 0)
 						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, cloning_fraction, (unsigned int)migrants_to_generate));
 					
-					// generate all selfed, cloned, and autogamous offspring in one shared loop
-					slim_popsize_t migrant_count = 0;
+					// We get a whole block of pedigree IDs to use in the loop below, avoiding race conditions / locking
+					// We are also going to use Individual objects from a block starting at base_child_count
+					slim_pedigreeid_t base_pedigree_id = SLiM_GetNextPedigreeID_Block(migrants_to_generate);
+					slim_popsize_t base_child_count = child_count;
 					
+					// generate all selfed, cloned, and autogamous offspring in one shared loop
 					if ((number_to_self == 0) && (number_to_clone == 0))
 					{
 						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
 						if (sex_enabled)
 						{
-							while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
 							{
-								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
-								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
+								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
-								
-								migrant_count++;
-								child_count++;
+#pragma omp for schedule(dynamic, 1)
+								for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
+								{
+									slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness(parallel_rng);
+									slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);	// FIXME not thread-safe
+									
+									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);	// FIXME not thread-safe
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);	// FIXME not thread-safe
+								}
 							}
+							
+							child_count += migrants_to_generate;
 						}
 						else
 						{
-							while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
 							{
-								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness(rng);
-								slim_popsize_t parent2;
+								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
-								do
-									parent2 = source_subpop.DrawParentUsingFitness(rng);	// note this does not prohibit selfing!
-								while (prevent_incidental_selfing && (parent2 == parent1));
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-								
-								migrant_count++;
-								child_count++;
+#pragma omp for schedule(dynamic, 1)
+								for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
+								{
+									slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+									slim_popsize_t parent2;
+									
+									do
+										parent2 = source_subpop.DrawParentUsingFitness(parallel_rng);	// note this does not prohibit selfing!
+									while (prevent_incidental_selfing && (parent2 == parent1));
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									
+									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+								}
 							}
+							
+							child_count += migrants_to_generate;
 						}
 					}
 					else
 					{
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
-						while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
 						{
-							slim_popsize_t parent1, parent2;
+							gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 							
-							if (number_to_clone > 0)
+#pragma omp for schedule(dynamic, 1)
+							for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
 							{
-								if (sex_enabled)
-									parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(rng) : source_subpop.DrawMaleParentUsingFitness(rng);
-								else
-									parent1 = source_subpop.DrawParentUsingFitness(rng);
+								slim_popsize_t parent1, parent2;
 								
-								parent2 = parent1;
-								(void)parent2;		// tell the static analyzer that we know we just did a dead store
-								
-								--number_to_clone;
-								
-								Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_count];
-								Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_count + 1];
-								Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
-								Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-								{
-									species_.SetCurrentNewIndividual(new_child);
-									species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
-									species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
-								}
-								
-								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
-								DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
-							}
-							else
-							{
-								IndividualSex parent1_sex, parent2_sex;
-								
-								if (sex_enabled)
-								{
-									parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
-									parent1_sex = IndividualSex::kFemale;
-								}
-								else
-								{
-									parent1 = source_subpop.DrawParentUsingFitness(rng);
-									parent1_sex = IndividualSex::kHermaphrodite;
-								}
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (number_to_self > 0)
-								{
-									parent2 = parent1;
-									parent2_sex = parent1_sex;
-									--number_to_self;
-									
-									if (pedigrees_enabled)
-										new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
-								}
-								else
+								if (migrant_count < number_to_clone)
 								{
 									if (sex_enabled)
+										parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(parallel_rng) : source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+									else
+										parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+									
+									parent2 = parent1;
+									(void)parent2;		// tell the static analyzer that we know we just did a dead store
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Genome &child_genome_1 = *p_subpop.child_genomes_[2 * this_child_index];
+									Genome &child_genome_2 = *p_subpop.child_genomes_[2 * this_child_index + 1];
+									Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
+									Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+									
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Uniparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1]);
+									
+									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									if (recording_tree_sequence)
 									{
-										parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
-										parent2_sex = IndividualSex::kMale;
+										//species_.SetCurrentNewIndividual(new_child);
+#pragma omp critical (NewGenomeRecording)
+										{
+											species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+											species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
+										}
+									}
+									
+									DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);	// FIXME not thread-safe
+									DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
+								}
+								else
+								{
+									IndividualSex parent1_sex, parent2_sex;
+									
+									if (sex_enabled)
+									{
+										parent1 = source_subpop.DrawFemaleParentUsingFitness(parallel_rng);
+										parent1_sex = IndividualSex::kFemale;
 									}
 									else
 									{
-										do
-											parent2 = source_subpop.DrawParentUsingFitness(rng);	// selfing possible!
-										while (prevent_incidental_selfing && (parent2 == parent1));
-										
-										parent2_sex = IndividualSex::kHermaphrodite;
+										parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+										parent1_sex = IndividualSex::kHermaphrodite;
 									}
 									
-									if (pedigrees_enabled)
-										new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (migrant_count < number_to_clone + number_to_self)
+									{
+										parent2 = parent1;
+										parent2_sex = parent1_sex;
+										
+										if (pedigrees_enabled)
+											new_child->TrackParentage_Uniparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1]);
+									}
+									else
+									{
+										if (sex_enabled)
+										{
+											parent2 = source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+											parent2_sex = IndividualSex::kMale;
+										}
+										else
+										{
+											do
+												parent2 = source_subpop.DrawParentUsingFitness(parallel_rng);	// selfing possible!
+											while (prevent_incidental_selfing && (parent2 == parent1));
+											
+											parent2_sex = IndividualSex::kHermaphrodite;
+										}
+										
+										if (pedigrees_enabled)
+											new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									}
+									
+									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 								}
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 							}
-							
-							// change counters
-							migrant_count++;
-							child_count++;
 						}
+						
+						child_count += migrants_to_generate;
 					}
 				}
 			}
@@ -2292,7 +2320,11 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): usage of statics, probably many other issues");
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+#if DEBUG
+	if (p_recombination_callbacks || p_mutation_callbacks)
+		THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): recombination and mutation callbacks are not allowed when executing in parallel");
+#endif
 	
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
@@ -2431,7 +2463,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
-			species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
+		{
+#pragma omp critical (NewGenomeRecording)
+			{
+				species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
+			}
+		}
 		
 		return;
 	}
@@ -2452,10 +2489,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// determine how many mutations and breakpoints we have
 	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
+	
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
+#pragma omp threadprivate(all_breakpoints)
+	all_breakpoints.clear();
+	
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
 															// this is not static since we don't want to call clear() every time for a rare edge case
-	all_breakpoints.clear();
 	
 	if (use_only_strand_1)
 	{
@@ -2562,7 +2602,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
-		species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
+	{
+#pragma omp critical (NewGenomeRecording)
+		{
+			species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
+		}
+	}
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2696,48 +2741,52 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-		
+#pragma omp threadprivate(mut_positions)
 		mut_positions.clear();
+		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
 		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
 		
-		try {
-			if (species_.IsNucleotideBased() || p_mutation_callbacks)
-			{
-				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
-				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
-				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
-				for (int k = 0; k < num_mutations; k++)
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
-					
-					if (new_mutation != -1)
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick());
+						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// see further comments below, in the non-nucleotide case; they apply here as well
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
 				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				MutationRun::FreeMutationRun(&mutations_to_add);
+				throw;
 			}
-			else
-			{
-				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
-				for (int k = 0; k < num_mutations; k++)
-				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick());
-					
-					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-					// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
-				}
-			}
-		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			MutationRun::FreeMutationRun(&mutations_to_add);
-			throw;
 		}
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
