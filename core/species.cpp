@@ -122,6 +122,8 @@ Species::~Species(void)
 	
 	population_.RemoveAllSubpopulationInfo();
 	
+	DeleteAllMutationRuns();
+	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
 	mutation_types_.clear();
@@ -922,9 +924,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				if (mutrun_index != current_mutrun_index)
 				{
 					current_mutrun_index = mutrun_index;
-					genome.WillModifyRun(current_mutrun_index);
-					
-					current_mutrun = genome.mutruns_[mutrun_index].get();
+					current_mutrun = genome.WillModifyRun(current_mutrun_index, &mutation_run_freed_pool_, &mutation_run_in_use_pool_);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1625,9 +1625,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				if (mutrun_index != current_mutrun_index)
 				{
 					current_mutrun_index = mutrun_index;
-					genome.WillModifyRun(current_mutrun_index);
-					
-					current_mutrun = genome.mutruns_[mutrun_index].get();
+					current_mutrun = genome.WillModifyRun(current_mutrun_index, &mutation_run_freed_pool_, &mutation_run_in_use_pool_);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1736,6 +1734,14 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	return 0;
 }
 #endif
+
+void Species::DeleteAllMutationRuns(void)
+{
+	// This walks the linked list for the free and in-use MutationRun pools and frees them all
+	MutationRun::DeleteMutationRunPool(&mutation_run_freed_pool_);
+	MutationRun::DeleteMutationRunPool(&mutation_run_in_use_pool_);
+}
+
 
 //
 // Running cycles
@@ -2887,38 +2893,47 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 	
 	// MutationRun
 	{
-		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
-		int64_t mutrun_objectCount = 0;
-		int64_t mutrun_externalBuffers = 0;
-		int64_t mutrun_nonneutralCaches = 0;
-		
-		for (Genome *genome : all_genomes_in_use)
 		{
-			MutationRun_SP *mutruns = genome->mutruns_;
-			int32_t mutrun_count = genome->mutrun_count_;
+			int64_t mutrun_objectCount = 0;
+			int64_t mutrun_externalBuffers = 0;
+			int64_t mutrun_nonneutralCaches = 0;
 			
-			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			const MutationRun *inuse_mutrun = mutation_run_in_use_pool_.next_run();
+			
+			while (inuse_mutrun)
 			{
-				MutationRun *mutrun = mutruns[mutrun_index].get();
+				mutrun_objectCount++;
+				mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
+				mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
 				
-				if (mutrun)
-				{
-					if (mutrun->operation_id_ != operation_id)
-					{
-						mutrun->operation_id_ = operation_id;
-						mutrun_objectCount++;
-						mutrun_externalBuffers += mutrun->MemoryUsageForMutationIndexBuffers();
-						mutrun_nonneutralCaches += mutrun->MemoryUsageForNonneutralCaches();
-					}
-				}
+				inuse_mutrun = inuse_mutrun->next_run();
 			}
+			
+			p_usage->mutationRunObjects_count = mutrun_objectCount;
+			p_usage->mutationRunObjects = sizeof(MutationRun) * mutrun_objectCount;
+			
+			p_usage->mutationRunExternalBuffers = mutrun_externalBuffers;
+			p_usage->mutationRunNonneutralCaches = mutrun_nonneutralCaches;
 		}
 		
-		p_usage->mutationRunObjects_count = mutrun_objectCount;
-		p_usage->mutationRunObjects = sizeof(MutationRun) * p_usage->mutationRunObjects_count;
-		
-		p_usage->mutationRunExternalBuffers = mutrun_externalBuffers;
-		p_usage->mutationRunNonneutralCaches = mutrun_nonneutralCaches;
+		{
+			int64_t mutrun_unusedCount = 0;
+			int64_t mutrun_unusedBuffers = 0;
+			
+			const MutationRun *free_mutrun = mutation_run_freed_pool_.next_run();
+			
+			while (free_mutrun)
+			{
+				mutrun_unusedCount++;
+				mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
+				mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+				
+				free_mutrun = free_mutrun->next_run();
+			}
+			
+			p_usage->mutationRunUnusedPoolSpace = sizeof(MutationRun) * mutrun_unusedCount;
+			p_usage->mutationRunExternalBuffers = mutrun_unusedBuffers;
+		}
 	}
 	
 	// MutationType
@@ -3549,7 +3564,7 @@ void Species::CollectMutationProfileInfo(void)
 	profile_max_mutation_index_ = std::max(profile_max_mutation_index_, (int64_t)registry_size);
 	
 	// tally up the number of mutation runs, mutation usage metrics, etc.
-	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+	int64_t operation_id = MutationRun::GetNextOperationID();
 	
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{
@@ -3558,14 +3573,14 @@ void Species::CollectMutationProfileInfo(void)
 		
 		for (Genome *genome : subpop_genomes)
 		{
-			MutationRun_SP *mutruns = genome->mutruns_;
+			const MutationRun **mutruns = genome->mutruns_;
 			int32_t mutrun_count = genome->mutrun_count_;
 			
 			profile_mutrun_total_usage_ += mutrun_count;
 			
 			for (int32_t mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				MutationRun *mutrun = mutruns[mutrun_index].get();
+				const MutationRun *mutrun = mutruns[mutrun_index];
 				
 				if (mutrun)
 				{
@@ -8080,9 +8095,7 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
 					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
 					
-					genome->WillModifyRun(run_index);
-					
-					MutationRun *mutrun = genome->mutruns_[run_index].get();
+					MutationRun *mutrun = genome->WillModifyRun(run_index, &mutation_run_freed_pool_, &mutation_run_in_use_pool_);
 					
 					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
 					{

@@ -36,6 +36,7 @@
 #include "population.h"
 #include "chromosome.h"
 #include "eidos_value.h"
+#include "mutation_run.h"
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
@@ -344,6 +345,11 @@ public:
 	
 	bool has_recalculated_fitness_ = false;		// set to true when recalculateFitness() is called, so we know fitness values are valid
 	
+	// Species now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects.
+	// When running multithreaded, each of these becomes a vector of per-thread pools, so we can alloc/free runs in parallel code.
+	MutationRunPool mutation_run_freed_pool_;
+	MutationRunPool mutation_run_in_use_pool_;
+	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
 	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is
 	// changed to non-neutral.  The flag is never set back to true.  Importantly, simply defining a non-neutral mutation type does NOT clear this flag; we want sims to be
@@ -387,6 +393,7 @@ public:
 	~Species(void);																						// destructor
 	
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
+	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);

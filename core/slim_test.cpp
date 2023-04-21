@@ -72,8 +72,11 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	}
 	catch (...)
 	{
+		if (community)
+			for (Species *species : community->AllSpecies())
+				species->DeleteAllMutationRuns();
+		
 		delete community;
-		MutationRun::DeleteMutationRunFreeList();
 		InteractionType::DeleteSparseVectorFreeList();
 		
 		if (p_lineNumber != -1)
@@ -86,8 +89,11 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 		return;
 	}
 	
+	if (community)
+		for (Species *species : community->AllSpecies())
+			species->DeleteAllMutationRuns();
+	
 	delete community;
-	MutationRun::DeleteMutationRunFreeList();
 	InteractionType::DeleteSparseVectorFreeList();
 	
 	gSLiMTestFailureCount--;	// correct for our assumption of failure above
@@ -199,8 +205,11 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 		}
 	}
 	
+	if (community)
+		for (Species *species : community->AllSpecies())
+			species->DeleteAllMutationRuns();
+	
 	delete community;
-	MutationRun::DeleteMutationRunFreeList();
 	InteractionType::DeleteSparseVectorFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;
@@ -266,8 +275,11 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 		}
 	}
 	
+	if (community)
+		for (Species *species : community->AllSpecies())
+			species->DeleteAllMutationRuns();
+	
 	delete community;
-	MutationRun::DeleteMutationRunFreeList();
 	InteractionType::DeleteSparseVectorFreeList();
 	
 	gEidosErrorContext.currentScript = nullptr;

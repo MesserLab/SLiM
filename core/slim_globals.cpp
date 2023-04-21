@@ -487,6 +487,8 @@ void SumUpMemoryUsage_Species(SLiMMemoryUsage_Species &p_usage)
 		p_usage.mutationRunObjects +
 		p_usage.mutationRunExternalBuffers +
 		p_usage.mutationRunNonneutralCaches +
+		p_usage.mutationRunUnusedPoolSpace +
+		p_usage.mutationRunUnusedPoolBuffers +
 		p_usage.mutationTypeObjects +
 		p_usage.speciesObjects +
 		p_usage.speciesTreeSeqTables +
@@ -504,8 +506,6 @@ void SumUpMemoryUsage_Community(SLiMMemoryUsage_Community &p_usage)
 		p_usage.communityObjects +
 		p_usage.mutationRefcountBuffer +
 		p_usage.mutationUnusedPoolSpace +
-		p_usage.mutationRunUnusedPoolSpace +
-		p_usage.mutationRunUnusedPoolBuffers +
 		p_usage.interactionTypeObjects +
 		p_usage.interactionTypeKDTrees +
 		p_usage.interactionTypePositionCaches +
@@ -549,6 +549,8 @@ void AccumulateMemoryUsageIntoTotal_Species(SLiMMemoryUsage_Species &p_usage, SL
 	p_total.mutationRunObjects += p_usage.mutationRunObjects;
 	p_total.mutationRunExternalBuffers += p_usage.mutationRunExternalBuffers;
 	p_total.mutationRunNonneutralCaches += p_usage.mutationRunNonneutralCaches;
+	p_total.mutationRunUnusedPoolSpace += p_usage.mutationRunUnusedPoolSpace;
+	p_total.mutationRunUnusedPoolBuffers += p_usage.mutationRunUnusedPoolBuffers;
 	
 	p_total.mutationTypeObjects_count += p_usage.mutationTypeObjects_count;
 	p_total.mutationTypeObjects += p_usage.mutationTypeObjects;
@@ -579,9 +581,6 @@ void AccumulateMemoryUsageIntoTotal_Community(SLiMMemoryUsage_Community &p_usage
 	
 	p_total.mutationRefcountBuffer += p_usage.mutationRefcountBuffer;
 	p_total.mutationUnusedPoolSpace += p_usage.mutationUnusedPoolSpace;
-	
-	p_total.mutationRunUnusedPoolSpace += p_usage.mutationRunUnusedPoolSpace;
-	p_total.mutationRunUnusedPoolBuffers += p_usage.mutationRunUnusedPoolBuffers;
 	
 	p_total.interactionTypeObjects_count += p_usage.interactionTypeObjects_count;
 	p_total.interactionTypeObjects += p_usage.interactionTypeObjects;
@@ -2374,8 +2373,8 @@ void WriteProfileResults(std::string profile_output_path, std::string model_name
 		fout << "<p><tt>" << ColoredSpanForByteCount(mem_tot_S.mutationRunObjects / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRunObjects, final_total) << "</tt> : MutationRun objects (" << buf << " / " << mem_last_S.mutationRunObjects_count << ")<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationRunExternalBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRunExternalBuffers, final_total) << "</tt> : external MutationIndex buffers<BR>\n";
 		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationRunNonneutralCaches / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRunNonneutralCaches, final_total) << "</tt> : nonneutral mutation caches<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRunUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRunUnusedPoolSpace, final_total) << "</tt> : unused pool space<BR>\n";
-		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_C.mutationRunUnusedPoolBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_C.mutationRunUnusedPoolBuffers, final_total) << "</tt> : unused pool buffers</p>\n\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationRunUnusedPoolSpace / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRunUnusedPoolSpace, final_total) << "</tt> : unused pool space<BR>\n";
+		fout << "<tt>&nbsp;&nbsp;&nbsp;" << ColoredSpanForByteCount(mem_tot_S.mutationRunUnusedPoolBuffers / div, average_total) << "</tt> / <tt>" << ColoredSpanForByteCount(mem_last_S.mutationRunUnusedPoolBuffers, final_total) << "</tt> : unused pool buffers</p>\n\n";
 		
 		// MutationType
 		snprintf(buf, 256, "%0.2f", mem_tot_S.mutationTypeObjects_count / ddiv);

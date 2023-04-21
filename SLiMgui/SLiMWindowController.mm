@@ -2291,15 +2291,15 @@
 		[content eidosAppendString:@" : nonneutral mutation caches\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRunUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRunUnusedPoolSpace total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunUnusedPoolSpace total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool space\n" attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRunUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunUnusedPoolBuffers / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
-		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.mutationRunUnusedPoolBuffers total:final_total attributes:menlo11_d]];
+		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunUnusedPoolBuffers total:final_total attributes:menlo11_d]];
 		[content eidosAppendString:@" : unused pool buffers\n" attributes:optima13_d];
 		
 		// MutationType

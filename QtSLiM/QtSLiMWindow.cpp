@@ -21,7 +21,6 @@
 #include "QtSLiMWindow.h"
 #include "ui_QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
-#include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMPreferences.h"
 #include "QtSLiMFindPanel.h"
 #include "QtSLiMHelpWindow.h"
@@ -29,7 +28,6 @@
 #include "QtSLiMVariableBrowser.h"
 #include "QtSLiMDebugOutputWindow.h"
 #include "QtSLiMTablesDrawer.h"
-#include "QtSLiMSyntaxHighlighting.h"
 #include "QtSLiMScriptTextEdit.h"
 #include "QtSLiM_SLiMgui.h"
 
@@ -3799,15 +3797,15 @@ void QtSLiMWindow::displayProfileResults(void)
 		tc.insertText(" : nonneutral mutation caches\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunUnusedPoolSpace / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunUnusedPoolSpace, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool space\n", optima13_d);
 		
 		tc.insertText("   ", menlo11_d);
-		tc.insertText(attributedStringForByteCount(mem_tot_C.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_tot_S.mutationRunUnusedPoolBuffers / div, average_total, colored_menlo), colored_menlo);
 		tc.insertText(" / ", optima13_d);
-		tc.insertText(attributedStringForByteCount(mem_last_C.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
+		tc.insertText(attributedStringForByteCount(mem_last_S.mutationRunUnusedPoolBuffers, final_total, colored_menlo), colored_menlo);
 		tc.insertText(" : unused pool buffers\n", optima13_d);
 		
 		// MutationType

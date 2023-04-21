@@ -45,12 +45,12 @@
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING
 #include "robin_hood.h"
-typedef robin_hood::unordered_flat_map<MutationRun*, MutationRun*> SLiMBulkOperationHashTable;
-typedef robin_hood::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
+typedef robin_hood::unordered_flat_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
+typedef robin_hood::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
 #elif STD_UNORDERED_MAP_HASHING
 #include <unordered_map>
-typedef std::unordered_map<MutationRun*, MutationRun*> SLiMBulkOperationHashTable;
-typedef std::pair<MutationRun*, MutationRun*> SLiMBulkOperationPair;
+typedef std::unordered_map<const MutationRun*, const MutationRun*> SLiMBulkOperationHashTable;
+typedef std::pair<const MutationRun*, const MutationRun*> SLiMBulkOperationPair;
 #endif
 
 
@@ -78,6 +78,13 @@ extern EidosClass *gSLiM_Genome_Class;
 // hard-coding of a maximum number of runs, wasting memory on unused pointers, etc.  For null genomes the runs pointer is nullptr,
 // so if we screw up our null genome checks we will get a hard crash, which is not a bad thing.
 
+// BCH 4/19/2023: Note that Genome's MutationRun objects are now handled using const pointers.  This reflects the fact that, in
+// general, MutationRuns in a Genome may be shared with other Genomes, and so should not be modified.  The underlying objects are
+// not const, in fact, they are just handled through const pointers to enforce immutability once they are added to a Genome.  This
+// means that there are certain places in the code where we cast away the constness, when we know that a MutationRun is not, in
+// fact, shared by more than one Genome; but in general we do not do that, because if the run is shared then modifying it is unsafe.
+// See mutation_run.h for further comments on this scheme, which replaces a previous scheme based on the refcounts of the runs.
+
 // BCH 5 May 2017: Well, it turns out that allocating the array of runs is in fact substantial overhead in some cases, so let's try
 // to avoid it.  We can keep an internal buffer of mutation run pointers, which we can use as long as we are within the buffer size.
 // Using a size of 1 for now, since larger sizes increase memory usage substantially for some models, and also slow us down somehow.
@@ -92,7 +99,7 @@ private:
 	typedef EidosObject super;
 
 private:
-	EidosValue_SP self_value_;									// cached EidosValue object for speed
+	EidosValue_SP self_value_;										// cached EidosValue object for speed
 	
 #ifdef SLIMGUI
 public:
@@ -100,16 +107,16 @@ public:
 private:
 #endif
 	
-	GenomeType genome_type_ = GenomeType::kAutosome;			// SEX ONLY: the type of chromosome represented by this genome
-	int8_t scratch_;											// temporary scratch space that can be used locally in algorithms
+	GenomeType genome_type_ = GenomeType::kAutosome;				// SEX ONLY: the type of chromosome represented by this genome
+	int8_t scratch_;												// temporary scratch space that can be used locally in algorithms
 	
-	int32_t mutrun_count_;										// number of runs being used; 0 for a null genome, otherwise >= 1
-	slim_position_t mutrun_length_;								// the length, in base pairs, of each run; the last run may not use its full length
-	MutationRun_SP run_buffer_[SLIM_GENOME_MUTRUN_BUFSIZE];		// an internal buffer used to avoid allocation and memory nonlocality for simple models
-	MutationRun_SP *mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
+	int32_t mutrun_count_;											// number of runs being used; 0 for a null genome, otherwise >= 1
+	slim_position_t mutrun_length_;									// the length, in base pairs, of each run; the last run may not use its full length
+	const MutationRun *run_buffer_[SLIM_GENOME_MUTRUN_BUFSIZE];		// an internal buffer used to avoid allocation and memory nonlocality for simple models
+	const MutationRun **mutruns_;									// mutation runs; nullptr if a null genome OR an empty genome
 	
-	Individual *individual_;									// NOT OWNED: the Individual this genome belongs to
-	slim_usertag_t tag_value_;									// a user-defined tag value
+	Individual *individual_;										// NOT OWNED: the Individual this genome belongs to
+	slim_usertag_t tag_value_;										// a user-defined tag value
 	
 	// TREE SEQUENCE RECORDING
 	slim_genomeid_t genome_id_;		// a unique id assigned by SLiM, as a side effect of pedigree recording, that never changes
@@ -138,9 +145,12 @@ public:
 		genome_type_(p_genome_type_), mutrun_count_(p_mutrun_count), mutrun_length_(p_mutrun_length), individual_(nullptr), genome_id_(-1)
 	{
 		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+		{
 			mutruns_ = run_buffer_;
+			EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+		}
 		else
-			mutruns_ = new MutationRun_SP[mutrun_count_];
+			mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 	};
 	
 	~Genome(void);
@@ -164,7 +174,7 @@ public:
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
-	inline MutationRun *WillCreateRun(int p_run_index)
+	inline MutationRun *WillCreateRun(int p_run_index, MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool)
 	{
 #if DEBUG
 		if (p_run_index < 0)
@@ -173,15 +183,15 @@ public:
 			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun): (internal error) attempt to create an out-of-index run." << EidosTerminate();
 #endif
 		
-		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+		MutationRun *new_run = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);	// take from shared pool of used objects
 		
-		mutruns_[p_run_index].reset(new_run);
+		mutruns_[p_run_index] = new_run;
 		return new_run;
 	}
 	
 	// This should be called before modifying the run at a given index.  It will replicate the run to produce a single-referenced copy
 	// if necessary, thus guaranteeting that the run can be modified legally.  If the run is already single-referenced, it is a no-op.
-	void WillModifyRun(slim_mutrun_index_t p_run_index);
+	MutationRun *WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool);
 	
 	// This is an alternate version of WillModifyRun().  It labels the upcoming modification as being the result of a bulk operation
 	// being applied across multiple genomes, such that identical input genomes will produce identical output genomes, such as adding
@@ -190,10 +200,10 @@ public:
 	// The goal is that genomes that share the same mutation run should continue to share the same mutation run after being processed
 	// by a bulk operation using this method.  A bit strange, but potentially important for efficiency.  Note that this method knows
 	// nothing about the operation being performed; it just plays around with MutationRun pointers, recognizing when the runs are
-	// identical.  The first call for a new operation ID will always return T, and the caller will then perform the operation;
-	// subsequent calls for genomes with the same starting MutationRun will substitute the same final MutationRun and return F.
+	// identical.  The first call for a new operation ID will always return a pointer, and the caller will then perform the operation;
+	// subsequent calls for genomes with the same starting MutationRun will substitute the same final MutationRun and return nullptr.
 	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
-	bool WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
+	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool);
 	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	inline __attribute__((always_inline)) GenomeType Type(void) const			// returns the type of the genome: automosomal, X chromosome, or Y chromosome
@@ -201,12 +211,24 @@ public:
 		return genome_type_;
 	}
 	
-	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);		// Remove all mutations with a refcount of -1, indicating that they have fixed
+	// Remove all mutations in p_genome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
+	void RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if (mutrun_count_ == 0)
+			NullGenomeAccessError();
+#endif
+		// Remove all fixed mutations from the given mutation run index.  Note that we cast away the const on our
+		// mutation runs here.  This method is called only when fixed mutations are being removed from *all* genomes,
+		// so the fact that it modifies other genomes that share this mutation run is a feature, not a bug.  See
+		// Population::RemoveAllFixedMutations() for further context on this.
+		MutationRun *mutrun = const_cast<MutationRun *>(mutruns_[p_mutrun_index]);
+		
+		mutrun->RemoveFixedMutations(p_operation_id);
+	}
 	
 	// TallyGenomeReferences() counts up the total MutationRun references, using their usage counts, as a checkback
-	// TallyBufferUsage() similarly tallies the usage efficiency of external buffers in mutation runs
 	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
-	void TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p_external_buffer_capacity_tally, int64_t *p_external_buffer_count_tally, int64_t p_operation_id);
 	
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
 	void TallyGenomeMutationReferences(int64_t p_operation_id);
@@ -235,38 +257,20 @@ public:
 		}
 	}
 	
-	inline void clear_to_empty(void)
+	inline void clear_to_empty(MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		{
-			MutationRun_SP *mutrun_sp = mutruns_ + run_index;
-			MutationRun *mutrun = mutrun_sp->get();
-			
-			if (!mutrun)
-			{
-				// If the MutationRun is currently nullptr, we need to make a new empty mutrun
-				*mutrun_sp = MutationRun_SP(MutationRun::NewMutationRun());
-			}
-			else if (mutrun->size() != 0)
-			{
-				// If the MutationRun is private to us, we can just empty it out, otherwise we replace it with a new empty one
-				if (mutrun->UseCount() == 1)
-					mutrun->clear();
-				else
-					*mutrun_sp = MutationRun_SP(MutationRun::NewMutationRun());
-			}
-		}
+			mutruns_[run_index] = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);
 	}
 	
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
 		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset();
+		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 	}
 	
 	inline void check_cleared_to_nullptr(void)
@@ -295,44 +299,6 @@ public:
 		return mutruns_[p_position / mutrun_length_]->mutation_with_type_and_position(p_mut_type, p_position, p_last_position);
 	}
 	
-	inline __attribute__((always_inline)) void insert_sorted_mutation(MutationIndex p_mutation_index)
-	{
-		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
-		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(position / mutrun_length_);
-		
-		mutruns_[run_index]->insert_sorted_mutation(p_mutation_index);
-	}
-	
-	inline __attribute__((always_inline)) void insert_sorted_mutation_if_unique(MutationIndex p_mutation_index)
-	{
-		slim_position_t position = (gSLiM_Mutation_Block + p_mutation_index)->position_;
-		slim_mutrun_index_t run_index = (slim_mutrun_index_t)(position / mutrun_length_);
-		
-		mutruns_[run_index]->insert_sorted_mutation_if_unique(p_mutation_index);
-	}
-	
-	inline __attribute__((always_inline)) bool enforce_stack_policy_for_addition(slim_position_t p_position, MutationType *p_mut_type_ptr)
-	{
-#if DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		MutationStackPolicy policy = p_mut_type_ptr->stack_policy_;
-		
-		if (policy == MutationStackPolicy::kStack)
-		{
-			// If mutations are allowed to stack (the default), then we have no work to do and the new mutation is always added
-			return true;
-		}
-		else
-		{
-			// Otherwise, a relatively complicated check is needed, so we call out to a non-inline function
-			MutationRun *mutrun = mutruns_[p_position / mutrun_length_].get();
-			
-			return mutrun->_EnforceStackPolicyForAddition(p_position, policy, p_mut_type_ptr->stack_group_);
-		}
-	}
-	
 	inline void copy_from_genome(const Genome &p_source_genome)
 	{
 		if (p_source_genome.IsNull())
@@ -353,14 +319,12 @@ public:
 			
 			if (mutrun_count_ == 1)
 			{
-				// This does seem to make a significant difference, interestingly.  Not sure if it is
-				// avoid the for loop, or avoiding the extra indirection through mutruns_, or what...
+				// This optimization does seem to make a significant difference...
 				run_buffer_[0] = p_source_genome.mutruns_[0];
 			}
 			else
 			{
-				for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-					mutruns_[run_index] = p_source_genome.mutruns_[run_index];
+				memcpy(mutruns_, p_source_genome.mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 			}
 		}
 		
@@ -380,8 +344,6 @@ public:
 	}
 	
 	void record_derived_states(Species *p_species) const;
-	
-	//void assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count);
 	
 	// print the sample represented by genomes, using SLiM's own format
 	static void PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_genomes, slim_objectid_t p_source_subpop_id);

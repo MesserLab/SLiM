@@ -334,15 +334,18 @@ public:
 			{
 				// the number of mutruns has changed; need to reallocate
 				if (back->mutruns_ != back->run_buffer_)
-					delete[] back->mutruns_;
+					free(back->mutruns_);
 				
 				back->mutrun_count_ = p_mutrun_count;
 				back->mutrun_length_ = p_mutrun_length;
 				
 				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				{
 					back->mutruns_ = back->run_buffer_;
+					EIDOS_BZERO(back->mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+				}
 				else
-					back->mutruns_ = new MutationRun_SP[p_mutrun_count];
+					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
 			}
 			return back;
 		}

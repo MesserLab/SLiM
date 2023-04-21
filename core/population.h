@@ -199,6 +199,12 @@ public:
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainMutationRegistry(void);
 	
+	// Tally MutationRun usage and free unused mutruns
+	void TallyMutationRunReferences(void);
+	void TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
+	void TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);
+	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferences()!
+	
 	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
 	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
 	slim_refcount_t TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally);

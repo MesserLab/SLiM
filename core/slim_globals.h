@@ -299,7 +299,7 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  Species : EidosDictionaryUnretained subclass, allocated with new and never deleted
  SLiMEidosBlock : EidosObject subclass, dynamic lifetime with a deferred deletion scheme in Community
  
- MutationRun : no superclass, not visible in Eidos, shared by Genome, private pool for very efficient reuse
+ MutationRun : no superclass, not visible in Eidos, shared by Genome, private pools for very efficient reuse
  Genome : EidosObject subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Individual : EidosDictionaryUnretained subclass, allocated out of an EidosObjectPool owned by its subpopulation
  Subpopulation : EidosDictionaryUnretained subclass, allocated with new/delete
@@ -325,10 +325,10 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  been lost or fixed.
  
  MutationRun is similarly complex.  It is not visible in Eidos, but a single MutationRun can be shared by multiple
- Genomes, so it keeps a refcount that is maintained by Eidos_intrusive_ptr, like EidosValue.  All MutationRuns are
- allocated out of a single pool, but when their retain count goes to zero they do not get destructed; instead they
- are returned to a "freed list" while still in a constructed state, for the fastest possible reuse, since they are
- a central bottleneck in most SLiM models.
+ Genomes, so it keeps a refcount that is updated each tick by tallying usage across genomes.  All MutationRuns are
+ allocated out of a single pool per species.  When their refcount goes to zero they do not get destructed; instead
+ they are returned to a per-species "freed list" while still in a constructed state, allowing extremely fast reuse
+ since they are a central bottleneck in most SLiM models.
  
  In summary, there are two different retain/release schemes in SLiM, one run by Eidos_intrusive_ptr and one run by
  EidosDictionaryRetained.  Eidos_intrusive_ptr is a template-based solution that can be incorporated in class with
@@ -376,7 +376,6 @@ Species *SLiM_ExtractSpeciesFromEidosValue_No(EidosValue *p_value, int p_index, 
  */
 
 #define DEBUG_MUTATIONS				0		// turn on logging of mutation construction and destruction
-#define DEBUG_MUTATION_RUNS			0		// turn on stat collection and logging regarding mutation run usage
 
 // Per-species memory usage assessment as done by Species::TabulateSLiMMemoryUsage_Species() is placed into this struct
 typedef struct
@@ -410,6 +409,8 @@ typedef struct
 	size_t mutationRunObjects;
 	size_t mutationRunExternalBuffers;
 	size_t mutationRunNonneutralCaches;
+	size_t mutationRunUnusedPoolSpace;			// this pool is kept by Species
+	size_t mutationRunUnusedPoolBuffers;		// this pool is kept by Species
 	
 	int64_t mutationTypeObjects_count;
 	size_t mutationTypeObjects;
@@ -439,9 +440,6 @@ typedef struct
 	
 	size_t mutationRefcountBuffer;			// this pool is kept globally by Mutation
 	size_t mutationUnusedPoolSpace;			// this pool is kept globally by Mutation
-	
-	size_t mutationRunUnusedPoolSpace;		// this pool is kept globally by MutationRun
-	size_t mutationRunUnusedPoolBuffers;	// this pool is kept globally by MutationRun
 	
 	int64_t interactionTypeObjects_count;	// InteractionType is kept by Community now
 	size_t interactionTypeObjects;

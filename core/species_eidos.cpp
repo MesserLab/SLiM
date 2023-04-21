@@ -2594,7 +2594,7 @@ EidosValue_SP Species::ExecuteMethod_outputMutations(EidosGlobalStringID p_metho
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					MutationRun *mutrun = genome.mutruns_[run_index].get();
+					const MutationRun *mutrun = genome.mutruns_[run_index];
 					int mut_count = mutrun->size();
 					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					
