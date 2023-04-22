@@ -2631,8 +2631,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			p_child_genome.check_cleared_to_nullptr();
 #endif
 			
-			MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-			MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+			MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+			MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			Genome *parent_genome = parent_genome_1;
 			slim_position_t mutrun_length = p_child_genome.mutrun_length_;
@@ -2735,8 +2735,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	else
 	{
 		// we have at least one new mutation, so set up for that case (which splits into two cases below)
-		MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-		MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+		MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+		MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 		
 		// start with a clean slate in the child genome; we now expect child genomes to be cleared for us
 #if DEBUG
@@ -3515,8 +3515,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		// We loop through the mutation runs in p_child_genome, and for each one, if there are
 		// mutations to be added or removed we make a new mutation run and effect the changes
 		// as we copy mutations over.  Mutruns without changes are left untouched.
-		MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-		MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+		MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+		MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		slim_position_t mutrun_length = p_child_genome->mutrun_length_;
 		slim_position_t mutrun_count = p_child_genome->mutrun_count_;
@@ -3653,8 +3653,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 	// TREE SEQUENCE RECORDING
 	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
-	MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-	MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+	MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+	MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -4279,8 +4279,8 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-		MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-		MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+		MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+		MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 		
 		int mutrun_count = p_child_genome.mutrun_count_;
 		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
@@ -5046,8 +5046,8 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	try {
-		MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-		MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+		MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+		MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 		
 		// for every subpop
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5249,8 +5249,8 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
 	try {
-		MutationRunPool *free_pool = &species_.mutation_run_freed_pool_;
-		MutationRunPool *inuse_pool = &species_.mutation_run_in_use_pool_;
+		MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+		MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
 		
 		// for every subpop
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5488,15 +5488,8 @@ void Population::SwapGenerations(void)
 void Population::TallyMutationRunReferences(void)
 {
 	// first, zero all use counts across all in-use MutationRun objects
-	{
-		const MutationRun *mutrun = species_.mutation_run_in_use_pool_.next_run();
-		
-		while (mutrun)
-		{
-			mutrun->zero_use_count();
-			mutrun = mutrun->next_run();
-		}
-	}
+	for (const MutationRun *mutrun : species_.mutation_run_in_use_pool_)
+		mutrun->zero_use_count();
 	
 	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
 	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
@@ -5520,22 +5513,14 @@ void Population::TallyMutationRunReferences(void)
 		}
 	}
 	
-	// if you want to then free the mutation runs that are unused, call
-	// TallyAndFreeUnusedMutationRuns() instead of this method!
+	// if you want to then free the mutation runs that are unused, call FreeUnusedMutationRuns()
 }
 
 void Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
 {
 	// first, zero all use counts across all in-use MutationRun objects
-	{
-		const MutationRun *mutrun = species_.mutation_run_in_use_pool_.next_run();
-		
-		while (mutrun)
-		{
-			mutrun->zero_use_count();
-			mutrun = mutrun->next_run();
-		}
-	}
+	for (const MutationRun *mutrun : species_.mutation_run_in_use_pool_)
+		mutrun->zero_use_count();
 	
 	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
 	for (Subpopulation *subpop : *p_subpops_to_tally)
@@ -5561,15 +5546,8 @@ void Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*
 void Population::TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally)
 {
 	// first, zero all use counts across all in-use MutationRun objects
-	{
-		const MutationRun *mutrun = species_.mutation_run_in_use_pool_.next_run();
-		
-		while (mutrun)
-		{
-			mutrun->zero_use_count();
-			mutrun = mutrun->next_run();
-		}
-	}
+	for (const MutationRun *mutrun : species_.mutation_run_in_use_pool_)
+		mutrun->zero_use_count();
 	
 	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
 	for (Genome *genome : *p_genomes_to_tally)
@@ -5590,28 +5568,31 @@ void Population::FreeUnusedMutationRuns(void)
 	// The caller must ensure that by calling TallyMutationRunReferences()!
 	
 	// free all in-use MutationRun objects that are not actually in use (use count == 0)
+	MutationRunPool &free_pool = species_.mutation_run_freed_pool_;
+	MutationRunPool &inuse_pool = species_.mutation_run_in_use_pool_;
+	size_t pool_count = inuse_pool.size();
+	
+	for (size_t pool_index = 0; pool_index < pool_count; )
 	{
-		const MutationRun *prev_mutrun = &species_.mutation_run_in_use_pool_;
-		const MutationRun *mutrun = prev_mutrun->next_run();
+		const MutationRun *mutrun = inuse_pool[pool_index];
 		
-		while (mutrun)
+		if (mutrun->use_count() == 0)
 		{
-			// stay on prev_mutrun and free mutrun as long as it is unused
-			while (mutrun->use_count() == 0)
-			{
-				MutationRun::FreeMutationRun(mutrun, prev_mutrun, &species_.mutation_run_freed_pool_);
-				mutrun = prev_mutrun->next_run();
-				
-				if (!mutrun)
-					goto finished;
-			}
+			// First we remove the mutation run from the inuse pool by backfilling
+			inuse_pool[pool_index] = inuse_pool.back();
+			inuse_pool.pop_back();
 			
-			prev_mutrun = mutrun;
-			mutrun = mutrun->next_run();
+			// Because we backfilled, we want to stay at this index, but the pool is one smaller
+			// This is why we remove the run ourselves, instead of FreeMutationRun() doing it
+			--pool_count;
+			
+			// Then we give the mutation run back to the free pool
+			MutationRun::FreeMutationRun(mutrun, free_pool);
 		}
-		
-	finished:
-		;
+		else
+		{
+			++pool_index;
+		}
 	}
 }
 

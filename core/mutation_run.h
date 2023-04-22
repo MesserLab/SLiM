@@ -49,9 +49,8 @@ class MutationRun;
 // Species; see species.h.  When running multithreaded, there is one such pool per thread (per species), allowing all
 // mutation run allocation and free operations to be done without locks (except locks done by new/malloc, but once a sufficiently
 // large pool of MutationRun objects has been established for each thread those should no longer occur).  A MutationRunPool
-// object is, in fact, a MutationRun object; it uses only the next_run_ pointer of that object.  This allows the code below
-// to avoid special-casing the way that the start of the pool's linked list works, making it a bit more efficient.
-typedef const MutationRun MutationRunPool;
+// object is a vector of pointers to const MutationRun objects; a linked-list design was tried, but was slower.
+typedef std::vector<const MutationRun *> MutationRunPool;
 
 
 // BCH 4/19/2023: We want MutationRuns to be able to be shared between Genomes; that's the whole point, leveraging shared
@@ -95,8 +94,6 @@ private:
 
 private:
 
-	mutable const MutationRun *next_run_ = nullptr;						// the next run in our internal linked list (freed or in-use)
-	
 	// MutationRun used to have an internal buffer that it could use to hold mutation pointers, to decrease malloc overhead when
 	// making new MutationRun objects.  We now reuse MutationRun objects, without freeing their MutationIndex buffer, so the malloc
 	// overhead equilibrates and then goes away.  Removing the internal buffer saves space and simplifies the logic.  BCH 4/16/2023
@@ -197,43 +194,38 @@ public:
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
 	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
-	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool)
+	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
 	{
-		const MutationRun *first_free_run = p_free_pool->next_run_;
-		
-		if (first_free_run)
+		if (p_free_pool.size())
 		{
-			// We assume that the object in the free list is in a reuseable state; see FreeMutationRun() below.
-			const MutationRun *next_free_run = first_free_run->next_run_;
-			const MutationRun *first_inuse_run = p_inuse_pool->next_run_;
+			// We assume that the object from the free pool is in a reuseable state; see FreeMutationRun() below.
+			const MutationRun *new_run = p_free_pool.back();
 			
-			// disconnect our new run from the free list
-			p_free_pool->next_run_ = next_free_run;
+			// remove our new run from the free pool
+			p_free_pool.pop_back();
 			
-			// add our new run to the start of the inuse list
-			p_inuse_pool->next_run_ = first_free_run;
-			first_free_run->next_run_ = first_inuse_run;
+			// add our new run to the inuse pool
+			p_inuse_pool.push_back(new_run);
 			
 			// objects in the free pool are unused, so we can cast away the constness of the pointer here to explicitly
 			// give the caller permission to modify this new run (see comment at the header top about this).
-			return const_cast<MutationRun *>(first_free_run);
+			return const_cast<MutationRun *>(new_run);
 		}
 		else
 		{
-			// No free run to reuse in this pool, so we have to make a new one
+			// No free run to reuse, so we have to make a new one
 			MutationRun *new_run = new MutationRun();
-			const MutationRun *first_inuse_run = p_inuse_pool->next_run_;
 			
-			// add our new run to the start of the inuse list
-			p_inuse_pool->next_run_ = new_run;
-			new_run->next_run_ = first_inuse_run;
+			// add our new run to the inuse pool
+			p_inuse_pool.push_back(new_run);
 			
 			return new_run;
 		}
 	}
 	
-	static inline __attribute__((always_inline)) void FreeMutationRun(const MutationRun *p_run, const MutationRun *p_prev_run, MutationRunPool *p_free_pool)
+	static inline __attribute__((always_inline)) void FreeMutationRun(const MutationRun *p_run, MutationRunPool &p_free_pool)
 	{
+		// NOTE THAT THE CALLER IS RESPONSIBLE FOR REMOVING THE MUTRUN FROM THE INUSE POOL!!!
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers;
 		// avoiding that free/alloc thrash is one of the big wins of recycling mutation run objects, in fact.
 		// We are given a pointer to a const MutationRun, but the fact that we're freeing it means it is
@@ -246,38 +238,24 @@ public:
 		freed_run->nonneutral_mutations_count_ = -1;		// mark the non-neutral mutation cache as invalid
 #endif
 		
-		// We have the previous run that points to the run being freed (it might be the pool head object).
-		// We change its next_run_ pointer, popping ourselves out of that linked list.
-		p_prev_run->next_run_ = freed_run->next_run_;
-		
-		// Add the run being freed to the start of the freed list
-		freed_run->next_run_ = p_free_pool->next_run_;
-		p_free_pool->next_run_ = freed_run;
+		// add our new run to the free pool
+		p_free_pool.push_back(freed_run);
 	}
 	
-	static inline void DeleteMutationRunPool(MutationRunPool *p_free_pool)
+	static inline void DeleteMutationRunPool(MutationRunPool &p_free_pool)
 	{
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
-		const MutationRun *freed_run = p_free_pool->next_run_;
-		
-		p_free_pool->next_run_ = nullptr;
-		
-		while (freed_run)
-		{
-			const MutationRun *next_freed_run = freed_run->next_run_;
-			
+		for (const MutationRun *freed_run : p_free_pool)
 			delete(freed_run);
-			freed_run = next_freed_run;
-		}
+		
+		p_free_pool.clear();
 	}
 	
 	MutationRun(const MutationRun&) = delete;					// no copying
 	MutationRun& operator=(const MutationRun&) = delete;		// no copying
 	MutationRun(void);											// constructed empty
 	~MutationRun(void);
-	
-	inline __attribute__((always_inline)) const MutationRun *next_run(void) const { return next_run_; }
 	
 	inline __attribute__((always_inline)) uint32_t use_count(void) const { return use_count_; }
 	inline __attribute__((always_inline)) void zero_use_count(void) const { THREAD_SAFETY_CHECK("zero_use_count(): use_count_ change"); use_count_ = 0; }
@@ -601,7 +579,7 @@ public:
 	}
 	
 	// splitting mutation runs
-	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunPool *p_free_pool, MutationRunPool *p_inuse_pool) const;
+	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool) const;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.
