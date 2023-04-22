@@ -328,7 +328,7 @@ Genome *Subpopulation::_NewSubpopGenome_NULL(GenomeType p_genome_type)
 		Genome *back = genome_junkyard_nonnull.back();
 		genome_junkyard_nonnull.pop_back();
 		
-		// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
+		// got a non-null genome, need to repurpose it to be a null genome
 		back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
 		
 		return back;
@@ -1011,20 +1011,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	{
 		if (genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in the nonnull genome junkyard." << EidosTerminate();
-		
-		for (int mutrun_index = 0; mutrun_index < genome->mutrun_count_; ++mutrun_index)
-			if (genome->mutruns_[mutrun_index] != nullptr)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull mutrun pointer in the nonnull genome junkyard." << EidosTerminate();
 	}
 	
 	for (Genome *genome : genome_junkyard_null)
 	{
 		if (!genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull genome in the null genome junkyard." << EidosTerminate();
-		
-		for (int mutrun_index = 0; mutrun_index < genome->mutrun_count_; ++mutrun_index)
-			if (genome->mutruns_[mutrun_index] != nullptr)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull mutrun pointer in the null genome junkyard." << EidosTerminate();
 	}
 }
 

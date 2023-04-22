@@ -326,8 +326,7 @@ public:
 			
 			// Conceptually, we want to call ReinitializeGenomeNoClear() to set the genome up with the
 			// current type, mutrun setup, etc.  But we know that the genome is nonnull, and that we
-			// want it to be nonnull, and we know that the genome has already been cleared to nullptr,
-			// so in practice we can do less work than ReinitializeGenomeNoClear(), inline.
+			// want it to be nonnull, so we can do less work than ReinitializeGenomeNoClear(), inline.
 			back->genome_type_ = p_genome_type;
 			
 			if (back->mutrun_count_ != p_mutrun_count)
@@ -347,22 +346,27 @@ public:
 				else
 					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
 			}
+			else
+			{
+				// the number of mutruns is unchanged, but we need to zero out the reused buffer here
+				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					EIDOS_BZERO(back->mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+				else
+					EIDOS_BZERO(back->mutruns_, p_mutrun_count * sizeof(const MutationRun *));
+			}
 			return back;
 		}
 		
 		return _NewSubpopGenome_NONNULL(p_mutrun_count, p_mutrun_length, p_genome_type);
 	}
 	
-	// Frees a genome object (puts it in one of the junkyards), clearing it to nullptr to keep our bookkeeping straight
+	// Frees a genome object (puts it in one of the junkyards); we do not clear the mutrun buffer, so it must be cleared when reused!
 	inline __attribute__((always_inline)) void FreeSubpopGenome(Genome *p_genome)
 	{
 		if (p_genome->IsNull())
 			genome_junkyard_null.emplace_back(p_genome);
 		else
-		{
-			p_genome->clear_to_nullptr();
 			genome_junkyard_nonnull.emplace_back(p_genome);
-		}
 	}
 	
 	void GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_ratio, bool p_allow_zero_size, bool p_require_both_sexes, bool p_record_in_treeseq, bool p_haploid, float p_mean_parent_age);	// given the set subpop size and requested sex ratio, make new genomes and individuals to fit

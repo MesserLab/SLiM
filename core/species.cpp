@@ -2106,10 +2106,7 @@ void Species::EmptyGraveyard(void)
 			if (genome1->IsNull())
 				genome_junkyard_null.emplace_back(genome1);
 			else
-			{
-				genome1->clear_to_nullptr();
 				genome_junkyard_nonnull.emplace_back(genome1);
-			}
 		}
 		
 		// Free genome2; this is the same logic as Subpopulation::FreeSubpopGenome()
@@ -2119,10 +2116,7 @@ void Species::EmptyGraveyard(void)
 			if (genome2->IsNull())
 				genome_junkyard_null.emplace_back(genome2);
 			else
-			{
-				genome2->clear_to_nullptr();
 				genome_junkyard_nonnull.emplace_back(genome2);
-			}
 		}
 		
 		individual->~Individual();
@@ -2264,6 +2258,8 @@ void Species::WF_SwitchToChildGeneration(void)
 	// added 30 November 2016 so MutationRun refcounts reflect their usage count in the simulation
 	// moved up to SLiMCycleStage::kWFStage2GenerateOffspring, 9 January 2018, so that the
 	// population is in a standard state for CheckIndividualIntegrity() at the end of this stage
+	// BCH 4/22/2023: this is no longer relevant in terms of accurate MutationRun refcounts, since
+	// we no longer refcount those, but they still need to be zeroed out so they're ready for reuse
 	MUTRUNEXP_START_TIMING(x_clock0);
 	
 	population_.ClearParentalGenomes();

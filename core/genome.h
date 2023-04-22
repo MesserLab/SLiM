@@ -88,6 +88,8 @@ extern EidosClass *gSLiM_Genome_Class;
 // BCH 5 May 2017: Well, it turns out that allocating the array of runs is in fact substantial overhead in some cases, so let's try
 // to avoid it.  We can keep an internal buffer of mutation run pointers, which we can use as long as we are within the buffer size.
 // Using a size of 1 for now, since larger sizes increase memory usage substantially for some models, and also slow us down somehow.
+// BCH 22 April 2023: I tried removing this internal buffer, to see if it is really worthwhile.  It is.  I think having the pointer
+// to the MutationRun in the same memory block really helps a lot with memory locality.
 #define SLIM_GENOME_MUTRUN_BUFSIZE 1
 
 
@@ -270,7 +272,10 @@ public:
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
 	{
 		// It is legal to call this method on null genomes, for speed/simplicity; it does no harm
-		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
+		if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+		else
+			EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
 	}
 	
 	inline void check_cleared_to_nullptr(void)

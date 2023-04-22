@@ -4820,7 +4820,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 }
 
 // WF only:
-// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
+// Clear all parental genomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 void Population::ClearParentalGenomes(void)
 {
 	if (species_.HasGenetics())
@@ -5000,7 +5000,6 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					int32_t new_mutrun_count = old_mutrun_count << 1;
 					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
 						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
@@ -5111,7 +5110,6 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					}
 					
 					// now replace the runs in the genome with those in mutrun_buf
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
 						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
@@ -5120,10 +5118,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					genome.mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					{
 						genome.mutruns_ = genome.run_buffer_;
-						//EIDOS_BZERO(genome.mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));	// overwritten below
-					}
 					else
 						genome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					
@@ -5203,7 +5198,6 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					int32_t new_mutrun_count = old_mutrun_count >> 1;
 					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
 						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
@@ -5311,7 +5305,6 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					}
 					
 					// now replace the runs in the genome with those in mutrun_buf
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
 						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
@@ -5320,10 +5313,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					genome.mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					{
 						genome.mutruns_ = genome.run_buffer_;
-						//EIDOS_BZERO(genome.mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));	// overwritten below
-					}
 					else
 						genome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					

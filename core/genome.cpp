@@ -48,8 +48,6 @@ SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
 
 Genome::~Genome(void)
 {
-	EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
-	
 	if (mutruns_ != run_buffer_)
 		free(mutruns_);
 	mutruns_ = nullptr;
@@ -344,8 +342,6 @@ void Genome::MakeNull(void)
 {
 	if (mutrun_count_)
 	{
-		EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
-		
 		if (mutruns_ != run_buffer_)
 			free(mutruns_);
 		mutruns_ = nullptr;
@@ -368,18 +364,13 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 			mutrun_length_ = p_mutrun_length;
 			
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
-			}
 			else
-				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
 		}
 		else if (mutrun_count_ != p_mutrun_count)
 		{
 			// the number of mutruns has changed; need to reallocate
-			EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
-			
 			if (mutruns_ != run_buffer_)
 				free(mutruns_);
 			
@@ -387,12 +378,13 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 			mutrun_length_ = p_mutrun_length;
 			
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
-			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
-			}
 			else
-				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
+		}
+		else
+		{
+			// the number of mutruns has not changed; no need to zero out, overwritten below
 		}
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
@@ -403,8 +395,6 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 		if (mutrun_count_)
 		{
 			// was a non-null genome, needs to become null
-			EIDOS_BZERO(mutruns_, mutrun_count_ * sizeof(const MutationRun *));
-			
 			if (mutruns_ != run_buffer_)
 				free(mutruns_);
 			mutruns_ = nullptr;
@@ -418,13 +408,6 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length)
 {
 	genome_type_ = p_genome_type;
-	
-#if DEBUG
-	// we are guaranteed by the caller that all existing mutrun pointers are null; check that, in DEBUG mode
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		if (mutruns_[run_index])
-			EIDOS_TERMINATION << "ERROR (Genome::ReinitializeGenomeNullptr): (internal error) nonnull mutrun pointer in ReinitializeGenomeNullptr." << EidosTerminate();
-#endif
 	
 	if (p_mutrun_count)
 	{
@@ -458,6 +441,14 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 			}
 			else
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+		}
+		else
+		{
+			// the number of mutruns has not changed; need to zero out
+			if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+			else
+				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 		}
 		
 		// we leave the new mutruns_ buffer filled with nullptr

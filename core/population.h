@@ -245,7 +245,7 @@ public:
 	// step forward a generation: make the children become the parents
 	void SwapGenerations(void);
 	
-	// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
+	// Clear all parental genomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 	void ClearParentalGenomes(void);
 	
 	//********** nonWF methods
