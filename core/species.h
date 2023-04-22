@@ -347,8 +347,7 @@ public:
 	
 	// Species now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects.
 	// When running multithreaded, each of these becomes a vector of per-thread pools, so we can alloc/free runs in parallel code.
-	MutationRunPool mutation_run_freed_pool_;
-	MutationRunPool mutation_run_in_use_pool_;
+	MutationRunContext mutation_run_context_;
 	
 	// optimization of the pure neutral case; this is set to false if (a) a non-neutral mutation is added by the user, (b) a genomic element type is configured to use a
 	// non-neutral mutation type, (c) an already existing mutation type (assumed to be in use) is set to a non-neutral DFE, or (d) a mutation's selection coefficient is

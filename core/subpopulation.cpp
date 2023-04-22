@@ -554,7 +554,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	MutationRun *shared_empty_run = nullptr;
 	
 	if ((parent_subpop_size_ > 0) && has_genetics)
-		shared_empty_run = MutationRun::NewMutationRun(species_.mutation_run_freed_pool_, species_.mutation_run_in_use_pool_);
+		shared_empty_run = MutationRun::NewMutationRun(species_.mutation_run_context_);
 	
 	if (sex_enabled_)
 	{
@@ -4878,9 +4878,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 #endif
 	
 	if (!genome1_null)
-		genome1->clear_to_empty(species_.mutation_run_freed_pool_, species_.mutation_run_in_use_pool_);
+		genome1->clear_to_empty(species_.mutation_run_context_);
 	if (!genome2_null)
-		genome2->clear_to_empty(species_.mutation_run_freed_pool_, species_.mutation_run_in_use_pool_);
+		genome2->clear_to_empty(species_.mutation_run_context_);
 	
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	bool proposed_child_accepted = true;

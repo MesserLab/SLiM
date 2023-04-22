@@ -49,8 +49,19 @@ class MutationRun;
 // Species; see species.h.  When running multithreaded, there is one such pool per thread (per species), allowing all
 // mutation run allocation and free operations to be done without locks (except locks done by new/malloc, but once a sufficiently
 // large pool of MutationRun objects has been established for each thread those should no longer occur).  A MutationRunPool
-// object is a vector of pointers to const MutationRun objects; a linked-list design was tried, but was slower.
+// object is a vector of pointers to const MutationRun objects; a linked-list design was tried, but was slower.  We also
+// use EidosObjectPool to allocate MutationRun objects now, with one pool per thread; this gives us better memory locality
+// for the MutationRuns being used by each thread.
 typedef std::vector<const MutationRun *> MutationRunPool;
+
+// This struct groups together all the objects for one context in which MutationRuns are allocated and used.  There is one
+// such context per thread.  The main benefit of the struct is that we can pass a reference to it, saving on parameters to
+// methods that require the context, such as NewMutationRun().
+typedef struct MutationRunContext {
+	MutationRunPool freed_pool_;			// MutationRun objects that have been allocated, but are not in use
+	MutationRunPool in_use_pool_;			// MutationRun objects currently in use by the simulation
+	EidosObjectPool *allocation_pool_;		// out of which brand-new MutationRun objects are ultimately allocated
+} MutationRunContext;
 
 
 // BCH 4/19/2023: We want MutationRuns to be able to be shared between Genomes; that's the whole point, leveraging shared
@@ -194,18 +205,20 @@ public:
 	// greater speed.  We are constantly creating new runs, adding mutations in to them, and then throwing them away; once
 	// the pool of freed runs settles into a steady state, that process can go on with no memory allocs or reallocs at all.
 	// Note this is shared by all species; a mutation run may be used in one species and then reused in another.
-	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
+	static inline __attribute__((always_inline)) MutationRun *NewMutationRun(MutationRunContext &p_mutrun_context)
 	{
-		if (p_free_pool.size())
+		MutationRunPool &free_pool = p_mutrun_context.freed_pool_;
+		
+		if (free_pool.size())
 		{
 			// We assume that the object from the free pool is in a reuseable state; see FreeMutationRun() below.
-			const MutationRun *new_run = p_free_pool.back();
+			const MutationRun *new_run = free_pool.back();
 			
 			// remove our new run from the free pool
-			p_free_pool.pop_back();
+			free_pool.pop_back();
 			
 			// add our new run to the inuse pool
-			p_inuse_pool.push_back(new_run);
+			p_mutrun_context.in_use_pool_.push_back(new_run);
 			
 			// objects in the free pool are unused, so we can cast away the constness of the pointer here to explicitly
 			// give the caller permission to modify this new run (see comment at the header top about this).
@@ -213,17 +226,20 @@ public:
 		}
 		else
 		{
-			// No free run to reuse, so we have to make a new one
-			MutationRun *new_run = new MutationRun();
-			
+			// No free run to reuse, so we have to make a new one.  We now allocate MutationRun objects out of a
+			// per-species (and per-thread) EidosObjectPool.  This is not for allocation speed, since at equilibrium
+			// we expect new MutationRuns to be coming from p_free_pool.  Rather, it is for memory locality; we want
+			// all the MutationRuns we're using (or that one thread is using) to be clustered together in memory.
+			MutationRun *new_run = new (p_mutrun_context.allocation_pool_->AllocateChunk()) MutationRun();
+
 			// add our new run to the inuse pool
-			p_inuse_pool.push_back(new_run);
+			p_mutrun_context.in_use_pool_.push_back(new_run);
 			
 			return new_run;
 		}
 	}
 	
-	static inline __attribute__((always_inline)) void FreeMutationRun(const MutationRun *p_run, MutationRunPool &p_free_pool)
+	static inline __attribute__((always_inline)) void FreeMutationRun(const MutationRun *p_run, MutationRunContext &p_mutrun_context)
 	{
 		// NOTE THAT THE CALLER IS RESPONSIBLE FOR REMOVING THE MUTRUN FROM THE INUSE POOL!!!
 		// We return mutation runs to the free list in a valid, reuseable state.  We do not free its buffers;
@@ -239,21 +255,28 @@ public:
 #endif
 		
 		// add our new run to the free pool
-		p_free_pool.push_back(freed_run);
+		p_mutrun_context.freed_pool_.push_back(freed_run);
 	}
 	
-	static inline void DeleteMutationRunPool(MutationRunPool &p_free_pool)
+	static inline void DeleteMutationRunPool(MutationRunContext &p_mutrun_context)
 	{
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent mutation runs
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
-		for (const MutationRun *freed_run : p_free_pool)
-			delete(freed_run);
+		MutationRunPool &free_pool = p_mutrun_context.freed_pool_;
+		EidosObjectPool *allocation_pool = p_mutrun_context.allocation_pool_;
 		
-		p_free_pool.clear();
+		for (const MutationRun *freed_run : free_pool)
+		{
+			freed_run->~MutationRun();
+			allocation_pool->DisposeChunk(const_cast<MutationRun *>(freed_run));
+		}
+		
+		free_pool.clear();
 	}
 	
 	MutationRun(const MutationRun&) = delete;					// no copying
 	MutationRun& operator=(const MutationRun&) = delete;		// no copying
+	
 	MutationRun(void);											// constructed empty
 	~MutationRun(void);
 	
@@ -579,7 +602,7 @@ public:
 	}
 	
 	// splitting mutation runs
-	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool) const;
+	void split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const;
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	// caching non-neutral mutations; see above for comments about the "regime" etc.

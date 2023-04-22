@@ -63,7 +63,7 @@ void Genome::NullGenomeAccessError(void) const
 	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << EidosTerminate();
 }
 
-MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
+MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
 {
 #if DEBUG
 	if (p_run_index >= mutrun_count_)
@@ -73,7 +73,7 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunP
 	// This method used to support in-place modification for mutruns with a use count of 1,
 	// saving the new mutation run allocation; but in practice that was not used
 	const MutationRun *original_run = mutruns_[p_run_index];
-	MutationRun *new_run = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);	// take from shared pool of used objects
+	MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
 	
 	new_run->copy_from_run(*original_run);
 	mutruns_[p_run_index] = new_run;
@@ -104,7 +104,7 @@ void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mu
 	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
-MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
+MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
 {
 	THREAD_SAFETY_CHECK("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
 	
@@ -131,7 +131,7 @@ MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_
 	if (found_run_pair == s_bulk_operation_runs_.end())
 	{
 		// This MutationRun is not in the map, so we need to set up a new entry
-		MutationRun *product_run = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);
+		MutationRun *product_run = MutationRun::NewMutationRun(p_mutrun_context);
 		
 		product_run->copy_from_run(*original_run);
 		mutruns_[p_mutrun_index] = product_run;
@@ -214,37 +214,11 @@ void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 			
-			// Do 16 reps
-			while (genome_iter + 16 <= genome_end_iter)
-			{
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Do 4 reps
-			while (genome_iter + 4 <= genome_end_iter)
-			{
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Finish off
+			// BCH 4/22/2023: This loop used to be unrolled into 16/4/1 iterations, because
+			// the compiler didn't seem to be smart enough to optimize it well.  Apparently
+			// the compiler has gotten smarter, because removing the unrolled versions now
+			// makes it run faster.  Of course this will depend on the compiler used, but
+			// I should assume that the user will use a good, modern optimizing compiler.
 			while (genome_iter != genome_end_iter)
 				*(refcount_block_ptr + (*genome_iter++)) += use_count;
 			
@@ -2469,7 +2443,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);
+			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
 			
 			if (target_run)
 			{
@@ -2901,11 +2875,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *original_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);
+			MutationRun *original_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
 			
 			if (original_mutrun)
 			{
-				MutationRun &merge_run = *MutationRun::NewMutationRun(species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);		// take from shared pool of used objects; it will be freed at tally time
+				MutationRun &merge_run = *MutationRun::NewMutationRun(species->mutation_run_context_);		// take from shared pool of used objects; it will be freed at tally time
 				
 				// We merge the original run and mutations_to_add into a new temporary mutrun, and then copy it back to the target
 				// FIXME this does an unnecessary copy, since the return from WillModifyRunForBulkOperation() is already new!
@@ -3340,7 +3314,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_pos / mutrun_length);
 				
 				if (mut_mutrun_index != current_run_index)
-					current_mutrun = genome->WillModifyRun(mut_mutrun_index, species.mutation_run_freed_pool_, species.mutation_run_in_use_pool_);
+					current_mutrun = genome->WillModifyRun(mut_mutrun_index, species.mutation_run_context_);
 				
 				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
 				if (genome_started_empty)
@@ -3905,7 +3879,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				
 				if (mut_mutrun_index != genome_last_mutrun_modified)
 				{
-					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);
+					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, species->mutation_run_context_);
 					genome_last_mutrun_modified = mut_mutrun_index;
 				}
 				
@@ -4049,7 +4023,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				{
 					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from genomes that are empty already)
 					if (!shared_empty_run)
-						shared_empty_run = MutationRun::NewMutationRun(species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);
+						shared_empty_run = MutationRun::NewMutationRun(species->mutation_run_context_);
 					
 					target_genome->mutruns_[run_index] = shared_empty_run;
 				}
@@ -4261,7 +4235,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				}
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_freed_pool_, species->mutation_run_in_use_pool_);
+				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
 				
 				if (mutrun)
 				{

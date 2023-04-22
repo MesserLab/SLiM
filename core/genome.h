@@ -174,7 +174,7 @@ public:
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
-	inline MutationRun *WillCreateRun(int p_run_index, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
+	inline MutationRun *WillCreateRun(int p_run_index, MutationRunContext &p_mutrun_context)
 	{
 #if DEBUG
 		if (p_run_index < 0)
@@ -183,7 +183,7 @@ public:
 			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun): (internal error) attempt to create an out-of-index run." << EidosTerminate();
 #endif
 		
-		MutationRun *new_run = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);	// take from shared pool of used objects
+		MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
 		
 		mutruns_[p_run_index] = new_run;
 		return new_run;
@@ -191,7 +191,7 @@ public:
 	
 	// This should be called before modifying the run at a given index.  It will replicate the run to produce a single-referenced copy
 	// if necessary, thus guaranteeting that the run can be modified legally.  If the run is already single-referenced, it is a no-op.
-	MutationRun *WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool);
+	MutationRun *WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context);
 	
 	// This is an alternate version of WillModifyRun().  It labels the upcoming modification as being the result of a bulk operation
 	// being applied across multiple genomes, such that identical input genomes will produce identical output genomes, such as adding
@@ -203,7 +203,7 @@ public:
 	// identical.  The first call for a new operation ID will always return a pointer, and the caller will then perform the operation;
 	// subsequent calls for genomes with the same starting MutationRun will substitute the same final MutationRun and return nullptr.
 	static void BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
-	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool);
+	MutationRun *WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context);
 	static void BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index);
 	
 	inline __attribute__((always_inline)) GenomeType Type(void) const			// returns the type of the genome: automosomal, X chromosome, or Y chromosome
@@ -257,14 +257,14 @@ public:
 		}
 	}
 	
-	inline void clear_to_empty(MutationRunPool &p_free_pool, MutationRunPool &p_inuse_pool)
+	inline void clear_to_empty(MutationRunContext &p_mutrun_context)
 	{
 #if DEBUG
 		if (mutrun_count_ == 0)
 			NullGenomeAccessError();
 #endif
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = MutationRun::NewMutationRun(p_free_pool, p_inuse_pool);
+			mutruns_[run_index] = MutationRun::NewMutationRun(p_mutrun_context);
 	}
 	
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)
