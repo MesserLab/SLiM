@@ -2866,16 +2866,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *original_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
+			const MutationRun *original_run = target_genome->mutruns_[mutrun_index];
+			MutationRun *modifiable_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
 			
-			if (original_mutrun)
+			if (modifiable_mutrun)
 			{
-				MutationRun &merge_run = *MutationRun::NewMutationRun(species->mutation_run_context_);		// take from shared pool of used objects; it will be freed at tally time
-				
-				// We merge the original run and mutations_to_add into a new temporary mutrun, and then copy it back to the target
-				// FIXME this does an unnecessary copy, since the return from WillModifyRunForBulkOperation() is already new!
-				merge_run.clear_set_and_merge(*original_mutrun, mutations_to_add);
-				original_mutrun->copy_from_run(merge_run);
+				// We merge the original run (which has not yet been freed!) and mutations_to_add into modifiable_mutrun
+				modifiable_mutrun->clear_set_and_merge(*original_run, mutations_to_add);
 			}
 			
 			// TREE SEQUENCE RECORDING
