@@ -719,7 +719,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		}
 	}
 	
-	population_.cached_tally_genome_count_ = 0;
+	population_.InvalidateMutationReferencesCache();
 	
 	// If there is an Individuals section (added in SLiM 2.0), we now need to parse it since it might contain spatial positions
 	if (has_individual_pedigree_IDs)
@@ -1417,7 +1417,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 		}
 	}
 	
-	population_.cached_tally_genome_count_ = 0;
+	population_.InvalidateMutationReferencesCache();
 	
 	if (p + sizeof(section_end_tag) > buf_end)
 		EIDOS_TERMINATION << "ERROR (Species::_InitializePopulationFromBinaryFile): unexpected EOF after mutations." << EidosTerminate();
@@ -2372,7 +2372,7 @@ void Species::nonWF_MergeOffspring(void)
 	}
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	population_.cached_tally_genome_count_ = 0;
+	population_.InvalidateMutationReferencesCache();
 }
 
 void Species::nonWF_ViabilitySurvival(void)
@@ -2442,7 +2442,7 @@ void Species::nonWF_ViabilitySurvival(void)
 	}
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	population_.cached_tally_genome_count_ = 0;
+	population_.InvalidateMutationReferencesCache();
 	
 	MUTRUNEXP_END_TIMING(x_clock0);
 }

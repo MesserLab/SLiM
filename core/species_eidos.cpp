@@ -2104,7 +2104,7 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 		community_.InvalidateInteractionsForSpecies(this);
 		
 		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-		population_.cached_tally_genome_count_ = 0;
+		population_.InvalidateMutationReferencesCache();
 	}
 	
 	return gStaticEidosValueVOID;

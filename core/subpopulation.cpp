@@ -5691,7 +5691,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		community_.InvalidateInteractionsForSpecies(&species_);
 		
 		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-		population_.cached_tally_genome_count_ = 0;
+		population_.InvalidateMutationReferencesCache();
 	}
 	
 	return gStaticEidosValueVOID;

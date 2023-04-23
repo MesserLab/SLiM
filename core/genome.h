@@ -229,13 +229,13 @@ public:
 		mutrun->RemoveFixedMutations(p_operation_id);
 	}
 	
-	// TallyGenomeReferences() counts up the total MutationRun references, using their usage counts, as a checkback
-	void TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
+	// TallyGenomeReferences_Checkback() counts up the total MutationRun references, using their usage counts, as a checkback
+	void TallyGenomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id);
 	
 	// This tallies up individual Mutation references, using MutationRun usage counts for speed
-	void TallyGenomeMutationReferences(int64_t p_operation_id);
+	void TallyGenomeMutationReferencesFromMutationRunUsage(int64_t p_operation_id);
 #ifdef _OPENMP
-	void TallyGenomeMutationReferences_OMP(int64_t p_operation_id);		// used when doing tallying in parallel
+	void TallyGenomeMutationReferencesFromMutationRunUsage_OMP(int64_t p_operation_id);		// used when doing tallying in parallel
 #endif
 	
 	inline __attribute__((always_inline)) int mutation_count(void) const	// used to be called size(); renamed to avoid confusion with MutationRun::size() and break code using the wrong method

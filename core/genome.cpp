@@ -172,7 +172,7 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutr
 	}
 }
 
-void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
+void Genome::TallyGenomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
 {
 #if DEBUG
 	if (mutrun_count_ == 0)
@@ -189,11 +189,11 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 	}
 }
 
-void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
+void Genome::TallyGenomeMutationReferencesFromMutationRunUsage(int64_t p_operation_id)
 {
 	// This version of this method can only be used when running single-threaded
 	// (including slim_multi when the caller has decided not to start a thread team).
-	THREAD_SAFETY_CHECK("TallyGenomeMutationReferences() called when multithreaded");
+	THREAD_SAFETY_CHECK("TallyGenomeMutationReferencesFromMutationRunUsage() called when multithreaded");
 	
 #if DEBUG
 	if (mutrun_count_ == 0)
@@ -226,7 +226,7 @@ void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
 }
 
 #ifdef _OPENMP
-void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
+void Genome::TallyGenomeMutationReferencesFromMutationRunUsage_OMP(int64_t p_operation_id)
 {
 	// This version of this method must be used when running multi-threaded
 	
@@ -275,59 +275,11 @@ void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
 			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 			
-			// Do 16 reps; all updates must be atomic since other threads are tallying into the same
-			// counters.  Note that atomic operations automatically flush on entry and exit, so
-			// other threads are guaranteed to see changes we make to these tallies.
-			while (genome_iter + 16 <= genome_end_iter)
-			{
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Do 4 reps
-			while (genome_iter + 4 <= genome_end_iter)
-			{
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Finish off
+			// BCH 4/22/2023: This loop used to be unrolled into 16/4/1 iterations, because
+			// the compiler didn't seem to be smart enough to optimize it well.  Apparently
+			// the compiler has gotten smarter, because removing the unrolled versions now
+			// makes it run faster.  Of course this will depend on the compiler used, but
+			// I should assume that the user will use a good, modern optimizing compiler.
 			while (genome_iter != genome_end_iter)
 			{
 #pragma omp atomic update
@@ -2464,7 +2416,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		last_handled_mutrun_index = mutrun_index;
 		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 	}
 	
 	// TREE SEQUENCE RECORDING
@@ -2902,7 +2854,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		Genome::BulkOperationEnd(operation_id, mutrun_index);
 		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 	}
 	
 	return retval;
@@ -4019,7 +3971,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 		}
 		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 		
 		// in this code path we just assume that nonneutral mutations might have been removed
 		any_nonneutral_removed = true;
@@ -4282,7 +4234,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			last_handled_mutrun_index = mutrun_index;
 			
 			// invalidate cached mutation refcounts; refcounts have changed
-			pop.cached_tally_genome_count_ = 0;
+			pop.InvalidateMutationReferencesCache();
 		}
 		
 		// TREE SEQUENCE RECORDING

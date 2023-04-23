@@ -218,7 +218,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	species_.subpop_ids_.emplace(p_subpop_id);
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	cached_tally_genome_count_ = 0;
+	InvalidateMutationReferencesCache();
 	
 	return new_subpop;
 }
@@ -325,7 +325,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	}
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	cached_tally_genome_count_ = 0;
+	InvalidateMutationReferencesCache();
 	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
 	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this cycle.
@@ -363,7 +363,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 			removed_subpops_.emplace_back(&p_subpop);
 			
 			// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-			cached_tally_genome_count_ = 0;
+			InvalidateMutationReferencesCache();
 		}
 	}
 	else
@@ -399,7 +399,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 		p_subpop.has_been_removed_ = true;
 		
 		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-		cached_tally_genome_count_ = 0;
+		InvalidateMutationReferencesCache();
 	}
 }
 
@@ -4977,7 +4977,7 @@ void Population::UniqueMutationRuns(void)
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 {
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
-	TallyMutationRunReferences();
+	TallyMutationRunReferencesForPopulation();
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
@@ -5175,7 +5175,7 @@ struct slim_pair_hash {
 void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 {
 	// Note this method assumes that mutation run refcounts are correct; we enforce that here
-	TallyMutationRunReferences();
+	TallyMutationRunReferencesForPopulation();
 	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
@@ -5344,7 +5344,7 @@ void Population::MaintainMutationRegistry(void)
 		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
 	
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
-	// this calls TallyMutationRunReferences() as a side effect, forced by the "true" argument
+	// this calls TallyMutationRunReferencesForPopulation() as a side effect, forced by the "true" argument
 	TallyMutationReferences(nullptr, true);
 	
 	// free unused mutation runs, relying upon the tally done above
@@ -5468,7 +5468,7 @@ void Population::SwapGenerations(void)
 	child_generation_valid_ = false;
 }
 
-void Population::TallyMutationRunReferences(void)
+void Population::TallyMutationRunReferencesForPopulation(void)
 {
 	// first, zero all use counts across all in-use MutationRun objects
 	for (const MutationRun *mutrun : species_.mutation_run_context_.in_use_pool_)
@@ -5548,7 +5548,7 @@ void Population::TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_ge
 void Population::FreeUnusedMutationRuns(void)
 {
 	// It is assumed by this method that mutation run tallies are up to date!
-	// The caller must ensure that by calling TallyMutationRunReferences()!
+	// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
 	
 	// free all in-use MutationRun objects that are not actually in use (use count == 0)
 	MutationRunPool &inuse_pool = species_.mutation_run_context_.in_use_pool_;
@@ -5582,7 +5582,7 @@ void Population::FreeUnusedMutationRuns(void)
 // the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
 slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache)
 {
-	// We call TallyMutationRunReferences() to update mutation run tallies,
+	// We call TallyMutationRunReferencesForPopulation() to update mutation run tallies,
 	// but we do it for the requested set of subpopulations, so beware!
 	
 	// First, figure out whether we're doing all subpops or a subset
@@ -5766,7 +5766,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 		{
 			// First we need to update the mutation run tallies themselves, which we depend upon.  We do this
 			// separately up here so that it happens before the DEBUG block below, which relies upon it.
-			TallyMutationRunReferences();
+			TallyMutationRunReferencesForPopulation();
 		}
 		
 		// To tally using MutationRun, the refcounts of all active MutationRun objects should add up to the same
@@ -5790,7 +5790,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 					
 					if (!genome.IsNull())
 					{
-						subpop_genomes[i]->TallyGenomeReferences(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
+						subpop_genomes[i]->TallyGenomeReferences_Checkback(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
 						total_genome_count++;
 					}
 				}
@@ -6018,11 +6018,9 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 
 slim_refcount_t Population::TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally)
 {
-	// We call TallyMutationRunReferences() to update mutation run tallies,
+	// We call TallyMutationRunReferencesForGenomes() to update mutation run tallies,
 	// but we do it for the requested set of genomes, so beware!
-	
-	// BCH 4/21/2023 we should use mutation run refcounts in this method too, for speed...
-	//TallyMutationRunReferencesForGenomes(p_genomes_to_tally);
+	TallyMutationRunReferencesForGenomes(p_genomes_to_tally);
 	
 	// first zero out the refcounts in all registered Mutation objects
 	SLiM_ZeroRefcountBlock(mutation_registry_);
@@ -6057,7 +6055,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Genome*> *p_geno
 	
 	// set up the cache info; we have messed up any cached tallies
 	last_tallied_subpops_.clear();
-	cached_tally_genome_count_ = 0;
+	InvalidateMutationReferencesCache();
 	
 	// return the total genome count tallied (not counting null genomes)
 	return total_genome_count;
@@ -6079,7 +6077,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 	// making this choice needs to be improved; perhaps it should be evaluated at runtime.
 	// To support both modes of operation, we have to duplicate the logic below, both
 	// with and without the OMP pragmas, especially since a different version of the
-	// TallyGenomeMutationReferences_OMP() method is used for the two cases.
+	// TallyGenomeMutationReferencesFromMutationRunUsage() method is used.
 	bool tally_in_parallel = true;
 	
 	if (gEidosNumThreads < 10)
@@ -6121,7 +6119,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
 				// we can now have null genomes even with autosomes; but it is still worthwhile.
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
+					subpop_genomes[i]->TallyGenomeMutationReferencesFromMutationRunUsage(operation_id);
 				
 				total_genome_count += subpop_genome_count;
 			}
@@ -6134,7 +6132,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 					
 					if (!genome.IsNull())
 					{
-						genome.TallyGenomeMutationReferences(operation_id);
+						genome.TallyGenomeMutationReferencesFromMutationRunUsage(operation_id);
 						total_genome_count++;	// count only non-null genomes to determine fixation
 					}
 				}
@@ -6161,7 +6159,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 				// we can now have null genomes even with autosomes; but it is still worthwhile.
 #pragma omp parallel for schedule(dynamic,16) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) // if(EIDOS_OMPMIN_MUTTALLY)
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->TallyGenomeMutationReferences_OMP(operation_id);
+					subpop_genomes[i]->TallyGenomeMutationReferencesFromMutationRunUsage_OMP(operation_id);
 				
 				total_genome_count += subpop_genome_count;
 			}
@@ -6175,7 +6173,7 @@ slim_refcount_t Population::TallyMutationReferences_FAST(void)
 					
 					if (!genome.IsNull())
 					{
-						genome.TallyGenomeMutationReferences_OMP(operation_id);
+						genome.TallyGenomeMutationReferencesFromMutationRunUsage_OMP(operation_id);
 						total_genome_count++;	// count only non-null genomes to determine fixation
 					}
 				}
@@ -6270,7 +6268,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
-		float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / denominator, registry_index);
+			float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / denominator, registry_index);
 	}
 	
 	return result_SP;

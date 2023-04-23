@@ -71,6 +71,10 @@ class Population
 	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
 	bool registry_needs_consistency_check_ = false;			// set this to run CheckMutationRegistry() at the end of the cycle
 	
+	// Cache info for TallyMutationReferences(); see that function
+	std::vector<Subpopulation*> last_tallied_subpops_;		// NOT OWNED POINTERS
+	slim_refcount_t cached_tally_genome_count_ = 0;			// a value of 0 indicates that the cache is invalid
+	
 public:
 	
 	std::map<slim_objectid_t,Subpopulation*> subpops_;		// OWNED POINTERS
@@ -90,14 +94,10 @@ public:
 	bool any_muttype_call_count_used_ = false;				// if true, a muttype's muttype_registry_call_count_ has been incremented
 #endif
 	
-	slim_refcount_t total_genome_count_ = 0;				// the number of modeled genomes in the population; a fixed mutation has this frequency
+	slim_refcount_t total_genome_count_ = 0;				// the number of non-null genomes in the population; a fixed mutation has this count
 #ifdef SLIMGUI
-	slim_refcount_t gui_total_genome_count_ = 0;			// the number of modeled genomes in the selected subpopulations in SLiMgui
+	slim_refcount_t gui_total_genome_count_ = 0;			// the number of non-null genomes in the selected subpopulations in SLiMgui
 #endif
-	
-	// Cache info for TallyMutationReferences(); see that function
-	std::vector<Subpopulation*> last_tallied_subpops_;		// NOT OWNED POINTERS
-	slim_refcount_t cached_tally_genome_count_ = 0;
 	
 	std::vector<Substitution*> substitutions_;				// OWNED POINTERS: Substitution objects for all fixed mutations
 	std::unordered_multimap<slim_position_t, Substitution*> treeseq_substitutions_map_;	// TREE SEQUENCE RECORDING; keeps all fixed mutations, hashed by position
@@ -199,22 +199,37 @@ public:
 	// Tally mutations and remove fixed/lost mutations
 	void MaintainMutationRegistry(void);
 	
-	// Tally MutationRun usage and free unused mutruns
-	void TallyMutationRunReferences(void);
+	// Tally MutationRun usage and free unused MutationRuns.  Note that all of these tallying methods tally into
+	// the same use_count_ counter kept by MutationRun, so a new tally wipes the results of the previous tally.
+	// Also note that the mutation tallying methods below call these methods to tally mutation runs first, so
+	// the mutation run tallies will be altered as a side effect of doing a mutation tally.
+	void TallyMutationRunReferencesForPopulation(void);
 	void TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
 	void TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);
-	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferences()!
+	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferencesForPopulation()!
 	
-	// count the total number of times that each Mutation in the registry is referenced by a population, and set total_genome_count_ to the maximum possible number of references (i.e. fixation)
+	// Tally Mutation usage; these count the total number of times that each Mutation in the registry is referenced
+	// by a population (or a set of subpopulations, or a set of genomes), putting the usage counts into the refcount
+	// block kept by Mutation.  For the whole population, and for a set of subpops, cache info is maintained so the
+	// tally can be reused when possible.  For a set of genomes, the result is not cached, and so the cache is
+	// always invalidated.  The maximum number of references (the total number of non-null genomes tallied) is
+	// always returned.  When tallying across all subpopulations, total_genome_count_ is also set to this same
+	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
+	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
+	inline void InvalidateMutationReferencesCache(void) { cached_tally_genome_count_ = 0; }
+	
 	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
 	slim_refcount_t TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally);
 	slim_refcount_t TallyMutationReferences_FAST(void);
 	
-	// Eidos back-end code that counts up tallied mutations, working with TallyMutationReferences()
+	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences().
+	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
+	// to return the correct frequency/count values to the user as an EidosValue_SP.
 	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
 	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
 	
-	// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
+	// Handle negative fixation (remove from the registry) and positive fixation (convert to Substitution).
+	// This uses reference counts from TallyMutationReferences(), which must be called before this method.
 	void RemoveAllFixedMutations(void);
 	
 	// check the registry for any bad entries (i.e. zombies, mutations with an incorrect state_)
