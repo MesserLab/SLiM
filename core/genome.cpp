@@ -420,7 +420,7 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 			}
 			else
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
@@ -437,7 +437,7 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 			{
 				mutruns_ = run_buffer_;
-				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 			}
 			else
 				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
@@ -446,7 +446,7 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 		{
 			// the number of mutruns has not changed; need to zero out
 			if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-				EIDOS_BZERO(mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 			else
 				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 		}

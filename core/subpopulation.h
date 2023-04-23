@@ -341,7 +341,7 @@ public:
 				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
 				{
 					back->mutruns_ = back->run_buffer_;
-					EIDOS_BZERO(back->mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+					EIDOS_BZERO(back->run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 				}
 				else
 					back->mutruns_ = (const MutationRun **)calloc(p_mutrun_count, sizeof(const MutationRun *));
@@ -350,7 +350,7 @@ public:
 			{
 				// the number of mutruns is unchanged, but we need to zero out the reused buffer here
 				if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
-					EIDOS_BZERO(back->mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+					EIDOS_BZERO(back->run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
 				else
 					EIDOS_BZERO(back->mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 			}

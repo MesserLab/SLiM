@@ -5010,7 +5010,7 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
 					{
 						genome.mutruns_ = genome.run_buffer_;
-						EIDOS_BZERO(genome.mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+						EIDOS_BZERO(genome.run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 					}
 					else
 						genome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
@@ -5208,7 +5208,7 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
 					{
 						genome.mutruns_ = genome.run_buffer_;
-						EIDOS_BZERO(genome.mutruns_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+						EIDOS_BZERO(genome.run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
 					}
 					else
 						genome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
