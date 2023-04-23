@@ -2125,7 +2125,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 	if (subpops_value->Type() == EidosValueType::kValueNULL)
 	{
 		// tally across the whole population
-		total_genome_count = population_.TallyMutationReferences(nullptr, false);
+		total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
 	}
 	else
 	{
@@ -2134,7 +2134,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		
 		THREAD_SAFETY_CHECK("Species::ExecuteMethod_mutationFreqsCounts(): usage of statics");
 		
-		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry since TallyMutationReferences() can't re-enter here
+		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry
 		
 		subpops_to_tally.clear();
 		
@@ -2143,9 +2143,16 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 			for (int requested_subpop_index = 0; requested_subpop_index < requested_subpop_count; ++requested_subpop_index)
 				subpops_to_tally.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this,
 																						 (p_method_id == gID_mutationFrequencies) ? "mutationFrequencies()" : "mutationCounts()"));		// SPECIES CONSISTENCY CHECK
+			
+			// FIXME unique subpops_to_tally so duplicates don't confuse the count!
 		}
 		
-		total_genome_count = population_.TallyMutationReferences(&subpops_to_tally, false);
+		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.
+		// Since we uniqued the subpops_to_tally vector above, we can check for equality by just comparing sizes.
+		if (subpops_to_tally.size() == population_.subpops_.size())
+			total_genome_count = population_.TallyMutationReferencesAcrossPopulation(false);
+		else
+			total_genome_count = population_.TallyMutationReferencesAcrossSubpopulations(&subpops_to_tally, false);
 	}
 	
 	// SPECIES CONSISTENCY CHECK

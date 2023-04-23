@@ -243,7 +243,7 @@ void Genome::TallyGenomeMutationReferencesFromMutationRunUsage_OMP(int64_t p_ope
 		if (mutrun->operation_id_ != p_operation_id)
 		{
 			// We need to protect this operation with a per-mutrun lock because it is
-			// being done in parallel; see Population::TallyMutationReferences_FAST()
+			// being done in parallel; see Population::_TallyMutationReferences_FAST_FromMutationRunUsage()
 			omp_set_lock(&mutrun->mutrun_LOCK);
 			
 			// The check above might have gotten a stale value.  Now that we have the lock, we
@@ -2911,7 +2911,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 	Population &population = species->population_;
 	
 	// Have the Population tally for the target genomes
-	population.TallyMutationReferences(&target_genomes);
+	population.TallyMutationReferencesAcrossGenomes(&target_genomes);
 	
 	// Use the back-end code in Population to do the counting
 	if (p_method_id == gID_mutationFrequenciesInGenomes)

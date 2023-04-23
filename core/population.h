@@ -71,7 +71,7 @@ class Population
 	MutationRun mutation_registry_;							// OWNED POINTERS: a registry of all mutations that have been added to this population
 	bool registry_needs_consistency_check_ = false;			// set this to run CheckMutationRegistry() at the end of the cycle
 	
-	// Cache info for TallyMutationReferences(); see that function
+	// Cache info for TallyMutationReferences...(); see those functions
 	std::vector<Subpopulation*> last_tallied_subpops_;		// NOT OWNED POINTERS
 	slim_refcount_t cached_tally_genome_count_ = 0;			// a value of 0 indicates that the cache is invalid
 	
@@ -216,20 +216,22 @@ public:
 	// always returned.  When tallying across all subpopulations, total_genome_count_ is also set to this same
 	// value, which is the maximum possible number of references (i.e. fixation), as a side effect.  The cache
 	// of tallies can be invalidated by calling InvalidateMutationReferencesCache().
-	inline void InvalidateMutationReferencesCache(void) { cached_tally_genome_count_ = 0; }
+	inline void InvalidateMutationReferencesCache(void) { last_tallied_subpops_.clear(); cached_tally_genome_count_ = 0; }
 	
-	slim_refcount_t TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
-	slim_refcount_t TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally);
-	slim_refcount_t TallyMutationReferences_FAST(void);
+	slim_refcount_t TallyMutationReferencesAcrossPopulation(bool p_force_recache);
+	slim_refcount_t TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
+	slim_refcount_t TallyMutationReferencesAcrossGenomes(std::vector<Genome*> *p_genomes_to_tally);
 	
-	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences().
+	slim_refcount_t _TallyMutationReferences_FAST_FromMutationRunUsage(void);
+	
+	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
 	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
 	// to return the correct frequency/count values to the user as an EidosValue_SP.
 	EidosValue_SP Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
 	EidosValue_SP Eidos_CountsForTalliedMutations(EidosValue *mutations_value, int total_genome_count);
 	
 	// Handle negative fixation (remove from the registry) and positive fixation (convert to Substitution).
-	// This uses reference counts from TallyMutationReferences(), which must be called before this method.
+	// This uses reference counts from TallyMutationReferencesAcrossPopulation(), which must be called before this method.
 	void RemoveAllFixedMutations(void);
 	
 	// check the registry for any bad entries (i.e. zombies, mutations with an incorrect state_)

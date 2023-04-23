@@ -83,7 +83,7 @@
 	Species *displaySpecies = [self focalDisplaySpecies];
 	Population &pop = displaySpecies->population_;
 	
-	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
+	pop.TallyMutationReferencesAcrossPopulation(false);	// update tallies; usually this will just use the cache set up by Population::MaintainMutationRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;

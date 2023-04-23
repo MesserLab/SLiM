@@ -960,7 +960,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferences(nullptr, true);
+	population_.TallyMutationReferencesAcrossPopulation(true);
 	
 	if (file_version <= 2)
 	{
@@ -1692,7 +1692,7 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferences(nullptr, true);
+	population_.TallyMutationReferencesAcrossPopulation(true);
 	
 	if (file_version <= 2)
 	{
@@ -8221,7 +8221,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	
 	// Re-tally mutation references so we have accurate frequency counts for our new mutations
 	population_.UniqueMutationRuns();
-	population_.TallyMutationReferences(nullptr, true);
+	population_.TallyMutationReferencesAcrossPopulation(true);
 	
 	// Do a crosscheck to ensure data integrity
 	// BCH 10/16/2019: this crosscheck can take a significant amount of time; for a single load that is not a big deal,
