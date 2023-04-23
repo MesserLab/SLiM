@@ -34,10 +34,6 @@ MutationRun::MutationRun(void)
 	mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
 	if (!mutations_)
 		EIDOS_TERMINATION << "ERROR (MutationRun::MutationRun): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-	
-#ifdef _OPENMP
-	omp_init_lock(&mutrun_LOCK);
-#endif
 }
 
 MutationRun::~MutationRun(void)
@@ -47,10 +43,6 @@ MutationRun::~MutationRun(void)
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (nonneutral_mutations_)
 		free(nonneutral_mutations_);
-#endif
-	
-#ifdef _OPENMP
-	omp_destroy_lock(&mutrun_LOCK);
 #endif
 }
 

@@ -2144,7 +2144,9 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 				subpops_to_tally.emplace_back(SLiM_ExtractSubpopulationFromEidosValue_io(subpops_value, requested_subpop_index, &community_, this,
 																						 (p_method_id == gID_mutationFrequencies) ? "mutationFrequencies()" : "mutationCounts()"));		// SPECIES CONSISTENCY CHECK
 			
-			// FIXME unique subpops_to_tally so duplicates don't confuse the count!
+			// unique subpops_to_tally so duplicates don't confuse the count
+			std::sort(subpops_to_tally.begin(), subpops_to_tally.end());
+			subpops_to_tally.resize(static_cast<size_t>(std::distance(subpops_to_tally.begin(), std::unique(subpops_to_tally.begin(), subpops_to_tally.end()))));
 		}
 		
 		// If *all* subpops were requested, then we delegate to the method that is designed to tally across the whole population.

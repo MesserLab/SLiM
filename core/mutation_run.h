@@ -186,11 +186,6 @@ private:
 public:
 	
 	mutable int64_t operation_id_ = 0;		// used to mark the MutationRun objects that have been handled by a global operation
-#ifdef _OPENMP
-	// this lock is used to protect operation_id_ when an operation is being done in parallel
-	// we #ifdef it because we don't want even the stub overhead when running single-threaded
-	mutable omp_lock_t mutrun_LOCK;
-#endif
 	
 	static inline slim_pedigreeid_t GetNextOperationID(void)
 	{

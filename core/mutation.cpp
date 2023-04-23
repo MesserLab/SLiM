@@ -145,28 +145,6 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 	const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
 	const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
 	
-	// Do 16 reps
-	while (registry_iter + 16 <= registry_iter_end)
-	{
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-	}
-	
-	// Finish off
 	while (registry_iter != registry_iter_end)
 		*(refcount_block_ptr + (*registry_iter++)) = 0;
 #else

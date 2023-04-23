@@ -202,10 +202,11 @@ public:
 	// Tally MutationRun usage and free unused MutationRuns.  Note that all of these tallying methods tally into
 	// the same use_count_ counter kept by MutationRun, so a new tally wipes the results of the previous tally.
 	// Also note that the mutation tallying methods below call these methods to tally mutation runs first, so
-	// the mutation run tallies will be altered as a side effect of doing a mutation tally.
-	void TallyMutationRunReferencesForPopulation(void);
-	void TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
-	void TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);
+	// the mutation run tallies will be altered as a side effect of doing a mutation tally.  The return value
+	// for all of these methods is the number of non-null genomes that were tallied across.
+	slim_refcount_t TallyMutationRunReferencesForPopulation(void);
+	slim_refcount_t TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
+	slim_refcount_t TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);
 	void FreeUnusedMutationRuns(void);	// depends upon a previous tally by TallyMutationRunReferencesForPopulation()!
 	
 	// Tally Mutation usage; these count the total number of times that each Mutation in the registry is referenced
@@ -222,7 +223,11 @@ public:
 	slim_refcount_t TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache);
 	slim_refcount_t TallyMutationReferencesAcrossGenomes(std::vector<Genome*> *p_genomes_to_tally);
 	
-	slim_refcount_t _TallyMutationReferences_FAST_FromMutationRunUsage(void);
+	slim_refcount_t _CountNonNullGenomes(void);
+#ifdef SLIMGUI
+	void _CopyRefcountsToSLiMgui(void);
+#endif
+	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
 	
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
 	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
