@@ -94,6 +94,7 @@ development head (in the master branch):
 	disallow multiple log files at the same path, since this is a common mistake and there's no clear use for it
 	bug fix: problem with reading in JSON that contains an "object" (i.e., a dictionary) inside the top-level object
 	update the zlib code in eidos_zlib to version 1.2.13 (13 Oct 2022), fixing some issues (see zlib ChangeLog file)
+	change to DWARF, not DWARF with dSYM, even for Release builds; I don't use the dSYM file to reverse-symbolicate crash reports, so it just slows down my Release builds (but turning it off is unusual, so I'm noting it here)
 	
 
 version 4.0.1 (Eidos version 3.0.1):
