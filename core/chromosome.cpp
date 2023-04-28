@@ -365,12 +365,50 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	
 	if (species_.HasGenetics())
 	{
+#ifdef _OPENMP
+		// When running multi-threaded, we prefer the base number of mutruns to equal the number of threads
+		// This allows us to subdivide responsibility along the genome equally among threads
+		mutrun_count_base_ = gEidosMaxThreads;
+		mutrun_count_multiplier_ = 1;
+		
+		// However, the shortest any mutrun can be is one base position, so with a short chromosome, the
+		// number of mutruns gets clipped to the number of base positions (and not all threads will be used)
+		if (mutrun_count_base_ > (last_position_ + 1))
+			mutrun_count_base_ = (int32_t)(last_position_ + 1);
+#else
+		// When running single-threaded, the base number of mutruns is always 1
+		mutrun_count_base_ = 1;
+		mutrun_count_multiplier_ = 1;
+#endif
+		
 		if (p_preferred_count != 0)
 		{
 			// The user has given us a mutation run count, so use that count and divide the chromosome evenly
 			if (p_preferred_count < 1)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
 			
+#ifdef _OPENMP
+			// When running multithreaded, we have some additional restrictions to try to keep the number of mutation runs
+			// aligned with the number of threads; but we also want to allow the user to use fewer mutruns/threads
+			if (((p_preferred_count % gEidosMaxThreads) == 0) ||	// if it is an exact multiple of the number of threads
+				(p_preferred_count < gEidosMaxThreads))				// or, less than the number of threads
+				;													// then it is fine
+			else
+				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): when multithreaded, if the number of mutation runs is specified it must be a multiple of the number of threads, or it must be equal to the length of the chromosome (one mutation run per base position), or it must be equal to 1." << EidosTerminate();
+#endif
+			
+			// If the preferred number of mutation runs is actually larger than the number of discrete positions,
+			// it gets clipped.  No warning is emitted; this is pretty obvious, and the verbose output line suffices
+			if (p_preferred_count > (last_position_ + 1))
+				p_preferred_count = (int32_t)(last_position_ + 1);
+			
+			// Similarly, we clip silently at SLIM_MUTRUN_MAXIMUM_COUNT; larger values are not presently allowed,
+			// although the code is general and does not actually have a hard limit on the number of mutruns
+			if (p_preferred_count > SLIM_MUTRUN_MAXIMUM_COUNT)
+				p_preferred_count = SLIM_MUTRUN_MAXIMUM_COUNT;
+			
+			mutrun_count_base_ = p_preferred_count;
+			mutrun_count_multiplier_ = 1;
 			mutrun_count_ = p_preferred_count;
 			mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 			
@@ -380,13 +418,14 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 		else
 		{
 			// The user has not supplied a count, so we will conduct experiments to find the best count;
-			// for simplicity we will just always start with a single run, since that is often best anyway
-			mutrun_count_ = 1;
+			// for simplicity we will just always start with a single run, since that is often best anyway,
+			// unless we're running multithreaded; then we start with one run per thread, generally
+			mutrun_count_ = mutrun_count_base_ * mutrun_count_multiplier_;
 			mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 			
 			// When we are running experiments, the mutation run length needs to be a power of two so that it can be divided evenly,
 			// potentially a fairly large number of times.  We impose a maximum mutrun count of SLIM_MUTRUN_MAXIMUM_COUNT, so
-			// actually it needs to just be an even multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
+			// actually it needs to just be an exact multiple of SLIM_MUTRUN_MAXIMUM_COUNT, not an exact power of two.
 			mutrun_length_ = (slim_position_t)round(ceil(mutrun_length_ / (double)SLIM_MUTRUN_MAXIMUM_COUNT) * SLIM_MUTRUN_MAXIMUM_COUNT);
 			
 			if (SLiM_verbosity_level >= 2)
@@ -396,6 +435,8 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	else
 	{
 		// No-genetics species use null genomes, and have no mutruns
+		mutrun_count_base_ = 0;
+		mutrun_count_multiplier_ = 1;
 		mutrun_count_ = 0;
 		mutrun_length_ = 0;
 	}

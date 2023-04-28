@@ -111,9 +111,6 @@ Species::Species(Community &p_community, slim_objectid_t p_species_id, const std
 	
 	// Create our Chromosome object with a retain on it from EidosDictionaryRetained::EidosDictionaryRetained()
 	chromosome_ = new Chromosome(*this);
-	
-	// Make an EidosObjectPool to allocate mutation runs from; this is for memory locality, so make it nice and big
-	mutation_run_context_.allocation_pool_ = new EidosObjectPool(sizeof(MutationRun), 65536);
 }
 
 Species::~Species(void)
@@ -126,6 +123,18 @@ Species::~Species(void)
 	population_.RemoveAllSubpopulationInfo();
 	
 	DeleteAllMutationRuns();
+	
+#ifndef _OPENMP
+	delete mutation_run_context_SINGLE_.allocation_pool_;
+#else
+	for (size_t threadnum = 0; threadnum < mutation_run_context_PERTHREAD.size(); ++threadnum)
+	{
+		omp_destroy_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
+		delete mutation_run_context_PERTHREAD[threadnum]->allocation_pool_;
+		delete mutation_run_context_PERTHREAD[threadnum];
+	}
+	mutation_run_context_PERTHREAD.clear();
+#endif
 	
 	for (auto mutation_type : mutation_types_)
 		delete mutation_type.second;
@@ -827,6 +836,9 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 	
 	// Now we are in the Genomes section, which should take us to the end of the file unless there is an Ancestral Sequence section
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
 	
 	while (!infile.eof())
 	{
@@ -926,8 +938,13 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 				
 				if (mutrun_index != current_mutrun_index)
 				{
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+#endif
+					
 					current_mutrun_index = mutrun_index;
-					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutation_run_context_);
+					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1438,6 +1455,9 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 	bool use_16_bit = (mutation_map_size <= UINT16_MAX - 1);	// 0xFFFF is reserved as the start of our various tags
 	std::unique_ptr<MutationIndex[]> raii_genomebuf(new MutationIndex[mutation_map_size]);	// allowing us to use emplace_back_bulk() for speed
 	MutationIndex *genomebuf = raii_genomebuf.get();
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
 	
 	while (true)
 	{
@@ -1627,8 +1647,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 				
 				if (mutrun_index != current_mutrun_index)
 				{
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+#endif
+					
 					current_mutrun_index = mutrun_index;
-					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutation_run_context_);
+					current_mutrun = genome.WillModifyRun(current_mutrun_index, mutrun_context);
 				}
 				
 				current_mutrun->emplace_back(mutation);
@@ -1740,9 +1765,13 @@ slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, Eid
 
 void Species::DeleteAllMutationRuns(void)
 {
-	// This walks the linked list for the free and in-use MutationRun pools and frees them all
-	MutationRun::DeleteMutationRunPool(mutation_run_context_);
-	MutationRun::DeleteMutationRunPool(mutation_run_context_);
+	// This traverses the free and in-use MutationRun pools and frees them all
+	// Note that the allocation pools themselves, and the MutationRunContexts, remain intact
+	for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
+	{
+		MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
+		MutationRun::DeleteMutationRunContext(mutrun_context);
+	}
 }
 
 
@@ -1974,6 +2003,8 @@ void Species::RunInitializeCallbacks(void)
 	chromosome_->InitializeDraws();
 	chromosome_->ChooseMutationRunLayout(preferred_mutrun_count_);
 	
+	SetUpMutationRunContexts();
+	
 	// Ancestral sequence check; this has to wait until after the chromosome has been initialized
 	if (nucleotide_based_)
 	{
@@ -1993,6 +2024,47 @@ bool Species::HasDoneAnyInitialization(void)
 {
 	// This is used by Community to make sure that initializeModelType() executes before any other init
 	return ((num_mutation_types_ > 0) || (num_mutation_rates_ > 0) || (num_genomic_element_types_ > 0) || (num_genomic_elements_ > 0) || (num_recombination_rates_ > 0) || (num_gene_conversions_ > 0) || (num_sex_declarations_ > 0) || (num_options_declarations_ > 0) || (num_treeseq_declarations_ > 0) || (num_ancseq_declarations_ > 0) || (num_hotspot_maps_ > 0) || (num_species_declarations_ > 0));
+}
+
+void Species::SetUpMutationRunContexts(void)
+{
+	// Make an EidosObjectPool to allocate mutation runs from; this is for memory locality, so make it nice and big
+#ifndef _OPENMP
+	mutation_run_context_SINGLE_.allocation_pool_ = new EidosObjectPool(sizeof(MutationRun), 65536);
+#else
+	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent MutationRunContexts" << std::endl;
+	
+	// Make per-thread MutationRunContexts; the number of threads that we set up for here is NOT gEidosMaxThreads,
+	// but rather, the "base" number of mutation runs per genome chosen by Chromosome.  The chromosome is divided
+	// into that many chunks along its length (or a multiple thereof), and there is one thread per "base" chunk.
+	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
+	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
+	
+	// We want to try to guarantee that every thread sets up its MutationRunContext, even if OMP_DYNAMIC is true
+	int old_dynamic = omp_get_dynamic();
+	omp_set_dynamic(false);
+	
+	// Check that each RNG was initialized by a different thread, as intended below;
+	// this is not required, but it improves memory locality throughout the run
+	bool threadObserved[mutation_run_context_COUNT_];
+	
+#pragma omp parallel default(none) shared(mutation_run_context_PERTHREAD, threadObserved) num_threads(mutation_run_context_COUNT_)
+	{
+		// Each thread allocates and initializes its own MutationRunContext, for "first touch" optimization
+		int threadnum = omp_get_thread_num();
+		
+		mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
+		mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool(sizeof(MutationRun), 65536);
+		omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
+		threadObserved[threadnum] = true;
+	}	// end omp parallel
+	
+	omp_set_dynamic(old_dynamic);
+	
+	for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
+		if (!threadObserved[threadnum])
+			std::cerr << "WARNING: parallel MutationRunContexts were not correctly initialized on their corresponding threads; this may cause slower simulation." << std::endl;
+#endif	// end _OPENMP
 }
 
 void Species::PrepareForCycle(void)
@@ -2897,11 +2969,17 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			int64_t mutrun_externalBuffers = 0;
 			int64_t mutrun_nonneutralCaches = 0;
 			
-			for (const MutationRun *inuse_mutrun : mutation_run_context_.in_use_pool_)
+			// each thread has its own inuse pool
+			for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
 			{
-				mutrun_objectCount++;
-				mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
-				mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+				MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
+				
+				for (const MutationRun *inuse_mutrun : mutrun_context.in_use_pool_)
+				{
+					mutrun_objectCount++;
+					mutrun_externalBuffers += inuse_mutrun->MemoryUsageForMutationIndexBuffers();
+					mutrun_nonneutralCaches += inuse_mutrun->MemoryUsageForNonneutralCaches();
+				}
 			}
 			
 			p_usage->mutationRunObjects_count = mutrun_objectCount;
@@ -2915,11 +2993,17 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			int64_t mutrun_unusedCount = 0;
 			int64_t mutrun_unusedBuffers = 0;
 			
-			for (const MutationRun *free_mutrun : mutation_run_context_.freed_pool_)
+			// each thread has its own free pool
+			for (int threadnum = 0; threadnum < SpeciesMutationRunContextCount(); ++threadnum)
 			{
-				mutrun_unusedCount++;
-				mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
-				mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+				MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(threadnum);
+				
+				for (const MutationRun *free_mutrun : mutrun_context.freed_pool_)
+				{
+					mutrun_unusedCount++;
+					mutrun_unusedBuffers += free_mutrun->MemoryUsageForMutationIndexBuffers();
+					mutrun_unusedBuffers += free_mutrun->MemoryUsageForNonneutralCaches();
+				}
 			}
 			
 			p_usage->mutationRunUnusedPoolSpace = sizeof(MutationRun) * mutrun_unusedCount;
@@ -3309,7 +3393,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 				// OK, it looks like something has changed about our scenario, so we should come out of stasis and re-test.
 				// We don't have any information about the new state of affairs, so we have no directional preference.
 				// Let's try a larger number of mutation runs first, since genomes tend to fill up, unless we're at the max.
-				if (x_current_mutcount_ >= SLIM_MUTRUN_MAXIMUM_COUNT)
+				if (x_current_mutcount_ * 2 > SLIM_MUTRUN_MAXIMUM_COUNT)
 					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ / 2);
 				else
 					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
@@ -3326,7 +3410,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 				{
 					// We reached the stasis limit, so we will try an experiment even though we don't seem to have changed;
 					// as before, we try more mutation runs first, since increasing genetic complexity is typical
-					if (x_current_mutcount_ >= SLIM_MUTRUN_MAXIMUM_COUNT)
+					if (x_current_mutcount_ * 2 > SLIM_MUTRUN_MAXIMUM_COUNT)
 						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ / 2);
 					else
 						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
@@ -3364,7 +3448,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 #endif
 			
 			int32_t trend_next = (x_current_mutcount_ < x_previous_mutcount_) ? (x_current_mutcount_ / 2) : (x_current_mutcount_ * 2);
-			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? 1 : SLIM_MUTRUN_MAXIMUM_COUNT;
+			int32_t trend_limit = (x_current_mutcount_ < x_previous_mutcount_) ? chromosome_->mutrun_count_base_ : SLIM_MUTRUN_MAXIMUM_COUNT;	// for single-threaded, chromosome_->mutrun_count_base_ == 1
 			
 			if ((current_mean < previous_mean) || (!means_different_05 && (x_current_mutcount_ < x_previous_mutcount_)))
 			{
@@ -3500,11 +3584,15 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			std::clock_t start_clock = std::clock();
 #endif
 			
+			if (x_current_mutcount_ > SLIM_MUTRUN_MAXIMUM_COUNT)
+				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) splitting mutation runs to beyond SLIM_MUTRUN_MAXIMUM_COUNT (x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
+			
 			// We are splitting existing runs in two, so make a map from old mutrun index to new pair of
 			// mutrun indices; every time we encounter the same old index we will substitute the same pair.
 			population_.SplitMutationRuns(chromosome_->mutrun_count_ * 2);
 			
 			// Fix the chromosome values
+			chromosome_->mutrun_count_multiplier_ *= 2;
 			chromosome_->mutrun_count_ *= 2;
 			chromosome_->mutrun_length_ /= 2;
 			
@@ -3520,11 +3608,15 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			std::clock_t start_clock = std::clock();
 #endif
 			
+			if (chromosome_->mutrun_count_multiplier_ % 2 != 0)
+				EIDOS_TERMINATION << "ERROR (Species::MaintainMutationRunExperiments): (internal error) joining mutation runs to beyond mutrun_count_base_ (mutrun_count_base_ == " << chromosome_->mutrun_count_base_ << ", x_current_mutcount_ == " << x_current_mutcount_ << ")." << EidosTerminate();
+			
 			// We are joining existing runs together, so make a map from old mutrun index pairs to a new
 			// index; every time we encounter the same pair of indices we will substitute the same index.
 			population_.JoinMutationRuns(chromosome_->mutrun_count_ / 2);
 			
 			// Fix the chromosome values
+			chromosome_->mutrun_count_multiplier_ /= 2;
 			chromosome_->mutrun_count_ /= 2;
 			chromosome_->mutrun_length_ *= 2;
 			
@@ -8053,6 +8145,10 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	}
 	
 	// add mutations to genomes by looping through variants
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
+	
 	for (tsk_size_t i = 0; i < p_ts->tables->sites.num_rows; i++)
 	{
 		ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
@@ -8086,7 +8182,11 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 					slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
 					slim_mutrun_index_t run_index = (slim_mutrun_index_t)(variant_pos_int / genome->mutrun_length_);
 					
-					MutationRun *mutrun = genome->WillModifyRun(run_index, mutation_run_context_);
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = SpeciesMutationRunContextForMutationRunIndex(run_index);
+#endif
+					MutationRun *mutrun = genome->WillModifyRun(run_index, mutrun_context);
 					
 					for (tsk_size_t mutid_index = 0; mutid_index < genome_allele_length; ++mutid_index)
 					{

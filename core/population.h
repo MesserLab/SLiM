@@ -204,6 +204,7 @@ public:
 	// Also note that the mutation tallying methods below call these methods to tally mutation runs first, so
 	// the mutation run tallies will be altered as a side effect of doing a mutation tally.  The return value
 	// for all of these methods is the number of non-null genomes that were tallied across.
+	void _ZeroMutationRunReferences(void);
 	slim_refcount_t TallyMutationRunReferencesForPopulation(void);
 	slim_refcount_t TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally);
 	slim_refcount_t TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally);

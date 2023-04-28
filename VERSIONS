@@ -67,6 +67,7 @@ PARALLEL changes (now in the master branch):
 	add unit tests for various SLiM methods that have been parallelized
 	parallelize InteractionType nearestNeighbors(), nearestInteractingNeighbors(), drawByStrength() by adding a returnDict parameter that lets the user get a Dictionary as a result, with one entry per receiver
 		their "receiver" parameter is no longer required to be singleton (when returnDict == T), and their return value is now just "object" since it can be Individual or Dictionary
+	overhaul the internal MutationRun design to allow it to be used multithreaded - get rid of refcounting, switch to usage tallying
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

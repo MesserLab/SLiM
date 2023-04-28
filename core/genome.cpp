@@ -69,7 +69,8 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunC
 #endif
 	
 	// This method used to support in-place modification for mutruns with a use count of 1,
-	// saving the new mutation run allocation; but in practice that was not used
+	// saving the new mutation run allocation; but in practice that was not used, and it
+	// would be hard to support in the new multithreaded design, so we always make a new run
 	const MutationRun *original_run = mutruns_[p_run_index];
 	MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
 	
@@ -202,7 +203,7 @@ void Genome::MakeNull(void)
 	}
 }
 
-void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, MutationRun *p_run)
+void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
 {
 	genome_type_ = p_genome_type;
 	
@@ -239,7 +240,7 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 		}
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = p_run;
+			mutruns_[run_index] = p_runs[run_index];
 	}
 	else // if (!p_mutrun_count)
 	{
@@ -2280,12 +2281,14 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		
 		Genome::BulkOperationStart(operation_id, mutrun_index);
 		
+		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
+			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 			
 			if (target_run)
 			{
@@ -2712,13 +2715,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		// Now start the bulk operation and add mutations_to_add to every target genome
 		Genome::BulkOperationStart(operation_id, mutrun_index);
 		
+		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+		
 		for (int target_index = 0; target_index < target_size; ++target_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
 			const MutationRun *original_run = target_genome->mutruns_[mutrun_index];
-			MutationRun *modifiable_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
+			MutationRun *modifiable_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 			
 			if (modifiable_mutrun)
 			{
@@ -3131,6 +3136,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 	
 	// Add the mutations to the target genomes, recording a new derived state with each addition
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
+	
 	for (int genome_index = 0; genome_index < target_size; ++genome_index)
 	{
 		Genome *genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
@@ -3153,7 +3162,15 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_pos / mutrun_length);
 				
 				if (mut_mutrun_index != current_run_index)
-					current_mutrun = genome->WillModifyRun(mut_mutrun_index, species.mutation_run_context_);
+				{
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+#endif
+					
+					current_run_index = mut_mutrun_index;
+					current_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
+				}
 				
 				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
 				if (genome_started_empty)
@@ -3325,6 +3342,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	target_size = (int)targets.size();	// adjust for possible exclusion of null genomes
 	
 	// parse all the call lines, instantiate their mutations, and add the mutations to the target genomes
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
 	std::vector<MutationIndex> mutation_indices;
 	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
 	
@@ -3718,7 +3738,12 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				
 				if (mut_mutrun_index != genome_last_mutrun_modified)
 				{
-					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, species->mutation_run_context_);
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+#endif
+					
+					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
 					genome_last_mutrun_modified = mut_mutrun_index;
 				}
 				
@@ -3841,11 +3866,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			}
 		}
 		
-		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
-		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
-		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
-		MutationRun *shared_empty_run = nullptr;
-		int mutrun_count = genome_0->mutrun_count_;
+		// Fetch genome pointers and check for null genomes up front
+		std::vector<Genome *>target_genomes;
 		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
@@ -3854,15 +3876,31 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			if (target_genome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			target_genomes.push_back(target_genome);
+		}
+		
+		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
+		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
+		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
+		int mutrun_count = genome_0->mutrun_count_;
+		
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRun *shared_empty_run = nullptr;	// different shared empty run for each mutrun index
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
+				Genome *target_genome = target_genomes[genome_index];
 				const MutationRun *mutrun = target_genome->mutruns_[run_index];
 				
 				if (mutrun->size())
 				{
 					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from genomes that are empty already)
 					if (!shared_empty_run)
-						shared_empty_run = MutationRun::NewMutationRun(species->mutation_run_context_);
+					{
+						MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(run_index);
+						shared_empty_run = MutationRun::NewMutationRun(mutrun_context);
+					}
 					
 					target_genome->mutruns_[run_index] = shared_empty_run;
 				}
@@ -4063,6 +4101,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			
 			Genome::BulkOperationStart(operation_id, mutrun_index);
 			
+			MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
+			
 			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
 				Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
@@ -4074,7 +4114,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				}
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, species->mutation_run_context_);
+				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
 				
 				if (mutrun)
 				{

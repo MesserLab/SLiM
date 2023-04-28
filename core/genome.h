@@ -171,11 +171,12 @@ public:
 	void MakeNull(void) __attribute__((cold));	// transform into a null genome
 	
 	// used to re-initialize Genomes to a new state, reusing them for efficiency
-	void ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, MutationRun *p_run);
+	void ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs);
 	void ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length);
 	
 	// This should be called before starting to define a mutation run from scratch, as the crossover-mutation code does.  It will
 	// discard the current MutationRun and start over from scratch with a unique, new MutationRun which is returned by the call.
+	// Note that there is a _LOCKED version of this below, which locks around the use of the allocation pool.
 	inline MutationRun *WillCreateRun(int p_run_index, MutationRunContext &p_mutrun_context)
 	{
 #if DEBUG
@@ -190,6 +191,22 @@ public:
 		mutruns_[p_run_index] = new_run;
 		return new_run;
 	}
+	
+	inline MutationRun *WillCreateRun_LOCKED(int p_run_index, MutationRunContext &p_mutrun_context)
+	{
+#if DEBUG
+		if (p_run_index < 0)
+			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun_LOCKED): (internal error) attempt to create a negative-index run." << EidosTerminate();
+		if (p_run_index >= mutrun_count_)
+			EIDOS_TERMINATION << "ERROR (Genome::WillCreateRun_LOCKED): (internal error) attempt to create an out-of-index run." << EidosTerminate();
+#endif
+		
+		MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(p_mutrun_context);	// take from shared pool of used objects
+		
+		mutruns_[p_run_index] = new_run;
+		return new_run;
+	}
+	
 	
 	// This should be called before modifying the run at a given index.  It will replicate the run to produce a single-referenced copy
 	// if necessary, thus guaranteeting that the run can be modified legally.  If the run is already single-referenced, it is a no-op.
@@ -251,16 +268,6 @@ public:
 			
 			return mut_count;
 		}
-	}
-	
-	inline void clear_to_empty(MutationRunContext &p_mutrun_context)
-	{
-#if DEBUG
-		if (mutrun_count_ == 0)
-			NullGenomeAccessError();
-#endif
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index] = MutationRun::NewMutationRun(p_mutrun_context);
 	}
 	
 	inline __attribute__((always_inline)) void clear_to_nullptr(void)

@@ -551,10 +551,21 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	
 	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
 	bool has_genetics = species_.HasGenetics();
-	MutationRun *shared_empty_run = nullptr;
+	std::vector<MutationRun *> shared_empty_runs;
 	
 	if ((parent_subpop_size_ > 0) && has_genetics)
-		shared_empty_run = MutationRun::NewMutationRun(species_.mutation_run_context_);
+	{
+		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+		// the correct per-thread allocation pool.  See also ExecuteMethod_addEmpty(), which does the same.
+		shared_empty_runs.resize(mutrun_count);
+		
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			
+			shared_empty_runs[run_index] = MutationRun::NewMutationRun(mutrun_context);
+		}
+	}
 	
 	if (sex_enabled_)
 	{
@@ -584,7 +595,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 					case GenomeType::kAutosome:
 					{
 						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 						
 						if (p_haploid)
 						{
@@ -593,19 +604,19 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 						else
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						break;
 					}
 					case GenomeType::kXChromosome:
 					{
 						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						
 						if (is_female)
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						else
 						{
@@ -624,7 +635,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 						else
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kYChromosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						break;
 					}
@@ -682,7 +693,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			if (has_genetics)
 			{
 				genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 				
 				if (p_haploid)
 				{
@@ -691,7 +702,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				else
 				{
 					genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 				}
 			}
 			else
@@ -738,6 +749,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
 	else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	
+	// below we will use this map to check that every mutation run in use is used at only one mutrun index
+	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
 	
 	//
 	//	Check the parental generation; this is essentially the same in WF and nonWF models
@@ -872,6 +886,28 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
 				if (genome2->mutruns_[mutrun_index] == nullptr)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a null mutrun pointer." << EidosTerminate();
+			
+			// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+			{
+				const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
+				auto found_iter = mutrun_position_map.find(mutrun);
+				
+				if (found_iter == mutrun_position_map.end())
+					mutrun_position_map[mutrun] = mutrun_index;
+				else if (found_iter->second != mutrun_index)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+			}
+			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
+			{
+				const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
+				auto found_iter = mutrun_position_map.find(mutrun);
+				
+				if (found_iter == mutrun_position_map.end())
+					mutrun_position_map[mutrun] = mutrun_index;
+				else if (found_iter->second != mutrun_index)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+			}
 		}
 	}
 	
@@ -985,6 +1021,28 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
 					if (genome2->mutruns_[mutrun_index] == nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a null mutrun pointer." << EidosTerminate();
+				
+				// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
+					auto found_iter = mutrun_position_map.find(mutrun);
+					
+					if (found_iter == mutrun_position_map.end())
+						mutrun_position_map[mutrun] = mutrun_index;
+					else if (found_iter->second != mutrun_index)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				}
+				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
+					auto found_iter = mutrun_position_map.find(mutrun);
+					
+					if (found_iter == mutrun_position_map.end())
+						mutrun_position_map[mutrun] = mutrun_index;
+					else if (found_iter->second != mutrun_index)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				}
 			}
 			else
 			{
@@ -996,6 +1054,31 @@ void Subpopulation::CheckIndividualIntegrity(void)
 				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
 					if (genome2->mutruns_[mutrun_index] != nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a nonnull mutrun pointer." << EidosTerminate();
+			}
+		}
+	}
+	
+	//
+	// Check that every mutation run is being used at a position corresponding to the pool it was allocated from
+	//
+	slim_mutrun_index_t mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	
+	for (int thread_num = 0; thread_num < species_.SpeciesMutationRunContextCount(); ++thread_num)
+	{
+		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(thread_num);
+		MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
+		
+		for (const MutationRun *mutrun : in_use_pool)
+		{
+			auto found_iter = mutrun_position_map.find(mutrun);
+			
+			if (found_iter != mutrun_position_map.end())
+			{
+				slim_mutrun_index_t used_at_index = found_iter->second;
+				int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+				
+				if (correct_thread_num != thread_num)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
 			}
 		}
 	}
@@ -4869,10 +4952,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	genome2->check_cleared_to_nullptr();
 #endif
 	
-	if (!genome1_null)
-		genome1->clear_to_empty(species_.mutation_run_context_);
-	if (!genome2_null)
-		genome2->clear_to_empty(species_.mutation_run_context_);
+	// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+	// the correct per-thread allocation pool.  Would be nice to share these empty runs across
+	// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
+	// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
+	// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
+	if (!genome1_null || !genome2_null)
+	{
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+			
+			if (!genome1_null)
+				genome1->mutruns_[run_index] = mutrun;
+			if (!genome2_null)
+				genome2->mutruns_[run_index] = mutrun;
+		}
+	}
 	
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	bool proposed_child_accepted = true;

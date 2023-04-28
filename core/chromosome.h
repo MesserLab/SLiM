@@ -159,8 +159,10 @@ public:
 	double simple_conversion_fraction_;						// fraction of gene conversion tracts that are "simple" (no heteroduplex mismatche repair)
 	double mismatch_repair_bias_;							// GC bias in heteroduplex mismatch repair in complex gene conversion tracts
 	
-	int32_t mutrun_count_;									// number of mutation runs being used for all genomes
-	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run may not use its full length
+	int32_t mutrun_count_base_;								// minimum number of mutruns used (number of threads, typically); can be multiplied by a factor
+	int32_t mutrun_count_multiplier_;						// the current factor by which mutrun_count_base_ is multiplied; a power of two in [1, 1024]
+	int32_t mutrun_count_;									// the number of mutation runs being used for all genomes: base x multiplier
+	slim_position_t mutrun_length_;							// the length, in base pairs, of each mutation run; the last run might not use its full length
 	slim_position_t last_position_mutrun_;					// (mutrun_count_ * mutrun_length_ - 1), for complete coverage in crossover-mutation
 	
 	std::string color_sub_;										// color to use for substitutions by default (in SLiMgui)
