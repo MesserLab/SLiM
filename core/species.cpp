@@ -2030,7 +2030,7 @@ void Species::SetUpMutationRunContexts(void)
 {
 	// Make an EidosObjectPool to allocate mutation runs from; this is for memory locality, so make it nice and big
 #ifndef _OPENMP
-	mutation_run_context_SINGLE_.allocation_pool_ = new EidosObjectPool(sizeof(MutationRun), 65536);
+	mutation_run_context_SINGLE_.allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
 #else
 	//std::cout << "***** Initializing " << gEidosMaxThreads << " independent MutationRunContexts" << std::endl;
 	
@@ -2054,7 +2054,7 @@ void Species::SetUpMutationRunContexts(void)
 		int threadnum = omp_get_thread_num();
 		
 		mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
-		mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool(sizeof(MutationRun), 65536);
+		mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
 		omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
 		threadObserved[threadnum] = true;
 	}	// end omp parallel
@@ -3541,8 +3541,10 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					// We have not tried a step on the opposite side of the old position; let's return to our old position,
 					// which we know is better than the position we just ran an experiment at, and then advance onward to
 					// run an experiment at the next position in that reversed trend direction.
+					int32_t new_mutcount = ((x_current_mutcount_ > x_previous_mutcount_) ? (x_previous_mutcount_ / 2) : (x_previous_mutcount_ * 2));
 					
-					if ((x_previous_mutcount_ == 1) || (x_previous_mutcount_ == SLIM_MUTRUN_MAXIMUM_COUNT))
+					if ((x_previous_mutcount_ == chromosome_->mutrun_count_base_) || (x_previous_mutcount_ == SLIM_MUTRUN_MAXIMUM_COUNT) ||
+						(new_mutcount < chromosome_->mutrun_count_base_) || (new_mutcount > SLIM_MUTRUN_MAXIMUM_COUNT))
 					{
 						// can't jump over the previous mutcount, so we enter stasis at it
 						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
@@ -3556,8 +3558,6 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					}
 					else
 					{
-						int32_t new_mutcount = ((x_current_mutcount_ > x_previous_mutcount_) ? (x_previous_mutcount_ / 2) : (x_previous_mutcount_ * 2));
-						
 #if MUTRUN_EXPERIMENT_OUTPUT
 						if (SLiM_verbose_output)
 							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment failed at " << x_current_mutcount_ << ", opposite side untried, reversing trend back to " << new_mutcount << " (against " << x_previous_mutcount_ << ")" << std::endl;

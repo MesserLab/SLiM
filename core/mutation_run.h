@@ -118,6 +118,9 @@ private:
 	int32_t mutation_capacity_;									// the capacity of mutations_
 	
 	mutable uint32_t use_count_ = 0;							// the usage count for this run across all genomes that are tallied
+#ifdef DEBUG_LOCKS_ENABLED
+	mutable EidosDebugLock mutrun_use_count_LOCK;
+#endif
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	
@@ -338,9 +341,37 @@ public:
 	MutationRun(void);											// constructed empty
 	~MutationRun(void);
 	
-	inline __attribute__((always_inline)) uint32_t use_count(void) const { return use_count_; }
-	inline __attribute__((always_inline)) void zero_use_count(void) const { THREAD_SAFETY_CHECK("zero_use_count(): use_count_ change"); use_count_ = 0; }
-	inline __attribute__((always_inline)) void increment_use_count(void) const { THREAD_SAFETY_CHECK("increment_use_count(): use_count_ change"); use_count_++; }
+	// MutationRun tallies its use count, as a way to do fast mutation count/frequency tallies.  Access to
+	// this use count is exclusive, in principle, but the design of the tallying code ought to avoid the
+	// necessity of locking.  We use EidosDebugLock here to catch race conditions in DEBUG builds.
+	inline __attribute__((always_inline)) uint32_t use_count(void) const {
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.start_critical(0);
+#endif
+		uint32_t count = use_count_;
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.end_critical();
+#endif
+		return count;
+	}
+	inline __attribute__((always_inline)) void zero_use_count(void) const {
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.start_critical(1);
+#endif
+		use_count_ = 0;
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.end_critical();
+#endif
+	}
+	inline __attribute__((always_inline)) void increment_use_count(void) const {
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.start_critical(2);
+#endif
+		use_count_++;
+#ifdef DEBUG_LOCKS_ENABLED
+		mutrun_use_count_LOCK.end_critical();
+#endif
+	}
 	
 	inline __attribute__((always_inline)) void will_modify_run(void) {
 #if SLIM_USE_NONNEUTRAL_CACHES

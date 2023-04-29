@@ -28,6 +28,9 @@ int64_t MutationRun::sOperationID = 0;
 
 
 MutationRun::MutationRun(void)
+#ifdef DEBUG_LOCKS_ENABLED
+	: mutrun_use_count_LOCK("mutrun_use_count_LOCK")
+#endif
 {
 	// give it some initial capacity
 	mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;

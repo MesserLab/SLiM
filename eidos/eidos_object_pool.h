@@ -67,6 +67,7 @@ private:
 		}
 	};
 	
+	std::string _name;			// a client-provided name to identify the pool in debug output
 	const size_t _itemSize;
 	
 	void *_nodeMemory;
@@ -76,6 +77,12 @@ private:
 	_Node _firstNode;
 	_Node *_lastNode;
 	size_t _maxBlockLength;
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	// We do not arbitrate access to EidosObjectPool with a lock; instead, we expect that clients
+	// will manage their own multithreading issues.  In DEBUG mode we check for incorrect uses (races).
+	EidosDebugLock _object_pool_LOCK;
+#endif
 	
 	void _AllocateNewNode()
 	{
@@ -117,7 +124,10 @@ public:
 	// BCH 11 Sept. 2019: changing the default maxBlockLength to a power of two, and more importantly,
 	// enforcing maxBlockLength even on _firstNode to avoid bad allocs on systems where the max malloc
 	// size is restricted (such as Debian, apparently); see GitHub issue #54.
-	explicit EidosObjectPool(size_t itemSize, size_t initialCapacity=1024, size_t maxBlockLength=1048576) : _itemSize(itemSize), _firstDeleted(nullptr), _countInNode(0), _nodeCapacity(initialCapacity > maxBlockLength ? maxBlockLength : initialCapacity), _firstNode(_nodeCapacity, itemSize), _maxBlockLength(maxBlockLength)
+	explicit EidosObjectPool(const char *name, size_t itemSize, size_t initialCapacity=1024, size_t maxBlockLength=1048576) : _name(name), _itemSize(itemSize), _firstDeleted(nullptr), _countInNode(0), _nodeCapacity(initialCapacity > maxBlockLength ? maxBlockLength : initialCapacity), _firstNode(_nodeCapacity, itemSize), _maxBlockLength(maxBlockLength)
+#ifdef DEBUG_LOCKS_ENABLED
+	, _object_pool_LOCK(name)
+#endif
 	{
 		if (maxBlockLength < 1)
 			throw std::invalid_argument("maxBlockLength must be at least 1.");
@@ -153,12 +163,18 @@ public:
 	// usage: new (gXPool->AllocateChunk()) ObjectType(... parameters ...);
 	inline __attribute__((always_inline)) void *AllocateChunk()
 	{
-		THREAD_SAFETY_CHECK("AllocateChunk(): EidosObjectPool change");
+#ifdef DEBUG_LOCKS_ENABLED
+		_object_pool_LOCK.start_critical(0);
+#endif
 		
 		if (_firstDeleted)
 		{
 			void *result = _firstDeleted;
 			_firstDeleted = *((void **)_firstDeleted);
+			
+#ifdef DEBUG_LOCKS_ENABLED
+			_object_pool_LOCK.end_critical();
+#endif
 			return result;
 		}
 		
@@ -168,6 +184,10 @@ public:
 		uint8_t *address = (uint8_t *)_nodeMemory;
 		address += _countInNode * _itemSize;
 		_countInNode++;
+		
+#ifdef DEBUG_LOCKS_ENABLED
+		_object_pool_LOCK.end_critical();
+#endif
 		return (void *)address;
 	}
 	
@@ -177,10 +197,16 @@ public:
 	//	gXPool->DisposeChunk(const_cast<ObjectType*>(object));
 	inline __attribute__((always_inline)) void DisposeChunk(void *content)
 	{
-		THREAD_SAFETY_CHECK("DisposeChunk(): EidosObjectPool change");
+#ifdef DEBUG_LOCKS_ENABLED
+		_object_pool_LOCK.start_critical(1);
+#endif
 		
 		*((void **)content) = _firstDeleted;
 		_firstDeleted = content;
+		
+#ifdef DEBUG_LOCKS_ENABLED
+		_object_pool_LOCK.end_critical();
+#endif
 	}
 };
 

@@ -47,7 +47,7 @@
 
 
 // the initial capacities for the genome and individual pools here are just guesses at balancing low default memory usage, maximizing locality, and minimization of additional allocs
-Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_genome_pool_(sizeof(Genome), 16384), species_individual_pool_(sizeof(Individual), 8192)
+Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_genome_pool_("EidosObjectPool(Genome)", sizeof(Genome), 16384), species_individual_pool_("EidosObjectPool(Individual)", sizeof(Individual), 8192)
 {
 }
 
@@ -1914,9 +1914,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		
 		// In some cases the code below parallelizes, when we're running multithreaded.  The main condition, already satisfied simply by virtue of
 		// being in this code path, is that there are no callbacks enabled, of any type, that influence the process of reproduction.  This is because
-		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed.
+		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed, and tree-sequence
+		// recording is not allowed.  Those cases will likely be allowed in future, they just need to be made thread-safe.
 #ifdef _OPENMP
-		bool can_parallelize = !species_.TheChromosome().using_DSB_model_;
+		bool can_parallelize = (!species_.TheChromosome().using_DSB_model_) && (!recording_tree_sequence);
 #endif
 		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
@@ -2006,15 +2007,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->migrant_ = (&source_subpop != &p_subpop);
 									
 									if (pedigrees_enabled)
-										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);	// FIXME not thread-safe
+										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 									
 									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 									//if (recording_tree_sequence)
 									//	species_.SetCurrentNewIndividual(new_child);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);	// FIXME not thread-safe
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);	// FIXME not thread-safe
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
 								}
 							}
 							
@@ -2868,7 +2869,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
 						if (new_mut->state_ != MutationState::kInRegistry)
-							MutationRegistryAdd(new_mut);
+						{
+							#pragma omp critical (MutationRegistryAdd)
+							{
+								MutationRegistryAdd(new_mut);
+							}
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
@@ -3011,7 +3017,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
 										
 										if (new_mut->state_ != MutationState::kInRegistry)
-											MutationRegistryAdd(new_mut);
+										{
+											#pragma omp critical (MutationRegistryAdd)
+											{
+												MutationRegistryAdd(new_mut);
+											}
+										}
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
@@ -3052,7 +3063,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
 									if (new_mut->state_ != MutationState::kInRegistry)
-										MutationRegistryAdd(new_mut);
+									{
+										#pragma omp critical (MutationRegistryAdd)
+										{
+											MutationRegistryAdd(new_mut);
+										}
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
@@ -3194,7 +3210,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
 							
 							if (new_mut->state_ != MutationState::kInRegistry)
-								MutationRegistryAdd(new_mut);
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
@@ -3941,7 +3962,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
 									if (new_mut->state_ != MutationState::kInRegistry)
-										MutationRegistryAdd(new_mut);
+									{
+										#pragma omp critical (MutationRegistryAdd)
+										{
+											MutationRegistryAdd(new_mut);
+										}
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
@@ -3982,7 +4008,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
 								
 								if (new_mut->state_ != MutationState::kInRegistry)
-									MutationRegistryAdd(new_mut);
+								{
+									#pragma omp critical (MutationRegistryAdd)
+									{
+										MutationRegistryAdd(new_mut);
+									}
+								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
@@ -4124,7 +4155,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
 						if (new_mut->state_ != MutationState::kInRegistry)
-							MutationRegistryAdd(new_mut);
+						{
+							#pragma omp critical (MutationRegistryAdd)
+							{
+								MutationRegistryAdd(new_mut);
+							}
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
@@ -4330,7 +4366,12 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							child_run->emplace_back(mutation_iter_mutation_index);
 							
 							if (new_mut->state_ != MutationState::kInRegistry)
-								MutationRegistryAdd(new_mut);
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
