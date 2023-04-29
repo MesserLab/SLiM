@@ -4926,6 +4926,9 @@ void Population::UniqueMutationRuns(void)
 			{
 				Genome &genome = *subpop_genomes[genome_index];
 				
+				if (genome.IsNull())
+					continue;
+				
 				const MutationRun *mut_run = genome.mutruns_[mutrun_index];
 				
 				if (mut_run)
