@@ -4872,33 +4872,39 @@ void Population::ClearParentalGenomes(void)
 {
 	if (species_.HasGenetics())
 	{
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+#pragma omp parallel default(none)
 		{
-			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i]->clear_to_nullptr();
-		}
-		
-		// We have to clear out removed subpops, too, for as long as they stick around
-		for (Subpopulation *subpop : removed_subpops_)
-		{
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
+				Subpopulation *subpop = subpop_pair.second;
 				slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 				std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 				
+#pragma omp for schedule(static)
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 					subpop_genomes[i]->clear_to_nullptr();
 			}
 			
+			// We have to clear out removed subpops, too, for as long as they stick around
+			for (Subpopulation *subpop : removed_subpops_)
 			{
-				slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-				std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+				{
+					slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+					std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+					
+#pragma omp for schedule(static)
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+						subpop_genomes[i]->clear_to_nullptr();
+				}
 				
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->clear_to_nullptr();
+				{
+					slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+					std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+					
+#pragma omp for schedule(static)
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+						subpop_genomes[i]->clear_to_nullptr();
+				}
 			}
 		}
 	}
@@ -4913,13 +4919,19 @@ void Population::UniqueMutationRuns(void)
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
 	int64_t operation_id = MutationRun::GetNextOperationID();
 	
-	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
-	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
 	int mutrun_count = species_.chromosome_->mutrun_count_;
 	
+	if (mutrun_count_multiplier * mutrun_context_count != mutrun_count)
+		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+	
+	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
+	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
+#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final)
 	for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 	{
-		std::multimap<int64_t, const MutationRun *> runmap;
+		std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
@@ -5519,62 +5531,77 @@ void Population::SwapGenerations(void)
 	child_generation_valid_ = false;
 }
 
-void Population::_ZeroMutationRunReferences(void)
-{
-	// each thread does its own zeroing, for its own MutationRunContext
-#pragma omp parallel default(none) num_threads(species_.SpeciesMutationRunContextCount())
-	{
-		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
-		
-		for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
-			mutrun->zero_use_count();
-	}
-}
-
 slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 {
 	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
 	
-	// first, zero all use counts across all in-use MutationRun objects
-	_ZeroMutationRunReferences();
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
-	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		
-		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-		
-		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
 		{
-			// optimized case when null genomes do not exist in this subpop
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = *subpop_genomes[i];
-				
-				int mutrun_count = genome.mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-					genome.mutruns_[run_index]->increment_use_count();
-			}
-			
-			total_genome_count += subpop_genome_count;
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForPopulation(): incorrect thread count!");
 		}
-		else
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
 		{
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
 			{
-				Genome &genome = *subpop_genomes[i];
-				
-				if (!genome.IsNull())
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
-					int mutrun_count = genome.mutrun_count_;
+					Genome &genome = *subpop_genomes[i];
 					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
 						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
 					
-					total_genome_count++;
+					if (!genome.IsNull())
+					{
+						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							genome.mutruns_[run_index]->increment_use_count();
+						
+						total_genome_count++;
+					}
 				}
 			}
 		}
@@ -5588,45 +5615,72 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
 {
 	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
 	
-	// first, zero all use counts across all in-use MutationRun objects
-	_ZeroMutationRunReferences();
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpops): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
-	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
-	for (Subpopulation *subpop : *p_subpops_to_tally)
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_subpops_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
-		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-		
-		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
 		{
-			// optimized case when null genomes do not exist in this subpop
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-			{
-				Genome &genome = *subpop_genomes[i];
-				
-				int mutrun_count = genome.mutrun_count_;
-				
-				for (int run_index = 0; run_index < mutrun_count; ++run_index)
-					genome.mutruns_[run_index]->increment_use_count();
-			}
-			
-			total_genome_count += subpop_genome_count;
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForSubpops(): incorrect thread count!");
 		}
-		else
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
 		{
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
+		for (Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
 			{
-				Genome &genome = *subpop_genomes[i];
-				
-				if (!genome.IsNull())
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
-					int mutrun_count = genome.mutrun_count_;
+					Genome &genome = *subpop_genomes[i];
 					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
 						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
 					
-					total_genome_count++;
+					if (!genome.IsNull())
+					{
+						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							genome.mutruns_[run_index]->increment_use_count();
+						
+						total_genome_count++;
+					}
 				}
 			}
 		}
@@ -5638,21 +5692,49 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally)
 {
 	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
 	
-	// first, zero all use counts across all in-use MutationRun objects
-	_ZeroMutationRunReferences();
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForGenomes): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
 	
-	// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
-	for (Genome *genome : *p_genomes_to_tally)
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_genomes_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
-		if (!genome->IsNull())
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
 		{
-			int mutrun_count = genome->mutrun_count_;
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForGenomes(): incorrect thread count!");
+		}
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
-				genome->mutruns_[run_index]->increment_use_count();
-			
-			total_genome_count++;
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		for (Genome *genome : *p_genomes_to_tally)
+		{
+			if (!genome->IsNull())
+			{
+				for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+					genome->mutruns_[run_index]->increment_use_count();
+				
+				total_genome_count++;
+			}
 		}
 	}
 	

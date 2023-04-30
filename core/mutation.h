@@ -54,6 +54,7 @@ typedef int32_t MutationIndex;
 // forward declaration of Mutation block allocation; see bottom of header
 class Mutation;
 extern Mutation *gSLiM_Mutation_Block;
+extern MutationIndex gSLiM_Mutation_Block_Capacity;
 
 
 typedef enum {

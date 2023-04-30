@@ -1891,6 +1891,35 @@ void Community::AllSpecies_CheckIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) getype->species_ mismatch." << EidosTerminate();
 	}
 #endif
+	
+//#if DEBUG
+	// Check the integrity of the mutation registry; all MutationIndex values should be in range
+	for (size_t species_index = 0; species_index < all_species_.size(); ++species_index)
+	{
+		Species *species = all_species_[species_index];
+		int registry_size;
+		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
+		std::vector<MutationIndex> indices;
+		
+		for (int registry_index = 0; registry_index < registry_size; ++registry_index)
+		{
+			MutationIndex mutation_index = registry[registry_index];
+			
+			if ((mutation_index < 0) || (mutation_index >= gSLiM_Mutation_Block_Capacity))
+				EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) mutation index " << mutation_index << " out of the mutation block." << EidosTerminate();
+			
+			indices.push_back(mutation_index);
+		}
+		
+		size_t original_size = indices.size();
+		
+		std::sort(indices.begin(), indices.end());
+		indices.resize(static_cast<size_t>(std::distance(indices.begin(), std::unique(indices.begin(), indices.end()))));
+		
+		if (indices.size() != original_size)
+			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
+	}
+//#endif
 }
 
 void Community::AllSpecies_PurgeRemovedObjects(void)
