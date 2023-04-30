@@ -69,6 +69,7 @@ PARALLEL changes (now in the master branch):
 		their "receiver" parameter is no longer required to be singleton (when returnDict == T), and their return value is now just "object" since it can be Individual or Dictionary
 	overhaul the internal MutationRun design to allow it to be used multithreaded - get rid of refcounting, switch to usage tallying
 	parallelize offspring generation in WF models, when no callbacks (mateChoice(), modifyChild(), recombination(), mutation()) are active; no tree-seq, no cloning
+	parallelize offspring generation in WF model: add support for cloning
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

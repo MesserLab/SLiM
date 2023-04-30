@@ -2009,9 +2009,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									if (pedigrees_enabled)
 										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 									
-									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
-									//	species_.SetCurrentNewIndividual(new_child);
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
@@ -2044,9 +2044,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									if (pedigrees_enabled)
 										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 									
-									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
-									//	species_.SetCurrentNewIndividual(new_child);
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
@@ -2091,10 +2091,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									if (pedigrees_enabled)
 										new_child->TrackParentage_Uniparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1]);
 									
-									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence)
 									{
-										//species_.SetCurrentNewIndividual(new_child);
+										//species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 #pragma omp critical (NewGenomeRecording)
 										{
 											species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
@@ -2102,7 +2102,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 										}
 									}
 									
-									DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);	// FIXME not thread-safe
+									DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
 									DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
 								}
 								else
@@ -2152,9 +2152,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 											new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 									}
 									
-									// TREE SEQUENCE RECORDING - this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
-									//	species_.SetCurrentNewIndividual(new_child);
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);
@@ -2751,7 +2751,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// Create vector with the mutations to be added
 		static std::vector<MutationIndex> mutations_to_add;
 #pragma omp threadprivate(mutations_to_add)
-		
 		mutations_to_add.clear();
 		
 #pragma omp critical (MutationAlloc)
@@ -4209,8 +4208,11 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
-	THREAD_SAFETY_CHECK("Population::DoClonalMutation(): usage of statics, probably many other issues");
-
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+#if DEBUG
+	if (p_mutation_callbacks)
+		THREAD_SAFETY_CHECK("Population::DoClonalMutation(): mutation callbacks are not allowed when executing in parallel");
+#endif
 #if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
@@ -4256,59 +4258,62 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-		
+#pragma omp threadprivate(mut_positions)
 		mut_positions.clear();
+		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_child_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
 		static std::vector<MutationIndex> mutations_to_add;
 #pragma omp threadprivate(mutations_to_add)
-		
 		mutations_to_add.clear();
 		
-		try {
-			if (species_.IsNucleotideBased() || p_mutation_callbacks)
-			{
-				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
-				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
-				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
-				for (int k = 0; k < num_mutations; k++)
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
 					
-					if (new_mutation != -1)
+					// if there are no mutations, the child genome is just a copy of the parental genome
+					// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
+					if (mutations_to_add.size() == 0)
+					{
+						p_child_genome.copy_from_genome(p_parent_genome);
+						return;
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
+						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// see further comments below, in the non-nucleotide case; they apply here as well
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
 				}
-				
-				// if there are no mutations, the child genome is just a copy of the parental genome
-				// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
-				if (mutations_to_add.size() == 0)
-				{
-					p_child_genome.copy_from_genome(p_parent_genome);
-					return;
-				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				throw;
 			}
-			else
-			{
-				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
-				for (int k = 0; k < num_mutations; k++)
-				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
-					
-					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-					// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
-				}
-			}
-		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			throw;
-		}
+		}	// end #pragma omp critical (MutationAlloc)
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
