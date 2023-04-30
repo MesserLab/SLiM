@@ -1986,13 +1986,52 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					slim_pedigreeid_t base_pedigree_id = SLiM_GetNextPedigreeID_Block(migrants_to_generate);
 					slim_popsize_t base_child_count = child_count;
 					
+					// We need to make sure we have adequate capacity in the global mutation block for new mutations before we go parallel;
+					// if SLiM_IncreaseMutationBlockCapacity() is called while parallel, it is a fatal error.  So we make a guess at how
+					// much free space we will need, and preallocate here as needed.
+#ifdef _OPENMP
+					bool will_parallelize = can_parallelize && (migrants_to_generate >= 100);
+					size_t est_mutation_block_slots_remaining_PRE = 0;
+					//size_t actual_mutation_block_slots_remaining_PRE = 0;
+					double overall_mutation_rate = 0;
+					size_t est_slots_needed = 0;
+					
+					if (will_parallelize)
+					{
+						do {
+							int registry_size;
+							MutationRegistry(&registry_size);
+							est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+							//actual_mutation_block_slots_remaining_PRE = SLiMMemoryUsageForFreeMutations() / sizeof(Mutation);
+							overall_mutation_rate = std::max(species_.chromosome_->overall_mutation_rate_F_, species_.chromosome_->overall_mutation_rate_M_);	// already multiplied by L
+							est_slots_needed = (size_t)ceil(2 * migrants_to_generate * overall_mutation_rate);	// 2 because diploid, in the worst case
+							
+							size_t ten_times_demand = 10 * est_slots_needed;
+							
+							if (est_mutation_block_slots_remaining_PRE <= ten_times_demand)
+							{
+								SLiM_IncreaseMutationBlockCapacity();
+								est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+								
+								//std::cerr << "Tick " << community_.Tick() << ": DOUBLED CAPACITY ***********************************" << std::endl;
+							}
+							else
+								break;
+						} while (true);
+						
+						//std::cerr << "Tick " << community_.Tick() << ":" << std::endl;
+						//std::cerr << "   before reproduction, " << actual_mutation_block_slots_remaining_PRE << " actual slots remaining (" << est_mutation_block_slots_remaining_PRE << " estimated)" << std::endl;
+						//std::cerr << "   demand for new mutations estimated at " << est_slots_needed << " (" << migrants_to_generate << " offspring, E(muts) == " << overall_mutation_rate << ")" << std::endl;
+					}
+#endif
+					
 					// generate all selfed, cloned, and autogamous offspring in one shared loop
 					if ((number_to_self == 0) && (number_to_clone == 0))
 					{
 						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
 						if (sex_enabled)
 						{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
 							{
 								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
@@ -2023,7 +2062,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						}
 						else
 						{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
 							{
 								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
@@ -2060,7 +2099,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else
 					{
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(can_parallelize && (migrants_to_generate >= 100))
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize)
 						{
 							gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 							
@@ -2165,6 +2204,16 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						child_count += migrants_to_generate;
 					}
+					
+#ifdef _OPENMP
+					//if (will_parallelize)
+					//{
+					//	size_t actual_mutation_block_slots_remaining_POST = SLiMMemoryUsageForFreeMutations() / sizeof(Mutation);
+					//	
+					//	std::cerr << "   after reproduction, " << actual_mutation_block_slots_remaining_POST << " actual slots remaining" << std::endl;
+					//	std::cerr << "   actual demand for new mutations was " << (actual_mutation_block_slots_remaining_PRE - actual_mutation_block_slots_remaining_POST) << " (" << est_slots_needed << " was estimated)" << std::endl;
+					//}
+#endif
 				}
 			}
 		}

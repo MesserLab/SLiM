@@ -48,7 +48,7 @@ extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	//
 
 void SLiM_CreateMutationBlock(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block change");
+	THREAD_SAFETY_CHECK("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
 	
 	// first allocate the block; no need to zero the memory
 	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
@@ -72,6 +72,14 @@ void SLiM_CreateMutationBlock(void)
 
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
+	// We do not use THREAD_SAFETY_CHECK() here because this needs to be checked in release builds also;
+	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
+	if (omp_in_parallel())
+	{
+		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
+		raise(SIGTRAP);
+	}
+	
 #ifdef DEBUG_LOCKS_ENABLED
 	gSLiM_Mutation_LOCK.start_critical(1);
 #endif
