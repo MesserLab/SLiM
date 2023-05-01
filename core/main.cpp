@@ -157,7 +157,6 @@ static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
-	MutationRun::DeleteMutationRunFreeList();
 	InteractionType::DeleteSparseVectorFreeList();
 	FreeSymbolTablePool();
 	Eidos_FreeRNG(gEidos_RNG);

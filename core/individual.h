@@ -53,6 +53,16 @@ inline slim_pedigreeid_t SLiM_GetNextPedigreeID(void)
 	return gSLiM_next_pedigree_id++;
 }
 
+inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
+{
+	THREAD_SAFETY_CHECK("SLiM_GetNextPedigreeID_Block(): gSLiM_next_pedigree_id change");
+	slim_pedigreeid_t block_base = gSLiM_next_pedigree_id;
+	
+	gSLiM_next_pedigree_id += p_block_size;
+	
+	return block_base;
+}
+
 class Individual : public EidosDictionaryUnretained
 {
 	//	This class has its copy constructor and assignment operator disabled, to prevent accidental copying.
@@ -126,7 +136,7 @@ public:
 	Individual(const Individual &p_original) = delete;
 	Individual& operator= (const Individual &p_original) = delete;						// no copy construction
 	Individual(void) = delete;															// no null construction
-	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
+	Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age);
 	inline virtual ~Individual(void) override { }
 	
 	inline __attribute__((always_inline)) void ClearColor(void) { color_set_ = false; }
@@ -135,12 +145,12 @@ public:
 	
 	// This sets the receiver up as a new individual, with a newly assigned pedigree id, and gets
 	// parental and grandparental information from the supplied parents.
-	inline __attribute__((always_inline)) void TrackParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
+	inline __attribute__((always_inline)) void TrackParentage_Biparental(slim_pedigreeid_t p_pedigree_id, Individual &p_parent1, Individual &p_parent2)
 	{
-		pedigree_id_ = SLiM_GetNextPedigreeID();
+		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = pedigree_id_ * 2;
-		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+		genome1_->genome_id_ = p_pedigree_id * 2;
+		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent1.pedigree_id_;
 		pedigree_p2_ = p_parent2.pedigree_id_;
@@ -150,22 +160,26 @@ public:
 		pedigree_g3_ = p_parent2.pedigree_p1_;
 		pedigree_g4_ = p_parent2.pedigree_p2_;
 		
-		p_parent1.reproductive_output_++;
-		p_parent2.reproductive_output_++;
+#pragma omp critical (ReproductiveOutput)
+		{
+			p_parent1.reproductive_output_++;
+			p_parent2.reproductive_output_++;
+		}
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
 	{
+		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
 		p_parent1.reproductive_output_--;
 		p_parent2.reproductive_output_--;
 	}
 	
-	inline __attribute__((always_inline)) void TrackParentage_Uniparental(Individual &p_parent)
+	inline __attribute__((always_inline)) void TrackParentage_Uniparental(slim_pedigreeid_t p_pedigree_id, Individual &p_parent)
 	{
-		pedigree_id_ = SLiM_GetNextPedigreeID();
+		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = pedigree_id_ * 2;
-		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+		genome1_->genome_id_ = p_pedigree_id * 2;
+		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
 		
 		pedigree_p1_ = p_parent.pedigree_id_;
 		pedigree_p2_ = p_parent.pedigree_id_;
@@ -175,22 +189,26 @@ public:
 		pedigree_g3_ = p_parent.pedigree_p1_;
 		pedigree_g4_ = p_parent.pedigree_p2_;
 		
-		p_parent.reproductive_output_ += 2;
+#pragma omp critical (ReproductiveOutput)
+		{
+			p_parent.reproductive_output_ += 2;
+		}
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
 	{
+		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
 		p_parent.reproductive_output_ -= 2;
 	}
 	
 	// This alternative to TrackParentage() is used when the parents are not known, as in
 	// addEmpty() and addRecombined(); the unset ivars are set to -1 by the Individual constructor
-	inline __attribute__((always_inline)) void TrackParentage_Parentless()
+	inline __attribute__((always_inline)) void TrackParentage_Parentless(slim_pedigreeid_t p_pedigree_id)
 	{
-		pedigree_id_ = SLiM_GetNextPedigreeID();
+		pedigree_id_ = p_pedigree_id;
 		
-		genome1_->genome_id_ = pedigree_id_ * 2;
-		genome2_->genome_id_ = pedigree_id_ * 2 + 1;
+		genome1_->genome_id_ = p_pedigree_id * 2;
+		genome2_->genome_id_ = p_pedigree_id * 2 + 1;
 	}
 	
 	inline __attribute__((always_inline)) void RevokeParentage_Parentless()

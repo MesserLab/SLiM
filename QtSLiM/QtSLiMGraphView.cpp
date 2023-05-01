@@ -1656,6 +1656,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
     //
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+	// BCH 4/21/2023: This could use mutrun use counts to run faster...
 	//
     Species *graphSpecies = focalDisplaySpecies();
     
@@ -1693,7 +1694,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(slim_objectid_t subpop_id, in
                 
                 for (int run_index = 0; run_index < mutrun_count; ++run_index)
                 {
-                    MutationRun *mutrun = genome.mutruns_[run_index].get();
+                    const MutationRun *mutrun = genome.mutruns_[run_index];
                     const MutationIndex *genome_iter = mutrun->begin_pointer_const();
                     const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
                     
@@ -1719,6 +1720,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
     //
 	// this code is a slightly modified clone of the code in Population::TallyMutationReferences; here we scan only the
 	// subpopulation that is being displayed in this graph, and tally into gui_scratch_reference_count only
+	// BCH 4/21/2023: This could use mutrun use counts to run faster...
 	//
     Species *graphSpecies = focalDisplaySpecies();
     
@@ -1746,7 +1748,7 @@ size_t QtSLiMGraphView::tallyGUIMutationReferences(const std::vector<Genome *> &
             
             for (int run_index = 0; run_index < mutrun_count; ++run_index)
             {
-                MutationRun *mutrun = genome->mutruns_[run_index].get();
+                const MutationRun *mutrun = genome->mutruns_[run_index];
                 const MutationIndex *genome_iter = mutrun->begin_pointer_const();
                 const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
                 

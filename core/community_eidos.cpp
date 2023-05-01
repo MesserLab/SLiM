@@ -1020,8 +1020,8 @@ EidosValue_SP Community::ExecuteMethod_outputUsage(EidosGlobalStringID p_method_
 	out << "   MutationRun objects (" << usage_all_species.mutationRunObjects_count << "): " << PrintBytes(usage_all_species.mutationRunObjects) << std::endl;
 	out << "      External MutationIndex buffers: " << PrintBytes(usage_all_species.mutationRunExternalBuffers) << std::endl;
 	out << "      Nonneutral mutation caches: " << PrintBytes(usage_all_species.mutationRunNonneutralCaches) << std::endl;
-	out << "      Unused pool space: " << PrintBytes(usage_community.mutationRunUnusedPoolSpace) << std::endl;
-	out << "      Unused pool buffers: " << PrintBytes(usage_community.mutationRunUnusedPoolBuffers) << std::endl;
+	out << "      Unused pool space: " << PrintBytes(usage_all_species.mutationRunUnusedPoolSpace) << std::endl;
+	out << "      Unused pool buffers: " << PrintBytes(usage_all_species.mutationRunUnusedPoolBuffers) << std::endl;
 	
 	// MutationType
 	out << "   MutationType objects (" << usage_all_species.mutationTypeObjects_count << "): " << PrintBytes(usage_all_species.mutationTypeObjects) << std::endl;

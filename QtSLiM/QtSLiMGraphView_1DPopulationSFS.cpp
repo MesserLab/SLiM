@@ -90,7 +90,7 @@ double *QtSLiMGraphView_1DPopulationSFS::populationSFS(int mutationTypeCount)
 	// tally into our bins
 	Population &pop = graphSpecies->population_;
 	
-	pop.TallyMutationReferences(nullptr, false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
+	pop.TallyMutationReferencesAcrossPopulation(false);	// update tallies; usually this will just use the cache set up by Population::MaintainRegistry()
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;

@@ -47,7 +47,7 @@
 
 
 // the initial capacities for the genome and individual pools here are just guesses at balancing low default memory usage, maximizing locality, and minimization of additional allocs
-Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_genome_pool_(sizeof(Genome), 16384), species_individual_pool_(sizeof(Individual), 8192)
+Population::Population(Species &p_species) : model_type_(p_species.model_type_), community_(p_species.community_), species_(p_species), species_genome_pool_("EidosObjectPool(Genome)", sizeof(Genome), 16384), species_individual_pool_("EidosObjectPool(Individual)", sizeof(Individual), 8192)
 {
 }
 
@@ -218,7 +218,7 @@ Subpopulation *Population::AddSubpopulation(slim_objectid_t p_subpop_id, slim_po
 	species_.subpop_ids_.emplace(p_subpop_id);
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	cached_tally_genome_count_ = 0;
+	InvalidateMutationReferencesCache();
 	
 	return new_subpop;
 }
@@ -325,7 +325,7 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 	}
 	
 	// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-	cached_tally_genome_count_ = 0;
+	InvalidateMutationReferencesCache();
 	
 	// UpdateFitness() is not called here - all fitnesses are kept as equal.  This is because the parents were drawn from the source subpopulation according
 	// to their fitness already; fitness has already been applied.  If UpdateFitness() were called, fitness would be double-applied in this cycle.
@@ -363,7 +363,7 @@ void Population::SetSize(Subpopulation &p_subpop, slim_popsize_t p_subpop_size)
 			removed_subpops_.emplace_back(&p_subpop);
 			
 			// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-			cached_tally_genome_count_ = 0;
+			InvalidateMutationReferencesCache();
 		}
 	}
 	else
@@ -399,7 +399,7 @@ void Population::RemoveSubpopulation(Subpopulation &p_subpop)
 		p_subpop.has_been_removed_ = true;
 		
 		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-		cached_tally_genome_count_ = 0;
+		InvalidateMutationReferencesCache();
 	}
 }
 
@@ -1027,7 +1027,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 {
 	THREAD_SAFETY_CHECK("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// for use outside of parallel blocks
 	
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	bool recording_tree_sequence = species_.RecordingTreeSequence();
@@ -1326,7 +1326,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->migrant_ = false;
 						
 						if (pedigrees_enabled)
-							new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
@@ -1397,9 +1397,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						if (pedigrees_enabled)
 						{
 							if (selfed)
-								new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
+								new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1]);
 							else
-								new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+								new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 						}
 						
 						// TREE SEQUENCE RECORDING
@@ -1487,7 +1487,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = false;
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+						new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1775,7 +1775,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->migrant_ = (source_subpop != &p_subpop);
 					
 					if (pedigrees_enabled)
-						new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
+						new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
 					
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
@@ -1846,9 +1846,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					if (pedigrees_enabled)
 					{
 						if (selfed)
-							new_child->TrackParentage_Uniparental(*source_subpop->parent_individuals_[parent1]);
+							new_child->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1]);
 						else
-							new_child->TrackParentage_Biparental(*source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
+							new_child->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *source_subpop->parent_individuals_[parent1], *source_subpop->parent_individuals_[parent2]);
 					}
 					
 					// TREE SEQUENCE RECORDING
@@ -1912,6 +1912,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		// some setup overhead, including the Eidos_ran_shuffle() call.  All code that accesses individuals within a subpopulation needs to be aware of
 		// the fact that the individuals might be in a non-random order, because of this code path.  BEWARE!
 		
+		// In some cases the code below parallelizes, when we're running multithreaded.  The main condition, already satisfied simply by virtue of
+		// being in this code path, is that there are no callbacks enabled, of any type, that influence the process of reproduction.  This is because
+		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed; it hasn't been tested.
+#ifdef _OPENMP
+		bool can_parallelize = (!species_.TheChromosome().using_DSB_model_);
+#endif
+		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
 		// In nonsexual simulations number_of_sexes == 1 and this loops just once.
 		slim_popsize_t child_count = 0;	// counter over all subpop_size_ children
@@ -1973,169 +1980,239 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else if (cloning_fraction > 0)
 						number_to_clone = static_cast<slim_popsize_t>(gsl_ran_binomial(rng, cloning_fraction, (unsigned int)migrants_to_generate));
 					
-					// generate all selfed, cloned, and autogamous offspring in one shared loop
-					slim_popsize_t migrant_count = 0;
+					// We get a whole block of pedigree IDs to use in the loop below, avoiding race conditions / locking
+					// We are also going to use Individual objects from a block starting at base_child_count
+					slim_pedigreeid_t base_pedigree_id = SLiM_GetNextPedigreeID_Block(migrants_to_generate);
+					slim_popsize_t base_child_count = child_count;
 					
+					// We need to make sure we have adequate capacity in the global mutation block for new mutations before we go parallel;
+					// if SLiM_IncreaseMutationBlockCapacity() is called while parallel, it is a fatal error.  So we make a guess at how
+					// much free space we will need, and preallocate here as needed.
+#ifdef _OPENMP
+					bool will_parallelize = can_parallelize && (migrants_to_generate >= 100);
+					size_t est_mutation_block_slots_remaining_PRE = 0;
+					//size_t actual_mutation_block_slots_remaining_PRE = 0;
+					double overall_mutation_rate = 0;
+					size_t est_slots_needed = 0;
+					
+					if (will_parallelize)
+					{
+						do {
+							int registry_size;
+							MutationRegistry(&registry_size);
+							est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+							//actual_mutation_block_slots_remaining_PRE = SLiMMemoryUsageForFreeMutations() / sizeof(Mutation);
+							overall_mutation_rate = std::max(species_.chromosome_->overall_mutation_rate_F_, species_.chromosome_->overall_mutation_rate_M_);	// already multiplied by L
+							est_slots_needed = (size_t)ceil(2 * migrants_to_generate * overall_mutation_rate);	// 2 because diploid, in the worst case
+							
+							size_t ten_times_demand = 10 * est_slots_needed;
+							
+							if (est_mutation_block_slots_remaining_PRE <= ten_times_demand)
+							{
+								SLiM_IncreaseMutationBlockCapacity();
+								est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+								
+								//std::cerr << "Tick " << community_.Tick() << ": DOUBLED CAPACITY ***********************************" << std::endl;
+							}
+							else
+								break;
+						} while (true);
+						
+						//std::cerr << "Tick " << community_.Tick() << ":" << std::endl;
+						//std::cerr << "   before reproduction, " << actual_mutation_block_slots_remaining_PRE << " actual slots remaining (" << est_mutation_block_slots_remaining_PRE << " estimated)" << std::endl;
+						//std::cerr << "   demand for new mutations estimated at " << est_slots_needed << " (" << migrants_to_generate << " offspring, E(muts) == " << overall_mutation_rate << ")" << std::endl;
+					}
+#endif
+					
+					// generate all selfed, cloned, and autogamous offspring in one shared loop
 					if ((number_to_self == 0) && (number_to_clone == 0))
 					{
 						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
 						if (sex_enabled)
 						{
-							while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
 							{
-								slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
-								slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
+								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
-								
-								migrant_count++;
-								child_count++;
+#pragma omp for schedule(dynamic, 1)
+								for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
+								{
+									slim_popsize_t parent1 = source_subpop.DrawFemaleParentUsingFitness(parallel_rng);
+									slim_popsize_t parent2 = source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									
+									// TREE SEQUENCE RECORDING
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
+								}
 							}
+							
+							child_count += migrants_to_generate;
 						}
 						else
 						{
-							while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
 							{
-								slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness(rng);
-								slim_popsize_t parent2;
+								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
-								do
-									parent2 = source_subpop.DrawParentUsingFitness(rng);	// note this does not prohibit selfing!
-								while (prevent_incidental_selfing && (parent2 == parent1));
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-								
-								migrant_count++;
-								child_count++;
+#pragma omp for schedule(dynamic, 1)
+								for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
+								{
+									slim_popsize_t parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+									slim_popsize_t parent2;
+									
+									do
+										parent2 = source_subpop.DrawParentUsingFitness(parallel_rng);	// note this does not prohibit selfing!
+									while (prevent_incidental_selfing && (parent2 == parent1));
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									
+									// TREE SEQUENCE RECORDING
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+								}
 							}
+							
+							child_count += migrants_to_generate;
 						}
 					}
 					else
 					{
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
-						while (migrant_count < migrants_to_generate)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize)
 						{
-							slim_popsize_t parent1, parent2;
+							gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 							
-							if (number_to_clone > 0)
+#pragma omp for schedule(dynamic, 1)
+							for (slim_popsize_t migrant_count = 0; migrant_count < migrants_to_generate; migrant_count++)
 							{
-								if (sex_enabled)
-									parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(rng) : source_subpop.DrawMaleParentUsingFitness(rng);
-								else
-									parent1 = source_subpop.DrawParentUsingFitness(rng);
+								slim_popsize_t parent1, parent2;
 								
-								parent2 = parent1;
-								(void)parent2;		// tell the static analyzer that we know we just did a dead store
-								
-								--number_to_clone;
-								
-								Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_count];
-								Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_count + 1];
-								Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
-								Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (pedigrees_enabled)
-									new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-								{
-									species_.SetCurrentNewIndividual(new_child);
-									species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
-									species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
-								}
-								
-								DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
-								DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
-							}
-							else
-							{
-								IndividualSex parent1_sex, parent2_sex;
-								
-								if (sex_enabled)
-								{
-									parent1 = source_subpop.DrawFemaleParentUsingFitness(rng);
-									parent1_sex = IndividualSex::kFemale;
-								}
-								else
-								{
-									parent1 = source_subpop.DrawParentUsingFitness(rng);
-									parent1_sex = IndividualSex::kHermaphrodite;
-								}
-								
-								Individual *new_child = p_subpop.child_individuals_[child_count];
-								new_child->migrant_ = (&source_subpop != &p_subpop);
-								
-								if (number_to_self > 0)
-								{
-									parent2 = parent1;
-									parent2_sex = parent1_sex;
-									--number_to_self;
-									
-									if (pedigrees_enabled)
-										new_child->TrackParentage_Uniparental(*source_subpop.parent_individuals_[parent1]);
-								}
-								else
+								if (migrant_count < number_to_clone)
 								{
 									if (sex_enabled)
+										parent1 = (child_sex == IndividualSex::kFemale) ? source_subpop.DrawFemaleParentUsingFitness(parallel_rng) : source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+									else
+										parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+									
+									parent2 = parent1;
+									(void)parent2;		// tell the static analyzer that we know we just did a dead store
+									
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Genome &child_genome_1 = *p_subpop.child_genomes_[2 * this_child_index];
+									Genome &child_genome_2 = *p_subpop.child_genomes_[2 * this_child_index + 1];
+									Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
+									Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+									
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (pedigrees_enabled)
+										new_child->TrackParentage_Uniparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1]);
+									
+									// TREE SEQUENCE RECORDING
+									if (recording_tree_sequence)
 									{
-										parent2 = source_subpop.DrawMaleParentUsingFitness(rng);
-										parent2_sex = IndividualSex::kMale;
+										//species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+#pragma omp critical (TreeSeqNewGenome)
+										{
+											species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
+											species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
+										}
+									}
+									
+									DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
+									DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
+								}
+								else
+								{
+									IndividualSex parent1_sex, parent2_sex;
+									
+									if (sex_enabled)
+									{
+										parent1 = source_subpop.DrawFemaleParentUsingFitness(parallel_rng);
+										parent1_sex = IndividualSex::kFemale;
 									}
 									else
 									{
-										do
-											parent2 = source_subpop.DrawParentUsingFitness(rng);	// selfing possible!
-										while (prevent_incidental_selfing && (parent2 == parent1));
-										
-										parent2_sex = IndividualSex::kHermaphrodite;
+										parent1 = source_subpop.DrawParentUsingFitness(parallel_rng);
+										parent1_sex = IndividualSex::kHermaphrodite;
 									}
 									
-									if (pedigrees_enabled)
-										new_child->TrackParentage_Biparental(*source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									slim_popsize_t this_child_index = base_child_count + migrant_count;
+									Individual *new_child = p_subpop.child_individuals_[this_child_index];
+									new_child->migrant_ = (&source_subpop != &p_subpop);
+									
+									if (migrant_count < number_to_clone + number_to_self)
+									{
+										parent2 = parent1;
+										parent2_sex = parent1_sex;
+										
+										if (pedigrees_enabled)
+											new_child->TrackParentage_Uniparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1]);
+									}
+									else
+									{
+										if (sex_enabled)
+										{
+											parent2 = source_subpop.DrawMaleParentUsingFitness(parallel_rng);
+											parent2_sex = IndividualSex::kMale;
+										}
+										else
+										{
+											do
+												parent2 = source_subpop.DrawParentUsingFitness(parallel_rng);	// selfing possible!
+											while (prevent_incidental_selfing && (parent2 == parent1));
+											
+											parent2_sex = IndividualSex::kHermaphrodite;
+										}
+										
+										if (pedigrees_enabled)
+											new_child->TrackParentage_Biparental(base_pedigree_id + migrant_count, *source_subpop.parent_individuals_[parent1], *source_subpop.parent_individuals_[parent2]);
+									}
+									
+									// TREE SEQUENCE RECORDING
+									//if (recording_tree_sequence)
+									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									
+									// recombination, gene-conversion, mutation
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 								}
-								
-								// TREE SEQUENCE RECORDING
-								if (recording_tree_sequence)
-									species_.SetCurrentNewIndividual(new_child);
-								
-								// recombination, gene-conversion, mutation
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, child_sex, parent1_sex, nullptr, nullptr);
-								DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 							}
-							
-							// change counters
-							migrant_count++;
-							child_count++;
 						}
+						
+						child_count += migrants_to_generate;
 					}
+					
+#ifdef _OPENMP
+					//if (will_parallelize)
+					//{
+					//	size_t actual_mutation_block_slots_remaining_POST = SLiMMemoryUsageForFreeMutations() / sizeof(Mutation);
+					//	
+					//	std::cerr << "   after reproduction, " << actual_mutation_block_slots_remaining_POST << " actual slots remaining" << std::endl;
+					//	std::cerr << "   actual demand for new mutations was " << (actual_mutation_block_slots_remaining_PRE - actual_mutation_block_slots_remaining_POST) << " (" << est_slots_needed << " was estimated)" << std::endl;
+					//}
+#endif
 				}
 			}
 		}
@@ -2292,7 +2369,11 @@ bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Geno
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_child_genome, slim_popsize_t p_parent_index, IndividualSex p_child_sex, IndividualSex p_parent_sex, std::vector<SLiMEidosBlock*> *p_recombination_callbacks, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): usage of statics, probably many other issues");
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+#if DEBUG
+	if (p_recombination_callbacks || p_mutation_callbacks)
+		THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): recombination and mutation callbacks are not allowed when executing in parallel");
+#endif
 	
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
 	slim_popsize_t parent_genome_2_index = parent_genome_1_index + 1;
@@ -2431,7 +2512,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
-			species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
+		{
+#pragma omp critical (TreeSeqNewGenome)
+			{
+				species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
+			}
+		}
 		
 		return;
 	}
@@ -2452,10 +2538,13 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// determine how many mutations and breakpoints we have
 	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
+	
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
+#pragma omp threadprivate(all_breakpoints)
+	all_breakpoints.clear();
+	
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
 															// this is not static since we don't want to call clear() every time for a rare edge case
-	all_breakpoints.clear();
 	
 	if (use_only_strand_1)
 	{
@@ -2562,7 +2651,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	bool recording_tree_sequence_mutations = species_.RecordingTreeSequenceMutations();
 	
 	if (recording_tree_sequence)
-		species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
+	{
+#pragma omp critical (TreeSeqNewGenome)
+		{
+			species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
+		}
+	}
 	
 	// mutations are usually rare, so let's streamline the case where none occur
 	if (num_mutations == 0)
@@ -2623,7 +2717,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 					const MutationIndex *parent2_iter_max	= parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 					const MutationIndex *parent_iter		= parent1_iter;
 					const MutationIndex *parent_iter_max	= parent1_iter_max;
-					MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+					MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+					MutationRun *child_mutrun = p_child_genome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 					
 					while (true)
 					{
@@ -2696,53 +2791,58 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-		
+#pragma omp threadprivate(mut_positions)
 		mut_positions.clear();
+		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
-		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate(mutations_to_add)
+		mutations_to_add.clear();
 		
-		try {
-			if (species_.IsNucleotideBased() || p_mutation_callbacks)
-			{
-				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
-				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
-				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
-				for (int k = 0; k < num_mutations; k++)
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
-					
-					if (new_mutation != -1)
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick(), parent_genome_1, parent_genome_2, &all_breakpoints, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick());
+						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// see further comments below, in the non-nucleotide case; they apply here as well
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
 				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				throw;
 			}
-			else
-			{
-				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
-				for (int k = 0; k < num_mutations; k++)
-				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_source_subpop->subpopulation_id_, community_.Tick());
-					
-					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-					// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
-				}
-			}
-		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			MutationRun::FreeMutationRun(&mutations_to_add);
-			throw;
-		}
+		}	// end #pragma omp critical (MutationAlloc)
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
-		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
 		
 		MutationIndex mutation_iter_mutation_index;
 		slim_position_t mutation_iter_pos;
@@ -2787,7 +2887,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				int this_mutrun_index = first_uncompleted_mutrun;
 				const MutationIndex *parent_iter		= parent_genome->mutruns_[this_mutrun_index]->begin_pointer_const();
 				const MutationIndex *parent_iter_max	= parent_genome->mutruns_[this_mutrun_index]->end_pointer_const();
-				MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRun *child_mutrun = p_child_genome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				
 				// add any additional new mutations that occur before the end of the mutation run; there is at least one
 				do
@@ -2815,16 +2916,29 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
 						if (new_mut->state_ != MutationState::kInRegistry)
-							MutationRegistryAdd(new_mut);
+						{
+							#pragma omp critical (MutationRegistryAdd)
+							{
+								MutationRegistryAdd(new_mut);
+							}
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+						{
+#pragma omp critical (TreeSeqNewDerivedState)
+							{
+								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+						}
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-						new_mut->Release();
+#pragma omp critical (MutationAlloc)
+						{
+							new_mut->Release_PARALLEL();
+						}
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -2917,7 +3031,8 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				
 				// The event occurs *inside* the run, so process the run by copying mutations and switching strands
 				int this_mutrun_index = first_uncompleted_mutrun;
-				MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRun *child_mutrun = p_child_genome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				const MutationIndex *parent1_iter		= parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
 				const MutationIndex *parent1_iter_max	= parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
 				const MutationIndex *parent_iter		= parent1_iter;
@@ -2957,16 +3072,29 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										child_mutrun->emplace_back(mutation_iter_mutation_index);
 										
 										if (new_mut->state_ != MutationState::kInRegistry)
-											MutationRegistryAdd(new_mut);
+										{
+											#pragma omp critical (MutationRegistryAdd)
+											{
+												MutationRegistryAdd(new_mut);
+											}
+										}
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
-											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										{
+#pragma omp critical (TreeSeqNewDerivedState)
+											{
+												species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											}
+										}
 									}
 									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
 										// The mutation was rejected by the stacking policy, so we have to release it
-										new_mut->Release();
+#pragma omp critical (MutationAlloc)
+										{
+											new_mut->Release_PARALLEL();
+										}
 									}
 									
 									if (++mutation_iter != mutation_iter_max) {
@@ -2998,16 +3126,29 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
 									if (new_mut->state_ != MutationState::kInRegistry)
-										MutationRegistryAdd(new_mut);
+									{
+										#pragma omp critical (MutationRegistryAdd)
+										{
+											MutationRegistryAdd(new_mut);
+										}
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									{
+#pragma omp critical (TreeSeqNewDerivedState)
+										{
+											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										}
+									}
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-									new_mut->Release();
+#pragma omp critical (MutationAlloc)
+									{
+										new_mut->Release_PARALLEL();
+									}
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -3140,16 +3281,29 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							child_mutrun->emplace_back(mutation_iter_mutation_index);
 							
 							if (new_mut->state_ != MutationState::kInRegistry)
-								MutationRegistryAdd(new_mut);
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								}
+							}
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-							new_mut->Release();
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
 						}
 						
 						if (++mutation_iter != mutation_iter_max) {
@@ -3177,8 +3331,6 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				}
 			}
 		}
-		
-		MutationRun::FreeMutationRun(&mutations_to_add);
 	}
 	
 	// debugging check
@@ -3475,8 +3627,9 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		while (run_index < mutrun_count)
 		{
 			// Now we will process *all* additions and removals for run_index
-			MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
-			MutationRun *old_run = p_child_genome->mutruns_[run_index].get();
+			MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			MutationRun *new_run = MutationRun::NewMutationRun_LOCKED(mutrun_context_LOCKED);
+			const MutationRun *old_run = p_child_genome->mutruns_[run_index];
 			const MutationIndex *old_run_iter		= old_run->begin_pointer_const();
 			const MutationIndex *old_run_iter_max	= old_run->end_pointer_const();
 			
@@ -3539,7 +3692,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 			}
 			
 			// replace the mutation run at run_index with the newly constructed run that has all additions and removals
-			p_child_genome->mutruns_[run_index].reset(new_run);
+			p_child_genome->mutruns_[run_index] = new_run;
 			
 			// go to the next run index that has changes
 			run_index = std::min(next_removal_mutrun_index, next_addition_mutrun_index);
@@ -3559,7 +3712,12 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		
 		// Then we record the new derived state at every position that changed
 		for (slim_position_t changed_pos : repair_removals)
-			species_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
+		{
+#pragma omp critical (TreeSeqNewDerivedState)
+			{
+				species_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
+			}
+		}
 	}
 }
 
@@ -3647,7 +3805,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				const MutationIndex *parent2_iter_max	= p_parent_genome_2->mutruns_[this_mutrun_index]->end_pointer_const();
 				const MutationIndex *parent_iter		= parent1_iter;
 				const MutationIndex *parent_iter_max	= parent1_iter_max;
-				MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+				MutationRun *child_mutrun = p_child_genome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 				
 				while (true)
 				{
@@ -3724,7 +3883,10 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
-		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate(mutations_to_add)
+		
+		mutations_to_add.clear();
 		
 		try {
 			if (species_.IsNucleotideBased() || p_mutation_callbacks)
@@ -3759,13 +3921,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 			}
 		} catch (...) {
 			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			MutationRun::FreeMutationRun(&mutations_to_add);
 			throw;
 		}
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
-		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
 		
 		MutationIndex mutation_iter_mutation_index;
 		slim_position_t mutation_iter_pos;
@@ -3844,7 +4005,8 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 			
 			// The event occurs *inside* the run, so process the run by copying mutations and switching strands
 			int this_mutrun_index = first_uncompleted_mutrun;
-			MutationRun *child_mutrun = p_child_genome.WillCreateRun(this_mutrun_index);
+			MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(this_mutrun_index);
+			MutationRun *child_mutrun = p_child_genome.WillCreateRun_LOCKED(this_mutrun_index, mutrun_context_LOCKED);
 			const MutationIndex *parent1_iter		= p_parent_genome_1->mutruns_[this_mutrun_index]->begin_pointer_const();
 			const MutationIndex *parent1_iter_max	= p_parent_genome_1->mutruns_[this_mutrun_index]->end_pointer_const();
 			const MutationIndex *parent_iter		= parent1_iter;
@@ -3884,16 +4046,29 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 									child_mutrun->emplace_back(mutation_iter_mutation_index);
 									
 									if (new_mut->state_ != MutationState::kInRegistry)
-										MutationRegistryAdd(new_mut);
+									{
+										#pragma omp critical (MutationRegistryAdd)
+										{
+											MutationRegistryAdd(new_mut);
+										}
+									}
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									{
+#pragma omp critical (TreeSeqNewDerivedState)
+										{
+											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										}
+									}
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-									new_mut->Release();
+#pragma omp critical (MutationAlloc)
+									{
+										new_mut->Release_PARALLEL();
+									}
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -3925,16 +4100,29 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								child_mutrun->emplace_back(mutation_iter_mutation_index);
 								
 								if (new_mut->state_ != MutationState::kInRegistry)
-									MutationRegistryAdd(new_mut);
+								{
+									#pragma omp critical (MutationRegistryAdd)
+									{
+										MutationRegistryAdd(new_mut);
+									}
+								}
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
-									species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								{
+#pragma omp critical (TreeSeqNewDerivedState)
+									{
+										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									}
+								}
 							}
 							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
 								// The mutation was rejected by the stacking policy, so we have to release it
-								new_mut->Release();
+#pragma omp critical (MutationAlloc)
+								{
+									new_mut->Release_PARALLEL();
+								}
 							}
 							
 							if (++mutation_iter != mutation_iter_max) {
@@ -4067,16 +4255,29 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 						child_mutrun->emplace_back(mutation_iter_mutation_index);
 						
 						if (new_mut->state_ != MutationState::kInRegistry)
-							MutationRegistryAdd(new_mut);
+						{
+							#pragma omp critical (MutationRegistryAdd)
+							{
+								MutationRegistryAdd(new_mut);
+							}
+						}
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+						{
+#pragma omp critical (TreeSeqNewDerivedState)
+							{
+								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+						}
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-						new_mut->Release();
+#pragma omp critical (MutationAlloc)
+						{
+							new_mut->Release_PARALLEL();
+						}
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -4103,8 +4304,6 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): (internal error) logic fail." << EidosTerminate();
 			}
 		}
-		
-		MutationRun::FreeMutationRun(&mutations_to_add);
 	}
 	
 	// debugging check
@@ -4118,8 +4317,11 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome &p_parent_genome, IndividualSex p_child_sex, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
 #pragma unused(p_child_sex)
-	THREAD_SAFETY_CHECK("Population::DoClonalMutation(): usage of statics, probably many other issues");
-
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+#if DEBUG
+	if (p_mutation_callbacks)
+		THREAD_SAFETY_CHECK("Population::DoClonalMutation(): mutation callbacks are not allowed when executing in parallel");
+#endif
 #if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): Child sex cannot be IndividualSex::kUnspecified." << EidosTerminate();
@@ -4165,58 +4367,62 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-		
+#pragma omp threadprivate(mut_positions)
 		mut_positions.clear();
+		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_child_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
-		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		static std::vector<MutationIndex> mutations_to_add;
+#pragma omp threadprivate(mutations_to_add)
+		mutations_to_add.clear();
 		
-		try {
-			if (species_.IsNucleotideBased() || p_mutation_callbacks)
-			{
-				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
-				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
-				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
-				for (int k = 0; k < num_mutations; k++)
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), &p_parent_genome, nullptr, nullptr, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
 					
-					if (new_mutation != -1)
+					// if there are no mutations, the child genome is just a copy of the parental genome
+					// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
+					if (mutations_to_add.size() == 0)
+					{
+						p_child_genome.copy_from_genome(p_parent_genome);
+						return;
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
+						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// see further comments below, in the non-nucleotide case; they apply here as well
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
 				}
-				
-				// if there are no mutations, the child genome is just a copy of the parental genome
-				// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
-				if (mutations_to_add.size() == 0)
-				{
-					MutationRun::FreeMutationRun(&mutations_to_add);
-					p_child_genome.copy_from_genome(p_parent_genome);
-					return;
-				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				throw;
 			}
-			else
-			{
-				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
-				for (int k = 0; k < num_mutations; k++)
-				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());	// the parent sex is the same as the child sex
-					
-					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-					// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
-				}
-			}
-		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			MutationRun::FreeMutationRun(&mutations_to_add);
-			throw;
-		}
+		}	// end #pragma omp critical (MutationAlloc)
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -4224,8 +4430,8 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 		int mutrun_count = p_child_genome.mutrun_count_;
 		slim_position_t mutrun_length = p_child_genome.mutrun_length_;
 		
-		const MutationIndex *mutation_iter		= mutations_to_add.begin_pointer_const();
-		const MutationIndex *mutation_iter_max	= mutations_to_add.end_pointer_const();
+		const MutationIndex *mutation_iter		= mutations_to_add.data();
+		const MutationIndex *mutation_iter_max	= mutation_iter + mutations_to_add.size();
 		MutationIndex mutation_iter_mutation_index = *mutation_iter;
 		slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 		slim_mutrun_index_t mutation_iter_mutrun_index = (slim_mutrun_index_t)(mutation_iter_pos / mutrun_length);
@@ -4240,8 +4446,9 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 			else
 			{
 				// interleave the parental genome with the new mutations
-				MutationRun *child_run = p_child_genome.WillCreateRun(run_index);
-				MutationRun *parent_run = p_parent_genome.mutruns_[run_index].get();
+				MutationRunContext &mutrun_context_LOCKED = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+				MutationRun *child_run = p_child_genome.WillCreateRun_LOCKED(run_index, mutrun_context_LOCKED);
+				const MutationRun *parent_run = p_parent_genome.mutruns_[run_index];
 				const MutationIndex *parent_iter		= parent_run->begin_pointer_const();
 				const MutationIndex *parent_iter_max	= parent_run->end_pointer_const();
 				
@@ -4273,16 +4480,29 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							child_run->emplace_back(mutation_iter_mutation_index);
 							
 							if (new_mut->state_ != MutationState::kInRegistry)
-								MutationRegistryAdd(new_mut);
+							{
+								#pragma omp critical (MutationRegistryAdd)
+								{
+									MutationRegistryAdd(new_mut);
+								}
+							}
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								species_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+								}
+							}
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-							new_mut->Release();
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
 						}
 						
 						// move to the next mutation
@@ -4320,8 +4540,6 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				}
 			}
 		}
-		
-		MutationRun::FreeMutationRun(&mutations_to_add);
 	}
 }
 
@@ -4766,38 +4984,44 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 }
 
 // WF only:
-// Clear all parental genomes to use nullptr for their mutation runs, so they don't mess up our MutationRun refcounts
+// Clear all parental genomes to use nullptr for their mutation runs, so they are ready to reuse in the next tick
 void Population::ClearParentalGenomes(void)
 {
 	if (species_.HasGenetics())
 	{
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+#pragma omp parallel default(none)
 		{
-			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
-			std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
-			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				subpop_genomes[i]->clear_to_nullptr();
-		}
-		
-		// We have to clear out removed subpops, too, for as long as they stick around
-		for (Subpopulation *subpop : removed_subpops_)
-		{
+			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
+				Subpopulation *subpop = subpop_pair.second;
 				slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
 				std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
 				
+#pragma omp for schedule(static)
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 					subpop_genomes[i]->clear_to_nullptr();
 			}
 			
+			// We have to clear out removed subpops, too, for as long as they stick around
+			for (Subpopulation *subpop : removed_subpops_)
 			{
-				slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
-				std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+				{
+					slim_popsize_t subpop_genome_count = 2 * subpop->parent_subpop_size_;
+					std::vector<Genome *> &subpop_genomes = subpop->parent_genomes_;
+					
+#pragma omp for schedule(static)
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+						subpop_genomes[i]->clear_to_nullptr();
+				}
 				
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->clear_to_nullptr();
+				{
+					slim_popsize_t subpop_genome_count = 2 * subpop->child_subpop_size_;
+					std::vector<Genome *> &subpop_genomes = subpop->child_genomes_;
+					
+#pragma omp for schedule(static)
+					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+						subpop_genomes[i]->clear_to_nullptr();
+				}
 			}
 		}
 	}
@@ -4809,25 +5033,37 @@ void Population::UniqueMutationRuns(void)
 #if SLIM_DEBUG_MUTATION_RUNS
 	std::clock_t begin = std::clock();
 #endif
-	std::multimap<int64_t, MutationRun *> runmap;
 	int64_t total_mutruns = 0, total_hash_collisions = 0, total_identical = 0, total_uniqued_away = 0, total_preexisting = 0, total_final = 0;
+	int64_t operation_id = MutationRun::GetNextOperationID();
 	
-	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	int mutrun_count = species_.chromosome_->mutrun_count_;
 	
-	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	if (mutrun_count_multiplier * mutrun_context_count != mutrun_count)
+		EIDOS_TERMINATION << "ERROR (Population::UniqueMutationRuns): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+	
+	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
+	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
+#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final)
+	for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 	{
-		Subpopulation *subpop = subpop_pair.second;
-		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-		std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+		std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster
 		
-		for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
-			Genome &genome = *subpop_genomes[genome_index];
-			int32_t mutrun_count = genome.mutrun_count_;
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
-			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
+			for (slim_popsize_t genome_index = 0; genome_index < subpop_genome_count; genome_index++)
 			{
-				MutationRun *mut_run = genome.mutruns_[mutrun_index].get();
+				Genome &genome = *subpop_genomes[genome_index];
+				
+				if (genome.IsNull())
+					continue;
+				
+				const MutationRun *mut_run = genome.mutruns_[mutrun_index];
 				
 				if (mut_run)
 				{
@@ -4874,11 +5110,11 @@ void Population::UniqueMutationRuns(void)
 						// OK, we have no pointer-identical matches; check for a duplicate using Identical()
 						for (auto hash_iter = range.first; hash_iter != range.second; ++hash_iter)
 						{
-							MutationRun *hash_run = hash_iter->second;
+							const MutationRun *hash_run = hash_iter->second;
 							
 							if (mut_run->Identical(*hash_run))
 							{
-								genome.mutruns_[mutrun_index].reset(hash_run);
+								genome.mutruns_[mutrun_index] = hash_run;
 								total_identical++;
 								
 								// We will unique away all references to this mutrun, but we only want to count it once
@@ -4922,6 +5158,9 @@ void Population::UniqueMutationRuns(void)
 #ifndef __clang_analyzer__
 void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 {
+	// Note this method assumes that mutation run refcounts are correct; we enforce that here
+	TallyMutationRunReferencesForPopulation();
+	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -4943,23 +5182,25 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					int32_t new_mutrun_count = old_mutrun_count << 1;
 					slim_position_t new_mutrun_length = old_mutrun_length >> 1;
 					
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
-						delete[] genome.mutruns_;
+						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
 					
 					genome.mutrun_count_ = new_mutrun_count;
 					genome.mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					{
 						genome.mutruns_ = genome.run_buffer_;
+						EIDOS_BZERO(genome.run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+					}
 					else
-						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+						genome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 					
 					// Install empty MutationRun objects; I think this is not necessary, since this is the
 					// child generation, which will not be accessed by anybody until crossover-mutation
 					//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					//	genome.mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+					//	genome.mutruns_[run_index] = MutationRun::NewMutationRun();
 				}
 			}
 		}
@@ -4967,16 +5208,15 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 	
 	// make a map to keep track of which mutation runs split into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
-	robin_hood::unordered_flat_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
-    //typedef robin_hood::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+	robin_hood::unordered_flat_map<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> split_map;
+    //typedef robin_hood::pair<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> SLiM_SPLIT_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
-	std::unordered_map<MutationRun *, std::pair<MutationRun *, MutationRun *>> split_map;
-    //typedef std::pair<MutationRun *, std::pair<MutationRun *, MutationRun *>> SLiM_SPLIT_PAIR;
+	std::unordered_map<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> split_map;
+    //typedef std::pair<const MutationRun *, std::pair<const MutationRun *, const MutationRun *>> SLiM_SPLIT_PAIR;
 #endif
 	
-	std::vector<MutationRun_SP> mutrun_retain;
 	int mutruns_buf_index;
-	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	const MutationRun **mutruns_buf = (const MutationRun **)calloc(p_new_mutrun_count, sizeof(const MutationRun *));
 	
 	if (!mutruns_buf)
 		EIDOS_TERMINATION << "ERROR (Population::SplitMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
@@ -5006,15 +5246,16 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					
 					for (int run_index = 0; run_index < old_mutrun_count; ++run_index)
 					{
-						MutationRun_SP &mutrun_sp_ref = genome.mutruns_[run_index];
-						MutationRun *mutrun = mutrun_sp_ref.get();
+						const MutationRun *mutrun = genome.mutruns_[run_index];
+						MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
 						
-						if (mutrun->UseCount() == 1)
+						if (mutrun->use_count() == 1)
 						{
 							// this mutrun is only referenced once, so we can just replace it without using the map
+							// checking use_count() this way is only safe because we run directly after tallying!
 							MutationRun *first_half, *second_half;
 							
-							mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
+							mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
 							
 							mutruns_buf[mutruns_buf_index++] = first_half;
 							mutruns_buf[mutruns_buf_index++] = second_half;
@@ -5027,9 +5268,9 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 							if (found_entry != split_map.end())
 							{
 								// it was in the map already, so just use the values from the map
-								std::pair<MutationRun *, MutationRun *> &map_value = found_entry->second;
-								MutationRun *first_half = map_value.first;
-								MutationRun *second_half = map_value.second;
+								std::pair<const MutationRun *, const MutationRun *> &map_value = found_entry->second;
+								const MutationRun *first_half = map_value.first;
+								const MutationRun *second_half = map_value.second;
 								
 								mutruns_buf[mutruns_buf_index++] = first_half;
 								mutruns_buf[mutruns_buf_index++] = second_half;
@@ -5039,24 +5280,19 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 								// it was not in the map, so make the new runs, and insert them into the map
 								MutationRun *first_half, *second_half;
 								
-								mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1));
+								mutrun->split_run(&first_half, &second_half, new_mutrun_length * (mutruns_buf_index + 1), mutrun_context);
 								
 								mutruns_buf[mutruns_buf_index++] = first_half;
 								mutruns_buf[mutruns_buf_index++] = second_half;
 								
 								split_map.emplace(mutrun, std::pair<MutationRun *, MutationRun *>(first_half, second_half));
-								
-								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
-								// reused out from under us, which would happen otherwise when their last occurrence was replaced
-								mutrun_retain.emplace_back(mutrun_sp_ref);
 							}
 						}
 					}
 					
 					// now replace the runs in the genome with those in mutrun_buf
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
-						delete[] genome.mutruns_;
+						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
 					
 					genome.mutrun_count_ = new_mutrun_count;
@@ -5065,10 +5301,10 @@ void Population::SplitMutationRuns(int32_t p_new_mutrun_count)
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
 						genome.mutruns_ = genome.run_buffer_;
 					else
-						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+						genome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					
 					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-						genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
+						genome.mutruns_[run_index] = mutruns_buf[run_index];
 				}
 			}
 		}
@@ -5119,6 +5355,9 @@ struct slim_pair_hash {
 #ifndef __clang_analyzer__
 void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 {
+	// Note this method assumes that mutation run refcounts are correct; we enforce that here
+	TallyMutationRunReferencesForPopulation();
+	
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		// clear out all of the child genomes since they also need to be resized; might as well do it up front
@@ -5140,23 +5379,25 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					int32_t new_mutrun_count = old_mutrun_count >> 1;
 					slim_position_t new_mutrun_length = old_mutrun_length << 1;
 					
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
-						delete[] genome.mutruns_;
+						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
 					
 					genome.mutrun_count_ = new_mutrun_count;
 					genome.mutrun_length_ = new_mutrun_length;
 					
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+					{
 						genome.mutruns_ = genome.run_buffer_;
+						EIDOS_BZERO(genome.run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+					}
 					else
-						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+						genome.mutruns_ = (const MutationRun **)calloc(new_mutrun_count, sizeof(const MutationRun *));
 					
 					// Install empty MutationRun objects; I think this is not necessary, since this is the
 					// child generation, which will not be accessed by anybody until crossover-mutation
 					//for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-					//	genome.mutruns_[run_index] = MutationRun_SP(MutationRun::NewMutationRun());
+					//	genome.mutruns_[run_index] = MutationRun::NewMutationRun();
 				}
 			}
 		}
@@ -5164,15 +5405,14 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 	
 	// make a map to keep track of which mutation runs join into which new runs
 #if EIDOS_ROBIN_HOOD_HASHING
-	robin_hood::unordered_flat_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
-    //typedef robin_hood::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+	robin_hood::unordered_flat_map<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *, slim_pair_hash> join_map;
+    //typedef robin_hood::pair<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *> SLiM_JOIN_PAIR;
 #elif STD_UNORDERED_MAP_HASHING
-	std::unordered_map<std::pair<MutationRun *, MutationRun *>, MutationRun *, slim_pair_hash> join_map;
-    //typedef std::pair<std::pair<MutationRun *, MutationRun *>, MutationRun *> SLiM_JOIN_PAIR;
+	std::unordered_map<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *, slim_pair_hash> join_map;
+    //typedef std::pair<std::pair<const MutationRun *, const MutationRun *>, const MutationRun *> SLiM_JOIN_PAIR;
 #endif
-	std::vector<MutationRun_SP> mutrun_retain;
 	int mutruns_buf_index;
-	MutationRun **mutruns_buf = (MutationRun **)malloc(p_new_mutrun_count * sizeof(MutationRun *));
+	const MutationRun **mutruns_buf = (const MutationRun **)calloc(p_new_mutrun_count, sizeof(const MutationRun *));
 	
 	if (!mutruns_buf)
 		EIDOS_TERMINATION << "ERROR (Population::JoinMutationRuns): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
@@ -5202,15 +5442,15 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					
 					for (int run_index = 0; run_index < old_mutrun_count; run_index += 2)
 					{
-						MutationRun_SP &mutrun1_sp_ref = genome.mutruns_[run_index];
-						MutationRun_SP &mutrun2_sp_ref = genome.mutruns_[run_index + 1];
-						MutationRun *mutrun1 = mutrun1_sp_ref.get();
-						MutationRun *mutrun2 = mutrun2_sp_ref.get();
+						const MutationRun *mutrun1 = genome.mutruns_[run_index];
+						const MutationRun *mutrun2 = genome.mutruns_[run_index + 1];
+						MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
 						
-						if ((mutrun1->UseCount() == 1) || (mutrun2->UseCount() == 1))
+						if ((mutrun1->use_count() == 1) || (mutrun2->use_count() == 1))
 						{
 							// one of these mutruns is only referenced once, so we can just replace them without using the map
-							MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+							// checking use_count() this way is only safe because we run directly after tallying!
+							MutationRun *joined_run = MutationRun::NewMutationRun(mutrun_context);	// take from shared pool of used objects
 							
 							joined_run->copy_from_run(*mutrun1);
 							joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
@@ -5220,39 +5460,33 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 						else
 						{
 							// this mutrun is referenced more than once, so we want to use our map
-							auto found_entry = join_map.find(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2));
+							auto found_entry = join_map.find(std::pair<const MutationRun *, const MutationRun *>(mutrun1, mutrun2));
 							
 							if (found_entry != join_map.end())
 							{
 								// it was in the map already, so just use the values from the map
-								MutationRun *map_value = found_entry->second;
+								const MutationRun *map_value = found_entry->second;
 								
 								mutruns_buf[mutruns_buf_index++] = map_value;
 							}
 							else
 							{
 								// it was not in the map, so make the new runs, and insert them into the map
-								MutationRun *joined_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
+								MutationRun *joined_run = MutationRun::NewMutationRun(mutrun_context);	// take from shared pool of used objects
 								
 								joined_run->copy_from_run(*mutrun1);
 								joined_run->emplace_back_bulk(mutrun2->begin_pointer_const(), mutrun2->size());
 								
 								mutruns_buf[mutruns_buf_index++] = joined_run;
 								
-								join_map.emplace(std::pair<MutationRun *, MutationRun *>(mutrun1, mutrun2), joined_run);
-								
-								// this vector slaps a retain on all the mapped runs so they don't get released, deallocated, and
-								// reused out from under us, which would happen otherwise when their last occurrence was replaced
-								mutrun_retain.emplace_back(mutrun1_sp_ref);
-								mutrun_retain.emplace_back(mutrun2_sp_ref);
+								join_map.emplace(std::pair<const MutationRun *, const MutationRun *>(mutrun1, mutrun2), joined_run);
 							}
 						}
 					}
 					
 					// now replace the runs in the genome with those in mutrun_buf
-					genome.clear_to_nullptr();
 					if (genome.mutruns_ != genome.run_buffer_)
-						delete[] genome.mutruns_;
+						free(genome.mutruns_);
 					genome.mutruns_ = nullptr;
 					
 					genome.mutrun_count_ = new_mutrun_count;
@@ -5261,10 +5495,10 @@ void Population::JoinMutationRuns(int32_t p_new_mutrun_count)
 					if (new_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
 						genome.mutruns_ = genome.run_buffer_;
 					else
-						genome.mutruns_ = new MutationRun_SP[new_mutrun_count];
+						genome.mutruns_ = (const MutationRun **)malloc(new_mutrun_count * sizeof(const MutationRun *));	// not calloc() because overwritten below
 					
 					for (int run_index = 0; run_index < new_mutrun_count; ++run_index)
-						genome.mutruns_[run_index].reset(mutruns_buf[run_index]);
+						genome.mutruns_[run_index] = mutruns_buf[run_index];
 				}
 			}
 		}
@@ -5290,7 +5524,11 @@ void Population::MaintainMutationRegistry(void)
 		EIDOS_TERMINATION << "ERROR (Population::MaintainMutationRegistry): (internal error) MaintainMutationRegistry() may only be called from the child generation in WF models." << EidosTerminate();
 	
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
-	TallyMutationReferences(nullptr, true);
+	// this calls TallyMutationRunReferencesForPopulation() as a side effect, forced by the "true" argument
+	TallyMutationReferencesAcrossPopulation(true);
+	
+	// free unused mutation runs, relying upon the tally done above
+	FreeUnusedMutationRuns();
 	
 	// remove any mutations that have been eliminated or have fixed
 	RemoveAllFixedMutations();
@@ -5317,6 +5555,8 @@ void Population::MaintainMutationRegistry(void)
 // assess usage patterns of mutation runs across the simulation
 void Population::AssessMutationRuns(void)
 {
+	// Note this method assumes that mutation run use counts are correct; it should be called immediately after tallying
+	
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
 		EIDOS_TERMINATION << "ERROR (Population::AssessMutationRuns): (internal error) AssessMutationRuns() may only be called from the child generation in WF models." << EidosTerminate();
 	
@@ -5330,7 +5570,7 @@ void Population::AssessMutationRuns(void)
 		slim_position_t mutrun_length = 0;
 		int64_t mutation_total = 0;
 		
-		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+		int64_t operation_id = MutationRun::GetNextOperationID();
 		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
@@ -5349,7 +5589,7 @@ void Population::AssessMutationRuns(void)
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						const MutationRun *mutrun = genome.mutruns_[run_index];
 						int mutrun_size = mutrun->size();
 						
 						total_mutrun_count++;
@@ -5357,7 +5597,7 @@ void Population::AssessMutationRuns(void)
 						
 						if (mutrun->operation_id_ != operation_id)
 						{
-							slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
+							slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
 							
 							total_shared_mutrun_count++;
 							use_count_total += use_count;
@@ -5408,106 +5648,619 @@ void Population::SwapGenerations(void)
 	child_generation_valid_ = false;
 }
 
-// count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
-// the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
-slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache)
+slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 {
-	// First, figure out whether we're doing all subpops or a subset
-	if (p_subpops_to_tally)
+	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+	
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
-		if (p_subpops_to_tally->size() == subpops_.size())
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
 		{
-			// Rather than doing an equality test, we'll just assume that if there are N subpops and we've been asked to tally across N subpops,
-			// we have been asked to tally across the whole population.  Hard to imagine a rational case that would violate that assumption.
-			p_subpops_to_tally = nullptr;
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForPopulation(): incorrect thread count!");
+		}
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+			{
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							genome.mutruns_[run_index]->increment_use_count();
+						
+						total_genome_count++;
+					}
+				}
+			}
 		}
 	}
 	
-	//std::cout << "TallyMutationReferences() in tick " << species_.community_.tick_ << " :" << std::endl;
-	//std::cout << "   p_subpops_to_tally == " << p_subpops_to_tally << ", count == " << (p_subpops_to_tally == nullptr ? 0 : p_subpops_to_tally->size()) << std::endl;
-	//std::cout << "   p_force_recache == " << (p_force_recache ? "T" : "F") << std::endl;
-	//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
-	
-	// Second, figure out whether the last tally was of the same thing, such that we can skip the work
-	if (!p_force_recache && (cached_tally_genome_count_ != 0))
-	{
-		//std::cout << "   last_tallied_subpops_.size() == " << last_tallied_subpops_.size() << std::endl;
-		
-		if (((p_subpops_to_tally == nullptr) && (last_tallied_subpops_.size() == 0)) ||
-			(p_subpops_to_tally && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally)))
-		{
-			// we can use our cached data; return the cached genome count, which should not have changed
-			//std::cout << "   REUSING CACHE" << std::endl;
-			
 #if DEBUG
-			// check that the cached genome count is correct; note that it includes only non-null genomes
-			slim_refcount_t total_genome_count = 0;
+	// In debug builds we do a complete re-tally single-threaded, into a side counter, for a check-back
+	{
+		slim_refcount_t total_genome_count_CHECK = 0;
+		
+		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
 			
-			if (p_subpops_to_tally)
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+				inuse_pool[pool_index]->use_count_CHECK_ = 0;
+		}
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 			{
-				// tallying across the specified set of subpops
-				for (Subpopulation *subpop : *p_subpops_to_tally)
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
 				{
-					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+					int mutrun_count = genome.mutrun_count_;
 					
-					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						genome.mutruns_[run_index]->use_count_CHECK_++;
+					
+					total_genome_count_CHECK++;
+				}
+			}
+		}
+		
+		if (total_genome_count_CHECK != total_genome_count)
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) total_genome_count_CHECK != total_genome_count (" << total_genome_count_CHECK << " != " << total_genome_count << ")." << EidosTerminate();
+		
+		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
+			
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+			{
+				const MutationRun *mutrun = inuse_pool[pool_index];
+				
+				if (mutrun->use_count_CHECK_ != mutrun->use_count())
+					EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) use_count_CHECK_ " << mutrun->use_count_CHECK_ << " != mutrun->use_count() " << mutrun->use_count() << "." << EidosTerminate();
+			}
+		}
+	}
+#endif
+	
+	// if you want to then free the mutation runs that are unused, call FreeUnusedMutationRuns()
+	
+	return total_genome_count;
+}
+
+slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Subpopulation*> *p_subpops_to_tally)
+{
+	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForSubpops): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+	
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_subpops_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
+	{
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
+		{
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForSubpops(): incorrect thread count!");
+		}
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		// note this is NOT an OpenMP parallel for loop!  each encountering thread runs every iteration!
+		for (Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+			{
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
+			}
+			else
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
 					{
-						Genome &genome = *subpop_genomes[i];
+						for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+							genome.mutruns_[run_index]->increment_use_count();
 						
-						if (!genome.IsNull())
-							total_genome_count++;
+						total_genome_count++;
+					}
+				}
+			}
+		}
+	}
+	
+	return total_genome_count;
+}
+
+slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Genome*> *p_genomes_to_tally)
+{
+	slim_refcount_t total_genome_count = 0;
+	int mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+	
+	if (mutrun_count_multiplier * mutrun_context_count != species_.chromosome_->mutrun_count_)
+		EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForGenomes): (internal error) mutation run subdivision is incorrect." << EidosTerminate();
+	
+	// THIS PARALLEL REGION CANNOT HAVE AN IF()!  IT MUST ALWAYS EXECUTE PARALLEL!
+	// the reduction() is a bit odd - every thread will generate the same value, and we just want that value,
+	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
+#pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_genomes_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
+	{
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
+#ifdef _OPENMP
+		// it is imperative that we run with the requested number of threads
+		if (omp_get_num_threads() != mutrun_context_count)
+		{
+			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
+			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForGenomes(): incorrect thread count!");
+		}
+#endif
+		
+		// first, zero all use counts across all in-use MutationRun objects
+		// each thread does its own zeroing, for its own MutationRunContext
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+			
+			for (const MutationRun *mutrun : mutrun_context.in_use_pool_)
+				mutrun->zero_use_count();
+		}
+		
+		// second, loop through all genomes in all subpops and tally the usage of their MutationRun objects
+		// each thread handles only the range of mutation run indices that it is responsible for
+		int first_mutrun_index = omp_get_thread_num() * mutrun_count_multiplier;
+		int last_mutrun_index = first_mutrun_index + mutrun_count_multiplier - 1;
+		
+		for (Genome *genome : *p_genomes_to_tally)
+		{
+			if (!genome->IsNull())
+			{
+				for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+					genome->mutruns_[run_index]->increment_use_count();
+				
+				total_genome_count++;
+			}
+		}
+	}
+	
+	return total_genome_count;
+}
+
+void Population::FreeUnusedMutationRuns(void)
+{
+	// It is assumed by this method that mutation run tallies are up to date!
+	// The caller must ensure that by calling TallyMutationRunReferencesForPopulation()!
+	
+	// free all in-use MutationRun objects that are not actually in use (use count == 0)
+	// each thread does its own checking and freeing, for its own MutationRunContext
+#pragma omp parallel default(none) num_threads(species_.SpeciesMutationRunContextCount())
+	{
+		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+		size_t pool_count = inuse_pool.size();
+		
+		for (size_t pool_index = 0; pool_index < pool_count; )
+		{
+			const MutationRun *mutrun = inuse_pool[pool_index];
+			
+			if (mutrun->use_count() == 0)
+			{
+				// First we remove the mutation run from the inuse pool by backfilling
+				inuse_pool[pool_index] = inuse_pool.back();
+				inuse_pool.pop_back();
+				
+				// Because we backfilled, we want to stay at this index, but the pool is one smaller
+				// This is why we remove the run ourselves, instead of FreeMutationRun() doing it
+				--pool_count;
+				
+				// Then we give the mutation run back to the free pool
+				MutationRun::FreeMutationRun(mutrun, mutrun_context);
+			}
+			else
+			{
+				++pool_index;
+			}
+		}
+	}
+}
+
+// count the number of non-null genomes in the population
+slim_refcount_t Population::_CountNonNullGenomes(void)
+{
+	slim_refcount_t total_genome_count = 0;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+	{
+		Subpopulation *subpop = subpop_pair.second;
+		
+		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+		
+		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+		{
+			total_genome_count += subpop_genome_count;
+		}
+		else
+		{
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
+					total_genome_count++;
+			}
+		}
+	}
+	
+	return total_genome_count;
+}
+
+#ifdef SLIMGUI
+void Population::_CopyRefcountsToSLiMgui(void)
+{
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	int registry_size;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+	const MutationIndex *registry_iter_end = registry_iter + registry_size;
+	
+	while (registry_iter != registry_iter_end)
+	{
+		MutationIndex mut_index = *registry_iter;
+		slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
+		const Mutation *mutation = mut_block_ptr + mut_index;
+		
+		mutation->gui_reference_count_ = *refcount_ptr;
+		registry_iter++;
+	}
+	
+	gui_total_genome_count_ = total_genome_count_;
+}
+#endif
+
+// count the total number of times that each Mutation in the registry is referenced by a population, and return the maximum possible number of references (i.e. fixation)
+// the only tricky thing is that if we're running in the GUI, we also tally up references within the selected subpopulations only
+slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force_recache)
+{
+	// Figure out whether the last tally was of the same thing, such that we can skip the work
+	if (!p_force_recache && (cached_tally_genome_count_ != 0) && (last_tallied_subpops_.size() == 0))
+	{
+		// we hit the cache; we just return the previously computed result
+		
+#if DEBUG
+		// check that the cached genome count is correct; note that it includes only non-null genomes
+		slim_refcount_t total_genome_count = _CountNonNullGenomes();
+		
+		if (total_genome_count != cached_tally_genome_count_)
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossPopulation): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
+#endif
+		
+		return cached_tally_genome_count_;
+	}
+	
+	// When tallying the full population, we update SLiMgui counts as well, and we update
+	// total_genome_count_; those things are handled only by the population-level tally
+	
+	slim_refcount_t total_genome_count = 0;
+
+	// We have two ways of tallying; here we decide which way to use.  We only loop through genomes
+	// if there are no subpopulations active, or in certain SLiMgui cases.
+	bool can_tally_using_mutruns = true;
+	
+	if (subpops_.size() == 0)
+		can_tally_using_mutruns = false;
+	
+#ifdef SLIMGUI
+	// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
+	// separate from slim's since the user can select just a subset of subpopulations.
+	slim_refcount_t gui_total_genome_count = 0;
+	bool slimgui_subpop_subset_selected = false;
+	
+	for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		if (!subpop_pair.second->gui_selected_)
+			slimgui_subpop_subset_selected = true;
+	
+	// If a subset of subpops is selected, we can't tally using MutationRun, because the MutationRun
+	// refcounts are across all subpopulations.  (We could tally just for slim, but we would be left with
+	// no way to get the sub-tallies for SLiMgui, so there's no point in doing that.)
+	if (slimgui_subpop_subset_selected)
+		can_tally_using_mutruns = false;
+#endif
+	
+	if (can_tally_using_mutruns)
+	{
+		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
+		total_genome_count = TallyMutationRunReferencesForPopulation();
+		
+		// Give the core work to our fast worker method; this zeroes and then tallies
+		_TallyMutationReferences_FAST_FromMutationRunUsage();
+	}
+	else
+	{
+		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
+		SLiM_ZeroRefcountBlock(mutation_registry_);
+		
+#ifdef SLIMGUI
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		// So, we have two different cases in SLiMgui that are both handled by the slow case here.  One is that all subpops are
+		// selected in SLiMgui; in this case we can just copy the refcounts over after they have been tallied, so we don't
+		// need to zero out the gui tallies here, or tally them separately below.  The other is that only some subpops are
+		// selected in SLiMgui; in that case, we have to go the super-slow route and increment the gui tallies one by one,
+		// so we have to zero them out here.
+		if (slimgui_subpop_subset_selected)
+		{
+			int registry_size;
+			const MutationIndex *registry_iter = MutationRegistry(&registry_size);
+			const MutationIndex *registry_iter_end = registry_iter + registry_size;
+			
+			while (registry_iter != registry_iter_end)
+			{
+				MutationIndex mutation_index = *registry_iter;
+				Mutation *mutation = mut_block_ptr + mutation_index;
+				
+				mutation->gui_reference_count_ = 0;
+				registry_iter++;
+			}
+		}
+#endif
+		
+		// then increment the refcounts through all pointers to Mutation in all genomes
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+#ifdef SLIMGUI
+			// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too;
+			// note the else clause here drops outside of the #ifdef to the standard tally code.  This clause is used
+			// only when a subset of subpops in selected in SLiMgui; if all are selected, we can be smarter (below).
+			if (slimgui_subpop_subset_selected && subpop->gui_selected_)
+			{
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					if (!genome.IsNull())
+					{
+						int mutrun_count = genome.mutrun_count_;
+						
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						{
+							const MutationRun *mutrun = genome.mutruns_[run_index];
+							const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+							const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+							
+							while (genome_iter != genome_end_iter)
+							{
+								MutationIndex mut_index = *genome_iter;
+								const Mutation *mutation = mut_block_ptr + mut_index;
+								slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
+								
+								(*refcount_ptr)++;
+								(mutation->gui_reference_count_)++;
+								genome_iter++;
+							}
+						}
+						
+						total_genome_count++;	// count only non-null genomes to determine fixation
+						gui_total_genome_count++;
 					}
 				}
 			}
 			else
+#endif
 			{
-				// tallying across all subpops
-				for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
-					Subpopulation *subpop = subpop_pair.second;
+					Genome &genome = *subpop_genomes[i];
 					
-					slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-					std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-					
-					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+					if (!genome.IsNull())
 					{
-						Genome &genome = *subpop_genomes[i];
+						int mutrun_count = genome.mutrun_count_;
 						
-						if (!genome.IsNull())
-							total_genome_count++;
+						for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						{
+							const MutationRun *mutrun = genome.mutruns_[run_index];
+							const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+							const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+							
+							while (genome_iter != genome_end_iter)
+								(*(refcount_block_ptr + (*genome_iter++)))++;
+						}
+						
+						total_genome_count++;	// count only non-null genomes to determine fixation
 					}
 				}
 			}
-			
-			//std::cout << "   total_genome_count == " << total_genome_count << std::endl;
-			
-			if (total_genome_count != cached_tally_genome_count_)
-				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
-#endif
-			
-			return cached_tally_genome_count_;
 		}
 	}
 	
-	//std::cout << "   CALCULATING FRESH" << std::endl;
+	// set up the cache info
+	last_tallied_subpops_.clear();
+	cached_tally_genome_count_ = total_genome_count;
 	
-	// Now do the actual tallying, since apparently it is necessary
-	if (p_subpops_to_tally)
+	// set up the global genome counts
+	total_genome_count_ = total_genome_count;
+	
+#ifdef SLIMGUI
+	// If all subpops are selected in SLiMgui, we now copy the refcounts over, as in the fast case
+	if (!slimgui_subpop_subset_selected)
+		_CopyRefcountsToSLiMgui();
+	else
+		gui_total_genome_count_ = gui_total_genome_count;
+#endif
+	
+	return total_genome_count;
+}
+
+slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vector<Subpopulation*> *p_subpops_to_tally, bool p_force_recache)
+{
+	// Figure out whether the last tally was of the same thing, such that we can skip the work
+	if (!p_force_recache && (cached_tally_genome_count_ != 0) && last_tallied_subpops_.size() && (last_tallied_subpops_ == *p_subpops_to_tally))
 	{
-		// When tallying just a subset of the subpops, we don't update the SLiMgui counts, nor do we update total_genome_count_
+		// we hit the cache; we just return the previously computed result
 		
-		// first zero out the refcounts in all registered Mutation objects
-		SLiM_ZeroRefcountBlock(mutation_registry_);
-		
-		// then increment the refcounts through all pointers to Mutation in all genomes
-		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+#if DEBUG
+		// check that the cached genome count is correct; note that it includes only non-null genomes
 		slim_refcount_t total_genome_count = 0;
+		
+		// tallying across the specified set of subpops
+		for (Subpopulation *subpop : *p_subpops_to_tally)
+		{
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
+					total_genome_count++;
+			}
+		}
+		
+		if (total_genome_count != cached_tally_genome_count_)
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferencesAcrossSubpopulations): (internal error) cached case hit incorrectly; cached_tally_genome_count_ is not correct." << EidosTerminate();
+#endif
+		
+		return cached_tally_genome_count_;
+	}
+	
+	// When tallying just a subset of the subpops, we don't update the SLiMgui mutation refcounts,
+	// nor do we update total_genome_count_; those things apply only to population-wide tallies
+	
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	slim_refcount_t total_genome_count = 0;
+	
+	// We have two ways of tallying; here we decide which way to use.  We only loop through genomes
+	// if we are tallying for a single subpopulation and it is small; otherwise, looping through
+	// mutation runs is expected to be faster.
+	bool can_tally_using_mutruns = true;
+
+	if (p_subpops_to_tally->size() == 0)
+		can_tally_using_mutruns = false;
+	else if ((p_subpops_to_tally->size() == 1) && ((*p_subpops_to_tally)[0]->CurrentGenomeCount() <= 10))
+		can_tally_using_mutruns = false;
+	
+	if (can_tally_using_mutruns)
+	{
+		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
+		total_genome_count = TallyMutationRunReferencesForSubpops(p_subpops_to_tally);
+		
+		// Give the core work to our fast worker method; this zeroes and then tallies
+		_TallyMutationReferences_FAST_FromMutationRunUsage();
+	}
+	else
+	{
+		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
+		SLiM_ZeroRefcountBlock(mutation_registry_);
 		
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
-			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-			// when the parental generation is active and the child generation is invalid.
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
@@ -5521,7 +6274,7 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						const MutationRun *mutrun = genome.mutruns_[run_index];
 						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 						
@@ -5533,461 +6286,177 @@ slim_refcount_t Population::TallyMutationReferences(std::vector<Subpopulation*> 
 				}
 			}
 		}
-		
-		// set up the cache info
-		last_tallied_subpops_ = *p_subpops_to_tally;
-		cached_tally_genome_count_ = total_genome_count;
-		//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
-		
-		return total_genome_count;
 	}
-	else
-	{
-		// We have a fast case, where we can tally using MutationRuns, and a slow case where we have to tally each
-		// mutation in each Genome; our first order of business is to figure out which case we are using.
-		bool can_tally_runs = true;
-		
-		// To tally using MutationRun, we should be at the point in the cycle where the registry is
-		// maintained, so that other Genome objects have been cleared.  Otherwise, the tallies might not add up.
-		if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
-			can_tally_runs = false;
-		
-		// If we have any removed subpopulations waiting to be disposed of, we can't use the MutationRun tallies
-		// because the removed subpopulations are still boosting the refcounts of the MutationRuns
-		if (removed_subpops_.size() > 0)
-			can_tally_runs = false;
-		
-		// If we have any killed individuals in the graveyard, we can't use the MutationRun tallies
-		// because the killed individuals are still boosting the refcounts of the MutationRuns
-		if (species_.GraveyardSize() > 0)
-			can_tally_runs = false;
-		
-#ifdef SLIMGUI
-		// If we're in SLiMgui, we need to figure out how we're going to handle its refcounts, which are
-		// separate from slim's since the user can select just a subset of subpopulations.
-		bool slimgui_subpop_subset_selected = false;
-		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			if (!subpop_pair.second->gui_selected_)
-				slimgui_subpop_subset_selected = true;
-		
-		// If a subset of subpops is selected, we can't tally using MutationRun, because the MutationRun
-		// refcounts are across all subpopulations.  (We could tally just for slim, but we would be left with
-		// no way to get the sub-tallies for SLiMgui, so there's no point in doing that.)
-		if (slimgui_subpop_subset_selected)
-			can_tally_runs = false;
-#endif
-		
-		// To tally using MutationRun, the refcounts of all active MutationRun objects should add up to the same
-		// total as the total number of Genome objects being tallied across.  Otherwise, something is very wrong.
-#if DEBUG
-		if (can_tally_runs)
-		{
-			slim_refcount_t total_genome_count = 0, tally_mutrun_ref_count = 0, total_mutrun_count = 0;
-			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
-			
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			{
-				Subpopulation *subpop = subpop_pair.second;
-				
-				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-				
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
-				{
-					Genome &genome = *subpop_genomes[i];
-					
-					if (!genome.IsNull())
-					{
-						subpop_genomes[i]->TallyGenomeReferences(&tally_mutrun_ref_count, &total_mutrun_count, operation_id);
-						total_genome_count++;
-					}
-				}
-			}
-			
-			int mutrun_count = species_.TheChromosome().mutrun_count_;
-			
-			if (total_genome_count * mutrun_count != tally_mutrun_ref_count)
-				EIDOS_TERMINATION << "ERROR (Population::TallyMutationReferences): (internal error) tally != total genome count." << EidosTerminate();
-			
-			//std::cout << "Total genomes / MutationRuns: " << total_genome_count << " / " << total_mutrun_count << std::endl;
-		}
-#endif
-		
-		if (can_tally_runs)
-		{
-			//	FAST CASE: TALLY MUTATIONRUN OBJECTS AS CHUNKS
-			//
-			
-			// Give the core work to our fast worker method
-			slim_refcount_t total_genome_count = TallyMutationReferences_FAST();
-			
-			// set up the cache info
-			last_tallied_subpops_.clear();
-			cached_tally_genome_count_ = total_genome_count;
-			
-			// set up the global genome counts
-			total_genome_count_ = total_genome_count;
-			
-#ifdef SLIMGUI
-			// SLiMgui can use this case if all subpops are selected; in that case, copy refcounts over to SLiMgui's info
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-			int registry_size;
-			const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-			const MutationIndex *registry_iter_end = registry_iter + registry_size;
-			
-			while (registry_iter != registry_iter_end)
-			{
-				MutationIndex mut_index = *registry_iter;
-				slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
-				const Mutation *mutation = mut_block_ptr + mut_index;
-				
-				mutation->gui_reference_count_ = *refcount_ptr;
-				registry_iter++;
-			}
-			
-			gui_total_genome_count_ = total_genome_count;
-#endif
-			
-			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
-			return total_genome_count;
-		}
-		else
-		{
-			//	SLOW CASE: TALLY EACH MUTATION INDIVIDUALLY
-			//
-			
-			// When tallying the full population, we update SLiMgui counts as well, and we update total_genome_count_
-			slim_refcount_t total_genome_count = 0;
-#ifdef SLIMGUI
-			slim_refcount_t gui_total_genome_count = 0;
-			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-#endif
-			
-			// first zero out the refcounts in all registered Mutation objects
-#ifdef SLIMGUI
-			// So, we have two different cases in SLiMgui that are both handled by the slow case here.  One is that all subpops are
-			// selected in SLiMgui; in this case we can just copy the refcounts over after they have been tallied, so we don't
-			// need to zero out the gui tallies here, or tally them separately below.  The other is that only some subpops are
-			// selected in SLiMgui; in that case, we have to go the super-slow route and increment the gui tallies one by one,
-			// so we have to zero them out here.
-			if (slimgui_subpop_subset_selected)
-			{
-				int registry_size;
-				const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-				const MutationIndex *registry_iter_end = registry_iter + registry_size;
-				
-				while (registry_iter != registry_iter_end)
-				{
-					MutationIndex mutation_index = *registry_iter;
-					Mutation *mutation = mut_block_ptr + mutation_index;
-					
-					mutation->gui_reference_count_ = 0;
-					registry_iter++;
-				}
-			}
-#endif
-			SLiM_ZeroRefcountBlock(mutation_registry_);
-			
-			// then increment the refcounts through all pointers to Mutation in all genomes
-			slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-			
-			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-			{
-				Subpopulation *subpop = subpop_pair.second;
-				
-				// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-				// when the parental generation is active and the child generation is invalid.
-				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-				
-#ifdef SLIMGUI
-				// When running under SLiMgui, we need to tally up mutation references within the selected subpops, too; note
-				// the else clause here drops outside of the #ifdef to the standard tally code.  Note that this clause is used
-				// only when a subset of subpops in selected in SLiMgui; if all are selected, we can be smarter (below).
-				if (slimgui_subpop_subset_selected && subpop->gui_selected_)
-				{
-					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
-					{
-						Genome &genome = *subpop_genomes[i];
-						
-						if (!genome.IsNull())
-						{
-							int mutrun_count = genome.mutrun_count_;
-							
-							for (int run_index = 0; run_index < mutrun_count; ++run_index)
-							{
-								MutationRun *mutrun = genome.mutruns_[run_index].get();
-								const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-								const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-								
-								while (genome_iter != genome_end_iter)
-								{
-									MutationIndex mut_index = *genome_iter;
-									const Mutation *mutation = mut_block_ptr + mut_index;
-									slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
-									
-									(*refcount_ptr)++;
-									(mutation->gui_reference_count_)++;
-									genome_iter++;
-								}
-							}
-							
-							total_genome_count++;	// count only non-null genomes to determine fixation
-							gui_total_genome_count++;
-						}
-					}
-				}
-				else
-#endif
-				{
-					for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
-					{
-						Genome &genome = *subpop_genomes[i];
-						
-						if (!genome.IsNull())
-						{
-							int mutrun_count = genome.mutrun_count_;
-							
-							for (int run_index = 0; run_index < mutrun_count; ++run_index)
-							{
-								MutationRun *mutrun = genome.mutruns_[run_index].get();
-								const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-								const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-								
-								// Do 16 reps
-								while (genome_iter + 16 <= genome_end_iter)
-								{
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-								}
-								
-								// Finish off
-								while (genome_iter != genome_end_iter)
-									(*(refcount_block_ptr + (*genome_iter++)))++;
-							}
-							
-							total_genome_count++;	// count only non-null genomes to determine fixation
-						}
-					}
-				}
-			}
-			
-			// set up the cache info
-			last_tallied_subpops_.clear();
-			cached_tally_genome_count_ = total_genome_count;
-			
-			// set up the global genome counts
-			total_genome_count_ = total_genome_count;
-			
-#ifdef SLIMGUI
-			// If all subpops are selected in SLiMgui, we now copy the refcounts over, as in the fast case
-			if (!slimgui_subpop_subset_selected)
-			{
-				int registry_size;
-				const MutationIndex *registry_iter = MutationRegistry(&registry_size);
-				const MutationIndex *registry_iter_end = registry_iter + registry_size;
-				
-				while (registry_iter != registry_iter_end)
-				{
-					MutationIndex mut_index = *registry_iter;
-					slim_refcount_t *refcount_ptr = refcount_block_ptr + mut_index;
-					const Mutation *mutation = mut_block_ptr + mut_index;
-					
-					mutation->gui_reference_count_ = *refcount_ptr;
-					registry_iter++;
-				}
-				
-				gui_total_genome_count = total_genome_count;
-			}
-			
-			gui_total_genome_count_ = gui_total_genome_count;
-#endif
-			
-			//std::cout << "   cached_tally_genome_count_ == " << cached_tally_genome_count_ << std::endl;
-			return total_genome_count;
-		}
-	}
+	
+	// Set up the cache info
+	last_tallied_subpops_ = *p_subpops_to_tally;
+	cached_tally_genome_count_ = total_genome_count;
+	
+	// Return the total genome count tallied (not counting null genomes)
+	return total_genome_count;
 }
 
-slim_refcount_t Population::TallyMutationReferences(std::vector<Genome*> *p_genomes_to_tally)
+slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Genome*> *p_genomes_to_tally)
 {
-	// first zero out the refcounts in all registered Mutation objects
-	SLiM_ZeroRefcountBlock(mutation_registry_);
-	
-	// then increment the refcounts through all pointers to Mutation in all genomes
 	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 	slim_popsize_t genome_count = (slim_popsize_t)p_genomes_to_tally->size();
 	std::vector<Genome *> &genomes = *p_genomes_to_tally;
 	slim_refcount_t total_genome_count = 0;
 	
-	for (slim_popsize_t i = 0; i < genome_count; i++)							// child genomes
+	// We have two ways of tallying; here we decide which way to use.  We tally directly by
+	// looping through genomes below a certain problem threshold, because there is some
+	// overhead to tallying the mutation runs; it's not worth it for small problems.  The
+	// threshold is a complete guess; in reality it will depend upon how much mutation run
+	// sharing is present, how many mutations per run there are, and many other factors.
+	// I put the threshold pretty low because if you do mutruns and you're wrong, you just
+	// pay a small fixed overhead, but if you do genomes and you're wrong, it can hurt a lot.
+	bool can_tally_using_mutruns = true;
+	
+	if (genomes.size() <= 10)
+		can_tally_using_mutruns = false;
+	
+	if (can_tally_using_mutruns)
 	{
-		Genome &genome = *genomes[i];
+		// FAST PATH: Tally mutation run usage first, and then leverage that to tally mutations
+		total_genome_count = TallyMutationRunReferencesForGenomes(p_genomes_to_tally);
 		
-		if (!genome.IsNull())
+		// Give the core work to our fast worker method; this zeroes and then tallies
+		_TallyMutationReferences_FAST_FromMutationRunUsage();
+	}
+	else
+	{
+		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
+		SLiM_ZeroRefcountBlock(mutation_registry_);
+		
+		for (slim_popsize_t i = 0; i < genome_count; i++)
 		{
-			int mutrun_count = genome.mutrun_count_;
+			Genome &genome = *genomes[i];
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			if (!genome.IsNull())
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
-				const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-				const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+				int mutrun_count = genome.mutrun_count_;
 				
-				for (; genome_iter != genome_end_iter; ++genome_iter)
-					++(*(refcount_block_ptr + *genome_iter));
+				for (int run_index = 0; run_index < mutrun_count; ++run_index)
+				{
+					const MutationRun *mutrun = genome.mutruns_[run_index];
+					const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+					const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+					
+					for (; genome_iter != genome_end_iter; ++genome_iter)
+						++(*(refcount_block_ptr + *genome_iter));
+				}
+				
+				total_genome_count++;	// count only non-null genomes to determine fixation
 			}
-			
-			total_genome_count++;	// count only non-null genomes to determine fixation
 		}
 	}
 	
-	// set up the cache info; we have messed up any cached tallies
-	last_tallied_subpops_.clear();
-	cached_tally_genome_count_ = 0;
+	// We have messed up any cached tallies, so mark the cache as invalid
+	InvalidateMutationReferencesCache();
 	
-	// return the total genome count tallied (not counting null genomes)
+	// Return the total genome count tallied (not counting null genomes)
 	return total_genome_count;
 }
 
-slim_refcount_t Population::TallyMutationReferences_FAST(void)
+// This internal method tallies for all mutations across all mutation runs.  It does not do
+// the mutation run tallying itself, however; instead, the caller can tally mutation runs
+// across whatever set of subpops/genomes they wish, and then this method will provide
+// mutation tallies given that choice.
+void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 {
 	// first zero out the refcounts in all registered Mutation objects
 	SLiM_ZeroRefcountBlock(mutation_registry_);
 	
-	// then increment the refcounts through all pointers to Mutation in all genomes
-	slim_refcount_t total_genome_count = 0;
-	int64_t operation_id = SLiM_GetNextMutationRunOperationID();
-	
-#ifdef _OPENMP
-	// Even when running in parallel, we do not necessarily want to do this tallying in
-	// parallel; the speedup is not large even when mutation density is pretty high, and
-	// when mutation density is low it is probably not a win at all.  The logic for
-	// making this choice needs to be improved; perhaps it should be evaluated at runtime.
-	// To support both modes of operation, we have to duplicate the logic below, both
-	// with and without the OMP pragmas, especially since a different version of the
-	// TallyGenomeMutationReferences_OMP() method is used for the two cases.
-	bool tally_in_parallel = true;
-	
-	if (gEidosNumThreads < 10)
+	// each thread does its own tallying, for its own MutationRunContext
+#pragma omp parallel default(none) shared(gSLiM_Mutation_Refcounts) num_threads(species_.SpeciesMutationRunContextCount())
 	{
-		// Empirically, we need at least ten threads for this to be worthwhile;
-		// the locking and the atomic updates slow things down a whole lot
-		// We could make per-thread refcount blocks that we increment into,
-		// and then do a sum reduction over all of them at the end, to get
-		// rid of the atomic updates, but that seems unlikely to be worth it
-		tally_in_parallel = false;
-	}
-	
-	if (tally_in_parallel)
-	{
-		// Require at least a minimum number of mutations for it to be worthwhile
-		int registry_size;
-		MutationRegistry(&registry_size);
+		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
+		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+		size_t inuse_pool_count = inuse_pool.size();
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
 		
-		if (registry_size < EIDOS_OMPMIN_MUTTALLY)
-			tally_in_parallel = false;
+		for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+		{
+			const MutationRun *mutrun = inuse_pool[pool_index];
+			slim_refcount_t use_count = (slim_refcount_t)mutrun->use_count();
+			
+			const MutationIndex *mutrun_iter = mutrun->begin_pointer_const();
+			const MutationIndex *mutrun_end_iter = mutrun->end_pointer_const();
+			
+			// BCH 4/22/2023: This loop used to be unrolled into 16/4/1 iterations, because
+			// the compiler didn't seem to be smart enough to optimize it well.  Apparently
+			// the compiler has gotten smarter, because removing the unrolled versions now
+			// makes it run faster.  Of course this will depend on the compiler used, but
+			// I should assume that the user will use a good, modern optimizing compiler.
+			while (mutrun_iter != mutrun_end_iter)
+			{
+				slim_refcount_t *refcount_address = refcount_block_ptr + (*mutrun_iter++);
+				
+				// Note that no locking or atomicity is needed here at all!  This is because
+				// each thread is responsible for particular positions along the genome;
+				// no other thread will be accessing this tally at the same time as us!
+				*refcount_address += use_count;
+			}
+		}
 	}
 	
-	if (!tally_in_parallel)
-#endif
+#if DEBUG
 	{
+		int registry_count;
+		const MutationIndex *registry_iter = MutationRegistry(&registry_count);
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			mut->refcount_CHECK_ = 0;
+		}
+		
 		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 		{
 			Subpopulation *subpop = subpop_pair.second;
-			
-			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-			// when the parental generation is active and the child generation is invalid.
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
-			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
 			{
-				// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
-				// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
-				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
-				// we can now have null genomes even with autosomes; but it is still worthwhile.
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->TallyGenomeMutationReferences(operation_id);
+				Genome &genome = *subpop_genomes[i];
 				
-				total_genome_count += subpop_genome_count;
-			}
-			else
-			{
-				// When we're modeling non-autosomes, we need to check for null genomes
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				if (!genome.IsNull())
 				{
-					Genome &genome = *subpop_genomes[i];
+					int mutrun_count = genome.mutrun_count_;
 					
-					if (!genome.IsNull())
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						genome.TallyGenomeMutationReferences(operation_id);
-						total_genome_count++;	// count only non-null genomes to determine fixation
+						const MutationRun *mutrun = genome.mutruns_[run_index];
+						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+						
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+							(mut_block_ptr + *genome_iter)->refcount_CHECK_++;
 					}
 				}
 			}
 		}
-	}
-#ifdef _OPENMP
-	else
-	{
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
 		{
-			Subpopulation *subpop = subpop_pair.second;
+			MutationIndex mut_blockindex = registry_iter[registry_index];
+			const Mutation *mut = mut_block_ptr + mut_blockindex;
 			
-			// Particularly for SLiMgui, we need to be able to tally mutation references after the generations have been swapped, i.e.
-			// when the parental generation is active and the child generation is invalid.
-			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
-			
-			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
+			if (mut->state_ == MutationState::kInRegistry)
 			{
-				// When we're modeling autosomes, we shouldn't have any null genomes, and can thus skip the IsNull() check
-				// and move the tallying outside the loop.  The IsNull() was showing up on profiles, so why not.
-				// BCH 9/21/2021: This now needs to also check the has_null_genomes_ flag set by addRecombinant(), since
-				// we can now have null genomes even with autosomes; but it is still worthwhile.
-#pragma omp parallel for schedule(dynamic,16) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) // if(EIDOS_OMPMIN_MUTTALLY)
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-					subpop_genomes[i]->TallyGenomeMutationReferences_OMP(operation_id);
+				slim_refcount_t refcount_standard = *(refcount_block_ptr + mut_blockindex);
+				slim_refcount_t refcount_checkback = mut->refcount_CHECK_;
 				
-				total_genome_count += subpop_genome_count;
-			}
-			else
-			{
-				// When we're modeling non-autosomes, we need to check for null genomes
-#pragma omp parallel for schedule(dynamic,16) default(none) shared(subpop_genome_count, subpop_genomes, operation_id) reduction(+: total_genome_count) // if(EIDOS_OMPMIN_MUTTALLY)
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				{
-					Genome &genome = *subpop_genomes[i];
-					
-					if (!genome.IsNull())
-					{
-						genome.TallyGenomeMutationReferences_OMP(operation_id);
-						total_genome_count++;	// count only non-null genomes to determine fixation
-					}
-				}
+				if (refcount_standard != refcount_checkback)
+					EIDOS_TERMINATION << "ERROR (Population::_TallyMutationReferences_FAST_FromMutationRunUsage): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << "." << EidosTerminate();
 			}
 		}
 	}
 #endif
-	
-	return total_genome_count;
 }
 
 EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count)
@@ -6073,7 +6542,7 @@ EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutat
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int registry_index = 0; registry_index < registry_size; registry_index++)
-		float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / denominator, registry_index);
+			float_result->set_float_no_check(*(refcount_block_ptr + registry[registry_index]) / denominator, registry_index);
 	}
 	
 	return result_SP;
@@ -6167,8 +6636,8 @@ EidosValue_SP Population::Eidos_CountsForTalliedMutations(EidosValue *mutations_
 	return result_SP;
 }
 
-// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using reference counts from TallyMutationReferences()
-// TallyMutationReferences() must have cached tallies across the whole population before this is called, or it will malfunction!
+// handle negative fixation (remove from the registry) and positive fixation (convert to Substitution), using existing mutation reference counts
+// TallyMutationReferencesAcrossPopulation() must have cached tallies across the whole population before this is called, or it will malfunction!
 void Population::RemoveAllFixedMutations(void)
 {
 	if ((model_type_ == SLiMModelType::kModelTypeWF) && !child_generation_valid_)
@@ -6347,7 +6816,7 @@ void Population::RemoveAllFixedMutations(void)
 		//std::cout << "Removing " << fixed_mutation_accumulator.size() << " fixed mutations..." << std::endl;
 		
 		// We remove fixed mutations from each MutationRun just once; this is the operation ID we use for that
-		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+		int64_t operation_id = MutationRun::GetNextOperationID();
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)		// subpopulations
 		{
@@ -6485,7 +6954,7 @@ void Population::CheckMutationRegistry(bool p_check_genomes)
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					MutationRun *mutrun = genome.mutruns_[run_index].get();
+					const MutationRun *mutrun = genome.mutruns_[run_index];
 					const MutationIndex *genome_iter = mutrun->begin_pointer_const();
 					const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 					
@@ -6604,7 +7073,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -6739,7 +7208,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					MutationRun *mutrun = genome.mutruns_[run_index].get();
+					const MutationRun *mutrun = genome.mutruns_[run_index];
 					int mut_count = mutrun->size();
 					const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 					
@@ -6935,7 +7404,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -7071,7 +7540,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						const MutationRun *mutrun = genome.mutruns_[run_index];
 						int mut_count = mutrun->size();
 						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						
@@ -7102,7 +7571,7 @@ void Population::PrintAllBinary(std::ostream &p_out, bool p_output_spatial_posit
 					
 					for (int run_index = 0; run_index < mutrun_count; ++run_index)
 					{
-						MutationRun *mutrun = genome.mutruns_[run_index].get();
+						const MutationRun *mutrun = genome.mutruns_[run_index];
 						int mut_count = mutrun->size();
 						const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 						

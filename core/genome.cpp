@@ -48,11 +48,8 @@ SLiMBulkOperationHashTable Genome::s_bulk_operation_runs_;
 
 Genome::~Genome(void)
 {
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		mutruns_[run_index].reset();
-	
 	if (mutruns_ != run_buffer_)
-		delete[] mutruns_;
+		free(mutruns_);
 	mutruns_ = nullptr;
 	
 	mutrun_count_ = 0;
@@ -64,26 +61,24 @@ void Genome::NullGenomeAccessError(void) const
 	EIDOS_TERMINATION << "ERROR (Genome::NullGenomeAccessError): (internal error) a null genome was accessed." << EidosTerminate();
 }
 
-void Genome::WillModifyRun(slim_mutrun_index_t p_run_index)
+MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunContext &p_mutrun_context)
 {
 #if DEBUG
 	if (p_run_index >= mutrun_count_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRun): (internal error) attempt to modify an out-of-index run." << EidosTerminate();
 #endif
 	
-	MutationRun *original_run = mutruns_[p_run_index].get();
+	// This method used to support in-place modification for mutruns with a use count of 1,
+	// saving the new mutation run allocation; but in practice that was not used, and it
+	// would be hard to support in the new multithreaded design, so we always make a new run
+	const MutationRun *original_run = mutruns_[p_run_index];
+	MutationRun *new_run = MutationRun::NewMutationRun(p_mutrun_context);	// take from shared pool of used objects
 	
-	if (original_run->UseCount() > 1)
-	{
-		MutationRun *new_run = MutationRun::NewMutationRun();	// take from shared pool of used objects
-		
-		new_run->copy_from_run(*original_run);
-		mutruns_[p_run_index] = MutationRun_SP(new_run);
-	}
-	else
-	{
-		original_run->will_modify_run();	// in-place modification of runs requires notification, for cache invalidation
-	}
+	new_run->copy_from_run(*original_run);
+	mutruns_[p_run_index] = new_run;
+	
+	// We return a non-const pointer to the caller, giving them permission to modify this new run
+	return new_run;
 }
 
 void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
@@ -108,7 +103,7 @@ void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mu
 	s_bulk_operation_mutrun_index_ = p_mutrun_index;
 }
 
-bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
+MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
 {
 	THREAD_SAFETY_CHECK("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
 	
@@ -119,14 +114,13 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 	
 #if 0
 #warning Genome::WillModifyRunForBulkOperation disabled...
-	// The trivial version of this function just calls WillModifyRun() and returns T,
+	// The trivial version of this function just calls WillModifyRun(),
 	// requesting that the caller perform the operation
-	WillModifyRun(p_run_index);
-	return true;
+	return WillModifyRun(p_run_index);
 #else
 	// The interesting version remembers the operation in progress, using the ID, and
-	// tracks original/final MutationRun pointers, returning F if an original is matched.
-	MutationRun *original_run = mutruns_[p_mutrun_index].get();
+	// tracks original/final MutationRun pointers, returning nullptr if an original is matched.
+	const MutationRun *original_run = mutruns_[p_mutrun_index];
 	
 	if (p_operation_id != s_bulk_operation_id_)
 			EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) missing bulk operation start." << EidosTerminate();
@@ -136,10 +130,10 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 	if (found_run_pair == s_bulk_operation_runs_.end())
 	{
 		// This MutationRun is not in the map, so we need to set up a new entry
-		MutationRun *product_run = MutationRun::NewMutationRun();
+		MutationRun *product_run = MutationRun::NewMutationRun(p_mutrun_context);
 		
 		product_run->copy_from_run(*original_run);
-		mutruns_[p_mutrun_index] = MutationRun_SP(product_run);
+		mutruns_[p_mutrun_index] = product_run;
 		
 		try {
 			s_bulk_operation_runs_.emplace(original_run, product_run);
@@ -149,16 +143,16 @@ bool Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_i
 		
 		//std::cout << "WillModifyRunForBulkOperation() created product for " << original_run << std::endl;
 		
-		return true;
+		return product_run;
 	}
 	else
 	{
-		// This MutationRun is in the map, so we can just return it
-		mutruns_[p_mutrun_index] = MutationRun_SP(found_run_pair->second);
+		// This MutationRun is in the map, so we can just reuse it to redo the operation
+		mutruns_[p_mutrun_index] = found_run_pair->second;
 		
 		//std::cout << "   WillModifyRunForBulkOperation() substituted known product for " << original_run << std::endl;
 		
-		return false;
+		return nullptr;
 	}
 #endif
 }
@@ -179,19 +173,7 @@ void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutr
 	}
 }
 
-// Remove all mutations in p_genome that have a state_ of MutationState::kFixedAndSubstituted, indicating that they have fixed
-void Genome::RemoveFixedMutations(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
-{
-#if DEBUG
-	if (mutrun_count_ == 0)
-		NullGenomeAccessError();
-#endif
-	// This used to call RemoveFixedMutations() on each mutation run; now it removes only within a given
-	// mutation run index, allowing all the parts of the genome that don't contain fixed mutations to be skipped
-	mutruns_[p_mutrun_index]->RemoveFixedMutations(p_operation_id);
-}
-
-void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
+void Genome::TallyGenomeReferences_Checkback(slim_refcount_t *p_mutrun_ref_tally, slim_refcount_t *p_mutrun_tally, int64_t p_operation_id)
 {
 #if DEBUG
 	if (mutrun_count_ == 0)
@@ -201,213 +183,19 @@ void Genome::TallyGenomeReferences(slim_refcount_t *p_mutrun_ref_tally, slim_ref
 	{
 		if (mutruns_[run_index]->operation_id_ != p_operation_id)
 		{
-			(*p_mutrun_ref_tally) += mutruns_[run_index]->UseCount();
+			(*p_mutrun_ref_tally) += mutruns_[run_index]->use_count();
 			(*p_mutrun_tally)++;
 			mutruns_[run_index]->operation_id_ = p_operation_id;
 		}
 	}
 }
 
-void Genome::TallyBufferUsage(int64_t *p_using_external_buffer_tally, int64_t *p_external_buffer_capacity_tally, int64_t *p_external_buffer_count_tally, int64_t p_operation_id)
-{
-#if DEBUG
-	if (mutrun_count_ == 0)
-		NullGenomeAccessError();
-#endif
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-	{
-		if (mutruns_[run_index]->operation_id_ != p_operation_id)
-		{
-			mutruns_[run_index]->TallyBufferUsage(p_using_external_buffer_tally, p_external_buffer_capacity_tally, p_external_buffer_count_tally);
-			mutruns_[run_index]->operation_id_ = p_operation_id;
-		}
-	}
-}
-
-void Genome::TallyGenomeMutationReferences(int64_t p_operation_id)
-{
-	// This version of this method can only be used when running single-threaded
-	// (including slim_multi when the caller has decided not to start a thread team).
-	THREAD_SAFETY_CHECK("TallyGenomeMutationReferences() called when multithreaded");
-	
-#if DEBUG
-	if (mutrun_count_ == 0)
-		NullGenomeAccessError();
-#endif
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-	{
-		MutationRun *mutrun = mutruns_[run_index].get();
-		
-		if (mutrun->operation_id_ != p_operation_id)
-		{
-			slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
-			
-			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-			
-			// Do 16 reps
-			while (genome_iter + 16 <= genome_end_iter)
-			{
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Do 4 reps
-			while (genome_iter + 4 <= genome_end_iter)
-			{
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Finish off
-			while (genome_iter != genome_end_iter)
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			
-			mutrun->operation_id_ = p_operation_id;
-		}
-	}
-}
-
-#ifdef _OPENMP
-void Genome::TallyGenomeMutationReferences_OMP(int64_t p_operation_id)
-{
-	// This version of this method must be used when running multi-threaded
-	
-#if DEBUG
-	if (mutrun_count_ == 0)
-		NullGenomeAccessError();
-#endif
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-	{
-		MutationRun *mutrun = mutruns_[run_index].get();
-		
-		if (mutrun->operation_id_ != p_operation_id)
-		{
-			// We need to protect this operation with a per-mutrun lock because it is
-			// being done in parallel; see Population::TallyMutationReferences_FAST()
-			omp_set_lock(&mutrun->mutrun_LOCK);
-			
-			// The check above might have gotten a stale value.  Now that we have the lock, we
-			// need to check the operation_id_ again atomically, which flushes before reading.
-			int64_t op_id;
-			
-#pragma omp atomic read
-			op_id = mutrun->operation_id_;
-			
-			if (op_id == p_operation_id)
-			{
-				// somebody else did the operation for this mutation run before we did
-				omp_unset_lock(&mutrun->mutrun_LOCK);
-				continue;
-			}
-			
-			// Change operation_id_ atomically, which flushes after writing.  Other threads
-			// will need to access this atomically to flush as well; that is done above.
-#pragma omp atomic write
-			mutrun->operation_id_ = p_operation_id;
-			
-			// We are now definitively responsible for tallying this mutation run.  We can let go of
-			// the lock now; operation_id_ will ward off other threads, so we don't need to hold
-			// the lock while doing the actual tallying below.
-			omp_unset_lock(&mutrun->mutrun_LOCK);
-			
-			slim_refcount_t use_count = (slim_refcount_t)mutrun->UseCount();
-			
-			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-			
-			// Do 16 reps; all updates must be atomic since other threads are tallying into the same
-			// counters.  Note that atomic operations automatically flush on entry and exit, so
-			// other threads are guaranteed to see changes we make to these tallies.
-			while (genome_iter + 16 <= genome_end_iter)
-			{
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Do 4 reps
-			while (genome_iter + 4 <= genome_end_iter)
-			{
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-			
-			// Finish off
-			while (genome_iter != genome_end_iter)
-			{
-#pragma omp atomic update
-				*(refcount_block_ptr + (*genome_iter++)) += use_count;
-			}
-		}
-	}
-}
-#endif
-
 void Genome::MakeNull(void)
 {
 	if (mutrun_count_)
 	{
-		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset();
-		
 		if (mutruns_ != run_buffer_)
-			delete[] mutruns_;
+			free(mutruns_);
 		mutruns_ = nullptr;
 		
 		mutrun_count_ = 0;
@@ -415,7 +203,7 @@ void Genome::MakeNull(void)
 	}
 }
 
-void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, MutationRun *p_run)
+void Genome::ReinitializeGenomeToMutruns(GenomeType p_genome_type, int32_t p_mutrun_count, slim_position_t p_mutrun_length, const std::vector<MutationRun *> &p_runs)
 {
 	genome_type_ = p_genome_type;
 	
@@ -430,16 +218,13 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 				mutruns_ = run_buffer_;
 			else
-				mutruns_ = new MutationRun_SP[mutrun_count_];
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
 		}
 		else if (mutrun_count_ != p_mutrun_count)
 		{
 			// the number of mutruns has changed; need to reallocate
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-				mutruns_[run_index].reset();
-			
 			if (mutruns_ != run_buffer_)
-				delete[] mutruns_;
+				free(mutruns_);
 			
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
@@ -447,22 +232,23 @@ void Genome::ReinitializeGenomeToMutrun(GenomeType p_genome_type, int32_t p_mutr
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
 				mutruns_ = run_buffer_;
 			else
-				mutruns_ = new MutationRun_SP[mutrun_count_];
+				mutruns_ = (const MutationRun **)malloc(mutrun_count_ * sizeof(const MutationRun *));	// overwritten below
+		}
+		else
+		{
+			// the number of mutruns has not changed; no need to zero out, overwritten below
 		}
 		
 		for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-			mutruns_[run_index].reset(p_run);
+			mutruns_[run_index] = p_runs[run_index];
 	}
 	else // if (!p_mutrun_count)
 	{
 		if (mutrun_count_)
 		{
 			// was a non-null genome, needs to become null
-			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-				mutruns_[run_index].reset();
-			
 			if (mutruns_ != run_buffer_)
-				delete[] mutruns_;
+				free(mutruns_);
 			mutruns_ = nullptr;
 			
 			mutrun_count_ = 0;
@@ -475,13 +261,6 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 {
 	genome_type_ = p_genome_type;
 	
-#if DEBUG
-	// we are guaranteed by the caller that all existing mutrun pointers are null; check that, in DEBUG mode
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-		if (mutruns_[run_index])
-			EIDOS_TERMINATION << "ERROR (Genome::ReinitializeGenomeNullptr): (internal error) nonnull mutrun pointer in ReinitializeGenomeNullptr." << EidosTerminate();
-#endif
-	
 	if (p_mutrun_count)
 	{
 		if (mutrun_count_ == 0)
@@ -491,23 +270,37 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 			mutrun_length_ = p_mutrun_length;
 			
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			{
 				mutruns_ = run_buffer_;
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+			}
 			else
-				mutruns_ = new MutationRun_SP[mutrun_count_];
+				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
 		}
 		else if (mutrun_count_ != p_mutrun_count)
 		{
 			// the number of mutruns has changed; need to reallocate
 			if (mutruns_ != run_buffer_)
-				delete[] mutruns_;
+				free(mutruns_);
 			
 			mutrun_count_ = p_mutrun_count;
 			mutrun_length_ = p_mutrun_length;
 			
 			if (mutrun_count_ <= SLIM_GENOME_MUTRUN_BUFSIZE)
+			{
 				mutruns_ = run_buffer_;
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));
+			}
 			else
-				mutruns_ = new MutationRun_SP[mutrun_count_];
+				mutruns_ = (const MutationRun **)calloc(mutrun_count_, sizeof(const MutationRun *));
+		}
+		else
+		{
+			// the number of mutruns has not changed; need to zero out
+			if (p_mutrun_count <= SLIM_GENOME_MUTRUN_BUFSIZE)
+				EIDOS_BZERO(run_buffer_, SLIM_GENOME_MUTRUN_BUFSIZE * sizeof(const MutationRun *));		// much faster because optimized at compile time
+			else
+				EIDOS_BZERO(mutruns_, p_mutrun_count * sizeof(const MutationRun *));
 		}
 		
 		// we leave the new mutruns_ buffer filled with nullptr
@@ -518,7 +311,7 @@ void Genome::ReinitializeGenomeNullptr(GenomeType p_genome_type, int32_t p_mutru
 		{
 			// was a non-null genome, needs to become null
 			if (mutruns_ != run_buffer_)
-				delete[] mutruns_;
+				free(mutruns_);
 			mutruns_ = nullptr;
 			
 			mutrun_count_ = 0;
@@ -540,7 +333,7 @@ void Genome::record_derived_states(Species *p_species) const
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
-		MutationRun *mutrun = mutruns_[run_index].get();
+		const MutationRun *mutrun = mutruns_[run_index];
 		int mutrun_size = mutrun->size();
 		slim_position_t last_pos = -1;
 		
@@ -576,56 +369,6 @@ void Genome::record_derived_states(Species *p_species) const
 		}
 	}
 }
-
-/*
-void Genome::assert_identical_to_runs(MutationRun_SP *p_mutruns, int32_t p_mutrun_count)
-{
-	// This checks that the mutations carried by a genome are identical after a mutation run transformation.
-	// It is run only in DEBUG mode, and does not need to be fast.
-	std::vector <MutationIndex> genome_muts;
-	std::vector <MutationIndex> param_muts;
-	
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-	{
-		MutationRun *mutrun = mutruns_[run_index].get();
-		int mutrun_size = mutrun->size();
-		
-		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
-			genome_muts.emplace_back((*mutrun)[mut_index]);
-	}
-	
-	for (int run_index = 0; run_index < p_mutrun_count; ++run_index)
-	{
-		MutationRun *mutrun = p_mutruns[run_index].get();
-		int mutrun_size = mutrun->size();
-		
-		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
-			param_muts.emplace_back((*mutrun)[mut_index]);
-	}
-	
-	if (genome_muts.size() != param_muts.size())
-		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in size after transformation." << EidosTerminate();
-	if (genome_muts != param_muts)
-		EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome unequal in contents after transformation." << EidosTerminate();
-	
-	// Check that mutations are also placed into the correct mutation run based on their position
-	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
-	{
-		MutationRun *mutrun = mutruns_[run_index].get();
-		int mutrun_size = mutrun->size();
-		
-		for (int mut_index = 0; mut_index < mutrun_size; ++mut_index)
-		{
-			MutationIndex mutation_index = (*mutrun)[mut_index];
-			Mutation *mutation = gSLiM_Mutation_Block + mutation_index;
-			slim_position_t position = mutation->position_;
-			
-			if (position / mutrun_length_ != run_index)
-				EIDOS_TERMINATION << "ERROR (Genome::assert_identical_to_runs): (internal error) genome has mutation at bad position." << EidosTerminate();
-		}
-	}
-}
-*/
 
 
 //
@@ -702,7 +445,7 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			
 			for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 			{
-				MutationRun *mutrun = mutruns_[run_index].get();
+				const MutationRun *mutrun = mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -1081,7 +824,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun = element->mutruns_[run_index].get();
+			const MutationRun *mutrun = element->mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1122,7 +865,7 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 	
 	for (run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
-		MutationRun *mutrun = mutruns_[run_index].get();
+		const MutationRun *mutrun = mutruns_[run_index];
 		int mut_count = mutrun->size();
 		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 		
@@ -1469,7 +1212,7 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 	
 	for (int run_index = 0; run_index < mutrun_count_; ++run_index)
 	{
-		MutationRun *mutrun = mutruns_[run_index].get();
+		const MutationRun *mutrun = mutruns_[run_index];
 		int mut_count = mutrun->size();
 		const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 		
@@ -1505,7 +1248,7 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 	
 	for (int run_index = 0; run_index < mutrun_count; ++run_index)
 	{
-		MutationRun *mutrun = mutruns_[run_index].get();
+		const MutationRun *mutrun = mutruns_[run_index];
 		int genome1_count = mutrun->size();
 		const MutationIndex *genome_ptr = mutrun->begin_pointer_const();
 		
@@ -1539,7 +1282,7 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 		
 		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 		{
-			MutationRun *mutrun = genome.mutruns_[run_index].get();
+			const MutationRun *mutrun = genome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1571,7 +1314,7 @@ void Genome::PrintGenomes_SLiM(std::ostream &p_out, std::vector<Genome *> &p_gen
 		
 		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 		{
-			MutationRun *mutrun = genome.mutruns_[run_index].get();
+			const MutationRun *mutrun = genome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1614,7 +1357,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 			
 			for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1692,7 +1435,7 @@ void Genome::PrintGenomes_MS(std::ostream &p_out, std::vector<Genome *> &p_genom
 		
 		for (int run_index = 0; run_index < genome.mutrun_count_; ++run_index)
 		{
-			MutationRun *mutrun = genome.mutruns_[run_index].get();
+			const MutationRun *mutrun = genome.mutruns_[run_index];
 			int mut_count = mutrun->size();
 			const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 			
@@ -1734,7 +1477,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 		{
 			for (int run_index = 0; run_index < genome1.mutrun_count_; ++run_index)
 			{
-				MutationRun *mutrun = genome1.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome1.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -1747,7 +1490,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 		{
 			for (int run_index = 0; run_index < genome2.mutrun_count_; ++run_index)
 			{
-				MutationRun *mutrun = genome2.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome2.mutruns_[run_index];
 				int mut_count = mutrun->size();
 				const MutationIndex *mut_ptr = mutrun->begin_pointer_const();
 				
@@ -2230,7 +1973,7 @@ size_t Genome::MemoryUsageForMutrunBuffers(void)
 	if (mutruns_ == run_buffer_)
 		return 0;
 	else
-		return mutrun_count_ * sizeof(MutationRun_SP);
+		return mutrun_count_ * sizeof(MutationRun *);
 }
 
 
@@ -2534,16 +2277,20 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 			continue;
 		
 		// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+		int64_t operation_id = MutationRun::GetNextOperationID();
 		
 		Genome::BulkOperationStart(operation_id, mutrun_index);
+		
+		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+			MutationRun *target_run = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+			
+			if (target_run)
 			{
 				for (int mut_index = value_index; mut_index < mutations_count; ++mut_index)
 				{
@@ -2554,9 +2301,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 					if (add_pos / mutrun_length != mutrun_index)
 						break;
 					
-					if (target_genome->enforce_stack_policy_for_addition(mut_to_add->position_, mut_to_add->mutation_type_ptr_))
+					if (target_run->enforce_stack_policy_for_addition(mut_to_add->position_, mut_to_add->mutation_type_ptr_))
 					{
-						target_genome->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
+						target_run->insert_sorted_mutation_if_unique(mut_to_add->BlockIndex());
 						
 						// No need to add the mutation to the registry; how would the user ever get a Mutation that was not already in it?
 						// Similarly, no need to check and set pure_neutral_ and all_pure_neutral_DFE_; the mutation is already in the system
@@ -2571,7 +2318,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 		last_handled_mutrun_index = mutrun_index;
 		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 	}
 	
 	// TREE SEQUENCE RECORDING
@@ -2880,8 +2627,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	for (slim_mutrun_index_t mutrun_index : mutrun_indexes)
 	{
-		int64_t operation_id = SLiM_GetNextMutationRunOperationID();
-		MutationRun &mutations_to_add = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
+		int64_t operation_id = MutationRun::GetNextOperationID();
+		std::vector<MutationIndex> mutations_to_add;
 		
 		// Before starting the bulk operation for this mutation run, construct all of the mutations and add them all to the registry, etc.
 		// It is possible that some mutations will not actually be added to any genome, due to stacking; they will be cleared from the
@@ -2962,27 +2709,26 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			
-			std::sort(mutations_to_add.begin_pointer(), mutations_to_add.end_pointer(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
+			std::sort(mutations_to_add.begin(), mutations_to_add.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 		}
 		
 		// Now start the bulk operation and add mutations_to_add to every target genome
 		Genome::BulkOperationStart(operation_id, mutrun_index);
+		
+		MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 		
 		for (int target_index = 0; target_index < target_size; ++target_index)
 		{
 			Genome *target_genome = (Genome *)p_target->ObjectElementAtIndex(target_index, nullptr);
 			
 			// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-			if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+			const MutationRun *original_run = target_genome->mutruns_[mutrun_index];
+			MutationRun *modifiable_mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+			
+			if (modifiable_mutrun)
 			{
-				MutationRun &original_mutrun = *(target_genome->mutruns_[mutrun_index]);
-				MutationRun &merge_run = *MutationRun::NewMutationRun();		// take from shared pool of used objects;
-				
-				// We merge the original run and mutations_to_add into a new temporary mutrun, and then copy it back to the target
-				merge_run.clear_set_and_merge(original_mutrun, mutations_to_add);
-				original_mutrun.copy_from_run(merge_run);
-				
-				MutationRun::FreeMutationRun(&merge_run);
+				// We merge the original run (which has not yet been freed!) and mutations_to_add into modifiable_mutrun
+				modifiable_mutrun->clear_set_and_merge(*original_run, mutations_to_add);
 			}
 			
 			// TREE SEQUENCE RECORDING
@@ -2991,8 +2737,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 			// This prevents redundant derived states from being recorded; see discussion in https://github.com/MesserLab/SLiM/issues/195
 			if (recording_tree_sequence_mutations)
 			{
-				MutationIndex *muts = mutations_to_add.begin_pointer();
-				MutationIndex *muts_end = mutations_to_add.end_pointer();
+				MutationIndex *muts = mutations_to_add.data();
+				MutationIndex *muts_end = muts + mutations_to_add.size();
 				slim_position_t previous_position = -1;
 				
 				while (muts != muts_end)
@@ -3011,10 +2757,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		
 		Genome::BulkOperationEnd(operation_id, mutrun_index);
 		
-		MutationRun::FreeMutationRun(&mutations_to_add);
-		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 	}
 	
 	return retval;
@@ -3071,7 +2815,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 	Population &population = species->population_;
 	
 	// Have the Population tally for the target genomes
-	population.TallyMutationReferences(&target_genomes);
+	population.TallyMutationReferencesAcrossGenomes(&target_genomes);
 	
 	// Use the back-end code in Population to do the counting
 	if (p_method_id == gID_mutationFrequenciesInGenomes)
@@ -3392,12 +3136,17 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	std::sort(mutation_indices.begin(), mutation_indices.end(), [mut_block_ptr](MutationIndex i1, MutationIndex i2) {return (mut_block_ptr + i1)->position_ < (mut_block_ptr + i2)->position_;});
 	
 	// Add the mutations to the target genomes, recording a new derived state with each addition
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
+	
 	for (int genome_index = 0; genome_index < target_size; ++genome_index)
 	{
 		Genome *genome = (Genome *)p_target->ObjectElementAtIndex(genome_index, nullptr);
 		bool genome_started_empty = (genome->mutation_count() == 0);
 		slim_position_t mutrun_length = genome->mutrun_length_;
 		slim_mutrun_index_t current_run_index = -1;
+		MutationRun *current_mutrun = nullptr;
 		std::string &genome_string = calls[genome_index];
 		
 		for (int segsite_index = 0; segsite_index < segsites; ++segsite_index)
@@ -3413,15 +3162,21 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_pos / mutrun_length);
 				
 				if (mut_mutrun_index != current_run_index)
-					genome->WillModifyRun(mut_mutrun_index);
-				
-				MutationRun *mut_mutrun = genome->mutruns_[mut_mutrun_index].get();
+				{
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = species.SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+#endif
+					
+					current_run_index = mut_mutrun_index;
+					current_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
+				}
 				
 				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
 				if (genome_started_empty)
-					mut_mutrun->emplace_back(mut_index);
+					current_mutrun->emplace_back(mut_index);
 				else
-					mut_mutrun->insert_sorted_mutation(mut_index);
+					current_mutrun->insert_sorted_mutation(mut_index);
 				
 				if (recording_mutations)
 					species.RecordNewDerivedState(genome, mut_pos, *genome->derived_mutation_ids_at_position(mut_pos));
@@ -3565,6 +3320,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	// cache target genomes and determine whether they are initially empty, in which case we can do fast mutation addition with emplace_back()
 	std::vector<Genome *> targets;
 	std::vector<slim_mutrun_index_t> target_last_mutrun_modified;
+	std::vector<MutationRun *> target_last_mutrun;
 	bool all_target_genomes_started_empty = true;
 	
 	for (int genome_index = 0; genome_index < target_size; ++genome_index)
@@ -3579,12 +3335,16 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			
 			targets.emplace_back(genome);
 			target_last_mutrun_modified.emplace_back(-1);
+			target_last_mutrun.emplace_back(nullptr);
 		}
 	}
 	
 	target_size = (int)targets.size();	// adjust for possible exclusion of null genomes
 	
 	// parse all the call lines, instantiate their mutations, and add the mutations to the target genomes
+#ifndef _OPENMP
+	MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForThread(omp_get_thread_num());	// when not parallel, we have only one MutationRunContext
+#endif
 	std::vector<MutationIndex> mutation_indices;
 	bool has_initial_mutations = (gSLiM_next_mutation_id != 0);
 	
@@ -3971,23 +3731,27 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			{
 				Genome *genome = targets[genome_index];
 				slim_mutrun_index_t &genome_last_mutrun_modified = target_last_mutrun_modified[genome_index];
+				MutationRun *(&genome_last_mutrun) = target_last_mutrun[genome_index];
 				slim_position_t mutrun_length = genome->mutrun_length_;
 				MutationIndex mut_index = alt_allele_mut_indices[call - 1];
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
 				
 				if (mut_mutrun_index != genome_last_mutrun_modified)
 				{
-					genome->WillModifyRun(mut_mutrun_index);
+#ifdef _OPENMP
+					// When parallel, the MutationRunContext depends upon the position in the genome
+					MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mut_mutrun_index);
+#endif
+					
+					genome_last_mutrun = genome->WillModifyRun(mut_mutrun_index, mutrun_context);
 					genome_last_mutrun_modified = mut_mutrun_index;
 				}
 				
-				MutationRun *mut_mutrun = genome->mutruns_[mut_mutrun_index].get();
-				
 				// If the genome started empty, we can add mutations to the end with emplace_back(); if it did not, then they need to be inserted
 				if (all_target_genomes_started_empty)
-					mut_mutrun->emplace_back(mut_index);
+					genome_last_mutrun->emplace_back(mut_index);
 				else
-					mut_mutrun->insert_sorted_mutation(mut_index);
+					genome_last_mutrun->insert_sorted_mutation(mut_index);
 				
 				if (recording_mutations)
 					species->RecordNewDerivedState(genome, mut_position, *genome->derived_mutation_ids_at_position(mut_position));
@@ -4102,11 +3866,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			}
 		}
 		
-		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
-		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
-		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
-		MutationRun *shared_empty_run = nullptr;
-		int mutrun_count = genome_0->mutrun_count_;
+		// Fetch genome pointers and check for null genomes up front
+		std::vector<Genome *>target_genomes;
 		
 		for (int genome_index = 0; genome_index < target_size; ++genome_index)
 		{
@@ -4115,23 +3876,39 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			if (target_genome->IsNull())
 				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() cannot be called on a null genome.  This error may be due to a break in backward compatibility in SLiM 3.7 involving addRecombinant() with haploid models; if that seems likely, please see the release notes." << EidosTerminate();
 			
-			for (int run_index = 0; run_index < mutrun_count; ++run_index)
+			target_genomes.push_back(target_genome);
+		}
+		
+		// Now remove all mutations; we don't use bulk operations here because it is simpler to just set them all to the same empty run
+		// BCH 8/12/2021: fixing this code to only reset mutation runs if they presently contain a mutation; do nothing for empty mutruns
+		// This avoids a bunch of mutrun thrash in haploid models that remove all mutations from the second genome in modifyChild(), etc.
+		int mutrun_count = genome_0->mutrun_count_;
+		
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRun *shared_empty_run = nullptr;	// different shared empty run for each mutrun index
+			
+			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
-				MutationRun *mutrun = target_genome->mutruns_[run_index].get();
+				Genome *target_genome = target_genomes[genome_index];
+				const MutationRun *mutrun = target_genome->mutruns_[run_index];
 				
 				if (mutrun->size())
 				{
 					// Allocate the shared empty run lazily, since we might not need it (if we're removing mutations from genomes that are empty already)
 					if (!shared_empty_run)
-						shared_empty_run = MutationRun::NewMutationRun();
+					{
+						MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(run_index);
+						shared_empty_run = MutationRun::NewMutationRun(mutrun_context);
+					}
 					
-					target_genome->mutruns_[run_index].reset(shared_empty_run);
+					target_genome->mutruns_[run_index] = shared_empty_run;
 				}
 			}
 		}
 		
 		// invalidate cached mutation refcounts; refcounts have changed
-		pop.cached_tally_genome_count_ = 0;
+		pop.InvalidateMutationReferencesCache();
 		
 		// in this code path we just assume that nonneutral mutations might have been removed
 		any_nonneutral_removed = true;
@@ -4320,9 +4097,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				continue;
 			
 			// We have not yet processed this mutation run; do this mutation run index as a bulk operation
-			int64_t operation_id = SLiM_GetNextMutationRunOperationID();
+			int64_t operation_id = MutationRun::GetNextOperationID();
 			
 			Genome::BulkOperationStart(operation_id, mutrun_index);
+			
+			MutationRunContext &mutrun_context = species->SpeciesMutationRunContextForMutationRunIndex(mutrun_index);
 			
 			for (int genome_index = 0; genome_index < target_size; ++genome_index)
 			{
@@ -4335,10 +4114,11 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 				}
 				
 				// See if WillModifyRunForBulkOperation() can short-circuit the operation for us
-				if (target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index))
+				MutationRun *mutrun = target_genome->WillModifyRunForBulkOperation(operation_id, mutrun_index, mutrun_context);
+				
+				if (mutrun)
 				{
 					// Remove the specified mutations; see RemoveFixedMutations for the origins of this code
-					MutationRun *mutrun = target_genome->mutruns_[mutrun_index].get();
 					MutationIndex *genome_iter = mutrun->begin_pointer();
 					MutationIndex *genome_backfill_iter = mutrun->begin_pointer();
 					MutationIndex *genome_max = mutrun->end_pointer();
@@ -4393,7 +4173,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 			last_handled_mutrun_index = mutrun_index;
 			
 			// invalidate cached mutation refcounts; refcounts have changed
-			pop.cached_tally_genome_count_ = 0;
+			pop.InvalidateMutationReferencesCache();
 		}
 		
 		// TREE SEQUENCE RECORDING
@@ -4445,7 +4225,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 
 void GenomeWalker::NextMutation(void)
 {
-	if (++mutrun_ptr_ >= mutrun_end_)
+	// the !mutrun_ptr_ is actually not necessary, but ASAN wants it to be here...
+	if (!mutrun_ptr_ || (++mutrun_ptr_ >= mutrun_end_))
 	{
 		// finished the current mutation, so move to the next until we find a mutation
 		do
@@ -4457,7 +4238,7 @@ void GenomeWalker::NextMutation(void)
 				return;
 			}
 			
-			MutationRun *mutrun = genome_->mutruns_[mutrun_index_].get();
+			const MutationRun *mutrun = genome_->mutruns_[mutrun_index_];
 			mutrun_ptr_ = mutrun->begin_pointer_const();
 			mutrun_end_ = mutrun->end_pointer_const();
 		}
@@ -4490,7 +4271,7 @@ void GenomeWalker::MoveToPosition(slim_position_t p_position)
 		}
 		
 		// get the information on the mutrun
-		MutationRun *mutrun = genome->mutruns_[mutrun_index_].get();
+		const MutationRun *mutrun = genome->mutruns_[mutrun_index_];
 		mutrun_ptr_ = mutrun->begin_pointer_const();
 		mutrun_end_ = mutrun->end_pointer_const();
 		

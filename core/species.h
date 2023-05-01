@@ -36,6 +36,7 @@
 #include "population.h"
 #include "chromosome.h"
 #include "eidos_value.h"
+#include "mutation_run.h"
 
 //TREE SEQUENCE
 //INCLUDE JEROME's TABLES API
@@ -246,6 +247,17 @@ private:
 	// preferred mutation run length
 	int preferred_mutrun_count_ = 0;												// 0 represents no preference
 	
+	// Species now keeps two MutationRunPools, one for freed MutationRun objects and one for in-use MutationRun objects,
+	// as well as an object pool out of which completely new MutationRuns are allocated, all bundled in a MutationRunContext.
+	// When running multithreaded, each of these becomes a vector of per-thread objects, so we can alloc/free runs in parallel code.
+	// This stuff is not set up until after initialize() callbacks; nobody should be using MutationRuns before then.
+#ifndef _OPENMP
+	MutationRunContext mutation_run_context_SINGLE_;
+#else
+	int mutation_run_context_COUNT_ = 0;											// the number of PERTHREAD contexts
+	std::vector<MutationRunContext *> mutation_run_context_PERTHREAD;
+#endif
+	
 	// preventing incidental selfing in hermaphroditic models
 	bool prevent_incidental_selfing_ = false;
 	
@@ -387,11 +399,13 @@ public:
 	~Species(void);																						// destructor
 	
 	void TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage);			// used by outputUsage() and SLiMgui profiling
+	void DeleteAllMutationRuns(void);												// for cleanup
 	
 	// Running cycles
 	std::vector<SLiMEidosBlock*> CallbackBlocksMatching(slim_tick_t p_tick, SLiMEidosBlockType p_event_type, slim_objectid_t p_mutation_type_id, slim_objectid_t p_interaction_type_id, slim_objectid_t p_subpopulation_id);
 	void RunInitializeCallbacks(void);
 	bool HasDoneAnyInitialization(void);
+	void SetUpMutationRunContexts(void);
 	void PrepareForCycle(void);
 	void MaintainMutationRegistry(void);
 	void RecalculateFitness(void);
@@ -452,6 +466,47 @@ public:
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,MutationType*> &MutationTypes(void) const			{ return mutation_types_; }
 	inline __attribute__((always_inline)) const std::map<slim_objectid_t,GenomicElementType*> &GenomicElementTypes(void)	{ return genomic_element_types_; }
 	inline __attribute__((always_inline)) size_t GraveyardSize(void) const													{ return graveyard_.size(); }
+	
+#ifndef _OPENMP
+	inline int SpeciesMutationRunContextCount(void) { return 1; }
+	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(__attribute__((unused)) int p_thread_num)
+	{
+#if DEBUG
+		if (p_thread_num != 0)
+			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		return mutation_run_context_SINGLE_;
+	}
+#else
+	inline int SpeciesMutationRunContextCount(void) { return mutation_run_context_COUNT_; }
+	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForThread(int p_thread_num)
+	{
+#if DEBUG
+		if ((p_thread_num < 0) || (p_thread_num >= mutation_run_context_COUNT_))
+			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForThread): (internal error) p_thread_num out of range." << EidosTerminate();
+#endif
+		return *(mutation_run_context_PERTHREAD[p_thread_num]);
+	}
+	inline __attribute__((always_inline)) MutationRunContext &SpeciesMutationRunContextForMutationRunIndex(__attribute__((unused)) slim_mutrun_index_t p_mutrun_index)
+	{
+#if DEBUG
+		if ((p_mutrun_index < 0) || (p_mutrun_index >= chromosome_->mutrun_count_))
+			EIDOS_TERMINATION << "ERROR (Species::SpeciesMutationRunContextForMutationRunIndex): (internal error) p_mutrun_index out of range." << EidosTerminate();
+#endif
+		// The range of the genome that each thread is responsible for does not change across
+		// splits/joins; one mutrun becomes two, or two become one, owned by the same thread
+		int thread_num = (int)(p_mutrun_index / chromosome_->mutrun_count_multiplier_);
+		return *(mutation_run_context_PERTHREAD[thread_num]);
+	}
+#endif
 	
 	inline Subpopulation *SubpopulationWithID(slim_objectid_t p_subpop_id) {
 		auto id_iter = population_.subpops_.find(p_subpop_id);

@@ -24,59 +24,34 @@
 
 
 // For doing bulk operations across all MutationRun objects; see header
-int64_t gSLiM_MutationRun_OperationID = 0;
-
-std::vector<MutationRun *> MutationRun::s_freed_mutation_runs_;
+int64_t MutationRun::sOperationID = 0;
 
 
-#if DEBUG_MUTATION_RUNS
-int64_t gSLiM_ActiveMutrunCount = 0;
-int64_t gSLiM_FreeMutrunCount = 0;
-int64_t gSLiM_AllocatedMutrunCount = 0;
-int64_t gSLiM_UnfreedMutrunCount = 0;
-int64_t gSLiM_ConstructedMutrunCount = 0;
-int64_t gSLiM_MutationsBufferCount = 0;
-int64_t gSLiM_MutationsBufferBytes = 0;
-int64_t gSLiM_MutationsBufferNewCount = 0;
-int64_t gSLiM_MutationsBufferReallocCount = 0;
-int64_t gSLiM_MutationsBufferFreedCount = 0;
+MutationRun::MutationRun(void)
+#ifdef DEBUG_LOCKS_ENABLED
+	: mutrun_use_count_LOCK("mutrun_use_count_LOCK")
 #endif
-
+{
+	// give it some initial capacity
+	mutation_capacity_ = SLIM_MUTRUN_INITIAL_CAPACITY;
+	mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
+	if (!mutations_)
+		EIDOS_TERMINATION << "ERROR (MutationRun::MutationRun): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+}
 
 MutationRun::~MutationRun(void)
 {
-	// mutations_buffer_ is not malloced and cannot be freed; free only if we have an external buffer
-	if (mutations_ != mutations_buffer_)
-	{
-		free(mutations_);
-		
-#if DEBUG_MUTATION_RUNS
-		gSLiM_MutationsBufferFreedCount++;
-		gSLiM_MutationsBufferCount--;
-		gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
-#endif
-	}
+	free(mutations_);
 	
 #if SLIM_USE_NONNEUTRAL_CACHES
 	if (nonneutral_mutations_)
 		free(nonneutral_mutations_);
 #endif
-	
-#ifdef _OPENMP
-	omp_destroy_lock(&mutrun_LOCK);
-#endif
 }
-
-#ifdef SLIM_MUTRUN_CHECK_LOCKING
-void MutationRun::LockingViolation(void) const
-{
-	EIDOS_TERMINATION << "ERROR (MutationRun::LockingViolation): (internal error) a locked MutationRun was modified." << EidosTerminate();
-}
-#endif
 
 #if 0
 // linear search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
+bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 {
 	const MutationIndex *position = begin_pointer_const();
 	const MutationIndex *end_position = end_pointer_const();
@@ -89,7 +64,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
 }
 #else
 // binary search
-bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
+bool MutationRun::contains_mutation(MutationIndex p_mutation_index) const
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Mutation *mutation = gSLiM_Mutation_Block + p_mutation_index;
@@ -169,7 +144,7 @@ bool MutationRun::contains_mutation(MutationIndex p_mutation_index)
 }
 #endif
 
-Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position)
+Mutation *MutationRun::mutation_with_type_and_position(MutationType *p_mut_type, slim_position_t p_position, slim_position_t p_last_position) const
 {
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	int mut_count = size();
@@ -445,10 +420,10 @@ bool MutationRun::_EnforceStackPolicyForAddition(slim_position_t p_position, Mut
 		EIDOS_TERMINATION << "ERROR (MutationRun::_EnforceStackPolicyForAddition): (internal error) invalid policy." << EidosTerminate();
 }
 
-void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position)
+void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_half, slim_position_t p_split_first_position, MutationRunContext &p_mutrun_context) const
 {
-	MutationRun *first_half = NewMutationRun();
-	MutationRun *second_half = NewMutationRun();
+	MutationRun *first_half = NewMutationRun(p_mutrun_context);
+	MutationRun *second_half = NewMutationRun(p_mutrun_context);
 	int32_t second_half_start;
 	
 	for (second_half_start = 0; second_half_start < mutation_count_; ++second_half_start)
@@ -468,7 +443,7 @@ void MutationRun::split_run(MutationRun **p_first_half, MutationRun **p_second_h
 
 #if SLIM_USE_NONNEUTRAL_CACHES
 
-void MutationRun::cache_nonneutral_mutations_REGIME_1()
+void MutationRun::cache_nonneutral_mutations_REGIME_1() const
 {
 	//
 	//	Regime 1 means there are no mutationEffect() callbacks at all, so neutrality can be assessed
@@ -488,7 +463,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_1()
 	}
 }
 
-void MutationRun::cache_nonneutral_mutations_REGIME_2()
+void MutationRun::cache_nonneutral_mutations_REGIME_2() const
 {
 	//
 	//	Regime 2 means the only mutationEffect() callbacks are (a) constant-effect, (b) neutral (i.e.,
@@ -516,7 +491,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_2()
 	}
 }
 
-void MutationRun::cache_nonneutral_mutations_REGIME_3()
+void MutationRun::cache_nonneutral_mutations_REGIME_3() const
 {
 	//
 	//	Regime 3 means that there are mutationEffect() callbacks beyond the constant neutral global
@@ -543,7 +518,7 @@ void MutationRun::cache_nonneutral_mutations_REGIME_3()
 	}
 }
 
-void MutationRun::check_nonneutral_mutation_cache()
+void MutationRun::check_nonneutral_mutation_cache() const
 {
 	if (!nonneutral_mutations_)
 		EIDOS_TERMINATION << "ERROR (MutationRun::check_nonneutral_mutation_cache): (internal error) cache not allocated." << EidosTerminate();
@@ -576,16 +551,14 @@ void MutationRun::check_nonneutral_mutation_cache()
 // mutation in p_mutations_to_add, with checks with enforce_stack_policy_for_addition().  The point of
 // this is speed: like DoClonalMutation(), we can merge the new mutations in much faster if we do it in
 // bulk.  Note that p_mutations_to_set and p_mutations_to_add must both be sorted by position.
-void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationRun &p_mutations_to_add)
+void MutationRun::clear_set_and_merge(const MutationRun &p_mutations_to_set, std::vector<MutationIndex> &p_mutations_to_add)
 {
-	SLIM_MUTRUN_LOCK_CHECK();
-	
 	// first, clear all mutations out of the receiver
 	clear();
 	
 	// handle the cases with no mutations in one or the other given run, so we can assume >= 1 mutations below
 	int mut_to_set_count = p_mutations_to_set.size();
-	int mut_to_add_count = p_mutations_to_add.size();
+	int mut_to_add_count = (int)p_mutations_to_add.size();
 	
 	if (mut_to_add_count == 0)
 	{
@@ -595,7 +568,7 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 	
 	if (mut_to_set_count == 0)
 	{
-		copy_from_run(p_mutations_to_add);
+		copy_from_vector(p_mutations_to_add);
 		return;
 	}
 	
@@ -603,66 +576,24 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 	if (mut_to_set_count + mut_to_add_count > mutation_capacity_)
 	{
 		// See emplace_back for comments on our capacity policy
-		if (mutations_ == mutations_buffer_)
+		do
 		{
-			// We're allocating a malloced buffer for the first time, so we outgrew our internal buffer.  We might try jumping by
-			// more than a factor of two, to avoid repeated reallocs; in practice, that is not a win.  The large majority of SLiM's
-			// memory usage in typical simulations comes from these arrays of pointers kept by Genome, so making them larger
-			// than necessary can massively balloon SLiM's memory usage for very little gain.  The realloc() calls are very fast;
-			// avoiding it is not a major concern.  In fact, using *8 here instead of *2 actually slows down a test simulation,
-			// perhaps because it causes a true realloc rather than just a size increment of the existing malloc block.  Who knows.
-			mutation_capacity_ = SLIM_MUTRUN_BUFFER_SIZE * 2;
-			
-			while (mut_to_set_count + mut_to_add_count > mutation_capacity_)
-			{
-				if (mutation_capacity_ < 32)
-					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-				else
-					mutation_capacity_ += 16;
-			}
-			
-			mutations_ = (MutationIndex *)malloc(mutation_capacity_ * sizeof(MutationIndex));
-			if (!mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::clear_set_and_merge): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			memcpy(mutations_, mutations_buffer_, mutation_count_ * sizeof(MutationIndex));
-			
-#if DEBUG_MUTATION_RUNS
-			gSLiM_MutationsBufferCount++;
-			gSLiM_MutationsBufferNewCount++;
-			gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
-#endif
+			if (mutation_capacity_ < 32)
+				mutation_capacity_ <<= 1;		// double the number of pointers we can hold
+			else
+				mutation_capacity_ += 16;
 		}
-		else
-		{
-#if DEBUG_MUTATION_RUNS
-			gSLiM_MutationsBufferBytes -= (mutation_capacity_ * sizeof(MutationIndex));
-#endif
-				
-			do
-			{
-				if (mutation_capacity_ < 32)
-					mutation_capacity_ <<= 1;		// double the number of pointers we can hold
-				else
-					mutation_capacity_ += 16;
-			}
-			while (mut_to_set_count + mut_to_add_count > mutation_capacity_);
-			
-			mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
-			if (!mutations_)
-				EIDOS_TERMINATION << "ERROR (MutationRun::clear_set_and_merge): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-#if DEBUG_MUTATION_RUNS
-			gSLiM_MutationsBufferReallocCount++;
-			gSLiM_MutationsBufferBytes += (mutation_capacity_ * sizeof(MutationIndex));
-#endif
-		}
+		while (mut_to_set_count + mut_to_add_count > mutation_capacity_);
+		
+		mutations_ = (MutationIndex *)realloc(mutations_, mutation_capacity_ * sizeof(MutationIndex));
+		if (!mutations_)
+			EIDOS_TERMINATION << "ERROR (MutationRun::clear_set_and_merge): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 	
 	// then interleave mutations together, effectively setting p_mutations_to_set and then adding in p_mutations_to_add
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	const MutationIndex *mutation_iter		= p_mutations_to_add.begin_pointer_const();
-	const MutationIndex *mutation_iter_max	= p_mutations_to_add.end_pointer_const();
+	const MutationIndex *mutation_iter		= p_mutations_to_add.data();
+	const MutationIndex *mutation_iter_max	= mutation_iter + p_mutations_to_add.size();
 	MutationIndex mutation_iter_mutation_index = *mutation_iter;
 	slim_position_t mutation_iter_pos = (mut_block_ptr + mutation_iter_mutation_index)->position_;
 	
@@ -721,15 +652,12 @@ void MutationRun::clear_set_and_merge(MutationRun &p_mutations_to_set, MutationR
 	}
 }
 
-size_t MutationRun::MemoryUsageForMutationIndexBuffers(void)
+size_t MutationRun::MemoryUsageForMutationIndexBuffers(void) const
 {
-	if (mutations_ == mutations_buffer_)
-		return 0;
-	else
-		return mutation_capacity_ * sizeof(MutationIndex);
+	return mutation_capacity_ * sizeof(MutationIndex);
 }
 
-size_t MutationRun::MemoryUsageForNonneutralCaches(void)
+size_t MutationRun::MemoryUsageForNonneutralCaches(void) const
 {
 	return nonneutral_mutation_capacity_ * sizeof(MutationIndex);
 }

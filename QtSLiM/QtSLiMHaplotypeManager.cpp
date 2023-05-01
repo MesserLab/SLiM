@@ -482,7 +482,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -512,7 +512,7 @@ void QtSLiMHaplotypeManager::configureDisplayBuffers(void)
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome.mutruns_[run_index].get();
+				const MutationRun *mutrun = genome.mutruns_[run_index];
 				const MutationIndex *mut_start_ptr = mutrun->begin_pointer_const();
 				const MutationIndex *mut_end_ptr = mutrun->end_pointer_const();
 				
@@ -875,20 +875,20 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArray(void)
 		int64_t *distance_column = distances + i;
 		int64_t *distance_row = distances + i * genome_count;
 		int mutrun_count = genome1->mutrun_count_;
-		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		const MutationRun **genome1_mutruns = genome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
 		for (size_t j = i + 1; j < genome_count; ++j)
 		{
 			Genome *genome2 = genomes[j];
-			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			const MutationRun **genome2_mutruns = genome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
-				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
+				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
 				int genome1_mutcount = genome1_mutrun->size();
 				int genome2_mutcount = genome2_mutrun->size();
 				
@@ -962,14 +962,14 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 		int64_t *distance_row = distances + i * genome_count;
 		slim_position_t mutrun_length = genome1->mutrun_length_;
 		int mutrun_count = genome1->mutrun_count_;
-		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		const MutationRun **genome1_mutruns = genome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
 		for (size_t j = i + 1; j < genome_count; ++j)
 		{
 			Genome *genome2 = genomes[j];
-			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			const MutationRun **genome2_mutruns = genome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -979,8 +979,8 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrange(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
-				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
+				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
 				
 				if (genome1_mutrun == genome2_mutrun)
 					;										// identical runs have no differences
@@ -1062,20 +1062,20 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubtypes(void)
 		int64_t *distance_column = distances + i;
 		int64_t *distance_row = distances + i * genome_count;
 		int mutrun_count = genome1->mutrun_count_;
-		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		const MutationRun **genome1_mutruns = genome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
 		for (size_t j = i + 1; j < genome_count; ++j)
 		{
 			Genome *genome2 = genomes[j];
-			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			const MutationRun **genome2_mutruns = genome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 			{
-				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
-				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
+				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
 				
 				if (genome1_mutrun == genome2_mutrun)
 					;										// identical runs have no differences
@@ -1158,14 +1158,14 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 		int64_t *distance_row = distances + i * genome_count;
 		slim_position_t mutrun_length = genome1->mutrun_length_;
 		int mutrun_count = genome1->mutrun_count_;
-		MutationRun_SP *genome1_mutruns = genome1->mutruns_;
+		const MutationRun **genome1_mutruns = genome1->mutruns_;
 		
 		distance_row[i] = 0;
 		
 		for (size_t j = i + 1; j < genome_count; ++j)
 		{
 			Genome *genome2 = genomes[j];
-			MutationRun_SP *genome2_mutruns = genome2->mutruns_;
+			const MutationRun **genome2_mutruns = genome2->mutruns_;
 			int64_t distance = 0;
 			
 			for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
@@ -1175,8 +1175,8 @@ int64_t *QtSLiMHaplotypeManager::buildDistanceArrayForSubrangeAndSubtypes(void)
 					continue;
 				
 				// OK, this mutrun intersects with our chosen subrange; proceed
-				MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index].get();
-				MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index].get();
+				const MutationRun *genome1_mutrun = genome1_mutruns[mutrun_index];
+				const MutationRun *genome2_mutrun = genome2_mutruns[mutrun_index];
 				
 				if (genome1_mutrun == genome2_mutrun)
 					;										// identical runs have no differences

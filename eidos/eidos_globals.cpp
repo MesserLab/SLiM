@@ -343,10 +343,10 @@ void Eidos_WarmUp(void)
 //		std::cout << "sizeof(EidosValue_Object_singleton) == " << sizeof(EidosValue_Object_singleton) << std::endl;
 //		std::cout << "maxEidosValueSize ==                   " << maxEidosValueSize << std::endl;
 		
-		gEidosValuePool = new EidosObjectPool(maxEidosValueSize);
+		gEidosValuePool = new EidosObjectPool("EidosObjectPool(EidosValue)", maxEidosValueSize);
 		
 		// Make the shared EidosASTNode pool
-		gEidosASTNodePool = new EidosObjectPool(sizeof(EidosASTNode));
+		gEidosASTNodePool = new EidosObjectPool("EidosObjectPool(EidosASTNode)", sizeof(EidosASTNode));
 		
 		// Allocate global permanents
 		gStaticEidosValueVOID = EidosValue_VOID::Static_EidosValue_VOID();

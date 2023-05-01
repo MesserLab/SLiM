@@ -328,7 +328,7 @@ Genome *Subpopulation::_NewSubpopGenome_NULL(GenomeType p_genome_type)
 		Genome *back = genome_junkyard_nonnull.back();
 		genome_junkyard_nonnull.pop_back();
 		
-		// got a non-null genome (guaranteed cleared to nullptr by FreeSubpopGenome()), need to repurpose it to be a null genome
+		// got a non-null genome, need to repurpose it to be a null genome
 		back->ReinitializeGenomeNullptr(p_genome_type, 0, 0);
 		
 		return back;
@@ -451,7 +451,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 				// cycling, primarily – GenerateChildrenToFitWF() often generating many new children).
 				Genome *genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
 				Genome *genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
 				child_genomes_.emplace_back(genome1);
 				child_genomes_.emplace_back(genome2);
@@ -465,7 +465,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			{
 				Genome *genome1 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 				Genome *genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
-				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, -1, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
+				Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, -1, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ -1.0F);
 				
 				child_genomes_.emplace_back(genome1);
 				child_genomes_.emplace_back(genome2);
@@ -551,7 +551,21 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	
 	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
 	bool has_genetics = species_.HasGenetics();
-	MutationRun *shared_empty_run = (((parent_subpop_size_ > 0) && has_genetics) ? MutationRun::NewMutationRun() : nullptr);
+	std::vector<MutationRun *> shared_empty_runs;
+	
+	if ((parent_subpop_size_ > 0) && has_genetics)
+	{
+		// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+		// the correct per-thread allocation pool.  See also ExecuteMethod_addEmpty(), which does the same.
+		shared_empty_runs.resize(mutrun_count);
+		
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			
+			shared_empty_runs[run_index] = MutationRun::NewMutationRun(mutrun_context);
+		}
+	}
 	
 	if (sex_enabled_)
 	{
@@ -581,7 +595,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 					case GenomeType::kAutosome:
 					{
 						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 						
 						if (p_haploid)
 						{
@@ -590,19 +604,19 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 						else
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						break;
 					}
 					case GenomeType::kXChromosome:
 					{
 						genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-						genome1->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+						genome1->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						
 						if (is_female)
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kXChromosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kXChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						else
 						{
@@ -621,7 +635,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 						else
 						{
 							genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kYChromosome);
-							genome2->ReinitializeGenomeToMutrun(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_run);
+							genome2->ReinitializeGenomeToMutruns(GenomeType::kYChromosome, mutrun_count, mutrun_length, shared_empty_runs);
 						}
 						break;
 					}
@@ -649,7 +663,10 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			}
 			
 			IndividualSex individual_sex = (is_female ? IndividualSex::kFemale : IndividualSex::kMale);
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, individual_sex, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			
+			if (pedigrees_enabled)
+				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -676,7 +693,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 			if (has_genetics)
 			{
 				genome1 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-				genome1->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+				genome1->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 				
 				if (p_haploid)
 				{
@@ -685,7 +702,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				else
 				{
 					genome2 = NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, GenomeType::kAutosome);
-					genome2->ReinitializeGenomeToMutrun(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_run);
+					genome2->ReinitializeGenomeToMutruns(GenomeType::kAutosome, mutrun_count, mutrun_length, shared_empty_runs);
 				}
 			}
 			else
@@ -695,7 +712,10 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 				genome2 = NewSubpopGenome_NULL(GenomeType::kAutosome);
 			}
 			
-			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, (pedigrees_enabled ? SLiM_GetNextPedigreeID() : -1), genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, new_index, genome1, genome2, IndividualSex::kHermaphrodite, p_initial_age, /* initial fitness for new subpops */ 1.0, /* p_mean_parent_age */ p_mean_parent_age);
+			
+			if (pedigrees_enabled)
+				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
 			
 			// TREE SEQUENCE RECORDING
 			if (recording_tree_sequence)
@@ -729,6 +749,9 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with genetics has mutrun count/length of 0." << EidosTerminate();
 	else if (!has_genetics && ((mutrun_count != 0) || (mutrun_length != 0)))
 		EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) species with no genetics has non-zero mutrun count/length." << EidosTerminate();
+	
+	// below we will use this map to check that every mutation run in use is used at only one mutrun index
+	robin_hood::unordered_flat_map<const MutationRun *, slim_mutrun_index_t> mutrun_position_map;
 	
 	//
 	//	Check the parental generation; this is essentially the same in WF and nonWF models
@@ -846,23 +869,45 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		{
 			// When the child generation is valid, all parental genomes should have null mutrun pointers, so mutrun refcounts are correct
 			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-				if (genome1->mutruns_[mutrun_index].get() != nullptr)
+				if (genome1->mutruns_[mutrun_index] != nullptr)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
 			
 			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-				if (genome2->mutruns_[mutrun_index].get() != nullptr)
+				if (genome2->mutruns_[mutrun_index] != nullptr)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a nonnull mutrun pointer." << EidosTerminate();
 		}
 		else
 		{
 			// When the parental generation is valid, all parental genomes should have non-null mutrun pointers
 			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-				if (genome1->mutruns_[mutrun_index].get() == nullptr)
+				if (genome1->mutruns_[mutrun_index] == nullptr)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a null mutrun pointer." << EidosTerminate();
 			
 			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-				if (genome2->mutruns_[mutrun_index].get() == nullptr)
+				if (genome2->mutruns_[mutrun_index] == nullptr)
 					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a parental genome has a null mutrun pointer." << EidosTerminate();
+			
+			// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+			for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+			{
+				const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
+				auto found_iter = mutrun_position_map.find(mutrun);
+				
+				if (found_iter == mutrun_position_map.end())
+					mutrun_position_map[mutrun] = mutrun_index;
+				else if (found_iter->second != mutrun_index)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+			}
+			for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
+			{
+				const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
+				auto found_iter = mutrun_position_map.find(mutrun);
+				
+				if (found_iter == mutrun_position_map.end())
+					mutrun_position_map[mutrun] = mutrun_index;
+				else if (found_iter->second != mutrun_index)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+			}
 		}
 	}
 	
@@ -970,23 +1015,70 @@ void Subpopulation::CheckIndividualIntegrity(void)
 			{
 				// When the child generation is active, child genomes should have non-null mutrun pointers
 				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-					if (genome1->mutruns_[mutrun_index].get() == nullptr)
+					if (genome1->mutruns_[mutrun_index] == nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a null mutrun pointer." << EidosTerminate();
 				
 				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-					if (genome2->mutruns_[mutrun_index].get() == nullptr)
+					if (genome2->mutruns_[mutrun_index] == nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a null mutrun pointer." << EidosTerminate();
+				
+				// check that every mutrun is used at only one mutrun index (particularly salient for empty mutruns)
+				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = genome1->mutruns_[mutrun_index];
+					auto found_iter = mutrun_position_map.find(mutrun);
+					
+					if (found_iter == mutrun_position_map.end())
+						mutrun_position_map[mutrun] = mutrun_index;
+					else if (found_iter->second != mutrun_index)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				}
+				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
+				{
+					const MutationRun *mutrun = genome2->mutruns_[mutrun_index];
+					auto found_iter = mutrun_position_map.find(mutrun);
+					
+					if (found_iter == mutrun_position_map.end())
+						mutrun_position_map[mutrun] = mutrun_index;
+					else if (found_iter->second != mutrun_index)
+						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run was used at more than one position." << EidosTerminate();
+				}
 			}
 			else
 			{
 				// When the parental generation is active, child genomes should have null mutrun pointers, so mutrun refcounts are correct
 				for (int mutrun_index = 0; mutrun_index < genome1->mutrun_count_; ++mutrun_index)
-					if (genome1->mutruns_[mutrun_index].get() != nullptr)
+					if (genome1->mutruns_[mutrun_index] != nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a nonnull mutrun pointer." << EidosTerminate();
 				
 				for (int mutrun_index = 0; mutrun_index < genome2->mutrun_count_; ++mutrun_index)
-					if (genome2->mutruns_[mutrun_index].get() != nullptr)
+					if (genome2->mutruns_[mutrun_index] != nullptr)
 						EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a child genome has a nonnull mutrun pointer." << EidosTerminate();
+			}
+		}
+	}
+	
+	//
+	// Check that every mutation run is being used at a position corresponding to the pool it was allocated from
+	//
+	slim_mutrun_index_t mutrun_count_multiplier = species_.chromosome_->mutrun_count_multiplier_;
+	
+	for (int thread_num = 0; thread_num < species_.SpeciesMutationRunContextCount(); ++thread_num)
+	{
+		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(thread_num);
+		MutationRunPool &in_use_pool = mutrun_context.in_use_pool_;
+		
+		for (const MutationRun *mutrun : in_use_pool)
+		{
+			auto found_iter = mutrun_position_map.find(mutrun);
+			
+			if (found_iter != mutrun_position_map.end())
+			{
+				slim_mutrun_index_t used_at_index = found_iter->second;
+				int correct_thread_num = (int)(used_at_index / mutrun_count_multiplier);
+				
+				if (correct_thread_num != thread_num)
+					EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) a mutation run is used at a position that does not correspond to its allocation pool." << EidosTerminate();
 			}
 		}
 	}
@@ -1002,20 +1094,12 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	{
 		if (genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null genome in the nonnull genome junkyard." << EidosTerminate();
-		
-		for (int mutrun_index = 0; mutrun_index < genome->mutrun_count_; ++mutrun_index)
-			if (genome->mutruns_[mutrun_index].get() != nullptr)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull mutrun pointer in the nonnull genome junkyard." << EidosTerminate();
 	}
 	
 	for (Genome *genome : genome_junkyard_null)
 	{
 		if (!genome->IsNull())
 			EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull genome in the null genome junkyard." << EidosTerminate();
-		
-		for (int mutrun_index = 0; mutrun_index < genome->mutrun_count_; ++mutrun_index)
-			if (genome->mutruns_[mutrun_index].get() != nullptr)
-				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) nonnull mutrun pointer in the null genome junkyard." << EidosTerminate();
 	}
 }
 
@@ -1231,7 +1315,7 @@ void Subpopulation::FixNonNeutralCaches_OMP(void)
 				
 				for (int run_index = 0; run_index < mutrun_count; ++run_index)
 				{
-					MutationRun *mutrun = genome->mutruns_[run_index].get();
+					const MutationRun *mutrun = genome->mutruns_[run_index];
 					
 					// This will start a new task if the mutrun needs to validate
 					// its nonneutral cache.  It avoids doing so more than once.
@@ -2577,7 +2661,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			const MutationRun *mutrun = genome->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -2604,8 +2688,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
-			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
+			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
+			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -2778,7 +2862,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			const MutationRun *mutrun = genome->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -2814,8 +2898,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
-			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
+			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
+			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -3017,7 +3101,7 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun = genome->mutruns_[run_index].get();
+			const MutationRun *mutrun = genome->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -3060,8 +3144,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 		
 		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			MutationRun *mutrun1 = genome1->mutruns_[run_index].get();
-			MutationRun *mutrun2 = genome2->mutruns_[run_index].get();
+			const MutationRun *mutrun1 = genome1->mutruns_[run_index];
+			const MutationRun *mutrun2 = genome2->mutruns_[run_index];
 			
 #if SLIM_USE_NONNEUTRAL_CACHES
 			// Cache non-neutral mutations and read from the non-neutral buffers
@@ -4583,14 +4667,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
 	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
 	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Uniparental(*parent);
+		individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (species_.RecordingTreeSequence())
@@ -4710,7 +4794,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (parent1->age_ + (float)parent2->age_) / 2.0F);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ (parent1->age_ + (float)parent2->age_) / 2.0F);
 	std::vector<SLiMEidosBlock*> *parent1_recombination_callbacks = &parent1_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent2_recombination_callbacks = &parent2_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent1_mutation_callbacks = &parent1_subpop.registered_mutation_callbacks_;
@@ -4718,7 +4802,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Biparental(*parent1, *parent2);
+		individual->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *parent1, *parent2);
 	
 	// TREE SEQUENCE RECORDING
 	if (species_.RecordingTreeSequence())
@@ -4848,11 +4932,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ 0.0F);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ 0.0F);
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Parentless();
+		individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
 	
 	// TREE SEQUENCE RECORDING
 	if (species_.RecordingTreeSequence())
@@ -4868,10 +4952,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 	genome2->check_cleared_to_nullptr();
 #endif
 	
-	if (!genome1_null)
-		genome1->clear_to_empty();
-	if (!genome2_null)
-		genome2->clear_to_empty();
+	// We need to add a *different* empty MutationRun to each mutrun index, so each run comes out of
+	// the correct per-thread allocation pool.  Would be nice to share these empty runs across
+	// multiple calls to addEmpty(), but that's hard now since we don't have refcounts.  How about
+	// we maintain a set of empty mutruns, one for each position, in the Species, and whenever we
+	// need an empty mutrun we reuse from that pool – after checking that the run is still empty??
+	if (!genome1_null || !genome2_null)
+	{
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForMutationRunIndex(run_index);
+			const MutationRun *mutrun = MutationRun::NewMutationRun(mutrun_context);
+			
+			if (!genome1_null)
+				genome1->mutruns_[run_index] = mutrun;
+			if (!genome2_null)
+				genome2->mutruns_[run_index] = mutrun;
+		}
+	}
 	
 	// Run the candidate past modifyChild() callbacks; the target subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
@@ -5150,12 +5248,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 	std::vector<SLiMEidosBlock*> *mutation_callbacks = &registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Parentless();
+		individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
 	
 	// TREE SEQUENCE RECORDING
 	if (species_.RecordingTreeSequence())
@@ -5206,7 +5304,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
+		// both strands are NULL, so we make a null genome; we do nothing but record it
 		if (species_.RecordingTreeSequence())
 			species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
 		
@@ -5259,7 +5357,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 	else
 	{
-		// both strands are NULL, so we make a null genome; we used to call clear_to_empty() to make a non-null empty genome, now we do nothing but record it
+		// both strands are NULL, so we make a null genome; we do nothing but record it
 		if (species_.RecordingTreeSequence())
 			species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 		
@@ -5470,13 +5568,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	// Make the new individual as a candidate
 	Genome *genome1 = genome1_null ? NewSubpopGenome_NULL(genome1_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome1_type);
 	Genome *genome2 = genome2_null ? NewSubpopGenome_NULL(genome2_type) : NewSubpopGenome_NONNULL(mutrun_count, mutrun_length, genome2_type);
-	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, /* pedigree ID */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
+	Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, /* p_mean_parent_age */ parent->age_);
 	std::vector<SLiMEidosBlock*> *parent_recombination_callbacks = &parent_subpop.registered_recombination_callbacks_;
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	
 	if (pedigrees_enabled)
-		individual->TrackParentage_Uniparental(*parent);
+		individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *parent);
 	
 	// TREE SEQUENCE RECORDING
 	if (species_.RecordingTreeSequence())
@@ -5690,7 +5788,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 		community_.InvalidateInteractionsForSpecies(&species_);
 		
 		// cached mutation counts/frequencies are no longer accurate; mark the cache as invalid
-		population_.cached_tally_genome_count_ = 0;
+		population_.InvalidateMutationReferencesCache();
 	}
 	
 	return gStaticEidosValueVOID;

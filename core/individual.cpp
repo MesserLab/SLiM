@@ -45,8 +45,8 @@ bool Individual::s_any_individual_or_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
-Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, slim_pedigreeid_t p_pedigree_id, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
-	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(p_pedigree_id), pedigree_p1_(-1), pedigree_p2_(-1),
+Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individual_index, Genome *p_genome1, Genome *p_genome2, IndividualSex p_sex, slim_age_t p_age, double p_fitness, float p_mean_parent_age) :
+	color_set_(false), mean_parent_age_(p_mean_parent_age), pedigree_id_(-1), pedigree_p1_(-1), pedigree_p2_(-1),
 	pedigree_g1_(-1), pedigree_g2_(-1), pedigree_g3_(-1), pedigree_g4_(-1), reproductive_output_(0),
 	migrant_(false), killed_(false), cached_fitness_UNSAFE_(p_fitness),
 #ifdef SLIMGUI
@@ -58,13 +58,6 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	if (!p_genome1 || !p_genome2)
 		EIDOS_TERMINATION << "ERROR (Individual::Individual): (internal error) nullptr passed for genome." << EidosTerminate();
 #endif
-	
-	// Make our genomes use the correct pedigree IDs, if we're doing pedigree recording
-	if (p_pedigree_id != -1)
-	{
-		p_genome1->genome_id_ = p_pedigree_id * 2;
-		p_genome2->genome_id_ = p_pedigree_id * 2 + 1;
-	}
 	
 	// Set up the pointers from our genomes to us
 	p_genome1->individual_ = this;
@@ -455,8 +448,8 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
 				// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-				MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index].get() : nullptr);
-				MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index].get() : nullptr);
+				const MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index] : nullptr);
+				const MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index] : nullptr);
 				int g1_size = (mutrun1 ? mutrun1->size() : 0);
 				int g2_size = (mutrun2 ? mutrun2->size() : 0);
 				int g1_index = 0, g2_index = 0;
@@ -1274,7 +1267,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome1->mutruns_[run_index].get();
+				const MutationRun *mutrun = genome1->mutruns_[run_index];
 				int genome1_count = mutrun->size();
 				const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
 				
@@ -1289,7 +1282,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome2->mutruns_[run_index].get();
+				const MutationRun *mutrun = genome2->mutruns_[run_index];
 				int genome2_count = mutrun->size();
 				const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
 				
@@ -1405,7 +1398,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome1->mutruns_[run_index].get();
+				const MutationRun *mutrun = genome1->mutruns_[run_index];
 				int genome1_count = mutrun->size();
 				const MutationIndex *genome1_ptr = mutrun->begin_pointer_const();
 				
@@ -1424,7 +1417,7 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 			
 			for (int run_index = 0; run_index < mutrun_count; ++run_index)
 			{
-				MutationRun *mutrun = genome2->mutruns_[run_index].get();
+				const MutationRun *mutrun = genome2->mutruns_[run_index];
 				int genome2_count = mutrun->size();
 				const MutationIndex *genome2_ptr = mutrun->begin_pointer_const();
 				
@@ -1475,8 +1468,8 @@ EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringI
 	{
 		// We want to interleave mutations from the two genomes, keeping only the uniqued mutations.  For a given position, we take mutations
 		// from g1 first, and then look at the mutations in g2 at the same position and add them if they are not in g1.
-		MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index].get() : nullptr);
-		MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index].get() : nullptr);
+		const MutationRun *mutrun1 = (genome1_size ? genome1_->mutruns_[run_index] : nullptr);
+		const MutationRun *mutrun2 = (genome2_size ? genome2_->mutruns_[run_index] : nullptr);
 		int g1_size = (mutrun1 ? mutrun1->size() : 0);
 		int g2_size = (mutrun2 ? mutrun2->size() : 0);
 		int g1_index = 0, g2_index = 0;

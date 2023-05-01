@@ -36,6 +36,10 @@ MutationIndex gSLiM_Mutation_Block_Capacity = 0;
 MutationIndex gSLiM_Mutation_FreeIndex = -1;
 MutationIndex gSLiM_Mutation_Block_LastUsedIndex = -1;
 
+#ifdef DEBUG_LOCKS_ENABLED
+EidosDebugLock gSLiM_Mutation_LOCK("gSLiM_Mutation_LOCK");
+#endif
+
 slim_refcount_t *gSLiM_Mutation_Refcounts = nullptr;
 
 #define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable
@@ -44,7 +48,7 @@ extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	//
 
 void SLiM_CreateMutationBlock(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block change");
+	THREAD_SAFETY_CHECK("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
 	
 	// first allocate the block; no need to zero the memory
 	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
@@ -68,7 +72,17 @@ void SLiM_CreateMutationBlock(void)
 
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_IncreaseMutationBlockCapacity(): gSLiM_Mutation_Block change");
+	// We do not use THREAD_SAFETY_CHECK() here because this needs to be checked in release builds also;
+	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
+	if (omp_in_parallel())
+	{
+		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
+		raise(SIGTRAP);
+	}
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.start_critical(1);
+#endif
 	
 	if (!gSLiM_Mutation_Block)
 		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) called before SLiM_CreateMutationBlock()." << EidosTerminate();
@@ -130,6 +144,10 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 				mutation_value->PatchPointersByAdding(ptr_diff);
 		}
 	}
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.end_critical();
+#endif
 }
 
 void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
@@ -145,28 +163,6 @@ void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_regi
 	const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
 	const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
 	
-	// Do 16 reps
-	while (registry_iter + 16 <= registry_iter_end)
-	{
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-	}
-	
-	// Finish off
 	while (registry_iter != registry_iter_end)
 		*(refcount_block_ptr + (*registry_iter++)) = 0;
 #else
@@ -211,7 +207,9 @@ slim_mutationid_t gSLiM_next_mutation_id = 0;
 Mutation::Mutation(MutationType *p_mutation_type_ptr, slim_position_t p_position, double p_selection_coeff, slim_objectid_t p_subpop_index, slim_tick_t p_tick, int8_t p_nucleotide) :
 mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_(static_cast<slim_selcoeff_t>(p_selection_coeff)), subpop_index_(p_subpop_index), origin_tick_(p_tick), state_(MutationState::kNewMutation), nucleotide_(p_nucleotide), mutation_id_(gSLiM_next_mutation_id++)
 {
-	THREAD_SAFETY_CHECK("Mutation::Mutation(): gSLiM_next_mutation_id change");
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.start_critical(2);
+#endif
 	
 	// initialize the tag to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
@@ -226,6 +224,10 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	
 #if DEBUG_MUTATIONS
 	std::cout << "Mutation constructed: " << this << std::endl;
+#endif
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.end_critical();
 #endif
 	
 #if 0
@@ -292,6 +294,8 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 #endif
 	
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
+	// This constructor (unline the other Mutation() constructor above) is presently never called multithreaded,
+	// so we just enforce that here.  If that changes, it should start using the debug lock to detect races, as above.
 	THREAD_SAFETY_CHECK("Mutation::Mutation(): gSLiM_next_mutation_id change");
 	
 	if (gSLiM_next_mutation_id <= mutation_id_)

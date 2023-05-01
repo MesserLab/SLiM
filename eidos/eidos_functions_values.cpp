@@ -2202,7 +2202,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	
 	if (maxbin_type == EidosValueType::kValueNULL)
 	{
-		maxbin = 0;
+		maxbin = 0;		// note that if the parallel loop runs, this gets reinitialized to the most negative number!
 		
 #pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE)
 		for (int value_index = 0; value_index < value_count; ++value_index)

@@ -121,6 +121,87 @@ extern int gEidosNumThreads;
 // We're building SLiM for running in parallel, and OpenMP is present; include the header.
 #include "omp.h"
 
+// C++ wrappers for OpenMP's lock types.  For now we define these only in the OpenMP case, not with the stubs below for
+// the non-OpenMP case, to encourage this to be used only when we are multithreading, to avoid single-threaded overhead.
+// The big benefit to using these classes is that you get automatic RAII construction/destruction of the lock.
+class OMPLock
+{
+public:
+	OMPLock() { omp_init_lock(&lock_); }
+	~OMPLock() { omp_destroy_lock(&lock_); }
+	
+	void set() { omp_set_lock(&lock_); }
+	void unset() { omp_unset_lock(&lock_); }
+	int test() { return omp_test_lock(&lock_); }		// true (non-zero) if the lock was obtained
+	
+private:
+	omp_lock_t lock_;
+};
+
+class OMPNestLock
+{
+public:
+	OMPNestLock() { omp_init_nest_lock(&lock_); }
+	~OMPNestLock() { omp_destroy_nest_lock(&lock_); }
+	
+	void set() { omp_set_nest_lock(&lock_); }
+	void unset() { omp_unset_nest_lock(&lock_); }
+	int test() { return omp_test_nest_lock(&lock_); }	// true (non-zero) if the lock was obtained
+	
+private:
+	omp_nest_lock_t lock_;
+};
+
+// This is a lock-based class used in DEBUG builds to test for race conditions involving code that is not locked
+// or otherwise arbitrated.  The expectation is that only one thread at a time will be executing in regions
+// governed by a debug lock, but that is not enforced; it is supposed to be a consequence of the design of the code
+// itself.  This class makes it easy to check for race conditions involving such regions.
+#if (defined(_OPENMP) && DEBUG)
+#define DEBUG_LOCKS_ENABLED
+
+class EidosDebugLock
+{
+public:
+	EidosDebugLock() = delete;
+	EidosDebugLock(const char *p_name) : lock_name_(p_name) { omp_init_nest_lock(&lock_); }
+	~EidosDebugLock() { omp_destroy_nest_lock(&lock_); }
+	
+	void start_critical(int p_owner) {
+		int result = omp_test_nest_lock(&lock_);
+		
+		if (!result)
+		{
+			// We did not get the lock; somebody else is using the same resource.  This is a fatal error.
+			std::cerr << "race with " << lock_name_ << ": EidosDebugLock owner == " << owner_ << ", racing owner == " << p_owner << std::endl;
+			THREAD_SAFETY_CHECK("SLiM_IncreaseMutationBlockCapacity(): race condition hit!");
+		}
+		else
+		{
+			// We got the lock; mark our turf so if somebody races with us they know who got the lock first
+#pragma omp atomic write
+			owner_ = p_owner;
+			current_nest_ = result;
+		}
+	}
+	void end_critical() {
+		if (current_nest_ == 1)
+		{
+#pragma omp atomic write
+			owner_ = -1;
+		}
+		--current_nest_;
+		omp_unset_nest_lock(&lock_);
+	}
+	
+private:
+	omp_nest_lock_t lock_;
+	std::string lock_name_;			// a client-defined string name for the lock, to identify it in debug output
+	int owner_ = -1;				// a client-defined integer value identifying which code region has taken the lock
+	int current_nest_ = 0;			// the current nesting count, so we know if we're about to unlock
+};
+#endif
+
+
 // Define minimum counts for all the parallel loops we use.  Some of these loops are in SLiM, so we violate encapsulation
 // here a bit; a slim_openmp.h header could be created to alleviate that if it's a problem, but it seems harmless for now.
 // These counts are collected in one place to make it easier to optimize their values in a pre-build optimization pass.

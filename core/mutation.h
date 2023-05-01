@@ -54,6 +54,7 @@ typedef int32_t MutationIndex;
 // forward declaration of Mutation block allocation; see bottom of header
 class Mutation;
 extern Mutation *gSLiM_Mutation_Block;
+extern MutationIndex gSLiM_Mutation_Block_Capacity;
 
 
 typedef enum {
@@ -98,6 +99,10 @@ public:
 	slim_selcoeff_t cached_one_plus_dom_sel_;			// a cached value for (1 + dominance_coeff * selection_coeff_), clamped to 0.0 minimum
 	slim_selcoeff_t cached_one_plus_haploiddom_sel_;	// a cached value for (1 + haploid_dominance_coeff * selection_coeff_), clamped to 0.0 minimum
 	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
+	
+#if DEBUG
+	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
+#endif
 	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
@@ -196,6 +201,13 @@ extern Mutation *gSLiM_Mutation_Block;
 extern MutationIndex gSLiM_Mutation_FreeIndex;
 extern MutationIndex gSLiM_Mutation_Block_LastUsedIndex;
 
+#ifdef DEBUG_LOCKS_ENABLED
+// We do not arbitrate access to the mutation block with a lock; instead, we expect that clients
+// will manage their own multithreading issues.  In DEBUG mode we check for incorrect uses (races).
+// We use this lock to check.  Any failure to acquire the lock indicates a race.
+extern EidosDebugLock gSLiM_Mutation_LOCK;
+#endif
+
 extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parallel to gSLiM_Mutation_Block, to increase memory cache efficiency
 													// note that I tried keeping the fitness cache values and positions in separate buffers too, not a win
 void SLiM_CreateMutationBlock(void);
@@ -207,7 +219,9 @@ size_t SLiMMemoryUsageForMutationRefcounts(void);
 
 inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_NewMutationFromBlock(): gSLiM_Mutation_Block change");
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.start_critical(0);
+#endif
 	
 	if (gSLiM_Mutation_FreeIndex == -1)
 		SLiM_IncreaseMutationBlockCapacity();
@@ -218,6 +232,10 @@ inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(vo
 	
 	if (gSLiM_Mutation_Block_LastUsedIndex < result)
 		gSLiM_Mutation_Block_LastUsedIndex = result;
+	
+#ifdef DEBUG_LOCKS_ENABLED
+	gSLiM_Mutation_LOCK.end_critical();
+#endif
 	
 	return result;	// no need to zero out the memory, we are just an allocater, not a constructor
 }
