@@ -1914,10 +1914,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 		
 		// In some cases the code below parallelizes, when we're running multithreaded.  The main condition, already satisfied simply by virtue of
 		// being in this code path, is that there are no callbacks enabled, of any type, that influence the process of reproduction.  This is because
-		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed, and tree-sequence
-		// recording is not allowed.  Those cases will likely be allowed in future, they just need to be made thread-safe.
+		// we can't run Eidos code in parallel, at least for now.  At the moment, the DSB recombination model is also not allowed; it hasn't been tested.
 #ifdef _OPENMP
-		bool can_parallelize = (!species_.TheChromosome().using_DSB_model_) && (!recording_tree_sequence);
+		bool can_parallelize = (!species_.TheChromosome().using_DSB_model_);
 #endif
 		
 		// We loop to generate females first (sex_index == 0) and males second (sex_index == 1).
@@ -2134,7 +2133,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									if (recording_tree_sequence)
 									{
 										//species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
-#pragma omp critical (NewGenomeRecording)
+#pragma omp critical (TreeSeqNewGenome)
 										{
 											species_.RecordNewGenome(nullptr, &child_genome_1, &parent_genome_1, nullptr);
 											species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
@@ -2514,7 +2513,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
 		{
-#pragma omp critical (NewGenomeRecording)
+#pragma omp critical (TreeSeqNewGenome)
 			{
 				species_.RecordNewGenome(nullptr, &p_child_genome, parent_genome_1, parent_genome_2);
 			}
@@ -2653,7 +2652,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	
 	if (recording_tree_sequence)
 	{
-#pragma omp critical (NewGenomeRecording)
+#pragma omp critical (TreeSeqNewGenome)
 		{
 			species_.RecordNewGenome(&all_breakpoints, &p_child_genome, parent_genome_1, parent_genome_2);
 		}
@@ -2926,7 +2925,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+						{
+#pragma omp critical (TreeSeqNewDerivedState)
+							{
+								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+						}
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
@@ -3077,7 +3081,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 										
 										// TREE SEQUENCE RECORDING
 										if (recording_tree_sequence_mutations)
-											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										{
+#pragma omp critical (TreeSeqNewDerivedState)
+											{
+												species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+											}
+										}
 									}
 									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
@@ -3126,7 +3135,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									{
+#pragma omp critical (TreeSeqNewDerivedState)
+										{
+											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										}
+									}
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
@@ -3276,7 +3290,12 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								}
+							}
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
@@ -3693,7 +3712,12 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 		
 		// Then we record the new derived state at every position that changed
 		for (slim_position_t changed_pos : repair_removals)
-			species_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
+		{
+#pragma omp critical (TreeSeqNewDerivedState)
+			{
+				species_.RecordNewDerivedState(p_child_genome, changed_pos, *p_child_genome->derived_mutation_ids_at_position(changed_pos));
+			}
+		}
 	}
 }
 
@@ -4031,7 +4055,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 									
 									// TREE SEQUENCE RECORDING
 									if (recording_tree_sequence_mutations)
-										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									{
+#pragma omp critical (TreeSeqNewDerivedState)
+										{
+											species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+										}
+									}
 								}
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
@@ -4080,7 +4109,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								
 								// TREE SEQUENCE RECORDING
 								if (recording_tree_sequence_mutations)
-									species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+								{
+#pragma omp critical (TreeSeqNewDerivedState)
+									{
+										species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+									}
+								}
 							}
 							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
@@ -4230,7 +4264,12 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 						
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence_mutations)
-							species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+						{
+#pragma omp critical (TreeSeqNewDerivedState)
+							{
+								species_.RecordNewDerivedState(&p_child_genome, new_mut->position_, *child_mutrun->derived_mutation_ids_at_position(new_mut->position_));
+							}
+						}
 					}
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
@@ -4450,7 +4489,12 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							
 							// TREE SEQUENCE RECORDING
 							if (recording_tree_sequence_mutations)
-								species_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+							{
+#pragma omp critical (TreeSeqNewDerivedState)
+								{
+									species_.RecordNewDerivedState(&p_child_genome, mutation_iter_pos, *child_run->derived_mutation_ids_at_position(mutation_iter_pos));
+								}
+							}
 						}
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{

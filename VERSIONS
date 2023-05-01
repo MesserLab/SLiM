@@ -72,6 +72,7 @@ PARALLEL changes (now in the master branch):
 	parallelize offspring generation in WF model: add support for cloning
 	parallelize tallying of mutation runs, clearing of parental genomes at the end of WF model ticks, and mutation run uniquing
 	add support for parallel reproduction when a non-default stacking policy is in use
+	add support for parallel reproduction with tree-sequence recording
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
