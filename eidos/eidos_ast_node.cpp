@@ -506,9 +506,15 @@ eidos_profile_t EidosASTNode::ConvertProfileTotalsToSelfCounts(void) const
 	{
 		// Nodes with a non-zero count return their count as their total, and exclude their children
 		eidos_profile_t result = profile_total_;
+		eidos_profile_t child_total = 0;
 		
 		for (const EidosASTNode *child : children_)
-			profile_total_ -= child->ConvertProfileTotalsToSelfCounts();
+			child_total += child->ConvertProfileTotalsToSelfCounts();
+		
+		if (profile_total_ >= child_total)
+			profile_total_ = profile_total_ - child_total;
+		else
+			profile_total_ = 0;			// clip to a minimum of 0
 		
 		return result;
 	}
