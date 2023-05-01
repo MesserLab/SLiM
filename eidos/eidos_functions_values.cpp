@@ -393,8 +393,144 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 	{
 		gsl_rng *main_thread_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 		
+		if (replace && ((x_count > 100) || (sample_size > 100)) && (sample_size > 1))
+		{
+			// a large sampling task with replacement and weights goes through an optimized code path here
+			// so that we can optimize the code more deeply for the type of x_value, and parallelize
+			
+			// first we check and prepare the weights vector as doubles, so the GSL can work with it
+			const double *weights_float = nullptr;
+			double *weights_float_malloced = nullptr;
+			
+			if (weights_type == EidosValueType::kValueFloat)
+			{
+				weights_float = weights_value->FloatVector()->data();
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					double weight = weights_float[value_index];
+					
+					if ((weight < 0.0) || std::isnan(weight))
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
+				}
+			}
+			else	// EidosValueType::kValueInt : convert the weights to doubles
+			{
+				const int64_t *weights_int = weights_value->IntVector()->data();
+				
+				weights_float_malloced = (double *)malloc(x_count * sizeof(double));
+				
+				for (int value_index = 0; value_index < x_count; ++value_index)
+				{
+					int64_t weight = weights_int[value_index];
+					
+					if (weight < 0)
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
+					
+					weights_float_malloced[value_index] = weight;
+				}
+				
+				// weights_float_malloced will be freed below
+				weights_float = weights_float_malloced;
+			}
+			
+			// prepare the GSL to draw from the discrete distribution
+			gsl_ran_discrete_t *discrete_draw = gsl_ran_discrete_preproc(x_count, weights_float);
+			
+			// now treat each type separately
+			if (x_type == EidosValueType::kValueInt)
+			{
+				const int64_t *int_data = x_value->IntVector()->data();
+				EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(sample_size);
+				int64_t *int_result_data = int_result->data();
+				result_SP = EidosValue_SP(int_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, int_data, int_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_INT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int rose_index = (int)gsl_ran_discrete(rng, discrete_draw);
+						
+						int_result_data[samples_generated] = int_data[rose_index];
+					}
+				}
+			}
+			else if (x_type == EidosValueType::kValueFloat)
+			{
+				const double *float_data = x_value->FloatVector()->data();
+				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(sample_size);
+				double *float_result_data = float_result->data();
+				result_SP = EidosValue_SP(float_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, float_data, float_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_FLOAT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int rose_index = (int)gsl_ran_discrete(rng, discrete_draw);
+						
+						float_result_data[samples_generated] = float_data[rose_index];
+					}
+				}
+			}
+			else if (x_type == EidosValueType::kValueObject)
+			{
+				EidosObject * const *object_data = x_value->ObjectElementVector()->data();
+				const EidosClass *object_class = ((EidosValue_Object *)x_value)->Class();
+				EidosValue_Object_vector *object_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(object_class))->resize_no_initialize(sample_size);
+				EidosObject **object_result_data = object_result->data();
+				result_SP = EidosValue_SP(object_result);
+				
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, object_data, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_OBJECT)
+				{
+					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+					
+#pragma omp for schedule(static) nowait
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						int rose_index = (int)gsl_ran_discrete(rng, discrete_draw);
+						EidosObject *object_element = object_data[rose_index];
+						
+						object_result_data[samples_generated] = object_element;
+					}
+				}
+				
+				if (object_class->UsesRetainRelease())
+				{
+					// Retain all of the objects chosen; this is not done in parallel because it would require locks
+					for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+					{
+						EidosObject *object_element = object_result_data[samples_generated];
+						static_cast<EidosDictionaryRetained *>(object_element)->Retain();		// unsafe cast to avoid virtual function overhead
+					}
+				}
+			}
+			else
+			{
+				// This handles the logical and string cases
+				result_SP = x_value->NewMatchingType();
+				EidosValue *result = result_SP.get();
+				
+				for (int64_t samples_generated = 0; samples_generated < sample_size; ++samples_generated)
+				{
+					int rose_index = (int)gsl_ran_discrete(main_thread_rng, discrete_draw);
+					
+					result->PushValueFromIndexOfEidosValue(rose_index, *x_value, nullptr);
+				}
+			}
+			
+			gsl_ran_discrete_free(discrete_draw);
+			
+			if (weights_float_malloced)
+				free(weights_float_malloced);
+		}
 		// handle the weights vector with separate cases for float and integer, so we can access it directly for speed
-		if (weights_type == EidosValueType::kValueFloat)
+		else if (weights_type == EidosValueType::kValueFloat)
 		{
 			const double *weights_float = weights_value->FloatVector()->data();
 			double weights_sum = 0.0;
@@ -432,6 +568,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			else if (replace)
 			{
 				// with replacement, we can just do a series of independent draws
+				// (note the large-task case is handled with the GSL above)
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
@@ -454,6 +591,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else
 			{
+				// without replacement, we remove each item after it is drawn, so brute force seems like the only way
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
@@ -528,6 +666,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			else if (replace)
 			{
 				// with replacement, we can just do a series of independent draws
+				// (note the large-task case is handled with the GSL above)
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
@@ -550,6 +689,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			else
 			{
+				// without replacement, we remove each item after it is drawn, so brute force seems like the only way
 				result_SP = x_value->NewMatchingType();
 				EidosValue *result = result_SP.get();
 				
