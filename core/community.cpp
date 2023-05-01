@@ -1892,7 +1892,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 	}
 #endif
 	
-//#if DEBUG
+#if DEBUG
 	// Check the integrity of the mutation registry; all MutationIndex values should be in range
 	for (size_t species_index = 0; species_index < all_species_.size(); ++species_index)
 	{
@@ -1919,7 +1919,7 @@ void Community::AllSpecies_CheckIntegrity(void)
 		if (indices.size() != original_size)
 			EIDOS_TERMINATION << "ERROR (Community::AllSpecies_CheckIntegrity): (internal error) duplicate mutation index in the mutation registry (size difference " << (original_size - indices.size()) << ")." << EidosTerminate();
 	}
-//#endif
+#endif
 }
 
 void Community::AllSpecies_PurgeRemovedObjects(void)
