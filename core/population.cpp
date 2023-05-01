@@ -2931,7 +2931,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-						new_mut->Release();
+#pragma omp critical (MutationAlloc)
+						{
+							new_mut->Release_PARALLEL();
+						}
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -3079,7 +3082,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 									else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 									{
 										// The mutation was rejected by the stacking policy, so we have to release it
-										new_mut->Release();
+#pragma omp critical (MutationAlloc)
+										{
+											new_mut->Release_PARALLEL();
+										}
 									}
 									
 									if (++mutation_iter != mutation_iter_max) {
@@ -3125,7 +3131,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-									new_mut->Release();
+#pragma omp critical (MutationAlloc)
+									{
+										new_mut->Release_PARALLEL();
+									}
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -3272,7 +3281,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-							new_mut->Release();
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
 						}
 						
 						if (++mutation_iter != mutation_iter_max) {
@@ -4024,7 +4036,10 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 								else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 								{
 									// The mutation was rejected by the stacking policy, so we have to release it
-									new_mut->Release();
+#pragma omp critical (MutationAlloc)
+									{
+										new_mut->Release_PARALLEL();
+									}
 								}
 								
 								if (++mutation_iter != mutation_iter_max) {
@@ -4070,7 +4085,10 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 							else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 							{
 								// The mutation was rejected by the stacking policy, so we have to release it
-								new_mut->Release();
+#pragma omp critical (MutationAlloc)
+								{
+									new_mut->Release_PARALLEL();
+								}
 							}
 							
 							if (++mutation_iter != mutation_iter_max) {
@@ -4217,7 +4235,10 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 					else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 					{
 						// The mutation was rejected by the stacking policy, so we have to release it
-						new_mut->Release();
+#pragma omp critical (MutationAlloc)
+						{
+							new_mut->Release_PARALLEL();
+						}
 					}
 					
 					if (++mutation_iter != mutation_iter_max) {
@@ -4434,7 +4455,10 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 						else if (new_mut->state_ == MutationState::kNewMutation)	// new and needs to be disposed of
 						{
 							// The mutation was rejected by the stacking policy, so we have to release it
-							new_mut->Release();
+#pragma omp critical (MutationAlloc)
+							{
+								new_mut->Release_PARALLEL();
+							}
 						}
 						
 						// move to the next mutation
@@ -5594,6 +5618,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
 #pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
 #ifdef _OPENMP
 		// it is imperative that we run with the requested number of threads
 		if (omp_get_num_threads() != mutrun_context_count)
@@ -5656,6 +5683,64 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		}
 	}
 	
+#if DEBUG
+	// In debug builds we do a complete re-tally single-threaded, into a side counter, for a check-back
+	{
+		slim_refcount_t total_genome_count_CHECK = 0;
+		
+		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
+			
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+				inuse_pool[pool_index]->use_count_CHECK_ = 0;
+		}
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
+				{
+					int mutrun_count = genome.mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+						genome.mutruns_[run_index]->use_count_CHECK_++;
+					
+					total_genome_count_CHECK++;
+				}
+			}
+		}
+		
+		if (total_genome_count_CHECK != total_genome_count)
+			EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) total_genome_count_CHECK != total_genome_count (" << total_genome_count_CHECK << " != " << total_genome_count << ")." << EidosTerminate();
+		
+		for (int threadnum = 0; threadnum < species_.SpeciesMutationRunContextCount(); ++threadnum)
+		{
+			MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(threadnum);
+			MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
+			size_t inuse_pool_count = inuse_pool.size();
+			
+			for (size_t pool_index = 0; pool_index < inuse_pool_count; ++pool_index)
+			{
+				const MutationRun *mutrun = inuse_pool[pool_index];
+				
+				if (mutrun->use_count_CHECK_ != mutrun->use_count())
+					EIDOS_TERMINATION << "ERROR (Population::TallyMutationRunReferencesForPopulation): (internal error) use_count_CHECK_ " << mutrun->use_count_CHECK_ << " != mutrun->use_count() " << mutrun->use_count() << "." << EidosTerminate();
+			}
+		}
+	}
+#endif
+	
 	// if you want to then free the mutation runs that are unused, call FreeUnusedMutationRuns()
 	
 	return total_genome_count;
@@ -5675,6 +5760,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
 #pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_subpops_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
 #ifdef _OPENMP
 		// it is imperative that we run with the requested number of threads
 		if (omp_get_num_threads() != mutrun_context_count)
@@ -5752,6 +5840,9 @@ slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Gen
 	// but lastprivate() is not legal for parallel regions, for some reason, so we use reduction(max)
 #pragma omp parallel default(none) shared(mutrun_count_multiplier, mutrun_context_count, std::cerr, p_genomes_to_tally) reduction(max: total_genome_count) num_threads(mutrun_context_count)
 	{
+		// this is initialized by OpenMP to the most negative number (reduction type max); we want zero instead!
+		total_genome_count = 0;
+		
 #ifdef _OPENMP
 		// it is imperative that we run with the requested number of threads
 		if (omp_get_num_threads() != mutrun_context_count)
@@ -6264,6 +6355,64 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 			}
 		}
 	}
+	
+#if DEBUG
+	{
+		int registry_count;
+		const MutationIndex *registry_iter = MutationRegistry(&registry_count);
+		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+			mut->refcount_CHECK_ = 0;
+		}
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
+			{
+				Genome &genome = *subpop_genomes[i];
+				
+				if (!genome.IsNull())
+				{
+					int mutrun_count = genome.mutrun_count_;
+					
+					for (int run_index = 0; run_index < mutrun_count; ++run_index)
+					{
+						const MutationRun *mutrun = genome.mutruns_[run_index];
+						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
+						
+						for (; genome_iter != genome_end_iter; ++genome_iter)
+							(mut_block_ptr + *genome_iter)->refcount_CHECK_++;
+					}
+				}
+			}
+		}
+		
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+		
+		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		{
+			MutationIndex mut_blockindex = registry_iter[registry_index];
+			const Mutation *mut = mut_block_ptr + mut_blockindex;
+			
+			if (mut->state_ == MutationState::kInRegistry)
+			{
+				slim_refcount_t refcount_standard = *(refcount_block_ptr + mut_blockindex);
+				slim_refcount_t refcount_checkback = mut->refcount_CHECK_;
+				
+				if (refcount_standard != refcount_checkback)
+					EIDOS_TERMINATION << "ERROR (Population::_TallyMutationReferences_FAST_FromMutationRunUsage): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << "." << EidosTerminate();
+			}
+		}
+	}
+#endif
 }
 
 EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count)

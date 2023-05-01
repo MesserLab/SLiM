@@ -269,6 +269,14 @@ public:
 			SelfDelete();
 	}
 	
+	inline __attribute__((always_inline)) void Release_PARALLEL(void)
+	{
+		// This version of Release() can be used in parallel code, but must be protected by a lock,
+		// a critical region, etc., or used in a context where it is known that a race does not occur.
+		if ((--refcount_) == 0)
+			SelfDelete();
+	}
+	
 	virtual void SelfDelete(void);
 	
 	// construct from Eidos arguments; shared with DataFrame; the caller must call ContentsChanged()

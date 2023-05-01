@@ -194,6 +194,10 @@ public:
 	
 	mutable int64_t operation_id_ = 0;		// used to mark the MutationRun objects that have been handled by a global operation
 	
+#if DEBUG
+	mutable uint32_t use_count_CHECK_ = 0;	// a checkback for use_count_
+#endif
+	
 	static inline slim_pedigreeid_t GetNextOperationID(void)
 	{
 		THREAD_SAFETY_CHECK("GetNextOperationID(): MutationRun::sOperationID change");

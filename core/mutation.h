@@ -100,6 +100,10 @@ public:
 	slim_selcoeff_t cached_one_plus_haploiddom_sel_;	// a cached value for (1 + haploid_dominance_coeff * selection_coeff_), clamped to 0.0 minimum
 	// NOTE THERE ARE 4 BYTES FREE IN THE CLASS LAYOUT HERE; see Mutation::Mutation() and Mutation layout.graffle
 	
+#if DEBUG
+	mutable slim_refcount_t refcount_CHECK_;					// scratch space for checking of parallel refcounting
+#endif
+	
 	Mutation(const Mutation&) = delete;					// no copying
 	Mutation& operator=(const Mutation&) = delete;		// no copying
 	Mutation(void) = delete;							// no null construction; Mutation is an immutable class
