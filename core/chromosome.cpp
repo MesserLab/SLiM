@@ -387,16 +387,6 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 			if (p_preferred_count < 1)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): there must be at least one mutation run per genome." << EidosTerminate();
 			
-#ifdef _OPENMP
-			// When running multithreaded, we have some additional restrictions to try to keep the number of mutation runs
-			// aligned with the number of threads; but we also want to allow the user to use fewer mutruns/threads
-			if (((p_preferred_count % gEidosMaxThreads) == 0) ||	// if it is an exact multiple of the number of threads
-				(p_preferred_count < gEidosMaxThreads))				// or, less than the number of threads
-				;													// then it is fine
-			else
-				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): when multithreaded, if the number of mutation runs is specified it must be a multiple of the number of threads, or it must be equal to the length of the chromosome (one mutation run per base position), or it must be equal to 1." << EidosTerminate();
-#endif
-			
 			// If the preferred number of mutation runs is actually larger than the number of discrete positions,
 			// it gets clipped.  No warning is emitted; this is pretty obvious, and the verbose output line suffices
 			if (p_preferred_count > (last_position_ + 1))
@@ -407,9 +397,36 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 			if (p_preferred_count > SLIM_MUTRUN_MAXIMUM_COUNT)
 				p_preferred_count = SLIM_MUTRUN_MAXIMUM_COUNT;
 			
-			mutrun_count_base_ = p_preferred_count;
-			mutrun_count_multiplier_ = 1;
-			mutrun_count_ = p_preferred_count;
+#ifdef _OPENMP
+			// When running multithreaded, we have some additional restrictions to try to keep the number of mutation runs
+			// aligned with the number of threads; but we also want to allow the user to use fewer mutruns/threads
+			if (((p_preferred_count % gEidosMaxThreads) == 0) ||	// if it is an exact multiple of the number of threads
+				(p_preferred_count < gEidosMaxThreads))				// or, less than the number of threads
+				;													// then it is fine
+			else
+				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): when multithreaded, if the number of mutation runs is specified it must be a multiple of the number of threads, or it must be less than the number of threads (clipped mutationRuns count is " << p_preferred_count << ", thread count is " << gEidosMaxThreads << ")." << EidosTerminate();
+#endif
+			
+			if (p_preferred_count == gEidosMaxThreads)
+			{
+				// We have p_preferred_count mutrun sections, each containing 1 mutation run; this is really the same as the next case
+				mutrun_count_base_ = p_preferred_count;
+				mutrun_count_multiplier_ = 1;
+			}
+			else if ((p_preferred_count % gEidosMaxThreads) == 0)
+			{
+				// We have gEidosMaxThreads mutrun sections, each containing (p_preferred_count / gEidosMaxThreads) mutation runs
+				mutrun_count_base_ = gEidosMaxThreads;
+				mutrun_count_multiplier_ = p_preferred_count / gEidosMaxThreads;
+			}
+			else
+			{
+				// The number of threads does not equal gEidosMaxThreads, so we have p_preferred_count mutruns sections of length 1
+				mutrun_count_base_ = p_preferred_count;
+				mutrun_count_multiplier_ = 1;
+			}
+			
+			mutrun_count_ = mutrun_count_base_ * mutrun_count_multiplier_;
 			mutrun_length_ = (slim_position_t)ceil((last_position_ + 1) / (double)mutrun_count_);
 			
 			if (SLiM_verbosity_level >= 2)
