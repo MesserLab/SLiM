@@ -130,6 +130,17 @@ void QtSLiMWindow::glueUI(void)
     // adding it as an action here seems to have no visible effect except that the shortcut now works
     addAction(ui->actionFindRecipe);
     
+    // menu items that are not visible, for hidden shortcuts
+    QAction *actionNewWF_commentless = new QAction("New WF (Commentless)", this);
+    actionNewWF_commentless->setShortcut(Qt::CTRL + Qt::AltModifier + Qt::Key_N);
+    connect(actionNewWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF_commentless);
+    addAction(actionNewWF_commentless);
+    
+    QAction *actionNewNonWF_commentless = new QAction("New nonWF (Commentless)", this);
+    actionNewNonWF_commentless->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::AltModifier + Qt::Key_N);
+    connect(actionNewNonWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF_commentless);
+    addAction(actionNewNonWF_commentless);
+    
     // connect all menu items with existing slots
     connect(ui->actionPreferences, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_preferences);
     connect(ui->actionAboutQtSLiM, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_about);

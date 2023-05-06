@@ -137,7 +137,7 @@ public:
         nonWF
     } ModelType;
     
-    QtSLiMWindow(QtSLiMWindow::ModelType modelType);                        // untitled window
+    QtSLiMWindow(QtSLiMWindow::ModelType modelType, bool includeComments);  // untitled window
     explicit QtSLiMWindow(const QString &fileName);                         // window from a file
     QtSLiMWindow(const QString &recipeName, const QString &recipeScript);   // window from a recipe
     virtual ~QtSLiMWindow() override;

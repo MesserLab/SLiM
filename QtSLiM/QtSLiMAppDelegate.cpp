@@ -270,19 +270,19 @@ QtSLiMWindow *QtSLiMAppDelegate::findMainWindow(const QString &fileName) const
     return nullptr;
 }
 
-void QtSLiMAppDelegate::newFile_WF(void)
+void QtSLiMAppDelegate::newFile_WF(bool includeComments)
 {
     QtSLiMWindow *currentActiveWindow = activeQtSLiMWindow();
-    QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+    QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::WF, includeComments);
     
     window->tile(currentActiveWindow);
     window->show();
 }
 
-void QtSLiMAppDelegate::newFile_nonWF(void)
+void QtSLiMAppDelegate::newFile_nonWF(bool includeComments)
 {
     QtSLiMWindow *currentActiveWindow = activeQtSLiMWindow();
-    QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF);
+    QtSLiMWindow *window = new QtSLiMWindow(QtSLiMWindow::ModelType::nonWF, includeComments);
     
     window->tile(currentActiveWindow);
     window->show();
@@ -850,10 +850,22 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         window->addAction(actionNewWF);
     }
     {
+        QAction *actionNewWF_commentless = new QAction("New WF (Commentless)", this);
+        actionNewWF_commentless->setShortcut(Qt::CTRL + Qt::AltModifier + Qt::Key_N);
+        connect(actionNewWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newWF_commentless);
+        window->addAction(actionNewWF_commentless);
+    }
+    {
         QAction *actionNewNonWF = new QAction("New nonWF", this);
         actionNewNonWF->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_N);
         connect(actionNewNonWF, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF);
         window->addAction(actionNewNonWF);
+    }
+    {
+        QAction *actionNewNonWF_commentless = new QAction("New nonWF (Commentless)", this);
+        actionNewNonWF_commentless->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::AltModifier + Qt::Key_N);
+        connect(actionNewNonWF_commentless, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_newNonWF_commentless);
+        window->addAction(actionNewNonWF_commentless);
     }
     {
         QAction *actionOpen = new QAction("Open", this);
@@ -1234,12 +1246,22 @@ void QtSLiMAppDelegate::dispatch_quit(void)
 
 void QtSLiMAppDelegate::dispatch_newWF(void)
 {
-    newFile_WF();
+    newFile_WF(true);
+}
+
+void QtSLiMAppDelegate::dispatch_newWF_commentless(void)
+{
+    newFile_WF(false);
 }
 
 void QtSLiMAppDelegate::dispatch_newNonWF(void)
 {
-    newFile_nonWF();
+    newFile_nonWF(true);
+}
+
+void QtSLiMAppDelegate::dispatch_newNonWF_commentless(void)
+{
+    newFile_nonWF(false);
 }
 
 void QtSLiMAppDelegate::dispatch_open(void)

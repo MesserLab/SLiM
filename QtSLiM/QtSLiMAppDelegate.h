@@ -71,8 +71,8 @@ public:
     
     // Document opening
     QtSLiMWindow *findMainWindow(const QString &fileName) const;
-    void newFile_WF(void);
-    void newFile_nonWF(void);
+    void newFile_WF(bool includeComments);
+    void newFile_nonWF(bool includeComments);
     QtSLiMWindow *open(QtSLiMWindow *requester);
     QtSLiMWindow *openFile(const QString &fileName, QtSLiMWindow *requester);
     void openRecipeWithName(const QString &recipeName, const QString &recipeScript, QtSLiMWindow *requester);
@@ -114,7 +114,9 @@ public slots:
     void dispatch_quit(void);
     
     void dispatch_newWF(void);
+    void dispatch_newWF_commentless(void);
     void dispatch_newNonWF(void);
+    void dispatch_newNonWF_commentless(void);
     void dispatch_open(void);
     void dispatch_close(void);
     

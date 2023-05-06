@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
         if (prefs.appStartupPref() == 1)
         {
             // create a new window
-            mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+            mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF, /* includeComments */ true);
         }
         else if (prefs.appStartupPref() == 2)
         {
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
             
             // if no file was opened, create a new window after all
             if (!mainWin)
-                mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF);
+                mainWin = new QtSLiMWindow(QtSLiMWindow::ModelType::WF, /* includeComments */ true);
         }
     }
     

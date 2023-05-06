@@ -122,6 +122,24 @@ static std::string defaultWFScriptString(void)
                 "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
+static std::string defaultWFScriptString_NC(void)
+{
+    return std::string(
+        "initialize() {\n"
+        "	initializeMutationRate(1e-7);\n"
+        "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+        "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+        "	initializeGenomicElement(g1, 0, 99999);\n"
+        "	initializeRecombinationRate(1e-8);\n"
+        "}\n"
+        "\n"
+        "1 early() {\n"
+        "	sim.addSubpop(\"p1\", 500);\n"
+        "}\n"
+        "\n"
+        "2000 late() { sim.outputFixedMutations(); }\n");
+}
+
 static std::string defaultNonWFScriptString(void)
 {
     return std::string(
@@ -159,14 +177,50 @@ static std::string defaultNonWFScriptString(void)
                 "2000 late() { sim.outputFixedMutations(); }\n");
 }
 
+static std::string defaultNonWFScriptString_NC(void)
+{
+    return std::string(
+        "initialize() {\n"
+        "	initializeSLiMModelType(\"nonWF\");\n"
+        "	defineConstant(\"K\", 500);\n"
+        "	\n"
+        "	initializeMutationType(\"m1\", 0.5, \"f\", 0.0);\n"
+        "	m1.convertToSubstitution = T;\n"
+        "	\n"
+        "	initializeGenomicElementType(\"g1\", m1, 1.0);\n"
+        "	initializeGenomicElement(g1, 0, 99999);\n"
+        "	initializeMutationRate(1e-7);\n"
+        "	initializeRecombinationRate(1e-8);\n"
+        "}\n"
+        "\n"
+        "reproduction() {\n"
+        "	subpop.addCrossed(individual, subpop.sampleIndividuals(1));\n"
+        "}\n"
+        "\n"
+        "1 early() {\n"
+        "	sim.addSubpop(\"p1\", 10);\n"
+        "}\n"
+        "\n"
+        "early() {\n"
+        "	p1.fitnessScaling = K / p1.individualCount;\n"
+        "}\n"
+        "\n"
+        "2000 late() { sim.outputFixedMutations(); }\n");
+}
 
-QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
+
+QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType, bool includeComments) : QMainWindow(nullptr), ui(new Ui::QtSLiMWindow)
 {
     init();
     setCurrentFile(QString());
     
     // set up the initial script
-    std::string untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString() : defaultNonWFScriptString();
+    std::string untitledScriptString;
+    if (includeComments)
+        untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString() : defaultNonWFScriptString();
+    else
+        untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString_NC() : defaultNonWFScriptString_NC();
+    
     ui->scriptTextEdit->setPlainText(QString::fromStdString(untitledScriptString));
     
     if (consoleController)
