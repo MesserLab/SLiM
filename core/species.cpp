@@ -2040,30 +2040,33 @@ void Species::SetUpMutationRunContexts(void)
 	mutation_run_context_COUNT_ = chromosome_->mutrun_count_base_;
 	mutation_run_context_PERTHREAD.resize(mutation_run_context_COUNT_);
 	
-	// We want to try to guarantee that every thread sets up its MutationRunContext, even if OMP_DYNAMIC is true
-	int old_dynamic = omp_get_dynamic();
-	omp_set_dynamic(false);
-	
-	// Check that each RNG was initialized by a different thread, as intended below;
-	// this is not required, but it improves memory locality throughout the run
-	bool threadObserved[mutation_run_context_COUNT_];
-	
-#pragma omp parallel default(none) shared(mutation_run_context_PERTHREAD, threadObserved) num_threads(mutation_run_context_COUNT_)
+	if (mutation_run_context_COUNT_ > 0)
 	{
-		// Each thread allocates and initializes its own MutationRunContext, for "first touch" optimization
-		int threadnum = omp_get_thread_num();
+		// We want to try to guarantee that every thread sets up its MutationRunContext, even if OMP_DYNAMIC is true
+		int old_dynamic = omp_get_dynamic();
+		omp_set_dynamic(false);
 		
-		mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
-		mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
-		omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
-		threadObserved[threadnum] = true;
-	}	// end omp parallel
-	
-	omp_set_dynamic(old_dynamic);
-	
-	for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
-		if (!threadObserved[threadnum])
-			std::cerr << "WARNING: parallel MutationRunContexts were not correctly initialized on their corresponding threads; this may cause slower simulation." << std::endl;
+		// Check that each RNG was initialized by a different thread, as intended below;
+		// this is not required, but it improves memory locality throughout the run
+		bool threadObserved[mutation_run_context_COUNT_];
+		
+#pragma omp parallel default(none) shared(mutation_run_context_PERTHREAD, threadObserved) num_threads(mutation_run_context_COUNT_)
+		{
+			// Each thread allocates and initializes its own MutationRunContext, for "first touch" optimization
+			int threadnum = omp_get_thread_num();
+			
+			mutation_run_context_PERTHREAD[threadnum] = new MutationRunContext();
+			mutation_run_context_PERTHREAD[threadnum]->allocation_pool_ = new EidosObjectPool("EidosObjectPool(MutationRun)", sizeof(MutationRun), 65536);
+			omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
+			threadObserved[threadnum] = true;
+		}	// end omp parallel
+		
+		omp_set_dynamic(old_dynamic);
+		
+		for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
+			if (!threadObserved[threadnum])
+				std::cerr << "WARNING: parallel MutationRunContexts were not correctly initialized on their corresponding threads; this may cause slower simulation." << std::endl;
+	}
 #endif	// end _OPENMP
 }
 
