@@ -102,6 +102,7 @@ development head (in the master branch):
 	update the zlib code in eidos_zlib to version 1.2.13 (13 Oct 2022), fixing some issues (see zlib ChangeLog file)
 	change to DWARF, not DWARF with dSYM, even for Release builds; I don't use the dSYM file to reverse-symbolicate crash reports, so it just slows down my Release builds (but turning it off is unusual, so I'm noting it here)
 	add an optimized case for sample() with replacement, when using a weights vector; orders of magnitude speedup for large tasks
+	shift GitHub Actions for macOS to macos-11 and macos-13; macos-10.15 stopped working in early May 2023, deprecated
 	
 
 version 4.0.1 (Eidos version 3.0.1):

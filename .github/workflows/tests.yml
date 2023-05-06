@@ -29,10 +29,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # BCH 1/30/2021: removing macos-11.0 for now because GitHub isn't running it properly
-        # see https://github.com/actions/virtual-environments/issues/2486 for more info
-        # also relevant: https://github.com/actions/virtual-environments/issues/2381
-        # BCH 3/28/2023: adding it back in (it is now named macos-11) to see if it now works
         include:
           # Ubuntu with the oldest supported GCC (used to be 4.8, but with 20.04 it is 7, sadly).
           - os: ubuntu-20.04
@@ -42,11 +38,11 @@ jobs:
           - os: ubuntu-22.04
             gcc: 12
             python: 3.9
-          # macOS, oldest supported version
-          - os: macos-10.15
+          # macOS, oldest supported version (macos-10.15 was removed by GitHub)
+          - os: macos-11
             python: 3.8
-          # macOS, newest supported version (we skip 11 to save on build minutes)
-          - os: macos-12
+          # macOS, newest supported version (we skip macos-12 to save on build minutes)
+          - os: macos-13
             python: 3.9
 
     steps:
@@ -176,11 +172,11 @@ jobs:
           - os: ubuntu-22.04
             qt: 5.15.2
             gcc: 12
-          # old MacOS with oldest supported Qt.
-          - os: macos-10.15
+          # old macOS with oldest supported Qt.
+          - os: macos-11
             qt: 5.9.5
-          # new MacOS with most recent Qt. (we skip macOS 11 to save on build minutes)
-          - os: macos-12
+          # new macOS with most recent Qt (we skip macos-12 to save on build minutes).
+          - os: macos-13
             qt: 5.15.2
 
     steps:
