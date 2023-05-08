@@ -99,7 +99,7 @@ jobs:
       - name: Fix OSX Cache Restore
         if: steps.cache.outputs.cache-hit == 'true' && startsWith(matrix.os, 'macos')
         run: |
-          mkdir -p /usr/local/miniconda/envs
+          sudo mkdir -p /usr/local/miniconda/envs
           sudo cp -r ~/osx-conda /usr/local/miniconda/envs/anaconda-client-env
 
       - name: Install pyslim
