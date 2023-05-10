@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2513
+{\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
 \f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
 \f6\fnil\fcharset0 Menlo-Bold;\f7\fnil\fcharset0 AppleColorEmoji;}
@@ -48,7 +48,7 @@ A utility function,
 \f3\i \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\i0\fs18 \cf2 (void)initializeGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00])\
+\f1\i0\fs18 \cf2 (void)initializeGeneConversion(numeric$\'a0nonCrossoverFraction, numeric$\'a0meanLength, numeric$\'a0simpleConversionFraction, [numeric$\'a0bias\'a0=\'a00], [logical$\'a0redrawLengthsOnFailure\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f2\fs20 \cf2 Calling this function switches the recombination model from a \'93simple crossover\'94 model to a \'93double-stranded break (DSB)\'94 model, and configures the details of the gene conversion tracts that will therefore be modeled.  The fraction of DSBs that will be modeled as non-crossover events is given by 
@@ -86,9 +86,23 @@ A utility function,
 \f2\fs20 /
 \f1\fs18 C
 \f2\fs20  mutations.  A non-zero bias may only be set in nucleotide-based models.  This function, and the way that gene conversion is modeled, fundamentally changed in SLiM 3.3.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
+\f1\fs18 redrawLengthsOnFailure
+\f2\fs20  parameter can be used to modify the internal mechanics of layout of gene conversion tracts.  If it is 
+\f1\fs18 F
+\f2\fs20  (the default, and the only behavior supported before SLiM 4.1), then if an attempt to lay out gene conversion tracts fails (because the tracts overlap each other, or overlap the start or end of the chromosome), SLiM will try again by drawing new positions for the tracts \'96 essentially shuffling the tracts around to try to find positions for them that don\'92t overlap.  If 
+\f1\fs18 redrawLengthsOnFailure
+\f2\fs20  is 
+\f1\fs18 T
+\f2\fs20 , then if an attempt to lay out gene conversion tracts fails, SLiM will try again by drawing new lengths for the tracts, as well as new positions.  This makes it more likely that layout will succeed, but risks biasing the realized mean tract length downward from the requested mean length (since layout of long tracts is more likely fail due to overlap).  In either case, if SLiM attempts to lay out gene conversion tracts 100 times without success, an error will result.  That error indicates that the specified constraints for gene conversion are difficult to satisfy \'96 tracts may commonly be so long that it is difficult or impossible to find an acceptable layout for them within the specified chromosome length.  Setting 
+\f1\fs18 redrawLengthsOnFailure
+\f2\fs20  to 
+\f1\fs18 T
+\f2\fs20  may mitigate this problem, at the price of biasing the mean tract length downward as discussed.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
+\f1\fs18 \cf0 (object<GenomicElement>)initializeGenomicElement(io<GenomicElementType>\'a0genomicElementType, integer\'a0start, integer\'a0end)
 \f4 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

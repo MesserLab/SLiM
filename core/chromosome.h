@@ -158,6 +158,7 @@ public:
 	double gene_conversion_inv_half_length_;				// 1.0 / (gene_conversion_avg_length_ / 2.0), used for geometric draws
 	double simple_conversion_fraction_;						// fraction of gene conversion tracts that are "simple" (no heteroduplex mismatche repair)
 	double mismatch_repair_bias_;							// GC bias in heteroduplex mismatch repair in complex gene conversion tracts
+	bool redraw_lengths_on_failure_;						// if T, we redraw lengths, not only positions, if tract layout fails
 	
 	int32_t mutrun_count_base_;								// minimum number of mutruns used (number of threads, typically); can be multiplied by a factor
 	int32_t mutrun_count_multiplier_;						// the current factor by which mutrun_count_base_ is multiplied; a power of two in [1, 1024]

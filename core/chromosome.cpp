@@ -1347,8 +1347,14 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 	// of them, if the uniquing step reduces the set of DSBs, but we don't want to redraw these things if we have to loop back due
 	// to a collision, because such redrawing would be liable to produce bias towards shorter extents.  (Redrawing the crossover/
 	// noncrossover and simple/complex decisions would probably be harmless, but it is simpler to just make all decisions up front.)
+	int try_count = 0;
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	static std::vector<std::tuple<slim_position_t, slim_position_t, bool, bool>> dsb_infos;	// using a static prevents reallocation
+	
+	// If the redrawLengthsOnFailure parameter to initializeGeneConversion() is T, we jump back here on layout failure
+	// Note that we also redraw noncrossover and simple, on this code path; that shouldn't matter since they are independent of layout
+generateDSBsRedrawingLengths:
+	
 	dsb_infos.clear();
 	
 	if (gene_conversion_avg_length_ < 2.0)
@@ -1375,12 +1381,17 @@ void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_
 		}
 	}
 	
-	int try_count = 0;
-	
-generateDSBs:
+	// If the redrawLengthsOnFailure parameter to initializeGeneConversion() is F, we jump back here on layout failure
+generateDSBsWithoutRedrawingLengths:
 	
 	if (++try_count > 100)
-		EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): non-overlapping recombination regions could not be achieved in 100 tries; terminating.  The recombination rate and/or mean gene conversion tract length may be too high." << EidosTerminate();
+	{
+		// Note this block handles failure for both redraw_lengths_on_failure_ cases
+		EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): non-overlapping recombination regions could not be achieved in 100 tries; terminating.  The recombination rate and/or mean gene conversion tract length may be too high.";
+		if (!redraw_lengths_on_failure_)
+			EIDOS_TERMINATION << "  You might wish to pass redrawLengthsOnFailure=T to initializeGeneConversion() to make gene conversion tract layout more robust.";
+		EIDOS_TERMINATION << EidosTerminate();
+	}
 	
 	// First draw DSB points; dsb_points contains positions and a flag for whether the breakpoint is at a rate=0.5 position
 	Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
@@ -1428,7 +1439,12 @@ generateDSBs:
 			// This DSB is at a rate=0.5 point, so we do not generate a gene conversion tract; it just translates directly to a crossover breakpoint
 			// Note that we do NOT check non_crossover_fraction_ here; it does not apply to rate=0.5 positions, since they cannot undergo gene conversion
 			if (dsb_point <= last_position_used)
-				goto generateDSBs;
+			{
+				if (redraw_lengths_on_failure_)
+					goto generateDSBsRedrawingLengths;
+				else
+					goto generateDSBsWithoutRedrawingLengths;
+			}
 			
 			p_crossovers.emplace_back(dsb_point);
 			last_position_used = dsb_point;
@@ -1441,13 +1457,13 @@ generateDSBs:
 			
 			// We do not want to allow GC tracts to extend all the way to the chromosome beginning or end
 			// This is partly because biologically it seems weird, and partly because a breakpoint at position 0 breaks tree-seq recording
-			if (tract_start <= 0)
-				goto generateDSBs;
-			if (tract_end > last_position_)
-				goto generateDSBs;
-			
-			if (tract_start <= last_position_used)
-				goto generateDSBs;
+			if ((tract_start <= 0) || (tract_end > last_position_) || (tract_start <= last_position_used))
+			{
+				if (redraw_lengths_on_failure_)
+					goto generateDSBsRedrawingLengths;
+				else
+					goto generateDSBsWithoutRedrawingLengths;
+			}
 			
 			if (tract_start == tract_end)
 			{

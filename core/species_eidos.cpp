@@ -597,7 +597,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	(void)initializeGeneConversion(numeric$ nonCrossoverFraction, numeric$ meanLength, numeric$ simpleConversionFraction, [numeric$ bias = 0])
+//	*********************	(void)initializeGeneConversion(numeric$ nonCrossoverFraction, numeric$ meanLength, numeric$ simpleConversionFraction, [numeric$ bias = 0], [logical$ redrawLengthsOnFailure = F])
 //
 EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std::string &p_function_name, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -606,6 +606,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	EidosValue *meanLength_value = p_arguments[1].get();
 	EidosValue *simpleConversionFraction_value = p_arguments[2].get();
 	EidosValue *bias_value = p_arguments[3].get();
+	EidosValue *redrawLengthsOnFailure_value = p_arguments[4].get();
 	std::ostream &output_stream = p_interpreter.ExecutionOutputStream();
 	
 	if (num_gene_conversions_ > 0)
@@ -615,6 +616,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	double gene_conversion_avg_length = meanLength_value->FloatAtIndex(0, nullptr);
 	double simple_conversion_fraction = simpleConversionFraction_value->FloatAtIndex(0, nullptr);
 	double bias = bias_value->FloatAtIndex(0, nullptr);
+	bool redraw_lengths_on_failure = redrawLengthsOnFailure_value->LogicalAtIndex(0, nullptr);
 	
 	if ((non_crossover_fraction < 0.0) || (non_crossover_fraction > 1.0) || std::isnan(non_crossover_fraction))
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeGeneConversion): initializeGeneConversion() nonCrossoverFraction must be between 0.0 and 1.0 inclusive (" << EidosStringForFloat(non_crossover_fraction) << " supplied)." << EidosTerminate();
@@ -633,9 +635,17 @@ EidosValue_SP Species::ExecuteContextFunction_initializeGeneConversion(const std
 	chromosome_->gene_conversion_inv_half_length_ = 1.0 / (gene_conversion_avg_length / 2.0);
 	chromosome_->simple_conversion_fraction_ = simple_conversion_fraction;
 	chromosome_->mismatch_repair_bias_ = bias;
+	chromosome_->redraw_lengths_on_failure_ = redraw_lengths_on_failure;
 	
 	if (SLiM_verbosity_level >= 1)
-		output_stream << "initializeGeneConversion(" << non_crossover_fraction << ", " << gene_conversion_avg_length << ", " << simple_conversion_fraction << ", " << bias << ");" << std::endl;
+	{
+		output_stream << "initializeGeneConversion(" << non_crossover_fraction << ", " << gene_conversion_avg_length << ", " << simple_conversion_fraction << ", " << bias;
+		
+		if (redraw_lengths_on_failure)
+			output_stream << ", T";
+		
+		output_stream << ");" << std::endl;
+	}
 	
 	num_gene_conversions_++;
 	

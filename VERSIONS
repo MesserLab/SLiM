@@ -103,6 +103,7 @@ development head (in the master branch):
 	change to DWARF, not DWARF with dSYM, even for Release builds; I don't use the dSYM file to reverse-symbolicate crash reports, so it just slows down my Release builds (but turning it off is unusual, so I'm noting it here)
 	add an optimized case for sample() with replacement, when using a weights vector; orders of magnitude speedup for large tasks
 	shift GitHub Actions for macOS to macos-11 and macos-13; macos-10.15 stopped working in early May 2023, deprecated
+	add an optional parameter to initializeGeneConversion(), [l$ redrawLengthsOnFailure = F], to avoid failures to lay out tracts in some models; no behavior change by default
 	
 
 version 4.0.1 (Eidos version 3.0.1):
