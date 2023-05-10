@@ -172,6 +172,39 @@ if (abs(mean(yN.getValue("a")) - mean(y1.getValue("a"))) > 0.5) stop('parallel s
 
 // ***********************************************************************************************
 
+// (integer)sample(integer x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_WR_INT
+
+x = 0:1000;
+w = runif(length(x), min=0.999, max=1.001);
+yN = sample(x, 10000000, replace=T, weights=w);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T, weights=w);
+if (abs(mean(yN) - mean(y1)) > 0.5) stop('parallel sample(integer x, weights=) failed test');
+
+// ***********************************************************************************************
+
+// (integer)sample(float x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_WR_FLOAT
+
+x = 0.0:1000;
+w = runif(length(x), min=0.999, max=1.001);
+yN = sample(x, 10000000, replace=T, weights=w);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T, weights=w);
+if (abs(mean(yN) - mean(y1)) > 0.5) stop('parallel sample(float x, weights=) failed test');
+
+// ***********************************************************************************************
+
+// (integer)sample(object x, replace=T, weights=NULL)			// EIDOS_OMPMIN_SAMPLE_WR_OBJECT
+
+x = sapply(0:1000, "Dictionary('a', applyValue);");
+w = runif(length(x), min=0.999, max=1.001);
+yN = sample(x, 10000000, replace=T, weights=w);
+parallelSetNumThreads(1);
+y1 = sample(x, 10000000, replace=T, weights=w);
+if (abs(mean(yN.getValue("a")) - mean(y1.getValue("a"))) > 0.5) stop('parallel sample(object x, weights=) failed test');
+
+// ***********************************************************************************************
+
 // (integer)tabulate(integer bin)								// EIDOS_OMPMIN_TABULATE
 
 values = rdunif(10000000, min=0, max=10000);
