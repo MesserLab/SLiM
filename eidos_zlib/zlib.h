@@ -789,13 +789,9 @@ ZEXTERN uLong ZEXPORT deflateBound OF((z_streamp strm,
    than Z_FINISH or Z_NO_FLUSH are used.
 */
 
-// BCH: Fixed a bug in zlib 1.2.13 where this prototype was declared incorrectly,
-// and did not match the order of the parameters in the implementation (!).
-// Reported to madler@alumni.caltech.edu.  This function is not actually called
-// in this stripped-down version of zlib, so it doesn't matter.
-ZEXTERN int ZEXPORT deflatePending OF((unsigned *pending,
-                                       int *bits,
-									   z_streamp strm));
+ZEXTERN int ZEXPORT deflatePending OF((z_streamp strm,
+									   unsigned *pending,
+									   int *bits));
 /*
      deflatePending() returns the number of bytes and bits of output that have
    been generated, but not yet provided in the available output.  The bytes not

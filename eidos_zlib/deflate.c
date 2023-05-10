@@ -545,7 +545,7 @@ int ZEXPORT deflateSetHeader(z_streamp strm, gz_headerp head)	// BCH: rearranged
 }
 
 /* ========================================================================= */
-int ZEXPORT deflatePending(unsigned *pending, int *bits, z_streamp strm)	// BCH: rearranged to get rid of prototype warning
+int ZEXPORT deflatePending(z_streamp strm, unsigned *pending, int *bits)	// BCH: rearranged to get rid of prototype warning
 {
     if (deflateStateCheck(strm)) return Z_STREAM_ERROR;
     if (pending != Z_NULL)
