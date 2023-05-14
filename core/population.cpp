@@ -665,7 +665,7 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyMateChoiceCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMateChoiceCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1030,7 +1030,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyModifyChildCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyModifyChildCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1152,7 +1152,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
 void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
 {
-	THREAD_SAFETY_CHECK("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// for use outside of parallel blocks
 	
@@ -2349,7 +2349,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyRecombinationCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyRecombinationCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -2501,7 +2501,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 #if DEBUG
 	if (p_recombination_callbacks || p_mutation_callbacks)
-		THREAD_SAFETY_CHECK("Population::DoCrossoverMutation(): recombination and mutation callbacks are not allowed when executing in parallel");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::DoCrossoverMutation(): recombination and mutation callbacks are not allowed when executing in parallel");
 #endif
 	
 	slim_popsize_t parent_genome_1_index = p_parent_index * 2;
@@ -3856,7 +3856,7 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 #if DEBUG
 	if (p_mutation_callbacks)
-		THREAD_SAFETY_CHECK("Population::DoRecombinantMutation(): mutation callbacks are not allowed when executing in parallel");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::DoRecombinantMutation(): mutation callbacks are not allowed when executing in parallel");
 #endif
 
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
@@ -4456,7 +4456,7 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 	// This method is designed to run in parallel, but only if no callbacks are enabled
 #if DEBUG
 	if (p_mutation_callbacks)
-		THREAD_SAFETY_CHECK("Population::DoClonalMutation(): mutation callbacks are not allowed when executing in parallel");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Population::DoClonalMutation(): mutation callbacks are not allowed when executing in parallel");
 #endif
 #if DEBUG
 	if (p_child_sex == IndividualSex::kUnspecified)
@@ -5806,7 +5806,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 		if (omp_get_num_threads() != mutrun_context_count)
 		{
 			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
-			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForPopulation(): incorrect thread count!");
+			THREAD_SAFETY_IN_ANY_PARALLEL("Population::TallyMutationRunReferencesForPopulation(): incorrect thread count!");
 		}
 #endif
 		
@@ -5948,7 +5948,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 		if (omp_get_num_threads() != mutrun_context_count)
 		{
 			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
-			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForSubpops(): incorrect thread count!");
+			THREAD_SAFETY_IN_ANY_PARALLEL("Population::TallyMutationRunReferencesForSubpops(): incorrect thread count!");
 		}
 #endif
 		
@@ -6028,7 +6028,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForGenomes(std::vector<Gen
 		if (omp_get_num_threads() != mutrun_context_count)
 		{
 			std::cerr << "requested  " << mutrun_context_count << " threads but got " << omp_get_num_threads() << std::endl;
-			THREAD_SAFETY_CHECK("Population::TallyMutationRunReferencesForGenomes(): incorrect thread count!");
+			THREAD_SAFETY_IN_ANY_PARALLEL("Population::TallyMutationRunReferencesForGenomes(): incorrect thread count!");
 		}
 #endif
 		
@@ -7280,7 +7280,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
 			{
-				THREAD_SAFETY_CHECK("Population::PrintAll(): usage of statics");
+				THREAD_SAFETY_IN_ANY_PARALLEL("Population::PrintAll(): usage of statics");
 				
 				static char double_buf[40];
 				

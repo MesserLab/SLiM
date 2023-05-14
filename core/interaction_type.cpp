@@ -76,7 +76,7 @@ void InteractionType::_WarmUp(void)
 	static bool beenHere = false;
 	
 	if (!beenHere) {
-		THREAD_SAFETY_CHECK("InteractionType::_WarmUp(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::_WarmUp(): not warmed up");
 		
 #ifdef _OPENMP
 		// set up per-thread sparse vector pools to avoid lock contention
@@ -1163,7 +1163,7 @@ double InteractionType::ClippedIntegral_2D(double indDistanceA1, double indDista
 
 double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
-	THREAD_SAFETY_CHECK("InteractionType::ApplyInteractionCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::ApplyInteractionCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1318,7 +1318,7 @@ size_t InteractionType::MemoryUsageForPositions(void)
 
 size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 {
-	THREAD_SAFETY_CHECK("InteractionType::MemoryUsageForSparseVectorPool(): s_freed_sparse_vectors_");
+	THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::MemoryUsageForSparseVectorPool(): s_freed_sparse_vectors_");
 	
 	size_t usage = 0;
 	
@@ -6117,7 +6117,7 @@ const std::vector<EidosPropertySignature_CSP> *InteractionType_Class::Properties
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("InteractionType_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -6140,7 +6140,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("InteractionType_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

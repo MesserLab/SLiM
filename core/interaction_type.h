@@ -345,7 +345,7 @@ public:
 		// This is not normally used by SLiM, but it is used in the SLiM test code in order to prevent sparse vectors
 		// that are allocated in one test from carrying over to later tests (which makes leak debugging a pain).
 		
-		THREAD_SAFETY_CHECK("InteractionType::DeleteSparseVectorFreeList(): s_freed_sparse_vectors_ change");
+		THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::DeleteSparseVectorFreeList(): s_freed_sparse_vectors_ change");
 		
 #ifdef _OPENMP
 		// When running multithreaded, free all pools

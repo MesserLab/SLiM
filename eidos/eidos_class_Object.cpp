@@ -277,7 +277,7 @@ std::vector<EidosClass *> &EidosClass::EidosClassRegistry(void)
 	
 	if (!classRegistry)
 	{
-		THREAD_SAFETY_CHECK("EidosClass::EidosClassRegistry(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::EidosClassRegistry(): not warmed up");
 		
 		classRegistry = new std::vector<EidosClass *>;
 	}
@@ -424,7 +424,7 @@ void EidosClass::CheckForDuplicateMethodsOrProperties(void)
 
 EidosClass::EidosClass(const std::string &p_class_name, EidosClass *p_superclass) : class_name_(p_class_name), superclass_(p_superclass)
 {
-	THREAD_SAFETY_CHECK("EidosClass::EidosClass(): not warmed up");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::EidosClass(): not warmed up");
 	
 	// Every EidosClass instance gets added to a shared registry, so that Eidos can find them all
 	EidosClassRegistry().emplace_back(this);
@@ -520,7 +520,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosClass::Properties(void) cons
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("EidosClass::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>;
 		
@@ -536,7 +536,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosClass::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("EidosClass::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>;
 		
@@ -559,7 +559,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosClass::Functions(void) const
 	
 	if (!functions)
 	{
-		THREAD_SAFETY_CHECK("EidosClass::Functions(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosClass::Functions(): not warmed up");
 		
 		functions = new std::vector<EidosFunctionSignature_CSP>;
 		

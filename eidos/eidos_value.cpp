@@ -580,7 +580,7 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		// Finally, set the dimensionality of the result, considering dropped dimensions.  This basically follows the structure
 		// of the indexed operand's dimensions, but (a) resizes to match the size of p_inclusion_indices for the given dimension,
 		// and (b) omits any dimension that has a count of exactly 1, if dropping is requested.
-		THREAD_SAFETY_CHECK("EidosValue::Subset(): usage of statics");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue::Subset(): usage of statics");
 		
 		static int64_t *static_dim_buffer = nullptr;
 		static int static_dim_buffer_size = -1;
@@ -2137,7 +2137,7 @@ EidosValue_Object::EidosValue_Object(bool p_singleton, const EidosClass *p_class
 										
 	if (element_type == &gEidosStr_Mutation)
 	{
-		THREAD_SAFETY_CHECK("EidosValue_Object::EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
 		
 		gEidosValue_Object_Mutation_Registry.emplace_back(this);
 		registered_for_patching_ = true;
@@ -2155,7 +2155,7 @@ EidosValue_Object::~EidosValue_Object(void)
 	// See comment on EidosValue_Object::EidosValue_Object() above
 	if (registered_for_patching_)
 	{
-		THREAD_SAFETY_CHECK("EidosValue_Object::~EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosValue_Object::~EidosValue_Object(): gEidosValue_Object_Mutation_Registry change");
 		
 		auto erase_iter = std::find(gEidosValue_Object_Mutation_Registry.begin(), gEidosValue_Object_Mutation_Registry.end(), this);
 		

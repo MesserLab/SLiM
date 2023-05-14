@@ -815,7 +815,7 @@ MutationIndex Chromosome::DrawNewMutation(std::pair<slim_position_t, GenomicElem
 // apply mutation() to a generated mutation; we might return nullptr (proposed mutation rejected), the original proposed mutation (it was accepted), or a replacement Mutation *
 Mutation *Chromosome::ApplyMutationCallbacks(Mutation *p_mut, Genome *p_genome, GenomicElement *p_genomic_element, int8_t p_original_nucleotide, std::vector<SLiMEidosBlock*> &p_mutation_callbacks) const
 {
-	THREAD_SAFETY_CHECK("Population::ApplyMutationCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1305,7 +1305,7 @@ void Chromosome::DrawCrossoverBreakpoints(IndividualSex p_parent_sex, const int 
 // the information returned here also includes a list of heteroduplex regions where mismatches between the two parental strands will need to be resolved
 void Chromosome::DrawDSBBreakpoints(IndividualSex p_parent_sex, const int p_num_breakpoints, std::vector<slim_position_t> &p_crossovers, std::vector<slim_position_t> &p_heteroduplex) const
 {
-	THREAD_SAFETY_CHECK("Chromosome::DrawDSBBreakpoints(): usage of statics, probably many other issues");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome::DrawDSBBreakpoints(): usage of statics, probably many other issues");
 	
 	// BEWARE! Chromosome::DrawCrossoverBreakpoints() above must be altered in parallel with this method!
 #if DEBUG
@@ -2527,7 +2527,7 @@ const std::vector<EidosPropertySignature_CSP> *Chromosome_Class::Properties(void
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Chromosome_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -2578,7 +2578,7 @@ const std::vector<EidosMethodSignature_CSP> *Chromosome_Class::Methods(void) con
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Chromosome_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Chromosome_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

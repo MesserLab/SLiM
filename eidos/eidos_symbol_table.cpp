@@ -57,7 +57,7 @@ size_t MemoryUsageForSymbolTables(EidosSymbolTable *p_currentTable)
 
 static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTableFromPool(uint32_t *p_capacity)
 {
-	THREAD_SAFETY_CHECK("GetZeroedTableFromPool(): gEidosSymbolTable_TablePool change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("GetZeroedTableFromPool(): gEidosSymbolTable_TablePool change");
 	
 	// Get a zeroed table from the pool, or make a new one
 	*p_capacity = gEidosSymbolTable_TablePool_table_capacity;
@@ -78,7 +78,7 @@ static inline __attribute__((always_inline)) EidosSymbolTableSlot *GetZeroedTabl
 
 static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSymbolTableSlot *p_table, uint32_t p_capacity)
 {
-	THREAD_SAFETY_CHECK("FreeZeroedTableToPool(): gEidosSymbolTable_TablePool change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("FreeZeroedTableToPool(): gEidosSymbolTable_TablePool change");
 	
 	if (p_capacity > gEidosSymbolTable_TablePool_table_capacity)
 	{
@@ -106,7 +106,7 @@ static inline __attribute__((always_inline)) void FreeZeroedTableToPool(EidosSym
 
 void FreeSymbolTablePool(void)
 {
-	THREAD_SAFETY_CHECK("FreeSymbolTablePool(): gEidosSymbolTable_TablePool change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("FreeSymbolTablePool(): gEidosSymbolTable_TablePool change");
 	
     // Clean up our symbol table slot pool to avoid confusing Valgrind
     while (gEidosSymbolTable_TablePool.size())
@@ -128,7 +128,7 @@ void FreeSymbolTablePool(void)
 EidosSymbolTable::EidosSymbolTable(EidosSymbolTableType p_table_type, EidosSymbolTable *p_parent_table) : table_type_(p_table_type),
 	table_type_is_constant_((p_table_type != EidosSymbolTableType::kGlobalVariablesTable) && (p_table_type != EidosSymbolTableType::kLocalVariablesTable))
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::EidosSymbolTable(): usage of statics");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::EidosSymbolTable(): usage of statics");
 	
 	// allocate the lookup table
 	slots_ = GetZeroedTableFromPool(&capacity_);
@@ -394,7 +394,7 @@ EidosValue_SP EidosSymbolTable::_GetValue_IsConst(EidosGlobalStringID p_symbol_n
 
 void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::_ResizeToFitSymbol(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::_ResizeToFitSymbol(): symbol table change");
 	
 	uint32_t new_capacity = capacity_;
 	
@@ -419,7 +419,7 @@ void EidosSymbolTable::_ResizeToFitSymbol(EidosGlobalStringID p_symbol_name)
 
 void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::SetValueForSymbol(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::SetValueForSymbol(): symbol table change");
 	
 	// If we have the only reference to the value, we don't need to copy it; otherwise we copy, since we don't want to hold
 	// onto a reference that somebody else might modify under us (or that we might modify under them, with syntaxes like
@@ -455,7 +455,7 @@ void EidosSymbolTable::SetValueForSymbol(EidosGlobalStringID p_symbol_name, Eido
 
 void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::SetValueForSymbolNoCopy(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::SetValueForSymbolNoCopy(): symbol table change");
 	
 	// So, this is a little weird.  SetValueForSymbol() copies the passed value, as explained in its comment above.
 	// If a few cases, however, we want to play funny games and prevent that copy from occurring so that we can munge
@@ -496,7 +496,7 @@ void EidosSymbolTable::SetValueForSymbolNoCopy(EidosGlobalStringID p_symbol_name
 
 void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::DefineConstantForSymbol(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::DefineConstantForSymbol(): symbol table change");
 	
 	// First make sure this symbol is not in use as either a variable or a constant
 	// We use SymbolDefinedAnywhere() because defined constants cannot conflict with any symbol defined anywhere, whether
@@ -557,7 +557,7 @@ void EidosSymbolTable::DefineConstantForSymbol(EidosGlobalStringID p_symbol_name
 
 void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::DefineGlobalForSymbol(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::DefineGlobalForSymbol(): symbol table change");
 	
 	// First find the global variables table
 	EidosSymbolTable *global_variables_table = this;
@@ -603,7 +603,7 @@ void EidosSymbolTable::DefineGlobalForSymbol(EidosGlobalStringID p_symbol_name, 
 
 void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_remove_constant)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::_RemoveSymbol(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::_RemoveSymbol(): symbol table change");
 	
 	if (p_symbol_name < capacity_)
 	{
@@ -652,7 +652,7 @@ void EidosSymbolTable::_RemoveSymbol(EidosGlobalStringID p_symbol_name, bool p_r
 
 void EidosSymbolTable::_InitializeConstantSymbolEntry(EidosGlobalStringID p_symbol_name, EidosValue_SP p_value)
 {
-	THREAD_SAFETY_CHECK("EidosSymbolTable::_InitializeConstantSymbolEntry(): symbol table change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("EidosSymbolTable::_InitializeConstantSymbolEntry(): symbol table change");
 	
 #if DEBUG
 	if (p_value->Invisible())

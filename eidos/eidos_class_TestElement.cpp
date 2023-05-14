@@ -201,7 +201,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElement_Class::Propertie
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("EidosTestElement_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElement_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -220,7 +220,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosTestElement_Class::Methods(voi
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("EidosTestElement_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElement_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
@@ -239,7 +239,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosTestElement_Class::Functions
 	
 	if (!functions)
 	{
-		THREAD_SAFETY_CHECK("EidosTestElement_Class::Functions(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElement_Class::Functions(): not warmed up");
 		
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;
@@ -345,7 +345,7 @@ const std::vector<EidosPropertySignature_CSP> *EidosTestElementNRR_Class::Proper
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("EidosTestElementNRR_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElementNRR_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -363,7 +363,7 @@ const std::vector<EidosFunctionSignature_CSP> *EidosTestElementNRR_Class::Functi
 	
 	if (!functions)
 	{
-		THREAD_SAFETY_CHECK("EidosTestElementNRR_Class::Functions(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("EidosTestElementNRR_Class::Functions(): not warmed up");
 		
 		// Note there is no call to super, the way there is for methods and properties; functions are not inherited!
 		functions = new std::vector<EidosFunctionSignature_CSP>;

@@ -455,7 +455,7 @@ const std::vector<EidosPropertySignature_CSP> *GenomicElementType_Class::Propert
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("GenomicElementType_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("GenomicElementType_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -479,7 +479,7 @@ const std::vector<EidosMethodSignature_CSP> *GenomicElementType_Class::Methods(v
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("GenomicElementType_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("GenomicElementType_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

@@ -244,7 +244,7 @@ double MutationType::DrawSelectionCoefficient(void) const
 		{
 			// We have a script string that we need to execute, and it will return a float or integer to us.  This
 			// is basically a lambda call, so the code here is parallel to the executeLambda() code in many ways.
-			THREAD_SAFETY_CHECK("MutationType::DrawSelectionCoefficient(): type 's' DFE running lambda");
+			THREAD_SAFETY_IN_ANY_PARALLEL("MutationType::DrawSelectionCoefficient(): type 's' DFE running lambda");
 			
 			double sel_coeff;
 			
@@ -454,7 +454,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!static_policy_string_s)
 				{
-					THREAD_SAFETY_CHECK("MutationType::GetProperty(): usage of statics");
+					THREAD_SAFETY_IN_ANY_PARALLEL("MutationType::GetProperty(): usage of statics");
 					
 					static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
 					static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));
@@ -762,7 +762,7 @@ const std::vector<EidosPropertySignature_CSP> *MutationType_Class::Properties(vo
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("MutationType_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("MutationType_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -792,7 +792,7 @@ const std::vector<EidosMethodSignature_CSP> *MutationType_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("MutationType_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("MutationType_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

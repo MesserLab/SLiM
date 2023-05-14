@@ -92,7 +92,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 //	(void)beep([Ns$ soundName = NULL])
 EidosValue_SP Eidos_ExecuteFunction_beep(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
-	THREAD_SAFETY_CHECK("Eidos_ExecuteFunction_beep(): main thread only");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_ExecuteFunction_beep(): main thread only");
 	
 	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
 	

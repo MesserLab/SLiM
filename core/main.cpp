@@ -201,7 +201,7 @@ int main(int argc, char *argv[])
 #if 0
 #pragma omp parallel
 	{
-		THREAD_SAFETY_CHECK("TEST");
+		THREAD_SAFETY_IN_ANY_PARALLEL("TEST");
 	}
 #endif
 	

@@ -200,7 +200,7 @@ public:
 	
 	static inline slim_pedigreeid_t GetNextOperationID(void)
 	{
-		THREAD_SAFETY_CHECK("GetNextOperationID(): MutationRun::sOperationID change");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("GetNextOperationID(): MutationRun::sOperationID change");
 		
 		return ++(MutationRun::sOperationID);
 	}
@@ -750,7 +750,7 @@ public:
 		{
 			// When running parallel, all nonneutral caches must be validated
 			// ahead of time; see Subpopulation::FixNonNeutralCaches_OMP()
-			THREAD_SAFETY_CHECK("beginend_nonneutral_pointers()");
+			THREAD_SAFETY_IN_ACTIVE_PARALLEL("beginend_nonneutral_pointers()");
 			
 			// If the nonneutral change counter has changed since we last validated, or our cache is invalid for other
 			// reasons (most notably being a new mutation run that has not yet cached), validate it immediately

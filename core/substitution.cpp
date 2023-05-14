@@ -378,7 +378,7 @@ const std::vector<EidosPropertySignature_CSP> *Substitution_Class::Properties(vo
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Substitution_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Substitution_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -405,7 +405,7 @@ const std::vector<EidosMethodSignature_CSP> *Substitution_Class::Methods(void) c
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Substitution_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Substitution_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

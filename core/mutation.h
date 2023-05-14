@@ -242,7 +242,7 @@ inline __attribute__((always_inline)) MutationIndex SLiM_NewMutationFromBlock(vo
 
 inline __attribute__((always_inline)) void SLiM_DisposeMutationToBlock(MutationIndex p_mutation_index)
 {
-	THREAD_SAFETY_CHECK("SLiM_DisposeMutationToBlock(): gSLiM_Mutation_Block change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_DisposeMutationToBlock(): gSLiM_Mutation_Block change");
 	
 	void *mut_ptr = gSLiM_Mutation_Block + p_mutation_index;
 	

@@ -320,7 +320,7 @@ std::string nonWF_prefix("initialize() { initializeSLiMModelType('nonWF'); } ");
 int RunSLiMTests(void)
 {
 	// This function should never be called when parallel, but individual tests are allowed to go parallel internally
-	THREAD_SAFETY_CHECK("RunSLiMTests(): illegal when parallel");
+	THREAD_SAFETY_IN_ANY_PARALLEL("RunSLiMTests(): illegal when parallel");
 	
 	// Test SLiM.  The goal here is not really to test that the core code of SLiM is working properly – that simulations
 	// work as they are intended to.  Such testing is beyond the scope of what we can do here.  Instead, the goal here

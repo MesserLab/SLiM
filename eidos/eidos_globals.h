@@ -142,14 +142,14 @@ extern EidosErrorContext gEidosErrorContext;
 
 inline __attribute__((always_inline)) void RestoreErrorPosition(EidosErrorPosition &p_saved_position)
 {
-	THREAD_SAFETY_CHECK("RestoreErrorPosition(): gEidosErrorContext change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("RestoreErrorPosition(): gEidosErrorContext change");
 	
 	gEidosErrorContext.errorPosition = p_saved_position;
 }
 
 inline __attribute__((always_inline)) void ClearErrorPosition(void)
 {
-	THREAD_SAFETY_CHECK("ClearErrorPosition(): gEidosErrorContext change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("ClearErrorPosition(): gEidosErrorContext change");
 	
 	gEidosErrorContext.errorPosition = EidosErrorPosition{-1, -1, -1, -1};
 }

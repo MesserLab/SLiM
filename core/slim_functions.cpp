@@ -51,7 +51,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 	
 	if (!sim_func_signatures_.size())
 	{
-		THREAD_SAFETY_CHECK("Community::SLiMFunctionSignatures(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Community::SLiMFunctionSignatures(): not warmed up");
 		
 		// Nucleotide utilities
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("codonsToAminoAcids", SLiM_ExecuteFunction_codonsToAminoAcids, kEidosValueMaskString | kEidosValueMaskInt, "SLiM"))->AddInt("codons")->AddArgWithDefault(kEidosValueMaskLogical | kEidosValueMaskInt | kEidosValueMaskOptional | kEidosValueMaskSingleton, "long", nullptr, gStaticEidosValue_LogicalF)->AddLogical_OS("paste", gStaticEidosValue_LogicalT));
@@ -1405,7 +1405,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (!beenHere)
 	{
-		THREAD_SAFETY_CHECK("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
+		THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
 		
 		Individual *test_ind_layout = individuals_buffer[0];
 	
@@ -1603,7 +1603,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	else
 	{
 		// run the lambda on each bin, which does not depend upon the spatiality
-		THREAD_SAFETY_CHECK("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
+		THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
 		
 		EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(operation_value);
 		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);

@@ -301,14 +301,14 @@ std::ostream &operator<<(std::ostream &p_outstream, const EidosValue &p_value);
 // Eidos_intrusive_ptr support
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_add_ref(const EidosValue *p_value)
 {
-	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_add_ref(): EidosValue intrusive_ref_count_ change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_intrusive_ptr_add_ref(): EidosValue intrusive_ref_count_ change");
 	
 	++(p_value->intrusive_ref_count_);
 }
 
 inline __attribute__((always_inline)) void Eidos_intrusive_ptr_release(const EidosValue *p_value)
 {
-	THREAD_SAFETY_CHECK("Eidos_intrusive_ptr_release(): EidosValue intrusive_ref_count_ change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_intrusive_ptr_release(): EidosValue intrusive_ref_count_ change");
 	
 	if ((--(p_value->intrusive_ref_count_)) == 0)
 	{

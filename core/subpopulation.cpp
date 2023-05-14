@@ -2329,7 +2329,7 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 
 double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -2487,7 +2487,7 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 
 double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -3502,7 +3502,7 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 // nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
-	THREAD_SAFETY_CHECK("Population::ApplyReproductionCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplyReproductionCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -3718,7 +3718,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 // nonWF only:
 bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
 {
-	THREAD_SAFETY_CHECK("Population::ApplySurvivalCallbacks(): running Eidos callback");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Population::ApplySurvivalCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -3858,7 +3858,7 @@ bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survi
 
 void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks)
 {
-	THREAD_SAFETY_CHECK("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ViabilitySurvival(): usage of statics, probably many other issues");
 	
 	// Loop through our individuals and do draws based on fitness to determine who dies; dead individuals get compacted out
 	Genome **genome_data = parent_genomes_.data();
@@ -5113,7 +5113,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
 		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
-		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
 		
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
@@ -6989,7 +6989,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		// see sample() for some discussion of this implementation
-		THREAD_SAFETY_CHECK("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
 		
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;
@@ -8022,7 +8022,7 @@ const std::vector<EidosPropertySignature_CSP> *Subpopulation_Class::Properties(v
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Subpopulation_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -8059,7 +8059,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Subpopulation_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

@@ -40,26 +40,17 @@
 	 on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
 	 use the -maxthreads <x> command-line option to change the maximum number of threads from OpenMP's default
 
- At present, we have parallelized these areas (this list may not always be up to date):
- 
-	Eidos_ExecuteFunction_sum()
-	Eidos_ExecuteFunction_rnorm()
-	Individual::SetProperty_Accelerated_fitnessScaling()
-	Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType()
-	InteractionType::ExecuteMethod_interactingNeighborCount()
-	InteractionType::ExecuteMethod_totalOfNeighborStrengths()
-	EidosValue_Int_vector::Sort()
- 
- We allocate per-thread storage (for gEidosMaxThreads threads) at the global level for these facilities:
+ We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species level for these facilities:
  
 	SparseVector pools; see s_freed_sparse_vectors_PERTHREAD vs. s_freed_sparse_vectors_SINGLE
 	random number generators; see gEidos_RNG_PERTHREAD vs. gEidos_RNG_SINGLE
+	MutationRunContexts; see mutation_run_context_PERTHREAD vs. mutation_run_SINGLE
  
  We use #pragma omp critical to protect some places in the code, with specified names
  
- Places in the code that cannot be encountered when parallel use THREAD_SAFETY_CHECK(), defined below,
+ Places in the code that cannot be encountered when parallel use THREAD_SAFETY macros, defined below,
  as a runtime guard; but be aware that it only checks for Debug builds.  Release builds may just produce
- race conditions are incorrect results with no warning or error.  Always check with a Debug build.
+ race conditions or incorrect results with no warning or error.  Always check with a Debug build.
  
  */
 
@@ -87,24 +78,40 @@ extern int gEidosNumThreads;
 #endif
 
 
-// THREAD_SAFETY_CHECK(): places in the code that have identified thread safety concerns should use this macro.  It will
+// Thread safety checking: places in the code that have identified thread safety concerns should use this macro.  It will
 // produce a runtime error for DEBUG builds if it is hit while parallel.  Put it in places that are not currently thread-safe.
 // For example, object pools and other such global state are not thread-safe right now, so they should use this.
 // Many of these places might be made safe with a simple locking protocol, but that has not yet been done, so beware.
 // This tagging of unsafe spots is undoubtedly not comprehensive; I'm just trying to catch the most obvious problems!
 // Note that this macro uses a GCC built-in; it is supported by Clang as well, but may need a tweak for other platforms.
-// This macros checks only for DEBUG builds!  When working on parallel code, be sure to check correctness with DEBUG!
+// This macro checks only for DEBUG builds!  When working on parallel code, be sure to check correctness with DEBUG!
+//
+// BCH 5/14/2023: We now have two versions of this, because there are two checks one might want to do:
+//
+//		THREAD_SAFETY_IN_ANY_PARALLEL() - errors if inside a parallel region, even if inactive (i.e., running with
+//			only one thread).  This is particularly relevant for code that is known to raise without protection,
+//			and particularly, for code that executes Eidos lambda/callback code without protection.  It is also
+//			useful for code that, semantically, should just never be inside a parallel region at all.  This is
+//			generally true of all C++ Eidos implementations, since Eidos code is never run in parallel.
+//
+//		THREAD_SAFETY_IN_ACTIVE_PARALLEL() - errors if inside an active (i.e., multithreaded) parallel region.
+//			This is particularly relevant for code that is not thread-safe due to use of statics, presence of races,
+//			etc.; the code is fine run-single-threaded, even in an inactive parallel region.
+
 #ifdef _OPENMP
 
 #if DEBUG
-#define THREAD_SAFETY_CHECK(s) if (omp_in_parallel()) { std::cerr << "THREAD_SAFETY_CHECK error in " << s; raise(SIGTRAP); }
+#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s) if (omp_in_parallel()) { std::cerr << "THREAD_SAFETY_IN_ACTIVE_PARALLEL error in " << s; raise(SIGTRAP); }
+#define THREAD_SAFETY_IN_ANY_PARALLEL(s) if (omp_get_level() > 0) { std::cerr << "THREAD_SAFETY_IN_ANY_PARALLEL error in " << s; raise(SIGTRAP); }
 #else
-#define THREAD_SAFETY_CHECK(s)
+#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)
+#define THREAD_SAFETY_IN_ANY_PARALLEL(s)
 #endif
 
 #else
 
-#define THREAD_SAFETY_CHECK(s)
+#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)
+#define THREAD_SAFETY_IN_ANY_PARALLEL(s)
 
 #endif
 
@@ -173,7 +180,7 @@ public:
 		{
 			// We did not get the lock; somebody else is using the same resource.  This is a fatal error.
 			std::cerr << "race with " << lock_name_ << ": EidosDebugLock owner == " << owner_ << ", racing owner == " << p_owner << std::endl;
-			THREAD_SAFETY_CHECK("SLiM_IncreaseMutationBlockCapacity(): race condition hit!");
+			THREAD_SAFETY_IN_ACTIVE_PARALLEL("EidosDebugLock::start_critical(): race condition hit!");
 		}
 		else
 		{

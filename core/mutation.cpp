@@ -48,7 +48,7 @@ extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	//
 
 void SLiM_CreateMutationBlock(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_CreateMutationBlock(): gSLiM_Mutation_Block address change");
 	
 	// first allocate the block; no need to zero the memory
 	gSLiM_Mutation_Block_Capacity = SLIM_MUTATION_BLOCK_INITIAL_SIZE;
@@ -72,9 +72,9 @@ void SLiM_CreateMutationBlock(void)
 
 void SLiM_IncreaseMutationBlockCapacity(void)
 {
-	// We do not use THREAD_SAFETY_CHECK() here because this needs to be checked in release builds also;
+	// We do not use a THREAD_SAFETY macro here because this needs to be checked in release builds also;
 	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
-	if (omp_in_parallel())
+	if (omp_get_level() > 0)
 	{
 		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
 		raise(SIGTRAP);
@@ -152,7 +152,7 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 
 void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
 {
-	THREAD_SAFETY_CHECK("SLiM_ZeroRefcountBlock(): gSLiM_Mutation_Block change");
+	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ZeroRefcountBlock(): gSLiM_Mutation_Block change");
 	
 #ifdef SLIMGUI
 	// This version zeros out refcounts just for the mutations currently in use in the registry.
@@ -296,7 +296,7 @@ mutation_type_ptr_(p_mutation_type_ptr), position_(p_position), selection_coeff_
 	// Since a mutation id was supplied by the caller, we need to ensure that subsequent mutation ids generated do not collide
 	// This constructor (unline the other Mutation() constructor above) is presently never called multithreaded,
 	// so we just enforce that here.  If that changes, it should start using the debug lock to detect races, as above.
-	THREAD_SAFETY_CHECK("Mutation::Mutation(): gSLiM_next_mutation_id change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Mutation::Mutation(): gSLiM_next_mutation_id change");
 	
 	if (gSLiM_next_mutation_id <= mutation_id_)
 		gSLiM_next_mutation_id = mutation_id_ + 1;
@@ -768,7 +768,7 @@ const std::vector<EidosPropertySignature_CSP> *Mutation_Class::Properties(void) 
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Mutation_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Mutation_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -796,7 +796,7 @@ const std::vector<EidosMethodSignature_CSP> *Mutation_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Mutation_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Mutation_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

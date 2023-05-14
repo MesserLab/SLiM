@@ -83,7 +83,7 @@ MutationRun *Genome::WillModifyRun(slim_mutrun_index_t p_run_index, MutationRunC
 
 void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
-	THREAD_SAFETY_CHECK("Genome::BulkOperationStart(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::BulkOperationStart(): s_bulk_operation_id_");
 	
 	if (s_bulk_operation_id_ != 0)
 	{
@@ -105,7 +105,7 @@ void Genome::BulkOperationStart(int64_t p_operation_id, slim_mutrun_index_t p_mu
 
 MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index, MutationRunContext &p_mutrun_context)
 {
-	THREAD_SAFETY_CHECK("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::WillModifyRunForBulkOperation(): s_bulk_operation_id_");
 	
 	if (p_mutrun_index != s_bulk_operation_mutrun_index_)
 		EIDOS_TERMINATION << "ERROR (Genome::WillModifyRunForBulkOperation): (internal error) incorrect run index during bulk operation." << EidosTerminate();
@@ -159,7 +159,7 @@ MutationRun *Genome::WillModifyRunForBulkOperation(int64_t p_operation_id, slim_
 
 void Genome::BulkOperationEnd(int64_t p_operation_id, slim_mutrun_index_t p_mutrun_index)
 {
-	THREAD_SAFETY_CHECK("Genome::BulkOperationEnd(): s_bulk_operation_id_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::BulkOperationEnd(): s_bulk_operation_id_");
 	
 	if ((p_operation_id == s_bulk_operation_id_) && (p_mutrun_index == s_bulk_operation_mutrun_index_))
 	{
@@ -327,7 +327,7 @@ void Genome::record_derived_states(Species *p_species) const
 	// make calls to record the derived state at each position in the genome that has any mutation.
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	
-	THREAD_SAFETY_CHECK("Genome::record_derived_states(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome::record_derived_states(): usage of statics");
 
 	static std::vector<Mutation *> record_vec;
 	
@@ -2011,7 +2011,7 @@ const std::vector<EidosPropertySignature_CSP> *Genome_Class::Properties(void) co
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Genome_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -2034,7 +2034,7 @@ const std::vector<EidosMethodSignature_CSP> *Genome_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Genome_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
@@ -2803,7 +2803,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot calculate counts/frequencies in a zero-length Genome vector (divide by zero)." << EidosTerminate();
 	}
 	
-	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
 	
 	static std::vector<Genome *> target_genomes;	// prevent reallocation by using a static
 	
@@ -2981,7 +2981,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
@@ -3231,7 +3231,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_CHECK("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();

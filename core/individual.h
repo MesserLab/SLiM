@@ -45,17 +45,17 @@ class Subpopulation;
 extern EidosClass *gSLiM_Individual_Class;
 
 // A global counter used to assign all Individual objects a unique ID.  Note this is shared by all species.
-extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_CHECK()
+extern slim_pedigreeid_t gSLiM_next_pedigree_id;			// use SLiM_GetNextPedigreeID() instead, for THREAD_SAFETY_IN_ACTIVE_PARALLEL()
 
 inline slim_pedigreeid_t SLiM_GetNextPedigreeID(void)
 {
-	THREAD_SAFETY_CHECK("SLiM_GetNextPedigreeID(): gSLiM_next_pedigree_id change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_GetNextPedigreeID(): gSLiM_next_pedigree_id change");
 	return gSLiM_next_pedigree_id++;
 }
 
 inline slim_pedigreeid_t SLiM_GetNextPedigreeID_Block(int p_block_size)
 {
-	THREAD_SAFETY_CHECK("SLiM_GetNextPedigreeID_Block(): gSLiM_next_pedigree_id change");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_GetNextPedigreeID_Block(): gSLiM_next_pedigree_id change");
 	slim_pedigreeid_t block_base = gSLiM_next_pedigree_id;
 	
 	gSLiM_next_pedigree_id += p_block_size;

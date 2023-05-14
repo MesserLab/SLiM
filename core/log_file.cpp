@@ -229,7 +229,7 @@ EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_genera
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
 {
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
-	THREAD_SAFETY_CHECK("LogFile::_GeneratedValue_CustomScript(): running Eidos lambda");
+	THREAD_SAFETY_IN_ANY_PARALLEL("LogFile::_GeneratedValue_CustomScript(): running Eidos lambda");
 	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
@@ -268,7 +268,7 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_generator_info, EidosValue_SP *p_generated_value_1, EidosValue_SP *p_generated_value_2)
 {
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
-	THREAD_SAFETY_CHECK("LogFile::_GeneratedValues_CustomMeanAndSD(): running Eidos lambda");
+	THREAD_SAFETY_IN_ANY_PARALLEL("LogFile::_GeneratedValues_CustomMeanAndSD(): running Eidos lambda");
 	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
@@ -350,7 +350,7 @@ void LogFile::_OutputValue(std::ostringstream &p_out, EidosValue *p_value)
 
 void LogFile::AppendNewRow(void)
 {
-	THREAD_SAFETY_CHECK("LogFile::AppendNewRow(): filesystem write");
+	THREAD_SAFETY_IN_ANY_PARALLEL("LogFile::AppendNewRow(): filesystem write");
 	
 	std::vector<const std::string *> line_vec;
 	std::string header_line;
@@ -1098,7 +1098,7 @@ const std::vector<EidosPropertySignature_CSP> *LogFile_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("LogFile_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("LogFile_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -1119,7 +1119,7 @@ const std::vector<EidosMethodSignature_CSP> *LogFile_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("LogFile_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("LogFile_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		

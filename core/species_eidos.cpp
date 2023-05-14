@@ -1822,7 +1822,7 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 	EidosValue *subpops_value = p_arguments[1].get();
 	
 	// Cache the subpops across which we will tally
-	THREAD_SAFETY_CHECK("Species::ExecuteMethod_individualsWithPedigreeIDs(): usage of statics");
+	THREAD_SAFETY_IN_ANY_PARALLEL("Species::ExecuteMethod_individualsWithPedigreeIDs(): usage of statics");
 	
 	static std::vector<Subpopulation*> subpops_to_search;	// use a static to prevent allocation thrash
 	subpops_to_search.clear();
@@ -2142,7 +2142,7 @@ EidosValue_SP Species::ExecuteMethod_mutationFreqsCounts(EidosGlobalStringID p_m
 		// requested subpops, so get them
 		int requested_subpop_count = subpops_value->Count();
 		
-		THREAD_SAFETY_CHECK("Species::ExecuteMethod_mutationFreqsCounts(): usage of statics");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Species::ExecuteMethod_mutationFreqsCounts(): usage of statics");
 		
 		static std::vector<Subpopulation*> subpops_to_tally;	// using and clearing a static prevents allocation thrash; should be safe from re-entry
 		
@@ -3364,7 +3364,7 @@ const std::vector<EidosPropertySignature_CSP> *Species_Class::Properties(void) c
 	
 	if (!properties)
 	{
-		THREAD_SAFETY_CHECK("Species_Class::Properties(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Species_Class::Properties(): not warmed up");
 		
 		properties = new std::vector<EidosPropertySignature_CSP>(*super::Properties());
 		
@@ -3400,7 +3400,7 @@ const std::vector<EidosMethodSignature_CSP> *Species_Class::Methods(void) const
 	
 	if (!methods)
 	{
-		THREAD_SAFETY_CHECK("Species_Class::Methods(): not warmed up");
+		THREAD_SAFETY_IN_ANY_PARALLEL("Species_Class::Methods(): not warmed up");
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
