@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2513
+{\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
 \f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fswiss\fcharset0 Helvetica-Oblique;\f8\fswiss\fcharset0 Helvetica;
@@ -7130,7 +7130,7 @@ The species to which the target object belongs.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(No<Individual>$)addCloned(object<Individual>$\'a0parent)\
+\'96\'a0(No<Individual>$)addCloned(object<Individual>$\'a0parent, [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parent by clonal reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
@@ -7140,12 +7140,28 @@ The species to which the target object belongs.\
 \f4\fs20  and  
 \f3\fs18 modifyChild()
 \f4\fs20  callbacks governing the generation of the offspring individual.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f3\fs18 mutation()
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2, [Nfs$\'a0sex\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2, [Nfs$\'a0sex\'a0=\'a0NULL], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parents by biparental sexual reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  Attempting to use a newly generated offspring individual as a mate, or to reference it as a member of the target subpopulation in any other way, will result in an error.  In most models the returned individual is not used, but it is provided for maximal generality and flexibility.\
@@ -7241,6 +7257,24 @@ If the
 \f4\fs20  callback rejects all proposed children from those particular parents, your model will then hang, so care must be taken with this approach.  Usually, nonWF models do not force generation of offspring in this manner; rejection of a proposed offspring by a 
 \f3\fs18 modifyChild()
 \f4\fs20  callback typically represents a phenomenon such as post-mating reproductive isolation or lethal genetic incompatibilities that would reduce the expected litter size, so the default behavior is typically desirable.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f3\fs18 mutation()
+\f4\fs20  or 
+\f3\fs18 recombination()
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
 \f3\fs18 addCrossed()
 \f4\fs20  must be called only from 
@@ -7301,7 +7335,7 @@ Note that this method is only for use in nonWF models.  See
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
@@ -7473,12 +7507,28 @@ These semantics allow several uses for
 Note that gene conversion tracts are not explicitly supported by this method; the 
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f3\fs18 mutation()
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addSelfed(object<Individual>$\'a0parent)\
+\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addSelfed(object<Individual>$\'a0parent, [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parent by selfing, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
@@ -7499,6 +7549,39 @@ Since selfing requires that
 \f4\fs20  has no effect on this method (in contrast to the behavior of 
 \f3\fs18 addCrossed()
 \f4\fs20 , where selfing is assumed to be incidental).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f3\fs18 mutation()
+\f4\fs20  or 
+\f3\fs18 recombination()
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Beginning in SLiM 4.1, passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
+\f3\fs18 mutation()
+\f4\fs20  or 
+\f3\fs18 recombination()
+\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
+\f3\fs18 F
+\f4\fs20  for 
+\f3\fs18 defer
+\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\

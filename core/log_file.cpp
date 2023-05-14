@@ -229,6 +229,8 @@ EidosValue_SP LogFile::_GeneratedValue_Tick(const LogFileGeneratorInfo &p_genera
 EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &p_generator_info)
 {
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
+	THREAD_SAFETY_CHECK("LogFile::_GeneratedValue_CustomScript(): running Eidos lambda");
+	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};
@@ -266,6 +268,8 @@ EidosValue_SP LogFile::_GeneratedValue_CustomScript(const LogFileGeneratorInfo &
 void LogFile::_GeneratedValues_CustomMeanAndSD(const LogFileGeneratorInfo &p_generator_info, EidosValue_SP *p_generated_value_1, EidosValue_SP *p_generated_value_2)
 {
 	// See, e.g., Subpopulation::ApplyFitnessEffectCallbacks() for comments on running scripts
+	THREAD_SAFETY_CHECK("LogFile::_GeneratedValues_CustomMeanAndSD(): running Eidos lambda");
+	
 	EidosScript *generator_script = p_generator_info.script_;
 	EidosErrorContext error_context_save = gEidosErrorContext;
 	gEidosErrorContext = EidosErrorContext{{-1, -1, -1, -1}, generator_script, true};

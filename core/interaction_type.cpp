@@ -1163,6 +1163,8 @@ double InteractionType::ClippedIntegral_2D(double indDistanceA1, double indDista
 
 double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
+	THREAD_SAFETY_CHECK("InteractionType::ApplyInteractionCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();

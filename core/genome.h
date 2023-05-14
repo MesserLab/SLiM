@@ -165,7 +165,11 @@ public:
 	
 	inline __attribute__((always_inline)) bool IsNull(void) const									// returns true if the genome is a null (placeholder) genome, false otherwise
 	{
-		return (mutrun_count_ == 0);
+		return (mutrun_count_ == 0);																	// null genomes have a mutrun count of 0
+	}
+	inline __attribute__((always_inline)) bool IsDeferred(void) const								// returns true if the genome is deferred genome (not yet generated), false otherwise
+	{
+		return ((mutrun_count_ != 0) && mutruns_ && !mutruns_[0]);										// when deferred, non-null genomes have a non-zero mutrun count but are cleared to nullptr
 	}
 	
 	void MakeNull(void) __attribute__((cold));	// transform into a null genome

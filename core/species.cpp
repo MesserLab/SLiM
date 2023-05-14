@@ -2434,6 +2434,9 @@ void Species::nonWF_MergeOffspring(void)
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 		subpop_pair.second->MergeReproductionOffspring();
 	
+	// then generate any deferred genomes; note that the deferred offspring got merged in above already
+	population_.DoDeferredReproduction();
+	
 	// clear the "migrant" property on all individuals
 	for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
 	{

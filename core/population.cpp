@@ -522,6 +522,129 @@ void Population::PurgeRemovedSubpopulations(void)
 	}
 }
 
+void Population::CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, std::string p_caller)
+{
+	if (HasDeferredGenomes())
+	{
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+		{
+			Genome *genome = p_genomes[element_index];
+			
+			if (genome->IsDeferred())
+				EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		}
+	}
+}
+
+void Population::CheckForDeferralInGenomes(EidosValue_Object *p_genomes, std::string p_caller)
+{
+	if (HasDeferredGenomes())
+	{
+		int element_count = p_genomes->Count();
+		
+		for (int element_index = 0; element_index < element_count; ++element_index)
+		{
+			Genome *genome = (Genome *)p_genomes->ObjectElementAtIndex(element_index, nullptr);
+			
+			if (genome->IsDeferred())
+				EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		}
+	}
+}
+
+void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, std::string p_caller)
+{
+	if (HasDeferredGenomes())
+	{
+		for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
+		{
+			Individual *element = p_individuals[element_index];
+			Genome *genome1 = element->genome1_;
+			Genome *genome2 = element->genome2_;
+			
+			if (genome1->IsDeferred() || genome2->IsDeferred())
+				EIDOS_TERMINATION << "ERROR (" << p_caller << "): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+		}
+	}
+}
+
+// nonWF only:
+void Population::DoDeferredReproduction(void)
+{
+	size_t deferred_count_nonrecombinant = deferred_reproduction_nonrecombinant_.size();
+	size_t deferred_count_recombinant = deferred_reproduction_recombinant_.size();
+	size_t deferred_count_total = deferred_count_nonrecombinant + deferred_count_recombinant;
+	
+	if (deferred_count_total == 0)
+		return;
+	
+	// before going parallel, we need to ensure that we have enough capacity in the
+	// mutation block; we can't expand it while parallel, due to race conditions
+	// see Population::EvolveSubpopulation() for the equivalent WF code
+#ifdef _OPENMP
+	do {
+		int registry_size;
+		MutationRegistry(&registry_size);
+		size_t est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+		double overall_mutation_rate = std::max(species_.chromosome_->overall_mutation_rate_F_, species_.chromosome_->overall_mutation_rate_M_);	// already multiplied by L
+		size_t est_slots_needed = (size_t)ceil(2 * deferred_count_total * overall_mutation_rate);	// 2 because diploid, in the worst case
+		
+		size_t ten_times_demand = 10 * est_slots_needed;
+		
+		if (est_mutation_block_slots_remaining_PRE <= ten_times_demand)
+		{
+			SLiM_IncreaseMutationBlockCapacity();
+			est_mutation_block_slots_remaining_PRE = gSLiM_Mutation_Block_Capacity - registry_size;
+			
+			//std::cerr << "Tick " << community_.Tick() << ": DOUBLED CAPACITY ***********************************" << std::endl;
+		}
+		else
+			break;
+	} while (true);
+#endif
+	
+	// now generate the genomes of the deferred offspring in parallel
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_nonrecombinant) if(deferred_count_nonrecombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
+	{
+			for (size_t deferred_index = 0; deferred_index < deferred_count_nonrecombinant; ++deferred_index)
+			{
+				SLiM_DeferredReproduction_NonRecombinant &deferred_rec = deferred_reproduction_nonrecombinant_[deferred_index];
+				
+				if ((deferred_rec.type_ == SLiM_DeferredReproductionType::kCrossoverMutation) || (deferred_rec.type_ == SLiM_DeferredReproductionType::kSelfed))
+				{
+					DoCrossoverMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, deferred_rec.parent1_->index_, deferred_rec.child_sex_, deferred_rec.parent1_->sex_, nullptr, nullptr);
+					
+					DoCrossoverMutation(deferred_rec.parent2_->subpopulation_, *deferred_rec.child_genome_2_, deferred_rec.parent2_->index_, deferred_rec.child_sex_, deferred_rec.parent2_->sex_, nullptr, nullptr);
+				}
+				else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kClonal)
+				{
+					DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, *deferred_rec.parent1_->genome1_, deferred_rec.child_sex_, nullptr);
+					
+					DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_2_, *deferred_rec.parent1_->genome2_, deferred_rec.child_sex_, nullptr);
+				}
+			}
+	}
+	
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_recombinant) if(deferred_count_recombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
+	for (size_t deferred_index = 0; deferred_index < deferred_count_recombinant; ++deferred_index)
+	{
+		SLiM_DeferredReproduction_Recombinant &deferred_rec = deferred_reproduction_recombinant_[deferred_index];
+		
+		if (deferred_rec.strand2_ == nullptr)
+		{
+			DoClonalMutation(deferred_rec.mutorigin_subpop_, *deferred_rec.child_genome_, *deferred_rec.strand1_, deferred_rec.sex_, nullptr);
+		}
+		else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kRecombinant)
+		{
+			DoRecombinantMutation(deferred_rec.mutorigin_subpop_, *deferred_rec.child_genome_, deferred_rec.strand1_, deferred_rec.strand2_, deferred_rec.sex_, deferred_rec.break_vec_, nullptr);
+		}
+	}
+	
+	// Clear the deferred reproduction queue
+	deferred_reproduction_nonrecombinant_.clear();
+	deferred_reproduction_recombinant_.clear();
+}
+
 // WF only:
 // set fraction p_migrant_fraction of p_subpop_id that originates as migrants from p_source_subpop_id per cycle  
 void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_subpop_id, double p_migrant_fraction) 
@@ -542,6 +665,8 @@ void Population::SetMigration(Subpopulation &p_subpop, slim_objectid_t p_source_
 // apply mateChoice() callbacks to a mating event with a chosen first parent; the return is the second parent index, or -1 to force a redraw
 slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_index, Subpopulation *p_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_mate_choice_callbacks)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyMateChoiceCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -905,6 +1030,8 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 // apply modifyChild() callbacks to a generated child; a return of false means "do not use this child, generate a new one"
 bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_parent1, Individual *p_parent2, bool p_is_selfing, bool p_is_cloning, Subpopulation *p_target_subpop, Subpopulation *p_source_subpop, std::vector<SLiMEidosBlock*> &p_modify_child_callbacks)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyModifyChildCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -2222,6 +2349,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 // apply recombination() callbacks to a generated child; a return of true means breakpoints were changed
 bool Population::ApplyRecombinationCallbacks(slim_popsize_t p_parent_index, Genome *p_genome1, Genome *p_genome2, Subpopulation *p_source_subpop, std::vector<slim_position_t> &p_crossovers, std::vector<SLiMEidosBlock*> &p_recombination_callbacks)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyRecombinationCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -3724,7 +3853,11 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 // generate a child genome from parental genomes, with recombination, gene conversion, and mutation
 void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome &p_child_genome, Genome *p_parent_genome_1, Genome *p_parent_genome_2, IndividualSex p_parent_sex, std::vector<slim_position_t> &p_breakpoints, std::vector<SLiMEidosBlock*> *p_mutation_callbacks)
 {
-	THREAD_SAFETY_CHECK("Population::DoRecombinantMutation(): usage of statics, probably many other issues");
+	// This method is designed to run in parallel, but only if no callbacks are enabled
+#if DEBUG
+	if (p_mutation_callbacks)
+		THREAD_SAFETY_CHECK("Population::DoRecombinantMutation(): mutation callbacks are not allowed when executing in parallel");
+#endif
 
 	// This is parallel to DoCrossoverMutation(), but is provided with parental genomes and breakpoints.
 	// It is called only by Subpopulation::ExecuteMethod_addRecombinant() to execute the user's plan.
@@ -3878,51 +4011,54 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-		
+#pragma omp threadprivate(mut_positions)
 		mut_positions.clear();
+		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
 		static std::vector<MutationIndex> mutations_to_add;
 #pragma omp threadprivate(mutations_to_add)
-		
 		mutations_to_add.clear();
 		
-		try {
-			if (species_.IsNucleotideBased() || p_mutation_callbacks)
-			{
-				// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
-				// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
-				// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
-				// callbacks are enabled, since that also wants to be able to see the context of the mutation.
-				for (int k = 0; k < num_mutations; k++)
+#pragma omp critical (MutationAlloc)
+		{
+			try {
+				if (species_.IsNucleotideBased() || p_mutation_callbacks)
 				{
-					MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
-					
-					if (new_mutation != -1)
+					// In nucleotide-based models, chromosome.DrawNewMutationExtended() will return new mutations to us with nucleotide_ set correctly.
+					// To do that, and to adjust mutation rates correctly, it needs to know which parental genome the mutation occurred on the
+					// background of, so that it can get the original nucleotide or trinucleotide context.  This code path is also used if mutation()
+					// callbacks are enabled, since that also wants to be able to see the context of the mutation.
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutationExtended(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick(), p_parent_genome_1, p_parent_genome_2, &p_breakpoints, p_mutation_callbacks);
+						
+						if (new_mutation != -1)
+							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
+						
+						// see further comments below, in the non-nucleotide case; they apply here as well
+					}
+				}
+				else
+				{
+					// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
+					for (int k = 0; k < num_mutations; k++)
+					{
+						MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());
+						
 						mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// see further comments below, in the non-nucleotide case; they apply here as well
+						
+						// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
+						// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
+						// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
+					}
 				}
+			} catch (...) {
+				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				throw;
 			}
-			else
-			{
-				// In non-nucleotide-based models, chromosome.DrawNewMutation() will return new mutations to us with nucleotide_ == -1
-				for (int k = 0; k < num_mutations; k++)
-				{
-					MutationIndex new_mutation = chromosome.DrawNewMutation(mut_positions[k], p_mutorigin_subpop->subpopulation_id_, community_.Tick());
-					
-					mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
-					
-					// no need to worry about pure_neutral_ or all_pure_neutral_DFE_ here; the mutation is drawn from a registered genomic element type
-					// we can't handle the stacking policy here, since we don't yet know what the context of the new mutation will be; we do it below
-					// we add the new mutation to the registry below, if the stacking policy says the mutation can actually be added
-				}
-			}
-		} catch (...) {
-			// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
-			throw;
-		}
+		}	// end #pragma omp critical (MutationAlloc)
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		const MutationIndex *mutation_iter		= mutations_to_add.data();

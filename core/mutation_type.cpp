@@ -244,6 +244,8 @@ double MutationType::DrawSelectionCoefficient(void) const
 		{
 			// We have a script string that we need to execute, and it will return a float or integer to us.  This
 			// is basically a lambda call, so the code here is parallel to the executeLambda() code in many ways.
+			THREAD_SAFETY_CHECK("MutationType::DrawSelectionCoefficient(): type 's' DFE running lambda");
+			
 			double sel_coeff;
 			
 			// Errors in lambdas should be reported for the lambda script, not for the calling script,

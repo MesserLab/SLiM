@@ -430,6 +430,9 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		}
 		case gID_uniqueMutations:
 		{
+			if (genome1_->IsDeferred() || genome2_->IsDeferred())
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+			
 			// We reserve a vector large enough to hold all the mutations from both genomes; probably usually overkill, but it does little harm
 			int genome1_size = (genome1_->IsNull() ? 0 : genome1_->mutation_count());
 			int genome2_size = (genome2_->IsNull() ? 0 : genome2_->mutation_count());
@@ -1193,6 +1196,9 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 EidosValue_SP Individual::ExecuteMethod_containsMutations(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (genome1_->IsDeferred() || genome2_->IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_containsMutations): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+	
 	EidosValue *mutations_value = p_arguments[0].get();
 	int mutations_count = mutations_value->Count();
 	
@@ -1244,10 +1250,12 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_countOfMutationsOfType(Eidos
 	Species *species = Community::SpeciesForIndividualsVector((Individual **)p_elements, (int)p_elements_size);
 	
 	if (species == nullptr)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType): sumOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+	
+	species->population_.CheckForDeferralInIndividualsVector((Individual **)p_elements, p_elements_size, "Individual::ExecuteMethod_Accelerated_countOfMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -1377,6 +1385,8 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 	if (species == nullptr)
 		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType): sumOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
 	
+	species->population_.CheckForDeferralInIndividualsVector((Individual **)p_elements, p_elements_size, "Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType");
+	
 	EidosValue *mutType_value = p_arguments[0].get();
 	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
@@ -1442,6 +1452,9 @@ EidosValue_SP Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType(EidosOb
 EidosValue_SP Individual::ExecuteMethod_uniqueMutationsOfType(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (genome1_->IsDeferred() || genome2_->IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_uniqueMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+	
 	EidosValue *mutType_value = p_arguments[0].get();
 	
 	Species &species = subpopulation_->species_;

@@ -47,6 +47,60 @@ class Individual;
 class Genome;
 
 
+#pragma mark -
+#pragma mark Deferred reproduction (mainly for multithreading)
+#pragma mark -
+
+typedef enum class SLiM_DeferredReproductionType : uint8_t {
+	kCrossoverMutation = 0,
+	kClonal,
+	kSelfed,
+	kRecombinant
+} SLiM_DeferredReproductionType;
+
+class SLiM_DeferredReproduction_NonRecombinant {
+public:
+	SLiM_DeferredReproductionType type_;
+	Individual *parent1_;
+	Individual *parent2_;
+	Genome *child_genome_1_;
+	Genome *child_genome_2_;
+	IndividualSex child_sex_;
+	
+	SLiM_DeferredReproduction_NonRecombinant(SLiM_DeferredReproductionType p_type,
+							  Individual *p_parent1,
+							  Individual *p_parent2,
+							  Genome *p_child_genome_1,
+							  Genome *p_child_genome_2,
+							  IndividualSex p_child_sex) :
+		type_(p_type), parent1_(p_parent1), parent2_(p_parent2), child_genome_1_(p_child_genome_1), child_genome_2_(p_child_genome_2), child_sex_(p_child_sex)
+	{};
+};
+
+class SLiM_DeferredReproduction_Recombinant {
+public:
+	SLiM_DeferredReproductionType type_;
+	Subpopulation *mutorigin_subpop_;
+	Genome *child_genome_;
+	Genome *strand1_;
+	Genome *strand2_;
+	std::vector<slim_position_t> break_vec_;
+	IndividualSex sex_;
+	
+	SLiM_DeferredReproduction_Recombinant(SLiM_DeferredReproductionType p_type,
+							  Subpopulation *p_mutorigin_subpop,
+							  Genome *p_strand1,
+							  Genome *p_strand2,
+							  std::vector<slim_position_t> &p_break_vec,
+							  Genome *p_child_genome,
+							  IndividualSex p_sex) :
+		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), strand1_(p_strand1), strand2_(p_strand2), child_genome_(p_child_genome), sex_(p_sex)
+	{
+		std::swap(break_vec_, p_break_vec);		// take ownership of the passed vector with std::swap(), to avoid copying
+	};
+};
+
+
 #ifdef SLIMGUI
 // This struct is used to hold fitness values observed during a run, for display by GraphView_FitnessOverTime
 // The Population keeps the fitness histories for all the subpopulations, because subpops can come and go, but
@@ -98,6 +152,9 @@ public:
 #ifdef SLIMGUI
 	slim_refcount_t gui_total_genome_count_ = 0;			// the number of non-null genomes in the selected subpopulations in SLiMgui
 #endif
+	
+	std::vector<SLiM_DeferredReproduction_NonRecombinant> deferred_reproduction_nonrecombinant_;
+	std::vector<SLiM_DeferredReproduction_Recombinant> deferred_reproduction_recombinant_;
 	
 	std::vector<Substitution*> substitutions_;				// OWNED POINTERS: Substitution objects for all fixed mutations
 	std::unordered_multimap<slim_position_t, Substitution*> treeseq_substitutions_map_;	// TREE SEQUENCE RECORDING; keeps all fixed mutations, hashed by position
@@ -277,6 +334,14 @@ public:
 	
 	// move individuals as requested by survival() callbacks
 	void ResolveSurvivalPhaseMovement(void);
+	
+	// checks for deferred genomes in queue right now; allows optimization when none are present
+	inline bool HasDeferredGenomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
+	void CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, std::string p_caller);
+	void CheckForDeferralInGenomes(EidosValue_Object *p_genomes, std::string p_caller);
+	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, std::string p_caller);
+	
+	void DoDeferredReproduction(void);
 	
 	//********** methods for all models
 	

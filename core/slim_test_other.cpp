@@ -923,6 +923,33 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); if (p1.individualCount == 10) stop(); }", "undefined identifier", __LINE__);		// the symbol is undefined immediately
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { px=p1; p1.removeSubpopulation(); if (px.individualCount == 10) stop(); }", __LINE__);									// does not take visible effect until generating children
 	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); } 2 early() { if (p1.individualCount == 0) stop(); }", "undefined identifier", __LINE__);
+	
+	// Test that deferred generation of offspring genomes does not cause vulnerabilities in properties/methods
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutations; }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.containsMutations(sim.mutations); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.countOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.sumOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.uniqueMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutations; }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addMutations(sim.mutations); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addNewDrawnMutation(m1, 10); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.addNewMutation(m1, 0.0, 10); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.containsMarkerMutation(m1, 10); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_highmut_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.containsMutations(sim.mutations); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.countOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationCountsInGenomes(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationFrequenciesInGenomes(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.mutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.nucleotides(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.output(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.outputMS(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.outputVCF(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.positionsOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.readFromMS('foo', m1); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.readFromVCF('foo'); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.removeMutations(); }", "deferred genomes", __LINE__);
+	SLiMAssertScriptRaise(nonWF_prefix + gen1_setup_p1 + "2 reproduction() { offspring = p1.addCloned(individual, defer=T); offspring.genomes.sumOfMutationsOfType(m1); }", "deferred genomes", __LINE__);
 }
 
 #pragma mark treeseq tests

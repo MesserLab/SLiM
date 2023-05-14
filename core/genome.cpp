@@ -437,6 +437,9 @@ EidosValue_SP Genome::GetProperty(EidosGlobalStringID p_property_id)
 			return ((mutrun_count_ == 0) ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
 		case gID_mutations:
 		{
+			if (IsDeferred())
+				EIDOS_TERMINATION << "ERROR (Genome::GetProperty): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+			
 			Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 			int mut_count = mutation_count();
 			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Mutation_Class))->resize_no_initialize_RR(mut_count);
@@ -605,6 +608,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMarkerMutation(EidosObje
 		if (!genomes_species)
 			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMarkerMutation): containsMarkerMutation() requires that all target genomes belong to the same species." << EidosTerminate();
 		
+		genomes_species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_containsMarkerMutation");
+		
 		Species &species = *genomes_species;
 		MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species.community_, &species, "containsMarkerMutation()");		// SPECIES CONSISTENCY CHECK
 		slim_position_t marker_position = SLiMCastToPositionTypeOrRaise(position_value->IntAtIndex(0, nullptr));
@@ -702,6 +707,8 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_containsMutations(EidosObject **
 		if (!genomes_species)
 			EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_containsMutations): containsMutations() requires that all target genomes belong to the same species." << EidosTerminate();
 		
+		genomes_species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_containsMutations");
+		
 		EidosValue *mutations_value = p_arguments[0].get();
 		int mutations_count = mutations_value->Count();
 		
@@ -798,10 +805,12 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 	Species *species = Community::SpeciesForGenomesVector((Genome **)p_elements, (int)p_elements_size);
 	
 	if (species == nullptr)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType): sumOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() requires that mutType belongs to the same species as the target individual." << EidosTerminate();
+	
+	species->population_.CheckForDeferralInGenomesVector((Genome **)p_elements, p_elements_size, "Genome::ExecuteMethod_Accelerated_countOfMutationsOfType");
 	
 	EidosValue *mutType_value = p_arguments[0].get();
-	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "sumOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
+	MutationType *mutation_type_ptr = SLiM_ExtractMutationTypeFromEidosValue_io(mutType_value, 0, &species->community_, species, "countOfMutationsOfType()");		// SPECIES CONSISTENCY CHECK
 	
 	// Count the number of mutations of the given type
 	const int32_t mutrun_count = ((Genome *)(p_elements[0]))->mutrun_count_;
@@ -849,6 +858,8 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
+	if (IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_mutationsOfType): mutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
@@ -920,6 +931,9 @@ EidosValue_SP Genome::ExecuteMethod_mutationsOfType(EidosGlobalStringID p_method
 EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	if (IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_nucleotides): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
+	
 	Species *species = &individual_->subpopulation_->species_;
 	Chromosome &chromosome = species->TheChromosome();
 	slim_position_t last_position = chromosome.last_position_;
@@ -1200,6 +1214,8 @@ EidosValue_SP Genome::ExecuteMethod_positionsOfMutationsOfType(EidosGlobalString
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
+	if (IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_positionsOfMutationsOfType): positionsOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
@@ -1235,6 +1251,8 @@ EidosValue_SP Genome::ExecuteMethod_sumOfMutationsOfType(EidosGlobalStringID p_m
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *mutType_value = p_arguments[0].get();
 	
+	if (IsDeferred())
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): the mutations of deferred genomes cannot be accessed." << EidosTerminate();
 	if (IsNull())
 		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_sumOfMutationsOfType): sumOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
@@ -2085,6 +2103,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addMutations(EidosGlobalStringID p_met
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addMutations): " << "addMutations() requires that all target genomes belong to the same species." << EidosTerminate();
 	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_addMutations");
+	
 	Community &community = species->community_;
 	
 	// use the 0th genome in the target to find out what the mutation run length is, so we can calculate run indices
@@ -2370,6 +2390,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires that all target genomes belong to the same species." << EidosTerminate();
+	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_addNewMutation");
 	
 	Community &community = species->community_;
 	
@@ -2812,6 +2834,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requires that all mutations belong to the same species as the target genomes." << EidosTerminate();
 	}
 	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes");
+	
 	Population &population = species->population_;
 	
 	// Have the Population tally for the target genomes
@@ -2882,6 +2906,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 		genomes.emplace_back(genome);
 	}
 	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_outputX");
+
 	Community &community = species->community_;
 	Chromosome &chromosome = species->TheChromosome();
 	
@@ -2977,8 +3003,26 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	bool recording_mutations = species.RecordingTreeSequenceMutations();
 	bool nucleotide_based = species.IsNucleotideBased();
 	
+	// Get the target genomes into a vector
+	int target_size = p_target->Count();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (target_size > 0)
+	{
+		Species *target_species = Community::SpeciesForGenomes(p_target);
+		
+		if (target_species != &species)
+			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target genomes belong to the same species." << EidosTerminate();
+	}
+	
+	species.population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromMS");
+	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
+	
+	if (!infile)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): could not read file at path " << file_path << "." << EidosTerminate();
+	
 	std::string line, sub;
 	int parse_state = 0;
 	int segsites = -1;
@@ -3072,20 +3116,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 	
 	infile.close();
 	
-	// Get the target genomes into a vector
-	int target_size = p_target->Count();
-	
 	if ((int)calls.size() != target_size)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): target genome vector has size " << target_size << " but " << calls.size() << " call lines found." << EidosTerminate();
-	
-	// SPECIES CONSISTENCY CHECK
-	if (target_size > 0)
-	{
-		Species *target_species = Community::SpeciesForGenomes(p_target);
-		
-		if (target_species != &species)
-			EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): readFromMS() requires that all target genomes belong to the same species." << EidosTerminate();
-	}
 	
 	// Instantiate the mutations; NOTE THAT THE STACKING POLICY IS NOT CHECKED HERE, AS THIS IS NOT CONSIDERED THE ADDITION OF A MUTATION!
 	std::vector<MutationIndex> mutation_indices;
@@ -3213,6 +3245,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): " << "readFromVCF() requires that all target genomes belong to the same species." << EidosTerminate();
 	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromVCF");
+	
 	Community &community = species->community_;
 	Population &pop = species->population_;
 	slim_position_t last_position = species->TheChromosome().last_position_;
@@ -3226,6 +3260,10 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 	
 	// Parse the whole input file and retain the information from it
 	std::ifstream infile(file_path);
+	
+	if (!infile)
+		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): could not read file at path " << file_path << "." << EidosTerminate();
+	
 	std::string line, sub;
 	int parse_state = 0;
 	int sample_id_count = 0;
@@ -3789,6 +3827,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_removeMutations(EidosGlobalStringID p_
 	
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_removeMutations): removeMutations() requires that all target genomes belong to the same species." << EidosTerminate();
+	
+	species->population_.CheckForDeferralInGenomes(p_target, "Genome_Class::ExecuteMethod_readFromVCF");
 	
 	Community &community = species->community_;
 	Population &pop = species->population_;

@@ -2329,6 +2329,8 @@ void Subpopulation::UpdateWFFitnessBuffers(bool p_pure_neutral)
 
 double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int p_homozygous, double p_computed_fitness, std::vector<SLiMEidosBlock*> &p_mutationEffect_callbacks, Individual *p_individual)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyMutationEffectCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -2485,6 +2487,8 @@ double Subpopulation::ApplyMutationEffectCallbacks(MutationIndex p_mutation, int
 
 double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &p_fitnessEffect_callbacks, slim_popsize_t p_individual_index)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyFitnessEffectCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -3498,6 +3502,8 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 // nonWF only:
 void Subpopulation::ApplyReproductionCallbacks(std::vector<SLiMEidosBlock*> &p_reproduction_callbacks, slim_popsize_t p_individual_index)
 {
+	THREAD_SAFETY_CHECK("Population::ApplyReproductionCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -3712,6 +3718,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 // nonWF only:
 bool Subpopulation::ApplySurvivalCallbacks(std::vector<SLiMEidosBlock*> &p_survival_callbacks, Individual *p_individual, double p_fitness, double p_draw, bool p_surviving)
 {
+	THREAD_SAFETY_CHECK("Population::ApplySurvivalCallbacks(): running Eidos callback");
+	
 #if (SLIMPROFILING == 1)
 	// PROFILING
 	SLIM_PROFILE_BLOCK_START();
@@ -4628,7 +4636,7 @@ IndividualSex Subpopulation::_GenomeConfigurationForSex(EidosValue *p_sex_value,
 	return sex;
 }
 
-//	*********************	– (No<Individual>$)addCloned(object<Individual>$ parent)
+//	*********************	– (No<Individual>$)addCloned(object<Individual>$ parent, [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4684,10 +4692,23 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		species_.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 	}
 	
-	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+	EidosValue *defer_value = p_arguments[1].get();
+	bool defer = defer_value->LogicalAtIndex(0, nullptr);
 	
-	population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex, parent_mutation_callbacks);
-	population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex, parent_mutation_callbacks);
+	if (defer)
+	{
+		if (parent_mutation_callbacks->size())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCloned): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+		
+		population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kClonal, parent, parent, genome1, genome2, child_sex);
+	}
+	else
+	{
+		if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+		
+		population_.DoClonalMutation(&parent_subpop, *genome1, parent_genome_1, child_sex, parent_mutation_callbacks);
+		population_.DoClonalMutation(&parent_subpop, *genome2, parent_genome_2, child_sex, parent_mutation_callbacks);
+	}
 	
 	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
 	bool proposed_child_accepted = true;
@@ -4721,7 +4742,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	return _ResultAfterModifyChildCallbacks(proposed_child_accepted, individual, genome1, genome2);
 }
 
-//	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL])
+//	*********************	– (No<Individual>$)addCrossed(object<Individual>$ parent1, object<Individual>$ parent2, [Nfs$ sex = NULL], [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4808,13 +4829,26 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 	if (species_.RecordingTreeSequence())
 		species_.SetCurrentNewIndividual(individual);
 	
-	if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
-	if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
-	if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
-	if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+	EidosValue *defer_value = p_arguments[3].get();
+	bool defer = defer_value->LogicalAtIndex(0, nullptr);
 	
-	population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks, parent1_mutation_callbacks);
-	population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks, parent2_mutation_callbacks);
+	if (defer)
+	{
+		if (parent1_recombination_callbacks->size() || parent2_recombination_callbacks->size() || parent1_mutation_callbacks->size() || parent2_mutation_callbacks->size())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addCrossed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
+		
+		population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kCrossoverMutation, parent1, parent2, genome1, genome2, child_sex);
+	}
+	else
+	{
+		if (!parent1_recombination_callbacks->size()) parent1_recombination_callbacks = nullptr;
+		if (!parent2_recombination_callbacks->size()) parent2_recombination_callbacks = nullptr;
+		if (!parent1_mutation_callbacks->size()) parent1_mutation_callbacks = nullptr;
+		if (!parent2_mutation_callbacks->size()) parent2_mutation_callbacks = nullptr;
+		
+		population_.DoCrossoverMutation(&parent1_subpop, *genome1, parent1->index_, child_sex, parent1_sex, parent1_recombination_callbacks, parent1_mutation_callbacks);
+		population_.DoCrossoverMutation(&parent2_subpop, *genome2, parent2->index_, child_sex, parent2_sex, parent2_recombination_callbacks, parent2_mutation_callbacks);
+	}
 	
 	// Run the candidate past modifyChild() callbacks; the first parent subpop's registered callbacks are used
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent1_subpop.registered_modify_child_callbacks_;
@@ -4992,7 +5026,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 }
 
 //	*********************	– (No<Individual>$)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
-//															  No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2, [Nfs$ sex = NULL])
+//															  No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2,
+//															  [Nfs$ sex = NULL], [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -5259,7 +5294,17 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (species_.RecordingTreeSequence())
 		species_.SetCurrentNewIndividual(individual);
 	
-	if (!mutation_callbacks) mutation_callbacks = nullptr;
+	// deferred reproduction handling
+	EidosValue *defer_value = p_arguments[7].get();
+	bool defer = defer_value->LogicalAtIndex(0, nullptr);
+	
+	if (mutation_callbacks)
+	{
+		if (mutation_callbacks->size() == 0)
+			mutation_callbacks = nullptr;
+		else if (defer)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): deferred reproduction cannot be used when mutation() callbacks are enabled." << EidosTerminate();
+	}
 	
 	// Construct the first child genome, depending upon whether recombination is requested, etc.
 	if (strand1)
@@ -5291,7 +5336,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (species_.RecordingTreeSequence())
 				species_.RecordNewGenome(&breakvec1, genome1, strand1, strand2);
 			
-			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
+			if (defer)
+			{
+				population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, strand2, breakvec1, genome1, parent_sex);
+			}
+			else
+			{
+				population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome1, strand1, strand2, parent_sex, breakvec1, mutation_callbacks);
+			}
 		}
 		else
 		{
@@ -5299,7 +5351,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (species_.RecordingTreeSequence())
 				species_.RecordNewGenome(nullptr, genome1, strand1, nullptr);
 			
-			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex, mutation_callbacks);
+			if (defer)
+			{
+				// clone one genome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
+				population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand1, nullptr, breakvec1, genome1, child_sex);
+			}
+			else
+			{
+				population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome1, *strand1, child_sex, mutation_callbacks);
+			}
 		}
 	}
 	else
@@ -5344,7 +5404,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (species_.RecordingTreeSequence())
 				species_.RecordNewGenome(&breakvec2, genome2, strand3, strand4);
 			
-			population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
+			if (defer)
+			{
+				population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, strand4, breakvec2, genome2, parent_sex);
+			}
+			else
+			{
+				population_.DoRecombinantMutation(/* p_mutorigin_subpop */ this, *genome2, strand3, strand4, parent_sex, breakvec2, mutation_callbacks);
+			}
 		}
 		else
 		{
@@ -5352,7 +5419,15 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			if (species_.RecordingTreeSequence())
 				species_.RecordNewGenome(nullptr, genome2, strand3, nullptr);
 			
-			population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex, mutation_callbacks);
+			if (defer)
+			{
+				// clone one genome, using a second strand of nullptr; note that in this case we pass the child sex, not the parent sex
+				population_.deferred_reproduction_recombinant_.emplace_back(SLiM_DeferredReproductionType::kRecombinant, this, strand3, nullptr, breakvec2, genome2, child_sex);
+			}
+			else
+			{
+				population_.DoClonalMutation(/* p_mutorigin_subpop */ this, *genome2, *strand3, child_sex, mutation_callbacks);
+			}
 		}
 	}
 	else
@@ -5508,7 +5583,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	}
 }
 
-//	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent)
+//	*********************	– (No<Individual>$)addSelfed(object<Individual>$ parent, [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -5580,11 +5655,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 	if (species_.RecordingTreeSequence())
 		species_.SetCurrentNewIndividual(individual);
 	
-	if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
-	if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+	EidosValue *defer_value = p_arguments[1].get();
+	bool defer = defer_value->LogicalAtIndex(0, nullptr);
 	
-	population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
-	population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
+	if (defer)
+	{
+		if (parent_recombination_callbacks->size() || parent_mutation_callbacks->size())
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addSelfed): deferred reproduction cannot be used when recombination() or mutation() callbacks are enabled." << EidosTerminate();
+		
+		population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kSelfed, parent, parent, genome1, genome2, child_sex);
+	}
+	else
+	{
+		if (!parent_recombination_callbacks->size()) parent_recombination_callbacks = nullptr;
+		if (!parent_mutation_callbacks->size()) parent_mutation_callbacks = nullptr;
+		
+		population_.DoCrossoverMutation(&parent_subpop, *genome1, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
+		population_.DoCrossoverMutation(&parent_subpop, *genome2, parent->index_, child_sex, parent_sex, parent_recombination_callbacks, parent_mutation_callbacks);
+	}
 	
 	// Run the candidate past modifyChild() callbacks; the parent subpop's registered callbacks are used
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
@@ -7986,11 +8074,11 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSexRatio, kEidosValueMaskVOID))->AddFloat_S("sexRatio"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSpatialBounds, kEidosValueMaskVOID))->AddNumeric("bounds"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setSubpopulationSize, kEidosValueMaskVOID))->AddInt_S("size"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("genome1Null", gStaticEidosValueNULL)->AddLogical_OSN("genome2Null", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskNULL | kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_cachedFitness, kEidosValueMaskFloat))->AddInt_N("indices"));
