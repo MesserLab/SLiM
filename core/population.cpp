@@ -1150,7 +1150,7 @@ bool Population::ApplyModifyChildCallbacks(Individual *p_child, Individual *p_pa
 
 // WF only:
 // generate children for subpopulation p_subpop_id, drawing from all source populations, handling crossover and mutation
-void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present)
+void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice_callbacks_present, bool p_modify_child_callbacks_present, bool p_recombination_callbacks_present, bool p_mutation_callbacks_present, bool p_type_s_dfe_present)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("Population::EvolveSubpopulation(): usage of statics, probably many other issues");
 	
@@ -1220,7 +1220,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): sex ratio " << sex_ratio << " results in a unisexual child population." << EidosTerminate();
 	}
 	
-	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present)
+	if (p_mate_choice_callbacks_present || p_modify_child_callbacks_present || p_recombination_callbacks_present || p_mutation_callbacks_present || p_type_s_dfe_present)
 	{
 		// CALLBACKS PRESENT: We need to generate offspring in a randomized order.  This way the callbacks are presented with potential offspring
 		// a random order, and so it is much easier to write a callback that runs for less than the full offspring generation phase (influencing a
@@ -2930,6 +2930,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #pragma omp threadprivate(mutations_to_add)
 		mutations_to_add.clear();
 		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
 #pragma omp critical (MutationAlloc)
 		{
 			try {
@@ -2965,9 +2969,22 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
 				throw;
+#endif
 			}
 		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		const MutationIndex *mutation_iter		= mutations_to_add.data();
@@ -4021,6 +4038,10 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 #pragma omp threadprivate(mutations_to_add)
 		mutations_to_add.clear();
 		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
 #pragma omp critical (MutationAlloc)
 		{
 			try {
@@ -4056,9 +4077,22 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
 				throw;
+#endif
 			}
 		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::DoRecombinantMutation): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
 		
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 		const MutationIndex *mutation_iter		= mutations_to_add.data();
@@ -4513,6 +4547,10 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 #pragma omp threadprivate(mutations_to_add)
 		mutations_to_add.clear();
 		
+#ifdef _OPENMP
+		bool saw_error_in_critical = false;
+#endif
+		
 #pragma omp critical (MutationAlloc)
 		{
 			try {
@@ -4556,9 +4594,22 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 				}
 			} catch (...) {
 				// DrawNewMutation() / DrawNewMutationExtended() can raise, but it is (presumably) rare; we can leak mutations here
+				// It occurs primarily with type 's' DFEs; an error in the user's script can cause a raise through here.
+#ifdef _OPENMP
+				saw_error_in_critical = true;		// can't throw from a critical region, even when not inside a parallel region!
+#else
 				throw;
+#endif
 			}
 		}	// end #pragma omp critical (MutationAlloc)
+		
+#ifdef _OPENMP
+		if (saw_error_in_critical)
+		{
+			// Note that the previous error message is still in gEidosTermination, so we just tack an addendum onto it and re-raise, in effect
+			EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): An exception was caught inside a critical region." << EidosTerminate();
+		}
+#endif
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -7280,7 +7331,7 @@ void Population::PrintAll(std::ostream &p_out, bool p_output_spatial_positions, 
 			// output spatial position if requested; BCH 22 March 2019 switch to full precision for this, for accurate reloading
 			if (spatial_output_count)
 			{
-				THREAD_SAFETY_IN_ANY_PARALLEL("Population::PrintAll(): usage of statics");
+				THREAD_SAFETY_IN_ACTIVE_PARALLEL("Population::PrintAll(): usage of statics");
 				
 				static char double_buf[40];
 				

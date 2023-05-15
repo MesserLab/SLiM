@@ -244,7 +244,14 @@ double MutationType::DrawSelectionCoefficient(void) const
 		{
 			// We have a script string that we need to execute, and it will return a float or integer to us.  This
 			// is basically a lambda call, so the code here is parallel to the executeLambda() code in many ways.
-			THREAD_SAFETY_IN_ANY_PARALLEL("MutationType::DrawSelectionCoefficient(): type 's' DFE running lambda");
+			
+#ifdef DEBUG_LOCKS_ENABLED
+			// When running multi-threaded, this code is not re-entrant because it runs an Eidos interpreter.  We use
+			// EidosDebugLock to enforce that.  In addition, it can raise, so the caller must be prepared for that.
+			static EidosDebugLock DrawSelectionCoefficient_InterpreterLock("DrawSelectionCoefficient_InterpreterLock");
+			
+			DrawSelectionCoefficient_InterpreterLock.start_critical(0);
+#endif
 			
 			double sel_coeff;
 			
@@ -275,6 +282,10 @@ double MutationType::DrawSelectionCoefficient(void) const
 					
 					delete cached_dfe_script_;
 					cached_dfe_script_ = nullptr;
+					
+#ifdef DEBUG_LOCKS_ENABLED
+					DrawSelectionCoefficient_InterpreterLock.end_critical();
+#endif
 					
 					EIDOS_TERMINATION << "ERROR (MutationType::DrawSelectionCoefficient): tokenize/parse error in type 's' DFE callback script." << EidosTerminate(nullptr);
 				}
@@ -311,11 +322,19 @@ double MutationType::DrawSelectionCoefficient(void) const
 				if (gEidosTerminateThrows)
 					gEidosErrorContext = error_context_save;
 				
+#ifdef DEBUG_LOCKS_ENABLED
+				DrawSelectionCoefficient_InterpreterLock.end_critical();
+#endif
+				
 				throw;
 			}
 			
 			// Restore the normal error context in the event that no exception occurring within the lambda
 			gEidosErrorContext = error_context_save;
+			
+#ifdef DEBUG_LOCKS_ENABLED
+			DrawSelectionCoefficient_InterpreterLock.end_critical();
+#endif
 			
 			return sel_coeff;
 		}
@@ -454,7 +473,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			{
 				if (!static_policy_string_s)
 				{
-					THREAD_SAFETY_IN_ANY_PARALLEL("MutationType::GetProperty(): usage of statics");
+					THREAD_SAFETY_IN_ACTIVE_PARALLEL("MutationType::GetProperty(): usage of statics");
 					
 					static_policy_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
 					static_policy_string_f = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_f));

@@ -170,6 +170,7 @@ public:
 	inline __attribute__((always_inline)) void RevokeParentage_Biparental(Individual &p_parent1, Individual &p_parent2)
 	{
 		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
+		// that is because it only happens when modifyChild() rejects a child, and that does not happen when parallel
 		p_parent1.reproductive_output_--;
 		p_parent2.reproductive_output_--;
 	}
@@ -198,6 +199,7 @@ public:
 	inline __attribute__((always_inline)) void RevokeParentage_Uniparental(Individual &p_parent)
 	{
 		// note this does not need to be in #pragma omp critical (ReproductiveOutput) because it never gets hit when parallel
+		// that is because it only happens when modifyChild() rejects a child, and that does not happen when parallel
 		p_parent.reproductive_output_ -= 2;
 	}
 	

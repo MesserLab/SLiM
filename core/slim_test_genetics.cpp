@@ -113,16 +113,9 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, -7.5); }", "must have a shape parameter > 0", __LINE__);
 	
-#ifndef _OPENMP
-	// FIXME BCH 5/14/2023: a type 's' DFE that triggers an error is presently a flaw in the implementation, because the error
-	// does not get caught within the OMP constructs within which it is raised, and so we get an "uncaught exception" error.
-	// Running single-threaded when a type 's' DFE is present is not sufficient; the throw inside an OpenMP construct is
-	// still illegal.  I haven't decided what to do about this sort of situation.  There are many others; for now, parallel
-	// self-testing is broken, ever since parallel reproduction was added.
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'return foo;'); } 100 early() { stop(); }", "undefined identifier foo", __LINE__, false);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'x >< 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { m1.setDistribution('s', 'x $ 5;'); } 100 early() { stop(); }", "tokenize/parse error in type 's' DFE callback script", __LINE__, false);
-#endif
 	
 	// Test MutationType - (float)drawSelectionCoefficient([integer$ n = 1])
 	// the parameters here are chosen so that these tests should fail extremely rarely

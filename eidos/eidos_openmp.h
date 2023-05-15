@@ -91,12 +91,17 @@ extern int gEidosNumThreads;
 //		THREAD_SAFETY_IN_ANY_PARALLEL() - errors if inside a parallel region, even if inactive (i.e., running with
 //			only one thread).  This is particularly relevant for code that is known to raise without protection,
 //			and particularly, for code that executes Eidos lambda/callback code without protection.  It is also
-//			useful for code that, semantically, should just never be inside a parallel region at all.  This is
-//			generally true of all C++ Eidos implementations, since Eidos code is never run in parallel.
+//			useful for code that, semantically, should just never be inside a parallel region at all.  Some
+//			parts of the Eidos interpreter fall into this category.
 //
 //		THREAD_SAFETY_IN_ACTIVE_PARALLEL() - errors if inside an active (i.e., multithreaded) parallel region.
 //			This is particularly relevant for code that is not thread-safe due to use of statics, presence of races,
-//			etc.; the code is fine run-single-threaded, even in an inactive parallel region.
+//			etc.; the code is fine run-single-threaded, even in an inactive parallel region.  Some parts of the
+//			Eidos interpreter fall into this category, because we sometimes want to use the same code path for
+//			both single-threaded and multi-threaded execution when running under OpenMP, and that can mean that
+//			Eidos code ends up running inside an inactive parallel region.  Any code that does this must be prepared
+//			to catch throws coming out of the Eidos interpreter, however, since they must be caught inside the
+//			parallel region!
 
 #ifdef _OPENMP
 
@@ -213,6 +218,9 @@ private:
 // here a bit; a slim_openmp.h header could be created to alleviate that if it's a problem, but it seems harmless for now.
 // These counts are collected in one place to make it easier to optimize their values in a pre-build optimization pass.
 
+#if 1
+// This set of minimum counts is for production code
+
 // Eidos: math functions
 #define EIDOS_OMPMIN_ABS_FLOAT				2000
 #define EIDOS_OMPMIN_CEIL					2000
@@ -325,6 +333,126 @@ private:
 #define EIDOS_OMPMIN_MIGRANTCLEAR			10000
 #define EIDOS_OMPMIN_MUTTALLY				100000
 #define EIDOS_OMPMIN_SURVIVAL				10000
+
+#else
+// This set of minimum counts is for debugging; we want to run all self-tests in parallel, so that
+// bugs don't get masked just by virtue of the bug-inducing task being too small to run parallel
+#warning switch back to production minimum counts!
+
+// Eidos: math functions
+#define EIDOS_OMPMIN_ABS_FLOAT				0
+#define EIDOS_OMPMIN_CEIL					0
+#define EIDOS_OMPMIN_EXP_FLOAT				0
+#define EIDOS_OMPMIN_FLOOR					0
+#define EIDOS_OMPMIN_LOG_FLOAT				0
+#define EIDOS_OMPMIN_LOG10_FLOAT			0
+#define EIDOS_OMPMIN_LOG2_FLOAT				0
+#define EIDOS_OMPMIN_ROUND					0
+#define EIDOS_OMPMIN_SQRT_FLOAT				0
+#define EIDOS_OMPMIN_SUM_INTEGER			0
+#define EIDOS_OMPMIN_SUM_FLOAT				0
+#define EIDOS_OMPMIN_SUM_LOGICAL			0
+#define EIDOS_OMPMIN_TRUNC					0
+
+// Eidos: max(), min(), pmax(), pmin()
+#define EIDOS_OMPMIN_MAX_INT				0
+#define EIDOS_OMPMIN_MAX_FLOAT				0
+#define EIDOS_OMPMIN_MIN_INT				0
+#define EIDOS_OMPMIN_MIN_FLOAT				0
+#define EIDOS_OMPMIN_PMAX_INT_1				0
+#define EIDOS_OMPMIN_PMAX_INT_2				0
+#define EIDOS_OMPMIN_PMAX_FLOAT_1			0
+#define EIDOS_OMPMIN_PMAX_FLOAT_2			0
+#define EIDOS_OMPMIN_PMIN_INT_1				0
+#define EIDOS_OMPMIN_PMIN_INT_2				0
+#define EIDOS_OMPMIN_PMIN_FLOAT_1			0
+#define EIDOS_OMPMIN_PMIN_FLOAT_2			0
+
+// Eidos: match(), sample(), tabulate()
+#define EIDOS_OMPMIN_MATCH_INT				0
+#define EIDOS_OMPMIN_MATCH_FLOAT			0
+#define EIDOS_OMPMIN_MATCH_STRING			0
+#define EIDOS_OMPMIN_MATCH_OBJECT			0
+#define EIDOS_OMPMIN_SAMPLE_1				0
+#define EIDOS_OMPMIN_SAMPLE_R_INT			0
+#define EIDOS_OMPMIN_SAMPLE_R_FLOAT			0
+#define EIDOS_OMPMIN_SAMPLE_R_OBJECT		0
+#define EIDOS_OMPMIN_SAMPLE_WR_INT			0
+#define EIDOS_OMPMIN_SAMPLE_WR_FLOAT		0
+#define EIDOS_OMPMIN_SAMPLE_WR_OBJECT		0
+#define EIDOS_OMPMIN_TABULATE				0
+
+// SLiM methods/properties
+#define EIDOS_OMPMIN_CONTAINS_MARKER_MUT	0
+#define EIDOS_OMPMIN_I_COUNT_OF_MUTS_OF_TYPE	0
+#define EIDOS_OMPMIN_G_COUNT_OF_MUTS_OF_TYPE	0
+#define EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS	0
+#define EIDOS_OMPMIN_RELATEDNESS			0
+#define EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_1	0
+#define EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2	0
+#define EIDOS_OMPMIN_SET_FITNESS_S1			0
+#define EIDOS_OMPMIN_SET_FITNESS_S2			0
+#define EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE	0
+
+// Distribution draws and related
+#define EIDOS_OMPMIN_DNORM_1				0
+#define EIDOS_OMPMIN_DNORM_2				0
+#define EIDOS_OMPMIN_RBINOM_1				0
+#define EIDOS_OMPMIN_RBINOM_2				0
+#define EIDOS_OMPMIN_RBINOM_3				0
+#define EIDOS_OMPMIN_RDUNIF_1				0
+#define EIDOS_OMPMIN_RDUNIF_2				0
+#define EIDOS_OMPMIN_RDUNIF_3				0
+#define EIDOS_OMPMIN_REXP_1					0
+#define EIDOS_OMPMIN_REXP_2					0
+#define EIDOS_OMPMIN_RNORM_1				0
+#define EIDOS_OMPMIN_RNORM_2				0
+#define EIDOS_OMPMIN_RNORM_3				0
+#define EIDOS_OMPMIN_RPOIS_1				0
+#define EIDOS_OMPMIN_RPOIS_2				0
+#define EIDOS_OMPMIN_RUNIF_1				0
+#define EIDOS_OMPMIN_RUNIF_2				0
+#define EIDOS_OMPMIN_RUNIF_3				0
+
+// Spatial point/map manipulation
+#define EIDOS_OMPMIN_POINT_IN_BOUNDS		0
+#define EIDOS_OMPMIN_POINT_PERIODIC			0
+#define EIDOS_OMPMIN_POINT_REFLECTED		0
+#define EIDOS_OMPMIN_POINT_STOPPED			0
+#define EIDOS_OMPMIN_POINT_UNIFORM			0
+#define EIDOS_OMPMIN_SET_SPATIAL_POS_1		0
+#define EIDOS_OMPMIN_SET_SPATIAL_POS_2		0
+#define EIDOS_OMPMIN_SPATIAL_MAP_VALUE		0
+
+// Spatial queries
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_4		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_5		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_6		0
+#define EIDOS_OMPMIN_DRAWBYSTRENGTH			0
+#define EIDOS_OMPMIN_INTNEIGHCOUNT			0
+#define EIDOS_OMPMIN_LOCALPOPDENSITY		0
+#define EIDOS_OMPMIN_NEARESTINTNEIGH		0
+#define EIDOS_OMPMIN_NEARESTNEIGH			0
+#define EIDOS_OMPMIN_NEIGHCOUNT				0
+#define EIDOS_OMPMIN_TOTNEIGHSTRENGTH		0
+
+// SLiM core
+#define EIDOS_OMPMIN_AGEINC					0
+#define EIDOS_OMPMIN_DEFERRED_REPRO			0
+#define EIDOS_OMPMIN_FITNESS_ASEX_1			0
+#define EIDOS_OMPMIN_FITNESS_ASEX_2			0
+#define EIDOS_OMPMIN_FITNESS_SEX_F_1		0
+#define EIDOS_OMPMIN_FITNESS_SEX_F_2		0
+#define EIDOS_OMPMIN_FITNESS_SEX_M_1		0
+#define EIDOS_OMPMIN_FITNESS_SEX_M_2		0
+#define EIDOS_OMPMIN_MIGRANTCLEAR			0
+#define EIDOS_OMPMIN_MUTTALLY				0
+#define EIDOS_OMPMIN_SURVIVAL				0
+
+#endif
 
 #else /* ifdef _OPENMP */
 

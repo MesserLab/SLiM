@@ -485,7 +485,7 @@ slim_tick_t Species::InitializePopulationFromFile(const std::string &p_file_stri
 
 slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Species::_InitializePopulationFromTextFile(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTextFile(): SLiM global state read");
 	
 	slim_tick_t file_tick, file_cycle;
 #if EIDOS_ROBIN_HOOD_HASHING
@@ -1019,7 +1019,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 #ifndef __clang_analyzer__
 slim_tick_t Species::_InitializePopulationFromBinaryFile(const char *p_file, EidosInterpreter *p_interpreter)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Species::_InitializePopulationFromBinaryFile(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromBinaryFile(): SLiM global state read");
 	
 	std::size_t file_size = 0;
 	slim_tick_t file_tick, file_cycle;
@@ -2212,18 +2212,30 @@ void Species::WF_GenerateOffspring(void)
 	bool modify_child_callbacks_present = modify_child_callbacks.size();
 	bool recombination_callbacks_present = recombination_callbacks.size();
 	bool mutation_callbacks_present = mutation_callbacks.size();
+	bool type_s_dfes_present = false;
 	bool no_active_callbacks = true;
+	
+	// a type 's' DFE needs to count as an active callback; it could activate other callbacks,
+	// and in any case we need EvolveSubpopulation() to take the non-parallel code path
+	for (auto &muttype : MutationTypes())
+		if (muttype.second->dfe_type_ == DFEType::kScript)
+		{
+			type_s_dfes_present = true;
+			no_active_callbacks = false;
+			break;
+		}
 	
 	// if there are no active callbacks of any type, we can pretend there are no callbacks at all
 	// if there is a callback of any type, however, then inactive callbacks could become active
 	if (mate_choice_callbacks_present || modify_child_callbacks_present || recombination_callbacks_present || mutation_callbacks_present)
 	{
-		for (SLiMEidosBlock *callback : mate_choice_callbacks)
-			if (callback->block_active_)
-			{
-				no_active_callbacks = false;
-				break;
-			}
+		if (no_active_callbacks)
+			for (SLiMEidosBlock *callback : mate_choice_callbacks)
+				if (callback->block_active_)
+				{
+					no_active_callbacks = false;
+					break;
+				}
 		
 		if (no_active_callbacks)
 			for (SLiMEidosBlock *callback : modify_child_callbacks)
@@ -2255,7 +2267,7 @@ void Species::WF_GenerateOffspring(void)
 		MUTRUNEXP_START_TIMING(x_clock0);
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false);
+			population_.EvolveSubpopulation(*subpop_pair.second, false, false, false, false, false);
 		
 		MUTRUNEXP_END_TIMING(x_clock0);
 	}
@@ -2316,7 +2328,7 @@ void Species::WF_GenerateOffspring(void)
 		MUTRUNEXP_START_TIMING(x_clock0);
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present);
+			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present);
 		
 		MUTRUNEXP_END_TIMING(x_clock0);
 	}
@@ -4737,7 +4749,7 @@ void Species::TreeSequenceDataToAscii(tsk_table_collection_t *p_tables)
 	
 	if (!double_buf)
 	{
-		THREAD_SAFETY_IN_ANY_PARALLEL("Species::TreeSequenceDataToAscii(): usage of statics");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::TreeSequenceDataToAscii(): usage of statics");
 		
 		double_buf = (char *)malloc(40 * sizeof(char));
 		if (!double_buf)
@@ -8360,7 +8372,7 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 
 slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitTextFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	std::string directory_path(p_file);
@@ -8427,7 +8439,7 @@ slim_tick_t Species::_InitializePopulationFromTskitTextFile(const char *p_file, 
 
 slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file, EidosInterpreter *p_interpreter, SUBPOP_REMAP_HASH &p_subpop_map)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Species::_InitializePopulationFromTskitBinaryFile(): SLiM global state read");
 	
 	// note that we now allow this to be called without tree-seq on, just to load genomes/mutations from the .trees file
 	int ret;
