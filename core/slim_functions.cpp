@@ -1405,7 +1405,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	
 	if (!beenHere)
 	{
-		THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): usage of statics");
 		
 		Individual *test_ind_layout = individuals_buffer[0];
 	
@@ -1603,7 +1603,7 @@ EidosValue_SP SLiM_ExecuteFunction_summarizeIndividuals(const std::vector<EidosV
 	else
 	{
 		// run the lambda on each bin, which does not depend upon the spatiality
-		THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("SLiM_ExecuteFunction_summarizeIndividuals(): running Eidos lambda");
 		
 		EidosValue_String_singleton *lambda_value_singleton = dynamic_cast<EidosValue_String_singleton *>(operation_value);
 		EidosScript *script = (lambda_value_singleton ? lambda_value_singleton->CachedScript() : nullptr);

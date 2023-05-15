@@ -2803,7 +2803,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(EidosGlob
 		EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() cannot calculate counts/frequencies in a zero-length Genome vector (divide by zero)." << EidosTerminate();
 	}
 	
-	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_mutationFreqsCountsInGenomes(): usage of statics");
 	
 	static std::vector<Genome *> target_genomes;	// prevent reallocation by using a static
 	
@@ -2981,7 +2981,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_readFromMS(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();
@@ -3231,7 +3231,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_method_id, EidosValue_Object *p_target, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter) const
 {
 #pragma unused (p_method_id, p_interpreter)
-	THREAD_SAFETY_IN_ANY_PARALLEL("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Genome_Class::ExecuteMethod_readFromVCF(): SLiM global state read");
 	
 	EidosValue *filePath_value = p_arguments[0].get();
 	EidosValue *mutationType_value = p_arguments[1].get();

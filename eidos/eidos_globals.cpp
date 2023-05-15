@@ -975,15 +975,11 @@ void operator<<(std::ostream& p_out, const EidosTerminate &p_terminator)
 	
 	if (gEidosTerminateThrows)
 	{
-		// We should never hit this code when in a parallel region.  We cannot throw because that isn't allowed from a parallel region.
-		if (omp_in_parallel())
-		{
-#pragma omp critical (EidosTerminate)
-			{
-				std::cerr << "ERROR (EidosTerminate): (internal error) multithreaded in EidosTerminate, cannot recover!" << std::endl;
-				raise(SIGTRAP);
-			}
-		}
+		// BCH 5/14/2023: I used to have a check here for (omp_get_level() > 0), and would do raise(SIGTRAP) in that situation
+		// to get a trap in the debugger for the point when an exception was raised inside a parallel region.  However, we now
+		// have some places in the code where such raises are guarded by try/catch, so they are no longer unambiguously wrong.
+		// So I've deleted that check here.  The throw below will happen, and if no try/catch is in place and we're inside a
+		// parallel region, we will end up with an uncaught C++ exception error.
 		
 		// In this case, EidosTerminate() throws an exception that gets caught by the Context.  That invalidates the simulation object, and
 		// causes the Context to display an error message and ends the simulation run, but it does not terminate the app.
@@ -1237,7 +1233,7 @@ size_t Eidos_GetVMUsage(void)
 
 size_t Eidos_GetMaxRSS(void)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_GetMaxRSS(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_GetMaxRSS(): usage of statics");
 	
 	static bool beenHere = false;
 	static size_t max_rss = 0;
@@ -1311,7 +1307,7 @@ size_t Eidos_GetMaxRSS(void)
 
 void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_CheckRSSAgainstMax():  usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_CheckRSSAgainstMax():  usage of statics");
 	
 	static bool beenHere = false;
 	static size_t max_rss = 0;
@@ -1438,7 +1434,7 @@ std::string Eidos_LastPathComponent(const std::string &p_path)
 // Get the current working directory; oddly, C++ has no API for this
 std::string Eidos_CurrentDirectory(void)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_CurrentDirectory(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_CurrentDirectory(): usage of statics");
 	
 	// buffer of size MAXPATHLEN * 8 to accommodate relatively long paths
 	static char *path_buffer = nullptr;
@@ -1478,7 +1474,7 @@ std::string Eidos_StripTrailingSlash(const std::string &p_path)
 // Create a directory at the given path if it does not already exist; returns false if an error occurred (which emits a warning)
 bool Eidos_CreateDirectory(const std::string &p_path, std::string *p_error_string)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_CreateDirectory():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_CreateDirectory():  filesystem write");
 	
 	std::string path = Eidos_ResolvedPath(Eidos_StripTrailingSlash(p_path));
 	
@@ -1548,7 +1544,7 @@ std::string Eidos_TemporaryDirectory(void)
 
 bool Eidos_TemporaryDirectoryExists(void)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_TemporaryDirectoryExists(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_TemporaryDirectoryExists(): usage of statics");
 	
 	// we cache the result for speed, making the assumption that the temporary directory will not change underneath us
 	static bool been_here = false;
@@ -1661,7 +1657,7 @@ bool Eidos_TemporaryDirectoryExists(void)
 
 int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_mkstemps():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_mkstemps():  filesystem write");
 	
 	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static uint64_t value;
@@ -1715,7 +1711,7 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 
 int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_mkstemps_directory():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_mkstemps_directory():  filesystem write");
 	
 	static const char letters[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static uint64_t value;
@@ -1775,7 +1771,7 @@ std::unordered_map<std::string, std::string> gEidosBufferedZipAppendData;
 // This flushes the bytes in outstring to the file at file_path, with gzip append
 bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outstring)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("_Eidos_FlushZipBuffer():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("_Eidos_FlushZipBuffer():  filesystem write");
 	
 	//std::cout << "_Eidos_FlushZipBuffer() called for " << file_path << std::endl;
 	
@@ -1811,7 +1807,7 @@ bool _Eidos_FlushZipBuffer(const std::string &file_path, const std::string &outs
 // This flushes a given file, if it is buffering zip output
 void Eidos_FlushFile(const std::string &p_file_path)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_FlushFile():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFile():  filesystem write");
 	
 #if EIDOS_BUFFER_ZIP_APPENDS
 	auto buffer_iter = gEidosBufferedZipAppendData.find(p_file_path);
@@ -1831,7 +1827,7 @@ void Eidos_FlushFile(const std::string &p_file_path)
 // This flushes all outstanding buffered zip data to the appropriate files
 void Eidos_FlushFiles(void)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_FlushFiles():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_FlushFiles():  filesystem write");
 	
 #if EIDOS_BUFFER_ZIP_APPENDS
 	// Write out buffered data in gEidosBufferedZipAppendData to the appropriate files, using zlib's gzip append mode
@@ -1852,7 +1848,7 @@ void Eidos_FlushFiles(void)
 
 void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_WriteToFile():  filesystem write");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_WriteToFile():  filesystem write");
 	
 	// note that we add a newline after the last line in all cases, so that appending new content to a file produces correct line breaks
 	
@@ -2208,7 +2204,7 @@ to be bound by the terms and conditions of this License Agreement.
 
 double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("Eidos_ExactSum(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_ExactSum(): usage of statics");
 	
 	// We allocate the partials using malloc() rather than initially using the stack,
 	// and keep the allocated block around forever; simpler if a bit less efficient.

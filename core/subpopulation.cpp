@@ -5113,7 +5113,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	{
 		// NULL can mean "infer the child sex from the strands given"; do that here
 		// if strand3 is supplied and is a sex chromosome, it determines the sex of the offspring (strand4 must be NULL or matching type)
-		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("Subpopulation::ExecuteMethod_addRecombinant(): usage of statics");
 		
 		static EidosValue_SP static_sex_string_F;
 		static EidosValue_SP static_sex_string_M;
@@ -6989,7 +6989,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 	{
 		// get indices of individuals; we sample from this vector and then look up the corresponding individual
 		// see sample() for some discussion of this implementation
-		THREAD_SAFETY_IN_ANY_PARALLEL("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
+		THREAD_SAFETY_IN_ACTIVE_PARALLEL("Subpopulation::ExecuteMethod_sampleIndividuals(): usage of statics");
 		
 		static int *index_buffer = nullptr;
 		static int buffer_capacity = 0;

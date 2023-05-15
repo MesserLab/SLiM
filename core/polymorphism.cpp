@@ -34,7 +34,7 @@ void Polymorphism::Print_ID(std::ostream &p_out) const
 {
 	// Added mutation_ptr_->mutation_id_ to this output, BCH 11 June 2016
 	// Switched to full-precision output of selcoeff and domcoeff, for accurate reloading; BCH 22 March 2019
-	THREAD_SAFETY_IN_ANY_PARALLEL("Polymorphism::Print_ID(): usage of statics");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Polymorphism::Print_ID(): usage of statics");
 	
 	static char double_buf[40];
 	
