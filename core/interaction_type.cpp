@@ -1163,7 +1163,9 @@ double InteractionType::ClippedIntegral_2D(double indDistanceA1, double indDista
 
 double InteractionType::ApplyInteractionCallbacks(Individual *p_receiver, Individual *p_exerter, double p_strength, double p_distance, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::ApplyInteractionCallbacks(): running Eidos callback");
+	// This uses THREAD_SAFETY_IN_ACTIVE_PARALLEL() instead of THREAD_SAFETY_IN_ANY_PARALLEL() because it does get
+	// called from inactive (i.e., 1-thread) parallel regions, so that we don't have to special-case code paths
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("InteractionType::ApplyInteractionCallbacks(): running Eidos callback");
 	
 #if (SLIMPROFILING == 1)
 	// PROFILING
@@ -1318,7 +1320,7 @@ size_t InteractionType::MemoryUsageForPositions(void)
 
 size_t InteractionType::MemoryUsageForSparseVectorPool(void)
 {
-	THREAD_SAFETY_IN_ANY_PARALLEL("InteractionType::MemoryUsageForSparseVectorPool(): s_freed_sparse_vectors_");
+	THREAD_SAFETY_IN_ACTIVE_PARALLEL("InteractionType::MemoryUsageForSparseVectorPool(): s_freed_sparse_vectors_");
 	
 	size_t usage = 0;
 	
@@ -2800,6 +2802,8 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 	else
 	{
 		// Callbacks; strength calculations need to include callback effects
+		// BEWARE: With callbacks, this method can raise arbitrarily, so the caller needs
+		// to be prepared for that, particularly if they are running parallel!
 		Individual **subpop_individuals = exerter_subpop->parent_individuals_.data();
 		
 		for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
@@ -3775,13 +3779,13 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 
 	// Now treat cases according to spatiality
-	bool saw_error = false;
+	bool saw_error1 = false, saw_error2 = false;
 	
 	if (spatiality_ == 1)
 	{
 		if (spatiality_string_ == "x")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3789,21 +3793,32 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
-				double integral = ClippedIntegral_1D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, periodic_x);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_1D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, periodic_x);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_1D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, periodic_x);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
 		}
 		else if (spatiality_string_ == "y")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3811,21 +3826,32 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
-				double integral = ClippedIntegral_1D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, periodic_y);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_1D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, periodic_y);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_1D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, periodic_y);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
 		}
 		else // (spatiality_string_ == "z")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3833,14 +3859,25 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
-				double integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA, periodic_z);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA, periodic_z);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_1D(indA - subpop->bounds_z0_, subpop->bounds_z1_ - indA, periodic_z);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
@@ -3850,7 +3887,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "xy")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3858,7 +3895,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
@@ -3866,14 +3903,25 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
 				double indB = receiver_position[1];
-				double integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_y0_, subpop->bounds_y1_ - indB, periodic_x, periodic_y);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_y0_, subpop->bounds_y1_ - indB, periodic_x, periodic_y);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_y0_, subpop->bounds_y1_ - indB, periodic_x, periodic_y);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
 		}
 		else if (spatiality_string_ == "xz")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3881,7 +3929,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
@@ -3889,14 +3937,25 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
 				double indB = receiver_position[1];
-				double integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_x, periodic_z);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_x, periodic_z);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_2D(indA - subpop->bounds_x0_, subpop->bounds_x1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_x, periodic_z);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
 		}
 		else // (spatiality_string_ == "yz")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6)
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3904,7 +3963,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				
 				if (receiver_index_in_subpop < 0)
 				{
-					saw_error = true;
+					saw_error1 = true;
 					continue;
 				}
 				
@@ -3912,7 +3971,18 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 				Subpopulation *subpop = receiver->subpopulation_;
 				double indA = receiver_position[0];
 				double indB = receiver_position[1];
-				double integral = ClippedIntegral_2D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_y, periodic_z);
+				double integral;
+				
+#ifdef _OPENMP
+				try {
+					integral = ClippedIntegral_2D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_y, periodic_z);
+				} catch (...) {
+					saw_error2 = true;
+					continue;
+				}
+#else
+				integral = ClippedIntegral_2D(indA - subpop->bounds_y0_, subpop->bounds_y1_ - indA, indB - subpop->bounds_z0_, subpop->bounds_z1_ - indB, periodic_y, periodic_z);
+#endif
 				
 				float_result->set_float_no_check(integral, receiver_index);
 			}
@@ -3924,8 +3994,10 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	}
 	
 	// deferred raises, for OpenMP compatibility
-	if (saw_error)
+	if (saw_error1)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+	if (saw_error2)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): an exception was caught inside a parallel region." << EidosTerminate();
 	
 	return EidosValue_SP(float_result);
 }
@@ -4254,7 +4326,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
-	bool optimize_fixed_interaction_strengths = ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (if_type_ == IFType::kFixed));
+	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
+	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == IFType::kFixed));
 	
 	if (!returnDict)
 	{
@@ -4276,6 +4349,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		if (spatiality_ == 0)
 		{
 			// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
+			// BCH 5/14/2023: We call ApplyInteractionCallbacks() below, so if this code ever goes parallel it
+			// should stay single-threaded if/when any interaction() callbacks are present!
 			slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
 			std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
 			
@@ -4355,6 +4430,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			else
 			{
 				// General case, getting strengths and doing weighted draws
+				// BCH 5/14/2023: The call to FillSparseVectorForReceiverStrengths() means we run interaction() callbacks,
+				// so if this code is ever parallelized, it should stay single-threaded when callbacks are enabled.
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
 				uint32_t nnz;
@@ -4425,12 +4502,12 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		
 		if (count > 0)
 		{
-			bool saw_error_1 = false, saw_error_2 = false;
+			bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 			
 			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 			EnsureKDTreePresent(exerter_subpop_data);
 			
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH))
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4484,7 +4561,21 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				{
 					// General case, getting strengths and doing weighted draws
 					sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+					
+#ifdef _OPENMP
+					// Under OpenMP, raises can't go past the end of the parallel region
+					try {
+						FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+					} catch (...) {
+						saw_error_3 = true;
+						InteractionType::FreeSparseVector(sv);
+						continue;
+					}
+#else
+					// When not under OpenMP, we can just let raises go
+					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+#endif
+					
 					uint32_t nnz;
 					const uint32_t *columns;
 					const sv_value_t *strengths;
@@ -4530,6 +4621,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 			if (saw_error_2)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			if (saw_error_3)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): an exception was caught inside a parallel region." << EidosTerminate();
 		}
 		
 		free(result_vectors);
@@ -4737,6 +4830,10 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	EnsureKDTreePresent(exerter_subpop_data);
 	
 	double strength_for_zero_distance = CalculateStrengthNoCallbacks(0.0);	// probably always if_param1_, but let's not hard-code that...
+	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
+	
+	if (has_interaction_callbacks)
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() does not allow interaction() callbacks, since they cannot be integrated to compute density." << EidosTerminate();
 	
 	// Subcontract to ExecuteMethod_clippedIntegral(); this handles all the spatiality crap for us
 	// note that we pass our own parameters through to clippedIntegral()!  So our APIs need to be the same!
@@ -4746,7 +4843,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	EidosValue *clipped_integrals = clipped_integrals_SP.get();
 	
 	// Decide whether we can use our optimized case below
-	bool optimize_fixed_interaction_strengths = ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (if_type_ == IFType::kFixed));
+	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == IFType::kFixed));
 	
 	if (receivers_count == 1)
 	{
@@ -4779,7 +4876,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			// General case, totalling strengths
 			sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-			FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);	// we do not allow interaction() callbacks, so this should not raise
 			
 			// Get the sparse vector data
 			uint32_t nnz;
@@ -4810,7 +4907,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY))
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4854,7 +4951,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			{
 				// General case, totalling strengths
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// we do not allow interaction() callbacks, so this should not raise
 				
 				// Get the sparse vector data
 				uint32_t nnz;
@@ -5826,6 +5923,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	{
 		// Spatial case; we use the k-d tree to get strengths for all neighbors.  For non-null exerters_value, we could
 		// calculate distances and strengths with the receiver directly, to save building the sparse vector; FIXME.
+		// BCH 5/14/2023: The call to FillSparseVectorForReceiverStrengths() means we run interaction() callbacks,
+		// so if this code is ever parallelized, it should stay single-threaded when callbacks are enabled.
 		InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		
@@ -5895,6 +5994,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	else
 	{
 		// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
+		// BCH 5/14/2023: We call ApplyInteractionCallbacks() below, so if this code ever goes parallel it
+		// should stay single-threaded if/when any interaction() callbacks are present!
 		slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
 		std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
 		
@@ -6010,7 +6111,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// singleton case, not parallel
 		
 		// Get the sparse vector data
 		uint32_t nnz;
@@ -6031,9 +6132,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	{
 		// Loop over the requested individuals and get the totals
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
-		bool saw_error_1 = false, saw_error_2 = false;
+#ifdef _OPENMP
+		bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
+#endif
+		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH))
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -6061,7 +6165,20 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			
+#ifdef _OPENMP
+			// Under OpenMP, raises can't go past the end of the parallel region
+			try {
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+			} catch (...) {
+				saw_error_3 = true;
+				InteractionType::FreeSparseVector(sv);
+				continue;
+			}
+#else
+			// When not under OpenMP, we can just let raises go
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+#endif
 			
 			// Get the sparse vector data
 			uint32_t nnz;
@@ -6084,6 +6201,8 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that receivers are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		if (saw_error_2)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all receivers be in the same subpopulation." << EidosTerminate();
+		if (saw_error_3)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): an exception was caught inside a parallel region." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}

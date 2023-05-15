@@ -28,6 +28,7 @@
 #pragma mark InteractionType tests
 static void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation);
 static void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation);
+static void _RunInteractionTypeTests_LocalPopDensity(void);
 
 void _RunInteractionTypeTests(void)
 {
@@ -64,6 +65,8 @@ void _RunInteractionTypeTests(void)
 	_RunInteractionTypeTests_Spatial("999.0", false, false, "**");
 	_RunInteractionTypeTests_Spatial(" INF ", true, false, "**");
 	_RunInteractionTypeTests_Spatial("999.0", true, false, "**");
+	
+	_RunInteractionTypeTests_LocalPopDensity();		// different enough to get its own call
 	
 	for (int sex_seg_index = 0; sex_seg_index <= 8; ++sex_seg_index)
 	{
@@ -116,6 +119,7 @@ void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, 
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.nearestInteractingNeighbors(ind[8], 1); stop(); }", "interaction be spatial", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.interactingNeighborCount(ind[8]); stop(); }", "interaction be spatial", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.nearestNeighborsOfPoint(19.0, p1, 1); stop(); }", "interaction be spatial", __LINE__);
+	
 	if (!sex_seg_on)
 	{
 		SLiMAssertScriptStop(gen1_setup_i1_pop + "if (i1.strength(ind[0], ind[2]) == 1.0) stop(); }", __LINE__);
@@ -127,7 +131,12 @@ void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, 
 		SLiMAssertScriptStop(gen1_setup_i1_pop + "if (i1.strength(ind[0], ind[2]) == 2.0) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
+		
+		SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.drawByStrength(ind[0]); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.strength(ind[0], ind[2]); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.strength(ind[5], NULL); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
 	}
+	
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.totalOfNeighborStrengths(ind[0]); stop(); }", "interaction be spatial", __LINE__);
 }
 
@@ -136,7 +145,7 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	std::string reciprocal_string = p_reciprocal ? "reciprocal=T" : "reciprocal=F";
 	std::string sex_string = p_sex_enabled ? "initializeSex('A'); " : "                    ";
 	bool sex_seg_on = (p_sex_segregation != "**");
-	bool max_dist_on = (p_max_distance != "INF");
+	bool max_dist_on = (p_max_distance != " INF ");		// the spaces make this the same width as "999.0", for error position checks
 	
 	// *** 1D
 	for (int i = 0; i < 3; ++i)
@@ -206,6 +215,16 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.drawByStrength(ind[0], 0), ind[integer(0)])) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], -1); stop(); } interaction(i1) { return strength * 2.0; }", "requires count >= 0", __LINE__);
 		
+		if (!sex_seg_on)
+		{
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 1); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind[0], 50); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind, returnDict=T); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.drawByStrength(ind, returnDict=T); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+		}
+		
 		// Test InteractionType – (void)evaluate(io<Subpopulation> subpops)
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.evaluate(); stop(); }", "required argument subpops", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.evaluate(p1); i1.evaluate(p1); stop(); }", __LINE__);
@@ -244,6 +263,14 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
+		
+		if (!sex_seg_on)
+		{
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.nearestInteractingNeighbors(ind, returnDict=T); stop(); } interaction(i1) { return 'foo'; }", __LINE__);	// doesn't raise because it doesn't use strengths
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.nearestInteractingNeighbors(ind, returnDict=T); stop(); } interaction(i1) { return 'foo'+'bar'; }", __LINE__);	// doesn't raise because it doesn't use strengths
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.interactingNeighborCount(ind); stop(); } interaction(i1) { return 'foo'; }", __LINE__);	// doesn't raise because it doesn't use strengths
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.interactingNeighborCount(ind); stop(); } interaction(i1) { return 'foo'+'bar'; }", __LINE__);	// doesn't raise because it doesn't use strengths
+		}
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ subpop, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighborsOfPoint(5.0, p1, -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
@@ -305,6 +332,11 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[1], ind[integer(0)]), float(0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5]), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.strength(ind[5], NULL), c(2.0, 2.0, 2.0, 2.0, 2.0, 0.0, 2.0, 2.0, 2.0, 2.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
+			
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.strength(ind[0], ind[2]); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.strength(ind[0], ind[2]); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.strength(ind[5], NULL); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.strength(ind[5], NULL); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
 		}
 		
 		// Test InteractionType – (float)totalOfNeighborStrengths(object<Individual> individuals)
@@ -327,6 +359,14 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.totalOfNeighborStrengths(ind[5]), 18.0)) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.totalOfNeighborStrengths(ind[9]), 18.0)) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.totalOfNeighborStrengths(ind[c(0, 5, 9)]), c(18.0, 18.0, 18.0))) stop(); } interaction(i1) { return strength * 2.0; }", __LINE__);
+			
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind[0]); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind[c(0, 5, 9)]); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind); stop(); } interaction(i1) { return 'foo'; }", "callbacks must provide", __LINE__);
+			
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind[0]); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind[c(0, 5, 9)]); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.totalOfNeighborStrengths(ind); stop(); } interaction(i1) { return 'foo'+'bar'; }", "callbacks must provide", __LINE__);
 		}
 		
 		// Test InteractionType – (void)unevaluate(void)
@@ -869,6 +909,65 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	// Test InteractionType – (void)unevaluate(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
+}
+
+void _RunInteractionTypeTests_LocalPopDensity()
+{
+	// Test InteractionType - localPopulationDensity()
+	// FIXME for now we just make the calls, we don't test the results
+	
+	// *** 1D
+	for (int i = 0; i < 6; ++i)
+	{
+		std::string gen1_setup_i1x_pop;
+		
+		if (i == 0)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x', reciprocal=T, maxDistance=10.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 1)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'y', reciprocal=T, maxDistance=10.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 2)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'z', reciprocal=T, maxDistance=10.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		
+		// go beyond type 'f', since that hits an optimized case
+		else if (i == 3)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x', reciprocal=T, maxDistance=10.0); i1.setInteractionFunction('l', 1.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 4)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'y', reciprocal=T, maxDistance=10.0); i1.setInteractionFunction('l', 1.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else // if (i == 5)
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'z', reciprocal=T, maxDistance=10.0); i1.setInteractionFunction('l', 1.0); } 1 early() { sim.addSubpop('p1', 10); p1.setSpatialBounds(c(-30, -30, -30, 30, 30, 30)); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[integer(0)]); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[0]); stop(); }", __LINE__);
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[c(0, 5, 9)]); stop(); }", __LINE__);
+		
+		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[integer(0)]); stop(); } interaction(i1) { return 2.0; }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[0]); stop(); } interaction(i1) { return 2.0; }", "interaction() callbacks", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.localPopulationDensity(ind[c(0, 5, 9)]); stop(); } interaction(i1) { return 2.0; }", "interaction() callbacks", __LINE__);
+	}
+	/*
+	// *** 2D
+	for (int i = 0; i < 6; ++i)
+	{
+		std::string gen1_setup_i1xy_pop;
+		bool use_first_coordinate = (i < 3);
+		
+		if (i == 0)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 1)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 2)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 3)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else if (i == 4)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		else // if (i == 5)
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		
+	}
+	*/
+	
+	// 3D is not supported by clippedIntegral() at the moment
 }
 
 #pragma mark Continuous space tests
