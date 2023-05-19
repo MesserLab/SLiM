@@ -7056,7 +7056,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_sampleIndividuals(EidosGlobalStringID
 		if (replace)
 		{
 			// base case with replacement
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(candidate_count, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2)
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size, index_buffer) firstprivate(candidate_count, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				

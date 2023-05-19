@@ -118,7 +118,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptRaise("mean('foo');", 0, "cannot be type");
 	EidosAssertScriptSuccess_F("mean(c(F, F, T, F, T));", 0.4);
 	EidosAssertScriptSuccess_F("mean(c(3, 7, 19, -5, 16));", 8);
-	EidosAssertScriptSuccess_F("mean(c(3.3, 7.2, 19.1, -5.6, 16.0));", 8.0);
+	EidosAssertScriptSuccess_F("mean(c(3.5, 7.25, 19.125, -5.5, 18.125));", 8.5);
 	EidosAssertScriptRaise("mean(c('foo', 'bar', 'baz'));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(_Test(7));", 0, "cannot be type");
 	EidosAssertScriptRaise("mean(NULL);", 0, "cannot be type");

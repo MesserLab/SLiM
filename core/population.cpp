@@ -605,24 +605,22 @@ void Population::DoDeferredReproduction(void)
 	
 	// now generate the genomes of the deferred offspring in parallel
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_nonrecombinant) if(deferred_count_nonrecombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
+	for (size_t deferred_index = 0; deferred_index < deferred_count_nonrecombinant; ++deferred_index)
 	{
-			for (size_t deferred_index = 0; deferred_index < deferred_count_nonrecombinant; ++deferred_index)
-			{
-				SLiM_DeferredReproduction_NonRecombinant &deferred_rec = deferred_reproduction_nonrecombinant_[deferred_index];
-				
-				if ((deferred_rec.type_ == SLiM_DeferredReproductionType::kCrossoverMutation) || (deferred_rec.type_ == SLiM_DeferredReproductionType::kSelfed))
-				{
-					DoCrossoverMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, deferred_rec.parent1_->index_, deferred_rec.child_sex_, deferred_rec.parent1_->sex_, nullptr, nullptr);
-					
-					DoCrossoverMutation(deferred_rec.parent2_->subpopulation_, *deferred_rec.child_genome_2_, deferred_rec.parent2_->index_, deferred_rec.child_sex_, deferred_rec.parent2_->sex_, nullptr, nullptr);
-				}
-				else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kClonal)
-				{
-					DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, *deferred_rec.parent1_->genome1_, deferred_rec.child_sex_, nullptr);
-					
-					DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_2_, *deferred_rec.parent1_->genome2_, deferred_rec.child_sex_, nullptr);
-				}
-			}
+		SLiM_DeferredReproduction_NonRecombinant &deferred_rec = deferred_reproduction_nonrecombinant_[deferred_index];
+		
+		if ((deferred_rec.type_ == SLiM_DeferredReproductionType::kCrossoverMutation) || (deferred_rec.type_ == SLiM_DeferredReproductionType::kSelfed))
+		{
+			DoCrossoverMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, deferred_rec.parent1_->index_, deferred_rec.child_sex_, deferred_rec.parent1_->sex_, nullptr, nullptr);
+			
+			DoCrossoverMutation(deferred_rec.parent2_->subpopulation_, *deferred_rec.child_genome_2_, deferred_rec.parent2_->index_, deferred_rec.child_sex_, deferred_rec.parent2_->sex_, nullptr, nullptr);
+		}
+		else if (deferred_rec.type_ == SLiM_DeferredReproductionType::kClonal)
+		{
+			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_1_, *deferred_rec.parent1_->genome1_, deferred_rec.child_sex_, nullptr);
+			
+			DoClonalMutation(deferred_rec.parent1_->subpopulation_, *deferred_rec.child_genome_2_, *deferred_rec.parent1_->genome2_, deferred_rec.child_sex_, nullptr);
+		}
 	}
 	
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_recombinant) if(deferred_count_recombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
@@ -2668,8 +2666,14 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 	Chromosome &chromosome = species_.TheChromosome();
 	int num_mutations, num_breakpoints;
 	
+#if defined(__GNUC__) && !defined(__clang__)
+	// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+	static thread_local std::vector<slim_position_t> all_breakpoints;
+#else
 	static std::vector<slim_position_t> all_breakpoints;	// avoid buffer reallocs, etc.; we are guaranteed not to be re-entrant by the addX() methods
-#pragma omp threadprivate(all_breakpoints)
+#pragma omp threadprivate (all_breakpoints)
+#endif
+	
 	all_breakpoints.clear();
 	
 	std::vector<slim_position_t> heteroduplex;				// a vector of heteroduplex starts/ends, used only with complex gene conversion tracts
@@ -2919,15 +2923,27 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 #endif
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-#pragma omp threadprivate(mut_positions)
+#pragma omp threadprivate (mut_positions)
+#endif
+		
 		mut_positions.clear();
 		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
 		static std::vector<MutationIndex> mutations_to_add;
-#pragma omp threadprivate(mutations_to_add)
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
 		mutations_to_add.clear();
 		
 #ifdef _OPENMP
@@ -4027,15 +4043,27 @@ void Population::DoRecombinantMutation(Subpopulation *p_mutorigin_subpop, Genome
 #endif
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-#pragma omp threadprivate(mut_positions)
+#pragma omp threadprivate (mut_positions)
+#endif
+		
 		mut_positions.clear();
 		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_parent_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
 		static std::vector<MutationIndex> mutations_to_add;
-#pragma omp threadprivate(mutations_to_add)
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
 		mutations_to_add.clear();
 		
 #ifdef _OPENMP
@@ -4536,15 +4564,27 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 #endif
 		
 		// Generate all of the mutation positions as a separate stage, because we need to unique them.  See DrawSortedUniquedMutationPositions.
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
+#else
 		static std::vector<std::pair<slim_position_t, GenomicElement *>> mut_positions;
-#pragma omp threadprivate(mut_positions)
+#pragma omp threadprivate (mut_positions)
+#endif
+		
 		mut_positions.clear();
 		
 		num_mutations = chromosome.DrawSortedUniquedMutationPositions(num_mutations, p_child_sex, mut_positions);
 		
 		// Create vector with the mutations to be added
+#if defined(__GNUC__) && !defined(__clang__)
+		// Work around GCC bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=27557
+		static thread_local std::vector<MutationIndex> mutations_to_add;
+#else
 		static std::vector<MutationIndex> mutations_to_add;
-#pragma omp threadprivate(mutations_to_add)
+#pragma omp threadprivate (mutations_to_add)
+#endif
+		
 		mutations_to_add.clear();
 		
 #ifdef _OPENMP
@@ -4568,14 +4608,6 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 							mutations_to_add.emplace_back(new_mutation);			// positions are already sorted
 						
 						// see further comments below, in the non-nucleotide case; they apply here as well
-					}
-					
-					// if there are no mutations, the child genome is just a copy of the parental genome
-					// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
-					if (mutations_to_add.size() == 0)
-					{
-						p_child_genome.copy_from_genome(p_parent_genome);
-						return;
 					}
 				}
 				else
@@ -4610,6 +4642,14 @@ void Population::DoClonalMutation(Subpopulation *p_mutorigin_subpop, Genome &p_c
 			EIDOS_TERMINATION << "ERROR (Population::DoClonalMutation): An exception was caught inside a critical region." << EidosTerminate();
 		}
 #endif
+		
+		// if there are no mutations, the child genome is just a copy of the parental genome
+		// this can happen with nucleotide-based models because -1 can be returned by DrawNewMutationExtended()
+		if (mutations_to_add.size() == 0)
+		{
+			p_child_genome.copy_from_genome(p_parent_genome);
+			return;
+		}
 		
 		// loop over mutation runs and either (1) copy the mutrun pointer from the parent, or (2) make a new mutrun by modifying that of the parent
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;

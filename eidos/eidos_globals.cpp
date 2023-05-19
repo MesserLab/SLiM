@@ -256,6 +256,8 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << gEidosMaxThreads << " threads)" << std::endl;
 		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
 		
+#if 0
+		// BCH 5/19/2023: #if 0 for now, because this gives an error on some platforms; we don't support offloading anyway.
 		// Look for devices (GPUs, accelerators) that we are able to offload to.
 		// Note that OpenMP offloading to the GPUs on Apple Silicon is not currently supported by any compiler.
 		// Other devices may not be visible unless you build slim_multi with a special build of your compiler;
@@ -268,6 +270,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 			(*outstream) << "// ********** OpenMP target device count (GPUs, accelerators): " << num_devices << std::endl;
 			(*outstream) << "// ********** Default target device for OpenMP offloading: " << default_device << std::endl;
 		}
+#endif
 	}
 	
 #ifdef EIDOS_GUI
