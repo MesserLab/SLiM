@@ -262,6 +262,7 @@ public:
 	static EidosValue *GetProperty_Accelerated_x(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_y(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_z(EidosObject **p_values, size_t p_values_size);
+	static EidosValue *GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_subpopulation(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_genome1(EidosObject **p_values, size_t p_values_size);
 	static EidosValue *GetProperty_Accelerated_genome2(EidosObject **p_values, size_t p_values_size);

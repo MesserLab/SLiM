@@ -410,7 +410,7 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(reproductive_output_));
 		}
-		case gID_spatialPosition:
+		case gID_spatialPosition:					// ACCELERATED
 		{
 			Species &species = subpopulation_->species_;
 			
@@ -815,6 +815,88 @@ EidosValue *Individual::GetProperty_Accelerated_z(EidosObject **p_values, size_t
 		Individual *value = (Individual *)(p_values[value_index]);
 		
 		float_result->set_float_no_check(value->spatial_z_, value_index);
+	}
+	
+	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_values, size_t p_values_size)
+{
+	Species *consensus_species = Community::SpeciesForIndividualsVector((Individual **)p_values, (int)p_values_size);
+	EidosValue_Float_vector *float_result;
+	
+	if (consensus_species)
+	{
+		// All individuals belong to the same species (common case), so we have the same dimensionality for all
+		int dimensionality = consensus_species->SpatialDimensionality();
+		
+		if (dimensionality == 0)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << EidosTerminate();
+		
+		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(p_values_size * dimensionality);
+		
+		if (dimensionality == 1)
+		{
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				Individual *value = (Individual *)(p_values[value_index]);
+				float_result->set_float_no_check(value->spatial_x_, value_index);
+			}
+		}
+		else if (dimensionality == 2)
+		{
+			size_t result_index = 0;
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				Individual *value = (Individual *)(p_values[value_index]);
+				float_result->set_float_no_check(value->spatial_x_, result_index++);
+				float_result->set_float_no_check(value->spatial_y_, result_index++);
+			}
+		}
+		else // dimensionality == 3
+		{
+			size_t result_index = 0;
+			
+			for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+			{
+				Individual *value = (Individual *)(p_values[value_index]);
+				float_result->set_float_no_check(value->spatial_x_, result_index++);
+				float_result->set_float_no_check(value->spatial_y_, result_index++);
+				float_result->set_float_no_check(value->spatial_z_, result_index++);
+			}
+		}
+	}
+	else
+	{
+		// Mixed-species group, so we have to figure out the dimensionality for each individual separately
+		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *value = (Individual *)(p_values[value_index]);
+			Species &species = value->subpopulation_->species_;
+			
+			switch (species.SpatialDimensionality())
+			{
+				case 0:
+					EIDOS_TERMINATION << "ERROR (Individual::GetProperty): position cannot be accessed in non-spatial simulations." << EidosTerminate();
+				case 1:
+					float_result->push_float(value->spatial_x_);
+					break;
+				case 2:
+					float_result->push_float(value->spatial_x_);
+					float_result->push_float(value->spatial_y_);
+					break;
+				case 3:
+					float_result->push_float(value->spatial_x_);
+					float_result->push_float(value->spatial_y_);
+					float_result->push_float(value->spatial_z_);
+					break;
+				default:
+					break;	// never hit; here to make the compiler happy
+			}
+		}
 	}
 	
 	return float_result;
@@ -1700,7 +1782,7 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeParentIDs,		true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeGrandparentIDs,	true,	kEidosValueMaskInt)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_reproductiveOutput,		true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_reproductiveOutput));
-		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,		true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_spatialPosition,		true,	kEidosValueMaskFloat))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_spatialPosition));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_uniqueMutations,		true,	kEidosValueMaskObject, gSLiM_Mutation_Class)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_color,				false,	kEidosValueMaskString | kEidosValueMaskSingleton))->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_color));
 		
