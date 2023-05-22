@@ -4420,7 +4420,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					
 					for (int64_t result_index = 0; result_index < count; ++result_index)
 					{
-						int exerter_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+						int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+						uint32_t exerter_index = columns[presence_index];
 						Individual *chosen_individual = exerters[exerter_index];
 						
 						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
@@ -4550,7 +4551,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 						
 						for (int64_t result_index = 0; result_index < count; ++result_index)
 						{
-							int exerter_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+							int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+							uint32_t exerter_index = columns[presence_index];
 							Individual *chosen_individual = exerters[exerter_index];
 							
 							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
