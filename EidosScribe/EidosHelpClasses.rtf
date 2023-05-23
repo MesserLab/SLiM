@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2513
+{\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
@@ -659,6 +659,110 @@ In the current implementation, it is an error for either of the values involved 
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Removes all key-value pairs from the receiver.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(integer)compactIndices([logical$\'a0preserveOrder\'a0=\'a0F])\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Compacts the receiver, which must use 
+\f3\fs18 integer
+\f4\fs20  keys.  After this operation, the receiver will contain only values that have a length greater than zero (discarding all key\'96value pairs for which the value is a zero-length vector).  In addition, the keys used will be compacted down to begin at 
+\f3\fs18 0
+\f4\fs20  and count upward sequentially.  If 
+\f3\fs18 preserve
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), the keys may end up in a different numerical order; this allows the compaction to be performed more efficiently.  If 
+\f3\fs18 preserve
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , on the other hand, the numerical order of the keys will be preserved.  The returned 
+\f3\fs18 integer
+\f4\fs20  vector contains the original keys that were kept across the compaction operation, in the order in which they were used in the compaction; keys that were not kept (because their value was zero-length) are omitted from this result vector.\
+For example, with a dictionary that contains key\'96value pairs 
+\f3\fs18 -5="a"
+\f4\fs20 , 
+\f3\fs18 17="b"
+\f4\fs20 , 
+\f3\fs18 37="c"
+\f4\fs20 , 
+\f3\fs18 53=integer(0)
+\f4\fs20 , and 
+\f3\fs18 82="d"
+\f4\fs20 , 
+\f3\fs18 compactIndices(preserveOrder=T)
+\f4\fs20  will transform the dictionary to contain 
+\f3\fs18 0="a"
+\f4\fs20 , 
+\f3\fs18 1="b"
+\f4\fs20 , 
+\f3\fs18 2="c"
+\f4\fs20 , and 
+\f3\fs18 3="d"
+\f4\fs20 , while key 
+\f3\fs18 53
+\f4\fs20  (and its zero-length value) is dropped; the returned vector will be (
+\f3\fs18 5
+\f4\fs20 , 
+\f3\fs18 17
+\f4\fs20 , 
+\f3\fs18 37
+\f4\fs20 , 
+\f3\fs18 82
+\f4\fs20 ).  The result from 
+\f3\fs18 compactIndices(preserveOrder=F)
+\f4\fs20  has a non-deterministic order, but one possibility for the same example inout is that it would transform the dictionary to contain key\'96value pairs 
+\f3\fs18 0="c"
+\f4\fs20 , 
+\f3\fs18 1="d"
+\f4\fs20 , 
+\f3\fs18 2="a"
+\f4\fs20 , and 
+\f3\fs18 3="b"
+\f4\fs20 , with a returned vector of (
+\f3\fs18 37
+\f4\fs20 , 
+\f3\fs18 82
+\f4\fs20 , 
+\f3\fs18 5
+\f4\fs20 , 
+\f3\fs18 17
+\f4\fs20 ); the same key\'96value pairs are kept, and they are again placed in sequential keys beginning with 
+\f3\fs18 0
+\f4\fs20 , but their order is no longer preserved across the compaction.\
+This method is particularly useful when you have a 
+\f3\fs18 Dictionary
+\f4\fs20  
+\f3\fs18 d
+\f4\fs20  that contains results from some operation on a vector 
+\f3\fs18 x
+\f4\fs20 , such that each key 
+\f3\fs18 n
+\f4\fs20  in 
+\f3\fs18 d
+\f4\fs20  has a value that is the result of processing the 
+\f3\fs18 n
+\f4\fs20 \'92th element of 
+\f3\fs18 x
+\f4\fs20 .  In this case, 
+\f3\fs18 order=d.compactIndices(preserveOrder=F)
+\f4\fs20  will transmogrify 
+\f3\fs18 d
+\f4\fs20  to contain only the non-zero-length results, in sequential indices counting from 
+\f3\fs18 0
+\f4\fs20 , and 
+\f3\fs18 x[order]
+\f4\fs20  provides the elements of 
+\f3\fs18 x
+\f4\fs20  that produced those results, in the same order as in 
+\f3\fs18 d
+\f4\fs20  after compaction.  Using 
+\f3\fs18 preserveOrder=T
+\f4\fs20  additionally keeps 
+\f3\fs18 d
+\f4\fs20  in the same order as the original order of 
+\f3\fs18 x
+\f4\fs20 , for cases in which that ordering is important.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Dictionary>$)getRowValues(li\'a0index, [logical$\'a0drop\'a0=\'a0F])\

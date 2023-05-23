@@ -3096,6 +3096,7 @@ const std::string &gEidosStr_allKeys = EidosRegisteredString("allKeys", gEidosID
 const std::string &gEidosStr_addKeysAndValuesFrom = EidosRegisteredString("addKeysAndValuesFrom", gEidosID_addKeysAndValuesFrom);
 const std::string &gEidosStr_appendKeysAndValuesFrom = EidosRegisteredString("appendKeysAndValuesFrom", gEidosID_appendKeysAndValuesFrom);
 const std::string &gEidosStr_clearKeysAndValues = EidosRegisteredString("clearKeysAndValues", gEidosID_clearKeysAndValues);
+const std::string &gEidosStr_compactIndices = EidosRegisteredString("compactIndices", gEidosID_compactIndices);
 const std::string &gEidosStr_getRowValues = EidosRegisteredString("getRowValues", gEidosID_getRowValues);
 const std::string &gEidosStr_getValue = EidosRegisteredString("getValue", gEidosID_getValue);
 const std::string &gEidosStr_identicalContents = EidosRegisteredString("identicalContents", gEidosID_identicalContents);

@@ -108,6 +108,7 @@ development head (in the master branch):
 	add an optional parameter to initializeGeneConversion(), [l$ redrawLengthsOnFailure = F], to avoid failures to lay out tracts in some models; no behavior change by default
 	add an optional parameter, [integer$ count = 1], to addCrossed(), addSelfed(), addCloned(), addRecombinant(), and addEmpty() to produce multiple offspring in one call
 		this entails a policy change: if no children are generated (due to rejection by modifyChild(), in particular), object<Individual>(0) is returned, not NULL
+	add a method -(integer)compactIndices(void) to Dictionary, to compact result dictionaries down to their non-empty values with sequential keys
 	
 
 version 4.0.1 (Eidos version 3.0.1):

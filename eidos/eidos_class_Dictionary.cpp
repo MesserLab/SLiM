@@ -1060,6 +1060,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteInstanceMethod(EidosGlobalString
 		case gEidosID_addKeysAndValuesFrom:		return ExecuteMethod_addKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_appendKeysAndValuesFrom:	return ExecuteMethod_appendKeysAndValuesFrom(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_clearKeysAndValues:		return ExecuteMethod_clearKeysAndValues(p_method_id, p_arguments, p_interpreter);
+		case gEidosID_compactIndices:			return ExecuteMethod_compactIndices(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_getRowValues:				return ExecuteMethod_getRowValues(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_getValue:					return ExecuteMethod_getValue(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_identicalContents:		return ExecuteMethod_identicalContents(p_method_id, p_arguments, p_interpreter);
@@ -1128,6 +1129,82 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_clearKeysAndValues(EidosG
 	ContentsChanged("clearKeysAndValues()");
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (integer)compactIndices([logical$ preserveOrder = F])
+//
+EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_compactIndices(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_interpreter)
+	EidosValue *preserveOrder_value = p_arguments[0].get();
+	bool preserveOrder = preserveOrder_value->LogicalAtIndex(0, nullptr);
+	
+	if (!KeysAreIntegers())
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_compactIndices): compactIndices() can only be called on a dictionary that uses integer keys." << EidosTerminate(nullptr);
+	
+	if (KeyCount() == 0)
+		return gStaticEidosValue_Integer_ZeroVec;
+	
+	EidosDictionaryState_IntegerKeys *state_ptr = (EidosDictionaryState_IntegerKeys *)state_ptr_;
+	EidosDictionaryHashTable_IntegerKeys &symbols = state_ptr->dictionary_symbols_;
+	size_t key_count = symbols.size();
+	EidosValue_Int_vector *integer_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(key_count);
+	std::vector<EidosValue_SP> compacted_values;
+	
+	if (preserveOrder)
+	{
+		// to preserve the original order, we have to iterate through the 
+		// sorted keys; that makes the algorithm O(n log n)
+		const std::vector<int64_t> keys = SortedKeys_IntegerKeys();
+		
+		for (int64_t key : keys)
+		{
+			auto kv_pair = symbols.find(key);
+			
+			if (kv_pair == symbols.end())
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_compactIndices): (internal error) key not found in symbols." << EidosTerminate(nullptr);
+			
+			EidosValue *value = kv_pair->second.get();
+			
+			if (value->Count() > 0)
+			{
+				integer_result->push_int_no_check(key);
+				compacted_values.push_back(kv_pair->second);
+			}
+		}
+	}
+	else
+	{
+		// if we don't need to preserve the order, we can do it in O(n)
+		for (auto &iter : symbols)
+		{
+			int64_t key = iter.first;
+			EidosValue *value = iter.second.get();
+			
+			if (value->Count() > 0)
+			{
+				integer_result->push_int_no_check(key);
+				compacted_values.push_back(iter.second);
+			}
+		}
+	}
+	
+	// clear our contents and then copy the compacted values back in
+	symbols.clear();
+	
+	int64_t value_count = (int64_t)compacted_values.size();
+	
+	for (int64_t index = 0; index < value_count; ++index)
+	{
+		symbols[index] = std::move(compacted_values[index]);
+		
+		// KeyAddedToDictionary_IntegerKeys() is not needed; for us it is a no-op,
+		// and DataFrame doesn't support integer keys
+	}
+	
+	ContentsChanged("compactIndices()");
+	
+	return EidosValue_SP(integer_result);
 }
 
 //	*********************	- (object<Dictionary>$)getRowValues(li index, [logical$ drop = F])
@@ -1443,6 +1520,7 @@ const std::vector<EidosMethodSignature_CSP> *EidosDictionaryUnretained_Class::Me
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_addKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject_S(gEidosStr_source, nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_appendKeysAndValuesFrom, kEidosValueMaskVOID))->AddObject(gEidosStr_source, nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_clearKeysAndValues, kEidosValueMaskVOID)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_compactIndices, kEidosValueMaskInt, gEidosDictionaryRetained_Class))->AddLogical_OS("preserveOrder", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getRowValues, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class))->AddArg(kEidosValueMaskLogical | kEidosValueMaskInt, "index", nullptr)->AddLogical_OS("drop", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_getValue, kEidosValueMaskAny))->AddArg(kEidosValueMaskInt | kEidosValueMaskString | kEidosValueMaskSingleton, "key", nullptr));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_identicalContents, kEidosValueMaskLogical | kEidosValueMaskSingleton))->AddObject_S("x", nullptr));

@@ -1110,6 +1110,14 @@ void _RunClassTests(std::string temp_path)
 	
 	EidosAssertScriptRaise("x = Dictionary(); x.setValue(5, 2); x.setValue(7, 'foo'); x.clearKeysAndValues(); x.setValue('foo', 'baz'); x.allKeys;", 84, "string key");
 	
+	// compactIndices()
+	EidosAssertScriptSuccess_L("x = Dictionary(); x.compactIndices(); x.identicalContents(Dictionary());", true);
+	EidosAssertScriptRaise("x = Dictionary(); x.setValue('foo', 5:7); x.compactIndices();", 44, "integer keys");
+	EidosAssertScriptSuccess_L("x = Dictionary(53,'c', 17,'b', 80,'d', 5,'a', 85,'e'); x.compactIndices(preserveOrder=F); values=sapply(x.allKeys, 'x.getValue(applyValue);'); identical(x.allKeys, 0:4) & identical(sort(values), c('a','b','c','d','e'));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary(53,'c', 17,'b', 80,'d', 5,'a', 85,'e'); x.compactIndices(preserveOrder=T); x.identicalContents(Dictionary(0,'a', 1,'b', 2,'c', 3,'d', 4,'e'));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary(53,'c', 7,integer(0), 17,'b', 80,'d', 83,string(0), 5,'a', 35,object(), 85,'e'); x.compactIndices(preserveOrder=F); values=sapply(x.allKeys, 'x.getValue(applyValue);'); identical(x.allKeys, 0:4) & identical(sort(values), c('a','b','c','d','e'));", true);
+	EidosAssertScriptSuccess_L("x = Dictionary(53,'c', 7,integer(0), 17,'b', 80,'d', 83,string(0), 5,'a', 35,object(), 85,'e'); x.compactIndices(preserveOrder=T); x.identicalContents(Dictionary(0,'a', 1,'b', 2,'c', 3,'d', 4,'e'));", true);
+	
 	// serialize()
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.serialize();", "");
 	EidosAssertScriptSuccess_S("x = Dictionary(); x.setValue('foo', 1:3); x.serialize();", "\"foo\"=1 2 3;");
