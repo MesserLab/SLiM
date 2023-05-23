@@ -401,18 +401,16 @@ public:
 	void ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_callbacks);
 	void IncrementIndividualAges(void);
 	IndividualSex _GenomeConfigurationForSex(EidosValue *p_sex_value, GenomeType &p_genome1_type, GenomeType &p_genome2_type, bool &p_genome1_null, bool &p_genome2_null);
-	inline __attribute__((always_inline)) EidosValue_SP _ResultAfterModifyChildCallbacks(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2)
+	inline __attribute__((always_inline)) void _ProcessNewOffspring(bool p_proposed_child_accepted, Individual *p_individual, Genome *p_genome1, Genome *p_genome2, EidosValue_Object_vector *p_result)
 	{
 		if (p_proposed_child_accepted)
 		{
-			// The child was accepted, so add it to our staging area and return it to the caller
+			// The child was accepted, so add it to our staging area and to the caller's result vector
 			nonWF_offspring_genomes_.emplace_back(p_genome1);
 			nonWF_offspring_genomes_.emplace_back(p_genome2);
 			nonWF_offspring_individuals_.emplace_back(p_individual);
 			
-			EidosValue_Object_singleton *individual_value = new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(p_individual, gSLiM_Individual_Class);
-			
-			return EidosValue_SP(individual_value);
+			p_result->push_object_element_NORR(p_individual);
 		}
 		else
 		{
@@ -427,8 +425,6 @@ public:
 			if (species_.RecordingTreeSequence())
 				species_.RetractNewIndividual();
 		}
-		
-		return gStaticEidosValueNULL;
 	}
 	
 	// inline accessors that handle the parent/child distinction

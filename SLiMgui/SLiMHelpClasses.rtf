@@ -7130,18 +7130,30 @@ The species to which the target object belongs.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\i0\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(No<Individual>$)addCloned(object<Individual>$\'a0parent, [logical$\'a0defer\'a0=\'a0F])\
+\'96\'a0(object<Individual>)addCloned(object<Individual>$\'a0parent, [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual from the given parent by clonal reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual from the given parent by clonal reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
 \f3\fs18 parent
 \f4\fs20  will be used to locate applicable 
 \f3\fs18 mutation()
-\f4\fs20  and  
+\f4\fs20  and 
 \f3\fs18 modifyChild()
 \f4\fs20  callbacks governing the generation of the offspring individual.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+Beginning in SLiM 4.1, the 
+\f3\fs18 count
+\f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback.  If all offspring are rejected, 
+\f3\fs18 object<Individual>(0)
+\f4\fs20  is returned, which is a zero-length 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
+\f3\fs18 NULL
+\f4\fs20 .\
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7154,17 +7166,16 @@ The species to which the target object belongs.\
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2, [Nfs$\'a0sex\'a0=\'a0NULL], [logical$\'a0defer\'a0=\'a0F])\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(object<Individual>)addCrossed(object<Individual>$\'a0parent1, object<Individual>$\'a0parent2, [Nfs$\'a0sex\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual from the given parents by biparental sexual reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  Attempting to use a newly generated offspring individual as a mate, or to reference it as a member of the target subpopulation in any other way, will result in an error.  In most models the returned individual is not used, but it is provided for maximal generality and flexibility.\
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual from the given parents by biparental sexual reproduction, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  Attempting to use a newly generated offspring individual as a mate, or to reference it as a member of the target subpopulation in any other way, will result in an error.  In most models the returned individual is not used, but it is provided for maximal generality and flexibility.\
 The new offspring individual is generated from 
 \f3\fs18 parent1
 \f4\fs20  and 
@@ -7248,17 +7259,27 @@ Note that any defined, active, and applicable
 \f4\fs20  are used (since that is the maternal parent).\
 If the 
 \f3\fs18 modifyChild()
-\f4\fs20  callback process results in rejection of the proposed child, a new offspring individual will not be generated, and this method will return 
-\f3\fs18 NULL
-\f4\fs20 .  To force the generation of an offspring individual from a given pair of parents, you could loop until 
+\f4\fs20  callback process results in rejection of the proposed child (see section 26.5), a new offspring individual is not be generated.  To force the generation of an offspring individual from a given pair of parents, you could loop until 
 \f3\fs18 addCrossed()
 \f4\fs20  succeeds, but note that if your 
 \f3\fs18 modifyChild()
 \f4\fs20  callback rejects all proposed children from those particular parents, your model will then hang, so care must be taken with this approach.  Usually, nonWF models do not force generation of offspring in this manner; rejection of a proposed offspring by a 
 \f3\fs18 modifyChild()
 \f4\fs20  callback typically represents a phenomenon such as post-mating reproductive isolation or lethal genetic incompatibilities that would reduce the expected litter size, so the default behavior is typically desirable.\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+Beginning in SLiM 4.1, the 
+\f3\fs18 count
+\f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback.  If all offspring are rejected, 
+\f3\fs18 object<Individual>(0)
+\f4\fs20  is returned, which is a zero-length 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
+\f3\fs18 NULL
+\f4\fs20 .\
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7273,19 +7294,18 @@ If the
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
 \f3\fs18 addCrossed()
 \f4\fs20  must be called only from 
-\f3\fs18 reproduce()
+\f3\fs18 reproduction()
 \f4\fs20  callbacks, and may not be called at any other time.  In WF models, offspring generation is managed automatically by the SLiM core.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0genome1Null\'a0=\'a0NULL], [Nl$\'a0genome2Null\'a0=\'a0NULL])\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(object<Individual>)addEmpty([Nfs$\'a0sex\'a0=\'a0NULL], [Nl$\'a0genome1Null\'a0=\'a0NULL], [Nl$\'a0genome2Null\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  No 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual with empty genomes (i.e., containing no mutations), queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  No 
 \f3\fs18 recombination()
 \f4\fs20  or 
 \f3\fs18 mutation()
@@ -7298,8 +7318,7 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f4\fs20  parameter is treated as in 
 \f3\fs18 addCrossed()
 \f4\fs20 .\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 By default \'96 when 
+By default \'96 when 
 \f3\fs18 genome1Null
 \f4\fs20  and 
 \f3\fs18 genome2Null
@@ -7328,14 +7347,26 @@ Note that this method is only for use in nonWF models, in which offspring genera
 \f4\fs20  can be used to make one or both genomes be null genomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
 \f1\i second
 \f4\i0  genome is usually a null genome in SLiM).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+Beginning in SLiM 4.1, the 
+\f3\fs18 count
+\f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback.  If all offspring are rejected, 
+\f3\fs18 object<Individual>(0)
+\f4\fs20  is returned, which is a zero-length 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
+\f3\fs18 NULL
+\f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [logical$\'a0defer\'a0=\'a0F])\
+\f3\fs18 \cf2 \expnd0\expndtw0\kerning0
+\'96\'a0(object<Individual>)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
@@ -7508,7 +7539,20 @@ Note that gene conversion tracts are not explicitly supported by this method; th
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
+\f3\fs18 count
+\f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
+\f3\fs18 modifyChild()
+\f4\fs20  callback.  If all offspring are rejected, 
+\f3\fs18 object<Individual>(0)
+\f4\fs20  is returned, which is a zero-length 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
+\f3\fs18 NULL
+\f4\fs20 .\
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7528,10 +7572,10 @@ Note that this method is only for use in nonWF models.  See
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(No<Individual>$)addSelfed(object<Individual>$\'a0parent, [logical$\'a0defer\'a0=\'a0F])\
+\f3\fs18 \cf2 \'96\'a0(object<Individual>)addSelfed(object<Individual>$\'a0parent, [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Generates a new offspring individual from the given parent by selfing, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
+\f4\fs20 \cf2 \kerning1\expnd0\expndtw0 Generates a new offspring individual from the given parent by selfing, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The subpopulation of 
 \f3\fs18 parent
 \f4\fs20  will be used to locate applicable 
 \f3\fs18 mutation()
@@ -7549,22 +7593,19 @@ Since selfing requires that
 \f4\fs20  has no effect on this method (in contrast to the behavior of 
 \f3\fs18 addCrossed()
 \f4\fs20 , where selfing is assumed to be incidental).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, passing 
-\f3\fs18 T
-\f4\fs20  for 
-\f3\fs18 defer
-\f4\fs20  will defer the generation of the genomes of the produced offspring until the end of the reproduction phase.  Genome generation can only be deferred if there are no active 
-\f3\fs18 mutation()
-\f4\fs20  or 
-\f3\fs18 recombination()
-\f4\fs20  callbacks; otherwise, an error will result.  Furthermore, when genome generation is deferred the mutations of the genomes of the generated offspring may not be accessed until reproduction is complete (whether from a 
+Beginning in SLiM 4.1, the 
+\f3\fs18 count
+\f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
-\f4\fs20  callback or otherwise).  There is little or no advantage to deferring genome generation when running single-threaded; in that case, the default of 
-\f3\fs18 F
-\f4\fs20  for 
-\f3\fs18 defer
-\f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+\f4\fs20  callback.  If all offspring are rejected, 
+\f3\fs18 object<Individual>(0)
+\f4\fs20  is returned, which is a zero-length 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
+\f3\fs18 NULL
+\f4\fs20 .\
 Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
@@ -7580,14 +7621,12 @@ Beginning in SLiM 4.1, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
+\f3\fs18 \cf0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 The fitness values calculated for the individuals at the indices given are returned.  If 
