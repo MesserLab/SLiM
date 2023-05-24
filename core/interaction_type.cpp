@@ -2634,6 +2634,56 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 	sv->Finished();
 }
 
+void InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+{
+	// This is a special version of FillSparseVectorForReceiverDistances() used for finding nearest neighbors.
+	// It replaces the FindNeighborsN_X() functions, which are not thread-safe, and it is more efficient too.
+	// Unlike FillSparseVectorForReceiverDistances(), it allows receiver to be nullptr, to accommodate
+	// nearestNeighborsOfPoint().
+#if DEBUG
+	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
+	if (receiver)
+		CheckSpeciesCompatibility(receiver->subpopulation_->species_);
+	CheckSpeciesCompatibility(exerter_subpop->species_);
+	
+	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
+	if (!exerter_subpop_data.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	
+	// Non-spatial interactions do not have a concept of distance, so this is an error
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) request for distances from a non-spatial interaction." << EidosTerminate();
+	
+	// For spatial models, the caller should guarantee that the k-d tree is already present
+	if (!exerter_subpop_data.kd_nodes_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
+	
+	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
+	if (receiver)
+		CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
+	
+	// The caller should be handing us a sparse vector set up for distance data
+	if (sv->DataType() != SparseVectorDataType::kDistances)
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the sparse vector is not configured for distances." << EidosTerminate();
+	
+	// The caller should guarantee that the receiver is not a new juvenile, because they need to have a saved position
+	if (receiver)
+		if (receiver->index_ < 0)
+			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the receiver is a new juvenile." << EidosTerminate();
+#endif
+	
+	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
+	slim_popsize_t excluded_index = (receiver && (exerter_subpop == receiver->subpopulation_)) ? receiver->index_ : -1;
+	
+	// We always use BuildSV_Distances_X() since we want all neighbors, not just interacting neighbors
+	if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
+	else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
+	else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
+	
+	// After building the sparse vector above, we mark it finished
+	sv->Finished();
+}
+
 void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
 {
 #if DEBUG
@@ -3175,242 +3225,8 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	}
 }
 
-// globals to decrease parameter-passing
-slim_popsize_t gKDTree_found_count;
-double gKDTree_worstbest;
-int gKDTree_worstbest_index;
-
-// find N neighbors in 1D
-void InteractionType::FindNeighborsN_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist)
-{
-	if (!root) return;
-	
-	double d = dist_sq1(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[0] - nd[0];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if (root->individual_index_ != p_focal_individual_index)
-	{
-		if (gKDTree_found_count == p_count)
-		{
-			// We have a full roster of candidates, so now the question is, is this one better than the worst one?
-			if (d < gKDTree_worstbest)
-			{
-				// Replace the worst of the best
-				best_dist[gKDTree_worstbest_index] = d;
-				best[gKDTree_worstbest_index] = root;
-				
-				// Scan to find the new worst of the best
-				gKDTree_worstbest = -1;
-				
-				for (int best_index = 0; best_index < p_count; ++best_index)
-				{
-					if (best_dist[best_index] > gKDTree_worstbest)
-					{
-						gKDTree_worstbest = best_dist[best_index];
-						gKDTree_worstbest_index = best_index;
-					}
-				}
-			}
-		}
-		else
-		{
-			// We do not yet have a full roster of candidates, so if this one is qualified, it is in
-			if (d <= max_distance_sq_)
-			{
-				// Replace the first empty entry
-				best_dist[gKDTree_found_count] = d;
-				best[gKDTree_found_count] = root;
-				
-				// Update the worst of the best as needed
-				if (d > gKDTree_worstbest)
-				{
-					gKDTree_worstbest = d;
-					gKDTree_worstbest_index = gKDTree_found_count;
-				}
-				
-				// Move to the next slot
-				gKDTree_found_count++;
-			}
-		}
-	}
-	
-	// Continue the search
-	FindNeighborsN_1(dx > 0 ? root->left : root->right, nd, p_focal_individual_index, p_count, best, best_dist);
-	
-	if (gKDTree_found_count == p_count)
-	{
-		// If we now have a full roster, we are looking for better than our current worst of the best
-		if (dx2 >= gKDTree_worstbest) return;
-	}
-	else
-	{
-		// If we do not have a full roster, we are looking for better than the max distance
-		if (dx2 > max_distance_sq_) return;
-	}
-	
-	FindNeighborsN_1(dx > 0 ? root->right : root->left, nd, p_focal_individual_index, p_count, best, best_dist);
-}
-
-// find N neighbors in 2D
-void InteractionType::FindNeighborsN_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase)
-{
-	if (!root) return;
-	
-	double d = dist_sq2(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if (root->individual_index_ != p_focal_individual_index)
-	{
-		if (gKDTree_found_count == p_count)
-		{
-			// We have a full roster of candidates, so now the question is, is this one better than the worst one?
-			if (d < gKDTree_worstbest)
-			{
-				// Replace the worst of the best
-				best_dist[gKDTree_worstbest_index] = d;
-				best[gKDTree_worstbest_index] = root;
-				
-				// Scan to find the new worst of the best
-				gKDTree_worstbest = -1;
-				
-				for (int best_index = 0; best_index < p_count; ++best_index)
-				{
-					if (best_dist[best_index] > gKDTree_worstbest)
-					{
-						gKDTree_worstbest = best_dist[best_index];
-						gKDTree_worstbest_index = best_index;
-					}
-				}
-			}
-		}
-		else
-		{
-			// We do not yet have a full roster of candidates, so if this one is qualified, it is in
-			if (d <= max_distance_sq_)
-			{
-				// Replace the first empty entry
-				best_dist[gKDTree_found_count] = d;
-				best[gKDTree_found_count] = root;
-				
-				// Update the worst of the best as needed
-				if (d > gKDTree_worstbest)
-				{
-					gKDTree_worstbest = d;
-					gKDTree_worstbest_index = gKDTree_found_count;
-				}
-				
-				// Move to the next slot
-				gKDTree_found_count++;
-			}
-		}
-	}
-	
-	// Continue the search
-	if (++p_phase >= 2) p_phase = 0;
-	
-	FindNeighborsN_2(dx > 0 ? root->left : root->right, nd, p_focal_individual_index, p_count, best, best_dist, p_phase);
-	
-	if (gKDTree_found_count == p_count)
-	{
-		// If we now have a full roster, we are looking for better than our current worst of the best
-		if (dx2 >= gKDTree_worstbest) return;
-	}
-	else
-	{
-		// If we do not have a full roster, we are looking for better than the max distance
-		if (dx2 > max_distance_sq_) return;
-	}
-	
-	FindNeighborsN_2(dx > 0 ? root->right : root->left, nd, p_focal_individual_index, p_count, best, best_dist, p_phase);
-}
-
-// find N neighbors in 3D
-void InteractionType::FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase)
-{
-	if (!root) return;
-	
-	double d = dist_sq3(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if (root->individual_index_ != p_focal_individual_index)
-	{
-		if (gKDTree_found_count == p_count)
-		{
-			// We have a full roster of candidates, so now the question is, is this one better than the worst one?
-			if (d < gKDTree_worstbest)
-			{
-				// Replace the worst of the best
-				best_dist[gKDTree_worstbest_index] = d;
-				best[gKDTree_worstbest_index] = root;
-				
-				// Scan to find the new worst of the best
-				gKDTree_worstbest = -1;
-				
-				for (int best_index = 0; best_index < p_count; ++best_index)
-				{
-					if (best_dist[best_index] > gKDTree_worstbest)
-					{
-						gKDTree_worstbest = best_dist[best_index];
-						gKDTree_worstbest_index = best_index;
-					}
-				}
-			}
-		}
-		else
-		{
-			// We do not yet have a full roster of candidates, so if this one is qualified, it is in
-			if (d <= max_distance_sq_)
-			{
-				// Replace the first empty entry
-				best_dist[gKDTree_found_count] = d;
-				best[gKDTree_found_count] = root;
-				
-				// Update the worst of the best as needed
-				if (d > gKDTree_worstbest)
-				{
-					gKDTree_worstbest = d;
-					gKDTree_worstbest_index = gKDTree_found_count;
-				}
-				
-				// Move to the next slot
-				gKDTree_found_count++;
-			}
-		}
-	}
-	
-	// Continue the search
-	if (++p_phase >= 3) p_phase = 0;
-	
-	FindNeighborsN_3(dx > 0 ? root->left : root->right, nd, p_focal_individual_index, p_count, best, best_dist, p_phase);
-	
-	if (gKDTree_found_count == p_count)
-	{
-		// If we now have a full roster, we are looking for better than our current worst of the best
-		if (dx2 >= gKDTree_worstbest) return;
-	}
-	else
-	{
-		// If we do not have a full roster, we are looking for better than the max distance
-		if (dx2 > max_distance_sq_) return;
-	}
-	
-	FindNeighborsN_3(dx > 0 ? root->right : root->left, nd, p_focal_individual_index, p_count, best, best_dist, p_phase);
-}
+// BCH 5/24/2023: Here used to reside FindNeighborsN_1(), FindNeighborsN_2(), and FindNeighborsN_3().
+// They were not thread-safe, and were replaced by FillSparseVectorForReceiverDistances_ALL_NEIGHBORS().
 
 void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual)
 {
@@ -3471,39 +3287,40 @@ void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p
 		}
 		else
 		{
-			// Finding multiple neighbors is the slower general case; we provide it with scratch space
-			SLiM_kdNode **best;
-			double *best_dist;
+			// Finding multiple neighbors is the slower general case; we use SparseVector to get all neighbors
+			// (we would have to look at all of them anyway), and then sort them and return the top N
+			// BCH 5/24/2023: This replaces the old algorithm using FindNeighborsN_X(), which was not thread-safe
+			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(p_subpop, SparseVectorDataType::kDistances);
+			FillSparseVectorForReceiverDistances_ALL_NEIGHBORS(sv, p_excluded_individual, p_point, p_subpop, p_subpop_data);
+			uint32_t nnz;
+			const uint32_t *columns;
+			const sv_value_t *distances;
 			
-			best = (SLiM_kdNode **)calloc(p_count, sizeof(SLiM_kdNode *));
-			best_dist = (double *)malloc(p_count * sizeof(double));
-			gKDTree_found_count = 0;
-			gKDTree_worstbest = -1;
+			distances = sv->Distances(&nnz, &columns);
 			
-			if (!best || !best_dist)
-				EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
 			
-			switch (spatiality_)
+			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+				neighbors.emplace_back(col_index, distances[col_index]);
+			
+			std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
+				return l.second < r.second;
+			});
+			
+			std::vector<Individual *> &exerters = p_subpop->parent_individuals_;
+			
+			// the client requested p_count items, but we may have fewer
+			if (p_count > (int)nnz)
+				p_count = (int)nnz;
+			
+			for (int neighbor_index = 0; neighbor_index < p_count; ++neighbor_index)
 			{
-				case 1: FindNeighborsN_1(p_subpop_data.kd_root_, p_point, focal_individual_index, p_count, best, best_dist);		break;
-				case 2: FindNeighborsN_2(p_subpop_data.kd_root_, p_point, focal_individual_index, p_count, best, best_dist, 0);		break;
-				case 3: FindNeighborsN_3(p_subpop_data.kd_root_, p_point, focal_individual_index, p_count, best, best_dist, 0);		break;
+				Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
+				
+				p_result_vec.push_object_element_capcheck_NORR(exerter);
 			}
 			
-			for (int best_index = 0; best_index < p_count; ++best_index)
-			{
-				SLiM_kdNode *best_rec = best[best_index];
-				
-				if (!best_rec)
-					break;
-				
-				Individual *best_individual = p_subpop->parent_individuals_[best_rec->individual_index_];
-				
-				p_result_vec.push_object_element_capcheck_NORR(best_individual);
-			}
-			
-			free(best);
-			free(best_dist);
+			FreeSparseVector(sv);
 		}
 	}
 }
@@ -4401,6 +4218,10 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			SparseVector *sv = nullptr;
 			
+			// BCH 5/24/2023: if the exerter subpop is empty, no individuals are drawn; short-circuit
+			if (exerter_subpop->parent_subpop_size_ == 0)
+				return EidosValue_SP(result_vec);
+			
 			if (optimize_fixed_interaction_strengths)
 			{
 				// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
@@ -4501,7 +4322,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		// objectElement is now retained by result_SP, so we can release it
 		dictionary->Release();
 		
-		if (count > 0)
+		if ((count > 0) && (exerter_subpop_size > 0))	// BCH 5/24/2023: if the exerter subpop is empty, no individuals are drawn; short-circuit
 		{
 			bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 			

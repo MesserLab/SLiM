@@ -1078,14 +1078,21 @@ extern void _RunParallelSLiMTests()
 				if (test_string.find("initialize()") == std::string::npos)
 					continue;
 				
+				//std::chrono::steady_clock::time_point begin_ts = std::chrono::steady_clock::now();
+				
 				// Note that we ensure that we are using the maximum number of threads at start & end
-				gEidosNumThreads = gEidosMaxThreads;
-				omp_set_num_threads(gEidosMaxThreads);
+				{
+					gEidosNumThreads = gEidosMaxThreads;
+					omp_set_num_threads(gEidosMaxThreads);
+					
+					SLiMAssertScriptSuccess(test_string);
+					
+					gEidosNumThreads = gEidosMaxThreads;
+					omp_set_num_threads(gEidosMaxThreads);
+				}
 				
-				SLiMAssertScriptSuccess(test_string);
-				
-				gEidosNumThreads = gEidosMaxThreads;
-				omp_set_num_threads(gEidosMaxThreads);
+				//std::chrono::steady_clock::time_point end_ts = std::chrono::steady_clock::now();
+				//std::cout << "parallel test took " << std::chrono::duration<double>(end_ts - begin_ts).count() << " seconds:" << std::endl << test_string << std::endl << std::endl;
 			}
 		}
 	}

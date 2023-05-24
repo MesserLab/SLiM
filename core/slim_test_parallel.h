@@ -167,7 +167,7 @@ initialize() {
 // test InteractionType -drawByStrength()
 
 // This cannot be tested by comparison, since its results are stochastic.
-// It gets tested by other means instead, such as ny InteractionType test suite.
+// It gets tested by other means instead, such as my InteractionType test suite.
 
 // ***********************************************************************************************
 
@@ -254,9 +254,57 @@ initialize() {
 	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
 	i1.evaluate(p1);
 	
-	a = i1.nearestInteractingNeighbors(inds, returnDict=T);
+	a = i1.nearestInteractingNeighbors(inds, returnDict=T);		// count=1 special-case
 	parallelSetNumThreads(1);
 	b = i1.nearestInteractingNeighbors(inds, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestInteractingNeighbors() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestInteractingNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 100000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestInteractingNeighbors(inds, count=2, returnDict=T);	// avoid the count=1 and count=N special-cases
+	parallelSetNumThreads(1);
+	b = i1.nearestInteractingNeighbors(inds, count=2, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestInteractingNeighbors() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestInteractingNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestInteractingNeighbors(inds, count=1000, returnDict=T);	// count=N special-case
+	parallelSetNumThreads(1);
+	b = i1.nearestInteractingNeighbors(inds, count=1000, returnDict=T);
 	
 	if (!a.identicalContents(b))
 		stop("parallel InteractionType -nearestInteractingNeighbors() failed test");
@@ -278,9 +326,57 @@ initialize() {
 	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
 	i1.evaluate(p1);
 	
-	a = i1.nearestNeighbors(inds, returnDict=T);
+	a = i1.nearestNeighbors(inds, returnDict=T);		// count=1 special-case
 	parallelSetNumThreads(1);
 	b = i1.nearestNeighbors(inds, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestNeighbors() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 100000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestNeighbors(inds, count=2, returnDict=T);	// avoid the count=1 and count=N special-cases
+	parallelSetNumThreads(1);
+	b = i1.nearestNeighbors(inds, count=2, returnDict=T);
+	
+	if (!a.identicalContents(b))
+		stop("parallel InteractionType -nearestNeighbors() failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -nearestNeighbors()
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.nearestNeighbors(inds, count=1000, returnDict=T);	// count=N special-cases
+	parallelSetNumThreads(1);
+	b = i1.nearestNeighbors(inds, count=1000, returnDict=T);
 	
 	if (!a.identicalContents(b))
 		stop("parallel InteractionType -nearestNeighbors() failed test");
