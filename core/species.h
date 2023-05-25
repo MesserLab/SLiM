@@ -363,6 +363,10 @@ public:
 	// is unaffected by the fitness_scaling_ properties on Subpopulation and Individual, which are taken into account even when this flag is set.
 	bool pure_neutral_ = true;														// optimization flag
 	
+	// this flag tracks whether a type 's' mutation type has ever been seen; we just set it to true if we see one, we never set it back to false again, for simplicity
+	// this switches to a less optimized case when evolving in WF models, if a type 's' DFE could be present, since that can open up various cans of worms
+	bool type_s_dfes_present_ = false;												// optimization flag
+	
 	// this counter is incremented when a selection coefficient is changed on any mutation object in the simulation.  This is used as a signal to mutation runs that their
 	// cache of non-neutral mutations is invalid (because their counter is not equal to this counter).  The caches will be re-validated the next time they are used.  Other
 	// code can also increment this counter in order to trigger a re-validation of all non-neutral mutation caches; it is a general-purpose mechanism.

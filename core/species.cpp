@@ -2212,18 +2212,12 @@ void Species::WF_GenerateOffspring(void)
 	bool modify_child_callbacks_present = modify_child_callbacks.size();
 	bool recombination_callbacks_present = recombination_callbacks.size();
 	bool mutation_callbacks_present = mutation_callbacks.size();
-	bool type_s_dfes_present = false;
 	bool no_active_callbacks = true;
 	
 	// a type 's' DFE needs to count as an active callback; it could activate other callbacks,
 	// and in any case we need EvolveSubpopulation() to take the non-parallel code path
-	for (auto &muttype : MutationTypes())
-		if (muttype.second->dfe_type_ == DFEType::kScript)
-		{
-			type_s_dfes_present = true;
-			no_active_callbacks = false;
-			break;
-		}
+	if (type_s_dfes_present_)
+		no_active_callbacks = false;
 	
 	// if there are no active callbacks of any type, we can pretend there are no callbacks at all
 	// if there is a callback of any type, however, then inactive callbacks could become active
@@ -2328,7 +2322,7 @@ void Species::WF_GenerateOffspring(void)
 		MUTRUNEXP_START_TIMING(x_clock0);
 		
 		for (std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : population_.subpops_)
-			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present);
+			population_.EvolveSubpopulation(*subpop_pair.second, mate_choice_callbacks_present, modify_child_callbacks_present, recombination_callbacks_present, mutation_callbacks_present, type_s_dfes_present_);
 		
 		MUTRUNEXP_END_TIMING(x_clock0);
 	}

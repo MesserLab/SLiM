@@ -411,6 +411,10 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 	mutation_types_.emplace(map_identifier, new_mutation_type);
 	community_.mutation_types_changed_ = true;
 	
+	// keep track of whether we have ever seen a type 's' (scripted) DFE; if so, we switch to a slower case when evolving
+	if (dfe_type == DFEType::kScript)
+		type_s_dfes_present_ = true;
+	
 	// define a new Eidos variable to refer to the new mutation type
 	EidosSymbolTableEntry &symbol_entry = new_mutation_type->SymbolTableEntry();
 	

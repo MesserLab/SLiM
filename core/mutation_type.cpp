@@ -746,6 +746,10 @@ EidosValue_SP MutationType::ExecuteMethod_setDistribution(EidosGlobalStringID p_
 	
 	MutationType::ParseDFEParameters(dfe_type_string, p_arguments.data() + 1, (int)p_arguments.size() - 1, &dfe_type, &dfe_parameters, &dfe_strings);
 	
+	// keep track of whether we have ever seen a type 's' (scripted) DFE; if so, we switch to a slower case when evolving
+	if (dfe_type == DFEType::kScript)
+		species_.type_s_dfes_present_ = true;
+	
 	// Everything seems to be in order, so replace our distribution info with the new info
 	dfe_type_ = dfe_type;
 	dfe_parameters_ = dfe_parameters;
