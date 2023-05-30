@@ -77,6 +77,7 @@ PARALLEL changes (now in the master branch):
 		this is achieved by passing defer=T to addCrossed(), addCloned(), addSelfed(), or addRecombinant()
 	thread-safety work - break in backward reproducibility for scripts that use a type 's' DFE, because the code path for that shifted
 	algorithm change for nearestNeighbors() and nearestNeighborsOfPoint(), when count is >1 and <N; the old algorithm was not thread-safe, and was inefficient; breaks backward reproducibility for the relevant case
+		the break in backward reproducibility is because the old algorithm returned the neighbors in a scrambled order, whereas the new algorithm returns them in sorted order; the order is not documented, so both are compliant
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

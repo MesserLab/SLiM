@@ -94,7 +94,7 @@ public:
 							  std::vector<slim_position_t> &p_break_vec,
 							  Genome *p_child_genome,
 							  IndividualSex p_sex) :
-		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), strand1_(p_strand1), strand2_(p_strand2), child_genome_(p_child_genome), sex_(p_sex)
+		type_(p_type), mutorigin_subpop_(p_mutorigin_subpop), child_genome_(p_child_genome), strand1_(p_strand1), strand2_(p_strand2), sex_(p_sex)
 	{
 		std::swap(break_vec_, p_break_vec);		// take ownership of the passed vector with std::swap(), to avoid copying
 	};
