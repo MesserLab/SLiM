@@ -140,23 +140,23 @@
         <file>recipes/Recipe 16.20 - Logistic population growth with the Beverton-Holt model.txt</file>
         <file>recipes/Recipe 17.1 - A minimal tree-seq model.txt</file>
         <file>recipes/Recipe 17.2 - Overlaying neutral mutations.py</file>
-        <file>recipes/Recipe 17.3 - Optimizing tree-sequence simplification.txt</file>
-        <file>recipes/Recipe 17.4 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
-        <file>recipes/Recipe 17.4 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
-        <file>recipes/Recipe 17.5 - Detecting the dip in diversity (analyzing tree heights in Python) I.txt</file>
-        <file>recipes/Recipe 17.5 - Detecting the dip in diversity (analyzing tree heights in Python) II.py</file>
-        <file>recipes/Recipe 17.6 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
-        <file>recipes/Recipe 17.6 - Mapping admixture (analyzing ancestry in Python) II.py</file>
-        <file>recipes/Recipe 17.7 - Measuring the coalescence time of a model.txt</file>
-        <file>recipes/Recipe 17.8 - Analyzing selection coefficients in Python with tskit I.txt</file>
-        <file>recipes/Recipe 17.8 - Analyzing selection coefficients in Python with tskit II.py</file>
-        <file>recipes/Recipe 17.9 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
-        <file>recipes/Recipe 17.9 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
-        <file>recipes/Recipe 17.9 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
-        <file>recipes/Recipe 17.10 - Starting a sexual nonWF model with a coalescent history I.py</file>
-        <file>recipes/Recipe 17.10 - Starting a sexual nonWF model with a coalescent history II.txt</file>
-        <file>recipes/Recipe 17.11 - Adding a neutral burn-in after simulation with recapitation I.txt</file>
-        <file>recipes/Recipe 17.11 - Adding a neutral burn-in after simulation with recapitation II.py</file>
+        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry I.txt</file>
+        <file>recipes/Recipe 17.3 - Simulation conditional upon fixation of a sweep, preserving ancestry II.txt</file>
+        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) I.txt</file>
+        <file>recipes/Recipe 17.4 - Detecting the dip in diversity (analyzing tree heights in Python) II.py</file>
+        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) I.txt</file>
+        <file>recipes/Recipe 17.5 - Mapping admixture (analyzing ancestry in Python) II.py</file>
+        <file>recipes/Recipe 17.6 - Measuring the coalescence time of a model.txt</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit I.txt</file>
+        <file>recipes/Recipe 17.7 - Analyzing selection coefficients in Python with tskit II.py</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 17.8 - Starting a hermaphroditic WF model with a coalescent history III.py</file>
+        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history I.py</file>
+        <file>recipes/Recipe 17.9 - Starting a sexual nonWF model with a coalescent history II.txt</file>
+        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation I.txt</file>
+        <file>recipes/Recipe 17.10 - Adding a neutral burn-in after simulation with recapitation II.py</file>
+        <file>recipes/Recipe 17.11 - Optimizing tree-sequence simplification.txt</file>
         <file>recipes/Recipe 18.1 - A simple neutral nucleotide-based model.txt</file>
         <file>recipes/Recipe 18.2 - Reading an ancestral nucleotide sequence from a FASTA file.txt</file>
         <file>recipes/Recipe 18.3 - Sequence output from nucleotide-based models.txt</file>
