@@ -6305,7 +6305,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 	else
 	{
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
-		SLiM_ZeroRefcountBlock(mutation_registry_);
+		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 		
 #ifdef SLIMGUI
 		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
@@ -6484,7 +6484,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 	else
 	{
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
-		SLiM_ZeroRefcountBlock(mutation_registry_);
+		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 		
 		for (Subpopulation *subpop : *p_subpops_to_tally)
 		{
@@ -6553,7 +6553,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Gen
 	else
 	{
 		// SLOW PATH: Increment the refcounts through all pointers to Mutation in all genomes
-		SLiM_ZeroRefcountBlock(mutation_registry_);
+		SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 		
 		for (slim_popsize_t i = 0; i < genome_count; i++)
 		{
@@ -6592,7 +6592,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Gen
 void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 {
 	// first zero out the refcounts in all registered Mutation objects
-	SLiM_ZeroRefcountBlock(mutation_registry_);
+	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 	
 	// each thread does its own tallying, for its own MutationRunContext
 #pragma omp parallel default(none) shared(gSLiM_Mutation_Refcounts) num_threads(species_.SpeciesMutationRunContextCount())

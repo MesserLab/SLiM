@@ -113,6 +113,8 @@ development head (in the master branch):
 		this entails a policy change: if no children are generated (due to rejection by modifyChild(), in particular), object<Individual>(0) is returned, not NULL
 	add a method -(integer)compactIndices(void) to Dictionary, to compact result dictionaries down to their non-empty values with sequential keys
 	add a new recipe, 17.11, on changing the tree-sequence simplification interval
+	fix a bug with the Species methods mutationCounts() / mutationFrequences(), only for multispecies models; counts/frequencies would be zero for some species
+		this did not occur when running under SLiMgui (different code path), but always happened at the command line
 	
 
 version 4.0.1 (Eidos version 3.0.1):

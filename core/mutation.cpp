@@ -150,26 +150,35 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 #endif
 }
 
-void SLiM_ZeroRefcountBlock(__attribute__((unused)) MutationRun &p_mutation_registry)
+void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only)
 {
 	THREAD_SAFETY_IN_ANY_PARALLEL("SLiM_ZeroRefcountBlock(): gSLiM_Mutation_Block change");
 	
 #ifdef SLIMGUI
-	// This version zeros out refcounts just for the mutations currently in use in the registry.
-	// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
 	// BCH 11/25/2017: This code path needs to be used in SLiMgui to avoid modifying the refcounts
 	// for mutations in other simulations sharing the mutation block.
-	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-	const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
-	const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
-	
-	while (registry_iter != registry_iter_end)
-		*(refcount_block_ptr + (*registry_iter++)) = 0;
-#else
-	// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.
-	// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
-	EIDOS_BZERO(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
+	p_registry_only = true;
 #endif
+	
+	if (p_registry_only)
+	{
+		// This code path zeros out refcounts just for the mutations currently in use in the registry.
+		// It is thus minimal, but probably quite a bit slower than just zeroing out the whole thing.
+		// BCH 6/8/2023: This is necessary in SLiMgui, as noted above, but also in multispecies sims
+		// so that one species does not step on the toes of another species.
+		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+		const MutationIndex *registry_iter = p_mutation_registry.begin_pointer_const();
+		const MutationIndex *registry_iter_end = p_mutation_registry.end_pointer_const();
+		
+		while (registry_iter != registry_iter_end)
+			*(refcount_block_ptr + (*registry_iter++)) = 0;
+	}
+	else
+	{
+		// Zero out the whole thing with EIDOS_BZERO(), without worrying about which bits are in use.
+		// This hits more memory, but avoids having to read the registry, and should write whole cache lines.
+		EIDOS_BZERO(gSLiM_Mutation_Refcounts, (gSLiM_Mutation_Block_LastUsedIndex + 1) * sizeof(slim_refcount_t));
+	}
 }
 
 size_t SLiMMemoryUsageForMutationBlock(void)

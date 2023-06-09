@@ -212,7 +212,7 @@ extern slim_refcount_t *gSLiM_Mutation_Refcounts;	// an auxiliary buffer, parall
 													// note that I tried keeping the fitness cache values and positions in separate buffers too, not a win
 void SLiM_CreateMutationBlock(void);
 void SLiM_IncreaseMutationBlockCapacity(void);
-void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry);
+void SLiM_ZeroRefcountBlock(MutationRun &p_mutation_registry, bool p_registry_only);
 size_t SLiMMemoryUsageForMutationBlock(void);
 size_t SLiMMemoryUsageForFreeMutations(void);
 size_t SLiMMemoryUsageForMutationRefcounts(void);
