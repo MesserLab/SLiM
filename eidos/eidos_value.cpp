@@ -77,6 +77,7 @@ EidosValue_String_SP gStaticEidosValue_StringPeriod;
 EidosValue_String_SP gStaticEidosValue_StringDoubleQuote;
 EidosValue_String_SP gStaticEidosValue_String_ECMAScript;
 EidosValue_String_SP gStaticEidosValue_String_indices;
+EidosValue_String_SP gStaticEidosValue_String_average;
 
 EidosClass *gEidosObject_Class = nullptr;
 

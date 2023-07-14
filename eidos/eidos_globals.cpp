@@ -388,6 +388,7 @@ void Eidos_WarmUp(void)
 		gStaticEidosValue_StringDoubleQuote = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("\""));
 		gStaticEidosValue_String_ECMAScript = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("ECMAScript"));
 		gStaticEidosValue_String_indices = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("indices"));
+		gStaticEidosValue_String_average = EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("average"));
 		
 		// Create the global class objects for all Eidos classes, from superclass to subclass
 		// This breaks encapsulation, kind of, but it needs to be done here, in order, so that superclass objects exist,

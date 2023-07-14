@@ -90,6 +90,7 @@ extern EidosValue_String_SP gStaticEidosValue_StringPeriod;
 extern EidosValue_String_SP gStaticEidosValue_StringDoubleQuote;
 extern EidosValue_String_SP gStaticEidosValue_String_ECMAScript;
 extern EidosValue_String_SP gStaticEidosValue_String_indices;
+extern EidosValue_String_SP gStaticEidosValue_String_average;
 
 
 #pragma mark -

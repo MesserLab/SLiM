@@ -1,4 +1,4 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2513
+{\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\froman\fcharset0 TimesNewRomanPSMT;
 \f3\fswiss\fcharset0 Optima-Regular;\f4\fswiss\fcharset0 Optima-BoldItalic;\f5\fnil\fcharset0 Menlo-Italic;
 \f6\fnil\fcharset0 AppleSymbols;\f7\fswiss\fcharset0 Optima-Italic;\f8\froman\fcharset0 TimesNewRomanPS-ItalicMT;
@@ -1134,6 +1134,105 @@ The quantile function linearly interpolates between the points of the empirical 
 \f1\fs18 range(x,\'a0y)
 \f3\fs20  does not.
 \f2 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (numeric)rank(numeric\'a0x, [string$\'a0tiesMethod\'a0=\'a0"average"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Returns the 
+\f0\b ranks
+\f3\b0  of the elements of 
+\f1\fs18 x
+\f3\fs20 : a vector of length 
+\f1\fs18 L
+\f3\fs20  (the length of 
+\f1\fs18 x
+\f3\fs20 ), composed of the relative ranks, from 
+\f1\fs18 1
+\f3\fs20  to 
+\f1\fs18 L
+\f3\fs20 , of each corresponding element of 
+\f1\fs18 x
+\f3\fs20 .  The 
+\f1\fs18 tiesMethod
+\f3\fs20  parameter may be any of 
+\f1\fs18 "average"
+\f3\fs20  (the default), 
+\f1\fs18 "first"
+\f3\fs20 , 
+\f1\fs18 "last"
+\f3\fs20 , 
+\f1\fs18 "max"
+\f3\fs20 , or 
+\f1\fs18 "min"
+\f3\fs20  (
+\f1\fs18 "random"
+\f3\fs20 , supported by R, is not supported by Eidos at this time but could be added if needed).  For 
+\f1\fs18 "average"
+\f3\fs20 , the return value is of type 
+\f1\fs18 float
+\f3\fs20 ; for all others, it is of type 
+\f1\fs18 integer
+\f3\fs20 .  (Note that the return type does 
+\f7\i not
+\f3\i0  depend upon the type of 
+\f1\fs18 x
+\f3\fs20 .)\
+The result for all of these 
+\f1\fs18 tiesMethod
+\f3\fs20  values is identical (except for type) if the elements of 
+\f1\fs18 x
+\f3\fs20  are unique; the difference between these methods is in how ties are resolved.  Suppose that 
+\f7\i n
+\f3\i0  elements of 
+\f1\fs18 x
+\f3\fs20  are tied (because they are equal), corresponding to ranks 
+\f7\i k
+\f3\i0  through 
+\f7\i k
+\f3\i0 +
+\f7\i n\uc0\u8722 
+\f3\i0 1.  For 
+\f1\fs18 tiesMethod
+\f3\fs20  
+\f1\fs18 "average"
+\f3\fs20 , all 
+\f7\i n
+\f3\i0  tied elements receive the same rank, (
+\f7\i k
+\f3\i0  + (
+\f7\i n\uc0\u8722 
+\f3\i0 1)/2), which is the average of the ranks.  For 
+\f1\fs18 "first"
+\f3\fs20 , the first tied element receives rank 
+\f7\i k
+\f3\i0 , upward to the last tied element receiving rank 
+\f7\i k
+\f3\i0 +
+\f7\i n\uc0\u8722 
+\f3\i0 1.  For 
+\f1\fs18 "last"
+\f3\fs20 , the last tied element receives rank 
+\f7\i k
+\f3\i0 , downward to the first tied element receiving rank 
+\f7\i k
+\f3\i0 +
+\f7\i n\uc0\u8722 
+\f3\i0 1.  For 
+\f1\fs18 "max"
+\f3\fs20 , all 
+\f7\i n
+\f3\i0  tied element receive the maximum rank, 
+\f7\i k
+\f3\i0 +
+\f7\i n\uc0\u8722 
+\f3\i0 1.  For 
+\f1\fs18 "min"
+\f3\fs20 , all 
+\f7\i n
+\f3\i0  tied element receive the minimum rank, 
+\f7\i k
+\f3\i0 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf0 (float$)sd(numeric
@@ -4914,7 +5013,6 @@ See
 \f3\fs20  will be returned; if not, 
 \f1\fs18 F
 \f3\fs20  will be returned (but at present, an error will result instead).\cf0 \
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 If 
 \f1\fs18 compress
 \f3\fs20  is 
@@ -5791,9 +5889,8 @@ Named
 \f1\fs18 c()
 \f3\fs20  function (including the possibility of type promotion).\
 Since this function can be hard to understand at first, here is an example:\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f1\fs18 \cf2 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
+\f1\fs18 sapply(1:10, "if (applyValue % 2) applyValue ^ 2; else NULL;");\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f3\fs20 \cf2 \kerning1\expnd0\expndtw0 This produces the output 

@@ -160,6 +160,7 @@ EidosValue_SP Eidos_ExecuteFunction_order(const std::vector<EidosValue_SP> &p_ar
 EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_paste0(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_print(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_rev(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_size_length(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_sort(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

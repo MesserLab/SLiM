@@ -193,6 +193,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste",				Eidos_ExecuteFunction_paste,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddEllipsis()->AddString_OS("sep", gStaticEidosValue_StringSpace));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("paste0",			Eidos_ExecuteFunction_paste0,		kEidosValueMaskString | kEidosValueMaskSingleton))->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("print",				Eidos_ExecuteFunction_print,		kEidosValueMaskVOID))->AddAny("x")->AddLogical_OS("error", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rank",				Eidos_ExecuteFunction_rank,			kEidosValueMaskNumeric))->AddNumeric("x")->AddString_OS("tiesMethod", gStaticEidosValue_String_average));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rev",				Eidos_ExecuteFunction_rev,			kEidosValueMaskAny))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_size,		Eidos_ExecuteFunction_size_length,	kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_length,	Eidos_ExecuteFunction_size_length,	kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));

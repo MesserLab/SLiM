@@ -2225,6 +2225,248 @@ EidosValue_SP Eidos_ExecuteFunction_print(const std::vector<EidosValue_SP> &p_ar
 	return gStaticEidosValueVOID;
 }
 
+//	(integer)rank(numeric x, [string$ tiesMethod = "average"])
+EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
+{
+	// Note that this function ignores matrix/array attributes, and always returns a vector, by design
+	
+	EidosValue_SP result_SP(nullptr);
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *tiesMethod_value = p_arguments[1].get();
+	int x_count = x_value->Count();
+	
+	// figure out how we will resolve ties
+	typedef enum {
+		kTiesAverage,		// produces a result of type float, unlike all the others
+		kTiesFirst,
+		kTiesLast,
+		kTiesRandom,		// not currently supported, but supported in R
+		kTiesMax,
+		kTiesMin
+	} TiesMethod;
+	
+	std::string tiesMethod_string = tiesMethod_value->StringAtIndex(0, nullptr);
+	TiesMethod tiesMethod;
+	
+	if (tiesMethod_string == "average")
+		tiesMethod = TiesMethod::kTiesAverage;
+	else if (tiesMethod_string == "first")
+		tiesMethod = TiesMethod::kTiesFirst;
+	else if (tiesMethod_string == "last")
+		tiesMethod = TiesMethod::kTiesLast;
+	else if (tiesMethod_string == "random")
+		tiesMethod = TiesMethod::kTiesRandom;
+	else if (tiesMethod_string == "max")
+		tiesMethod = TiesMethod::kTiesMax;
+	else if (tiesMethod_string == "min")
+		tiesMethod = TiesMethod::kTiesMin;
+	else
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rank): function rank() requires tiesMethod to be 'average', 'first', 'last', 'random', 'max', or 'min'." << EidosTerminate(nullptr);
+	
+	if (tiesMethod == TiesMethod::kTiesRandom)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rank): tiesMethod == 'random' is not currently supported." << EidosTerminate(nullptr);
+	
+	if (x_count == 0)
+	{
+		// This handles all the zero-length cases by returning float(0) or integer(0)
+		if (tiesMethod == TiesMethod::kTiesAverage)
+			result_SP = gStaticEidosValue_Float_ZeroVec;
+		else
+			result_SP = gStaticEidosValue_Integer_ZeroVec;
+	}
+	else if (x_count == 1)
+	{
+		// This handles all the singleton cases by returning 1.0 or 1
+		if (tiesMethod == TiesMethod::kTiesAverage)
+			result_SP = gStaticEidosValue_Float1;
+		else
+			result_SP = gStaticEidosValue_Integer1;
+	}
+	else
+	{
+		// Here we handle the vector cases, which can be done with direct access
+		EidosValue_Float_vector *float_result = nullptr;
+		EidosValue_Int_vector *int_result = nullptr;
+		EidosValueType x_type = x_value->Type();
+		
+		if (tiesMethod == TiesMethod::kTiesAverage)
+		{
+			float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(x_count);
+			result_SP = EidosValue_SP(float_result);
+		}
+		else
+		{
+			int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
+			result_SP = EidosValue_SP(int_result);
+		}
+		
+		// Handle integer and float; note that this is unrelated to the type of the result!
+		if (x_type == EidosValueType::kValueInt)
+		{
+			std::vector<std::pair<int64_t, size_t>> pairs;
+			
+			{
+				// construct our vector of pairs: std::pair<original x value, index in x>
+				const int64_t *int_data = x_value->IntVector()->data();
+				
+				for (int index = 0; index < x_count; ++index)
+					pairs.emplace_back(std::pair<int64_t, size_t>(int_data[index], index));
+				
+				// sort by the original x value; we use a stable sort if needed by the ties method
+				if ((tiesMethod == TiesMethod::kTiesFirst) || (tiesMethod == TiesMethod::kTiesLast))
+					std::stable_sort(pairs.begin(), pairs.end(), [](const std::pair<int64_t, size_t> &l, const std::pair<int64_t, size_t> &r) { return l.first < r.first; });
+				else
+					std::sort(pairs.begin(), pairs.end(), [](const std::pair<int64_t, size_t> &l, const std::pair<int64_t, size_t> &r) { return l.first < r.first; });
+			}
+			
+			// handle shared ranks one at a time, starting with rank 1
+			for (int run_start = 0; run_start < x_count; )
+			{
+				// look for runs of equal x values, which get handled as a block
+				int64_t run_value = pairs[run_start].first;
+				int run_end;
+				
+				for (run_end = run_start + 1; run_end < x_count; ++run_end)
+					if (pairs[run_end].first != run_value)
+						break;
+				run_end--;
+				
+				// the run ranges from run_start to run_end
+				switch (tiesMethod)
+				{
+					case TiesMethod::kTiesAverage:
+					{
+						double rank = (run_end + run_start) / 2.0;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							float_result->set_float_no_check((double)rank + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesFirst:
+					{
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)run_pos + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesLast:
+					{
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)(run_end - (run_pos - run_start)) + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesRandom:
+					{
+						// not currently supported, errors out above
+						break;
+					}
+					case TiesMethod::kTiesMax:
+					{
+						int64_t rank = run_end;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)rank + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesMin:
+					{
+						int64_t rank = run_start;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)rank + 1, pairs[run_pos].second);
+						break;
+					}
+				}
+				
+				// go to the next element to handle the next rank
+				run_start = run_end + 1;
+			}
+		}
+		else if (x_type == EidosValueType::kValueFloat)
+		{
+			std::vector<std::pair<double, size_t>> pairs;
+			
+			{
+				// construct our vector of pairs: std::pair<original x value, index in x>
+				const double *float_data = x_value->FloatVector()->data();
+				
+				for (int index = 0; index < x_count; ++index)
+					pairs.emplace_back(std::pair<double, size_t>(float_data[index], index));
+				
+				// sort by the original x value; we use a stable sort if needed by the ties method
+				if ((tiesMethod == TiesMethod::kTiesFirst) || (tiesMethod == TiesMethod::kTiesLast))
+					std::stable_sort(pairs.begin(), pairs.end(), [](const std::pair<double, size_t> &l, const std::pair<double, size_t> &r) { return l.first < r.first; });
+				else
+					std::sort(pairs.begin(), pairs.end(), [](const std::pair<double, size_t> &l, const std::pair<double, size_t> &r) { return l.first < r.first; });
+			}
+			
+			// handle shared ranks one at a time, starting with rank 1
+			for (int run_start = 0; run_start < x_count; )
+			{
+				// look for runs of equal x values, which get handled as a block
+				double run_value = pairs[run_start].first;
+				int run_end;
+				
+				for (run_end = run_start + 1; run_end < x_count; ++run_end)
+					if (pairs[run_end].first != run_value)
+						break;
+				run_end--;
+				
+				// the run ranges from run_start to run_end
+				switch (tiesMethod)
+				{
+					case TiesMethod::kTiesAverage:
+					{
+						double rank = (run_end + run_start) / 2.0;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							float_result->set_float_no_check((double)rank + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesFirst:
+					{
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)run_pos + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesLast:
+					{
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)(run_end - (run_pos - run_start)) + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesRandom:
+					{
+						// not currently supported, errors out above
+						break;
+					}
+					case TiesMethod::kTiesMax:
+					{
+						int64_t rank = run_end;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)rank + 1, pairs[run_pos].second);
+						break;
+					}
+					case TiesMethod::kTiesMin:
+					{
+						int64_t rank = run_start;
+						
+						for (int run_pos = run_start; run_pos <= run_end; ++run_pos)
+							int_result->set_int_no_check((int64_t)rank + 1, pairs[run_pos].second);
+						break;
+					}
+				}
+				
+				// go to the next element to handle the next rank
+				run_start = run_end + 1;
+			}
+		}
+	}
+	
+	return result_SP;
+}
+
 //	(*)rev(* x)
 EidosValue_SP Eidos_ExecuteFunction_rev(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter __attribute__((unused)) &p_interpreter)
 {
