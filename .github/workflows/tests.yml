@@ -41,8 +41,8 @@ jobs:
           # macOS, oldest supported version (macos-10.15 was removed by GitHub)
           - os: macos-11
             python: 3.8
-          # macOS, newest supported version (we skip macos-12 to save on build minutes)
-          - os: macos-13
+          # macOS, newest supported version (macos-13 does not work yet)
+          - os: macos-12
             python: 3.9
 
     steps:
@@ -175,8 +175,8 @@ jobs:
           # old macOS with oldest supported Qt.
           - os: macos-11
             qt: 5.9.5
-          # new macOS with most recent Qt (we skip macos-12 to save on build minutes).
-          - os: macos-13
+          # new macOS with most recent Qt (macos-13 does not work yet)
+          - os: macos-12
             qt: 5.15.2
 
     steps:
