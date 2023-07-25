@@ -1412,6 +1412,9 @@ QSlider::handle:horizontal:disabled {
     <addaction name="actionReformatScript"/>
     <addaction name="actionShowScriptHelp"/>
     <addaction name="separator"/>
+    <addaction name="actionBiggerFont"/>
+    <addaction name="actionSmallerFont"/>
+    <addaction name="separator"/>
     <addaction name="actionShowVariableBrowser"/>
     <addaction name="actionShowEidosConsole"/>
     <addaction name="actionShowDebuggingOutput"/>
@@ -1637,9 +1640,6 @@ QSlider::handle:horizontal:disabled {
   <action name="actionPrettyprintScript">
    <property name="text">
     <string>Prettyprint Script</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+Shift+=</string>
    </property>
   </action>
   <action name="actionShowScriptHelp">
@@ -1875,9 +1875,6 @@ QSlider::handle:horizontal:disabled {
    <property name="text">
     <string>Reformat Script</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+Shift+=</string>
-   </property>
   </action>
   <action name="actionShowDebuggingOutput">
    <property name="text">
@@ -2002,6 +1999,22 @@ QSlider::handle:horizontal:disabled {
    </property>
    <property name="shortcut">
     <string>Ctrl+2</string>
+   </property>
+  </action>
+  <action name="actionBiggerFont">
+   <property name="text">
+    <string>Bigger Font</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl++</string>
+   </property>
+  </action>
+  <action name="actionSmallerFont">
+   <property name="text">
+    <string>Smaller Font</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+-</string>
    </property>
   </action>
  </widget>

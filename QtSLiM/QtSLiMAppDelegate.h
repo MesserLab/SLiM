@@ -113,6 +113,9 @@ public slots:
     void dispatch_help(void);
     void dispatch_quit(void);
     
+    void dispatch_biggerFont(void);
+    void dispatch_smallerFont(void);
+    
     void dispatch_newWF(void);
     void dispatch_newWF_commentless(void);
     void dispatch_newNonWF(void);

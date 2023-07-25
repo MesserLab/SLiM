@@ -119,6 +119,8 @@ development head (in the master branch):
 	bug fix: #361, more than 2 billion mutations overflows without a good error message
 	bug fix: #365, problems loading a tree sequence; what I fixed is to catch the uncaught raise from std::stoll() in Species::DerivedStatesFromAscii()
 	bug fix in pyslim to announce: https://github.com/tskit-dev/pyslim/issues/307
+	feature request: #378, add font bigger (command +) and font smaller (command -) menu items and shortcuts, so the user doesn't have to open the prefs window; note that with command = the shift key is needed
+		this meant removal of the shortcuts for prettyprint script and reformat script, since they conflicted (well, prettyprint conflicted); probably nobody cares
 	
 
 version 4.0.1 (Eidos version 3.0.1):

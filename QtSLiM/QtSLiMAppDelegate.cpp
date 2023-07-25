@@ -900,13 +900,13 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
     }
     {
         QAction *actionPrettyprintScript = new QAction("Prettyprint Script", this);
-        actionPrettyprintScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Equal);
+        //actionPrettyprintScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::Key_Equal);       // this now goes to actionBiggerFont
         connect(actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
         window->addAction(actionPrettyprintScript);
     }
     {
-        QAction *actionReformatScript = new QAction("Reformat Script", this);
-        actionReformatScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::ALT + Qt::Key_Equal);
+        QAction *actionReformatScript = new QAction("Reformat Script", this);               // removed since the shortcut for actionPrettyprintScript was removed
+        //actionReformatScript->setShortcut(Qt::CTRL + Qt::SHIFT + Qt::ALT + Qt::Key_Equal);
         connect(actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);
         window->addAction(actionReformatScript);
     }
@@ -915,6 +915,18 @@ void QtSLiMAppDelegate::addActionsForGlobalMenuItems(QWidget *window)
         //actionShowScriptHelp->setShortcut(Qt::CTRL + Qt::Key_K);
         connect(actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
         window->addAction(actionShowScriptHelp);
+    }
+    {
+        QAction *actionBiggerFont = new QAction("Bigger Font", this);
+        actionBiggerFont->setShortcut(Qt::CTRL + Qt::Key_Plus);
+        connect(actionBiggerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_biggerFont);
+        window->addAction(actionBiggerFont);
+    }
+    {
+        QAction *actionSmallerFont = new QAction("Smaller Font", this);
+        actionSmallerFont->setShortcut(Qt::CTRL + Qt::Key_Minus);
+        connect(actionSmallerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_smallerFont);
+        window->addAction(actionSmallerFont);
     }
     {
         QAction *actionShowEidosConsole = new QAction("Show Eidos Console", this);
@@ -1221,6 +1233,20 @@ void QtSLiMAppDelegate::dispatch_help(void)
     helpWindow.show();
     helpWindow.raise();
     helpWindow.activateWindow();
+}
+
+void QtSLiMAppDelegate::dispatch_biggerFont(void)
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    
+    prefs.displayFontBigger();
+}
+
+void QtSLiMAppDelegate::dispatch_smallerFont(void)
+{
+    QtSLiMPreferencesNotifier &prefs = QtSLiMPreferencesNotifier::instance();
+    
+    prefs.displayFontSmaller();
 }
 
 void QtSLiMAppDelegate::dispatch_quit(void)

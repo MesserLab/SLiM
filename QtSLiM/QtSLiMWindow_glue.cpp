@@ -188,6 +188,8 @@ void QtSLiMWindow::glueUI(void)
     connect(ui->actionPrettyprintScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_prettyprintScript);
     connect(ui->actionReformatScript, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_reformatScript);
     connect(ui->actionShowScriptHelp, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_help);
+    connect(ui->actionBiggerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_biggerFont);
+    connect(ui->actionSmallerFont, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_smallerFont);
     connect(ui->actionShowEidosConsole, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showEidosConsole);
     connect(ui->actionShowVariableBrowser, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_showVariableBrowser);
     connect(ui->actionClearOutput, &QAction::triggered, qtSLiMAppDelegate, &QtSLiMAppDelegate::dispatch_clearOutput);

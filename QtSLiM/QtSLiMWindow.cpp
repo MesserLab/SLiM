@@ -2683,6 +2683,8 @@ void QtSLiMWindow::updateMenuEnablingACTIVE(QWidget *p_focusWidget)
     ui->actionPrettyprintScript->setEnabled(!continuousPlayOn_);
     ui->actionReformatScript->setEnabled(!continuousPlayOn_);
     ui->actionShowScriptHelp->setEnabled(true);
+    ui->actionBiggerFont->setEnabled(true);
+    ui->actionSmallerFont->setEnabled(true);
     ui->actionShowEidosConsole->setEnabled(true);
     ui->actionShowVariableBrowser->setEnabled(true);
     ui->actionShowDebuggingOutput->setEnabled(true);
@@ -2822,6 +2824,9 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
     ui->actionPaste->setEnabled(hasEnabledModifiableDestination);
     ui->actionDelete->setEnabled(hasEnabledModifiableDestination);
     ui->actionSelectAll->setEnabled(hasEnabledDestination);
+    
+    ui->actionBiggerFont->setEnabled(true);
+    ui->actionSmallerFont->setEnabled(true);
     
     // actions handled by QtSLiMScriptTextEdit only
     QtSLiMScriptTextEdit *scriptEdit = dynamic_cast<QtSLiMScriptTextEdit*>(p_focusWidget);

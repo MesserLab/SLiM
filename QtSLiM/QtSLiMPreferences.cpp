@@ -191,6 +191,53 @@ bool QtSLiMPreferencesNotifier::showSaveIfUntitledPref(void) const
     return settings.value(QtSLiMShowSaveInUntitled, QVariant(false)).toBool();
 }
 
+void QtSLiMPreferencesNotifier::displayFontBigger(void)
+{
+    QFont &defaultFont = defaultDisplayFont();
+    int defaultSize = defaultFont.pointSize();
+    
+    QSettings settings;
+    int fontSize = settings.value(QtSLiMDisplayFontSize, QVariant(defaultSize)).toInt();
+    
+    if (fontSize < 50)  // matches value in QtSLiMPreferences.ui
+    {
+        // if the prefs window exists, we need to tell it to adjust itself
+        // if not, we send ourselves the message it would have sent us
+        QtSLiMPreferences *prefsWindow = QtSLiMPreferences::instanceForcingAllocation(false);
+        
+        if (prefsWindow)
+            prefsWindow->ui->fontSizeSpinBox->setValue(fontSize + 1);
+        else
+            fontSizeChanged(fontSize + 1);            
+    }
+    else
+        qApp->beep();
+}
+
+void QtSLiMPreferencesNotifier::displayFontSmaller(void)
+{
+    QFont &defaultFont = defaultDisplayFont();
+    int defaultSize = defaultFont.pointSize();
+    
+    QSettings settings;
+    int fontSize = settings.value(QtSLiMDisplayFontSize, QVariant(defaultSize)).toInt();
+    
+    if (fontSize > 6)  // matches value in QtSLiMPreferences.ui
+    {
+        // if the prefs window exists, we need to tell it to adjust itself
+        // if not, we send ourselves the message it would have sent us
+        QtSLiMPreferences *prefsWindow = QtSLiMPreferences::instanceForcingAllocation(false);
+        
+        if (prefsWindow)
+            prefsWindow->ui->fontSizeSpinBox->setValue(fontSize - 1);
+        else
+            fontSizeChanged(fontSize - 1);            
+    }
+    else
+        qApp->beep();
+}
+
+
 // slots; these update the settings and then emit new signals
 
 void QtSLiMPreferencesNotifier::startupRadioChanged()
@@ -320,14 +367,19 @@ void QtSLiMPreferencesNotifier::resetSuppressedClicked()
 //  QtSLiMPreferences: the actual UI class
 //
 
-QtSLiMPreferences &QtSLiMPreferences::instance(void)
+QtSLiMPreferences *QtSLiMPreferences::instanceForcingAllocation(bool force_allocation)
 {
     static QtSLiMPreferences *inst = nullptr;
     
-    if (!inst)
+    if (!inst && force_allocation)
         inst = new QtSLiMPreferences(nullptr);
     
-    return *inst;
+    return inst;
+}
+
+QtSLiMPreferences &QtSLiMPreferences::instance(void)
+{
+    return *QtSLiMPreferences::instanceForcingAllocation(true);
 }
 
 QtSLiMPreferences::QtSLiMPreferences(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMPreferences)

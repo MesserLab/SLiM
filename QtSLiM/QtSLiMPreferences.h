@@ -45,6 +45,10 @@ public:
     bool autosaveOnRecyclePref(void) const;
     bool showSaveIfUntitledPref(void) const;
     
+    // Change preferences values in ways other than the Preferences panel itself
+    void displayFontBigger(void);
+    void displayFontSmaller(void);
+    
 signals:
     // Get notified when a pref value changes
     void appStartupPrefChanged(void);
@@ -92,6 +96,7 @@ class QtSLiMPreferences : public QDialog
     Q_OBJECT
     
 public:
+    static QtSLiMPreferences *instanceForcingAllocation(bool force_allocation);
     static QtSLiMPreferences &instance(void);
     
 private:
