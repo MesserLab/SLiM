@@ -116,6 +116,7 @@ development head (in the master branch):
 	fix a bug with the Species methods mutationCounts() / mutationFrequences(), only for multispecies models; counts/frequencies would be zero for some species
 		this did not occur when running under SLiMgui (different code path), but always happened at the command line
 	add rank() function to Eidos (https://github.com/MesserLab/SLiM/issues/379); identical to R except that logical and string are not supported, and "random" is not supported; can be added later as needed
+	bug fix: #361, more than 2 billion mutations overflows without a good error message
 	bug fix in pyslim to announce: https://github.com/tskit-dev/pyslim/issues/307
 	
 

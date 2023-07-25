@@ -106,12 +106,24 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 	std::uintptr_t old_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
 	MutationIndex old_block_capacity = gSLiM_Mutation_Block_Capacity;
 	
+	//std::cout << "old capacity: " << old_block_capacity << std::endl;
+	
+	// BCH 25 July 2023: check for increasing our block beyond the maximum size of 2^31 mutations.
+	// See https://github.com/MesserLab/SLiM/issues/361.  Note that the initial size should be
+	// a power of 2, so that we actually reach the maximum; see SLIM_MUTATION_BLOCK_INITIAL_SIZE.
+	// In other words, we expect to be at exactly 0x0000000040000000UL here, and thus to double
+	// to 0x0000000080000000UL, which is a capacity of 2^31, which is the limit of int32_t.
+	if ((size_t)old_block_capacity > 0x0000000040000000UL)	// >2^30 means >2^31 when doubled
+		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): too many mutations; there is a limit of 2^31 (2147483648) segregating mutations in SLiM." << EidosTerminate(nullptr);
+	
 	gSLiM_Mutation_Block_Capacity *= 2;
 	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
 	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
 	
 	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
 		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	//std::cout << "new capacity: " << gSLiM_Mutation_Block_Capacity << std::endl;
 	
 	std::uintptr_t new_mutation_block = reinterpret_cast<std::uintptr_t>(gSLiM_Mutation_Block);
 	
