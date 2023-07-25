@@ -4923,32 +4923,36 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 		
 		binary_derived_state_offset.emplace_back(0);
 		
-		for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
-		{
-			std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
-			
-			if (string_derived_state.size() == 0)
+		try {
+			for (size_t j = 0; j < p_tables->mutations.num_rows; j++)
 			{
-				// nothing to do for an empty derived state
-			}
-			else if (string_derived_state.find(",") == std::string::npos)
-			{
-				// a single mutation can be handled more efficiently, and this is the common case so it's worth optimizing
-				binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(string_derived_state));
-				derived_state_total_part_count++;
-			}
-			else
-			{
-				// stacked mutations require that the derived state be separated to parse it
-				std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
+				std::string string_derived_state(derived_state + derived_state_offset[j], derived_state_offset[j+1] - derived_state_offset[j]);
 				
-				for (std::string &derived_state_part : derived_state_parts)
-					binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
+				if (string_derived_state.size() == 0)
+				{
+					// nothing to do for an empty derived state
+				}
+				else if (string_derived_state.find(",") == std::string::npos)
+				{
+					// a single mutation can be handled more efficiently, and this is the common case so it's worth optimizing
+					binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(string_derived_state));
+					derived_state_total_part_count++;
+				}
+				else
+				{
+					// stacked mutations require that the derived state be separated to parse it
+					std::vector<std::string> derived_state_parts = Eidos_string_split(string_derived_state, ",");
+					
+					for (std::string &derived_state_part : derived_state_parts)
+						binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(derived_state_part));
+					
+					derived_state_total_part_count += derived_state_parts.size();
+				}
 				
-				derived_state_total_part_count += derived_state_parts.size();
+				binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
 			}
-			
-			binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
+		} catch (...) {
+			EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromAscii): a mutation derived state was not convertible into an int64_t mutation id.  The tree-sequence data may not be annotated for SLiM, or may be corrupted." << EidosTerminate();
 		}
 		
 		if (binary_derived_state.size() == 0)
@@ -8464,16 +8468,16 @@ slim_tick_t Species::_InitializePopulationFromTskitBinaryFile(const char *p_file
 
 	RecordTablePosition();
 	
-	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
-	DerivedStatesFromAscii(&tables_);
-	
-	// read in the tree sequence metadata first so we have file version information
+	// read in the tree sequence metadata first so we have file version information and check for SLiM compliance and such
 	slim_tick_t metadata_tick;
 	slim_tick_t metadata_cycle;
 	SLiMModelType file_model_type;
 	int file_version;
 	
 	ReadTreeSequenceMetadata(&tables_, &metadata_tick, &metadata_cycle, &file_model_type, &file_version);
+	
+	// convert ASCII derived-state data, which is the required format on disk, back to our in-memory binary format
+	DerivedStatesFromAscii(&tables_);
 	
 	// in nucleotide-based models, read the ancestral sequence; we do this ourselves, directly from kastore, to avoid having
 	// tskit make a full ASCII copy of the reference sequences from kastore into tables_; see tsk_table_collection_load() above
