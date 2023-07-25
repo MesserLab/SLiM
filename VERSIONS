@@ -95,7 +95,7 @@ development head (in the master branch):
 	clean up some old usage that is now flagged by Xcode (sprintf to snprintf, deprecated Cocoa API, old build-numbering scripts in the project)
 	advance copyrights to 2023
 	add the ability to generate profiles at the command line as well as in SLiMgui, making it possible to profile SLiM when running parallel
-	extend the Eidos Dictionary class (and DataFrame) to allow integer keys, making it more of a general "associative array" class that can represent ragged arrays and similar structures
+	extend the Eidos Dictionary class (but not DataFrame) to allow integer keys, making it more of a general "associative array" class that can represent ragged arrays and similar structures
 		as a side effect, "slim" type dictionary serialization now *always* quotes string keys (policy change), to distinguish, e.g., "10" (string) from 10 (integer) in serialized output
 	extend the Eidos Dictionary class (and DataFrame) to allow objects of all classes to be added; dictionaries containing objects that are not under retain-release just can't be kept long-term
 	improve InteractionType performance for certain queries, especially drawByStrength() with fixed interaction strength
@@ -107,7 +107,7 @@ development head (in the master branch):
 	update the zlib code in eidos_zlib to version 1.2.13 (13 Oct 2022), fixing some issues (see zlib ChangeLog file)
 	change to DWARF, not DWARF with dSYM, even for Release builds; I don't use the dSYM file to reverse-symbolicate crash reports, so it just slows down my Release builds (but turning it off is unusual, so I'm noting it here)
 	add an optimized case for sample() with replacement, when using a weights vector; orders of magnitude speedup for large tasks
-	shift GitHub Actions for macOS to macos-11 and macos-13; macos-10.15 stopped working in early May 2023, deprecated
+	shift GitHub Actions for macOS to macos-11 and macos-12; macos-10.15 stopped working in early May 2023, deprecated
 	add an optional parameter to initializeGeneConversion(), [l$ redrawLengthsOnFailure = F], to avoid failures to lay out tracts in some models; no behavior change by default
 	add an optional parameter, [integer$ count = 1], to addCrossed(), addSelfed(), addCloned(), addRecombinant(), and addEmpty() to produce multiple offspring in one call
 		this entails a policy change: if no children are generated (due to rejection by modifyChild(), in particular), object<Individual>(0) is returned, not NULL

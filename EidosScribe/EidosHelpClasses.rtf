@@ -669,11 +669,11 @@ In the current implementation, it is an error for either of the values involved 
 \f4\fs20  keys.  After this operation, the receiver will contain only values that have a length greater than zero (discarding all key\'96value pairs for which the value is a zero-length vector).  In addition, the keys used will be compacted down to begin at 
 \f3\fs18 0
 \f4\fs20  and count upward sequentially.  If 
-\f3\fs18 preserve
+\f3\fs18 preserveOrder
 \f4\fs20  is 
 \f3\fs18 F
 \f4\fs20  (the default), the keys may end up in a different numerical order; this allows the compaction to be performed more efficiently.  If 
-\f3\fs18 preserve
+\f3\fs18 preserveOrder
 \f4\fs20  is 
 \f3\fs18 T
 \f4\fs20 , on the other hand, the numerical order of the keys will be preserved.  The returned 
