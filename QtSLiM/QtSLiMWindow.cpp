@@ -4960,6 +4960,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                     cursor.setPosition(comment_end, QTextCursor::KeepAnchor);
                     scriptTE->setTextCursor(cursor);
                     scriptTE->centerCursor();
+                    QtSLiMFlashHighlightInTextEdit(scriptTE);
                 });
                 
                 QFont action_font = jumpAction->font();
@@ -5104,6 +5105,7 @@ void QtSLiMWindow::jumpToPopupButtonRunMenu(void)
                     cursor.setPosition(decl_end, QTextCursor::KeepAnchor);
                     scriptTE->setTextCursor(cursor);
                     scriptTE->centerCursor();
+                    QtSLiMFlashHighlightInTextEdit(scriptTE);
                 });
                 
                 jumpActions.emplace_back(decl_start, jumpAction);

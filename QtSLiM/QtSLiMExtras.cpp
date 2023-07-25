@@ -38,6 +38,7 @@
 #include <QTextDocument>
 #include <QAbstractTextDocumentLayout>
 #include <QPalette>
+#include <QApplication>
 #include <QDebug>
 #include <cmath>
 
@@ -1166,6 +1167,33 @@ QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap)
     return pixmap;
 }
 
+
+// find flashing; see https://bugreports.qt.io/browse/QTBUG-83147
+
+static QPalette QtSLiMFlashPalette(QPlainTextEdit *te)
+{
+    // Returns a palette for QtSLiMTextEdit for highlighting errors, which could depend on platform and dark mode
+    // Note that this is based on the current palette, and derives only the highlight colors
+    QPalette p = te->palette();
+    p.setColor(QPalette::Highlight, QColor(QColor(Qt::yellow)));
+    p.setColor(QPalette::HighlightedText, QColor(Qt::black));
+    return p;
+}
+
+void QtSLiMFlashHighlightInTextEdit(QPlainTextEdit *te)
+{
+    const int delayMillisec = 80;   // seems good?  12.5 times per second
+    
+    // set to the flash color
+    te->setPalette(QtSLiMFlashPalette(te));
+    
+    // set up timers to flash the color again; we don't worry about being called multiple times,
+    // cancelling old timers, etc., because this is so quick that it really doesn't matter;
+    // it sorts itself out more quickly than the user can really notice any discrepancy
+    QTimer::singleShot(delayMillisec, te, [te]() { te->setPalette(qApp->palette(te)); });
+    QTimer::singleShot(delayMillisec * 2, te, [te]() { te->setPalette(QtSLiMFlashPalette(te)); });
+    QTimer::singleShot(delayMillisec * 3, te, [te]() { te->setPalette(qApp->palette(te)); });
+}
 
 
 

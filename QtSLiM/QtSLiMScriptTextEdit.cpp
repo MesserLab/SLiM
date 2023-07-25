@@ -227,7 +227,7 @@ QPalette QtSLiMTextEdit::qtslimStandardPalette(void)
 QPalette QtSLiMTextEdit::qtslimErrorPalette(void)
 {
     // Returns a palette for QtSLiMTextEdit for highlighting errors, which could depend on platform and dark mode
-    // Note that this is based on the current palette, and derives only the highlight color
+    // Note that this is based on the current palette, and derives only the highlight colors
     QPalette p = palette();
     p.setColor(QPalette::Highlight, QColor(QColor(Qt::red).lighter(120)));
     p.setColor(QPalette::HighlightedText, QColor(Qt::black));

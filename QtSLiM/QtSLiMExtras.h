@@ -33,6 +33,7 @@
 #include <QSplitter>
 #include <QSplitterHandle>
 #include <QStatusBar>
+#include <QPlainTextEdit>
 
 #include <cmath>
 #include <algorithm>
@@ -222,6 +223,8 @@ protected:
 
 // Used to create the dark app icon displayed when running a model
 QPixmap QtSLiMDarkenPixmap(QPixmap p_pixmap);
+
+void QtSLiMFlashHighlightInTextEdit(QPlainTextEdit *te);
 
 
 // Incremental sorting
