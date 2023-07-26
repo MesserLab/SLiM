@@ -141,10 +141,12 @@
 {
 	if (self = [super initWithWindowNibName:@"SLiMWindow"])
 	{
+		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+		
 		// observe preferences that we care about
-		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
-		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey options:0 context:NULL];
-		[[NSUserDefaults standardUserDefaults] addObserver:self forKeyPath:defaultsDisplayFontSizeKey options:0 context:NULL];
+		[defaults addObserver:self forKeyPath:defaultsSyntaxHighlightScriptKey options:0 context:NULL];
+		[defaults addObserver:self forKeyPath:defaultsSyntaxHighlightOutputKey options:0 context:NULL];
+		[defaults addObserver:self forKeyPath:defaultsDisplayFontSizeKey options:0 context:NULL];
 		
 		observingKeyPaths = YES;
 		
@@ -1080,6 +1082,9 @@
 	
 	[scriptTextView setSyntaxColoring:([defaults boolForKey:defaultsSyntaxHighlightScriptKey] ? kEidosSyntaxColoringEidos : kEidosSyntaxColoringNone)];
 	[outputTextView setSyntaxColoring:([defaults boolForKey:defaultsSyntaxHighlightOutputKey] ? kEidosSyntaxColoringOutput : kEidosSyntaxColoringNone)];
+	
+	// fire the observer message for font size, to make it correct; seems like this used to happen automatically but now doesn't?
+	[self observeValueForKeyPath:defaultsDisplayFontSizeKey ofObject:defaults change:nullptr context:nullptr];
 	
 	// Set the script textview to show its string, with correct formatting
 	[scriptTextView setString:scriptString];
