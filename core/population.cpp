@@ -2112,7 +2112,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					// We need to make sure we have adequate capacity in the global mutation block for new mutations before we go parallel;
 					// if SLiM_IncreaseMutationBlockCapacity() is called while parallel, it is a fatal error.  So we make a guess at how
-					// much free space we will need, and preallocate here as needed.
+					// much free space we will need, and preallocate here as needed, regardless of will_parallelize; no reason not to.
 #ifdef _OPENMP
 					bool will_parallelize = can_parallelize && (migrants_to_generate >= 100);
 					size_t est_mutation_block_slots_remaining_PRE = 0;
@@ -2120,7 +2120,6 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					double overall_mutation_rate = 0;
 					size_t est_slots_needed = 0;
 					
-					if (will_parallelize)
 					{
 						do {
 							int registry_size;

@@ -74,7 +74,10 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 {
 	// We do not use a THREAD_SAFETY macro here because this needs to be checked in release builds also;
 	// we are not able to completely protect against this occurring at runtime, and it corrupts the run.
-	if (omp_get_level() > 0)
+	// It's OK for this to be called when we're inside an inactive parallel region; there is then no
+	// race condition.  When a parallel region is active, even inside a critical region, reallocating
+	// the mutation block has the potential for a race with other threads.
+	if (omp_in_parallel())
 	{
 		std::cerr << "ERROR (SLiM_IncreaseMutationBlockCapacity): (internal error) SLiM_IncreaseMutationBlockCapacity() was called to reallocate gSLiM_Mutation_Block inside a parallel section.  If you see this message, you need to increase the pre-allocation margin for your simulation, because it is generating such an unexpectedly large number of new mutations.  Please contact the SLiM developers for guidance on how to do this." << std::endl;
 		raise(SIGTRAP);
