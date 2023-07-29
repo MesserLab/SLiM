@@ -2949,6 +2949,10 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		bool saw_error_in_critical = false;
 #endif
 		
+		// BCH 7/29/2023: I tried making a simple code path here that generated the new MutationIndex values in a critical region and then
+		// did all the rest of the work outside the critical region.  It wasn't a noticeable win; mutation generation just isn't that
+		// central of a bottleneck.  If you're making so many mutations that contention for this critical region matters, you're probably
+		// completely bogged down in recombination and mutation registry maintenance.  Not worth the added code complexity.
 #pragma omp critical (MutationAlloc)
 		{
 			try {
