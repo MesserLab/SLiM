@@ -241,9 +241,16 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	omp_set_max_active_levels(1);
 	//omp_set_nested(false);		// deprecated in favor of omp_set_max_active_levels()
 	
-	// Set the maximum number of threads to the user's request
+	// Set the maximum number of threads to the user's request, but never higher than the intrinsic max thread count
 	if (changed_max_thread_count)
+	{
+		int thread_limit = omp_get_thread_limit();
+		
+		if (new_max_thread_count > thread_limit)
+			new_max_thread_count = thread_limit;
+		
 		omp_set_num_threads(new_max_thread_count);		// confusingly, sets the *max* threads as returned by omp_get_max_threads()
+	}
 	
 	// Get the maximum number of threads in effect, which might be different from the number requested
 	gEidosMaxThreads = omp_get_max_threads();
@@ -253,7 +260,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	if (outstream)
 	{
 		(*outstream) << "// ********** Running multithreaded with OpenMP (max of " << gEidosMaxThreads << " threads)" << std::endl;
-		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_DYNAMIC == " << getenv("OMP_DYNAMIC") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
+		(*outstream) << "// ********** OMP_WAIT_POLICY == " << getenv("OMP_WAIT_POLICY") << ", OMP_PROC_BIND == " << getenv("OMP_PROC_BIND") << std::endl;
 		
 #if 0
 		// BCH 5/19/2023: #if 0 for now, because this gives an error on some platforms; we don't support offloading anyway.
