@@ -2042,10 +2042,6 @@ void Species::SetUpMutationRunContexts(void)
 	
 	if (mutation_run_context_COUNT_ > 0)
 	{
-		// We want to try to guarantee that every thread sets up its MutationRunContext, even if OMP_DYNAMIC is true
-		int old_dynamic = omp_get_dynamic();
-		omp_set_dynamic(false);
-		
 		// Check that each RNG was initialized by a different thread, as intended below;
 		// this is not required, but it improves memory locality throughout the run
 		bool threadObserved[mutation_run_context_COUNT_];
@@ -2060,8 +2056,6 @@ void Species::SetUpMutationRunContexts(void)
 			omp_init_lock(&mutation_run_context_PERTHREAD[threadnum]->allocation_pool_lock_);
 			threadObserved[threadnum] = true;
 		}	// end omp parallel
-		
-		omp_set_dynamic(old_dynamic);
 		
 		for (int threadnum = 0; threadnum < mutation_run_context_COUNT_; ++threadnum)
 			if (!threadObserved[threadnum])

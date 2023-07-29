@@ -6162,7 +6162,11 @@ void Population::FreeUnusedMutationRuns(void)
 	
 	// free all in-use MutationRun objects that are not actually in use (use count == 0)
 	// each thread does its own checking and freeing, for its own MutationRunContext
-#pragma omp parallel default(none) num_threads(species_.SpeciesMutationRunContextCount())
+#ifdef _OPENMP
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+#endif
+	
+#pragma omp parallel default(none) num_threads(mutrun_context_count)
 	{
 		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
 		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;
@@ -6598,7 +6602,11 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 	SLiM_ZeroRefcountBlock(mutation_registry_, /* p_registry_only */ community_.AllSpecies().size() > 1);
 	
 	// each thread does its own tallying, for its own MutationRunContext
-#pragma omp parallel default(none) shared(gSLiM_Mutation_Refcounts) num_threads(species_.SpeciesMutationRunContextCount())
+#ifdef _OPENMP
+	int mutrun_context_count = species_.SpeciesMutationRunContextCount();
+#endif
+	
+#pragma omp parallel default(none) shared(gSLiM_Mutation_Refcounts) num_threads(mutrun_context_count)
 	{
 		MutationRunContext &mutrun_context = species_.SpeciesMutationRunContextForThread(omp_get_thread_num());
 		MutationRunPool &inuse_pool = mutrun_context.in_use_pool_;

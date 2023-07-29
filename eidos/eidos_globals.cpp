@@ -229,14 +229,13 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	const char *wait_policy = active_threads ? "ACTIVE" : "PASSIVE";
 	setenv("OMP_WAIT_POLICY", wait_policy, 0);
 	
-	// "false" == don’t let the runtime deliver fewer threads than you asked for
-	// when this is true, you sometimes get just one thread even in a parallel section, because the system has decided it's busy; no good
-	const char *dynamic_policy = "false";
-	setenv("OMP_DYNAMIC", dynamic_policy, 0);
-	
 	// "true" prevents threads migrating between cores; this generally improves performance, especially with per-thread memory usage
 	const char *bind_policy = "true";
 	setenv("OMP_PROC_BIND", bind_policy, 0);
+	
+	// We do not support dynamic adjustment of the number of threads; if we ask for N threads, we expect N threads
+	// It is important not to change that, or a variety of things will no longer work correctly
+	omp_set_dynamic(false);
 	
 	// We do not support nested parallelism; we set the relevant ICVs here to make sure it is off, overriding defaults/environment
 	omp_set_max_active_levels(1);

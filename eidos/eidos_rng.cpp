@@ -129,10 +129,6 @@ void Eidos_InitializeRNG(void)
 	
 	gEidos_RNG_PERTHREAD.resize(gEidosMaxThreads);
 	
-	// We want to try to guarantee that every thread sets up its RNG, even if OMP_DYNAMIC is true
-	int old_dynamic = omp_get_dynamic();
-	omp_set_dynamic(false);
-	
 	// Check that each RNG was initialized by a different thread, as intended below;
 	// this is not required, but it improves memory locality throughout the run
 	bool threadObserved[gEidosMaxThreads];
@@ -146,8 +142,6 @@ void Eidos_InitializeRNG(void)
 		gEidos_RNG_PERTHREAD[threadnum] = rng_state;
 		threadObserved[threadnum] = true;
 	}	// end omp parallel
-	
-	omp_set_dynamic(old_dynamic);
 	
 	for (int threadnum = 0; threadnum < gEidosMaxThreads; ++threadnum)
 		if (!threadObserved[threadnum])
