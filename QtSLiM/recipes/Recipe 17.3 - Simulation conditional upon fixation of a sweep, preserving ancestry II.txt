@@ -19,7 +19,9 @@ initialize() {
 	inds = sortBy(sim.subpopulations.individuals, "pedigreeID");
 	tags = rdunif(size(inds), 0, 100000);
 	inds.tag = tags;
-	metadataDict = Dictionary("tags", tags);
+	
+	// record tag values and pedigree IDs in metadata
+	metadataDict = Dictionary("tags", tags, "ids", inds.pedigreeID);
 	
 	target = sample(p1.genomes, 1);
 	target.addNewDrawnMutation(m3, 10000);
