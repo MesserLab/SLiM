@@ -421,7 +421,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 			}
 			else
 			{
-				// The number of threads does not equal gEidosMaxThreads, so we have p_preferred_count mutruns sections of length 1
+				// The number of threads does not equal gEidosMaxThreads, so we have p_preferred_count mutruns sections, each containing 1 mutrun
 				mutrun_count_base_ = p_preferred_count;
 				mutrun_count_multiplier_ = 1;
 			}
@@ -461,9 +461,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 	last_position_mutrun_ = mutrun_count_ * mutrun_length_ - 1;
 	
 	// Consistency check
-	if (((mutrun_length_ < 1) && species_.HasGenetics()) || (mutrun_count_ * mutrun_length_ <= last_position_))
-		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
-	if (last_position_mutrun_ < last_position_)
+	if (((mutrun_length_ < 1) && species_.HasGenetics()) || (mutrun_count_ * mutrun_length_ <= last_position_) || (last_position_mutrun_ < last_position_))
 		EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): (internal error) math error in mutation run calculations." << EidosTerminate();
 }
 
