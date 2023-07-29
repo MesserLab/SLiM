@@ -737,6 +737,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	gEidosNumThreads = (int)numThreads;
 	omp_set_num_threads((int)numThreads);
 	
+	// Note that this affects every running model, in SLiMgui.  Since we don't really support end users running SLiMgui
+	// multithreaded, I'm not going to bother fixing that by saving/restoring it across SLiMgui context switches.
+	
 	return gStaticEidosValueVOID;
 }
 

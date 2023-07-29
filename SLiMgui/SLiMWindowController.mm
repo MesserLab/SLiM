@@ -463,6 +463,12 @@
 		slimgui = nullptr;
 	}
 	
+	// Reset the number of threads to be used in parallel regions, if it has been changed by parallelSetNumThreads();
+	// note that we do not save/restore the value across context switches between models, as we do RNGs and such,
+	// since we don't support end users running SLiMgui multithreaded anyhow
+	gEidosNumThreads = gEidosMaxThreads;
+	omp_set_num_threads(gEidosMaxThreads);
+	
 	// Free the old simulation RNG and make a new one, to have clean state
 	if (sim_RNG_initialized)
 	{
