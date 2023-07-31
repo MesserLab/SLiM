@@ -877,7 +877,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 	if (source_value->Type() == EidosValueType::kValueNULL)
 	{
 		// A dict value of NULL means "reset to default settings", which we have a function for
+#ifdef _OPENMP
 		_Eidos_SetDefaultOpenMPThreadCounts();
+#endif
 	}
 	else
 	{
