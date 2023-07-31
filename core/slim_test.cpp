@@ -1083,11 +1083,13 @@ extern void _RunParallelSLiMTests()
 				// Note that we ensure that we are using the maximum number of threads at start & end
 				{
 					gEidosNumThreads = gEidosMaxThreads;
+					gEidosNumThreadsOverride = false;
 					omp_set_num_threads(gEidosMaxThreads);
 					
 					SLiMAssertScriptSuccess(test_string);
 					
 					gEidosNumThreads = gEidosMaxThreads;
+					gEidosNumThreadsOverride = false;
 					omp_set_num_threads(gEidosMaxThreads);
 				}
 				

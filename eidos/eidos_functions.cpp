@@ -299,7 +299,9 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("license",			Eidos_ExecuteFunction_license,		kEidosValueMaskVOID)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("parallelGetNumThreads",			Eidos_ExecuteFunction_parallelGetNumThreads,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("parallelGetMaxThreads",			Eidos_ExecuteFunction_parallelGetMaxThreads,		kEidosValueMaskInt | kEidosValueMaskSingleton)));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("parallelGetTaskThreadCounts",	Eidos_ExecuteFunction_parallelGetTaskThreadCounts,	kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class)));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("parallelSetNumThreads",			Eidos_ExecuteFunction_parallelSetNumThreads,		kEidosValueMaskVOID))->AddInt_OSN("numThreads", gStaticEidosValueNULL));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("parallelSetTaskThreadCounts",	Eidos_ExecuteFunction_parallelSetTaskThreadCounts,	kEidosValueMaskVOID))->AddObject_SN("dict", nullptr));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_rm,		Eidos_ExecuteFunction_rm,			kEidosValueMaskVOID))->AddString_ON("variableNames", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("setSeed",			Eidos_ExecuteFunction_setSeed,		kEidosValueMaskVOID))->AddInt_S("seed"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("getSeed",			Eidos_ExecuteFunction_getSeed,		kEidosValueMaskInt | kEidosValueMaskSingleton)));

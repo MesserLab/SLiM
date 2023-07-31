@@ -1938,7 +1938,8 @@ EidosValue_SP Species::ExecuteMethod_individualsWithPedigreeIDs(EidosGlobalStrin
 				Individual **result_data = (Individual **)result->data();
 				bool any_unmatched = false;
 				
-#pragma omp parallel for schedule(static) default(none) shared(pedigreeIDs_count, fromIDToIndividual) firstprivate(pedigree_id_data, result_data) reduction(||: any_unmatched) // if(EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS);
+#pragma omp parallel for schedule(static) default(none) shared(pedigreeIDs_count, fromIDToIndividual) firstprivate(pedigree_id_data, result_data) reduction(||: any_unmatched) num_threads(thread_count) // if(EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS)
 				for (int value_index = 0; value_index < pedigreeIDs_count; ++value_index)
 				{
 					auto find_iter = fromIDToIndividual.find(pedigree_id_data[value_index]);

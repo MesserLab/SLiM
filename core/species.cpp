@@ -2444,7 +2444,8 @@ void Species::nonWF_MergeOffspring(void)
 		std::vector<Individual *> &parents = subpop->parent_individuals_;
 		size_t parent_count = parents.size();
 		
-#pragma omp parallel for schedule(static) default(none) shared(parent_count) firstprivate(parents)  if(parent_count >= EIDOS_OMPMIN_MIGRANTCLEAR)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_MIGRANT_CLEAR);
+#pragma omp parallel for schedule(static) default(none) shared(parent_count) firstprivate(parents)  if(parent_count >= EIDOS_OMPMIN_MIGRANT_CLEAR) num_threads(thread_count)
 		for (size_t parent_index = 0; parent_index < parent_count; ++parent_index)
 			parents[parent_index]->migrant_ = false;
 	}

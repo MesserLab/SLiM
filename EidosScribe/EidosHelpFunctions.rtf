@@ -5788,43 +5788,216 @@ Returns a
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Gets the number of threads
-\f3\b0  that will be used in subsequent parallel (i.e., multithreaded) regions, as set with 
+\f3\b0  that is requested be used in subsequent parallel (i.e., multithreaded) regions, as set with 
 \f1\fs18 parallelSetNumThreads()
 \f3\fs20 .  If Eidos is not configured to run multithreaded, this function will return 
 \f1\fs18 1
 \f3\fs20 .  See also 
 \f1\fs18 parallelGetMaxThreads()
-\f3\fs20 , which returns the maximum number of threads that can be used.\
+\f3\fs20 , which returns the maximum number of threads that can be used.  Note that if this function returns the maximum number of threads, as returned by 
+\f1\fs18 parallelGetMaxThreads()
+\f3\fs20 , then there are 
+\f7\i two possible semantic meanings
+\f3\i0  of that return value, which cannot be distinguished using this function; see 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20  for discussion.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (integer$)parallelGetMaxThreads(void)\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Gets the maximum number of threads
-\f3\b0  that can be used in parallel (i.e., multithreaded) regions.  This is configured externally; it may be OpenMP\'92s default number of threads for the hardware platform being used, or may be set by an environment variable or command-line option).  If Eidos is not configured to run multithreaded, this function will return 
+\f3\b0  that can be used in parallel (i.e., multithreaded) regions.  This is configured externally; it may be OpenMP\'92s default number of threads for the hardware platform being used, or may be set by an environment variable or command-line option.  If Eidos is not configured to run multithreaded, this function will return 
 \f1\fs18 1
 \f3\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (object<Dictionary>$)parallelGetTaskThreadCounts(void)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Gets the number of threads
+\f3\b0  that is requested to be used for specific tasks in Eidos and SLiM.  Returns a new 
+\f1\fs18 Dictionary
+\f3\fs20  containing values for all of the tasks for which a number of threads can be specified; see 
+\f1\fs18 parallelSetTaskThreadCounts()
+\f3\fs20  for a list of all such tasks.  Note that the specified number of threads will not necessarily be used in practice; in particular, a thread count set by 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20  will override these per-task counts.  Also, if the task size is below a certain task-specific threshold the task will not be executed in parallel regardless of these settings.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)parallelSetNumThreads([Ni$\'a0numThreads\'a0=\'a0NULL])\
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 Sets the number of threads
-\f3\b0  that will be used in subsequent parallel (i.e., multithreaded) regions.  If Eidos is not configured to run multithreaded, this function will have no effect.  The requested number of threads will be clamped to the interval [
+\f3\b0  that is requested to be used in subsequent parallel (i.e., multithreaded) regions.  If Eidos is not configured to run multithreaded, this function will have no effect.  The requested number of threads will be clamped to the interval [
 \f1\fs18 1
 \f3\fs20 , 
 \f1\fs18 maxThreads
 \f3\fs20 ], where 
 \f1\fs18 maxThreads
-\f3\fs20  is the maximum number of threads configured externally (either by OpenMP\'92s default, or by an environment variable or command-line option).  The maximum number of threads (the value of 
+\f3\fs20  is the maximum number of threads configured externally (either by OpenMP\'92s default, or by an environment variable or command-line option).  That maximum number of threads (the value of 
 \f1\fs18 maxThreads
 \f3\fs20 ) can be obtained from 
 \f1\fs18 parallelGetMaxThreads()
+\f3\fs20 .\
+There is an important wrinkle in the semantics of this method that must be explained.  Passing 
+\f1\fs18 NULL
+\f3\fs20  (the default) resets Eidos to the default number of threads for which it is configured to run.  In this configuration, 
+\f1\fs18 parallelGetNumThreads()
+\f3\fs20  will return 
+\f1\fs18 maxThreads
+\f3\fs20 , but the number of threads used for any given parallel operation might not, in fact, be equal to 
+\f1\fs18 maxThreads
+\f3\fs20 ; Eidos might use fewer threads if it determines that that would improve performance.  Passing the value of 
+\f1\fs18 maxThreads
+\f3\fs20  explicitly, on the other hand, sets Eidos to always use 
+\f1\fs18 maxThreads
+\f3\fs20  threads, even if it may result in lower performance; but in this configuration, too, 
+\f1\fs18 parallelGetNumThreads()
+\f3\fs20  will return 
+\f1\fs18 maxThreads
+\f3\fs20 .  For example, suppose 
+\f1\fs18 maxThreads
+\f3\fs20  is 
+\f1\fs18 16
 \f3\fs20 .  Passing 
 \f1\fs18 NULL
-\f3\fs20  (the default) is equivalent to passing 
-\f1\fs18 maxThreads
-\f3\fs20 , and thus can be used to easily reset Eidos to the number of threads for which it is configured to run.\
+\f3\fs20  requests that Eidos use 
+\f7\i up to
+\f3\i0  
+\f1\fs18 16
+\f3\fs20  threads, as it sees fit; in contrast, explicitly passing 
+\f1\fs18 16
+\f3\fs20  requests that Eidos use 
+\f7\i exactly
+\f3\i0  16 threads.  In both cases, however, 
+\f1\fs18 parallelGetNumThreads()
+\f3\fs20  will return 
+\f1\fs18 16
+\f3\fs20 .\
+If you wish to temporarily change the number of threads used, the standard pattern is to call 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20  with the number of threads you want to use, do the operation you wish to control, and then call 
+\f1\fs18 parallelSetNumThreads(NULL)
+\f3\fs20  to return to the default behavior of Eidos.\
+Note that the number of threads requested here overrides any per-task request set with 
+\f1\fs18 parallelSetTaskThreadCounts()
+\f3\fs20 .  Also, if the task size is below a certain task-specific threshold the task will not be executed in parallel regardless of these settings.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 (void)parallelSetTaskThreadCounts(object$\'a0dict)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Sets the number of threads
+\f3\b0  that is requested to be used for specific tasks in Eidos and SLiM.  The dictionary 
+\f1\fs18 dict
+\f3\fs20  should contain 
+\f1\fs18 string
+\f3\fs20  keys that identify tasks, and 
+\f1\fs18 integer
+\f3\fs20  values that provide the number of threads to be used when performing those tasks.  For example, a key of 
+\f1\fs18 "LOG10_FLOAT"
+\f3\fs20  identifies the task of performing the 
+\f1\fs18 log10()
+\f3\fs20  function on a 
+\f1\fs18 float
+\f3\fs20  vector, and a value of 
+\f1\fs18 8
+\f3\fs20  for that key would tell Eidos to use eight threads when performing that task.  The number of threads actually used will never be greater than the maximum thread count as returned by 
+\f1\fs18 parallelGetMaxThreads()
+\f3\fs20 .  Furthermore, a thread count set with 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20  overrides the per-task setting, so if you wish to set specific per-task thread counts you should not set an overall thread count with 
+\f1\fs18 parallelSetNumThreads()
+\f3\fs20 .  If 
+\f1\fs18 dict
+\f3\fs20  is 
+\f1\fs18 NULL
+\f3\fs20 , all task thread counts will be reset to their default values.\
+The currently requested thread counts for all tasks can be obtained with 
+\f1\fs18 parallelGetTaskThreadCounts()
+\f3\fs20 .  Note that the counts returned by that function may not match the counts requested with 
+\f1\fs18 parallelSetTaskThreadCounts()
+\f3\fs20 ; in particular, they may be clipped to the maximum number of threads as returned by 
+\f1\fs18 parallelGetMaxThreads()
+\f3\fs20 .\
+The task keys recognized, and the tasks they govern, are:\
+\pard\tx4320\pardeftab720\li1080\sa180\partightenfactor0
+
+\f1\fs18 \cf2 "ABS_FLOAT"	abs(float x)\uc0\u8232 "CEIL"	ceil()\u8232 "EXP_FLOAT"	exp(float x)\u8232 "FLOOR"	floor()\u8232 "LOG_FLOAT"	log(float x)\u8232 "LOG10_FLOAT"	log10(float x)\u8232 "LOG2_FLOAT"	log2(float x)\u8232 "ROUND"	round()\u8232 "SQRT_FLOAT"	sqrt(float x)\u8232 "SUM_INTEGER"	sum(integer x)\u8232 "SUM_FLOAT"	sum(float x)\u8232 "SUM_LOGICAL"	sum(logical x)\u8232 "TRUNC"	trunc()\
+"MAX_INT"	max(integer x)\uc0\u8232 "MAX_FLOAT"	max(float x)\u8232 "MIN_INT"	min(integer x)\u8232 "MIN_FLOAT"	min(float x)\u8232 "PMAX_INT_1"	pmax(i$ x, i y) / pmax(i x, i$ y)\u8232 "PMAX_INT_2"	pmax(integer x, integer y)\u8232 "PMAX_FLOAT_1"	pmax(f$ x, f y) / pmax(f x, f$ y)\u8232 "PMAX_FLOAT_2"	pmax(float x, float y)\u8232 "PMIN_INT_1"	pmin(i$ x, i y) / pmax(i x, i$ y)\u8232 "PMIN_INT_2"	pmin(integer x, integer y)\u8232 "PMIN_FLOAT_1"	pmin(f$ x, f y) / pmin(f x, f$ y)\u8232 "PMIN_FLOAT_2"	pmin(float x, float y)\
+"MATCH_INT"	match(integer x, integer table)\uc0\u8232 "MATCH_FLOAT"	match(float x, float table)\u8232 "MATCH_STRING"	match(string x, string table)\u8232 "MATCH_OBJECT"	match(object x, object table)\u8232 "SAMPLE_INDEX"	sample()
+\f3\fs20  index buffer generation (internal)
+\f1\fs18 \uc0\u8232 "SAMPLE_R_INT"	sample(integer x, weights=NULL)\u8232 "SAMPLE_R_FLOAT"	sample(float x, weights=NULL)\u8232 "SAMPLE_R_OBJECT"	sample(object x, weights=NULL)\u8232 "SAMPLE_WR_INT"	sample(integer x, if weights)\u8232 "SAMPLE_WR_FLOAT"	sample(float x, if weights)\u8232 "SAMPLE_WR_OBJECT"	sample(object x, if weights)\u8232 "TABULATE"	tabulate()\
+"DNORM_1"	dnorm(numeric$ mean, numeric$ sd)\uc0\u8232 "DNORM_2"	dnorm()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RBINOM_1"	rbinom(i$ size = 1, f$ prob = 0.5)\u8232 "RBINOM_2"	rbinom(i$ size, f$ prob)
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RBINOM_3"	rbinom()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RDUNIF_1"	rdunif(i$ min = 0, i$ max = 1)
+\f3\fs20  and similar
+\f1\fs18 \uc0\u8232 "RDUNIF_2"	rdunif(i$ min, i$ max)
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RDUNIF_3"	rdunif()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "REXP_1"	rexp(numeric$ mu)\u8232 "REXP_2"	rexp()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RNORM_1"	rnorm(numeric$ mean, numeric$ sd)\u8232 "RNORM_2"	rnorm(numeric$ sigma)\u8232 "RNORM_3"	rnorm()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RPOIS_1"	rpois(numeric$ lambda)\u8232 "RPOIS_2"	rpois()
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RUNIF_1"	runif(numeric$ min = 0, numeric$ max = 1)\u8232 "RUNIF_2"	runif(numeric$ min, numeric$ max)
+\f3\fs20  other cases
+\f1\fs18 \uc0\u8232 "RUNIF_3"	runif()
+\f3\fs20  other cases
+\f1\fs18 \
+"CLIPPEDINTEGRAL_1"	clippedIntegral() "x"\uc0\u8232 "CLIPPEDINTEGRAL_2"	clippedIntegral() "y"\u8232 "CLIPPEDINTEGRAL_3"	clippedIntegral() "z"\u8232 "CLIPPEDINTEGRAL_4"	clippedIntegral() "xy"\u8232 "CLIPPEDINTEGRAL_5"	clippedIntegral() "xz"\u8232 "CLIPPEDINTEGRAL_6"	clippedIntegral() "yz"\u8232 "DRAWBYSTRENGTH"	drawByStrength(returnDict=T)\u8232 "INTNEIGHCOUNT"	interactingNeighborSount()\u8232 "LOCALPOPDENSITY"	localPopulationDensity()\u8232 "NEARESTINTNEIGH"	nearestInteractingNeighbors(returnDict=T)\u8232 "NEARESTNEIGH"	nearestNeighbors(returnDict=T)\u8232 "NEIGHCOUNT"	neighborCount()\u8232 "TOTNEIGHSTRENGTH"	totalOfNeighborsStrengths()\
+"POINT_IN_BOUNDS"	pointInBounds()\uc0\u8232 "POINT_PERIODIC"	pointPeriodic()\u8232 "POINT_REFLECTED"	pointReflected()\u8232 "POINT_STOPPED"	pointStopped()\u8232 "POINT_UNIFORM"	pointUniform()\u8232 "SET_SPATIAL_POS_1"	setSpatialPosition()
+\f3\fs20  with one point
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_2"	setSpatialPosition()
+\f3\fs20  with 
+\f7\i N
+\f3\i0  points
+\f1\fs18 \uc0\u8232 "SPATIAL_MAP_VALUE"	spatialMapValue()\
+"CONTAINS_MARKER_MUT"	containsMarkerMutation(returnMutation = F)\uc0\u8232 "I_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Individual)\u8232 "G_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Genome)\u8232 "INDS_W_PEDIGREE_IDS"	individualsWithPedigreeIDs()\u8232 "RELATEDNESS"	relatedness()\u8232 "SAMPLE_INDIVIDUALS_1"	sampleIndividuals()
+\f3\fs20  simple case with replace=T
+\f1\fs18 \uc0\u8232 "SAMPLE_INDIVIDUALS_2"	sampleIndividuals()
+\f3\fs20  base case with replace=T
+\f1\fs18 \uc0\u8232 "SET_FITNESS_SCALE_1"	Individual.fitness = 
+\f3\fs20 one value
+\f1\fs18 \uc0\u8232 "SET_FITNESS_SCALE_2"	Individual.fitness = 
+\f7\i\fs20 N
+\f3\i0  values
+\f1\fs18 \uc0\u8232 "SUM_OF_MUTS_OF_TYPE"	sumOfMutationsOfType()\
+"AGE_INCR"	
+\f3\fs20 incrementing 
+\f1\fs18 Individual age
+\f3\fs20  values
+\f1\fs18 \uc0\u8232 "DEFERRED_REPRO"	
+\f3\fs20 deferred nonWF reproduction
+\f1\fs18 \uc0\u8232 "FITNESS_ASEX_1"	
+\f3\fs20 fitness eval, asexual, with individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "FITNESS_ASEX_2"	
+\f3\fs20 fitness eval, asexual, without individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "FITNESS_SEX_F_1"	
+\f3\fs20 fitness eval, female, with individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "FITNESS_SEX_F_2"	
+\f3\fs20 fitness eval, female, without individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "FITNESS_SEX_M_1"	
+\f3\fs20 fitness eval, male, with individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "FITNESS_SEX_M_2"	
+\f3\fs20 fitness eval, male, without individual 
+\f1\fs18 fitnessScaling\uc0\u8232 "MIGRANT_CLEAR"	
+\f3\fs20 clearing the 
+\f1\fs18 migrant
+\f3\fs20  property at tick end
+\f1\fs18 \uc0\u8232 "SURVIVAL"	
+\f3\fs20 survival evaluation (no callbacks)
+\f1\fs18 \
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f3\fs20 \cf2 Typically, a dictionary of task keys and thread counts is read from a file and set up with this function at initialization time, but it is also possible to change new task thread counts dynamically.  If Eidos is not configured to run multithreaded, this function has no effect.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\fs18 \cf2 (void)rm([Ns\'a0variableNames\'a0=\'a0NULL])\

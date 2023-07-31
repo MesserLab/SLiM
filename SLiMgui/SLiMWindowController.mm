@@ -467,6 +467,7 @@
 	// note that we do not save/restore the value across context switches between models, as we do RNGs and such,
 	// since we don't support end users running SLiMgui multithreaded anyhow
 	gEidosNumThreads = gEidosMaxThreads;
+	gEidosNumThreadsOverride = false;
 	omp_set_num_threads(gEidosMaxThreads);
 	
 	// Free the old simulation RNG and make a new one, to have clean state

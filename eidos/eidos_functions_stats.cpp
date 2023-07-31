@@ -223,7 +223,8 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 				const int64_t *int_data = arg_value->IntVector()->data();
 				int64_t loop_max = INT64_MIN;
 				
-#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(max: loop_max) if(arg_count >= EIDOS_OMPMIN_MAX_INT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MAX_INT);
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(max: loop_max) if(arg_count >= EIDOS_OMPMIN_MAX_INT) num_threads(thread_count)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					int64_t temp = int_data[value_index];
@@ -264,7 +265,8 @@ EidosValue_SP Eidos_ExecuteFunction_max(const std::vector<EidosValue_SP> &p_argu
 				double loop_max = -std::numeric_limits<double>::infinity();
 				bool saw_NAN = false;
 				
-#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(max: loop_max) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MAX_FLOAT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MAX_FLOAT);
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(max: loop_max) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MAX_FLOAT) num_threads(thread_count)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
@@ -436,7 +438,8 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 				const int64_t *int_data = arg_value->IntVector()->data();
 				int64_t loop_min = INT64_MAX;
 				
-#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(min: loop_min) if(arg_count >= EIDOS_OMPMIN_MIN_INT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MIN_INT);
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(int_data) reduction(min: loop_min) if(arg_count >= EIDOS_OMPMIN_MIN_INT) num_threads(thread_count)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					int64_t temp = int_data[value_index];
@@ -477,7 +480,8 @@ EidosValue_SP Eidos_ExecuteFunction_min(const std::vector<EidosValue_SP> &p_argu
 				double loop_min = std::numeric_limits<double>::infinity();
 				bool saw_NAN = false;
 				
-#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(min: loop_min) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MIN_FLOAT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MIN_FLOAT);
+#pragma omp parallel for schedule(static) default(none) shared(arg_count) firstprivate(float_data) reduction(min: loop_min) reduction(||: saw_NAN) if(arg_count >= EIDOS_OMPMIN_MIN_FLOAT) num_threads(thread_count)
 				for (int value_index = 0; value_index < arg_count; ++value_index)
 				{
 					double temp = float_data[value_index];
@@ -623,7 +627,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			// difference.  I looked at the alignment of int0_data and int_result_data, and that is uncorrelated with the performance issue.
 			// I haven't figured out how to confirm my hypothesis with profiling tools yet.  It's a mystery.  Leaving this comment here
 			// for posterity.  It's not a big deal in the grand scheme of things, but I would love to know what's going on.  FIXME
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_INT_1);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_1) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				int64_t int0_value = int0_data[value_index];
@@ -638,7 +643,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_FLOAT_1);
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_1) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
@@ -681,7 +687,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_2)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_INT_2);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMAX_INT_2) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				int64_t int0_value = int0_data[value_index];
@@ -697,7 +704,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmax(const std::vector<EidosValue_SP> &p_arg
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_2)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMAX_FLOAT_2);
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMAX_FLOAT_2) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
@@ -807,7 +815,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_INT_1);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int_result_data, y_singleton_value) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_1) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				int64_t int0_value = int0_data[value_index];
@@ -822,7 +831,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_FLOAT_1);
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float_result_data, y_singleton_value) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_1) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN
@@ -865,7 +875,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			int64_t * __restrict__ int_result_data = int_result->data();
 			result_SP = EidosValue_SP(int_result);
 			
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_2)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_INT_2);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(x_count) firstprivate(int0_data, int1_data, int_result_data) if(parallel:x_count >= EIDOS_OMPMIN_PMIN_INT_2) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				int64_t int0_value = int0_data[value_index];
@@ -881,7 +892,8 @@ EidosValue_SP Eidos_ExecuteFunction_pmin(const std::vector<EidosValue_SP> &p_arg
 			double * __restrict__ float_result_data = float_result->data();
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_2)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_PMIN_FLOAT_2);
+#pragma omp parallel for schedule(static) default(none) shared(x_count) firstprivate(float0_data, float1_data, float_result_data) if(x_count >= EIDOS_OMPMIN_PMIN_FLOAT_2) num_threads(thread_count)
 			for (int value_index = 0; value_index < x_count; ++value_index)
 			{
 				// if there is a NAN the result is always NAN

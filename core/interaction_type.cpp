@@ -3602,7 +3602,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "x")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_1);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3635,7 +3636,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "y")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_2);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3668,7 +3670,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "z")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_3);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3704,7 +3707,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "xy")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_4);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3738,7 +3742,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "xz")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_5);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3772,7 +3777,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "yz")
 		{
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_6);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -4329,7 +4335,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 			EnsureKDTreePresent(exerter_subpop_data);
 			
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH))
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_DRAWBYSTRENGTH);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4547,7 +4554,8 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_INTNEIGHCOUNT)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_INTNEIGHCOUNT);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_INTNEIGHCOUNT) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4730,7 +4738,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY))
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOCALPOPDENSITY);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5111,7 +5120,8 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		{
 			bool saw_error_1 = false, saw_error_2 = false;
 			
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, exerters, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTINTNEIGH)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEARESTINTNEIGH);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, exerters, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTINTNEIGH) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5331,7 +5341,8 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 			InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 			EnsureKDTreePresent(exerter_subpop_data);
 			
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTNEIGH)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEARESTNEIGH);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTNEIGH) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5499,7 +5510,8 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
 		bool saw_error_1 = false, saw_error_2 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEIGHCOUNT)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEIGHCOUNT);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEIGHCOUNT) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5960,7 +5972,8 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 #endif
 		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH))
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TOTNEIGHSTRENGTH);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH)) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);

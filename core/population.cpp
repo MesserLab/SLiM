@@ -604,7 +604,8 @@ void Population::DoDeferredReproduction(void)
 #endif
 	
 	// now generate the genomes of the deferred offspring in parallel
-#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_nonrecombinant) if(deferred_count_nonrecombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_DEFERRED_REPRO);
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_nonrecombinant) if(deferred_count_nonrecombinant >= EIDOS_OMPMIN_DEFERRED_REPRO) num_threads(thread_count)
 	for (size_t deferred_index = 0; deferred_index < deferred_count_nonrecombinant; ++deferred_index)
 	{
 		SLiM_DeferredReproduction_NonRecombinant &deferred_rec = deferred_reproduction_nonrecombinant_[deferred_index];
@@ -623,7 +624,8 @@ void Population::DoDeferredReproduction(void)
 		}
 	}
 	
-#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_recombinant) if(deferred_count_recombinant >= EIDOS_OMPMIN_DEFERRED_REPRO)
+	//EIDOS_THREAD_COUNT(gEidos_OMP_threads_DEFERRED_REPRO);
+#pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_recombinant) if(deferred_count_recombinant >= EIDOS_OMPMIN_DEFERRED_REPRO) num_threads(thread_count)
 	for (size_t deferred_index = 0; deferred_index < deferred_count_recombinant; ++deferred_index)
 	{
 		SLiM_DeferredReproduction_Recombinant &deferred_rec = deferred_reproduction_recombinant_[deferred_index];

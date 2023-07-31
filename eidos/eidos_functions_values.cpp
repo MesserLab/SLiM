@@ -383,7 +383,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
-#pragma omp parallel for schedule(static) default(none) shared(index_buffer, x_count) if(x_count > EIDOS_OMPMIN_SAMPLE_1)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDEX);
+#pragma omp parallel for schedule(static) default(none) shared(index_buffer, x_count) if(x_count > EIDOS_OMPMIN_SAMPLE_INDEX) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
 			index_buffer[value_index] = value_index;
 	}
@@ -445,7 +446,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				int64_t *int_result_data = int_result->data();
 				result_SP = EidosValue_SP(int_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, int_data, int_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_INT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_INT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, int_data, int_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_INT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -465,7 +467,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, float_data, float_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_FLOAT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_FLOAT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, float_data, float_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_FLOAT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -486,7 +489,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EidosObject **object_result_data = object_result->data();
 				result_SP = EidosValue_SP(object_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, object_data, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_OBJECT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_WR_OBJECT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(discrete_draw, object_data, object_result_data) if(sample_size >= EIDOS_OMPMIN_SAMPLE_WR_OBJECT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -759,7 +763,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				int64_t *int_result_data = int_result->data();
 				result_SP = EidosValue_SP(int_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(int_data, int_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_INT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_INT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(int_data, int_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_INT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -778,7 +783,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				double *float_result_data = float_result->data();
 				result_SP = EidosValue_SP(float_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(float_data, float_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_FLOAT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_FLOAT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(float_data, float_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_FLOAT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -798,7 +804,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EidosObject **object_result_data = object_result->data();
 				result_SP = EidosValue_SP(object_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(object_data, object_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_OBJECT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_R_OBJECT);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, sample_size) firstprivate(object_data, object_result_data, x_count) if(sample_size >= EIDOS_OMPMIN_SAMPLE_R_OBJECT) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -1916,7 +1923,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueInt); please report this." << EidosTerminate(nullptr);
 				}
 				
-#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(int_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_INT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MATCH_INT);
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(int_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_INT) num_threads(thread_count)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(int_data0[value_index]);
@@ -1963,7 +1971,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueFloat); please report this." << EidosTerminate(nullptr);
 				}
 				
-#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(float_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_FLOAT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MATCH_FLOAT);
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(float_data0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_FLOAT) num_threads(thread_count)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(float_data0[value_index]);
@@ -2013,7 +2022,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 				}
 				
 				// Note that if string_vec0 were firstprivate, OpenMP would copy the data, NOT the reference!!!
-#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex, string_vec0) firstprivate(int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_STRING)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MATCH_STRING);
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex, string_vec0) firstprivate(int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_STRING) num_threads(thread_count)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(string_vec0[value_index]);
@@ -2058,7 +2068,8 @@ EidosValue_SP Eidos_ExecuteFunction_match(const std::vector<EidosValue_SP> &p_ar
 					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_match): (internal error) function match() encountered a raise from its internal hash table (kValueObject); please report this." << EidosTerminate(nullptr);
 				}
 				
-#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(objelement_vec0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_OBJECT)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_MATCH_OBJECT);
+#pragma omp parallel for schedule(static) default(none) shared(x_count, fromValueToIndex) firstprivate(objelement_vec0, int_result_data) if(x_count >= EIDOS_OMPMIN_MATCH_OBJECT) num_threads(thread_count)
 				for (int value_index = 0; value_index < x_count; ++value_index)
 				{
 					auto find_iter = fromValueToIndex.find(objelement_vec0[value_index]);
@@ -2586,7 +2597,8 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	{
 		maxbin = 0;		// note that if the parallel loop runs, this gets reinitialized to the most negative number!
 		
-#pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE);
+#pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE) num_threads(thread_count)
 		for (int value_index = 0; value_index < value_count; ++value_index)
 		{
 			int64_t value = int_data[value_index];
@@ -2618,7 +2630,8 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 		// Our custom OpenMP implementation has some extra overhead that we want to avoid when running single-threaded
 		// We make completely separate tallies in each thread, and then do a reduction at the end into result_data.
 		// I tried some other approaches – per-thread locks, and atomic updates – and they were much slower.
-#pragma omp parallel default(none) shared(value_count, num_bins) firstprivate(int_data, result_data)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE);
+#pragma omp parallel default(none) shared(value_count, num_bins) firstprivate(int_data, result_data) num_threads(thread_count)
 		{
 			int64_t *perthread_tallies = (int64_t *)calloc(num_bins, sizeof(int64_t));
 			

@@ -78,6 +78,10 @@ PARALLEL changes (now in the master branch):
 	thread-safety work - break in backward reproducibility for scripts that use a type 's' DFE, because the code path for that shifted
 	algorithm change for nearestNeighbors() and nearestNeighborsOfPoint(), when count is >1 and <N; the old algorithm was not thread-safe, and was inefficient; breaks backward reproducibility for the relevant case
 		the break in backward reproducibility is because the old algorithm returned the neighbors in a scrambled order, whereas the new algorithm returns them in sorted order; the order is not documented, so both are compliant
+	add max thread counts for each parallel loop, allowing flexible customization both by Eidos and by the user
+	tweak the semantics of parallelSetNumThreads(): an integer requests that exact number of threads, whereas NULL requests "up to" the max number of threads (the default behavior)
+		add gEidosNumThreadsOverride flag indicating whether the number of threads has been overridden explicitly
+	add parallelSetTaskThreadCounts() function to set per-task thread counts, and parallelGetTaskThreadCounts() to get them
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

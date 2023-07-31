@@ -385,7 +385,8 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_quantiles);
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_DNORM_1);
+#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu0, sigma0) if(num_quantiles >= EIDOS_OMPMIN_DNORM_1) num_threads(thread_count)
 			for (int value_index = 0; value_index < num_quantiles; ++value_index)
 				float_result->set_float_no_check(gsl_ran_gaussian_pdf(float_data[value_index] - mu0, sigma0), value_index);
 		}
@@ -398,7 +399,8 @@ EidosValue_SP Eidos_ExecuteFunction_dnorm(const std::vector<EidosValue_SP> &p_ar
 		
 		bool saw_error = false;
 		
-#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_DNORM_2);
+#pragma omp parallel for schedule(static) default(none) shared(num_quantiles) firstprivate(float_data, float_result, mu_singleton, sigma_singleton, mu0, sigma0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_quantiles >= EIDOS_OMPMIN_DNORM_2) num_threads(thread_count)
 		for (int value_index = 0; value_index < num_quantiles; ++value_index)
 		{
 			double mu = (mu_singleton ? mu0 : arg_mu->FloatAtIndex(value_index, nullptr));
@@ -750,7 +752,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 			
 			if ((probability0 == 0.5) && (size0 == 1))
 			{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result) if(num_draws >= EIDOS_OMPMIN_RBINOM_1)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RBINOM_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result) if(num_draws >= EIDOS_OMPMIN_RBINOM_1) num_threads(thread_count)
 				{
 					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 					
@@ -761,7 +764,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 			}
 			else
 			{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, probability0, size0) if(num_draws >= EIDOS_OMPMIN_RBINOM_2)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RBINOM_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, probability0, size0) if(num_draws >= EIDOS_OMPMIN_RBINOM_2) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -779,7 +783,8 @@ EidosValue_SP Eidos_ExecuteFunction_rbinom(const std::vector<EidosValue_SP> &p_a
 		
 		bool saw_error1 = false, saw_error2 = false;
 		
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, size_singleton, prob_singleton, size0, probability0, arg_size, arg_prob) reduction(||: saw_error1) reduction(||: saw_error2) if(num_draws >= EIDOS_OMPMIN_RBINOM_3)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RBINOM_3);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, size_singleton, prob_singleton, size0, probability0, arg_size, arg_prob) reduction(||: saw_error1) reduction(||: saw_error2) if(num_draws >= EIDOS_OMPMIN_RBINOM_3) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
@@ -933,7 +938,8 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 			
 			if (count0 == 2)
 			{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_1)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_1) num_threads(thread_count)
 				{
 					Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
 					
@@ -944,7 +950,8 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 			}
 			else
 			{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0, count0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_2)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_value0, count0) if(num_draws >= EIDOS_OMPMIN_RDUNIF_2) num_threads(thread_count)
 				{
 					Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 					
@@ -962,7 +969,8 @@ EidosValue_SP Eidos_ExecuteFunction_rdunif(const std::vector<EidosValue_SP> &p_a
 		
 		bool saw_error = false;
 		
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RDUNIF_3)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RDUNIF_3);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RDUNIF_3) num_threads(thread_count)
 		{
 			Eidos_MT_State *mt = EIDOS_MT_RNG(omp_get_thread_num());
 			
@@ -1074,7 +1082,8 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, mu0) if(num_draws >= EIDOS_OMPMIN_REXP_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_REXP_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, mu0) if(num_draws >= EIDOS_OMPMIN_REXP_1) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
@@ -1089,7 +1098,8 @@ EidosValue_SP Eidos_ExecuteFunction_rexp(const std::vector<EidosValue_SP> &p_arg
 		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((int)num_draws);
 		result_SP = EidosValue_SP(float_result);
 		
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, arg_mu) if(num_draws >= EIDOS_OMPMIN_REXP_2)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_REXP_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, arg_mu) if(num_draws >= EIDOS_OMPMIN_REXP_2) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
@@ -1667,7 +1677,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	
 	if (mu_singleton && sigma_singleton)
 	{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, sigma0, mu0) if(num_draws >= EIDOS_OMPMIN_RNORM_1)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RNORM_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, sigma0, mu0) if(num_draws >= EIDOS_OMPMIN_RNORM_1) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
@@ -1678,7 +1689,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	}
 	else if (sigma_singleton)	// && !mu_singleton
 	{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, sigma0, arg_mu) if(num_draws >= EIDOS_OMPMIN_RNORM_2)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RNORM_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, sigma0, arg_mu) if(num_draws >= EIDOS_OMPMIN_RNORM_2) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
@@ -1695,7 +1707,8 @@ EidosValue_SP Eidos_ExecuteFunction_rnorm(const std::vector<EidosValue_SP> &p_ar
 	{
 		bool saw_error = false;
 		
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, mu_singleton, mu0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RNORM_3)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RNORM_3);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, mu_singleton, mu0, arg_mu, arg_sigma) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RNORM_3) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
@@ -1762,7 +1775,8 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(int_result);
 			
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, lambda0) if(num_draws >= EIDOS_OMPMIN_RPOIS_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RPOIS_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, lambda0) if(num_draws >= EIDOS_OMPMIN_RPOIS_1) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
@@ -1779,7 +1793,8 @@ EidosValue_SP Eidos_ExecuteFunction_rpois(const std::vector<EidosValue_SP> &p_ar
 		
 		bool saw_error = false;
 		
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, arg_lambda) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RPOIS_2)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_RPOIS_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(int_result, arg_lambda) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RPOIS_2) num_threads(thread_count)
 		{
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			
@@ -1845,7 +1860,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 			result_SP = EidosValue_SP(float_result);
 			
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result) if(num_draws >= EIDOS_OMPMIN_RUNIF_1)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RUNIF_1);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws, std::cout) firstprivate(float_result) if(num_draws >= EIDOS_OMPMIN_RUNIF_1) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				
@@ -1875,7 +1891,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 				EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(num_draws);
 				result_SP = EidosValue_SP(float_result);
 				
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, range0, min_value0) if(num_draws >= EIDOS_OMPMIN_RUNIF_2)
+				EIDOS_THREAD_COUNT(gEidos_OMP_threads_RUNIF_2);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, range0, min_value0) if(num_draws >= EIDOS_OMPMIN_RUNIF_2) num_threads(thread_count)
 				{
 					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 					
@@ -1892,7 +1909,8 @@ EidosValue_SP Eidos_ExecuteFunction_runif(const std::vector<EidosValue_SP> &p_ar
 			
 			bool saw_error = false;
 			
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RUNIF_3)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_RUNIF_3);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, num_draws) firstprivate(float_result, min_singleton, max_singleton, min_value0, max_value0, arg_min, arg_max) reduction(||: saw_error) if(num_draws >= EIDOS_OMPMIN_RUNIF_3) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				

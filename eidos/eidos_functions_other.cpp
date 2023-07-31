@@ -23,6 +23,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_rng.h"
 #include "eidos_beep.h"
+#include "eidos_openmp.h"
 
 #include <utility>
 #include <memory>
@@ -719,6 +720,122 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetMaxThreads(__attribute__((unused)
 	return result_SP;
 }
 
+//	(object<Dictionary>$)parallelGetTaskThreadCounts(void)
+EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
+	
+#ifdef _OPENMP
+	objectElement->SetKeyValue_StringKeys("ABS_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_ABS_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("CEIL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CEIL)));
+	objectElement->SetKeyValue_StringKeys("EXP_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_EXP_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("FLOOR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FLOOR)));
+	objectElement->SetKeyValue_StringKeys("LOG_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("LOG10_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG10_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("LOG2_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOG2_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("ROUND", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_ROUND)));
+	objectElement->SetKeyValue_StringKeys("SQRT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SQRT_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SUM_INTEGER", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_INTEGER)));
+	objectElement->SetKeyValue_StringKeys("SUM_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SUM_LOGICAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_LOGICAL)));
+	objectElement->SetKeyValue_StringKeys("TRUNC", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TRUNC)));
+	
+	objectElement->SetKeyValue_StringKeys("MAX_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MAX_INT)));
+	objectElement->SetKeyValue_StringKeys("MAX_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MAX_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("MIN_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIN_INT)));
+	objectElement->SetKeyValue_StringKeys("MIN_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIN_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("PMAX_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_INT_1)));
+	objectElement->SetKeyValue_StringKeys("PMAX_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_INT_2)));
+	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_FLOAT_1)));
+	objectElement->SetKeyValue_StringKeys("PMAX_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMAX_FLOAT_2)));
+	objectElement->SetKeyValue_StringKeys("PMIN_INT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_INT_1)));
+	objectElement->SetKeyValue_StringKeys("PMIN_INT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_INT_2)));
+	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_FLOAT_1)));
+	objectElement->SetKeyValue_StringKeys("PMIN_FLOAT_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PMIN_FLOAT_2)));
+	
+	objectElement->SetKeyValue_StringKeys("MATCH_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_INT)));
+	objectElement->SetKeyValue_StringKeys("MATCH_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("MATCH_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_STRING)));
+	objectElement->SetKeyValue_StringKeys("MATCH_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MATCH_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDEX", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDEX)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_INT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_R_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_R_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_INT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("TABULATE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TABULATE)));
+	
+	objectElement->SetKeyValue_StringKeys("CONTAINS_MARKER_MUT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CONTAINS_MARKER_MUT)));
+	objectElement->SetKeyValue_StringKeys("I_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE)));
+	objectElement->SetKeyValue_StringKeys("G_COUNT_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE)));
+	objectElement->SetKeyValue_StringKeys("INDS_W_PEDIGREE_IDS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_INDS_W_PEDIGREE_IDS)));
+	objectElement->SetKeyValue_StringKeys("RELATEDNESS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RELATEDNESS)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1)));
+	objectElement->SetKeyValue_StringKeys("SAMPLE_INDIVIDUALS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_INDIVIDUALS_2)));
+	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_FITNESS_SCALE_1)));
+	objectElement->SetKeyValue_StringKeys("SET_FITNESS_SCALE_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_FITNESS_SCALE_2)));
+	objectElement->SetKeyValue_StringKeys("SUM_OF_MUTS_OF_TYPE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE)));
+	
+	objectElement->SetKeyValue_StringKeys("DNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DNORM_1)));
+	objectElement->SetKeyValue_StringKeys("DNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DNORM_2)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_1)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_2)));
+	objectElement->SetKeyValue_StringKeys("RBINOM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RBINOM_3)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_1)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_2)));
+	objectElement->SetKeyValue_StringKeys("RDUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RDUNIF_3)));
+	objectElement->SetKeyValue_StringKeys("REXP_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_REXP_1)));
+	objectElement->SetKeyValue_StringKeys("REXP_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_REXP_2)));
+	objectElement->SetKeyValue_StringKeys("RNORM_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_1)));
+	objectElement->SetKeyValue_StringKeys("RNORM_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_2)));
+	objectElement->SetKeyValue_StringKeys("RNORM_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RNORM_3)));
+	objectElement->SetKeyValue_StringKeys("RPOIS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RPOIS_1)));
+	objectElement->SetKeyValue_StringKeys("RPOIS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RPOIS_2)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_1)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_2)));
+	objectElement->SetKeyValue_StringKeys("RUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_3)));
+	
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2)));
+	objectElement->SetKeyValue_StringKeys("SPATIAL_MAP_VALUE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SPATIAL_MAP_VALUE)));
+	
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_1)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_2)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_3)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_4", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_4)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_5", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_5)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_6", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_6)));
+	objectElement->SetKeyValue_StringKeys("DRAWBYSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DRAWBYSTRENGTH)));
+	objectElement->SetKeyValue_StringKeys("INTNEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_INTNEIGHCOUNT)));
+	objectElement->SetKeyValue_StringKeys("LOCALPOPDENSITY", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOCALPOPDENSITY)));
+	objectElement->SetKeyValue_StringKeys("NEARESTINTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEARESTINTNEIGH)));
+	objectElement->SetKeyValue_StringKeys("NEARESTNEIGH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEARESTNEIGH)));
+	objectElement->SetKeyValue_StringKeys("NEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_NEIGHCOUNT)));
+	objectElement->SetKeyValue_StringKeys("TOTNEIGHSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TOTNEIGHSTRENGTH)));
+	
+	objectElement->SetKeyValue_StringKeys("AGE_INCR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_AGE_INCR)));
+	objectElement->SetKeyValue_StringKeys("DEFERRED_REPRO", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DEFERRED_REPRO)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_2)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_F_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_F_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_F_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_F_2)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_M_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_M_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_M_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_M_2)));
+	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIGRANT_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SURVIVAL)));
+#endif
+	
+	objectElement->ContentsChanged("parallelGetTaskThreadCounts()");
+	return result_SP;
+}
+
 //	(void)parallelSetNumThreads([Ni$ numThreads = NULL])
 EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
@@ -727,7 +844,16 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	int64_t numThreads = gEidosMaxThreads;		// the default value, used for NULL
 	
 	if (numThreads_value->Type() == EidosValueType::kValueInt)
+	{
+		// An explicit override has been requested, even if numThreads == gEidosMaxThreads
 		numThreads = numThreads_value->IntAtIndex(0, nullptr);
+		gEidosNumThreadsOverride = true;
+	}
+	else
+	{
+		// The user has requested, with NULL, that the default thread usage pattern not be overridden
+		gEidosNumThreadsOverride = false;
+	}
 	
 	if (numThreads < 1)
 		numThreads = 1;
@@ -739,6 +865,172 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetNumThreads(__attribute__((unused)
 	
 	// Note that this affects every running model, in SLiMgui.  Since we don't really support end users running SLiMgui
 	// multithreaded, I'm not going to bother fixing that by saving/restoring it across SLiMgui context switches.
+	
+	return gStaticEidosValueVOID;
+}
+
+//	(void)parallelSetTaskThreadCounts(object$ dict)
+EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *source_value = p_arguments[0].get();
+	
+	if (source_value->Type() == EidosValueType::kValueNULL)
+	{
+		// A dict value of NULL means "reset to default settings", which we have a function for
+		_Eidos_SetDefaultOpenMPThreadCounts();
+	}
+	else
+	{
+		// Check that source is a subclass of EidosDictionaryUnretained.  We do this check here because we want to avoid making
+		// EidosDictionaryUnretained visible in the public API; we want to pretend that there is just one class, Dictionary.
+		// I'm not sure whether that's going to be right in the long term, but I want to keep my options open for now.
+		EidosDictionaryUnretained *source = dynamic_cast<EidosDictionaryUnretained *>(source_value->ObjectElementAtIndex(0, nullptr));
+		
+		if (!source)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() can only take values from a Dictionary or a subclass of Dictionary." << EidosTerminate(nullptr);
+		
+		if (source->KeysAreStrings())
+		{
+			const EidosDictionaryHashTable_StringKeys *source_symbols = source->DictionarySymbols_StringKeys();
+			const std::vector<std::string> source_keys = source->SortedKeys_StringKeys();
+			
+			if (source_symbols && source_symbols->size())
+			{
+				for (const std::string &key : source_keys)
+				{
+					auto kv_pair = source_symbols->find(key);
+					const EidosValue_SP &value = kv_pair->second;
+					
+					if ((value->Type() == EidosValueType::kValueInt) && (value->Count() == 1))
+					{
+						int64_t value_int64 = value->IntAtIndex(0, nullptr);
+						
+						if ((value_int64 < 1) || (value_int64 > EIDOS_OMP_MAX_THREADS))
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() requires thread counts to be in [1, " << EIDOS_OMP_MAX_THREADS << "]." << EidosTerminate(nullptr);
+						
+#ifdef _OPENMP
+						// We only actually process the key-value pairs when running multithreaded;
+						// single-threaded, they are all ignored (for cross-compatibility).
+						if (key == "ABS_FLOAT")							gEidos_OMP_threads_ABS_FLOAT = (int)value_int64;
+						else if (key == "CEIL")							gEidos_OMP_threads_CEIL = (int)value_int64;
+						else if (key == "EXP_FLOAT")					gEidos_OMP_threads_EXP_FLOAT = (int)value_int64;
+						else if (key == "FLOOR")						gEidos_OMP_threads_FLOOR = (int)value_int64;
+						else if (key == "LOG_FLOAT")					gEidos_OMP_threads_LOG_FLOAT = (int)value_int64;
+						else if (key == "LOG10_FLOAT")					gEidos_OMP_threads_LOG10_FLOAT = (int)value_int64;
+						else if (key == "LOG2_FLOAT")					gEidos_OMP_threads_LOG2_FLOAT = (int)value_int64;
+						else if (key == "ROUND")						gEidos_OMP_threads_ROUND = (int)value_int64;
+						else if (key == "SQRT_FLOAT")					gEidos_OMP_threads_SQRT_FLOAT = (int)value_int64;
+						else if (key == "SUM_INTEGER")					gEidos_OMP_threads_SUM_INTEGER = (int)value_int64;
+						else if (key == "SUM_FLOAT")					gEidos_OMP_threads_SUM_FLOAT = (int)value_int64;
+						else if (key == "SUM_LOGICAL")					gEidos_OMP_threads_SUM_LOGICAL = (int)value_int64;
+						else if (key == "TRUNC")						gEidos_OMP_threads_TRUNC = (int)value_int64;
+						
+						else if (key == "MAX_INT")						gEidos_OMP_threads_MAX_INT = (int)value_int64;
+						else if (key == "MAX_FLOAT")					gEidos_OMP_threads_MAX_FLOAT = (int)value_int64;
+						else if (key == "MIN_INT")						gEidos_OMP_threads_MIN_INT = (int)value_int64;
+						else if (key == "MIN_FLOAT")					gEidos_OMP_threads_MIN_FLOAT = (int)value_int64;
+						else if (key == "PMAX_INT_1")					gEidos_OMP_threads_PMAX_INT_1 = (int)value_int64;
+						else if (key == "PMAX_INT_2")					gEidos_OMP_threads_PMAX_INT_2 = (int)value_int64;
+						else if (key == "PMAX_FLOAT_1")					gEidos_OMP_threads_PMAX_FLOAT_1 = (int)value_int64;
+						else if (key == "PMAX_FLOAT_2")					gEidos_OMP_threads_PMAX_FLOAT_2 = (int)value_int64;
+						else if (key == "PMIN_INT_1")					gEidos_OMP_threads_PMIN_INT_1 = (int)value_int64;
+						else if (key == "PMIN_INT_2")					gEidos_OMP_threads_PMIN_INT_2 = (int)value_int64;
+						else if (key == "PMIN_FLOAT_1")					gEidos_OMP_threads_PMIN_FLOAT_1 = (int)value_int64;
+						else if (key == "PMIN_FLOAT_2")					gEidos_OMP_threads_PMIN_FLOAT_2 = (int)value_int64;
+						
+						else if (key == "MATCH_INT")					gEidos_OMP_threads_MATCH_INT = (int)value_int64;
+						else if (key == "MATCH_FLOAT")					gEidos_OMP_threads_MATCH_FLOAT = (int)value_int64;
+						else if (key == "MATCH_STRING")					gEidos_OMP_threads_MATCH_STRING = (int)value_int64;
+						else if (key == "MATCH_OBJECT")					gEidos_OMP_threads_MATCH_OBJECT = (int)value_int64;
+						else if (key == "SAMPLE_INDEX")					gEidos_OMP_threads_SAMPLE_INDEX = (int)value_int64;
+						else if (key == "SAMPLE_R_INT")					gEidos_OMP_threads_SAMPLE_R_INT = (int)value_int64;
+						else if (key == "SAMPLE_R_FLOAT")				gEidos_OMP_threads_SAMPLE_R_FLOAT = (int)value_int64;
+						else if (key == "SAMPLE_R_OBJECT")				gEidos_OMP_threads_SAMPLE_R_OBJECT = (int)value_int64;
+						else if (key == "SAMPLE_WR_INT")				gEidos_OMP_threads_SAMPLE_WR_INT = (int)value_int64;
+						else if (key == "SAMPLE_WR_FLOAT")				gEidos_OMP_threads_SAMPLE_WR_FLOAT = (int)value_int64;
+						else if (key == "SAMPLE_WR_OBJECT")				gEidos_OMP_threads_SAMPLE_WR_OBJECT = (int)value_int64;
+						else if (key == "TABULATE")						gEidos_OMP_threads_TABULATE = (int)value_int64;
+						
+						else if (key == "CONTAINS_MARKER_MUT")			gEidos_OMP_threads_CONTAINS_MARKER_MUT = (int)value_int64;
+						else if (key == "I_COUNT_OF_MUTS_OF_TYPE")		gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE = (int)value_int64;
+						else if (key == "G_COUNT_OF_MUTS_OF_TYPE")		gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE = (int)value_int64;
+						else if (key == "INDS_W_PEDIGREE_IDS")			gEidos_OMP_threads_INDS_W_PEDIGREE_IDS = (int)value_int64;
+						else if (key == "RELATEDNESS")					gEidos_OMP_threads_RELATEDNESS = (int)value_int64;
+						else if (key == "SAMPLE_INDIVIDUALS_1")			gEidos_OMP_threads_SAMPLE_INDIVIDUALS_1 = (int)value_int64;
+						else if (key == "SAMPLE_INDIVIDUALS_2")			gEidos_OMP_threads_SAMPLE_INDIVIDUALS_2 = (int)value_int64;
+						else if (key == "SET_FITNESS_SCALE_1")			gEidos_OMP_threads_SET_FITNESS_SCALE_1 = (int)value_int64;
+						else if (key == "SET_FITNESS_SCALE_2")			gEidos_OMP_threads_SET_FITNESS_SCALE_2 = (int)value_int64;
+						else if (key == "SUM_OF_MUTS_OF_TYPE")			gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE = (int)value_int64;
+						
+						else if (key == "DNORM_1")						gEidos_OMP_threads_DNORM_1 = (int)value_int64;
+						else if (key == "DNORM_2")						gEidos_OMP_threads_DNORM_2 = (int)value_int64;
+						else if (key == "RBINOM_1")						gEidos_OMP_threads_RBINOM_1 = (int)value_int64;
+						else if (key == "RBINOM_2")						gEidos_OMP_threads_RBINOM_2 = (int)value_int64;
+						else if (key == "RBINOM_3")						gEidos_OMP_threads_RBINOM_3 = (int)value_int64;
+						else if (key == "RDUNIF_1")						gEidos_OMP_threads_RDUNIF_1 = (int)value_int64;
+						else if (key == "RDUNIF_2")						gEidos_OMP_threads_RDUNIF_2 = (int)value_int64;
+						else if (key == "RDUNIF_3")						gEidos_OMP_threads_RDUNIF_3 = (int)value_int64;
+						else if (key == "REXP_1")						gEidos_OMP_threads_REXP_1 = (int)value_int64;
+						else if (key == "REXP_2")						gEidos_OMP_threads_REXP_2 = (int)value_int64;
+						else if (key == "RNORM_1")						gEidos_OMP_threads_RNORM_1 = (int)value_int64;
+						else if (key == "RNORM_2")						gEidos_OMP_threads_RNORM_2 = (int)value_int64;
+						else if (key == "RNORM_3")						gEidos_OMP_threads_RNORM_3 = (int)value_int64;
+						else if (key == "RPOIS_1")						gEidos_OMP_threads_RPOIS_1 = (int)value_int64;
+						else if (key == "RPOIS_2")						gEidos_OMP_threads_RPOIS_2 = (int)value_int64;
+						else if (key == "RUNIF_1")						gEidos_OMP_threads_RUNIF_1 = (int)value_int64;
+						else if (key == "RUNIF_2")						gEidos_OMP_threads_RUNIF_2 = (int)value_int64;
+						else if (key == "RUNIF_3")						gEidos_OMP_threads_RUNIF_3 = (int)value_int64;
+						
+						else if (key == "POINT_IN_BOUNDS")				gEidos_OMP_threads_POINT_IN_BOUNDS = (int)value_int64;
+						else if (key == "POINT_PERIODIC")				gEidos_OMP_threads_POINT_PERIODIC = (int)value_int64;
+						else if (key == "POINT_REFLECTED")				gEidos_OMP_threads_POINT_REFLECTED = (int)value_int64;
+						else if (key == "POINT_STOPPED")				gEidos_OMP_threads_POINT_STOPPED = (int)value_int64;
+						else if (key == "POINT_UNIFORM")				gEidos_OMP_threads_POINT_UNIFORM = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_1")			gEidos_OMP_threads_SET_SPATIAL_POS_1 = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_2")			gEidos_OMP_threads_SET_SPATIAL_POS_2 = (int)value_int64;
+						else if (key == "SPATIAL_MAP_VALUE")			gEidos_OMP_threads_SPATIAL_MAP_VALUE = (int)value_int64;
+						
+						else if (key == "CLIPPEDINTEGRAL_1")			gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_2")			gEidos_OMP_threads_CLIPPEDINTEGRAL_2 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_3")			gEidos_OMP_threads_CLIPPEDINTEGRAL_3 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_4")			gEidos_OMP_threads_CLIPPEDINTEGRAL_4 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_5")			gEidos_OMP_threads_CLIPPEDINTEGRAL_5 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_6")			gEidos_OMP_threads_CLIPPEDINTEGRAL_6 = (int)value_int64;
+						else if (key == "DRAWBYSTRENGTH")				gEidos_OMP_threads_DRAWBYSTRENGTH = (int)value_int64;
+						else if (key == "INTNEIGHCOUNT")				gEidos_OMP_threads_INTNEIGHCOUNT = (int)value_int64;
+						else if (key == "LOCALPOPDENSITY")				gEidos_OMP_threads_LOCALPOPDENSITY = (int)value_int64;
+						else if (key == "NEARESTINTNEIGH")				gEidos_OMP_threads_NEARESTINTNEIGH = (int)value_int64;
+						else if (key == "NEARESTNEIGH")					gEidos_OMP_threads_NEARESTNEIGH = (int)value_int64;
+						else if (key == "NEIGHCOUNT")					gEidos_OMP_threads_NEIGHCOUNT = (int)value_int64;
+						else if (key == "TOTNEIGHSTRENGTH")				gEidos_OMP_threads_TOTNEIGHSTRENGTH = (int)value_int64;
+						
+						else if (key == "AGE_INCR")						gEidos_OMP_threads_AGE_INCR = (int)value_int64;
+						else if (key == "DEFERRED_REPRO")				gEidos_OMP_threads_DEFERRED_REPRO = (int)value_int64;
+						else if (key == "FITNESS_ASEX_1")				gEidos_OMP_threads_FITNESS_ASEX_1 = (int)value_int64;
+						else if (key == "FITNESS_ASEX_2")				gEidos_OMP_threads_FITNESS_ASEX_2 = (int)value_int64;
+						else if (key == "FITNESS_SEX_F_1")				gEidos_OMP_threads_FITNESS_SEX_F_1 = (int)value_int64;
+						else if (key == "FITNESS_SEX_F_2")				gEidos_OMP_threads_FITNESS_SEX_F_2 = (int)value_int64;
+						else if (key == "FITNESS_SEX_M_1")				gEidos_OMP_threads_FITNESS_SEX_M_1 = (int)value_int64;
+						else if (key == "FITNESS_SEX_M_2")				gEidos_OMP_threads_FITNESS_SEX_M_2 = (int)value_int64;
+						else if (key == "MIGRANT_CLEAR")				gEidos_OMP_threads_MIGRANT_CLEAR = (int)value_int64;
+						else if (key == "SURVIVAL")						gEidos_OMP_threads_SURVIVAL = (int)value_int64;
+						else
+							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() does not recognize the task name " << key << "." << EidosTerminate(nullptr);
+#endif
+					}
+					else
+						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() expects dict to contain singleton integer values." << EidosTerminate(nullptr);
+				}
+				
+				// Clip all values to gEidosMaxThreads in preparation for use
+#ifdef _OPENMP
+				_Eidos_ClipOpenMPThreadCounts();
+#endif
+			}
+		}
+		else
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() expects dict to use string keys." << EidosTerminate(nullptr);
+	}
 	
 	return gStaticEidosValueVOID;
 }

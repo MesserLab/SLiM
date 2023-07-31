@@ -1701,11 +1701,13 @@ void _RunUserDefinedFunctionTests(void)
 				
 				// Note that we ensure that we are using the maximum number of threads at start & end
 				gEidosNumThreads = gEidosMaxThreads;
+				gEidosNumThreadsOverride = false;
 				omp_set_num_threads(gEidosMaxThreads);
 				
 				EidosAssertScriptSuccess_L(test_string_fixed, true);
 				
 				gEidosNumThreads = gEidosMaxThreads;
+				gEidosNumThreadsOverride = false;
 				omp_set_num_threads(gEidosMaxThreads);
 			}
 		}

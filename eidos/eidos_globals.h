@@ -61,6 +61,8 @@ class EidosToken;
 
 // These should be called once at startup to give Eidos an opportunity to initialize static state
 #ifdef _OPENMP
+void _Eidos_SetDefaultOpenMPThreadCounts(void);
+void _Eidos_ClipOpenMPThreadCounts(void);
 void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
 #endif
 

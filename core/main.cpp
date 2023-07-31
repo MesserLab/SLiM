@@ -396,9 +396,9 @@ int main(int argc, char *argv[])
 			max_thread_count = count;
 			changed_max_thread_count = true;
 			
-			if ((max_thread_count < 1) || (max_thread_count > 1024))
+			if ((max_thread_count < 1) || (max_thread_count > EIDOS_OMP_MAX_THREADS))
 			{
-				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, 1024]." << std::endl;
+				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, " << EIDOS_OMP_MAX_THREADS << "]." << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			
