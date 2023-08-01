@@ -2631,7 +2631,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 		// We make completely separate tallies in each thread, and then do a reduction at the end into result_data.
 		// I tried some other approaches – per-thread locks, and atomic updates – and they were much slower.
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE);
-#pragma omp parallel default(none) shared(value_count, num_bins) firstprivate(int_data, result_data) num_threads(thread_count)
+#pragma omp parallel default(none) shared(value_count, num_bins) firstprivate(int_data, result_data) num_threads(thread_count) // if(EIDOS_OMPMIN_TABULATE) is above
 		{
 			int64_t *perthread_tallies = (int64_t *)calloc(num_bins, sizeof(int64_t));
 			

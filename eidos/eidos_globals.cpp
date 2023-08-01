@@ -398,7 +398,7 @@ void _Eidos_SetDefaultOpenMPThreadCounts(void)
 	gEidos_OMP_threads_RNORM_3 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_RPOIS_1 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_RPOIS_2 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_RUNIF_1 = 3; //EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_RUNIF_1 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_RUNIF_2 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_RUNIF_3 = EIDOS_OMP_MAX_THREADS;
 

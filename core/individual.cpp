@@ -1966,7 +1966,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				case 1:
 				{
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						targets[target_index]->spatial_x_ = positions[target_index];
@@ -1976,7 +1976,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				case 2:
 				{
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1990,7 +1990,7 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				case 3:
 				{
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
