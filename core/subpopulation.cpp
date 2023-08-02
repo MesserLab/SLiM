@@ -6011,8 +6011,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS_1D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS_1D) num_threads(thread_count)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index];
@@ -6026,8 +6026,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS_2D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS_2D) num_threads(thread_count)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 2];
@@ -6042,8 +6042,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_IN_BOUNDS_3D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS_3D) num_threads(thread_count)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 3];
@@ -6109,8 +6109,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED_1D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED_1D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index];
@@ -6128,8 +6128,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED_2D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED_2D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 2];
@@ -6156,8 +6156,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointReflected(EidosGlobalStringID p_
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_REFLECTED_3D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_REFLECTED_3D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 3];
@@ -6236,8 +6236,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED_1D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED_1D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index];
@@ -6249,8 +6249,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED_2D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED_2D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 2];
@@ -6265,8 +6265,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointStopped(EidosGlobalStringID p_me
 		{
 			double bx0 = bounds_x0_, bx1 = bounds_x1_, by0 = bounds_y0_, by1 = bounds_y1_, bz0 = bounds_z0_, bz1 = bounds_z1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_STOPPED_3D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_STOPPED_3D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 3];
@@ -6346,8 +6346,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 		{
 			double bx1 = bounds_x1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, periodic_x) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC_1D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, periodic_x) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC_1D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index];
@@ -6364,8 +6364,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 		{
 			double bx1 = bounds_x1_, by1 = bounds_y1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, periodic_x, periodic_y) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC_2D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, periodic_x, periodic_y) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC_2D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 2];
@@ -6390,8 +6390,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointPeriodic(EidosGlobalStringID p_m
 		{
 			double bx1 = bounds_x1_, by1 = bounds_y1_, bz1 = bounds_z1_;
 			
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC);
-#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, bz1, periodic_x, periodic_y, periodic_z) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_PERIODIC_3D);
+#pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, float_result_data, bx1, by1, bz1, periodic_x, periodic_y, periodic_z) if(point_count >= EIDOS_OMPMIN_POINT_PERIODIC_3D) num_threads(thread_count)
 			for (int64_t point_index = 0; point_index < point_count; ++point_index)
 			{
 				double x = point_buf[point_index * 3];
@@ -6455,8 +6455,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 	{
 		case 1:
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM);
-#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_1D);
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_1D) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
@@ -6471,8 +6471,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		}
 		case 2:
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM);
-#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_2D);
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_2D) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;
@@ -6489,8 +6489,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointUniform(EidosGlobalStringID p_me
 		}
 		case 3:
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM);
-#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_POINT_UNIFORM_3D);
+#pragma omp parallel default(none) shared(point_count, gEidos_RNG_PERTHREAD) firstprivate(float_result_data) if(point_count >= EIDOS_OMPMIN_POINT_UNIFORM_3D) num_threads(thread_count)
 			{
 				gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 				double xsize = bounds_x1_ - bounds_x0_, xbase = bounds_x0_;

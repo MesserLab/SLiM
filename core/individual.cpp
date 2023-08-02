@@ -1906,8 +1906,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				{
 					double x = position_value->FloatAtIndex(0, nullptr);
 					
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1);
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1) num_threads(thread_count)
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_1D);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_1D) num_threads(thread_count)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1920,8 +1920,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					double x = position_value->FloatAtIndex(0, nullptr);
 					double y = position_value->FloatAtIndex(1, nullptr);
 					
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1);
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1) num_threads(thread_count)
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_2D);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_2D) num_threads(thread_count)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1936,8 +1936,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					double y = position_value->FloatAtIndex(1, nullptr);
 					double z = position_value->FloatAtIndex(2, nullptr);
 					
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1);
-#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y, z) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1) num_threads(thread_count)
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_1_3D);
+#pragma omp parallel for simd schedule(simd:static) default(none) shared(target_size) firstprivate(targets, x, y, z) if(target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_1_3D) num_threads(thread_count)
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1959,14 +1959,16 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 		const double *positions = position_vec->data();
 		
 #ifdef _OPENMP
-		if (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2)
+		if (((dimensionality == 1) && (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2_1D)) ||
+			((dimensionality == 2) && (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2_2D)) ||
+			((dimensionality == 3) && (target_size >= EIDOS_OMPMIN_SET_SPATIAL_POS_2_3D)))
 		{
 			switch (dimensionality)
 			{
 				case 1:
 				{
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2_1D);
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2_1D) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						targets[target_index]->spatial_x_ = positions[target_index];
@@ -1975,8 +1977,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				}
 				case 2:
 				{
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2_2D);
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2_2D) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];
@@ -1989,8 +1991,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 				}
 				case 3:
 				{
-					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2);
-#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2) is above
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_SET_SPATIAL_POS_2_3D);
+#pragma omp parallel for schedule(static) default(none) shared(target_size) firstprivate(targets, positions) num_threads(thread_count) // if(EIDOS_OMPMIN_SET_SPATIAL_POS_2_3D) is above
 					for (int target_index = 0; target_index < target_size; ++target_index)
 					{
 						Individual *target = targets[target_index];

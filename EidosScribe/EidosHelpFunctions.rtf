@@ -5928,7 +5928,13 @@ The task keys recognized, and the tasks they govern, are:\
 "MAX_INT"	max(integer x)\uc0\u8232 "MAX_FLOAT"	max(float x)\u8232 "MIN_INT"	min(integer x)\u8232 "MIN_FLOAT"	min(float x)\u8232 "PMAX_INT_1"	pmax(i$ x, i y) / pmax(i x, i$ y)\u8232 "PMAX_INT_2"	pmax(integer x, integer y)\u8232 "PMAX_FLOAT_1"	pmax(f$ x, f y) / pmax(f x, f$ y)\u8232 "PMAX_FLOAT_2"	pmax(float x, float y)\u8232 "PMIN_INT_1"	pmin(i$ x, i y) / pmax(i x, i$ y)\u8232 "PMIN_INT_2"	pmin(integer x, integer y)\u8232 "PMIN_FLOAT_1"	pmin(f$ x, f y) / pmin(f x, f$ y)\u8232 "PMIN_FLOAT_2"	pmin(float x, float y)\
 "MATCH_INT"	match(integer x, integer table)\uc0\u8232 "MATCH_FLOAT"	match(float x, float table)\u8232 "MATCH_STRING"	match(string x, string table)\u8232 "MATCH_OBJECT"	match(object x, object table)\u8232 "SAMPLE_INDEX"	sample()
 \f3\fs20  index buffer generation (internal)
-\f1\fs18 \uc0\u8232 "SAMPLE_R_INT"	sample(integer x, weights=NULL)\u8232 "SAMPLE_R_FLOAT"	sample(float x, weights=NULL)\u8232 "SAMPLE_R_OBJECT"	sample(object x, weights=NULL)\u8232 "SAMPLE_WR_INT"	sample(integer x, if weights)\u8232 "SAMPLE_WR_FLOAT"	sample(float x, if weights)\u8232 "SAMPLE_WR_OBJECT"	sample(object x, if weights)\u8232 "TABULATE"	tabulate()\
+\f1\fs18 \uc0\u8232 "SAMPLE_R_INT"	sample(integer x, weights=NULL)\u8232 "SAMPLE_R_FLOAT"	sample(float x, weights=NULL)\u8232 "SAMPLE_R_OBJECT"	sample(object x, weights=NULL)\u8232 "SAMPLE_WR_INT"	sample(integer x, if weights)\u8232 "SAMPLE_WR_FLOAT"	sample(float x, if weights)\u8232 "SAMPLE_WR_OBJECT"	sample(object x, if weights)\u8232 "TABULATE_MAXBIN"	tabulate()
+\f3\fs20  determination of 
+\f1\fs18 maxbin
+\f3\fs20  (if not supplied)
+\f1\fs18 \uc0\u8232 "TABULATE"	tabulate()
+\f3\fs20  main loop
+\f1\fs18 \
 "DNORM_1"	dnorm(numeric$ mean, numeric$ sd)\uc0\u8232 "DNORM_2"	dnorm()
 \f3\fs20  other cases
 \f1\fs18 \uc0\u8232 "RBINOM_1"	rbinom(i$ size = 1, f$ prob = 0.5)\u8232 "RBINOM_2"	rbinom(i$ size, f$ prob)
@@ -5953,12 +5959,54 @@ The task keys recognized, and the tasks they govern, are:\
 \f3\fs20  other cases
 \f1\fs18 \
 "CLIPPEDINTEGRAL_1"	clippedIntegral() "x"\uc0\u8232 "CLIPPEDINTEGRAL_2"	clippedIntegral() "y"\u8232 "CLIPPEDINTEGRAL_3"	clippedIntegral() "z"\u8232 "CLIPPEDINTEGRAL_4"	clippedIntegral() "xy"\u8232 "CLIPPEDINTEGRAL_5"	clippedIntegral() "xz"\u8232 "CLIPPEDINTEGRAL_6"	clippedIntegral() "yz"\u8232 "DRAWBYSTRENGTH"	drawByStrength(returnDict=T)\u8232 "INTNEIGHCOUNT"	interactingNeighborSount()\u8232 "LOCALPOPDENSITY"	localPopulationDensity()\u8232 "NEARESTINTNEIGH"	nearestInteractingNeighbors(returnDict=T)\u8232 "NEARESTNEIGH"	nearestNeighbors(returnDict=T)\u8232 "NEIGHCOUNT"	neighborCount()\u8232 "TOTNEIGHSTRENGTH"	totalOfNeighborsStrengths()\
-"POINT_IN_BOUNDS"	pointInBounds()\uc0\u8232 "POINT_PERIODIC"	pointPeriodic()\u8232 "POINT_REFLECTED"	pointReflected()\u8232 "POINT_STOPPED"	pointStopped()\u8232 "POINT_UNIFORM"	pointUniform()\u8232 "SET_SPATIAL_POS_1"	setSpatialPosition()
-\f3\fs20  with one point
-\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_2"	setSpatialPosition()
+"POINT_IN_BOUNDS_1D"	pointInBounds()
+\f3\fs20 , 1D case
+\f1\fs18 \uc0\u8232 "POINT_IN_BOUNDS_2D"	pointInBounds()
+\f3\fs20 , 2D case
+\f1\fs18 \uc0\u8232 "POINT_IN_BOUNDS_3D"	pointInBounds()
+\f3\fs20 , 3D case
+\f1\fs18 \uc0\u8232 "POINT_PERIODIC_1D"	pointPeriodic()
+\f3\fs20 , 1D case
+\f1\fs18 \uc0\u8232 "POINT_PERIODIC_2D"	pointPeriodic()
+\f3\fs20 , 2D case
+\f1\fs18 \uc0\u8232 "POINT_PERIODIC_3D"	pointPeriodic()
+\f3\fs20 , 3D case
+\f1\fs18 \uc0\u8232 "POINT_REFLECTED_1D"	pointReflected()
+\f3\fs20 , 1D case
+\f1\fs18 \uc0\u8232 "POINT_REFLECTED_2D"	pointReflected()
+\f3\fs20 , 2D case
+\f1\fs18 \uc0\u8232 "POINT_REFLECTED_3D"	pointReflected()
+\f3\fs20 , 3D case
+\f1\fs18 \uc0\u8232 "POINT_STOPPED_1D"	pointStopped()
+\f3\fs20 , 1D case
+\f1\fs18 \uc0\u8232 "POINT_STOPPED_2D"	pointStopped()
+\f3\fs20 , 2D case
+\f1\fs18 \uc0\u8232 "POINT_STOPPED_3D"	pointStopped()
+\f3\fs20 , 3D case
+\f1\fs18 \uc0\u8232 "POINT_UNIFORM_1D"	pointUniform()
+\f3\fs20 , 1D case
+\f1\fs18 \uc0\u8232 "POINT_UNIFORM_2D"	pointUniform()
+\f3\fs20 , 2D case
+\f1\fs18 \uc0\u8232 "POINT_UNIFORM_3D"	pointUniform()
+\f3\fs20 , 3D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_1_1D"	setSpatialPosition()
+\f3\fs20  with one point, 1D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_1_2D"	setSpatialPosition()
+\f3\fs20  with one point, 2D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_1_3D"	setSpatialPosition()
+\f3\fs20  with one point, 3D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_2_1D"	setSpatialPosition()
 \f3\fs20  with 
 \f7\i N
-\f3\i0  points
+\f3\i0  points, 1D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_2_2D"	setSpatialPosition()
+\f3\fs20  with 
+\f7\i N
+\f3\i0  points, 2D case
+\f1\fs18 \uc0\u8232 "SET_SPATIAL_POS_2_3D"	setSpatialPosition()
+\f3\fs20  with 
+\f7\i N
+\f3\i0  points, 3D case
 \f1\fs18 \uc0\u8232 "SPATIAL_MAP_VALUE"	spatialMapValue()\
 "CONTAINS_MARKER_MUT"	containsMarkerMutation(returnMutation = F)\uc0\u8232 "I_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Individual)\u8232 "G_COUNT_OF_MUTS_OF_TYPE"	countOfMutationsOfType() (Genome)\u8232 "INDS_W_PEDIGREE_IDS"	individualsWithPedigreeIDs()\u8232 "RELATEDNESS"	relatedness()\u8232 "SAMPLE_INDIVIDUALS_1"	sampleIndividuals()
 \f3\fs20  simple case with replace=T

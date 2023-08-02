@@ -624,7 +624,7 @@ void Population::DoDeferredReproduction(void)
 		}
 	}
 	
-	//EIDOS_THREAD_COUNT(gEidos_OMP_threads_DEFERRED_REPRO);
+	//EIDOS_THREAD_COUNT(gEidos_OMP_threads_DEFERRED_REPRO);	// this loop shares the same key
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_recombinant) if(deferred_count_recombinant >= EIDOS_OMPMIN_DEFERRED_REPRO) num_threads(thread_count)
 	for (size_t deferred_index = 0; deferred_index < deferred_count_recombinant; ++deferred_index)
 	{

@@ -261,6 +261,7 @@ int gEidos_OMP_threads_SAMPLE_R_OBJECT = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SAMPLE_WR_INT = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SAMPLE_WR_FLOAT = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SAMPLE_WR_OBJECT = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_TABULATE_MAXBIN = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_TABULATE = EIDOS_OMP_MAX_THREADS;
 
 int gEidos_OMP_threads_CONTAINS_MARKER_MUT = EIDOS_OMP_MAX_THREADS;
@@ -293,13 +294,27 @@ int gEidos_OMP_threads_RUNIF_1 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_RUNIF_2 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_RUNIF_3 = EIDOS_OMP_MAX_THREADS;
 
-int gEidos_OMP_threads_POINT_IN_BOUNDS = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_POINT_PERIODIC = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_POINT_REFLECTED = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_POINT_STOPPED = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_POINT_UNIFORM = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_SET_SPATIAL_POS_1 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_SET_SPATIAL_POS_2 = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_IN_BOUNDS_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_IN_BOUNDS_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_IN_BOUNDS_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_PERIODIC_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_PERIODIC_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_PERIODIC_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_REFLECTED_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_REFLECTED_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_REFLECTED_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_STOPPED_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_STOPPED_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_STOPPED_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_UNIFORM_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_UNIFORM_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_POINT_UNIFORM_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_1_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_1_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_1_3D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_2_1D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_2_2D = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SET_SPATIAL_POS_2_3D = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SPATIAL_MAP_VALUE = EIDOS_OMP_MAX_THREADS;
 
 int gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = EIDOS_OMP_MAX_THREADS;
@@ -374,6 +389,7 @@ void _Eidos_SetDefaultOpenMPThreadCounts(void)
 	gEidos_OMP_threads_SAMPLE_WR_INT = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_SAMPLE_WR_FLOAT = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_SAMPLE_WR_OBJECT = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_TABULATE_MAXBIN = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_TABULATE = EIDOS_OMP_MAX_THREADS;
 
 	gEidos_OMP_threads_CONTAINS_MARKER_MUT = EIDOS_OMP_MAX_THREADS;
@@ -406,13 +422,27 @@ void _Eidos_SetDefaultOpenMPThreadCounts(void)
 	gEidos_OMP_threads_RUNIF_2 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_RUNIF_3 = EIDOS_OMP_MAX_THREADS;
 
-	gEidos_OMP_threads_POINT_IN_BOUNDS = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_POINT_PERIODIC = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_POINT_REFLECTED = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_POINT_STOPPED = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_POINT_UNIFORM = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_SET_SPATIAL_POS_1 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_SET_SPATIAL_POS_2 = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_IN_BOUNDS_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_IN_BOUNDS_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_IN_BOUNDS_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_PERIODIC_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_PERIODIC_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_PERIODIC_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_REFLECTED_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_REFLECTED_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_REFLECTED_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_STOPPED_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_STOPPED_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_STOPPED_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_UNIFORM_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_UNIFORM_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_POINT_UNIFORM_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_3D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_1D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_2D = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_3D = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_SPATIAL_MAP_VALUE = EIDOS_OMP_MAX_THREADS;
 
 	gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = EIDOS_OMP_MAX_THREADS;
@@ -489,6 +519,7 @@ void _Eidos_ClipOpenMPThreadCounts(void)
 	gEidos_OMP_threads_SAMPLE_WR_INT = std::min(gEidosMaxThreads, gEidos_OMP_threads_SAMPLE_WR_INT);
 	gEidos_OMP_threads_SAMPLE_WR_FLOAT = std::min(gEidosMaxThreads, gEidos_OMP_threads_SAMPLE_WR_FLOAT);
 	gEidos_OMP_threads_SAMPLE_WR_OBJECT = std::min(gEidosMaxThreads, gEidos_OMP_threads_SAMPLE_WR_OBJECT);
+	gEidos_OMP_threads_TABULATE_MAXBIN = std::min(gEidosMaxThreads, gEidos_OMP_threads_TABULATE_MAXBIN);
 	gEidos_OMP_threads_TABULATE = std::min(gEidosMaxThreads, gEidos_OMP_threads_TABULATE);
 
 	gEidos_OMP_threads_CONTAINS_MARKER_MUT = std::min(gEidosMaxThreads, gEidos_OMP_threads_CONTAINS_MARKER_MUT);
@@ -521,13 +552,27 @@ void _Eidos_ClipOpenMPThreadCounts(void)
 	gEidos_OMP_threads_RUNIF_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_RUNIF_2);
 	gEidos_OMP_threads_RUNIF_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_RUNIF_3);
 
-	gEidos_OMP_threads_POINT_IN_BOUNDS = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS);
-	gEidos_OMP_threads_POINT_PERIODIC = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_PERIODIC);
-	gEidos_OMP_threads_POINT_REFLECTED = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_REFLECTED);
-	gEidos_OMP_threads_POINT_STOPPED = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_STOPPED);
-	gEidos_OMP_threads_POINT_UNIFORM = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_UNIFORM);
-	gEidos_OMP_threads_SET_SPATIAL_POS_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_1);
-	gEidos_OMP_threads_SET_SPATIAL_POS_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_2);
+	gEidos_OMP_threads_POINT_IN_BOUNDS_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_1D);
+	gEidos_OMP_threads_POINT_IN_BOUNDS_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_2D);
+	gEidos_OMP_threads_POINT_IN_BOUNDS_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_3D);
+	gEidos_OMP_threads_POINT_PERIODIC_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_PERIODIC_1D);
+	gEidos_OMP_threads_POINT_PERIODIC_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_PERIODIC_2D);
+	gEidos_OMP_threads_POINT_PERIODIC_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_PERIODIC_3D);
+	gEidos_OMP_threads_POINT_REFLECTED_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_REFLECTED_1D);
+	gEidos_OMP_threads_POINT_REFLECTED_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_REFLECTED_2D);
+	gEidos_OMP_threads_POINT_REFLECTED_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_REFLECTED_3D);
+	gEidos_OMP_threads_POINT_STOPPED_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_STOPPED_1D);
+	gEidos_OMP_threads_POINT_STOPPED_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_STOPPED_2D);
+	gEidos_OMP_threads_POINT_STOPPED_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_STOPPED_3D);
+	gEidos_OMP_threads_POINT_UNIFORM_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_UNIFORM_1D);
+	gEidos_OMP_threads_POINT_UNIFORM_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_UNIFORM_2D);
+	gEidos_OMP_threads_POINT_UNIFORM_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_UNIFORM_3D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_1_1D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_1_2D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_1_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_1_3D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_2_1D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_2_2D);
+	gEidos_OMP_threads_SET_SPATIAL_POS_2_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_SET_SPATIAL_POS_2_3D);
 	gEidos_OMP_threads_SPATIAL_MAP_VALUE = std::min(gEidosMaxThreads, gEidos_OMP_threads_SPATIAL_MAP_VALUE);
 
 	gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_CLIPPEDINTEGRAL_1);

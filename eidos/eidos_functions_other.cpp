@@ -765,6 +765,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_INT)));
 	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_FLOAT)));
 	objectElement->SetKeyValue_StringKeys("SAMPLE_WR_OBJECT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SAMPLE_WR_OBJECT)));
+	objectElement->SetKeyValue_StringKeys("TABULATE_MAXBIN", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TABULATE_MAXBIN)));
 	objectElement->SetKeyValue_StringKeys("TABULATE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_TABULATE)));
 	
 	objectElement->SetKeyValue_StringKeys("CONTAINS_MARKER_MUT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CONTAINS_MARKER_MUT)));
@@ -797,13 +798,27 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("RUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_2)));
 	objectElement->SetKeyValue_StringKeys("RUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_3)));
 	
-	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS)));
-	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC)));
-	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED)));
-	objectElement->SetKeyValue_StringKeys("POINT_STOPPED", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED)));
-	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1)));
-	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_PERIODIC_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_PERIODIC_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_REFLECTED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_REFLECTED_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_STOPPED_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_STOPPED_3D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_1D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_2D)));
+	objectElement->SetKeyValue_StringKeys("POINT_UNIFORM_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_UNIFORM_3D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_1D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_2D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_1_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_1_3D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_1D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_2D)));
+	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_3D)));
 	objectElement->SetKeyValue_StringKeys("SPATIAL_MAP_VALUE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SPATIAL_MAP_VALUE)));
 	
 	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_1)));
@@ -955,6 +970,7 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "SAMPLE_WR_INT")				gEidos_OMP_threads_SAMPLE_WR_INT = (int)value_int64;
 						else if (key == "SAMPLE_WR_FLOAT")				gEidos_OMP_threads_SAMPLE_WR_FLOAT = (int)value_int64;
 						else if (key == "SAMPLE_WR_OBJECT")				gEidos_OMP_threads_SAMPLE_WR_OBJECT = (int)value_int64;
+						else if (key == "TABULATE_MAXBIN")				gEidos_OMP_threads_TABULATE_MAXBIN = (int)value_int64;
 						else if (key == "TABULATE")						gEidos_OMP_threads_TABULATE = (int)value_int64;
 						
 						else if (key == "CONTAINS_MARKER_MUT")			gEidos_OMP_threads_CONTAINS_MARKER_MUT = (int)value_int64;
@@ -987,13 +1003,27 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "RUNIF_2")						gEidos_OMP_threads_RUNIF_2 = (int)value_int64;
 						else if (key == "RUNIF_3")						gEidos_OMP_threads_RUNIF_3 = (int)value_int64;
 						
-						else if (key == "POINT_IN_BOUNDS")				gEidos_OMP_threads_POINT_IN_BOUNDS = (int)value_int64;
-						else if (key == "POINT_PERIODIC")				gEidos_OMP_threads_POINT_PERIODIC = (int)value_int64;
-						else if (key == "POINT_REFLECTED")				gEidos_OMP_threads_POINT_REFLECTED = (int)value_int64;
-						else if (key == "POINT_STOPPED")				gEidos_OMP_threads_POINT_STOPPED = (int)value_int64;
-						else if (key == "POINT_UNIFORM")				gEidos_OMP_threads_POINT_UNIFORM = (int)value_int64;
-						else if (key == "SET_SPATIAL_POS_1")			gEidos_OMP_threads_SET_SPATIAL_POS_1 = (int)value_int64;
-						else if (key == "SET_SPATIAL_POS_2")			gEidos_OMP_threads_SET_SPATIAL_POS_2 = (int)value_int64;
+						else if (key == "POINT_IN_BOUNDS_1D")			gEidos_OMP_threads_POINT_IN_BOUNDS_1D = (int)value_int64;
+						else if (key == "POINT_IN_BOUNDS_2D")			gEidos_OMP_threads_POINT_IN_BOUNDS_2D = (int)value_int64;
+						else if (key == "POINT_IN_BOUNDS_3D")			gEidos_OMP_threads_POINT_IN_BOUNDS_3D = (int)value_int64;
+						else if (key == "POINT_PERIODIC_1D")			gEidos_OMP_threads_POINT_PERIODIC_1D = (int)value_int64;
+						else if (key == "POINT_PERIODIC_2D")			gEidos_OMP_threads_POINT_PERIODIC_2D = (int)value_int64;
+						else if (key == "POINT_PERIODIC_3D")			gEidos_OMP_threads_POINT_PERIODIC_3D = (int)value_int64;
+						else if (key == "POINT_REFLECTED_1D")			gEidos_OMP_threads_POINT_REFLECTED_1D = (int)value_int64;
+						else if (key == "POINT_REFLECTED_2D")			gEidos_OMP_threads_POINT_REFLECTED_2D = (int)value_int64;
+						else if (key == "POINT_REFLECTED_3D")			gEidos_OMP_threads_POINT_REFLECTED_3D = (int)value_int64;
+						else if (key == "POINT_STOPPED_1D")				gEidos_OMP_threads_POINT_STOPPED_1D = (int)value_int64;
+						else if (key == "POINT_STOPPED_2D")				gEidos_OMP_threads_POINT_STOPPED_2D = (int)value_int64;
+						else if (key == "POINT_STOPPED_3D")				gEidos_OMP_threads_POINT_STOPPED_3D = (int)value_int64;
+						else if (key == "POINT_UNIFORM_1D")				gEidos_OMP_threads_POINT_UNIFORM_1D = (int)value_int64;
+						else if (key == "POINT_UNIFORM_2D")				gEidos_OMP_threads_POINT_UNIFORM_2D = (int)value_int64;
+						else if (key == "POINT_UNIFORM_3D")				gEidos_OMP_threads_POINT_UNIFORM_3D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_1_1D")			gEidos_OMP_threads_SET_SPATIAL_POS_1_1D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_1_2D")			gEidos_OMP_threads_SET_SPATIAL_POS_1_2D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_1_3D")			gEidos_OMP_threads_SET_SPATIAL_POS_1_3D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_2_1D")			gEidos_OMP_threads_SET_SPATIAL_POS_2_1D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_2_2D")			gEidos_OMP_threads_SET_SPATIAL_POS_2_2D = (int)value_int64;
+						else if (key == "SET_SPATIAL_POS_2_3D")			gEidos_OMP_threads_SET_SPATIAL_POS_2_3D = (int)value_int64;
 						else if (key == "SPATIAL_MAP_VALUE")			gEidos_OMP_threads_SPATIAL_MAP_VALUE = (int)value_int64;
 						
 						else if (key == "CLIPPEDINTEGRAL_1")			gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = (int)value_int64;

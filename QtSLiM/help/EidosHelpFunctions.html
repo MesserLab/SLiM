@@ -531,7 +531,8 @@
 "SAMPLE_WR_INT"<span class="Apple-tab-span">	</span>sample(integer x, if weights)<br>
 "SAMPLE_WR_FLOAT"<span class="Apple-tab-span">	</span>sample(float x, if weights)<br>
 "SAMPLE_WR_OBJECT"<span class="Apple-tab-span">	</span>sample(object x, if weights)<br>
-"TABULATE"<span class="Apple-tab-span">	</span>tabulate()</p>
+"TABULATE_MAXBIN"<span class="Apple-tab-span">	</span>tabulate()<span class="s19"> determination of </span>maxbin<span class="s19"> (if not supplied)</span><br>
+"TABULATE"<span class="Apple-tab-span">	</span>tabulate()<span class="s19"> main loop</span></p>
 <p class="p10">"DNORM_1"<span class="Apple-tab-span">	</span>dnorm(numeric$ mean, numeric$ sd)<br>
 "DNORM_2"<span class="Apple-tab-span">	</span>dnorm()<span class="s19"> other cases</span><br>
 "RBINOM_1"<span class="Apple-tab-span">	</span>rbinom(i$ size = 1, f$ prob = 0.5)<br>
@@ -563,13 +564,27 @@
 "NEARESTNEIGH"<span class="Apple-tab-span">	</span>nearestNeighbors(returnDict=T)<br>
 "NEIGHCOUNT"<span class="Apple-tab-span">	</span>neighborCount()<br>
 "TOTNEIGHSTRENGTH"<span class="Apple-tab-span">	</span>totalOfNeighborsStrengths()</p>
-<p class="p10">"POINT_IN_BOUNDS"<span class="Apple-tab-span">	</span>pointInBounds()<br>
-"POINT_PERIODIC"<span class="Apple-tab-span">	</span>pointPeriodic()<br>
-"POINT_REFLECTED"<span class="Apple-tab-span">	</span>pointReflected()<br>
-"POINT_STOPPED"<span class="Apple-tab-span">	</span>pointStopped()<br>
-"POINT_UNIFORM"<span class="Apple-tab-span">	</span>pointUniform()<br>
-"SET_SPATIAL_POS_1"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with one point</span><br>
-"SET_SPATIAL_POS_2"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with <i>N</i> points</span><br>
+<p class="p10">"POINT_IN_BOUNDS_1D"<span class="Apple-tab-span">	</span>pointInBounds()<span class="s19">, 1D case</span><br>
+"POINT_IN_BOUNDS_2D"<span class="Apple-tab-span">	</span>pointInBounds()<span class="s19">, 2D case</span><br>
+"POINT_IN_BOUNDS_3D"<span class="Apple-tab-span">	</span>pointInBounds()<span class="s19">, 3D case</span><br>
+"POINT_PERIODIC_1D"<span class="Apple-tab-span">	</span>pointPeriodic()<span class="s19">, 1D case</span><br>
+"POINT_PERIODIC_2D"<span class="Apple-tab-span">	</span>pointPeriodic()<span class="s19">, 2D case</span><br>
+"POINT_PERIODIC_3D"<span class="Apple-tab-span">	</span>pointPeriodic()<span class="s19">, 3D case</span><br>
+"POINT_REFLECTED_1D"<span class="Apple-tab-span">	</span>pointReflected()<span class="s19">, 1D case</span><br>
+"POINT_REFLECTED_2D"<span class="Apple-tab-span">	</span>pointReflected()<span class="s19">, 2D case</span><br>
+"POINT_REFLECTED_3D"<span class="Apple-tab-span">	</span>pointReflected()<span class="s19">, 3D case</span><br>
+"POINT_STOPPED_1D"<span class="Apple-tab-span">	</span>pointStopped()<span class="s19">, 1D case</span><br>
+"POINT_STOPPED_2D"<span class="Apple-tab-span">	</span>pointStopped()<span class="s19">, 2D case</span><br>
+"POINT_STOPPED_3D"<span class="Apple-tab-span">	</span>pointStopped()<span class="s19">, 3D case</span><br>
+"POINT_UNIFORM_1D"<span class="Apple-tab-span">	</span>pointUniform()<span class="s19">, 1D case</span><br>
+"POINT_UNIFORM_2D"<span class="Apple-tab-span">	</span>pointUniform()<span class="s19">, 2D case</span><br>
+"POINT_UNIFORM_3D"<span class="Apple-tab-span">	</span>pointUniform()<span class="s19">, 3D case</span><br>
+"SET_SPATIAL_POS_1_1D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with one point, 1D case</span><br>
+"SET_SPATIAL_POS_1_2D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with one point, 2D case</span><br>
+"SET_SPATIAL_POS_1_3D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with one point, 3D case</span><br>
+"SET_SPATIAL_POS_2_1D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with <i>N</i> points, 1D case</span><br>
+"SET_SPATIAL_POS_2_2D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with <i>N</i> points, 2D case</span><br>
+"SET_SPATIAL_POS_2_3D"<span class="Apple-tab-span">	</span>setSpatialPosition()<span class="s19"> with <i>N</i> points, 3D case</span><br>
 "SPATIAL_MAP_VALUE"<span class="Apple-tab-span">	</span>spatialMapValue()</p>
 <p class="p10">"CONTAINS_MARKER_MUT"<span class="Apple-tab-span">	</span>containsMarkerMutation(returnMutation = F)<br>
 "I_COUNT_OF_MUTS_OF_TYPE"<span class="Apple-tab-span">	</span>countOfMutationsOfType() (Individual)<br>

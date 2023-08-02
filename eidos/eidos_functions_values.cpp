@@ -2597,8 +2597,8 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	{
 		maxbin = 0;		// note that if the parallel loop runs, this gets reinitialized to the most negative number!
 		
-		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE);
-#pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE) num_threads(thread_count)
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE_MAXBIN);
+#pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE_MAXBIN) num_threads(thread_count)
 		for (int value_index = 0; value_index < value_count; ++value_index)
 		{
 			int64_t value = int_data[value_index];
