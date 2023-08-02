@@ -2116,7 +2116,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					// if SLiM_IncreaseMutationBlockCapacity() is called while parallel, it is a fatal error.  So we make a guess at how
 					// much free space we will need, and preallocate here as needed, regardless of will_parallelize; no reason not to.
 #ifdef _OPENMP
-					bool will_parallelize = can_parallelize && (migrants_to_generate >= 100);
+					bool will_parallelize = can_parallelize && (migrants_to_generate >= EIDOS_OMPMIN_WF_REPRO);
 					size_t est_mutation_block_slots_remaining_PRE = 0;
 					//size_t actual_mutation_block_slots_remaining_PRE = 0;
 					double overall_mutation_rate = 0;
@@ -2156,7 +2156,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
 						if (sex_enabled)
 						{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
+							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
 								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
@@ -2187,7 +2188,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						}
 						else
 						{
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize)
+							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
 								gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 								
@@ -2224,7 +2226,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else
 					{
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
-#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize)
+						EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
+#pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 						{
 							gsl_rng *parallel_rng = EIDOS_GSL_RNG(omp_get_thread_num());
 							
@@ -5221,7 +5224,7 @@ void Population::ClearParentalGenomes(void)
 {
 	if (species_.HasGenetics())
 	{
-#pragma omp parallel default(none)
+#pragma omp parallel default(none)	// no if() or num_threads() for now; no need, it seems to me
 		{
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
@@ -5277,7 +5280,7 @@ void Population::UniqueMutationRuns(void)
 	
 	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
 	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
-#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final)
+#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final)	// no if() or num_threads() for now; no need, it seems to me
 	for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 	{
 		std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster

@@ -346,12 +346,16 @@ private:
 // SLiM core
 #define EIDOS_OMPMIN_AGE_INCR				10000
 #define EIDOS_OMPMIN_DEFERRED_REPRO			100
+#define EIDOS_OMPMIN_WF_REPRO				100
 #define EIDOS_OMPMIN_FITNESS_ASEX_1			10000
 #define EIDOS_OMPMIN_FITNESS_ASEX_2			10000
+#define EIDOS_OMPMIN_FITNESS_ASEX_3			10000
 #define EIDOS_OMPMIN_FITNESS_SEX_F_1		10000
 #define EIDOS_OMPMIN_FITNESS_SEX_F_2		10000
+#define EIDOS_OMPMIN_FITNESS_SEX_F_3		10000
 #define EIDOS_OMPMIN_FITNESS_SEX_M_1		10000
 #define EIDOS_OMPMIN_FITNESS_SEX_M_2		10000
+#define EIDOS_OMPMIN_FITNESS_SEX_M_3		10000
 #define EIDOS_OMPMIN_MIGRANT_CLEAR			10000
 #define EIDOS_OMPMIN_SURVIVAL				10000
 
@@ -463,12 +467,16 @@ private:
 // SLiM core
 #define EIDOS_OMPMIN_AGE_INCR				0
 #define EIDOS_OMPMIN_DEFERRED_REPRO			0
+#define EIDOS_OMPMIN_WF_REPRO				0
 #define EIDOS_OMPMIN_FITNESS_ASEX_1			0
 #define EIDOS_OMPMIN_FITNESS_ASEX_2			0
+#define EIDOS_OMPMIN_FITNESS_ASEX_3			0
 #define EIDOS_OMPMIN_FITNESS_SEX_F_1		0
 #define EIDOS_OMPMIN_FITNESS_SEX_F_2		0
+#define EIDOS_OMPMIN_FITNESS_SEX_F_3		0
 #define EIDOS_OMPMIN_FITNESS_SEX_M_1		0
 #define EIDOS_OMPMIN_FITNESS_SEX_M_2		0
+#define EIDOS_OMPMIN_FITNESS_SEX_M_3		0
 #define EIDOS_OMPMIN_MIGRANT_CLEAR			0
 #define EIDOS_OMPMIN_SURVIVAL				0
 
@@ -572,12 +580,16 @@ extern int gEidos_OMP_threads_TOTNEIGHSTRENGTH;
 
 extern int gEidos_OMP_threads_AGE_INCR;
 extern int gEidos_OMP_threads_DEFERRED_REPRO;
+extern int gEidos_OMP_threads_WF_REPRO;
 extern int gEidos_OMP_threads_FITNESS_ASEX_1;
 extern int gEidos_OMP_threads_FITNESS_ASEX_2;
+extern int gEidos_OMP_threads_FITNESS_ASEX_3;
 extern int gEidos_OMP_threads_FITNESS_SEX_F_1;
 extern int gEidos_OMP_threads_FITNESS_SEX_F_2;
+extern int gEidos_OMP_threads_FITNESS_SEX_F_3;
 extern int gEidos_OMP_threads_FITNESS_SEX_M_1;
 extern int gEidos_OMP_threads_FITNESS_SEX_M_2;
+extern int gEidos_OMP_threads_FITNESS_SEX_M_3;
 extern int gEidos_OMP_threads_MIGRANT_CLEAR;
 extern int gEidos_OMP_threads_SURVIVAL;
 

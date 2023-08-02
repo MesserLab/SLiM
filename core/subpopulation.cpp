@@ -1650,7 +1650,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness) // FIXME needs if()
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_F_3);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_F_3) num_threads(thread_count)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
 					{
 						double fitness = parent_individuals_[female_index]->fitness_scaling_;
@@ -1864,7 +1865,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				{
 					// a separate loop for parallelization of the no-callback case
 					// note that we rely on the fixup of non-neutral caches done above
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness) // FIXME needs if()
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_M_3);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_M_3) num_threads(thread_count)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
 					{
 						double fitness = parent_individuals_[male_index]->fitness_scaling_;
@@ -2094,7 +2096,8 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness) // FIXME needs if()
+					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_3);
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_3) num_threads(thread_count)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
 					{
 						double fitness = parent_individuals_[individual_index]->fitness_scaling_;
