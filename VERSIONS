@@ -100,6 +100,8 @@ development head (in the master branch):
 	clean up some old usage that is now flagged by Xcode (sprintf to snprintf, deprecated Cocoa API, old build-numbering scripts in the project)
 	advance copyrights to 2023
 	add the ability to generate profiles at the command line as well as in SLiMgui, making it possible to profile SLiM when running parallel
+		to turn this on in CMake, add "-DPROFILE=ON" to the CMake command line
+		to turn this on in Xcode, set "-DSLIMPROFILING=1" in "Other C Flags" in each target you want to enable it in (not at the project level!)
 	extend the Eidos Dictionary class (but not DataFrame) to allow integer keys, making it more of a general "associative array" class that can represent ragged arrays and similar structures
 		as a side effect, "slim" type dictionary serialization now *always* quotes string keys (policy change), to distinguish, e.g., "10" (string) from 10 (integer) in serialized output
 	extend the Eidos Dictionary class (and DataFrame) to allow objects of all classes to be added; dictionaries containing objects that are not under retain-release just can't be kept long-term
