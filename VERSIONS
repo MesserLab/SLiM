@@ -82,6 +82,7 @@ PARALLEL changes (now in the master branch):
 	tweak the semantics of parallelSetNumThreads(): an integer requests that exact number of threads, whereas NULL requests "up to" the max number of threads (the default behavior)
 		add gEidosNumThreadsOverride flag indicating whether the number of threads has been overridden explicitly
 	add parallelSetTaskThreadCounts() function to set per-task thread counts, and parallelGetTaskThreadCounts() to get them
+	add recipe 22.7, Parallelizing nonWF reproduction and spatial interactions
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

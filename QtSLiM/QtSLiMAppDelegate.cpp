@@ -468,6 +468,7 @@ void QtSLiMAppDelegate::setUpRecipesMenu(QMenu *openRecipesMenu, QAction *findRe
                     case 17:chapterName = "Tree-sequence recording: tracking population history";				break;
                     case 18:chapterName = "Modeling explicit nucleotides";										break;
                     case 19:chapterName = "Multispecies modeling";                                              break;
+                    case 22:chapterName = "Parallel SLiM: Running SLiM multithreaded";                          break;
                     default: break;
                 }
                 
