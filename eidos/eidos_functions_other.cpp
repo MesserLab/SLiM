@@ -842,6 +842,8 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_2)));
 	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_3)));
 	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIGRANT_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("PARENTS_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PARENTS_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("UNIQUE_MUTRUNS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_UNIQUE_MUTRUNS)));
 	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SURVIVAL)));
 #endif
 	
@@ -1041,6 +1043,8 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "FITNESS_SEX_2")				gEidos_OMP_threads_FITNESS_SEX_2 = (int)value_int64;
 						else if (key == "FITNESS_SEX_3")				gEidos_OMP_threads_FITNESS_SEX_3 = (int)value_int64;
 						else if (key == "MIGRANT_CLEAR")				gEidos_OMP_threads_MIGRANT_CLEAR = (int)value_int64;
+						else if (key == "PARENTS_CLEAR")				gEidos_OMP_threads_PARENTS_CLEAR = (int)value_int64;
+						else if (key == "UNIQUE_MUTRUNS")				gEidos_OMP_threads_UNIQUE_MUTRUNS = (int)value_int64;
 						else if (key == "SURVIVAL")						gEidos_OMP_threads_SURVIVAL = (int)value_int64;
 						else
 							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() does not recognize the task name " << key << "." << EidosTerminate(nullptr);
@@ -1609,6 +1613,56 @@ EidosValue_SP Eidos_ExecuteFunction_version(__attribute__((unused)) const std::v
 	
 	if (print)
 		result->SetInvisible(true);
+	
+	return result_SP;
+}
+
+// (void)_startBenchmark(string$ type)
+EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue *type_value = p_arguments[0].get();
+	
+	if (gEidosBenchmarkType != EidosBenchmarkType::kNone)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__startBenchmark): benchmarking has already been started." << EidosTerminate();
+	
+	std::string type = type_value->StringAtIndex(0, nullptr);
+	
+	if (type == "AGE_INCR")				gEidosBenchmarkType = EidosBenchmarkType::k_AGE_INCR;
+	else if (type == "DEFERRED_REPRO")	gEidosBenchmarkType = EidosBenchmarkType::k_DEFERRED_REPRO;
+	else if (type == "WF_REPRO")		gEidosBenchmarkType = EidosBenchmarkType::k_WF_REPRO;
+	else if (type == "FITNESS_ASEX_1")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_1;
+	else if (type == "FITNESS_ASEX_2")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_2;
+	else if (type == "FITNESS_ASEX_3")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_3;
+	else if (type == "FITNESS_SEX_1")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_1;
+	else if (type == "FITNESS_SEX_2")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_2;
+	else if (type == "FITNESS_SEX_3")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_3;
+	else if (type == "MIGRANT_CLEAR")	gEidosBenchmarkType = EidosBenchmarkType::k_MIGRANT_CLEAR;
+	else if (type == "PARENTS_CLEAR")	gEidosBenchmarkType = EidosBenchmarkType::k_PARENTS_CLEAR;
+	else if (type == "UNIQUE_MUTRUNS")	gEidosBenchmarkType = EidosBenchmarkType::k_UNIQUE_MUTRUNS;
+	else if (type == "SURVIVAL")		gEidosBenchmarkType = EidosBenchmarkType::k_SURVIVAL;
+	else
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__startBenchmark): unrecognized benchmark type " << type << "." << EidosTerminate();
+	
+	gEidosBenchmarkAccumulator = 0;
+	
+	return gStaticEidosValueVOID;
+}
+
+// (float$)_stopBenchmark(void)
+EidosValue_SP SLiM_ExecuteFunction__stopBenchmark(__attribute__((unused)) const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	
+	if (gEidosBenchmarkType == EidosBenchmarkType::kNone)
+		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__stopBenchmark): benchmarking has not been started." << EidosTerminate();
+	
+	double benchmark_time = Eidos_ElapsedProfileTime(gEidosBenchmarkAccumulator);
+	
+	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(benchmark_time));
+	
+	// reset so a new benchmark can be started
+	gEidosBenchmarkType = EidosBenchmarkType::kNone;
+	gEidosBenchmarkAccumulator = 0;
 	
 	return result_SP;
 }

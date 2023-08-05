@@ -297,6 +297,8 @@ EidosValue_SP Eidos_ExecuteFunction_time(const std::vector<EidosValue_SP> &p_arg
 EidosValue_SP Eidos_ExecuteFunction_usage(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 EidosValue_SP Eidos_ExecuteFunction_version(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
+EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+EidosValue_SP SLiM_ExecuteFunction__stopBenchmark(const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 
 #endif /* defined(__Eidos__eidos_functions__) */
 

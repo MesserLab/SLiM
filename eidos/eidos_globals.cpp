@@ -114,17 +114,7 @@ int gEidosDebugIndent = 0;
 #pragma mark Profiling support
 #pragma mark -
 
-#if (SLIMPROFILING == 1)
-// PROFILING
-
-int gEidosProfilingClientCount = 0;
-
-uint64_t gEidos_ProfileCounter;
-double gEidos_ProfileOverheadTicks;
-double gEidos_ProfileOverheadSeconds;
-double gEidos_ProfileLagTicks;
-double gEidos_ProfileLagSeconds;
-
+// Base support used by EidosBenchmark as well as profiling
 #if defined(MACH_PROFILING)
 
 double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time)
@@ -161,6 +151,24 @@ double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time)
 }
 
 #endif
+
+
+// EidosBenchmark support
+
+EidosBenchmarkType gEidosBenchmarkType = EidosBenchmarkType::kNone;
+eidos_profile_t gEidosBenchmarkAccumulator = 0;
+
+
+#if (SLIMPROFILING == 1)
+// PROFILING
+
+int gEidosProfilingClientCount = 0;
+
+uint64_t gEidos_ProfileCounter;
+double gEidos_ProfileOverheadTicks;
+double gEidos_ProfileOverheadSeconds;
+double gEidos_ProfileLagTicks;
+double gEidos_ProfileLagSeconds;
 
 static eidos_profile_t gEidos_ProfilePrep_Ticks;
 
@@ -338,6 +346,8 @@ int gEidos_OMP_threads_FITNESS_SEX_1 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_FITNESS_SEX_2 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_FITNESS_SEX_3 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_MIGRANT_CLEAR = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_PARENTS_CLEAR = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_UNIQUE_MUTRUNS = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SURVIVAL = EIDOS_OMP_MAX_THREADS;
 
 void _Eidos_SetDefaultOpenMPThreadCounts(void)
@@ -460,6 +470,8 @@ void _Eidos_SetDefaultOpenMPThreadCounts(void)
 	gEidos_OMP_threads_FITNESS_SEX_2 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_FITNESS_SEX_3 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_MIGRANT_CLEAR = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_PARENTS_CLEAR = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_UNIQUE_MUTRUNS = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_SURVIVAL = EIDOS_OMP_MAX_THREADS;
 	
 	// Always clip the above counts to gEidosMaxThreads
@@ -584,6 +596,8 @@ void _Eidos_ClipOpenMPThreadCounts(void)
 	gEidos_OMP_threads_FITNESS_SEX_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_2);
 	gEidos_OMP_threads_FITNESS_SEX_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_3);
 	gEidos_OMP_threads_MIGRANT_CLEAR = std::min(gEidosMaxThreads, gEidos_OMP_threads_MIGRANT_CLEAR);
+	gEidos_OMP_threads_PARENTS_CLEAR = std::min(gEidosMaxThreads, gEidos_OMP_threads_PARENTS_CLEAR);
+	gEidos_OMP_threads_UNIQUE_MUTRUNS = std::min(gEidosMaxThreads, gEidos_OMP_threads_UNIQUE_MUTRUNS);
 	gEidos_OMP_threads_SURVIVAL = std::min(gEidosMaxThreads, gEidos_OMP_threads_SURVIVAL);
 }
 

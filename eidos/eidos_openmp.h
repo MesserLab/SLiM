@@ -627,6 +627,8 @@ extern int gEidos_OMP_threads_FITNESS_SEX_1;
 extern int gEidos_OMP_threads_FITNESS_SEX_2;
 extern int gEidos_OMP_threads_FITNESS_SEX_3;
 extern int gEidos_OMP_threads_MIGRANT_CLEAR;
+extern int gEidos_OMP_threads_PARENTS_CLEAR;
+extern int gEidos_OMP_threads_UNIQUE_MUTRUNS;
 extern int gEidos_OMP_threads_SURVIVAL;
 
 // benchmark section M is for "models", whole SLiM models that test overall scaling

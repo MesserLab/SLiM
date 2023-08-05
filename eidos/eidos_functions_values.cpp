@@ -383,10 +383,14 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 		}
 		
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SAMPLE_INDEX);
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SAMPLE_INDEX);
 #pragma omp parallel for schedule(static) default(none) shared(index_buffer, x_count) if(x_count > EIDOS_OMPMIN_SAMPLE_INDEX) num_threads(thread_count)
 		for (int value_index = 0; value_index < x_count; ++value_index)
+		{
 			index_buffer[value_index] = value_index;
+		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SAMPLE_INDEX);
 	}
 	
 	// the algorithm used depends on whether weights were supplied
@@ -2597,6 +2601,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 	{
 		maxbin = 0;		// note that if the parallel loop runs, this gets reinitialized to the most negative number!
 		
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_TABULATE_MAXBIN);
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TABULATE_MAXBIN);
 #pragma omp parallel for schedule(static) default(none) shared(value_count) firstprivate(int_data) reduction(max: maxbin) if(value_count >= EIDOS_OMPMIN_TABULATE_MAXBIN) num_threads(thread_count)
 		for (int value_index = 0; value_index < value_count; ++value_index)
@@ -2605,6 +2610,7 @@ EidosValue_SP Eidos_ExecuteFunction_tabulate(const std::vector<EidosValue_SP> &p
 			if (value > maxbin)
 				maxbin = value;
 		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_TABULATE_MAXBIN);
 	}
 	else
 	{

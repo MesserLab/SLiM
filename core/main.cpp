@@ -735,6 +735,11 @@ int main(int argc, char *argv[])
 		SLIM_ERRSTREAM << "// ********** Wall time used: " << wall_time_secs << std::endl;
 	}
 	
+	if (gEidosBenchmarkType != EidosBenchmarkType::kNone)
+	{
+		SLIM_ERRSTREAM << "// ********** Benchmark time: " << Eidos_ElapsedProfileTime(gEidosBenchmarkAccumulator) << std::endl;
+	}
+	
 	// print memory usage stats
 	if (keep_mem)
 	{

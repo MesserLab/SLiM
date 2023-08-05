@@ -33,18 +33,14 @@
 #include <algorithm>
 #include <unordered_map>
 
-#if (SLIMPROFILING == 1)
-
 #if defined(__APPLE__) && defined(__MACH__)
-// On macOS we use mach_absolute_time() for profiling (only in SLiMgui when profiling is enabled)
+// On macOS we use mach_absolute_time() for profiling and benchmarking
 #include <mach/mach_time.h>
 #define MACH_PROFILING
 #else
-// On other platforms we use std::chrono::steady_clock (only in QtSLiM when profiling is enabled)
+// On other platforms we use std::chrono::steady_clock
 #include <chrono>
 #define CHRONO_PROFILING
-#endif
-
 #endif
 
 #include "eidos_openmp.h"
@@ -259,6 +255,75 @@ void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
 
 // BCH 1/22/2023: Note that profiling can now be enabled for both command-line and GUI builds.  It is enabled
 // when SLIMPROFILING is defined to 1; if it is undefined, 0, or any other value, profiling is disabled.
+// BCH 8/5/2023: Also, note that the foundational profiling code is now also used for the EidosBenchmark facility,
+// even when SLiM is not built for profiling, so that foundational code is now always included in the build.
+
+#if defined(MACH_PROFILING)
+
+// This is the fastest clock, is available across OS X versions, and gives us nanoseconds.  The only disadvantage to
+// it is that it is platform-specific, so we can only use this clock in SLiMgui and Eidos_GUI.  That is OK.  This
+// returns uint64_t in CPU-specific time units; see https://developer.apple.com/library/content/qa/qa1398/_index.html
+typedef uint64_t eidos_profile_t;
+
+// Get an uncorrected profile clock measurement (for EidosBenchmark), to be used as a start or end time
+inline __attribute__((always_inline)) eidos_profile_t Eidos_BenchmarkTime(void) { return mach_absolute_time(); }
+
+#elif defined(CHRONO_PROFILING)
+
+// For the <chrono> steady_clock time point representation, we will convert time points to nanoseconds since epoch
+typedef uint64_t eidos_profile_t;
+
+// Get an uncorrected profile clock measurement (for EidosBenchmark), to be used as a start or end time
+inline __attribute__((always_inline)) eidos_profile_t Eidos_BenchmarkTime(void) { return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
+
+#endif
+
+#define EIDOS_BENCHMARK_START(x)	eidos_profile_t slim__benchmark_start = ((gEidosBenchmarkType == (x)) ? Eidos_BenchmarkTime() : 0);
+#define EIDOS_BENCHMARK_END(x)	if (gEidosBenchmarkType == (x)) gEidosBenchmarkAccumulator += (Eidos_BenchmarkTime() - slim__benchmark_start);
+
+// Convert an elapsed profiling time (the difference between two Eidos_ProfileTime() results) to seconds
+double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time);
+
+
+// For benchmarking purposes, we now have a small timing facility that can time one selected
+// piece of code, reporting the total time taken in that one piece of code as the total runtime
+// of the SLiM model.  This is entirely separate from the user-level profiling feature that
+// generates a profile report of a whole running model, and it is not user-visible.  The piece
+// of code selected for timing is chosen with an internal Eidos function, _startBenchmark().
+// You can either end benchmarking with _stopBenchmark() and get the elapsed seconds inside
+// the code benchmarked, as the return value, or let a command-line run finish and get the
+// total benchmarked time as console output.  Note that EidosBenchmark does not attempt to
+// correct for its own overhead/lag, so it is less accurate than profiling; it should be
+// used where relative times are more important than absolute times, and where the time spent
+// for one execution of the benchmarked code block takes a significant amount of time (making
+// overhead/lag negligible).  The enum has stuff for SLiM as well, for convenience.
+
+typedef enum {
+	kNone = 0,
+	
+	// Eidos
+	k_SAMPLE_INDEX,					// making an index buffer for sample(), to use in the sampling algorithm
+	k_TABULATE_MAXBIN,				// calculating the maxbin value for tabulate(), if not user-supplied
+	
+	// SLiM
+	k_AGE_INCR,						// age increment, at end of tick
+	k_DEFERRED_REPRO,				// deferred reproduction (without callbacks) in nonWF models
+	k_WF_REPRO,						// WF reproduction (without callbacks)
+	k_FITNESS_ASEX_1,				// fitness calculation, asexual, with individual fitnessScaling values but no non-neutral mutations
+	k_FITNESS_ASEX_2,				// fitness calculation, asexual, with neither individual fitnessScaling nor non-neutral mutations
+	k_FITNESS_ASEX_3,				// fitness calculation, asexual, with individual fitnessScaling values and non-neutral mutations
+	k_FITNESS_SEX_1,				// fitness calculation, sexual, with individual fitnessScaling values but no non-neutral mutations
+	k_FITNESS_SEX_2,				// fitness calculation, sexual, with neither individual fitnessScaling nor non-neutral mutations
+	k_FITNESS_SEX_3,				// fitness calculation, sexual, with individual fitnessScaling values and non-neutral mutations
+	k_MIGRANT_CLEAR,				// clearing the migrant flag of individuals, at end of tick
+	k_PARENTS_CLEAR,				// clearing the genomes of parents at generation switch, in WF models
+	k_UNIQUE_MUTRUNS,				// uniquing mutation runs (periodic bookkeeping)
+	k_SURVIVAL,						// evaluating survival in nonWF models (without callbacks)
+} EidosBenchmarkType;
+
+extern EidosBenchmarkType gEidosBenchmarkType;			// which code is being benchmarked in this run; kNone by default
+extern eidos_profile_t gEidosBenchmarkAccumulator;		// accumulated profile counts for the benchmarked code
+
 
 #if (SLIMPROFILING == 1)
 // PROFILING
@@ -275,26 +340,15 @@ extern double gEidos_ProfileLagSeconds;			// the clocked length of an empty prof
 
 #if defined(MACH_PROFILING)
 
-// This is the fastest clock, is available across OS X versions, and gives us nanoseconds.  The only disadvantage to
-// it is that it is platform-specific, so we can only use this clock in SLiMgui and Eidos_GUI.  That is OK.  This
-// returns uint64_t in CPU-specific time units; see https://developer.apple.com/library/content/qa/qa1398/_index.html
-typedef uint64_t eidos_profile_t;
-
 // Get a profile clock measurement, to be used as a start or end time
 inline __attribute__((always_inline)) eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return mach_absolute_time(); }
 
 #elif defined(CHRONO_PROFILING)
 
-// For the <chrono> steady_clock time point representation, we will convert time points to nanoseconds since epoch
-typedef uint64_t eidos_profile_t;
-
 // Get a profile clock measurement, to be used as a start or end time
 inline __attribute__((always_inline)) eidos_profile_t Eidos_ProfileTime(void) { gEidos_ProfileCounter++; return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 
 #endif
-
-// Convert an elapsed profiling time (the difference between two Eidos_ProfileTime() results) to seconds
-double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time);
 
 // This should be called immediately before profiling to measure the overhead and lag for profile blocks
 void Eidos_PrepareForProfiling(void);

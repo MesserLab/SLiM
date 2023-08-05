@@ -75,6 +75,10 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Other built-in SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("summarizeIndividuals", SLiM_ExecuteFunction_summarizeIndividuals, kEidosValueMaskFloat, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddInt("dim")->AddNumeric("spatialBounds")->AddString_S("operation")->AddLogicalEquiv_OSN("empty", gStaticEidosValue_Float0)->AddLogical_OS("perUnitArea", gStaticEidosValue_LogicalF)->AddString_OSN("spatiality", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("treeSeqMetadata", SLiM_ExecuteFunction_treeSeqMetadata, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosDictionaryRetained_Class, "SLiM"))->AddString_S("filePath")->AddLogical_OS("userData", gStaticEidosValue_LogicalT));
+		
+		// Internal SLiM functions
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S("type"));
+		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_stopBenchmark", SLiM_ExecuteFunction__stopBenchmark, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM")));
 	}
 	
 	return &sim_func_signatures_;

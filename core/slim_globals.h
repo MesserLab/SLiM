@@ -1443,7 +1443,10 @@ static_assert((int)gID_LastSLiMEntry <= (int)gEidosID_LastContextEntry, "the Con
 #pragma mark Profiling
 #pragma mark -
 
+#if (SLIMPROFILING == 1)
 void WriteProfileResults(std::string profile_output_path, std::string model_name, Community *community);
+#endif
+
 
 #endif /* defined(__SLiM__slim_globals__) */
 

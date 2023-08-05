@@ -604,6 +604,8 @@ void Population::DoDeferredReproduction(void)
 #endif
 	
 	// now generate the genomes of the deferred offspring in parallel
+	EIDOS_BENCHMARK_START(EidosBenchmarkType::k_DEFERRED_REPRO);
+	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_DEFERRED_REPRO);
 #pragma omp parallel for schedule(dynamic, 1) default(none) shared(deferred_count_nonrecombinant) if(deferred_count_nonrecombinant >= EIDOS_OMPMIN_DEFERRED_REPRO) num_threads(thread_count)
 	for (size_t deferred_index = 0; deferred_index < deferred_count_nonrecombinant; ++deferred_index)
@@ -639,6 +641,8 @@ void Population::DoDeferredReproduction(void)
 			DoRecombinantMutation(deferred_rec.mutorigin_subpop_, *deferred_rec.child_genome_, deferred_rec.strand1_, deferred_rec.strand2_, deferred_rec.sex_, deferred_rec.break_vec_, nullptr);
 		}
 	}
+	
+	EIDOS_BENCHMARK_END(EidosBenchmarkType::k_DEFERRED_REPRO);
 	
 	// Clear the deferred reproduction queue
 	deferred_reproduction_nonrecombinant_.clear();
@@ -2156,6 +2160,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// a simple loop for the base case with no selfing, no cloning, and no callbacks; we split into two cases by sex_enabled for maximal speed
 						if (sex_enabled)
 						{
+							EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
@@ -2183,11 +2188,13 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
 								}
 							}
+							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
 							
 							child_count += migrants_to_generate;
 						}
 						else
 						{
+							EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 							EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, child_sex, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 							{
@@ -2219,6 +2226,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
 								}
 							}
+							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
 							
 							child_count += migrants_to_generate;
 						}
@@ -2226,6 +2234,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					else
 					{
 						// the full loop with support for selfing/cloning (but no callbacks, since we're in that overall branch)
+						EIDOS_BENCHMARK_START(EidosBenchmarkType::k_WF_REPRO);
 						EIDOS_THREAD_COUNT(gEidos_OMP_threads_WF_REPRO);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, migrants_to_generate, number_to_clone, number_to_self, base_child_count, base_pedigree_id, pedigrees_enabled, p_subpop, source_subpop, sex_enabled, child_sex, recording_tree_sequence, prevent_incidental_selfing) if(will_parallelize) num_threads(thread_count)
 						{
@@ -2329,6 +2338,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 								}
 							}
 						}
+						EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
 						
 						child_count += migrants_to_generate;
 					}
@@ -5224,7 +5234,9 @@ void Population::ClearParentalGenomes(void)
 {
 	if (species_.HasGenetics())
 	{
-#pragma omp parallel default(none)	// no if() or num_threads() for now; no need, it seems to me
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_PARENTS_CLEAR);
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_PARENTS_CLEAR);
+#pragma omp parallel default(none) num_threads(thread_count)
 		{
 			for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
 			{
@@ -5259,6 +5271,7 @@ void Population::ClearParentalGenomes(void)
 				}
 			}
 		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_PARENTS_CLEAR);
 	}
 }
 
@@ -5280,7 +5293,9 @@ void Population::UniqueMutationRuns(void)
 	
 	// Each mutation run index is now uniqued individually, because mutation runs cannot be used at more than one position.
 	// This prevents empty mutation runs, in particular, from getting shared across positions, a necessary restriction.
-#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final)	// no if() or num_threads() for now; no need, it seems to me
+	EIDOS_BENCHMARK_START(EidosBenchmarkType::k_UNIQUE_MUTRUNS);
+	EIDOS_THREAD_COUNT(gEidos_OMP_threads_UNIQUE_MUTRUNS);
+#pragma omp parallel for schedule(dynamic) default(none) shared(mutrun_count) firstprivate(operation_id) reduction(+: total_mutruns) reduction(+: total_hash_collisions) reduction(+: total_identical) reduction(+: total_uniqued_away) reduction(+: total_preexisting) reduction(+: total_final) num_threads(thread_count)
 	for (int mutrun_index = 0; mutrun_index < mutrun_count; ++mutrun_index)
 	{
 		std::unordered_multimap<int64_t, const MutationRun *> runmap;	// BCH 4/30/2023: switched to unordered, it is faster
@@ -5371,6 +5386,7 @@ void Population::UniqueMutationRuns(void)
 			}
 		}
 	}
+	EIDOS_BENCHMARK_END(EidosBenchmarkType::k_UNIQUE_MUTRUNS);
 	
 #if SLIM_DEBUG_MUTATION_RUNS
 	std::clock_t end = std::clock();

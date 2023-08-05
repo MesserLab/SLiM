@@ -1546,6 +1546,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_1);
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_1);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_1) num_threads(thread_count)
 				for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
@@ -1560,6 +1561,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFemaleFitness += fitness;
 				}
+				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_1);
 			}
 			else
 			{
@@ -1579,10 +1581,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_2);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_2);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_2) num_threads(thread_count)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
+					{
 						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
+					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_2);
 				}
 				
 				totalFemaleFitness = fitness * parent_first_male_index_;
@@ -1650,6 +1656,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_3);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_3);
 #pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, subpop_fitness_scaling) reduction(+: totalFemaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_3) num_threads(thread_count)
 					for (slim_popsize_t female_index = 0; female_index < parent_first_male_index_; female_index++)
@@ -1676,6 +1683,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						parent_individuals_[female_index]->cached_fitness_UNSAFE_ = fitness;
 						totalFemaleFitness += fitness;
 					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_3);
 				}
 				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
 				{
@@ -1767,6 +1775,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_1);
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_1);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_1) num_threads(thread_count)
 				for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
@@ -1781,6 +1790,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 					totalMaleFitness += fitness;
 				}
+				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_1);
 			}
 			else
 			{
@@ -1800,10 +1810,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_2);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_2);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_2) num_threads(thread_count)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
+					{
 						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
+					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_2);
 				}
 				
 				if (parent_subpop_size_ > parent_first_male_index_)
@@ -1865,6 +1879,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				{
 					// a separate loop for parallelization of the no-callback case
 					// note that we rely on the fixup of non-neutral caches done above
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_SEX_3);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_SEX_3);
 #pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_first_male_index_, parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalMaleFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_SEX_3) num_threads(thread_count)
 					for (slim_popsize_t male_index = parent_first_male_index_; male_index < parent_subpop_size_; male_index++)
@@ -1891,6 +1906,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						parent_individuals_[male_index]->cached_fitness_UNSAFE_ = fitness;
 						totalMaleFitness += fitness;
 					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_SEX_3);
 				}
 				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
 				{
@@ -1990,6 +2006,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 		{
 			if (Individual::s_any_individual_fitness_scaling_set_)
 			{
+				EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_1);
 				EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_1);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_1) num_threads(thread_count)
 				for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
@@ -2004,6 +2021,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 					totalFitness += fitness;
 				}
+				EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_1);
 			}
 			else
 			{
@@ -2023,10 +2041,14 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 				}
 				else
 				{
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_2);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_2);
 #pragma omp parallel for schedule(static) default(none) shared(parent_subpop_size_) firstprivate(fitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_2) num_threads(thread_count)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
+					{
 						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
+					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_2);
 				}
 				
 				totalFitness = fitness * parent_subpop_size_;
@@ -2096,6 +2118,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 					FixNonNeutralCaches_OMP();
 #endif
 					
+					EIDOS_BENCHMARK_START(EidosBenchmarkType::k_FITNESS_ASEX_3);
 					EIDOS_THREAD_COUNT(gEidos_OMP_threads_FITNESS_ASEX_3);
 #pragma omp parallel for schedule(dynamic, 16) default(none) shared(parent_subpop_size_, subpop_fitness_scaling) reduction(+: totalFitness) if(parent_subpop_size_ >= EIDOS_OMPMIN_FITNESS_ASEX_3) num_threads(thread_count)
 					for (slim_popsize_t individual_index = 0; individual_index < parent_subpop_size_; individual_index++)
@@ -2122,6 +2145,7 @@ void Subpopulation::UpdateFitness(std::vector<SLiMEidosBlock*> &p_mutationEffect
 						parent_individuals_[individual_index]->cached_fitness_UNSAFE_ = fitness;
 						totalFitness += fitness;
 					}
+					EIDOS_BENCHMARK_END(EidosBenchmarkType::k_FITNESS_ASEX_3);
 				}
 				else	// at least one mutationEffect() or fitnessEffect() callback; not parallelized
 				{
@@ -3902,6 +3926,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 	if (no_callbacks)
 	{
 		// this is the simple case with no callbacks and thus no shuffle buffer
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SURVIVAL);
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SURVIVAL);
 #pragma omp parallel default(none) shared(gEidos_RNG_PERTHREAD, survival_buffer, parent_subpop_size_) firstprivate(individual_data) if(parent_subpop_size_ >= EIDOS_OMPMIN_SURVIVAL) num_threads(thread_count)
 		{
@@ -3922,6 +3947,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 				survival_buf_perthread[individual_index] = survived;
 			}
 		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SURVIVAL);
 	}
 	else
 	{
@@ -4032,10 +4058,14 @@ void Subpopulation::IncrementIndividualAges(void)
 	std::vector<Individual *> &parents = parent_individuals_;
 	size_t parent_count = parents.size();
 	
+	EIDOS_BENCHMARK_START(EidosBenchmarkType::k_AGE_INCR);
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_AGE_INCR);
 #pragma omp parallel for schedule(static) default(none) shared(parent_count) firstprivate(parents) if(parent_count >= EIDOS_OMPMIN_AGE_INCR) num_threads(thread_count)
 	for (size_t parent_index = 0; parent_index < parent_count; ++parent_index)
+	{
 		(parents[parent_index]->age_)++;
+	}
+	EIDOS_BENCHMARK_END(EidosBenchmarkType::k_AGE_INCR);
 }
 
 size_t Subpopulation::MemoryUsageForParentTables(void)
