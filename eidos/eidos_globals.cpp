@@ -334,12 +334,9 @@ int gEidos_OMP_threads_WF_REPRO = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_FITNESS_ASEX_1 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_FITNESS_ASEX_2 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_FITNESS_ASEX_3 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_F_1 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_F_2 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_F_3 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_M_1 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_M_2 = EIDOS_OMP_MAX_THREADS;
-int gEidos_OMP_threads_FITNESS_SEX_M_3 = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_FITNESS_SEX_1 = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_FITNESS_SEX_2 = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_FITNESS_SEX_3 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_MIGRANT_CLEAR = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_SURVIVAL = EIDOS_OMP_MAX_THREADS;
 
@@ -459,12 +456,9 @@ void _Eidos_SetDefaultOpenMPThreadCounts(void)
 	gEidos_OMP_threads_FITNESS_ASEX_1 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_FITNESS_ASEX_2 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_FITNESS_ASEX_3 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_F_1 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_F_2 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_F_3 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_M_1 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_M_2 = EIDOS_OMP_MAX_THREADS;
-	gEidos_OMP_threads_FITNESS_SEX_M_3 = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_FITNESS_SEX_1 = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_FITNESS_SEX_2 = EIDOS_OMP_MAX_THREADS;
+	gEidos_OMP_threads_FITNESS_SEX_3 = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_MIGRANT_CLEAR = EIDOS_OMP_MAX_THREADS;
 	gEidos_OMP_threads_SURVIVAL = EIDOS_OMP_MAX_THREADS;
 	
@@ -586,12 +580,9 @@ void _Eidos_ClipOpenMPThreadCounts(void)
 	gEidos_OMP_threads_FITNESS_ASEX_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_ASEX_1);
 	gEidos_OMP_threads_FITNESS_ASEX_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_ASEX_2);
 	gEidos_OMP_threads_FITNESS_ASEX_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_ASEX_3);
-	gEidos_OMP_threads_FITNESS_SEX_F_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_F_1);
-	gEidos_OMP_threads_FITNESS_SEX_F_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_F_2);
-	gEidos_OMP_threads_FITNESS_SEX_F_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_F_3);
-	gEidos_OMP_threads_FITNESS_SEX_M_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_M_1);
-	gEidos_OMP_threads_FITNESS_SEX_M_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_M_2);
-	gEidos_OMP_threads_FITNESS_SEX_M_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_M_3);
+	gEidos_OMP_threads_FITNESS_SEX_1 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_1);
+	gEidos_OMP_threads_FITNESS_SEX_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_2);
+	gEidos_OMP_threads_FITNESS_SEX_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_FITNESS_SEX_3);
 	gEidos_OMP_threads_MIGRANT_CLEAR = std::min(gEidosMaxThreads, gEidos_OMP_threads_MIGRANT_CLEAR);
 	gEidos_OMP_threads_SURVIVAL = std::min(gEidosMaxThreads, gEidos_OMP_threads_SURVIVAL);
 }

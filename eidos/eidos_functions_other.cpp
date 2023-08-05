@@ -838,12 +838,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_1)));
 	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_2)));
 	objectElement->SetKeyValue_StringKeys("FITNESS_ASEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_ASEX_3)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_F_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_F_1)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_F_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_F_2)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_F_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_F_3)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_M_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_M_1)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_M_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_M_2)));
-	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_M_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_M_3)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_1)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_2)));
+	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_3)));
 	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIGRANT_CLEAR)));
 	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SURVIVAL)));
 #endif
@@ -1040,12 +1037,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "FITNESS_ASEX_1")				gEidos_OMP_threads_FITNESS_ASEX_1 = (int)value_int64;
 						else if (key == "FITNESS_ASEX_2")				gEidos_OMP_threads_FITNESS_ASEX_2 = (int)value_int64;
 						else if (key == "FITNESS_ASEX_3")				gEidos_OMP_threads_FITNESS_ASEX_3 = (int)value_int64;
-						else if (key == "FITNESS_SEX_F_1")				gEidos_OMP_threads_FITNESS_SEX_F_1 = (int)value_int64;
-						else if (key == "FITNESS_SEX_F_2")				gEidos_OMP_threads_FITNESS_SEX_F_2 = (int)value_int64;
-						else if (key == "FITNESS_SEX_F_3")				gEidos_OMP_threads_FITNESS_SEX_F_3 = (int)value_int64;
-						else if (key == "FITNESS_SEX_M_1")				gEidos_OMP_threads_FITNESS_SEX_M_1 = (int)value_int64;
-						else if (key == "FITNESS_SEX_M_2")				gEidos_OMP_threads_FITNESS_SEX_M_2 = (int)value_int64;
-						else if (key == "FITNESS_SEX_M_3")				gEidos_OMP_threads_FITNESS_SEX_M_3 = (int)value_int64;
+						else if (key == "FITNESS_SEX_1")				gEidos_OMP_threads_FITNESS_SEX_1 = (int)value_int64;
+						else if (key == "FITNESS_SEX_2")				gEidos_OMP_threads_FITNESS_SEX_2 = (int)value_int64;
+						else if (key == "FITNESS_SEX_3")				gEidos_OMP_threads_FITNESS_SEX_3 = (int)value_int64;
 						else if (key == "MIGRANT_CLEAR")				gEidos_OMP_threads_MIGRANT_CLEAR = (int)value_int64;
 						else if (key == "SURVIVAL")						gEidos_OMP_threads_SURVIVAL = (int)value_int64;
 						else
