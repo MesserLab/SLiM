@@ -821,12 +821,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("SET_SPATIAL_POS_2_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SET_SPATIAL_POS_2_3D)));
 	objectElement->SetKeyValue_StringKeys("SPATIAL_MAP_VALUE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SPATIAL_MAP_VALUE)));
 	
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_1)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_2)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_3)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_4", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_4)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_5", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_5)));
-	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_6", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_6)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_1S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S)));
+	objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_2S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S)));
+	//objectElement->SetKeyValue_StringKeys("CLIPPEDINTEGRAL_3S", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_CLIPPEDINTEGRAL_3S)));
 	objectElement->SetKeyValue_StringKeys("DRAWBYSTRENGTH", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_DRAWBYSTRENGTH)));
 	objectElement->SetKeyValue_StringKeys("INTNEIGHCOUNT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_INTNEIGHCOUNT)));
 	objectElement->SetKeyValue_StringKeys("LOCALPOPDENSITY", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_LOCALPOPDENSITY)));
@@ -1026,12 +1023,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "SET_SPATIAL_POS_2_3D")			gEidos_OMP_threads_SET_SPATIAL_POS_2_3D = (int)value_int64;
 						else if (key == "SPATIAL_MAP_VALUE")			gEidos_OMP_threads_SPATIAL_MAP_VALUE = (int)value_int64;
 						
-						else if (key == "CLIPPEDINTEGRAL_1")			gEidos_OMP_threads_CLIPPEDINTEGRAL_1 = (int)value_int64;
-						else if (key == "CLIPPEDINTEGRAL_2")			gEidos_OMP_threads_CLIPPEDINTEGRAL_2 = (int)value_int64;
-						else if (key == "CLIPPEDINTEGRAL_3")			gEidos_OMP_threads_CLIPPEDINTEGRAL_3 = (int)value_int64;
-						else if (key == "CLIPPEDINTEGRAL_4")			gEidos_OMP_threads_CLIPPEDINTEGRAL_4 = (int)value_int64;
-						else if (key == "CLIPPEDINTEGRAL_5")			gEidos_OMP_threads_CLIPPEDINTEGRAL_5 = (int)value_int64;
-						else if (key == "CLIPPEDINTEGRAL_6")			gEidos_OMP_threads_CLIPPEDINTEGRAL_6 = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_1S")			gEidos_OMP_threads_CLIPPEDINTEGRAL_1S = (int)value_int64;
+						else if (key == "CLIPPEDINTEGRAL_2S")			gEidos_OMP_threads_CLIPPEDINTEGRAL_2S = (int)value_int64;
+						//else if (key == "CLIPPEDINTEGRAL_3S")			gEidos_OMP_threads_CLIPPEDINTEGRAL_3S = (int)value_int64;
 						else if (key == "DRAWBYSTRENGTH")				gEidos_OMP_threads_DRAWBYSTRENGTH = (int)value_int64;
 						else if (key == "INTNEIGHCOUNT")				gEidos_OMP_threads_INTNEIGHCOUNT = (int)value_int64;
 						else if (key == "LOCALPOPDENSITY")				gEidos_OMP_threads_LOCALPOPDENSITY = (int)value_int64;

@@ -344,12 +344,9 @@ private:
 #define EIDOS_OMPMIN_SPATIAL_MAP_VALUE		2000
 
 // Spatial queries
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1		10000
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2		10000
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3		10000
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_4		10000
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_5		10000
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_6		10000
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1S		10000
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2S		10000
+//#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3S		10000
 #define EIDOS_OMPMIN_DRAWBYSTRENGTH			10
 #define EIDOS_OMPMIN_INTNEIGHCOUNT			10
 #define EIDOS_OMPMIN_LOCALPOPDENSITY		10
@@ -480,12 +477,9 @@ private:
 #define EIDOS_OMPMIN_SPATIAL_MAP_VALUE		0
 
 // Spatial queries
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1		0
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2		0
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3		0
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_4		0
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_5		0
-#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_6		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_1S		0
+#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_2S		0
+//#define EIDOS_OMPMIN_CLIPPEDINTEGRAL_3S		0
 #define EIDOS_OMPMIN_DRAWBYSTRENGTH			0
 #define EIDOS_OMPMIN_INTNEIGHCOUNT			0
 #define EIDOS_OMPMIN_LOCALPOPDENSITY		0
@@ -515,6 +509,8 @@ private:
 
 // Here we declare variables that hold the number of threads we prefer to use for each parallel loop.
 // These have default values, which can be overridden with parallelSetTaskThreadCounts().
+
+// Eidos: math functions; benchmark section E
 extern int gEidos_OMP_threads_ABS_FLOAT;
 extern int gEidos_OMP_threads_CEIL;
 extern int gEidos_OMP_threads_EXP_FLOAT;
@@ -529,6 +525,7 @@ extern int gEidos_OMP_threads_SUM_FLOAT;
 extern int gEidos_OMP_threads_SUM_LOGICAL;
 extern int gEidos_OMP_threads_TRUNC;
 
+// Eidos: max(), min(), pmax(), pmin(); benchmark section X
 extern int gEidos_OMP_threads_MAX_INT;
 extern int gEidos_OMP_threads_MAX_FLOAT;
 extern int gEidos_OMP_threads_MIN_INT;
@@ -542,6 +539,7 @@ extern int gEidos_OMP_threads_PMIN_INT_2;
 extern int gEidos_OMP_threads_PMIN_FLOAT_1;
 extern int gEidos_OMP_threads_PMIN_FLOAT_2;
 
+// Eidos: match(), sample(), tabulate(); benchmark section V
 extern int gEidos_OMP_threads_MATCH_INT;
 extern int gEidos_OMP_threads_MATCH_FLOAT;
 extern int gEidos_OMP_threads_MATCH_STRING;
@@ -556,6 +554,7 @@ extern int gEidos_OMP_threads_SAMPLE_WR_OBJECT;
 extern int gEidos_OMP_threads_TABULATE_MAXBIN;
 extern int gEidos_OMP_threads_TABULATE;
 
+// SLiM methods/properties; benchmark section C
 extern int gEidos_OMP_threads_CONTAINS_MARKER_MUT;
 extern int gEidos_OMP_threads_I_COUNT_OF_MUTS_OF_TYPE;
 extern int gEidos_OMP_threads_G_COUNT_OF_MUTS_OF_TYPE;
@@ -567,6 +566,7 @@ extern int gEidos_OMP_threads_SET_FITNESS_SCALE_1;
 extern int gEidos_OMP_threads_SET_FITNESS_SCALE_2;
 extern int gEidos_OMP_threads_SUM_OF_MUTS_OF_TYPE;
 
+// Distribution draws and related; benchmark section R
 extern int gEidos_OMP_threads_DNORM_1;
 extern int gEidos_OMP_threads_DNORM_2;
 extern int gEidos_OMP_threads_RBINOM_1;
@@ -586,6 +586,7 @@ extern int gEidos_OMP_threads_RUNIF_1;
 extern int gEidos_OMP_threads_RUNIF_2;
 extern int gEidos_OMP_threads_RUNIF_3;
 
+// Spatial point/map manipulation; benchmark section P
 extern int gEidos_OMP_threads_POINT_IN_BOUNDS_1D;
 extern int gEidos_OMP_threads_POINT_IN_BOUNDS_2D;
 extern int gEidos_OMP_threads_POINT_IN_BOUNDS_3D;
@@ -609,12 +610,10 @@ extern int gEidos_OMP_threads_SET_SPATIAL_POS_2_2D;
 extern int gEidos_OMP_threads_SET_SPATIAL_POS_2_3D;
 extern int gEidos_OMP_threads_SPATIAL_MAP_VALUE;
 
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_1;
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_2;
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_3;
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_4;
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_5;
-extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_6;
+// Spatial queries; benchmark sections D and S
+extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_1S;
+extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_2S;
+//extern int gEidos_OMP_threads_CLIPPEDINTEGRAL_3S;
 extern int gEidos_OMP_threads_DRAWBYSTRENGTH;
 extern int gEidos_OMP_threads_INTNEIGHCOUNT;
 extern int gEidos_OMP_threads_LOCALPOPDENSITY;
@@ -623,6 +622,7 @@ extern int gEidos_OMP_threads_NEARESTNEIGH;
 extern int gEidos_OMP_threads_NEIGHCOUNT;
 extern int gEidos_OMP_threads_TOTNEIGHSTRENGTH;
 
+// SLiM internals; benchmark section I
 extern int gEidos_OMP_threads_AGE_INCR;
 extern int gEidos_OMP_threads_DEFERRED_REPRO;
 extern int gEidos_OMP_threads_WF_REPRO;
@@ -637,6 +637,9 @@ extern int gEidos_OMP_threads_FITNESS_SEX_M_2;
 extern int gEidos_OMP_threads_FITNESS_SEX_M_3;
 extern int gEidos_OMP_threads_MIGRANT_CLEAR;
 extern int gEidos_OMP_threads_SURVIVAL;
+
+// benchmark section M is for "models", whole SLiM models that test overall scaling
+// for different model types; they do not correspond to per-task keys
 
 
 #else /* ifdef _OPENMP */

@@ -3602,8 +3602,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "x")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_1);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3636,8 +3636,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "y")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_2);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3670,8 +3670,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "z")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_3);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_3) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_1S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_1S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3707,8 +3707,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	{
 		if (spatiality_string_ == "xy")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_4);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_4) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_y) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3742,8 +3742,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else if (spatiality_string_ == "xz")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_5);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_5) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_x, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
@@ -3777,8 +3777,8 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 		}
 		else // (spatiality_string_ == "yz")
 		{
-			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_6);
-#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_6) num_threads(thread_count)
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_CLIPPEDINTEGRAL_2S);
+#pragma omp parallel for schedule(static) default(none) shared(receivers_count, receiver_subpop_data) firstprivate(receivers_data, float_result, periodic_y, periodic_z) reduction(||: saw_error1) reduction(||: saw_error2) if(receivers_count >= EIDOS_OMPMIN_CLIPPEDINTEGRAL_2S) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				const Individual *receiver = receivers_data[receiver_index];
