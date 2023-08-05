@@ -29,7 +29,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -clippedIntegral() (1D)
+// InteractionType -clippedIntegral() (1D x)				// EIDOS_OMPMIN_CLIPPEDINTEGRAL_1
 
 initialize() {
 	initializeSLiMOptions(dimensionality="x");
@@ -48,12 +48,60 @@ initialize() {
 	b = i1.clippedIntegral(inds);
 	
 	if (!identical(a, b))
-		stop("parallel InteractionType -clippedIntegral() (1D) failed test");
+		stop("parallel InteractionType -clippedIntegral() (1D x) failed test");
 }
 
 // ***********************************************************************************************
 
-// test InteractionType -clippedIntegral() (2D)
+// InteractionType -clippedIntegral() (2D x)				// EIDOS_OMPMIN_CLIPPEDINTEGRAL_1
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "x", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (2D x) failed test");
+}
+
+// ***********************************************************************************************
+
+// InteractionType -clippedIntegral() (2D y)				// EIDOS_OMPMIN_CLIPPEDINTEGRAL_2
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "y", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (2D y) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (2D xy)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_4
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -72,12 +120,180 @@ initialize() {
 	b = i1.clippedIntegral(inds);
 	
 	if (!identical(a, b))
-		stop("parallel InteractionType -clippedIntegral() (2D) failed test");
+		stop("parallel InteractionType -clippedIntegral() (2D xy) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Genome -containsMarkerMutation()
+// test InteractionType -clippedIntegral() (3D x)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_1
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "x", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D x) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D y)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_2
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "y", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D y) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D z)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_3
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "z", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D z) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D xy)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_4
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D xy) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D xz)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_5
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "xz", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D xz) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D yz)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_6
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "yz", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D yz) failed test");
+}
+
+// ***********************************************************************************************
+
+// test InteractionType -clippedIntegral() (3D x)			// EIDOS_OMPMIN_CLIPPEDINTEGRAL_1
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+	initializeInteractionType(1, "x", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.clippedIntegral(inds);
+	parallelSetNumThreads(1);
+	b = i1.clippedIntegral(inds);
+	
+	if (!identical(a, b))
+		stop("parallel InteractionType -clippedIntegral() (3D x) failed test");
+}
+
+// ***********************************************************************************************
+
+// Genome -containsMarkerMutation()							// EIDOS_OMPMIN_CONTAINS_MARKER_MUT
 
 initialize() {
 	initializeMutationRate(1e-6);
@@ -116,7 +332,7 @@ mutationEffect(m2) { return 1.0; }
 
 // ***********************************************************************************************
 
-// test Genome -countOfMutationsOfType()
+// Genome -countOfMutationsOfType()						// EIDOS_OMPMIN_G_COUNT_OF_MUTS_OF_TYPE
 
 initialize() {
 	initializeMutationRate(1e-3);
@@ -140,7 +356,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test Individual -countOfMutationsOfType()
+// Individual -countOfMutationsOfType()					// EIDOS_OMPMIN_I_COUNT_OF_MUTS_OF_TYPE
 
 initialize() {
 	initializeMutationRate(1e-3);
@@ -164,14 +380,55 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -drawByStrength()
+// InteractionType -drawByStrength()						// EIDOS_OMPMIN_DRAWBYSTRENGTH
 
-// This cannot be tested by comparison, since its results are stochastic.
-// It gets tested by other means instead, such as my InteractionType test suite.
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("f", 1.0);			// fixed interaction strength special case
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.drawByStrength(inds, returnDict=T);
+	parallelSetNumThreads(1);
+	b = i1.drawByStrength(inds, returnDict=T);
+	
+	// this test is stochastic, so we don't have a good way to test that it worked,
+	// but at least we exercise the code path when running in parallel...
+}
 
 // ***********************************************************************************************
 
-// test Species -individualsWithPedigreeIDs()
+// InteractionType -drawByStrength()						// EIDOS_OMPMIN_DRAWBYSTRENGTH
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xy");
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=0.15);
+	i1.setInteractionFunction("n", 1.0, 0.05);		// general case
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 100, 100));
+	inds = p1.individuals;
+	inds.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	i1.evaluate(p1);
+	
+	a = i1.drawByStrength(inds, returnDict=T);
+	parallelSetNumThreads(1);
+	b = i1.drawByStrength(inds, returnDict=T);
+	
+	// this test is stochastic, so we don't have a good way to test that it worked,
+	// but at least we exercise the code path when running in parallel...
+}
+
+// ***********************************************************************************************
+
+// Species -individualsWithPedigreeIDs()					// EIDOS_OMPMIN_INDS_W_PEDIGREE_IDS
 
 initialize() {
 	initializeSLiMOptions(keepPedigrees=T);
@@ -192,7 +449,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -interactingNeighborCount()
+// InteractionType -interactingNeighborCount()				// EIDOS_OMPMIN_INTNEIGHCOUNT
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -216,7 +473,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -localPopulationDensity()
+// InteractionType -localPopulationDensity()				// EIDOS_OMPMIN_LOCALPOPDENSITY
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -240,7 +497,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestInteractingNeighbors()
+// InteractionType -nearestInteractingNeighbors()			// EIDOS_OMPMIN_NEARESTINTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -264,7 +521,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestInteractingNeighbors()
+// InteractionType -nearestInteractingNeighbors()			// EIDOS_OMPMIN_NEARESTINTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -288,7 +545,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestInteractingNeighbors()
+// InteractionType -nearestInteractingNeighbors()			// EIDOS_OMPMIN_NEARESTINTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -312,7 +569,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestNeighbors()
+// InteractionType -nearestNeighbors()						// EIDOS_OMPMIN_NEARESTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -336,7 +593,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestNeighbors()
+// InteractionType -nearestNeighbors()						// EIDOS_OMPMIN_NEARESTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -360,7 +617,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -nearestNeighbors()
+// InteractionType -nearestNeighbors()						// EIDOS_OMPMIN_NEARESTNEIGH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -384,7 +641,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -neighborCount()
+// InteractionType -neighborCount()							// EIDOS_OMPMIN_NEIGHCOUNT
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -408,7 +665,27 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test Subpopulation -pointInBounds()
+// Subpopulation -pointInBounds()							// EIDOS_OMPMIN_POINT_IN_BOUNDS_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 100));
+	points = runif(10000000 * 1, min=-20, max=120);
+	
+	a = p1.pointInBounds(points);
+	parallelSetNumThreads(1);
+	b = p1.pointInBounds(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointInBounds() (1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointInBounds()							// EIDOS_OMPMIN_POINT_IN_BOUNDS_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -423,12 +700,52 @@ initialize() {
 	b = p1.pointInBounds(points);
 	
 	if (!identical(a, b))
-		stop("parallel Subpopulation -pointInBounds() failed test");
+		stop("parallel Subpopulation -pointInBounds() (2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Subpopulation -pointPeriodic()
+// Subpopulation -pointInBounds()							// EIDOS_OMPMIN_POINT_IN_BOUNDS_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	points = runif(10000000 * 3, min=-20, max=120);
+	
+	a = p1.pointInBounds(points);
+	parallelSetNumThreads(1);
+	b = p1.pointInBounds(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointInBounds() (3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointPeriodic()							// EIDOS_OMPMIN_POINT_PERIODIC_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x", periodicity="x");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(0, 100));
+	points = runif(10000000 * 1, min=-20, max=120);
+	
+	a = p1.pointPeriodic(points);
+	parallelSetNumThreads(1);
+	b = p1.pointPeriodic(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointPeriodic() (1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointPeriodic()							// EIDOS_OMPMIN_POINT_PERIODIC_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
@@ -443,12 +760,52 @@ initialize() {
 	b = p1.pointPeriodic(points);
 	
 	if (!identical(a, b))
-		stop("parallel Subpopulation -pointPeriodic() failed test");
+		stop("parallel Subpopulation -pointPeriodic() (2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Subpopulation -pointReflected()
+// Subpopulation -pointPeriodic()							// EIDOS_OMPMIN_POINT_PERIODIC_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz", periodicity="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(0, 0, 0, 100, 100, 100));
+	points = runif(10000000 * 3, min=-20, max=120);
+	
+	a = p1.pointPeriodic(points);
+	parallelSetNumThreads(1);
+	b = p1.pointPeriodic(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointPeriodic() (3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointReflected()							// EIDOS_OMPMIN_POINT_REFLECTED_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 100));
+	points = runif(10000000 * 1, min=-20, max=120);
+	
+	a = p1.pointReflected(points);
+	parallelSetNumThreads(1);
+	b = p1.pointReflected(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointReflected() (1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointReflected()							// EIDOS_OMPMIN_POINT_REFLECTED_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -463,12 +820,52 @@ initialize() {
 	b = p1.pointReflected(points);
 	
 	if (!identical(a, b))
-		stop("parallel Subpopulation -pointReflected() failed test");
+		stop("parallel Subpopulation -pointReflected() (2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Subpopulation -pointStopped()
+// Subpopulation -pointReflected()							// EIDOS_OMPMIN_POINT_REFLECTED_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	points = runif(10000000 * 3, min=-20, max=120);
+	
+	a = p1.pointReflected(points);
+	parallelSetNumThreads(1);
+	b = p1.pointReflected(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointReflected() (3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointStopped()							// EIDOS_OMPMIN_POINT_STOPPED_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 100));
+	points = runif(10000000 * 1, min=-20, max=120);
+	
+	a = p1.pointStopped(points);
+	parallelSetNumThreads(1);
+	b = p1.pointStopped(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointStopped() (1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointStopped()							// EIDOS_OMPMIN_POINT_STOPPED_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -478,30 +875,56 @@ initialize() {
 	p1.setSpatialBounds(c(10, 10, 100, 100));
 	points = runif(10000000 * 2, min=-20, max=120);
 	
-	mt = parallelGetNumThreads();
-	print(mt);
-	
-	t1 = clock("mono");
 	a = p1.pointStopped(points);
-	t1 = clock("mono") - t1;
-	catn("frequency == " + mean(a) + " (" + t1 + " s)");
-	
 	parallelSetNumThreads(1);
-	
-	t2 = clock("mono");
 	b = p1.pointStopped(points);
-	t2 = clock("mono") - t2;
-	catn("frequency == " + mean(b) + " (" + t2 + " s)");
-	
-	parallelSetNumThreads(mt);
 	
 	if (!identical(a, b))
-		stop("parallel Subpopulation -pointStopped() failed test");
+		stop("parallel Subpopulation -pointStopped() (2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Subpopulation -pointUniform()
+// Subpopulation -pointStopped()							// EIDOS_OMPMIN_POINT_STOPPED_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	points = runif(10000000 * 3, min=-20, max=120);
+	
+	a = p1.pointStopped(points);
+	parallelSetNumThreads(1);
+	b = p1.pointStopped(points);
+	
+	if (!identical(a, b))
+		stop("parallel Subpopulation -pointStopped() (3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointUniform()							// EIDOS_OMPMIN_POINT_UNIFORM_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 100));
+	
+	a = p1.pointUniform(10000000);
+	parallelSetNumThreads(1);
+	b = p1.pointUniform(10000000);
+	
+	if (abs(mean(a) - mean(b)) > 0.1)
+		stop("parallel Subpopulation -pointUniform() (1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -pointUniform()							// EIDOS_OMPMIN_POINT_UNIFORM_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -515,12 +938,31 @@ initialize() {
 	b = p1.pointUniform(10000000);
 	
 	if (abs(mean(a) - mean(b)) > 0.1)
-		stop("parallel Subpopulation -pointUniform() failed test");
+		stop("parallel Subpopulation -pointUniform() (2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Individual -relatedness()
+// Subpopulation -pointUniform()							// EIDOS_OMPMIN_POINT_UNIFORM_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 100);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	
+	a = p1.pointUniform(10000000);
+	parallelSetNumThreads(1);
+	b = p1.pointUniform(10000000);
+	
+	if (abs(mean(a) - mean(b)) > 0.1)
+		stop("parallel Subpopulation -pointUniform() (3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual -relatedness()								// EIDOS_OMPMIN_RELATEDNESS
 
 initialize() {
 	initializeSLiMOptions(keepPedigrees=T);
@@ -541,7 +983,107 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test Individual -setSpatialPosition() (one point across all targets)
+// Subpopulation -sampleIndividuals(replace=T)				// EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_1
+
+initialize() {
+}
+1 early() { sim.addSubpop("p1", 100000); }
+1 late() {
+	a = p1.sampleIndividuals(100000, replace=T);
+	parallelSetNumThreads(1);
+	b = p1.sampleIndividuals(100000, replace=T);
+	
+	// this test is stochastic, so we don't have a good way to test that it worked,
+	// but at least we exercise the code path when running in parallel...
+	if (size(a) != size(b))
+		stop("parallel sampleIndividuals() 1 failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -sampleIndividuals(replace=T)				// EIDOS_OMPMIN_SAMPLE_INDIVIDUALS_2
+
+initialize() {
+}
+1 early() { sim.addSubpop("p1", 100000); }
+1 late() {
+	a = p1.sampleIndividuals(100000, replace=T, migrant=F);
+	parallelSetNumThreads(1);
+	b = p1.sampleIndividuals(100000, replace=T, migrant=F);
+	
+	// this test is stochastic, so we don't have a good way to test that it worked,
+	// but at least we exercise the code path when running in parallel...
+	if (size(a) != size(b))
+		stop("parallel sampleIndividuals() 2 failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual.fitnessScaling = float$						// EIDOS_OMPMIN_SET_FITNESS_SCALE_1
+
+initialize() {
+}
+1 early() { sim.addSubpop("p1", 100000); }
+1 late() {
+	inds = p1.individuals;
+	inds.fitnessScaling = 1.17;
+	a = inds.fitnessScaling;
+	parallelSetNumThreads(1);
+	inds.fitnessScaling = 1.0;		// reset values
+	inds.fitnessScaling = 1.17;
+	b = inds.fitnessScaling;
+	
+	if (!identical(a, b))
+		stop("parallel fitnessScaling = float$ failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual.fitnessScaling = float						// EIDOS_OMPMIN_SET_FITNESS_SCALE_2
+
+initialize() {
+}
+1 early() { sim.addSubpop("p1", 100000); }
+1 late() {
+	values = runif(100000);
+	inds = p1.individuals;
+	inds.fitnessScaling = values;
+	a = inds.fitnessScaling;
+	parallelSetNumThreads(1);
+	inds.fitnessScaling = 1.0;		// reset values
+	inds.fitnessScaling = values;
+	b = inds.fitnessScaling;
+	
+	if (!identical(a, b))
+		stop("parallel fitnessScaling = float failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_1_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 100));
+	point = p1.pointUniform(1);
+	inds = p1.individuals;
+	
+	inds.setSpatialPosition(point);
+	a = inds.spatialPosition;
+	parallelSetNumThreads(1);
+	inds.setSpatialPosition(point);
+	b = inds.spatialPosition;
+	
+	if (!identical(a, b))
+		stop("parallel Individual -setSpatialPosition() (1 1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_1_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -559,12 +1101,58 @@ initialize() {
 	b = inds.spatialPosition;
 	
 	if (!identical(a, b))
-		stop("parallel Individual -setSpatialPosition() (1) failed test");
+		stop("parallel Individual -setSpatialPosition() (1 2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Individual -setSpatialPosition() (one point for each target)
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_1_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	point = p1.pointUniform(1);
+	inds = p1.individuals;
+	
+	inds.setSpatialPosition(point);
+	a = inds.spatialPosition;
+	parallelSetNumThreads(1);
+	inds.setSpatialPosition(point);
+	b = inds.spatialPosition;
+	
+	if (!identical(a, b))
+		stop("parallel Individual -setSpatialPosition() (1 3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_2_1D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="x");
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 100));
+	points = p1.pointUniform(p1.individualCount);
+	inds = p1.individuals;
+	
+	inds.setSpatialPosition(points);
+	a = inds.spatialPosition;
+	parallelSetNumThreads(1);
+	inds.setSpatialPosition(points);
+	b = inds.spatialPosition;
+	
+	if (!identical(a, b))
+		stop("parallel Individual -setSpatialPosition() (2 1D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_2_2D
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -582,12 +1170,35 @@ initialize() {
 	b = inds.spatialPosition;
 	
 	if (!identical(a, b))
-		stop("parallel Individual -setSpatialPosition() (2) failed test");
+		stop("parallel Individual -setSpatialPosition() (2 2D) failed test");
 }
 
 // ***********************************************************************************************
 
-// test Subpopulation -spatialMapValue()
+// Individual -setSpatialPosition() 						// EIDOS_OMPMIN_SET_SPATIAL_POS_2_3D
+
+initialize() {
+	initializeSLiMOptions(dimensionality="xyz");
+}
+1 late() {
+	sim.addSubpop("p1", 1000000);
+	p1.setSpatialBounds(c(10, 10, 10, 100, 100, 100));
+	points = p1.pointUniform(p1.individualCount);
+	inds = p1.individuals;
+	
+	inds.setSpatialPosition(points);
+	a = inds.spatialPosition;
+	parallelSetNumThreads(1);
+	inds.setSpatialPosition(points);
+	b = inds.spatialPosition;
+	
+	if (!identical(a, b))
+		stop("parallel Individual -setSpatialPosition() (2 3D) failed test");
+}
+
+// ***********************************************************************************************
+
+// Subpopulation -spatialMapValue()							// EIDOS_OMPMIN_SPATIAL_MAP_VALUE
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
@@ -609,7 +1220,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test Individual -sumOfMutationsOfType()
+// Individual -sumOfMutationsOfType()						// EIDOS_OMPMIN_SUM_OF_MUTS_OF_TYPE
 
 initialize() {
 	initializeMutationRate(1e-3);
@@ -633,7 +1244,7 @@ initialize() {
 
 // ***********************************************************************************************
 
-// test InteractionType -totalOfNeighborStrengths()
+// InteractionType -totalOfNeighborStrengths()				// EIDOS_OMPMIN_TOTNEIGHSTRENGTH
 
 initialize() {
 	initializeSLiMOptions(dimensionality="xy");
