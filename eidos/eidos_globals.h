@@ -301,11 +301,11 @@ double Eidos_ElapsedProfileTime(eidos_profile_t p_elapsed_profile_time);
 typedef enum {
 	kNone = 0,
 	
-	// Eidos
+	// Eidos internal
 	k_SAMPLE_INDEX,					// making an index buffer for sample(), to use in the sampling algorithm
 	k_TABULATE_MAXBIN,				// calculating the maxbin value for tabulate(), if not user-supplied
 	
-	// SLiM
+	// SLiM internal parallel loops
 	k_AGE_INCR,						// age increment, at end of tick
 	k_DEFERRED_REPRO,				// deferred reproduction (without callbacks) in nonWF models
 	k_WF_REPRO,						// WF reproduction (without callbacks)
@@ -319,6 +319,13 @@ typedef enum {
 	k_PARENTS_CLEAR,				// clearing the genomes of parents at generation switch, in WF models
 	k_UNIQUE_MUTRUNS,				// uniquing mutation runs (periodic bookkeeping)
 	k_SURVIVAL,						// evaluating survival in nonWF models (without callbacks)
+	
+	// SLiM, whole tasks (not parallel loops)
+	k_MUT_TALLY,					// tally mutation reference counts, in Population::MaintainMutationRegistry()
+	k_MUTRUN_FREE,					// free unused mutation runs, in Population::MaintainMutationRegistry()
+	k_MUT_FREE,						// free fixed or unused mutations, in Population::MaintainMutationRegistry()
+	k_SIMPLIFY_SORT,				// sorting for simplification, in Species::SimplifyTreeSequence()
+	k_SIMPLIFY_CORE,				// the core simplification algorithm, in Species::SimplifyTreeSequence()
 } EidosBenchmarkType;
 
 extern EidosBenchmarkType gEidosBenchmarkType;			// which code is being benchmarked in this run; kNone by default

@@ -1627,19 +1627,26 @@ EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_
 	
 	std::string type = type_value->StringAtIndex(0, nullptr);
 	
-	if (type == "AGE_INCR")				gEidosBenchmarkType = EidosBenchmarkType::k_AGE_INCR;
-	else if (type == "DEFERRED_REPRO")	gEidosBenchmarkType = EidosBenchmarkType::k_DEFERRED_REPRO;
-	else if (type == "WF_REPRO")		gEidosBenchmarkType = EidosBenchmarkType::k_WF_REPRO;
-	else if (type == "FITNESS_ASEX_1")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_1;
-	else if (type == "FITNESS_ASEX_2")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_2;
-	else if (type == "FITNESS_ASEX_3")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_3;
-	else if (type == "FITNESS_SEX_1")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_1;
-	else if (type == "FITNESS_SEX_2")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_2;
-	else if (type == "FITNESS_SEX_3")	gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_3;
-	else if (type == "MIGRANT_CLEAR")	gEidosBenchmarkType = EidosBenchmarkType::k_MIGRANT_CLEAR;
-	else if (type == "PARENTS_CLEAR")	gEidosBenchmarkType = EidosBenchmarkType::k_PARENTS_CLEAR;
-	else if (type == "UNIQUE_MUTRUNS")	gEidosBenchmarkType = EidosBenchmarkType::k_UNIQUE_MUTRUNS;
-	else if (type == "SURVIVAL")		gEidosBenchmarkType = EidosBenchmarkType::k_SURVIVAL;
+	if (type == "SAMPLE_INDEX")				gEidosBenchmarkType = EidosBenchmarkType::k_SAMPLE_INDEX;
+	else if (type == "TABULATE_MAXBIN")		gEidosBenchmarkType = EidosBenchmarkType::k_TABULATE_MAXBIN;
+	else if (type == "AGE_INCR")			gEidosBenchmarkType = EidosBenchmarkType::k_AGE_INCR;
+	else if (type == "DEFERRED_REPRO")		gEidosBenchmarkType = EidosBenchmarkType::k_DEFERRED_REPRO;
+	else if (type == "WF_REPRO")			gEidosBenchmarkType = EidosBenchmarkType::k_WF_REPRO;
+	else if (type == "FITNESS_ASEX_1")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_1;
+	else if (type == "FITNESS_ASEX_2")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_2;
+	else if (type == "FITNESS_ASEX_3")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_ASEX_3;
+	else if (type == "FITNESS_SEX_1")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_1;
+	else if (type == "FITNESS_SEX_2")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_2;
+	else if (type == "FITNESS_SEX_3")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_3;
+	else if (type == "MIGRANT_CLEAR")		gEidosBenchmarkType = EidosBenchmarkType::k_MIGRANT_CLEAR;
+	else if (type == "PARENTS_CLEAR")		gEidosBenchmarkType = EidosBenchmarkType::k_PARENTS_CLEAR;
+	else if (type == "UNIQUE_MUTRUNS")		gEidosBenchmarkType = EidosBenchmarkType::k_UNIQUE_MUTRUNS;
+	else if (type == "SURVIVAL")			gEidosBenchmarkType = EidosBenchmarkType::k_SURVIVAL;
+	else if (type == "MUT_TALLY")			gEidosBenchmarkType = EidosBenchmarkType::k_MUT_TALLY;
+	else if (type == "MUTRUN_FREE")			gEidosBenchmarkType = EidosBenchmarkType::k_MUTRUN_FREE;
+	else if (type == "MUT_FREE")			gEidosBenchmarkType = EidosBenchmarkType::k_MUT_FREE;
+	else if (type == "SIMPLIFY_SORT")		gEidosBenchmarkType = EidosBenchmarkType::k_SIMPLIFY_SORT;
+	else if (type == "SIMPLIFY_CORE")		gEidosBenchmarkType = EidosBenchmarkType::k_SIMPLIFY_CORE;
 	else
 		EIDOS_TERMINATION << "ERROR (SLiM_ExecuteFunction__startBenchmark): unrecognized benchmark type " << type << "." << EidosTerminate();
 	

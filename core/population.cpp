@@ -5776,13 +5776,25 @@ void Population::MaintainMutationRegistry(void)
 	
 	// go through all genomes and increment mutation reference counts; this updates total_genome_count_
 	// this calls TallyMutationRunReferencesForPopulation() as a side effect, forced by the "true" argument
-	TallyMutationReferencesAcrossPopulation(true);
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_MUT_TALLY);
+		TallyMutationReferencesAcrossPopulation(true);
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_MUT_TALLY);
+	}
 	
 	// free unused mutation runs, relying upon the tally done above
-	FreeUnusedMutationRuns();
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_MUTRUN_FREE);
+		FreeUnusedMutationRuns();
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_MUTRUN_FREE);
+	}
 	
 	// remove any mutations that have been eliminated or have fixed
-	RemoveAllFixedMutations();
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_MUT_FREE);
+		RemoveAllFixedMutations();
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_MUT_FREE);
+	}
 	
 	// check that the mutation registry does not have any "zombies" – mutations that have been removed and should no longer be there
 	// also check for any mutations that are in the registry but do not have the state MutationState::kInRegistry

@@ -3978,50 +3978,64 @@ void Species::SimplifyTreeSequence(void)
 	WritePopulationTable(&tables_);
 	
 	// sort the table collection
-	tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_SORT);
+		
+		tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
-	// in DEBUG mode, we do a standard consistency check for tree-seq integrity after each simplify; unlike in
-	// CheckTreeSeqIntegrity(), this does not need TSK_NO_CHECK_POPULATION_REFS since we have a valid population table
-	// we don't need/want order checks for the tables, since we sort them here; if that doesn't do the right thing,
-	// that would be a bug in tskit, and would be caught by their tests, presumably, so no point in wasting time on it...
-	flags = 0;
+		// in DEBUG mode, we do a standard consistency check for tree-seq integrity after each simplify; unlike in
+		// CheckTreeSeqIntegrity(), this does not need TSK_NO_CHECK_POPULATION_REFS since we have a valid population table
+		// we don't need/want order checks for the tables, since we sort them here; if that doesn't do the right thing,
+		// that would be a bug in tskit, and would be caught by their tests, presumably, so no point in wasting time on it...
+		flags = 0;
 #endif
-	
+		
 #if 0
-	// sort the tables using tsk_table_collection_sort() to get the default behavior
-	int ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
-	if (ret < 0) handle_error("tsk_table_collection_sort", ret);
+		// sort the tables using tsk_table_collection_sort() to get the default behavior
+		int ret = tsk_table_collection_sort(&tables_, /* edge_start */ NULL, /* flags */ flags);
+		if (ret < 0) handle_error("tsk_table_collection_sort", ret);
 #else
-	// sort the tables using our own custom edge sorter, for additional speed through inlining of the comparison function
-	// see https://github.com/tskit-dev/tskit/pull/627, https://github.com/tskit-dev/tskit/pull/711
-	// FIXME for additional speed we could perhaps be smart about only sorting the portions of the edge table
-	// that need it, but the tricky thing is that all the old stuff has to be at the bottom of the table, not the top...
-	tsk_table_sorter_t sorter;
-	int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
-	if (ret != 0) handle_error("tsk_table_sorter_init", ret);
-	
-	sorter.sort_edges = slim_sort_edges;
-	
-	try {
-		ret = tsk_table_sorter_run(&sorter, NULL);
-	} catch (std::exception &e) {
-		EIDOS_TERMINATION << "ERROR (Species::SimplifyTreeSequence): (internal error) exception raised during tsk_table_sorter_run(): " << e.what() << "." << EidosTerminate();
-	}
-	if (ret != 0) handle_error("tsk_table_sorter_run", ret);
-	
-	tsk_table_sorter_free(&sorter);
-	if (ret != 0) handle_error("tsk_table_sorter_free", ret);
+		// sort the tables using our own custom edge sorter, for additional speed through inlining of the comparison function
+		// see https://github.com/tskit-dev/tskit/pull/627, https://github.com/tskit-dev/tskit/pull/711
+		// FIXME for additional speed we could perhaps be smart about only sorting the portions of the edge table
+		// that need it, but the tricky thing is that all the old stuff has to be at the bottom of the table, not the top...
+		tsk_table_sorter_t sorter;
+		int ret = tsk_table_sorter_init(&sorter, &tables_, /* flags */ flags);
+		if (ret != 0) handle_error("tsk_table_sorter_init", ret);
+		
+		sorter.sort_edges = slim_sort_edges;
+		
+		try {
+			ret = tsk_table_sorter_run(&sorter, NULL);
+		} catch (std::exception &e) {
+			EIDOS_TERMINATION << "ERROR (Species::SimplifyTreeSequence): (internal error) exception raised during tsk_table_sorter_run(): " << e.what() << "." << EidosTerminate();
+		}
+		if (ret != 0) handle_error("tsk_table_sorter_run", ret);
+		
+		tsk_table_sorter_free(&sorter);
+		if (ret != 0) handle_error("tsk_table_sorter_free", ret);
 #endif
+		
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT);
+	}
 	
 	// remove redundant sites we added
-	ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
-	if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+	{
+		int ret = tsk_table_collection_deduplicate_sites(&tables_, 0);
+		if (ret < 0) handle_error("tsk_table_collection_deduplicate_sites", ret);
+	}
 	
 	// simplify
-	flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
-	if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
-	ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
-	if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_CORE);
+		
+		tsk_flags_t flags = TSK_SIMPLIFY_FILTER_SITES | TSK_SIMPLIFY_FILTER_INDIVIDUALS | TSK_SIMPLIFY_KEEP_INPUT_ROOTS;
+		if (!retain_coalescent_only_) flags |= TSK_SIMPLIFY_KEEP_UNARY;
+		int ret = tsk_table_collection_simplify(&tables_, samples.data(), (tsk_size_t)samples.size(), flags, NULL);
+		if (ret != 0) handle_error("tsk_table_collection_simplify", ret);
+		
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_CORE);
+	}
 	
 	// update map of remembered_genomes_, which are now the first n entries in the node table
 	for (tsk_id_t i = 0; i < (tsk_id_t)remembered_genomes_.size(); i++)
