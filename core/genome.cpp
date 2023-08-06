@@ -3771,7 +3771,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			{
 				Genome *genome = targets[genome_index];
 				slim_mutrun_index_t &genome_last_mutrun_modified = target_last_mutrun_modified[genome_index];
-				MutationRun *(&genome_last_mutrun) = target_last_mutrun[genome_index];
+				MutationRun *&genome_last_mutrun = target_last_mutrun[genome_index];
 				slim_position_t mutrun_length = genome->mutrun_length_;
 				MutationIndex mut_index = alt_allele_mut_indices[call - 1];
 				slim_mutrun_index_t mut_mutrun_index = (slim_mutrun_index_t)(mut_position / mutrun_length);
