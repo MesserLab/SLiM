@@ -41,6 +41,7 @@
 #include <vector>
 #include <cstdio>
 #include <fstream>
+#include <algorithm>
 
 #include "json.hpp"
 

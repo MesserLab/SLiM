@@ -24,6 +24,8 @@
 
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
+#include <utility>
 
 #include "eidos_globals.h"
 #if EIDOS_ROBIN_HOOD_HASHING

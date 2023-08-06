@@ -32,6 +32,7 @@
 #include <numeric>
 #include <algorithm>
 #include <unordered_map>
+#include <cstdint>
 
 #if defined(__APPLE__) && defined(__MACH__)
 // On macOS we use mach_absolute_time() for profiling and benchmarking

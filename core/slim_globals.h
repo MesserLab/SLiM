@@ -28,6 +28,7 @@
 
 
 #include <stdio.h>
+#include <cstdint>
 
 #include "eidos_globals.h"
 #include "eidos_value.h"
