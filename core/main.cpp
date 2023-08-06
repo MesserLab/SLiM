@@ -67,8 +67,7 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 #ifdef _OPENMP
 		SLIM_OUTSTREAM << "This is a PARALLEL (MULTI-THREADED) build of SLiM." << std::endl;
 #else
-		// For now, I don't want to advertise the existence of parallel builds
-		//SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
+		SLIM_OUTSTREAM << "This is a NON-PARALLEL (SINGLE-THREADED) build of SLiM." << std::endl;
 #endif
 #if (SLIMPROFILING == 1)
 		SLIM_OUTSTREAM << "This is a PROFILING build of SLiM." << std::endl;
