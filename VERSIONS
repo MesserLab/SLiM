@@ -30,7 +30,7 @@ PARALLEL changes (now in the master branch):
 	modify CMakeLists.txt to add /usr/local/include to all targets (through GSL_INCLUDES, which should maybe get cleaned up somehow)
 	modify CMakeLists.txt to build executables eidos_multi and slim_multi when PARALLEL is ON, and to link in libomp
 	disable parallel builds of EidosScribe, SLiMgui, and SLiMguiLegacy with #error directives; parallelization is for the command line only (active threads peg the CPU, passive threads are slower than single-threaded)
-	add a command-line option, -maxthreads <n>, to control the maximum number of threads used in OpenMP
+	add a command-line option, -maxThreads <n>, to control the maximum number of threads used in OpenMP
 	add a header eidos_openmp.h that should be used instead of #include "omp.h", providing various useful definitions etc.
 	add an initialization function for OpenMP, Eidos_WarmUpOpenMP(), that must be called when warming up; sets various options, logs diagnostic info
 	set default values for OMP_WAIT_POLICY (active) and OMP_PROC_BIND (false) and OMP_DYNAMIC (false) for slim and eidos
@@ -84,6 +84,7 @@ PARALLEL changes (now in the master branch):
 	add parallelSetTaskThreadCounts() function to set per-task thread counts, and parallelGetTaskThreadCounts() to get them
 	add recipe 22.7, Parallelizing nonWF reproduction and spatial interactions
 	add internal EidosBenchmark facility for timing of internal loops, for benchmarking of parallelization scaling
+	add a command-line option, -perTaskThreads, to let the user control how many threads to use for different tasks (if not overridden)
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui

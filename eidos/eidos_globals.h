@@ -56,11 +56,24 @@ class EidosToken;
 #define EIDOS_VERSION_FLOAT		(3.01)
 
 
-// These should be called once at startup to give Eidos an opportunity to initialize static state
 #ifdef _OPENMP
-void _Eidos_SetDefaultOpenMPThreadCounts(void);
+typedef enum {
+	kDefault = 0,				// indicates that one of the other values should be chosen heuristically
+	kMaxThreads,				// use EIDOS_OMP_MAX_THREADS for everything
+	kMacStudio2022_16,			// Mac Studio 2022 (Mac13,2), 20-core M1 Ultra (16 performance cores)
+	kXeonGold2_40,				// two 20-core (40-hyperthreaded) Intel Xeon Gold 6148 2.4GHz (40 physical cores)
+} EidosPerTaskThreadCounts;
+
+// Some state variables for user output regarding the OpenMP configuration
+extern EidosPerTaskThreadCounts gEidosDefaultPerTaskThreadCounts;	// the default set on the command line, or kDefault
+extern std::string gEidosPerTaskThreadCountsSetName;
+extern int gEidosPerTaskOriginalMaxThreadCount, gEidosPerTaskClippedMaxThreadCount;
+
+// Eidos_WarmUpOpenMP() should be called once at startup to give Eidos an opportunity to initialize static state
+void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_counts);
+void _Eidos_ChooseDefaultOpenMPThreadCounts(void);
 void _Eidos_ClipOpenMPThreadCounts(void);
-void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads);
+void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, int new_max_thread_count, bool active_threads, std::string thread_count_set_name);
 #endif
 
 void Eidos_WarmUp(void);

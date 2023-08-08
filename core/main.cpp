@@ -104,8 +104,8 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 	SLIM_OUTSTREAM << "   [-l[ong] [<l>]] [-s[eed] <seed>] [-t[ime]] [-m[em]] [-M[emhist]] [-x]" << std::endl;
 	SLIM_OUTSTREAM << "   [-d[efine] <def>] ";
 #ifdef _OPENMP
-	// The -maxthreads flag is visible only for a parallel build
-	SLIM_OUTSTREAM << "[-maxthreads <n>] ";
+	// Some flags are visible only for a parallel build
+	SLIM_OUTSTREAM << "[-maxThreads <n>] [-perTaskThreads \"x\"] ";
 #endif
 #if (SLIMPROFILING == 1)
 	// Some flags are visible only for a profile build
@@ -130,8 +130,9 @@ static void PrintUsageAndDie(bool p_print_header, bool p_print_full_usage)
 		SLIM_OUTSTREAM << "   -x                 : disable SLiM's runtime safety/consistency checks" << std::endl;
 		SLIM_OUTSTREAM << "   -d[efine] <def>    : define an Eidos constant, such as \"mu=1e-7\"" << std::endl;
 #ifdef _OPENMP
-		// The -maxthreads flag is visible only for a parallel build
-		SLIM_OUTSTREAM << "   -maxthreads <n>    : set the maximum number of threads used" << std::endl;
+		// Some flags are visible only for a parallel build
+		SLIM_OUTSTREAM << "   -maxThreads <n>    : set the maximum number of threads used" << std::endl;
+		SLIM_OUTSTREAM << "   -perTaskThreads \"x\": set per-task thread counts to named set \"x\"" << std::endl;
 #endif
 #if (SLIMPROFILING == 1)
 		SLIM_OUTSTREAM << "   " << std::endl;
@@ -187,6 +188,7 @@ int main(int argc, char *argv[])
 #ifdef _OPENMP
 	long max_thread_count = omp_get_max_threads();
 	bool changed_max_thread_count = false;
+	std::string per_task_thread_count_set_name = "";		// default per-task thread counts
 #endif
 	
 #if (SLIMPROFILING == 1)
@@ -335,7 +337,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--testEidos") == 0 || strcmp(arg, "-testEidos") == 0 || strcmp(arg, "-te") == 0)
 		{
 #ifdef _OPENMP
-			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true, /* max per-task thread counts */ "maxThreads");
 #endif
 			Eidos_WarmUp();
 			
@@ -351,7 +353,7 @@ int main(int argc, char *argv[])
 		if (strcmp(arg, "--testSLiM") == 0 || strcmp(arg, "-testSLiM") == 0 || strcmp(arg, "-ts") == 0)
 		{
 #ifdef _OPENMP
-			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true);
+			Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true, /* max per-task thread counts */ "maxThreads");
 #endif
 			Eidos_WarmUp();
 			SLiM_WarmUp();
@@ -383,8 +385,8 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		// -maxthreads <x>: set the maximum number of OpenMP threads that will be used
-		if (strcmp(arg, "-maxthreads") == 0)
+		// -maxThreads <x>: set the maximum number of OpenMP threads that will be used
+		if (strcmp(arg, "-maxThreads") == 0)
 		{
 			if (++arg_index == argc)
 				PrintUsageAndDie(false, true);
@@ -397,7 +399,7 @@ int main(int argc, char *argv[])
 			
 			if ((max_thread_count < 1) || (max_thread_count > EIDOS_OMP_MAX_THREADS))
 			{
-				SLIM_OUTSTREAM << "The -maxthreads command-line option enforces a range of [1, " << EIDOS_OMP_MAX_THREADS << "]." << std::endl;
+				SLIM_OUTSTREAM << "The -maxThreads command-line option enforces a range of [1, " << EIDOS_OMP_MAX_THREADS << "]." << std::endl;
 				exit(EXIT_FAILURE);
 			}
 			
@@ -405,9 +407,22 @@ int main(int argc, char *argv[])
 #else
 			if (count != 1)
 			{
-				SLIM_OUTSTREAM << "The -maxthreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
+				SLIM_OUTSTREAM << "The -maxThreads command-line option only allows a value of 1 when not running a PARALLEL build." << std::endl;
 				exit(EXIT_FAILURE);
 			}
+#endif
+		}
+		
+		// -perTaskThreads "x": set the per-task thread counts to be used in OpenMP to a named set "x"
+		if (strcmp(arg, "-perTaskThreads") == 0)
+		{
+			if (++arg_index == argc)
+				PrintUsageAndDie(false, true);
+			
+#ifdef _OPENMP
+			// We just take the name as given; testing against known values will be done later
+			// This command-line argument is ignored completely when not parallel
+			per_task_thread_count_set_name = std::string(argv[arg_index]);
 #endif
 		}
 		
@@ -500,7 +515,7 @@ int main(int argc, char *argv[])
 #endif
 	
 #ifdef _OPENMP
-	Eidos_WarmUpOpenMP((SLiM_verbosity_level >= 1) ? &SLIM_ERRSTREAM : nullptr, changed_max_thread_count, (int)max_thread_count, true);
+	Eidos_WarmUpOpenMP((SLiM_verbosity_level >= 1) ? &SLIM_ERRSTREAM : nullptr, changed_max_thread_count, (int)max_thread_count, true, per_task_thread_count_set_name);
 #endif
 	
 	if (SLiM_verbosity_level >= 2)

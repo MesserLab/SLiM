@@ -38,7 +38,7 @@
 	 if building in Xcode, use the provided separate version of the project, SLiM_OpenMP.xcodeproj, and the separate targets eidos_multi and slim_multi
 	 with -DPARALLEL=ON, the built executables will be slim_multi and eidos_multi, to make it easier to distinguish them; but of course you may rename them as you see fit
 	 on macOS, you may (several times!) get a system alert that libomp was blocked for security; after that, go to System Preferences, Security & Privacy, tab General, click "Allow Anyway", and then click "Open" back in the system panel
-	 use the -maxthreads <x> command-line option to change the maximum number of threads from OpenMP's default
+	 use the -maxThreads <x> command-line option to change the maximum number of threads from OpenMP's default
 
  We allocate per-thread storage (for gEidosMaxThreads threads) at the global/species level for these facilities:
  

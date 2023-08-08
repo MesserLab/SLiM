@@ -891,9 +891,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 	
 	if (source_value->Type() == EidosValueType::kValueNULL)
 	{
-		// A dict value of NULL means "reset to default settings", which we have a function for
+		// A dict value of NULL means "reset to the command-line default settings"
 #ifdef _OPENMP
-		_Eidos_SetDefaultOpenMPThreadCounts();
+		_Eidos_SetOpenMPThreadCounts(gEidosDefaultPerTaskThreadCounts);
 #endif
 	}
 	else
@@ -1048,6 +1048,10 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "SURVIVAL")						gEidos_OMP_threads_SURVIVAL = (int)value_int64;
 						else
 							EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_parallelSetTaskThreadCounts): parallelSetTaskThreadCounts() does not recognize the task name " << key << "." << EidosTerminate(nullptr);
+						
+						// This assumes that any thread count set might push the maximum per-task thread count higher, but not lower
+						gEidosPerTaskThreadCountsSetName = "UserDefined";
+						gEidosPerTaskOriginalMaxThreadCount = std::max(gEidosPerTaskOriginalMaxThreadCount, (int)value_int64);
 #endif
 					}
 					else

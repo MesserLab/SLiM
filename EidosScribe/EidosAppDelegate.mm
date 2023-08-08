@@ -72,7 +72,7 @@
 	// We always use 4 threads; we don't want to hog the whole machine, just run with a couple threads.
 	// We pass false for active_threads to let the worker threads sleep, otherwise the CPU is pegged
 	// the whole time EidosScribe is running, even when sitting idle.
-	Eidos_WarmUpOpenMP(&std::cout, true, 4, false);
+	Eidos_WarmUpOpenMP(&std::cout, true, 4, false, /* default per-task thread counts */ "");
 #endif
 	
 	Eidos_WarmUp();
