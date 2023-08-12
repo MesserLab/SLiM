@@ -29,6 +29,7 @@
 #include "eidos_property_signature.h"
 #include "eidos_type_table.h"
 #include "eidos_type_interpreter.h"
+#include "eidos_sorting.h"
 
 #include <stdexcept>
 #include <memory>

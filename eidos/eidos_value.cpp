@@ -19,6 +19,7 @@
 
 #include "eidos_value.h"
 #include "eidos_functions.h"
+#include "eidos_sorting.h"
 #include "eidos_interpreter.h"
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"

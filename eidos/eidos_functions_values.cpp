@@ -21,6 +21,7 @@
 #include "eidos_functions.h"
 #include "eidos_interpreter.h"
 #include "eidos_rng.h"
+#include "eidos_sorting.h"
 
 #include <unordered_map>
 #include <vector>

@@ -26,6 +26,7 @@
 #include "species.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
+#include "eidos_sorting.h"
 
 #include <algorithm>
 #include <string>

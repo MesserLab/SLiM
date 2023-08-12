@@ -350,6 +350,14 @@
 		986D73E81B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
 		986D73E91B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
 		986D73EA1B07E89E007FBB70 /* eidos_call_signature.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */; };
+		98729ACF2A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD02A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD12A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD22A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD32A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD42A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD52A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
+		98729AD62A87AAB700E81662 /* eidos_sorting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */; };
 		98760EDD28CE5E7600CEBC40 /* libomp.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98760EDC28CE5E7600CEBC40 /* libomp.dylib */; };
 		98760EDE28CE5E8200CEBC40 /* libomp.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 98760EDC28CE5E7600CEBC40 /* libomp.dylib */; };
 		9876E5F51ED5572C00FF9762 /* tdist.c in Sources */ = {isa = PBXBuildFile; fileRef = 9876E5F41ED5572C00FF9762 /* tdist.c */; };
@@ -1618,6 +1626,8 @@
 		986926EA1AA6B7480000E138 /* GraphView_PopulationVisualization.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphView_PopulationVisualization.mm; sourceTree = "<group>"; };
 		986D73E61B07E89E007FBB70 /* eidos_call_signature.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_call_signature.cpp; sourceTree = "<group>"; };
 		986D73E71B07E89E007FBB70 /* eidos_call_signature.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_call_signature.h; sourceTree = "<group>"; };
+		98729ACD2A87A93500E81662 /* eidos_sorting.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_sorting.h; sourceTree = "<group>"; };
+		98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_sorting.cpp; sourceTree = "<group>"; };
 		9873B12328CE26CD00582D83 /* eidos_openmp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = eidos_openmp.h; sourceTree = "<group>"; };
 		98760EDC28CE5E7600CEBC40 /* libomp.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libomp.dylib; path = /usr/local/lib/libomp.dylib; sourceTree = "<group>"; };
 		9876E5F31ED5572C00FF9762 /* gsl_cdf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gsl_cdf.h; path = cdf/gsl_cdf.h; sourceTree = "<group>"; };
@@ -2009,6 +2019,8 @@
 				9857E33A1BB58DAE00F1C8A9 /* eidos_intrusive_ptr.h */,
 				985A11861BBA07CB009EE1FF /* eidos_object_pool.h */,
 				9809F8BD24F32B3E00D312E4 /* eidos_tinycolormap.h */,
+				98729ACD2A87A93500E81662 /* eidos_sorting.h */,
+				98729ACE2A87AAB700E81662 /* eidos_sorting.cpp */,
 				9893C7DC1CDA2D650029AC94 /* eidos_beep.h */,
 				9893C7DB1CDA2D650029AC94 /* eidos_beep.cpp */,
 				98B8AF8725A2BE7200C95D66 /* json_fwd.hpp */,
@@ -3300,6 +3312,7 @@
 				982556B81BA8EF8C0054CB3F /* eidos_property_signature.cpp in Sources */,
 				98C8217F1C7A983800548839 /* inline.c in Sources */,
 				985F3F0E24BA31D900E712E0 /* eidos_test_functions_statistics.cpp in Sources */,
+				98729AD42A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98C821AC1C7A9B1600548839 /* discrete.c in Sources */,
 				9807663924493E0B00F6CBB4 /* gzwrite.c in Sources */,
 				98C8218C1C7A983800548839 /* poisson.c in Sources */,
@@ -3371,6 +3384,7 @@
 				98332ADC1FDBC0D000274FF0 /* dgemv.c in Sources */,
 				98332B111FDBD09800274FF0 /* init.c in Sources */,
 				98C8212C1C7A980000548839 /* gamma.c in Sources */,
+				98729ACF2A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98C8212D1C7A980000548839 /* gauss.c in Sources */,
 				985F3F0124BA307200E712E0 /* eidos_test_operators_arithmetic.cpp in Sources */,
 				985F3F0B24BA31D900E712E0 /* eidos_test_functions_statistics.cpp in Sources */,
@@ -3613,6 +3627,7 @@
 				98332AEE1FDBC29500274FF0 /* rowcol.c in Sources */,
 				9890D1EF27136BB7001EAE98 /* eidos_class_DataFrame.cpp in Sources */,
 				987AD8871B2CC0C10035D6C8 /* EidosVariableBrowserController.mm in Sources */,
+				98729AD22A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				9807662B24493E0B00F6CBB4 /* crc32.c in Sources */,
 				98C821661C7A983800548839 /* beta.c in Sources */,
 				985F3EFE24BA2F1500E712E0 /* eidos_test_functions_vector.cpp in Sources */,
@@ -3691,6 +3706,7 @@
 				98CF5215294A3FC900557BBA /* binomial_tpe.c in Sources */,
 				98CF5216294A3FC900557BBA /* tables.c in Sources */,
 				98CF5217294A3FC900557BBA /* species_eidos.cpp in Sources */,
+				98729AD12A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98CF5218294A3FC900557BBA /* slim_functions.cpp in Sources */,
 				98CF5219294A3FC900557BBA /* deflate.c in Sources */,
 				98CF521A294A3FC900557BBA /* FindRecipeController.mm in Sources */,
@@ -3918,6 +3934,7 @@
 				98CF53E8294A714200557BBA /* rowcol.c in Sources */,
 				98CF53E9294A714200557BBA /* eidos_class_DataFrame.cpp in Sources */,
 				98CF53EA294A714200557BBA /* EidosVariableBrowserController.mm in Sources */,
+				98729AD32A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98CF53EB294A714200557BBA /* crc32.c in Sources */,
 				98CF53EC294A714200557BBA /* beta.c in Sources */,
 				98CF53ED294A714200557BBA /* eidos_test_functions_vector.cpp in Sources */,
@@ -3996,6 +4013,7 @@
 				98C821491C7A983700548839 /* binomial_tpe.c in Sources */,
 				9850D8E9206309A0006BFD2E /* tables.c in Sources */,
 				98AC617B24BA34ED0001914C /* species_eidos.cpp in Sources */,
+				98729AD02A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98DDAED7221765480038C133 /* slim_functions.cpp in Sources */,
 				98076618244934A800F6CBB4 /* deflate.c in Sources */,
 				984252C3216FA9930019696A /* FindRecipeController.mm in Sources */,
@@ -4192,6 +4210,7 @@
 				98D7EBB328CE557C00DEAAC4 /* poisson.c in Sources */,
 				98D7EBB428CE557C00DEAAC4 /* eidos_type_table.cpp in Sources */,
 				98D7EBB528CE557C00DEAAC4 /* exp.c in Sources */,
+				98729AD52A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98D7EBB628CE557C00DEAAC4 /* eidos_test_functions_other.cpp in Sources */,
 				98D7EBB728CE557C00DEAAC4 /* eidos_script.cpp in Sources */,
 				981DC37B28E27300000ABE91 /* eidos_functions_distributions.cpp in Sources */,
@@ -4263,6 +4282,7 @@
 				98D7ECA428CE58FC00DEAAC4 /* dgemv.c in Sources */,
 				98D7ECA528CE58FC00DEAAC4 /* init.c in Sources */,
 				98D7ECA628CE58FC00DEAAC4 /* gamma.c in Sources */,
+				98729AD62A87AAB700E81662 /* eidos_sorting.cpp in Sources */,
 				98D7ECA728CE58FC00DEAAC4 /* gauss.c in Sources */,
 				98D7ECA828CE58FC00DEAAC4 /* eidos_test_operators_arithmetic.cpp in Sources */,
 				981DC38528E27301000ABE91 /* eidos_functions_files.cpp in Sources */,

@@ -59,6 +59,9 @@
 
 #include <signal.h>
 #include <limits.h>
+#include <errno.h>
+#include <string.h>
+#include <iostream>
 
 
 // This is the largest number of threads we allow the user to set.  There is no hard limit in the code;

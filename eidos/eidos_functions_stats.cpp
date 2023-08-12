@@ -19,6 +19,7 @@
 
 
 #include "eidos_functions.h"
+#include "eidos_sorting.h"
 
 #include <utility>
 #include <limits>

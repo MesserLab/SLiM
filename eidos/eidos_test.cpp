@@ -24,6 +24,7 @@
 #include "eidos_interpreter.h"
 #include "eidos_globals.h"
 #include "eidos_rng.h"
+#include "eidos_sorting.h"
 
 #include <stdlib.h>
 #include <iostream>
@@ -1273,6 +1274,103 @@ int RunEidosTests(void)
 			}
 			std::cout << std::endl;
 		}
+	}
+#endif
+	
+#if 1
+	// Speed and correctness tests of various parallel sorting algorithms
+	{
+		std::cout << std::endl << "SORTING TESTS:" << std::endl;
+		
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// the single-threaded RNG
+		typedef int64_t SORT_TYPE;
+		
+		{
+			auto comparator = [](SORT_TYPE a, SORT_TYPE b) {
+				return a < b;
+			};
+			const std::size_t test_size = 10000000;
+			const int reps = 5;
+			double time_sum;
+			std::vector<SORT_TYPE> data_original;
+			data_original.resize(test_size);
+			
+			for (std::size_t i = 0; i < test_size; ++i)
+				data_original[i] = Eidos_rng_uniform_int(rng, test_size);
+			
+			std::vector<SORT_TYPE> data_stdsort;
+			
+			std::cout << "time (std::sort): ";
+			time_sum = 0.0;
+			for (int rep = 0; rep < reps; ++rep)
+			{
+				data_stdsort = data_original;
+				eidos_profile_t begin = Eidos_BenchmarkTime();
+				
+				std::sort(data_stdsort.begin(), data_stdsort.end());
+				
+				eidos_profile_t end = Eidos_BenchmarkTime();
+				double time_spent = Eidos_ElapsedProfileTime(end - begin);
+				std::cout << time_spent << " ";
+				time_sum += time_spent;
+			}
+			std::cout << " : mean " << time_sum / reps << std::endl;
+			
+#ifdef _OPENMP
+			std::cout << "time (PQUICK): ";
+			time_sum = 0.0;
+			for (int rep = 0; rep < reps; ++rep)
+			{
+				std::vector<SORT_TYPE> data_PQUICK = data_original;
+				eidos_profile_t begin = Eidos_BenchmarkTime();
+				
+				Eidos_ParallelQuicksort_I(data_PQUICK.data(), data_PQUICK.size());
+				
+				eidos_profile_t end = Eidos_BenchmarkTime();
+				double time_spent = Eidos_ElapsedProfileTime(end - begin);
+				bool correct = (data_PQUICK == data_stdsort);
+				std::cout << time_spent << " " << (!correct ? "(INCORRECT) " : "");
+				time_sum += time_spent;
+			}
+			std::cout << " : mean " << time_sum / reps << std::endl;
+			
+			std::cout << "time (PMERGE): ";
+			time_sum = 0.0;
+			for (int rep = 0; rep < reps; ++rep)
+			{
+				std::vector<SORT_TYPE> data_PMERGE = data_original;
+				eidos_profile_t begin = Eidos_BenchmarkTime();
+				
+				Eidos_ParallelMergesort_I(data_PMERGE.data(), data_PMERGE.size());
+				
+				eidos_profile_t end = Eidos_BenchmarkTime();
+				double time_spent = Eidos_ElapsedProfileTime(end - begin);
+				bool correct = (data_PMERGE == data_stdsort);
+				std::cout << time_spent << " " << (!correct ? "(INCORRECT) " : "");
+				time_sum += time_spent;
+			}
+			std::cout << " : mean " << time_sum / reps << std::endl;
+			
+			std::cout << "time (PSRIRAM): ";
+			time_sum = 0.0;
+			for (int rep = 0; rep < reps; ++rep)
+			{
+				std::vector<SORT_TYPE> data_PSRIRAM = data_original;
+				eidos_profile_t begin = Eidos_BenchmarkTime();
+				
+				Sriram_parallel_omp_sort(data_PSRIRAM, comparator);
+				
+				eidos_profile_t end = Eidos_BenchmarkTime();
+				double time_spent = Eidos_ElapsedProfileTime(end - begin);
+				bool correct = (data_PSRIRAM == data_stdsort);
+				std::cout << time_spent << " " << (!correct ? "(INCORRECT) " : "");
+				time_sum += time_spent;
+			}
+			std::cout << " : mean " << time_sum / reps << std::endl;
+#endif
+		}
+		
+		std::cout << std::endl << std::endl;
 	}
 #endif
 	

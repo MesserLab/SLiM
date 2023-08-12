@@ -590,73 +590,6 @@ std::string Eidos_string_escaped_CSV(const std::string &unescapedString);							
 // BCH 13 December 2017: no longer used, commenting this out
 //std::string Eidos_Exec(const char *p_cmd);
 
-// Get indexes that would result in sorted ordering of a vector.  This rather nice code is adapted from http://stackoverflow.com/a/12399290/2752221
-template <typename T>
-std::vector<int64_t> EidosSortIndexes(const std::vector<T> &p_v, bool p_ascending = true)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_v.size());
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
-	else
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
-	
-	return idx;
-}
-
-template <>
-inline std::vector<int64_t> EidosSortIndexes<double>(const std::vector<double> &p_v, bool p_ascending)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_v.size());
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	// this specialization for type double sorts NaNs to the end
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] < p_v[i2]);});
-	else
-		std::sort(idx.begin(), idx.end(), [&p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] > p_v[i2]);});
-	
-	return idx;
-}
-
-template <typename T>
-std::vector<int64_t> EidosSortIndexes(const T *p_v, size_t p_size, bool p_ascending = true)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_size);
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] < p_v[i2];});
-	else
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return p_v[i1] > p_v[i2];});
-	
-	return idx;
-}
-
-template <>
-inline std::vector<int64_t> EidosSortIndexes<double>(const double *p_v, size_t p_size, bool p_ascending)
-{
-	// initialize original index locations
-	std::vector<int64_t> idx(p_size);
-	std::iota(idx.begin(), idx.end(), 0);
-	
-	// sort indexes based on comparing values in v
-	// this specialization for type double sorts NaNs to the end
-	if (p_ascending)
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] < p_v[i2]);});
-	else
-		std::sort(idx.begin(), idx.end(), [p_v](int64_t i1, int64_t i2) {return std::isnan(p_v[i2]) || (p_v[i1] > p_v[i2]);});
-	
-	return idx;
-}
-
 extern int gEidosFloatOutputPrecision;		// precision used for output of float values in Eidos; not user-visible at present
 
 std::string EidosStringForFloat(double p_value);
@@ -688,10 +621,6 @@ BidiIter Eidos_random_unique(BidiIter begin, BidiIter end, size_t num_random)
 
 // The <regex> library does not work on Ubuntu 18.04, annoyingly; probably a very old compiler or something.  So we have to check.
 bool Eidos_RegexWorks(void);
-
-// Parallel sorting; these use std::sort when we are not running parallel, or for small jobs
-void Eidos_ParallelQuicksort_I(int64_t *values, int64_t nelements);
-void Eidos_ParallelMergesort_I(int64_t *values, int64_t nelements);
 
 
 // *******************************************************************************************************************

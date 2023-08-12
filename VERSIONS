@@ -85,6 +85,7 @@ PARALLEL changes (now in the master branch):
 	add recipe 22.7, Parallelizing nonWF reproduction and spatial interactions
 	add internal EidosBenchmark facility for timing of internal loops, for benchmarking of parallelization scaling
 	add a command-line option, -perTaskThreads, to let the user control how many threads to use for different tasks (if not overridden)
+	parallelize sorting, where possible/efficient
 
 development head (in the master branch):
 	fix a minor bug with autofix when opening multiple .slim documents at once in SLiMgui
