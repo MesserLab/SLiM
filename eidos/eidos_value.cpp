@@ -1400,10 +1400,8 @@ void EidosValue_String_vector::PushValueFromIndexOfEidosValue(int p_idx, const E
 
 void EidosValue_String_vector::Sort(bool p_ascending)
 {
-	if (p_ascending)
-		std::sort(values_.begin(), values_.end());
-	else
-		std::sort(values_.begin(), values_.end(), std::greater<std::string>());
+	// This will sort in parallel if the task is large enough (and we're running parallel)
+	Eidos_ParallelSort(values_.data(), values_.size(), p_ascending);
 }
 
 
