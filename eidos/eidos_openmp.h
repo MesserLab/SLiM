@@ -121,14 +121,14 @@ extern bool gEidosNumThreadsOverride;
 #define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s) if (omp_in_parallel()) { std::cerr << "THREAD_SAFETY_IN_ACTIVE_PARALLEL error in " << s; raise(SIGTRAP); }
 #define THREAD_SAFETY_IN_ANY_PARALLEL(s) if (omp_get_level() > 0) { std::cerr << "THREAD_SAFETY_IN_ANY_PARALLEL error in " << s; raise(SIGTRAP); }
 #else
-#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)
-#define THREAD_SAFETY_IN_ANY_PARALLEL(s)
+#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)	;
+#define THREAD_SAFETY_IN_ANY_PARALLEL(s)	;
 #endif
 
 #else
 
-#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)
-#define THREAD_SAFETY_IN_ANY_PARALLEL(s)
+#define THREAD_SAFETY_IN_ACTIVE_PARALLEL(s)	;
+#define THREAD_SAFETY_IN_ANY_PARALLEL(s)	;
 
 #endif
 

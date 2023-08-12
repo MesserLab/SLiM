@@ -21,6 +21,8 @@
 #include <algorithm>
 #include <numeric>
 #include <cstdint>
+#include <string>
+#include <cmath>
 
 #include "eidos_sorting.h"
 

@@ -34,6 +34,7 @@
 #include <numeric>
 #include <cstdint>
 #include <string>
+#include <cmath>
 
 
 //
