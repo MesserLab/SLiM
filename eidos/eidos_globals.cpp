@@ -302,6 +302,10 @@ int gEidos_OMP_threads_RUNIF_1 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_RUNIF_2 = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_RUNIF_3 = EIDOS_OMP_MAX_THREADS;
 
+int gEidos_OMP_threads_SORT_INT = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SORT_FLOAT = EIDOS_OMP_MAX_THREADS;
+int gEidos_OMP_threads_SORT_STRING = EIDOS_OMP_MAX_THREADS;
+
 int gEidos_OMP_threads_POINT_IN_BOUNDS_1D = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_POINT_IN_BOUNDS_2D = EIDOS_OMP_MAX_THREADS;
 int gEidos_OMP_threads_POINT_IN_BOUNDS_3D = EIDOS_OMP_MAX_THREADS;
@@ -451,6 +455,10 @@ void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_count
 		gEidos_OMP_threads_RUNIF_2 = EIDOS_OMP_MAX_THREADS;
 		gEidos_OMP_threads_RUNIF_3 = EIDOS_OMP_MAX_THREADS;
 		
+		gEidos_OMP_threads_SORT_INT = EIDOS_OMP_MAX_THREADS;
+		gEidos_OMP_threads_SORT_FLOAT = EIDOS_OMP_MAX_THREADS;
+		gEidos_OMP_threads_SORT_STRING = EIDOS_OMP_MAX_THREADS;
+		
 		gEidos_OMP_threads_POINT_IN_BOUNDS_1D = EIDOS_OMP_MAX_THREADS;
 		gEidos_OMP_threads_POINT_IN_BOUNDS_2D = EIDOS_OMP_MAX_THREADS;
 		gEidos_OMP_threads_POINT_IN_BOUNDS_3D = EIDOS_OMP_MAX_THREADS;
@@ -580,6 +588,10 @@ void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_count
 		gEidos_OMP_threads_RUNIF_1 = 16;
 		gEidos_OMP_threads_RUNIF_2 = 16;
 		gEidos_OMP_threads_RUNIF_3 = 16;
+		
+		gEidos_OMP_threads_SORT_INT = 16;		// subject to revision
+		gEidos_OMP_threads_SORT_FLOAT = 16;		// subject to revision
+		gEidos_OMP_threads_SORT_STRING = 16;	// subject to revision
 		
 		gEidos_OMP_threads_POINT_IN_BOUNDS_1D = 12;
 		gEidos_OMP_threads_POINT_IN_BOUNDS_2D = 12;
@@ -712,6 +724,10 @@ void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_count
 		gEidos_OMP_threads_RUNIF_1 = 40;
 		gEidos_OMP_threads_RUNIF_2 = 40;
 		gEidos_OMP_threads_RUNIF_3 = 40;
+		
+		gEidos_OMP_threads_SORT_INT = 40;		// subject to revision
+		gEidos_OMP_threads_SORT_FLOAT = 40;		// subject to revision
+		gEidos_OMP_threads_SORT_STRING = 40;	// subject to revision
 		
 		gEidos_OMP_threads_POINT_IN_BOUNDS_1D = 40;
 		gEidos_OMP_threads_POINT_IN_BOUNDS_2D = 40;
@@ -870,6 +886,10 @@ void _Eidos_ClipOpenMPThreadCounts(void)
 	gEidos_OMP_threads_RUNIF_2 = std::min(gEidosMaxThreads, gEidos_OMP_threads_RUNIF_2);
 	gEidos_OMP_threads_RUNIF_3 = std::min(gEidosMaxThreads, gEidos_OMP_threads_RUNIF_3);
 
+	gEidos_OMP_threads_SORT_INT = std::min(gEidosMaxThreads, gEidos_OMP_threads_SORT_INT);
+	gEidos_OMP_threads_SORT_FLOAT = std::min(gEidosMaxThreads, gEidos_OMP_threads_SORT_FLOAT);
+	gEidos_OMP_threads_SORT_STRING = std::min(gEidosMaxThreads, gEidos_OMP_threads_SORT_STRING);
+	
 	gEidos_OMP_threads_POINT_IN_BOUNDS_1D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_1D);
 	gEidos_OMP_threads_POINT_IN_BOUNDS_2D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_2D);
 	gEidos_OMP_threads_POINT_IN_BOUNDS_3D = std::min(gEidosMaxThreads, gEidos_OMP_threads_POINT_IN_BOUNDS_3D);

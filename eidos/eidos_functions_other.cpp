@@ -798,6 +798,10 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("RUNIF_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_2)));
 	objectElement->SetKeyValue_StringKeys("RUNIF_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_RUNIF_3)));
 	
+	objectElement->SetKeyValue_StringKeys("SORT_INT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_INT)));
+	objectElement->SetKeyValue_StringKeys("SORT_FLOAT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_FLOAT)));
+	objectElement->SetKeyValue_StringKeys("SORT_STRING", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SORT_STRING)));
+	
 	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_1D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_1D)));
 	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_2D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_2D)));
 	objectElement->SetKeyValue_StringKeys("POINT_IN_BOUNDS_3D", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_POINT_IN_BOUNDS_3D)));
@@ -998,6 +1002,10 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "RUNIF_1")						gEidos_OMP_threads_RUNIF_1 = (int)value_int64;
 						else if (key == "RUNIF_2")						gEidos_OMP_threads_RUNIF_2 = (int)value_int64;
 						else if (key == "RUNIF_3")						gEidos_OMP_threads_RUNIF_3 = (int)value_int64;
+						
+						else if (key == "SORT_INT")						gEidos_OMP_threads_SORT_INT = (int)value_int64;
+						else if (key == "SORT_FLOAT")					gEidos_OMP_threads_SORT_FLOAT = (int)value_int64;
+						else if (key == "SORT_STRING")					gEidos_OMP_threads_SORT_STRING = (int)value_int64;
 						
 						else if (key == "POINT_IN_BOUNDS_1D")			gEidos_OMP_threads_POINT_IN_BOUNDS_1D = (int)value_int64;
 						else if (key == "POINT_IN_BOUNDS_2D")			gEidos_OMP_threads_POINT_IN_BOUNDS_2D = (int)value_int64;

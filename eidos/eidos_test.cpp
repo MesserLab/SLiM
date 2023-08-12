@@ -1277,18 +1277,21 @@ int RunEidosTests(void)
 	}
 #endif
 	
-#if 1
+#if 0
 	// Speed and correctness tests of various parallel sorting algorithms
 	{
 		std::cout << std::endl << "SORTING TESTS:" << std::endl;
 		
 		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());		// the single-threaded RNG
-		typedef int64_t SORT_TYPE;
+		typedef std::string SORT_TYPE;
 		
 		{
-			auto comparator = [](SORT_TYPE a, SORT_TYPE b) {
-				return a < b;
-			};
+			// use the appropriate comparator for the sort type, in the code below
+			// note that Eidos_ParallelSort_Comparator() and Sriram_parallel_omp_sort() require a comparator,
+			// whereas std::sort() defaults to ascending (op <) by default, and Eidos_ParallelSort() doesn't take one.
+			//auto comparator_scalar = [](SORT_TYPE a, SORT_TYPE b) { return a < b; };
+			auto comparator_string = [](const std::string &a, const std::string &b) { return a < b; };
+			//auto comparator_double = [](const double& a, const double& b) { return std::isnan(b) || (a < b); };
 			const std::size_t test_size = 10000000;
 			const int reps = 5;
 			double time_sum;
@@ -1296,7 +1299,10 @@ int RunEidosTests(void)
 			data_original.resize(test_size);
 			
 			for (std::size_t i = 0; i < test_size; ++i)
-				data_original[i] = Eidos_rng_uniform_int(rng, test_size);
+			{
+				//data_original[i] = Eidos_rng_uniform_int(rng, test_size);
+				data_original[i] = std::to_string(Eidos_rng_uniform_int(rng, test_size));
+			}
 			
 			std::vector<SORT_TYPE> data_stdsort;
 			
@@ -1324,7 +1330,7 @@ int RunEidosTests(void)
 				std::vector<SORT_TYPE> data_PQUICK = data_original;
 				eidos_profile_t begin = Eidos_BenchmarkTime();
 				
-				Eidos_ParallelQuicksort_I(data_PQUICK.data(), data_PQUICK.size());
+				Eidos_ParallelSort(data_PQUICK.data(), data_PQUICK.size(), true);
 				
 				eidos_profile_t end = Eidos_BenchmarkTime();
 				double time_spent = Eidos_ElapsedProfileTime(end - begin);
@@ -1334,18 +1340,18 @@ int RunEidosTests(void)
 			}
 			std::cout << " : mean " << time_sum / reps << std::endl;
 			
-			std::cout << "time (PMERGE): ";
+			std::cout << "time (PQUICKCOMP): ";
 			time_sum = 0.0;
 			for (int rep = 0; rep < reps; ++rep)
 			{
-				std::vector<SORT_TYPE> data_PMERGE = data_original;
+				std::vector<SORT_TYPE> data_PQUICKCOMP = data_original;
 				eidos_profile_t begin = Eidos_BenchmarkTime();
 				
-				Eidos_ParallelMergesort_I(data_PMERGE.data(), data_PMERGE.size());
+				Eidos_ParallelSort_Comparator(data_PQUICKCOMP.data(), data_PQUICKCOMP.size(), comparator_string);
 				
 				eidos_profile_t end = Eidos_BenchmarkTime();
 				double time_spent = Eidos_ElapsedProfileTime(end - begin);
-				bool correct = (data_PMERGE == data_stdsort);
+				bool correct = (data_PQUICKCOMP == data_stdsort);
 				std::cout << time_spent << " " << (!correct ? "(INCORRECT) " : "");
 				time_sum += time_spent;
 			}
@@ -1358,7 +1364,7 @@ int RunEidosTests(void)
 				std::vector<SORT_TYPE> data_PSRIRAM = data_original;
 				eidos_profile_t begin = Eidos_BenchmarkTime();
 				
-				Sriram_parallel_omp_sort(data_PSRIRAM, comparator);
+				Sriram_parallel_omp_sort(data_PSRIRAM, comparator_string);
 				
 				eidos_profile_t end = Eidos_BenchmarkTime();
 				double time_spent = Eidos_ElapsedProfileTime(end - begin);

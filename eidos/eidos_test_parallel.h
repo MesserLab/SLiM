@@ -435,6 +435,18 @@ if (!identical(y1, yN) | !identical(z1, zN)) stop('parallel sort(float x) failed
 
 // ***********************************************************************************************
 
+// (string)sort(string x)
+
+x = asString(runif(1000000, -100, 100));
+yN = sort(x);
+zN = sort(x, ascending=F);
+parallelSetNumThreads(1);
+y1 = sort(x);
+z1 = sort(x, ascending=F);
+if (!identical(y1, yN) | !identical(z1, zN)) stop('parallel sort(string x) failed test');
+
+// ***********************************************************************************************
+
 //	(float)dnorm(float x, numeric$ mean, numeric$ sd)			// EIDOS_OMPMIN_DNORM_1
 
 x = runif(1000000, -100, 100);
@@ -627,8 +639,8 @@ if (abs(sd(aN)-sd(a1)) > 0.02) stop('parallel rpois() failed sd test');
 aN = runif(1000000, 0, 1);
 parallelSetNumThreads(1);
 a1 = runif(1000000, 0, 1);
-if (abs(mean(aN)-mean(a1)) > 0.0015) stop('parallel rpois() failed mean test');
-if (abs(sd(aN)-sd(a1)) > 0.0006) stop('parallel rpois() failed sd test');
+if (abs(mean(aN)-mean(a1)) > 0.0015) stop('parallel runif() failed mean test');
+if (abs(sd(aN)-sd(a1)) > 0.0006) stop('parallel runif() failed sd test');
 
 // ***********************************************************************************************
 
@@ -637,8 +649,8 @@ if (abs(sd(aN)-sd(a1)) > 0.0006) stop('parallel rpois() failed sd test');
 aN = runif(1000000, 3, 17);
 parallelSetNumThreads(1);
 a1 = runif(1000000, 3, 17);
-if (abs(mean(aN)-mean(a1)) > 0.02) stop('parallel rpois() failed mean test');
-if (abs(sd(aN)-sd(a1)) > 0.01) stop('parallel rpois() failed sd test');
+if (abs(mean(aN)-mean(a1)) > 0.02) stop('parallel runif() failed mean test');
+if (abs(sd(aN)-sd(a1)) > 0.01) stop('parallel runif() failed sd test');
 
 // ***********************************************************************************************
 
@@ -649,8 +661,8 @@ max = rep(17.0, 1000000);
 aN = runif(1000000, 3, 17);
 parallelSetNumThreads(1);
 a1 = runif(1000000, 3, 17);
-if (abs(mean(aN)-mean(a1)) > 0.02) stop('parallel rpois() failed mean test');
-if (abs(sd(aN)-sd(a1)) > 0.01) stop('parallel rpois() failed sd test');
+if (abs(mean(aN)-mean(a1)) > 0.02) stop('parallel runif() failed mean test');
+if (abs(sd(aN)-sd(a1)) > 0.01) stop('parallel runif() failed sd test');
 
 )V0G0N"
 

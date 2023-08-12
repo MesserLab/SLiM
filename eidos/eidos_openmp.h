@@ -322,6 +322,11 @@ private:
 #define EIDOS_OMPMIN_RUNIF_2				10000
 #define EIDOS_OMPMIN_RUNIF_3				10000
 
+// Sorting & ordering
+#define EIDOS_OMPMIN_SORT_INT				4000
+#define EIDOS_OMPMIN_SORT_FLOAT				4000
+#define EIDOS_OMPMIN_SORT_STRING			4000
+
 // Spatial point/map manipulation
 #define EIDOS_OMPMIN_POINT_IN_BOUNDS_1D		2000
 #define EIDOS_OMPMIN_POINT_IN_BOUNDS_2D		2000
@@ -451,6 +456,11 @@ private:
 #define EIDOS_OMPMIN_RUNIF_1				0
 #define EIDOS_OMPMIN_RUNIF_2				0
 #define EIDOS_OMPMIN_RUNIF_3				0
+
+// Sorting & ordering
+#define EIDOS_OMPMIN_SORT_INT				0
+#define EIDOS_OMPMIN_SORT_FLOAT				0
+#define EIDOS_OMPMIN_SORT_STRING			0
 
 // Spatial point/map manipulation
 #define EIDOS_OMPMIN_POINT_IN_BOUNDS_1D		0
@@ -582,6 +592,11 @@ extern int gEidos_OMP_threads_RPOIS_2;
 extern int gEidos_OMP_threads_RUNIF_1;
 extern int gEidos_OMP_threads_RUNIF_2;
 extern int gEidos_OMP_threads_RUNIF_3;
+
+// Sorting & ordering
+extern int gEidos_OMP_threads_SORT_INT;
+extern int gEidos_OMP_threads_SORT_FLOAT;
+extern int gEidos_OMP_threads_SORT_STRING;
 
 // Spatial point/map manipulation; benchmark section P
 extern int gEidos_OMP_threads_POINT_IN_BOUNDS_1D;
