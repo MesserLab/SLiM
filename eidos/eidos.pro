@@ -91,6 +91,7 @@ SOURCES += \
     eidos_property_signature.cpp \
     eidos_rng.cpp \
     eidos_script.cpp \
+    eidos_sorting.cpp \
     eidos_symbol_table.cpp \
     eidos_test.cpp \
     eidos_test_functions_math.cpp \
@@ -123,6 +124,7 @@ HEADERS += \
     eidos_property_signature.h \
     eidos_rng.h \
     eidos_script.h \
+	eidos_sorting.h \
     eidos_symbol_table.h \
     eidos_test_builtins.h \
     eidos_test.h \
