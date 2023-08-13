@@ -26,6 +26,7 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "eidos_ast_node.h"
+#include "eidos_sorting.h"
 #include "individual.h"
 #include "polymorphism.h"
 #include "subpopulation.h"
@@ -3868,6 +3869,92 @@ struct edge_plus_time {
 	double left, right;
 };
 
+// This parallel sorter is basically a clone of _Eidos_ParallelQuicksort_ASCENDING() in eidos_sorting.inc
+// The only difference (and the only reason we can't use that code directly) is we want to inline our comparator
+#ifdef _OPENMP
+static void _Eidos_ParallelQuicksort_ASCENDING(edge_plus_time *values, int64_t lo, int64_t hi, int64_t fallthrough)
+{
+	if (lo >= hi)
+		return;
+	
+	if (hi - lo + 1 <= fallthrough) {
+		// fall through to sorting with std::sort() below our threshold size
+		std::sort(values + lo, values + hi + 1,
+			[](const edge_plus_time &lhs, const edge_plus_time &rhs) {
+				if (lhs.time == rhs.time) {
+					if (lhs.parent == rhs.parent) {
+						if (lhs.child == rhs.child) {
+							return lhs.left < rhs.left;
+						}
+						return lhs.child < rhs.child;
+					}
+					return lhs.parent < rhs.parent;
+				}
+				return lhs.time < rhs.time;
+			});
+	} else {
+		// choose the middle of three pivots, in an attempt to avoid really bad pivots
+		edge_plus_time &pivot1 = *(values + lo);
+		edge_plus_time &pivot2 = *(values + hi);
+		edge_plus_time &pivot3 = *(values + ((lo + hi) >> 1));
+		edge_plus_time pivot;
+		
+		// we just use times to choose the middle pivot; pivots with the same time probably won't be very
+		// different in their sorted position anyway, except pathological models that record vast numbers
+		// of edges in very few ticks; for those, this will revert to random-ish pivot choice (not so bad?)
+		if (pivot1.time > pivot2.time)
+		{
+			if (pivot2.time > pivot3.time)		pivot = pivot2;
+			else if (pivot1.time > pivot3.time)	pivot = pivot3;
+			else								pivot = pivot1;
+		}
+		else
+		{
+			if (pivot1.time > pivot3.time)		pivot = pivot1;
+			else if (pivot2.time > pivot3.time)	pivot = pivot3;
+			else								pivot = pivot2;
+		}
+		
+		// note that std::partition is not guaranteed to leave the pivot value in position
+		// we do a second partition to exclude all duplicate pivot values, which seems to be one standard strategy
+		// this works particularly well when duplicate values are very common; it helps avoid O(n^2) performance
+		// note the partition is not parallelized; that is apparently a difficult problem for parallel quicksort
+		edge_plus_time *middle1 = std::partition(values + lo, values + hi + 1, [pivot](const edge_plus_time& em) {
+			//return em < pivot;
+			if (em.time == pivot.time) {
+				if (em.parent == pivot.parent) {
+					if (em.child == pivot.child) {
+						return em.left < pivot.left;
+					}
+					return em.child < pivot.child;
+				}
+				return em.parent < pivot.parent;
+			}
+			return em.time < pivot.time;
+		});
+		edge_plus_time *middle2 = std::partition(middle1, values + hi + 1, [pivot](const edge_plus_time& em) {
+			//return !(pivot < em);
+			if (pivot.time == em.time) {
+				if (pivot.parent == em.parent) {
+					if (pivot.child == em.child) {
+						return !(pivot.left < em.left);
+					}
+					return !(pivot.child < em.child);
+				}
+				return !(pivot.parent < em.parent);
+			}
+			return !(pivot.time < em.time);
+		});
+		int64_t mid1 = middle1 - values;
+		int64_t mid2 = middle2 - values;
+		#pragma omp task default(none) firstprivate(values, lo, mid1, fallthrough)
+		{ _Eidos_ParallelQuicksort_ASCENDING(values, lo, mid1 - 1, fallthrough); }	// Left branch
+		#pragma omp task default(none) firstprivate(values, hi, mid2, fallthrough)
+		{ _Eidos_ParallelQuicksort_ASCENDING(values, mid2, hi, fallthrough); }		// Right branch
+	}
+}
+#endif
+
 static int
 slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 {
@@ -3876,17 +3963,65 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 	if (start != 0)
 		throw std::invalid_argument("the sorter requires start==0");
 	
-	std::vector<edge_plus_time> temp;
-	temp.reserve(static_cast<std::size_t>(sorter->tables->edges.num_rows));
+	std::size_t num_rows = static_cast<std::size_t>(sorter->tables->edges.num_rows);
+	//std::cout << num_rows << " edge table rows to be sorted" << std::endl;
 	
-	auto edges = &sorter->tables->edges;
-	auto nodes = &sorter->tables->nodes;
+	edge_plus_time *temp_edge_data = (edge_plus_time *)malloc(num_rows * sizeof(edge_plus_time));
+	if (!temp_edge_data)
+		EIDOS_TERMINATION << "ERROR (slim_sort_edges): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	for (tsk_size_t i = 0; i < sorter->tables->edges.num_rows; ++i)
-		temp.emplace_back(edge_plus_time{ nodes->time[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] });
+	tsk_edge_table_t *edges = &sorter->tables->edges;
+	double *node_times = sorter->tables->nodes.time;
 	
-	std::sort(begin(temp), end(temp),
-		[](const edge_plus_time &lhs, const edge_plus_time &rhs) {
+	// pre-sort: assemble the temp_edge_data vector
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_SORT_PRE);
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SIMPLIFY_SORT_PRE);
+#pragma omp parallel for schedule(static) default(none) shared(num_rows, temp_edge_data, edges, node_times) if(num_rows >= EIDOS_OMPMIN_SIMPLIFY_SORT_PRE) num_threads(thread_count)
+		for (tsk_size_t i = 0; i < num_rows; ++i)
+		{
+			temp_edge_data[i] = edge_plus_time{ node_times[edges->parent[i]], edges->parent[i], edges->child[i], edges->left[i], edges->right[i] };
+		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT_PRE);
+	}
+	
+	// sort with std::sort when not running parallel, or if the task is small;
+	// sort in parallel for big tasks if we can; see Eidos_ParallelSort() which
+	// this is patterned after, but we want the (faster) inlined comparator...
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_SORT);
+		
+#ifdef _OPENMP
+		if (num_rows >= EIDOS_OMPMIN_SIMPLIFY_SORT)
+		{
+			EIDOS_THREAD_COUNT(gEidos_OMP_threads_SIMPLIFY_SORT);
+#pragma omp parallel default(none) shared(num_rows, temp_edge_data) num_threads(thread_count)
+			{
+				// We fall through to using std::sort when below a threshold interval size.
+				// The larger the threshold, the less time we spend thrashing tasks on small
+				// intervals, which is good; but it also sets a limit on how many threads we
+				// we bring to bear on relatively small sorts, which is bad.  We try to
+				// calculate the optimal fall-through heuristically here; basically we want
+				// to subdivide with tasks enough that the workload is shared well, and then
+				// do the rest of the work with std::sort().  The more threads there are,
+				// the smaller we want to subdivide.
+				int64_t fallthrough = num_rows / (EIDOS_FALLTHROUGH_FACTOR * omp_get_num_threads());
+				
+				if (fallthrough < 1000)
+					fallthrough = 1000;
+				
+#pragma omp single nowait
+				{
+					_Eidos_ParallelQuicksort_ASCENDING(temp_edge_data, 0, num_rows - 1, fallthrough);
+				}
+			} // End of parallel region
+			
+			goto didParallelSort;
+		}
+#endif
+		
+		std::sort(temp_edge_data, temp_edge_data + num_rows,
+				  [](const edge_plus_time &lhs, const edge_plus_time &rhs) {
 			if (lhs.time == rhs.time) {
 				if (lhs.parent == rhs.parent) {
 					if (lhs.child == rhs.child) {
@@ -3898,14 +4033,27 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 			}
 			return lhs.time < rhs.time;
 		});
-	
-	for (std::size_t i = 0; i < temp.size(); ++i)
-	{
-		edges->left[i] = temp[i].left;
-		edges->right[i] = temp[i].right;
-		edges->parent[i] = temp[i].parent;
-		edges->child[i] = temp[i].child;
+		
+	didParallelSort:
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT);
 	}
+	
+	// post-sort: copy the sorted temp_edge_data vector back into the edge table
+	{
+		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_SORT_POST);
+		EIDOS_THREAD_COUNT(gEidos_OMP_threads_SIMPLIFY_SORT_POST);
+#pragma omp parallel for schedule(static) default(none) shared(num_rows, temp_edge_data, edges) if(num_rows >= EIDOS_OMPMIN_SIMPLIFY_SORT_POST) num_threads(thread_count)
+		for (std::size_t i = 0; i < num_rows; ++i)
+		{
+			edges->left[i] = temp_edge_data[i].left;
+			edges->right[i] = temp_edge_data[i].right;
+			edges->parent[i] = temp_edge_data[i].parent;
+			edges->child[i] = temp_edge_data[i].child;
+		}
+		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT_POST);
+	}
+	
+	free(temp_edge_data);
 	
 	return 0;
 }
@@ -3979,8 +4127,6 @@ void Species::SimplifyTreeSequence(void)
 	
 	// sort the table collection
 	{
-		EIDOS_BENCHMARK_START(EidosBenchmarkType::k_SIMPLIFY_SORT);
-		
 		tsk_flags_t flags = TSK_NO_CHECK_INTEGRITY;
 #if DEBUG
 		// in DEBUG mode, we do a standard consistency check for tree-seq integrity after each simplify; unlike in
@@ -4015,8 +4161,6 @@ void Species::SimplifyTreeSequence(void)
 		tsk_table_sorter_free(&sorter);
 		if (ret != 0) handle_error("tsk_table_sorter_free", ret);
 #endif
-		
-		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT);
 	}
 	
 	// remove redundant sites we added

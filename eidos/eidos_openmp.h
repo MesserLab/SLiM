@@ -374,6 +374,9 @@ private:
 #define EIDOS_OMPMIN_FITNESS_SEX_2			10000
 #define EIDOS_OMPMIN_FITNESS_SEX_3			10000
 #define EIDOS_OMPMIN_MIGRANT_CLEAR			10000
+#define EIDOS_OMPMIN_SIMPLIFY_SORT_PRE		4000
+#define EIDOS_OMPMIN_SIMPLIFY_SORT			4000
+#define EIDOS_OMPMIN_SIMPLIFY_SORT_POST		4000
 #define EIDOS_OMPMIN_SURVIVAL				10000
 
 #else
@@ -509,6 +512,9 @@ private:
 #define EIDOS_OMPMIN_FITNESS_SEX_2			0
 #define EIDOS_OMPMIN_FITNESS_SEX_3			0
 #define EIDOS_OMPMIN_MIGRANT_CLEAR			0
+#define EIDOS_OMPMIN_SIMPLIFY_SORT_PRE		0
+#define EIDOS_OMPMIN_SIMPLIFY_SORT			0
+#define EIDOS_OMPMIN_SIMPLIFY_SORT_POST		0
 #define EIDOS_OMPMIN_SURVIVAL				0
 
 #endif
@@ -645,6 +651,9 @@ extern int gEidos_OMP_threads_FITNESS_SEX_1;
 extern int gEidos_OMP_threads_FITNESS_SEX_2;
 extern int gEidos_OMP_threads_FITNESS_SEX_3;
 extern int gEidos_OMP_threads_MIGRANT_CLEAR;
+extern int gEidos_OMP_threads_SIMPLIFY_SORT_PRE;
+extern int gEidos_OMP_threads_SIMPLIFY_SORT;
+extern int gEidos_OMP_threads_SIMPLIFY_SORT_POST;
 extern int gEidos_OMP_threads_PARENTS_CLEAR;
 extern int gEidos_OMP_threads_UNIQUE_MUTRUNS;
 extern int gEidos_OMP_threads_SURVIVAL;

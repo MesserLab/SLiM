@@ -338,7 +338,9 @@ typedef enum {
 	k_MUT_TALLY,					// tally mutation reference counts, in Population::MaintainMutationRegistry()
 	k_MUTRUN_FREE,					// free unused mutation runs, in Population::MaintainMutationRegistry()
 	k_MUT_FREE,						// free fixed or unused mutations, in Population::MaintainMutationRegistry()
-	k_SIMPLIFY_SORT,				// sorting for simplification, in Species::SimplifyTreeSequence()
+	k_SIMPLIFY_SORT_PRE,			// pre-sorting for simplification, in slim_sort_edges()
+	k_SIMPLIFY_SORT,				// sorting for simplification, in slim_sort_edges()
+	k_SIMPLIFY_SORT_POST,			// post-sorting for simplification, in slim_sort_edges()
 	k_SIMPLIFY_CORE,				// the core simplification algorithm, in Species::SimplifyTreeSequence()
 } EidosBenchmarkType;
 

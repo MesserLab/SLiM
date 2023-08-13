@@ -846,6 +846,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelGetTaskThreadCounts(__attribute__((u
 	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_2", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_2)));
 	objectElement->SetKeyValue_StringKeys("FITNESS_SEX_3", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_FITNESS_SEX_3)));
 	objectElement->SetKeyValue_StringKeys("MIGRANT_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_MIGRANT_CLEAR)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_PRE", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT_PRE)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT)));
+	objectElement->SetKeyValue_StringKeys("SIMPLIFY_SORT_POST", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SIMPLIFY_SORT_POST)));
 	objectElement->SetKeyValue_StringKeys("PARENTS_CLEAR", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_PARENTS_CLEAR)));
 	objectElement->SetKeyValue_StringKeys("UNIQUE_MUTRUNS", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_UNIQUE_MUTRUNS)));
 	objectElement->SetKeyValue_StringKeys("SURVIVAL", EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(gEidos_OMP_threads_SURVIVAL)));
@@ -1051,6 +1054,9 @@ EidosValue_SP Eidos_ExecuteFunction_parallelSetTaskThreadCounts(__attribute__((u
 						else if (key == "FITNESS_SEX_2")				gEidos_OMP_threads_FITNESS_SEX_2 = (int)value_int64;
 						else if (key == "FITNESS_SEX_3")				gEidos_OMP_threads_FITNESS_SEX_3 = (int)value_int64;
 						else if (key == "MIGRANT_CLEAR")				gEidos_OMP_threads_MIGRANT_CLEAR = (int)value_int64;
+						else if (key == "SIMPLIFY_SORT_PRE")			gEidos_OMP_threads_SIMPLIFY_SORT_PRE = (int)value_int64;
+						else if (key == "SIMPLIFY_SORT")				gEidos_OMP_threads_SIMPLIFY_SORT = (int)value_int64;
+						else if (key == "SIMPLIFY_SORT_POST")			gEidos_OMP_threads_SIMPLIFY_SORT_POST = (int)value_int64;
 						else if (key == "PARENTS_CLEAR")				gEidos_OMP_threads_PARENTS_CLEAR = (int)value_int64;
 						else if (key == "UNIQUE_MUTRUNS")				gEidos_OMP_threads_UNIQUE_MUTRUNS = (int)value_int64;
 						else if (key == "SURVIVAL")						gEidos_OMP_threads_SURVIVAL = (int)value_int64;
@@ -1651,6 +1657,9 @@ EidosValue_SP SLiM_ExecuteFunction__startBenchmark(const std::vector<EidosValue_
 	else if (type == "FITNESS_SEX_2")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_2;
 	else if (type == "FITNESS_SEX_3")		gEidosBenchmarkType = EidosBenchmarkType::k_FITNESS_SEX_3;
 	else if (type == "MIGRANT_CLEAR")		gEidosBenchmarkType = EidosBenchmarkType::k_MIGRANT_CLEAR;
+	else if (type == "SIMPLIFY_SORT_PRE")	gEidosBenchmarkType = EidosBenchmarkType::k_SIMPLIFY_SORT_PRE;
+	else if (type == "SIMPLIFY_SORT")		gEidosBenchmarkType = EidosBenchmarkType::k_SIMPLIFY_SORT;
+	else if (type == "SIMPLIFY_SORT_POST")	gEidosBenchmarkType = EidosBenchmarkType::k_SIMPLIFY_SORT_POST;
 	else if (type == "PARENTS_CLEAR")		gEidosBenchmarkType = EidosBenchmarkType::k_PARENTS_CLEAR;
 	else if (type == "UNIQUE_MUTRUNS")		gEidosBenchmarkType = EidosBenchmarkType::k_UNIQUE_MUTRUNS;
 	else if (type == "SURVIVAL")			gEidosBenchmarkType = EidosBenchmarkType::k_SURVIVAL;
