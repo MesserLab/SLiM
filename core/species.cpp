@@ -2561,7 +2561,7 @@ void Species::SimulationHasFinished(void)
 	
 #if MUTRUN_EXPERIMENT_OUTPUT
 	// Print a full mutation run count history if MUTRUN_EXPERIMENT_OUTPUT is enabled
-	if (SLiM_verbose_output && x_experiments_enabled_)
+	if ((SLiM_verbosity_level >= 2) && x_experiments_enabled_)
 	{
 		SLIM_OUTSTREAM << std::endl;
 		SLIM_OUTSTREAM << "// Mutrun count history:" << std::endl;
@@ -3250,7 +3250,7 @@ void Species::EnterStasisForMutationRunExperiments(void)
 		x_stasis_limit_ *= 2;
 		
 #if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 			SLIM_OUTSTREAM << "// Remembered previous stasis at " << x_current_mutcount_ << ", strengthening stasis criteria" << std::endl;
 #endif
 	}
@@ -3261,7 +3261,7 @@ void Species::EnterStasisForMutationRunExperiments(void)
 		x_stasis_alpha_ = 0.01;
 		
 #if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 			SLIM_OUTSTREAM << "// No memory of previous stasis at " << x_current_mutcount_ << ", resetting stasis criteria" << std::endl;
 #endif
 	}
@@ -3277,7 +3277,7 @@ void Species::EnterStasisForMutationRunExperiments(void)
 	x_prev1_stasis_mutcount_ = x_current_mutcount_;
 	
 #if MUTRUN_EXPERIMENT_OUTPUT
-	if (SLiM_verbose_output)
+	if (SLiM_verbosity_level >= 2)
 		SLIM_OUTSTREAM << "// ****** ENTERING STASIS AT " << x_current_mutcount_ << " : x_stasis_limit_ = " << x_stasis_limit_ << ", x_stasis_alpha_ = " << x_stasis_alpha_ << std::endl;
 #endif
 }
@@ -3309,7 +3309,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 		if ((p < 0.01) && (current_mean > previous_mean))
 		{
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 			{
 				SLIM_OUTSTREAM << std::endl;
 				SLIM_OUTSTREAM << "// " << cycle_ << " : Early t-test yielded HIGHLY SIGNIFICANT p of " << p << " with negative results; terminating early." << std::endl;
@@ -3319,7 +3319,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			goto early_ttest_passed;
 		}
 #if MUTRUN_EXPERIMENT_OUTPUT
-		else if (SLiM_verbose_output)
+		else if (SLiM_verbosity_level >= 2)
 		{
 			if (p >= 0.01)
 			{
@@ -3342,7 +3342,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	{
 		// FINISHED OUR FIRST EXPERIMENT; move on to the next experiment, which is always double the number of mutruns
 #if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 		{
 			SLIM_OUTSTREAM << std::endl;
 			SLIM_OUTSTREAM << "// ** " << cycle_ << " : First mutation run experiment completed with mutrun count " << x_current_mutcount_ << "; will now try " << (x_current_mutcount_ * 2) << std::endl;
@@ -3363,7 +3363,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			++x_stasis_counter_;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 			{
 				SLIM_OUTSTREAM << std::endl;
 				SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed (second stasis cycle, no tests conducted)" << std::endl;
@@ -3379,7 +3379,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 	early_ttest_passed:
 		
 #if MUTRUN_EXPERIMENT_OUTPUT
-		if (SLiM_verbose_output)
+		if (SLiM_verbosity_level >= 2)
 		{
 			SLIM_OUTSTREAM << std::endl;
 			SLIM_OUTSTREAM << "// " << cycle_ << " : Mutation run experiment completed:" << std::endl;
@@ -3396,7 +3396,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			bool means_different_stasis = (p < x_stasis_alpha_);
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 				SLIM_OUTSTREAM << "//    p == " << p << " : " << (means_different_stasis ? "SIGNIFICANT DIFFERENCE" : "no significant difference") << " at stasis alpha " << x_stasis_alpha_ << std::endl;
 #endif
 			
@@ -3411,7 +3411,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
 				
 #if MUTRUN_EXPERIMENT_OUTPUT
-				if (SLiM_verbose_output)
+				if (SLiM_verbosity_level >= 2)
 					SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis mean changed, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
 #endif
 			}
@@ -3428,7 +3428,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_ * 2);
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbose_output)
+					if (SLiM_verbosity_level >= 2)
 						SLIM_OUTSTREAM << "// ** " << cycle_ << " : Stasis limit reached, EXITING STASIS and trying new mutcount of " << x_current_mutcount_ << std::endl;
 #endif
 				}
@@ -3440,7 +3440,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					x_current_buflen_ = 0;
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbose_output)
+					if (SLiM_verbosity_level >= 2)
 						SLIM_OUTSTREAM << "//    " << cycle_ << " : Stasis limit not reached (" << x_stasis_counter_ << " of " << x_stasis_limit_ << "), running another stasis experiment at " << x_current_mutcount_ << std::endl;
 #endif
 				}
@@ -3455,7 +3455,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			bool means_different_05 = (p < alpha);
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 				SLIM_OUTSTREAM << "//    p == " << p << " : " << (means_different_05 ? "SIGNIFICANT DIFFERENCE" : "no significant difference") << " at alpha " << alpha << std::endl;
 #endif
 			
@@ -3472,7 +3472,13 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 				// But if the new mean is worse that the old mean and we're trending toward more mutation runs,
 				// we do NOT follow this case, because an inconclusive but negative increasing trend pushes up our
 				// peak memory usage and can be quite inefficient, and usually we just jump back down anyway.
-				if (x_current_mutcount_ == trend_limit)
+				// BCH 8/14/2023: The if() below is intended to diagnose if trend_next will go beyond trend_limit,
+				// and is thus not a legal move.  Just testing (x_current_mutcount_ == trend_limit) used to suffice,
+				// because the base count was always a power of 2.  Now that is no longer true, and so we can, e.g.,
+				// be at 768 and thinking about doubling to 1536.  We test for going beyond SLIM_MUTRUN_MAXIMUM_COUNT
+				// explicitly now, to address that case.  Going too low is still effectively prevented, since we
+				// will always reach the base count exactly before going below it.
+				if ((x_current_mutcount_ == trend_limit) || (trend_next > SLIM_MUTRUN_MAXIMUM_COUNT))
 				{
 					if (current_mean < previous_mean)
 					{
@@ -3481,7 +3487,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						TransitionToNewExperimentAgainstCurrentExperiment(x_current_mutcount_);
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
@@ -3495,7 +3501,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment " << (means_different_05 ? "failed" : "inconclusive but negative") << " at " << x_previous_mutcount_ << ", nowhere left to go; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
@@ -3509,7 +3515,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						// Even if the difference is not significant, we appear to be moving in a beneficial direction,
 						// so we will run the next experiment against the current experiment's results
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment " << (means_different_05 ? "successful" : "inconclusive but positive") << " at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), continuing trend with " << trend_next << " (against " << x_current_mutcount_ << ")" << std::endl;
 #endif
 						
@@ -3523,7 +3529,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						// the garden path.  To make sure that doesn't happen, we run successive inconclusive experiments
 						// against whichever preceding experiment had the lowest mean.
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment inconclusive but negative at " << x_current_mutcount_ << " (against " << x_previous_mutcount_ << "), checking " << trend_next << " (against " << x_previous_mutcount_ << ")" << std::endl;
 #endif
 						
@@ -3542,7 +3548,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
 					
 #if MUTRUN_EXPERIMENT_OUTPUT
-					if (SLiM_verbose_output)
+					if (SLiM_verbosity_level >= 2)
 						SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, already tried opposite side, so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 					
@@ -3562,7 +3568,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 						TransitionToNewExperimentAgainstPreviousExperiment(x_previous_mutcount_);
 						
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ****** " << cycle_ << " : Experiment failed, opposite side blocked so " << x_current_mutcount_ << " appears optimal; entering stasis at " << x_current_mutcount_ << "." << std::endl;
 #endif
 						
@@ -3571,7 +3577,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 					else
 					{
 #if MUTRUN_EXPERIMENT_OUTPUT
-						if (SLiM_verbose_output)
+						if (SLiM_verbosity_level >= 2)
 							SLIM_OUTSTREAM << "// ** " << cycle_ << " : Experiment failed at " << x_current_mutcount_ << ", opposite side untried, reversing trend back to " << new_mutcount << " (against " << x_previous_mutcount_ << ")" << std::endl;
 #endif
 						
@@ -3609,7 +3615,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			chromosome_->mutrun_length_ /= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 				SLIM_OUTSTREAM << "// ++ Splitting to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
@@ -3633,7 +3639,7 @@ void Species::MaintainMutationRunExperiments(double p_last_gen_runtime)
 			chromosome_->mutrun_length_ *= 2;
 			
 #if MUTRUN_EXPERIMENT_OUTPUT
-			if (SLiM_verbose_output)
+			if (SLiM_verbosity_level >= 2)
 				SLIM_OUTSTREAM << "// ++ Joining to achieve new mutation run count of " << chromosome_->mutrun_count_ << " took " << ((std::clock() - start_clock) / (double)CLOCKS_PER_SEC) << " seconds" << std::endl;
 #endif
 		}
