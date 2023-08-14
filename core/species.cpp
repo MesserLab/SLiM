@@ -4040,7 +4040,10 @@ slim_sort_edges(tsk_table_sorter_t *sorter, tsk_size_t start)
 			return lhs.time < rhs.time;
 		});
 		
+#ifdef _OPENMP
+		// If we did a parallel sort, we jump here to skip the single-threaded sort
 	didParallelSort:
+#endif
 		EIDOS_BENCHMARK_END(EidosBenchmarkType::k_SIMPLIFY_SORT);
 	}
 	
