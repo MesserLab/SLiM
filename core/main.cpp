@@ -424,6 +424,8 @@ int main(int argc, char *argv[])
 			// This command-line argument is ignored completely when not parallel
 			per_task_thread_count_set_name = std::string(argv[arg_index]);
 #endif
+			
+			continue;
 		}
 		
 #if (SLIMPROFILING == 1)
