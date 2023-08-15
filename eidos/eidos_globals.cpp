@@ -643,9 +643,9 @@ void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_count
 		gEidos_OMP_threads_FITNESS_SEX_2 = 8;
 		gEidos_OMP_threads_FITNESS_SEX_3 = 2;
 		gEidos_OMP_threads_MIGRANT_CLEAR = 4;
-		gEidos_OMP_threads_SIMPLIFY_SORT_PRE = 16;	// needs revision
-		gEidos_OMP_threads_SIMPLIFY_SORT = 16;		// needs revision
-		gEidos_OMP_threads_SIMPLIFY_SORT_POST = 16;	// needs revision
+		gEidos_OMP_threads_SIMPLIFY_SORT_PRE = 8;
+		gEidos_OMP_threads_SIMPLIFY_SORT = 16;
+		gEidos_OMP_threads_SIMPLIFY_SORT_POST = 6;
 		gEidos_OMP_threads_PARENTS_CLEAR = 16;
 		gEidos_OMP_threads_UNIQUE_MUTRUNS = 16;
 		gEidos_OMP_threads_SURVIVAL = 16;
@@ -782,9 +782,9 @@ void _Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts per_task_thread_count
 		gEidos_OMP_threads_FITNESS_SEX_2 = 40;
 		gEidos_OMP_threads_FITNESS_SEX_3 = 5;
 		gEidos_OMP_threads_MIGRANT_CLEAR = 20;
-		gEidos_OMP_threads_SIMPLIFY_SORT_PRE = 40;	// needs revision
-		gEidos_OMP_threads_SIMPLIFY_SORT = 40;		// needs revision
-		gEidos_OMP_threads_SIMPLIFY_SORT_POST = 40;	// needs revision
+		gEidos_OMP_threads_SIMPLIFY_SORT_PRE = 20;
+		gEidos_OMP_threads_SIMPLIFY_SORT = 40;
+		gEidos_OMP_threads_SIMPLIFY_SORT_POST = 40;
 		gEidos_OMP_threads_PARENTS_CLEAR = 40;
 		gEidos_OMP_threads_UNIQUE_MUTRUNS = 40;
 		gEidos_OMP_threads_SURVIVAL = 40;
