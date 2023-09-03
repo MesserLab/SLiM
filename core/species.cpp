@@ -4857,7 +4857,7 @@ void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
 			metarec.pedigree_p2_ = (slim_pedigreeid_t)std::stoll(metadata_parts[2]);
 			metarec.age_ = (slim_age_t)std::stoll(metadata_parts[3]);
 			metarec.subpopulation_id_ = (slim_objectid_t)std::stoll(metadata_parts[4]);
-			metarec.sex_ = (IndividualSex)std::stoll(metadata_parts[5]);
+			metarec.sex_ = (int32_t)std::stoll(metadata_parts[5]);		// IndividualSex, but int32_t in the record
 			metarec.flags_ = (uint32_t)std::stoull(metadata_parts[6]);
 			
 			binary_metadata.emplace_back(metarec);
@@ -6477,7 +6477,7 @@ void Species::MetadataForIndividual(Individual *p_individual, IndividualMetadata
 	p_metadata->pedigree_p2_ = p_individual->Parent2PedigreeID();
 	p_metadata->age_ = p_individual->age_;
 	p_metadata->subpopulation_id_ = p_individual->subpopulation_->subpopulation_id_;
-	p_metadata->sex_ = p_individual->sex_;
+	p_metadata->sex_ = (int32_t)p_individual->sex_;		// IndividualSex, but int32_t in the record
 	
 	p_metadata->flags_ = 0;
 	if (p_individual->migrant_)
@@ -7545,7 +7545,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		ts_subpop_info &subpop_info = subpop_info_iter->second;
 		
 		// check and tabulate sex within each subpop
-		IndividualSex sex = metadata->sex_;
+		IndividualSex sex = (IndividualSex)metadata->sex_;			// IndividualSex, but int32_t in the record
 		
 		switch (sex)
 		{

@@ -41,7 +41,10 @@ slim_pedigreeid_t gSLiM_next_pedigree_id = 0;
 // Static member bools that track whether any individual has ever sustained a particular type of change
 bool Individual::s_any_individual_color_set_ = false;
 bool Individual::s_any_individual_dictionary_set_ = false;
-bool Individual::s_any_individual_or_genome_tag_set_ = false;
+bool Individual::s_any_individual_tag_set_ = false;
+bool Individual::s_any_individual_tagF_set_ = false;
+bool Individual::s_any_individual_tagL_set_ = false;
+bool Individual::s_any_genome_tag_set_ = false;
 bool Individual::s_any_individual_fitness_scaling_set_ = false;
 
 
@@ -66,6 +69,12 @@ Individual::Individual(Subpopulation *p_subpopulation, slim_popsize_t p_individu
 	// Initialize tag values to the "unset" value
 	tag_value_ = SLIM_TAG_UNSET_VALUE;
 	tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+	tagL0_set_ = false;
+	tagL1_set_ = false;
+	tagL2_set_ = false;
+	tagL3_set_ = false;
+	tagL4_set_ = false;
+	
 	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
 	p_genome1->tag_value_ = SLIM_TAG_UNSET_VALUE;
     
@@ -612,6 +621,36 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(tagF_value));
 		}
+		case gID_tagL0:				// ACCELERATED
+		{
+			if (!tagL0_set_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL0 accessed on individual before being set." << EidosTerminate();
+			return (tagL0_value_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
+		case gID_tagL1:				// ACCELERATED
+		{
+			if (!tagL1_set_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL1 accessed on individual before being set." << EidosTerminate();
+			return (tagL1_value_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
+		case gID_tagL2:				// ACCELERATED
+		{
+			if (!tagL2_set_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL2 accessed on individual before being set." << EidosTerminate();
+			return (tagL2_value_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
+		case gID_tagL3:				// ACCELERATED
+		{
+			if (!tagL3_set_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL3 accessed on individual before being set." << EidosTerminate();
+			return (tagL3_value_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
+		case gID_tagL4:				// ACCELERATED
+		{
+			if (!tagL4_set_)
+				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL4 accessed on individual before being set." << EidosTerminate();
+			return (tagL4_value_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
+		}
 		case gID_migrant:			// ACCELERATED
 		{
 			return (migrant_ ? gStaticEidosValue_LogicalT : gStaticEidosValue_LogicalF);
@@ -748,6 +787,91 @@ EidosValue *Individual::GetProperty_Accelerated_tagF(EidosObject **p_values, siz
 	}
 	
 	return float_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->tagL0_set_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL0 accessed on individual before being set." << EidosTerminate();
+		
+		logical_result->set_logical_no_check(value->tagL0_value_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->tagL1_set_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL1 accessed on individual before being set." << EidosTerminate();
+		
+		logical_result->set_logical_no_check(value->tagL1_value_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->tagL2_set_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL2 accessed on individual before being set." << EidosTerminate();
+		
+		logical_result->set_logical_no_check(value->tagL2_value_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->tagL3_set_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL3 accessed on individual before being set." << EidosTerminate();
+		
+		logical_result->set_logical_no_check(value->tagL3_value_, value_index);
+	}
+	
+	return logical_result;
+}
+
+EidosValue *Individual::GetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size)
+{
+	EidosValue_Logical *logical_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(p_values_size);
+	
+	for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+	{
+		Individual *value = (Individual *)(p_values[value_index]);
+		
+		if (!value->tagL4_set_)
+			EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property tagL4 accessed on individual before being set." << EidosTerminate();
+		
+		logical_result->set_logical_no_check(value->tagL4_value_, value_index);
+	}
+	
+	return logical_result;
 }
 
 EidosValue *Individual::GetProperty_Accelerated_migrant(EidosObject **p_values, size_t p_values_size)
@@ -973,13 +1097,58 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			slim_usertag_t value = SLiMCastToUsertagTypeOrRaise(p_value.IntAtIndex(0, nullptr));
 			
 			tag_value_ = value;
-			s_any_individual_or_genome_tag_set_ = true;
+			s_any_individual_tag_set_ = true;
 			return;
 		}
 		case gID_tagF:				// ACCELERATED
 		{
 			tagF_value_ = p_value.FloatAtIndex(0, nullptr);
-			s_any_individual_or_genome_tag_set_ = true;
+			s_any_individual_tagF_set_ = true;
+			return;
+		}
+		case gID_tagL0:				// ACCELERATED
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			tagL0_set_ = true;
+			tagL0_value_ = value;
+			s_any_individual_tagL_set_ = true;
+			return;
+		}
+		case gID_tagL1:				// ACCELERATED
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			tagL1_set_ = true;
+			tagL1_value_ = value;
+			s_any_individual_tagL_set_ = true;
+			return;
+		}
+		case gID_tagL2:				// ACCELERATED
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			tagL2_set_ = true;
+			tagL2_value_ = value;
+			s_any_individual_tagL_set_ = true;
+			return;
+		}
+		case gID_tagL3:				// ACCELERATED
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			tagL3_set_ = true;
+			tagL3_value_ = value;
+			s_any_individual_tagL_set_ = true;
+			return;
+		}
+		case gID_tagL4:				// ACCELERATED
+		{
+			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
+			
+			tagL4_set_ = true;
+			tagL4_value_ = value;
+			s_any_individual_tagL_set_ = true;
 			return;
 		}
 		case gID_fitnessScaling:	// ACCELERATED
@@ -1023,7 +1192,7 @@ void Individual::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 
 void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	s_any_individual_or_genome_tag_set_ = true;
+	s_any_individual_tag_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
@@ -1044,7 +1213,7 @@ void Individual::SetProperty_Accelerated_tag(EidosObject **p_values, size_t p_va
 
 void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
 {
-	s_any_individual_or_genome_tag_set_ = true;
+	s_any_individual_tagF_set_ = true;
 	
 	// SLiMCastToUsertagTypeOrRaise() is a no-op at present
 	if (p_source_size == 1)
@@ -1060,6 +1229,156 @@ void Individual::SetProperty_Accelerated_tagF(EidosObject **p_values, size_t p_v
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
 			((Individual *)(p_values[value_index]))->tagF_value_ = source_data[value_index];
+	}
+}
+
+void Individual::SetProperty_Accelerated_tagL0(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	s_any_individual_tagL_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL0_set_ = true;
+			individual->tagL0_value_ = source_value;
+		}
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL0_set_ = true;
+			individual->tagL0_value_ = source_data[value_index];
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_tagL1(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	s_any_individual_tagL_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL1_set_ = true;
+			individual->tagL1_value_ = source_value;
+		}
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL1_set_ = true;
+			individual->tagL1_value_ = source_data[value_index];
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_tagL2(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	s_any_individual_tagL_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL2_set_ = true;
+			individual->tagL2_value_ = source_value;
+		}
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL2_set_ = true;
+			individual->tagL2_value_ = source_data[value_index];
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_tagL3(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	s_any_individual_tagL_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL3_set_ = true;
+			individual->tagL3_value_ = source_value;
+		}
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL3_set_ = true;
+			individual->tagL3_value_ = source_data[value_index];
+		}
+	}
+}
+
+void Individual::SetProperty_Accelerated_tagL4(EidosObject **p_values, size_t p_values_size, const EidosValue &p_source, size_t p_source_size)
+{
+	s_any_individual_tagL_set_ = true;
+	
+	if (p_source_size == 1)
+	{
+		eidos_logical_t source_value = p_source.LogicalAtIndex(0, nullptr);
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL4_set_ = true;
+			individual->tagL4_value_ = source_value;
+		}
+	}
+	else
+	{
+		const eidos_logical_t *source_data = p_source.LogicalVector()->data();
+		
+		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
+		{
+			Individual *individual = ((Individual *)(p_values[value_index]));
+			
+			individual->tagL4_set_ = true;
+			individual->tagL4_value_ = source_data[value_index];
+		}
 	}
 }
 
@@ -1776,6 +2095,11 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_sex,					true,	kEidosValueMaskString | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tag,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tag)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tag));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagF,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagF)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagF));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagL0,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagL0)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagL0));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagL1,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagL1)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagL1));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagL2,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagL2)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagL2));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagL3,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagL3)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagL3));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_tagL4,					false,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_tagL4)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_tagL4));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_migrant,				true,	kEidosValueMaskLogical | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_migrant));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_fitnessScaling,			false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_fitnessScaling)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_fitnessScaling));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x));

@@ -111,14 +111,14 @@ typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_p2_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual's parent 2
 	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
-	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
+	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
 } IndividualMetadataRec;
 typedef struct __attribute__((__packed__)) {
 	slim_pedigreeid_t pedigree_id_;			// 8 bytes (int64_t): the SLiM pedigree ID for this individual, assigned by pedigree rec
 	slim_age_t age_;                        // 4 bytes (int32_t): the age of the individual (-1 for WF models)
 	slim_objectid_t subpopulation_id_;      // 4 bytes (int32_t): the subpopulation the individual belongs to
-	IndividualSex sex_;						// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
+	int32_t sex_;							// 4 bytes (int32_t): the sex of the individual, as defined by the IndividualSex enum
 	uint32_t flags_;						// 4 bytes (uint32_t): assorted flags, see below
  } IndividualMetadataRec_PREPARENT;	// used to read .trees file versions 0.6 and earlier, before parent pedigree ids were added
 

@@ -133,6 +133,7 @@ development head (in the master branch):
 	feature request: #378, add font bigger (command +) and font smaller (command -) menu items and shortcuts, so the user doesn't have to open the prefs window; note that with command = the shift key is needed
 		this meant removal of the shortcuts for prettyprint script and reformat script, since they conflicted (well, prettyprint conflicted); probably nobody cares
 	revised recipe 17.3 to show how to persist tag values from a simulation in the tree-sequence metadata
+	add five logical tag properties to Individual, tagL0 - tagL4, to hold user-defined values of type logical
 	
 
 version 4.0.1 (Eidos version 3.0.1):

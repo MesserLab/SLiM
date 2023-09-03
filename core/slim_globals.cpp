@@ -106,6 +106,7 @@ void SLiM_WarmUp(void)
 		Eidos_CheckRSSAgainstMax("SLiM_WarmUp()", "This internal check should never fail!");
 #endif
 		
+		//std::cout << "sizeof(Individual) == " << sizeof(Individual) << std::endl;
 		//std::cout << "sizeof(Mutation) == " << sizeof(Mutation) << std::endl;
 		
 		//std::cout << "sizeof(int) == " << sizeof(int) << std::endl;
@@ -1215,6 +1216,11 @@ const std::string &gStr_colorSubstitution = EidosRegisteredString("colorSubstitu
 const std::string &gStr_verbosity = EidosRegisteredString("verbosity", gID_verbosity);
 const std::string &gStr_tag = EidosRegisteredString("tag", gID_tag);
 const std::string &gStr_tagF = EidosRegisteredString("tagF", gID_tagF);
+const std::string &gStr_tagL0 = EidosRegisteredString("tagL0", gID_tagL0);
+const std::string &gStr_tagL1 = EidosRegisteredString("tagL1", gID_tagL1);
+const std::string &gStr_tagL2 = EidosRegisteredString("tagL2", gID_tagL2);
+const std::string &gStr_tagL3 = EidosRegisteredString("tagL3", gID_tagL3);
+const std::string &gStr_tagL4 = EidosRegisteredString("tagL4", gID_tagL4);
 const std::string &gStr_migrant = EidosRegisteredString("migrant", gID_migrant);
 const std::string &gStr_fitnessScaling = EidosRegisteredString("fitnessScaling", gID_fitnessScaling);
 const std::string &gStr_firstMaleIndex = EidosRegisteredString("firstMaleIndex", gID_firstMaleIndex);

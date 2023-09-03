@@ -563,7 +563,7 @@ std::ostream& operator<<(std::ostream& p_out, GenomeType p_genome_type);
 
 // This enumeration represents the sex of an individual: hermaphrodite, female, or male.  It also includes an "unspecified"
 // value that is useful in situations where the code wants to say that it doesn't care what sex is present.
-enum class IndividualSex : int32_t
+enum class IndividualSex : int8_t
 {
 	kUnspecified = -2,
 	kHermaphrodite = -1,
@@ -807,6 +807,11 @@ extern const std::string &gStr_colorSubstitution;
 extern const std::string &gStr_verbosity;
 extern const std::string &gStr_tag;
 extern const std::string &gStr_tagF;
+extern const std::string &gStr_tagL0;
+extern const std::string &gStr_tagL1;
+extern const std::string &gStr_tagL2;
+extern const std::string &gStr_tagL3;
+extern const std::string &gStr_tagL4;
 extern const std::string &gStr_migrant;
 extern const std::string &gStr_fitnessScaling;
 extern const std::string &gStr_firstMaleIndex;
@@ -1173,6 +1178,11 @@ enum _SLiMGlobalStringID : int {
 	gID_verbosity,
 	gID_tag,
 	gID_tagF,
+	gID_tagL0,
+	gID_tagL1,
+	gID_tagL2,
+	gID_tagL3,
+	gID_tagL4,
 	gID_migrant,
 	gID_fitnessScaling,
 	gID_firstMaleIndex,

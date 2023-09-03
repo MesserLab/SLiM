@@ -2591,7 +2591,7 @@ double Subpopulation::ApplyFitnessEffectCallbacks(std::vector<SLiMEidosBlock*> &
 					double C = fitnessEffect_callback->cached_opt_C_;
 					double D = fitnessEffect_callback->cached_opt_D_;
 					
-					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->TagFloat() - A, B) / C));
+					computed_fitness *= (D + (gsl_ran_gaussian_pdf(individual->tagF_value_ - A, B) / C));
 				}
 				else
 				{
@@ -3502,12 +3502,29 @@ void Subpopulation::SwapChildAndParentGenomes(void)
 			child->ClearColor();
 	}
 	
-	if (Individual::s_any_individual_or_genome_tag_set_)
+	if (Individual::s_any_individual_tag_set_ || Individual::s_any_individual_tagF_set_)
 	{
 		for (Individual *child : child_individuals_)
 		{
 			child->tag_value_ = SLIM_TAG_UNSET_VALUE;
 			child->tagF_value_ = SLIM_TAGF_UNSET_VALUE;
+		}
+	}
+	if (Individual::s_any_individual_tagL_set_)
+	{
+		for (Individual *child : child_individuals_)
+		{
+			child->tagL0_set_ = false;
+			child->tagL1_set_ = false;
+			child->tagL2_set_ = false;
+			child->tagL3_set_ = false;
+			child->tagL4_set_ = false;
+		}
+	}
+	if (Individual::s_any_genome_tag_set_)
+	{
+		for (Individual *child : child_individuals_)
+		{
 			child->genome1_->tag_value_ = SLIM_TAG_UNSET_VALUE;
 			child->genome2_->tag_value_ = SLIM_TAG_UNSET_VALUE;
 		}
