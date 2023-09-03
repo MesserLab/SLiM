@@ -758,35 +758,88 @@ void _RunRelatednessTests(void)
 		/* end-of-array marker entry : DO NOT TOUCH */ {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, GenomeType::kAutosome, -1.0}
 	};
 	
-	pedigree_test_info *p = test_pedigrees;
-	
-	for ( ; p->expectedRelatedness > -1.0; ++p)
 	{
-		try {
-			double rel = Individual::_Relatedness(p->A, p->A_P1, p->A_P2, p->A_G1, p->A_G2, p->A_G3, p->A_G4, p->B, p->B_P1, p->B_P2, p->B_G1, p->B_G2, p->B_G3, p->B_G4, p->A_sex, p->B_sex, p->type);
-			double expected = p->expectedRelatedness;
-			
-			if (rel == expected)
-			{
-				gSLiMTestSuccessCount++;
-				
-				//std::cerr << "relatedness test " << EIDOS_OUTPUT_SUCCESS_TAG << ": test index " << (p - test_pedigrees) << " produced a relatedness of " << rel << " as expected)" << std::endl;
-			}
-			else
-			{
-				gSLiMTestFailureCount++;
-				
-				std::cerr << "relatedness test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_pedigrees) << " produced a relatedness of " << rel << " (" << expected << " expected)" << std::endl;
-			}
-		}
-		catch (...)
+		pedigree_test_info *p = test_pedigrees;
+		
+		for ( ; p->expectedRelatedness > -1.0; ++p)
 		{
-			std::cerr << "relatedness test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_pedigrees) << " raised an exception: " << Eidos_GetTrimmedRaiseMessage() << std::endl;
+			try {
+				double rel = Individual::_Relatedness(p->A, p->A_P1, p->A_P2, p->A_G1, p->A_G2, p->A_G3, p->A_G4, p->B, p->B_P1, p->B_P2, p->B_G1, p->B_G2, p->B_G3, p->B_G4, p->A_sex, p->B_sex, p->type);
+				double expected = p->expectedRelatedness;
+				
+				if (rel == expected)
+				{
+					gSLiMTestSuccessCount++;
+					
+					//std::cerr << "relatedness test " << EIDOS_OUTPUT_SUCCESS_TAG << ": test index " << (p - test_pedigrees) << " produced a relatedness of " << rel << " (as expected)" << std::endl;
+				}
+				else
+				{
+					gSLiMTestFailureCount++;
+					
+					std::cerr << "relatedness test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_pedigrees) << " produced a relatedness of " << rel << " (" << expected << " expected)" << std::endl;
+				}
+			}
+			catch (...)
+			{
+				std::cerr << "relatedness test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_pedigrees) << " raised an exception: " << Eidos_GetTrimmedRaiseMessage() << std::endl;
+			}
 		}
 	}
 	
 	// this output is useful for figuring out which entry is causing a problem, when it is located near the end
 	//std::cerr << "end-of-array index == " << (p - test_pedigrees) << std::endl;
+	
+	// Run tests of SharedParentCount() as well, which is much simpler
+	typedef struct sharedparent_test_info_ {
+		slim_pedigreeid_t X_P1;
+		slim_pedigreeid_t X_P2;
+		slim_pedigreeid_t Y_P1;
+		slim_pedigreeid_t Y_P2;
+		int expectedCount;
+	} sharedparent_test_info;
+	
+	sharedparent_test_info test_sharedparent[] = {
+		{/* X */ -1, -1, /* Y */ -1, -1, /*expected */ 0},		// missing information
+		{/* X */ 0, 1, /* Y */ 2, 3, /*expected */ 0},
+		{/* X */ 0, 1, /* Y */ 2, 2, /*expected */ 0},
+		{/* X */ 0, 1, /* Y */ 0, 2, /*expected */ 1},
+		{/* X */ 0, 1, /* Y */ 0, 0, /*expected */ 1},
+		{/* X */ 0, 0, /* Y */ 0, 1, /*expected */ 1},
+		{/* X */ 0, 1, /* Y */ 0, 1, /*expected */ 2},
+		{/* X */ 0, 1, /* Y */ 1, 0, /*expected */ 2},
+		{/* X */ 0, 0, /* Y */ 0, 0, /*expected */ 2},
+		/* end-of-array marker entry : DO NOT TOUCH */ {-1, -1, -1, -1, -1}
+	};
+	
+	{
+		sharedparent_test_info *p = test_sharedparent;
+		
+		for ( ; p->expectedCount > -1; ++p)
+		{
+			try {
+				int count = Individual::_SharedParentCount(p->X_P1, p->X_P2, p->Y_P1, p->Y_P2);
+				int expected = p->expectedCount;
+				
+				if (count == expected)
+				{
+					gSLiMTestSuccessCount++;
+					
+					//std::cerr << "sharedParentCount test " << EIDOS_OUTPUT_SUCCESS_TAG << ": test index " << (p - test_sharedparent) << " produced a count of " << count << " (as expected)" << std::endl;
+				}
+				else
+				{
+					gSLiMTestFailureCount++;
+					
+					std::cerr << "sharedParentCount test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_sharedparent) << " produced a count of " << count << " (" << expected << " expected)" << std::endl;
+				}
+			}
+			catch (...)
+			{
+				std::cerr << "sharedParentCount test " << EIDOS_OUTPUT_FAILURE_TAG << ": test index " << (p - test_sharedparent) << " raised an exception: " << Eidos_GetTrimmedRaiseMessage() << std::endl;
+			}
+		}
+	}
 }
 
 #pragma mark SLiM timing tests

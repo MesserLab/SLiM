@@ -135,6 +135,7 @@ development head (in the master branch):
 	revised recipe 17.3 to show how to persist tag values from a simulation in the tree-sequence metadata
 	add five logical tag properties to Individual, tagL0 - tagL4, to hold user-defined values of type logical
 	add parent1 and parent2 parameters to addRecombinant() so that parental pedigreeIDs can be tracked properly if desired
+	add sharedParentCount() method, a simplified version of relatedness() using only parent pedigree IDs to find full sibs (2) and haf-sibs (1)
 	
 
 version 4.0.1 (Eidos version 3.0.1):

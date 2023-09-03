@@ -863,6 +863,7 @@ extern const std::string &gStr_countOfMutationsOfType;
 extern const std::string &gStr_positionsOfMutationsOfType;
 extern const std::string &gStr_containsMarkerMutation;
 extern const std::string &gStr_relatedness;
+extern const std::string &gStr_sharedParentCount;
 extern const std::string &gStr_mutationsOfType;
 extern const std::string &gStr_setSpatialPosition;
 extern const std::string &gStr_sumOfMutationsOfType;
@@ -1234,6 +1235,7 @@ enum _SLiMGlobalStringID : int {
 	gID_positionsOfMutationsOfType,
 	gID_containsMarkerMutation,
 	gID_relatedness,
+	gID_sharedParentCount,
 	gID_mutationsOfType,
 	gID_setSpatialPosition,
 	gID_sumOfMutationsOfType,

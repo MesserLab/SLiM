@@ -1,8 +1,8 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fswiss\fcharset0 Optima-Italic;\f2\fnil\fcharset0 Menlo-Italic;
 \f3\fnil\fcharset0 Menlo-Regular;\f4\fswiss\fcharset0 Optima-Regular;\f5\froman\fcharset0 TimesNewRomanPSMT;
-\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fswiss\fcharset0 Helvetica-Oblique;\f8\fswiss\fcharset0 Helvetica;
-}
+\f6\froman\fcharset0 TimesNewRomanPS-ItalicMT;\f7\fnil\fcharset0 LucidaGrande;\f8\fswiss\fcharset0 Helvetica-Oblique;
+\f9\fswiss\fcharset0 Helvetica;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red0\green0\blue255;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c0\c100000;}
 \margl1440\margr1440\vieww9000\viewh19740\viewkind0
@@ -3241,7 +3241,7 @@ There is another commonly used metric of relatedness, called the \'93kinship coe
 \f3\fs18 B
 \f4\fs20  respectively.\
 Note that this relatedness is simply pedigree-based relatedness, and does not necessarily correspond to genetic relatedness, because of the effects of factors like assortment and recombination.  If a metric of actual genetic relatedness is desired, tree-sequence recording can be used after simulation is complete, to compute the exact genetic relatedness between individuals based upon the complete ancestry tree (a topic which is beyond the scope of this manual).  Actual genetic relatedness cannot presently be calculated during a simulation run; the information is implicitly contained in the recorded tree-sequence tables, but calculating it is too computationally expensive to be reasonable.\
-This method makes a couple of assumptions.  One assumption is that the grandparents (or the parents, if grandparental information is not available) are themselves unrelated and that they are not inbred; this assumption is necessary because we have no information about their parentage, since SLiM\'92s pedigree tracking information only goes back two generations.  Be aware that in a model where inbreeding or selfing occurs at all (including \'93incidental selfing\'94, where a hermaphroditic individual happens to choose itself as a mate), some level of \'93background relatedness\'94 will be present and this assumption will be violated.  In such circumstances, 
+This method assumes that the grandparents (or the parents, if grandparental information is not available) are themselves unrelated and that they are not inbred; this assumption is necessary because we have no information about their parentage, since SLiM\'92s pedigree tracking information only goes back two generations.  Be aware that in a model where inbreeding or selfing occurs at all (including \'93incidental selfing\'94, where a hermaphroditic individual happens to choose itself as a mate), some level of \'93background relatedness\'94 will be present and this assumption will be violated.  In such circumstances, 
 \f3\fs18 relatedness()
 \f4\fs20  will therefore tend to underestimate the degree of relatedness between individuals, and the greater the degree of inbreeding, the greater the underestimation will be.  If inbreeding is allowed in a model \'96 and particularly if it is common \'96 the results of 
 \f3\fs18 relatedness()
@@ -3250,15 +3250,9 @@ This method makes a couple of assumptions.  One assumption is that the grandpare
 \f4\i0  relatedness, but can still be useful as an estimate of 
 \f1\i relative
 \f4\i0  relatedness (indicating that, say, A appears from the information available to be more closely related to B than it is to C).\
-A second assumption is that, in nonWF models, 
-\f3\fs18 addRecombinant()
-\f4\fs20  is not being used, since the pedigree relationships involved are then too complex to trace.  Indeed, 
-\f3\fs18 addRecombinant()
-\f4\fs20  does not record pedigree information at all, for this reason, and so the relatedness of individuals produced by 
-\f3\fs18 addRecombinant()
-\f4\fs20  will be 
-\f3\fs18 0.0
-\f4\fs20 .\
+See also 
+\f3\fs18 sharedParentCount()
+\f4\fs20  for a different metric of relatedness.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -3303,7 +3297,123 @@ Note that this is an Eidos class method, somewhat unusually, which allows it to 
 \f4\fs20  vector of any other length is an error.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(integer)sharedParentCount(object<Individual>\'a0individuals)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing the number of parents shared between the receiver and each of the individuals in 
+\f3\fs18 individuals
+\f4\fs20 .  The number of shared parents between 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20  is always 
+\f3\fs18 2
+\f4\fs20  if 
+\f3\fs18 A
+\f4\fs20  and 
+\f3\fs18 B
+\f4\fs20  are actually the same individual; this facility works even if SLiM\'92s optional pedigree tracking is not enabled (in which case all other relatedness values will be 
+\f3\fs18 0
+\f4\fs20 ).  Otherwise, if pedigree tracking is turned on with 
+\f3\fs18 initializeSLiMOptions(keepPedigrees=T)
+\f4\fs20 , this method will use the pedigree information described in section 25.7.1 to construct a relatedness estimate.\
+More specifically, this method uses the parental pedigree IDs from the pedigree records of a pair of individuals to count the number of shared parents between them, such that full siblings (with all of the same parents) have a count of 
+\f3\fs18 2
+\f4\fs20 , and half siblings (with half of the same parents) have a count of 
+\f3\fs18 1
+\f4\fs20 .  If possible parents of the two individuals are 
+\f3\fs18 A
+\f4\fs20 , 
+\f3\fs18 B
+\f4\fs20 , 
+\f3\fs18 C
+\f4\fs20 , and 
+\f3\fs18 D
+\f4\fs20 , then the shared parent count is as follows, for some illustrative examples.  The first column showing the two parents of the first individual, the second column showing the two parents of the second individual; note that the two parents of an individual can be the same due to cloning or selfing:\
+\pard\pardeftab720\li547\sa60\partightenfactor0
+\cf2 	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 CD
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 0
+\f4\fs20  (no shared parents)\
+	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 CC
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 0
+\f4\fs20  (no shared parents)\
+	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 AC
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 1
+\f4\fs20  (half siblings)\
+	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 AA
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 1
+\f4\fs20  (half siblings)\
+	
+\f3\fs18 AA
+\f4\fs20  
+\f3\fs18 AB
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 1
+\f4\fs20  (half siblings)\
+	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 AB
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 2
+\f4\fs20  (full siblings)\
+	
+\f3\fs18 AB
+\f4\fs20  
+\f3\fs18 BA
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 2
+\f4\fs20  (full siblings)\
+	
+\f3\fs18 AA
+\f4\fs20  
+\f3\fs18 AA
+\f4\fs20  
+\f7 \uc0\u8594 
+\f4  
+\f3\fs18 2
+\f4\fs20  (full siblings)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This method does not estimate consanguinity.  For example, if one individual is itself a parent of the other individual, that is irrelevant for this method.  Similarly, in simulations of sex chromosomes, the sexes of the parents are irrelevant, even if no genetic material would have been inherited from a given parent.  See 
+\f3\fs18 relatedness()
+\f4\fs20  for an assessment of pedigree-based relatedness that does estimate the consanguinity of individuals.  The 
+\f3\fs18 sharedParentCount()
+\f4\fs20  method is preferable if your exact question is simply whether individuals are full siblings, half siblings, or non-siblings; in other cases, 
+\f3\fs18 relatedness()
+\f4\fs20  is probably more useful.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96
 \f5 \'a0
 \f3 (float$)sumOfMutationsOfType(io<MutationType>$\'a0mutType)
 \f5 \
@@ -4909,23 +5019,23 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f5\i0 (
 \f6\i s
 \f5\i0 \'a0|\'a0
-\f7\i \uc0\u945 
+\f8\i \uc0\u945 
 \f5\i0 ,
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f5\i0 )\'a0
-\f8 = [\uc0\u915 (
-\f7\i \uc0\u945 
+\f9 = [\uc0\u915 (
+\f8\i \uc0\u945 
 \f5\i0 )
-\f7\i \uc0\u946 \u945 
+\f8\i \uc0\u946 \u945 
 \f5\i0 ]\super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
 \f6\i s
 \f5\i0 /
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f5\i0 )
 \f4 , where 
-\f7\i \uc0\u945 
+\f8\i \uc0\u945 
 \f4\i0  is the shape parameter, and the specified mean for the distribution is equal to 
-\f7\i \uc0\u945 \u946 
+\f8\i \uc0\u945 \u946 
 \f4\i0 .  Note that this parameterization is the same as for the Eidos function 
 \f3\fs18 rgamma()
 \f4\fs22 .  A gamma distribution is often used to model deleterious mutations at functional sites.\
@@ -4938,16 +5048,16 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f5\i0 (
 \f6\i s
 \f5\i0 \'a0|\'a0
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f5\i0 )\'a0= 
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f5\i0 \super \uc0\u8722 1\nosupersub exp(\uc0\u8722 
 \f6\i s
 \f5\i0 /
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f5\i0 )
 \f4 , where 
-\f7\i \uc0\u946 
+\f8\i \uc0\u946 
 \f4\i0  is the specified mean for the distribution.  This parameterization is the same as for the Eidos function 
 \f3\fs18 rexp()
 \f4\fs22 .  An exponential distribution is often used to model beneficial mutations.\
@@ -4960,23 +5070,23 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f5\i0 (
 \f6\i s
 \f5\i0 \'a0|\'a0
-\f7\i \uc0\u956 
+\f8\i \uc0\u956 
 \f5\i0 ,
-\f7\i \uc0\u963 
+\f8\i \uc0\u963 
 \f5\i0 )\'a0= (2
-\f8 \uc0\u960 
-\f7\i \uc0\u963 
+\f9 \uc0\u960 
+\f8\i \uc0\u963 
 \f5\i0 \super 2\nosupersub )\super \uc0\u8722 1/2\nosupersub exp(\uc0\u8722 (
 \f6\i s
 \f5\i0 \uc0\u8722 
-\f7\i \uc0\u956 
+\f8\i \uc0\u956 
 \f5\i0 )\super 2\nosupersub /2
-\f7\i \uc0\u963 
+\f8\i \uc0\u963 
 \f5\i0 \super 2\nosupersub )
 \f4 , where 
-\f7\i \uc0\u956 
+\f8\i \uc0\u956 
 \f4\i0  is the mean and 
-\f7\i \uc0\u963 
+\f8\i \uc0\u963 
 \f4\i0  is the standard deviation.  This parameterization is the same as for the Eidos function 
 \f3\fs18 rnorm()
 \f4\fs22 .  A normal distribution is often used to model mutations that can be either beneficial or deleterious, since both tails of the distribution are unbounded.\
@@ -4989,25 +5099,25 @@ SLiM consults this flag at the end of each tick when deciding whether to substit
 \f5\i0 (
 \f6\i s
 \f5\i0 \'a0|\'a0
-\f7\i \uc0\u955 
+\f8\i \uc0\u955 
 \f5\i0 ,
 \f6\i k
 \f5\i0 )\'a0= (
 \f6\i k
 \f5\i0 /
-\f7\i \uc0\u955 
+\f8\i \uc0\u955 
 \f6 \super k
 \f5\i0 \nosupersub )
 \f6\i s\super k
 \f5\i0 \uc0\u8722 1\nosupersub exp(\uc0\u8722 (
 \f6\i s
 \f5\i0 /
-\f7\i \uc0\u955 
+\f8\i \uc0\u955 
 \f5\i0 )
 \f6\i \super k
 \f5\i0 \nosupersub )
 \f4 , where 
-\f7\i \uc0\u955 
+\f8\i \uc0\u955 
 \f4\i0  is the scale parameter and 
 \f6\i k
 \f4\i0  is the shape parameter.  This parameterization is the same as for the Eidos function 
@@ -5242,7 +5352,7 @@ The species to which the target object belongs.\
 \f4\fs22 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
 \f4\fs22  
-\f8 \uc0\u955 
+\f9 \uc0\u955 
 \f4  scale parameter and a 
 \f3\fs18 numeric$
 \f4\fs22  k shape parameter for a Weibull distribution; or 

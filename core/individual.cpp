@@ -251,6 +251,57 @@ double Individual::RelatednessToIndividual(Individual &p_ind)
 	return _Relatedness(A, A_P1, A_P2, A_G1, A_G2, A_G3, A_G4, B, B_P1, B_P2, B_G1, B_G2, B_G3, B_G4, indA.sex_, indB.sex_, chrtype);
 }
 
+int Individual::_SharedParentCount(slim_pedigreeid_t X_P1, slim_pedigreeid_t X_P2, slim_pedigreeid_t Y_P1, slim_pedigreeid_t Y_P2)
+{
+	// This is the top-level internal API here.  It is separate from RelatednessToIndividual(), and
+	// implemented as a static member function, for unit testing; we want an
+	// API that unit tests can call without needing to actually have a constructed Individual object.
+	
+	// If one individual is missing parent information, return 0
+	if ((X_P1 == -1) || (X_P2 == -1) || (Y_P1 == -1) || (Y_P2 == -1))
+		return 0;
+	
+	// If both parents match, in one way or another, then they must be full siblings
+	if ((X_P1 == Y_P1) && (X_P2 == Y_P2))
+		return 2;
+	if ((X_P1 == Y_P2) && (X_P2 == Y_P1))
+		return 2;
+	
+	// Otherwise, if one parent matches, they must be half siblings
+	if ((X_P1 == Y_P1) || (X_P1 == Y_P2) || (X_P2 == Y_P1) || (X_P2 == Y_P2))
+		return 1;
+	
+	// Otherwise, they are not siblings
+	return 0;
+}
+
+int Individual::SharedParentCountWithIndividual(Individual &p_ind)
+{
+	// This is much simpler than Individual::RelatednessToIndividual(); we just want the shared parent count.  That is
+	// defined, for two individuals X and Y with parents in {A, B, C, D}, as:
+	//
+	//	AB CD -> 0 (no shared parents)
+	//	AB CC -> 0 (no shared parents)
+	//	AB AC -> 1 (half siblings)
+	//	AB AA -> 1 (half siblings)
+	//	AA AB -> 1 (half siblings)
+	//	AB AB -> 2 (full siblings)
+	//	AB BA -> 2 (full siblings)
+	//	AA AA -> 2 (full siblings)
+	//
+	// If X is itself a parent of Y, or vice versa, that is irrelevant for this method; we are not measuring
+	// consanguinity here.
+	//
+	Individual &indX = *this, &indY = p_ind;
+	
+	slim_pedigreeid_t X_P1 = indX.pedigree_p1_;
+	slim_pedigreeid_t X_P2 = indX.pedigree_p2_;
+	slim_pedigreeid_t Y_P1 = indY.pedigree_p1_;
+	slim_pedigreeid_t Y_P2 = indY.pedigree_p2_;
+	
+	return _SharedParentCount(X_P1, X_P2, Y_P1, Y_P2);
+}
+
 
 //
 // Eidos support
@@ -1579,6 +1630,7 @@ EidosValue_SP Individual::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_containsMutations:			return ExecuteMethod_containsMutations(p_method_id, p_arguments, p_interpreter);
 		//case gID_countOfMutationsOfType:	return ExecuteMethod_Accelerated_countOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_relatedness:				return ExecuteMethod_relatedness(p_method_id, p_arguments, p_interpreter);
+		case gID_sharedParentCount:			return ExecuteMethod_sharedParentCount(p_method_id, p_arguments, p_interpreter);
 		//case gID_sumOfMutationsOfType:	return ExecuteMethod_Accelerated_sumOfMutationsOfType(p_method_id, p_arguments, p_interpreter);
 		case gID_uniqueMutationsOfType:		return ExecuteMethod_uniqueMutationsOfType(p_method_id, p_arguments, p_interpreter);
 			
@@ -1771,6 +1823,69 @@ EidosValue_SP Individual::ExecuteMethod_relatedness(EidosGlobalStringID p_method
 		}
 		
 		return EidosValue_SP(float_result);
+	}
+	
+	return gStaticEidosValueNULL;
+}
+
+//	*********************	- (integer)sharedParentCount(o<Individual> individuals)
+//
+EidosValue_SP Individual::ExecuteMethod_sharedParentCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *individuals_value = p_arguments[0].get();
+	int individuals_count = individuals_value->Count();
+	
+	// SPECIES CONSISTENCY CHECK
+	if (individuals_count > 0)
+	{
+		Species *species = Community::SpeciesForIndividuals(individuals_value);
+		
+		if (species != &subpopulation_->species_)
+			EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_sharedParentCount): sharedParentCount() requires that all individuals belong to the same species as the target individual." << EidosTerminate();
+	}
+	
+	bool pedigree_tracking_enabled = subpopulation_->species_.PedigreesEnabledByUser();
+	
+	if (individuals_count == 1)
+	{
+		Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(0, nullptr));
+		int shared_count;
+		
+		if (pedigree_tracking_enabled)
+			shared_count = SharedParentCountWithIndividual(*ind);
+		else
+			shared_count = (ind == this) ? 2.0 : 0.0;
+		
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(shared_count));
+	}
+	else
+	{
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(individuals_count);
+		
+		if (pedigree_tracking_enabled)
+		{
+			// FIXME needs parallelization, see relatedness()
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				int shared_count = SharedParentCountWithIndividual(*ind);
+				
+				int_result->set_int_no_check(shared_count, value_index);
+			}
+		}
+		else
+		{
+			for (int value_index = 0; value_index < individuals_count; ++value_index)
+			{
+				Individual *ind = (Individual *)(individuals_value->ObjectElementAtIndex(value_index, nullptr));
+				int shared_count = (ind == this) ? 2.0 : 0.0;
+				
+				int_result->set_int_no_check(shared_count, value_index);
+			}
+		}
+		
+		return EidosValue_SP(int_result);
 	}
 	
 	return gStaticEidosValueNULL;
@@ -2135,6 +2250,7 @@ const std::vector<EidosMethodSignature_CSP> *Individual_Class::Methods(void) con
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_countOfMutationsOfType, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_countOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_relatedness, kEidosValueMaskFloat))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back((EidosClassMethodSignature *)(new EidosClassMethodSignature(gStr_setSpatialPosition, kEidosValueMaskVOID))->AddFloat("position"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sharedParentCount, kEidosValueMaskInt))->AddObject("individuals", gSLiM_Individual_Class));
 		methods->emplace_back(((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sumOfMutationsOfType, kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddIntObject_S("mutType", gSLiM_MutationType_Class))->DeclareAcceleratedImp(Individual::ExecuteMethod_Accelerated_sumOfMutationsOfType));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_uniqueMutationsOfType, kEidosValueMaskObject, gSLiM_Mutation_Class))->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		
