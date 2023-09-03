@@ -5129,7 +5129,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 
 //	*********************	– (o<Individual>)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
 //															No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2,
-//															[Nfs$ sex = NULL], [integer$ count = 1], [logical$ defer = F])
+//															[Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL], [No<Individual>$ parent2 = NULL],
+//															[integer$ count = 1], [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -5149,7 +5150,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species; recombination requires genetics." << EidosTerminate();
 	
 	// Check the count and short-circuit if it is zero
-	EidosValue *count_value = p_arguments[7].get();
+	EidosValue *count_value = p_arguments[9].get();
 	int64_t child_count = count_value->IntAtIndex(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
@@ -5241,6 +5242,28 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			sex_value = static_sex_string_M.get();
 	}
 	
+	// Figure out the parents for purposes of pedigree recording
+	bool pedigrees_enabled = species_.PedigreesEnabled();
+	Individual *pedigree_parent1 = nullptr;
+	Individual *pedigree_parent2 = nullptr;
+	
+	if (pedigrees_enabled)
+	{
+		EidosValue *parent1_value = p_arguments[7].get();
+		EidosValue *parent2_value = p_arguments[8].get();
+		
+		if (parent1_value->Type() != EidosValueType::kValueNULL)
+			pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
+		if (parent2_value->Type() != EidosValueType::kValueNULL)
+			pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
+		
+		// if only one parent was supplied, use it for both, just as we do for cloning and selfing; it makes relatedness() work correctly
+		if (pedigree_parent1 && !pedigree_parent2)
+			pedigree_parent2 = pedigree_parent1;
+		if (pedigree_parent2 && !pedigree_parent1)
+			pedigree_parent1 = pedigree_parent2;
+	}
+	
 	// Generate the number of children requested
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
@@ -5250,9 +5273,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!mutation_callbacks->size())
 		mutation_callbacks = nullptr;
 	
-	bool pedigrees_enabled = species_.PedigreesEnabled();
-	
-	EidosValue *defer_value = p_arguments[8].get();
+	EidosValue *defer_value = p_arguments[10].get();
 	bool defer = defer_value->LogicalAtIndex(0, nullptr);
 	
 	if (defer && mutation_callbacks)
@@ -5416,7 +5437,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		Individual *individual = new (individual_pool_.AllocateChunk()) Individual(this, /* index */ -1, genome1, genome2, child_sex, /* age */ 0, /* fitness */ NAN, mean_parent_age);
 		
 		if (pedigrees_enabled)
-			individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
+		{
+			if (pedigree_parent1 == nullptr)
+				individual->TrackParentage_Parentless(SLiM_GetNextPedigreeID());
+			else if (pedigree_parent1 == pedigree_parent2)
+				individual->TrackParentage_Uniparental(SLiM_GetNextPedigreeID(), *pedigree_parent1);
+			else
+				individual->TrackParentage_Biparental(SLiM_GetNextPedigreeID(), *pedigree_parent1, *pedigree_parent2);
+		}
 		
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
@@ -5570,7 +5598,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			proposed_child_accepted = population_.ApplyModifyChildCallbacks(individual, /* p_parent1 */ nullptr, /* p_parent2 */ nullptr, /* p_is_selfing */ false, /* p_is_cloning */ false, /* p_target_subpop */ this, /* p_source_subpop */ nullptr, registered_modify_child_callbacks_);
 			
 			if (pedigrees_enabled && !proposed_child_accepted)
-				individual->RevokeParentage_Parentless();
+			{
+				if (pedigree_parent1 == nullptr)
+					individual->RevokeParentage_Parentless();
+				else if (pedigree_parent1 == pedigree_parent2)
+					individual->RevokeParentage_Uniparental(*pedigree_parent1);
+				else
+					individual->RevokeParentage_Biparental(*pedigree_parent1, *pedigree_parent2);
+			}
 			
 			_ProcessNewOffspring(proposed_child_accepted, individual, genome1, genome2, result);
 		}
