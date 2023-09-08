@@ -5718,6 +5718,46 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)interpolateValues(integer$\'a0factor)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Increases the resolution of the spatial map by 
+\f3\fs18 factor
+\f4\fs20 , changing the dimensions of the spatial map\'92s grid of values (while leaving its spatial bounds unchanged), by interpolating new values between the existing values.  The parameter 
+\f3\fs18 factor
+\f4\fs20  must be an integer in [
+\f3\fs18 2
+\f4\fs20 , 
+\f3\fs18 100
+\f4\fs20 ].\
+For a 1D spatial map, 
+\f3\fs18 factor-1
+\f4\fs20  new values will be inserted between every pair of values in the original value grid.  A 
+\f3\fs18 factor
+\f4\fs20  of 
+\f3\fs18 2
+\f4\fs20  would therefore insert one new value between each pair of existing values, thereby increasing the map\'92s resolution by a factor of two.  Note that if the spatial map\'92s original grid dimension was 
+\f1\i N
+\f4\i0 , the new grid dimension with a 
+\f3\fs18 factor
+\f4\fs20  of 
+\f1\i k
+\f4\i0  would be 
+\f1\i kN
+\f4\i0 \uc0\u8722 1, not 
+\f1\i kN
+\f4\i0 , because new values are inserted only 
+\f1\i between
+\f4\i0  existing values.  For 2D and 3D spatial maps, essentially the same process is conducted along each axis of the map\'92s spatiality, increasing the resolution of the map by 
+\f3\fs18 factor
+\f4\fs20  in every dimension.\
+Linear (or bilinear or trilinear) interpolation will be used to interpolate the values for the new grid points; this is done even if interpolation is not normally enabled for the spatial map (i.e., if the map\'92s 
+\f3\fs18 interpolate
+\f4\fs20  property is 
+\f3\fs18 F
+\f4\fs20 ).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

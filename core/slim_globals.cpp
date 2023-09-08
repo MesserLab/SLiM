@@ -1364,6 +1364,7 @@ const std::string &gStr_spatialMapColor = EidosRegisteredString("spatialMapColor
 const std::string &gStr_spatialMapImage = EidosRegisteredString("spatialMapImage", gID_spatialMapImage);
 const std::string &gStr_spatialMapValue = EidosRegisteredString("spatialMapValue", gID_spatialMapValue);
 const std::string &gStr_changeValues = EidosRegisteredString("changeValues", gID_changeValues);
+const std::string &gStr_interpolateValues = EidosRegisteredString("interpolateValues", gID_interpolateValues);
 const std::string &gStr_mapColor = EidosRegisteredString("mapColor", gID_mapColor);
 const std::string &gStr_mapImage = EidosRegisteredString("mapImage", gID_mapImage);
 const std::string &gStr_mapValue = EidosRegisteredString("mapValue", gID_mapValue);
