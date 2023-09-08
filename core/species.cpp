@@ -3068,8 +3068,10 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 				}
 				if (map.red_components_)
 					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
+#if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 3;
+#endif
 			}
 		}
 	}

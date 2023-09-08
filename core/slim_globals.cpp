@@ -31,6 +31,7 @@
 #include "mutation_type.h"
 #include "slim_eidos_block.h"
 #include "community.h"
+#include "spatial_map.h"
 #include "species.h"
 #include "substitution.h"
 #include "subpopulation.h"
@@ -80,6 +81,7 @@ void SLiM_WarmUp(void)
 		gSLiM_MutationType_Class =			new MutationType_Class(			gStr_MutationType,			gEidosDictionaryUnretained_Class);
 		gSLiM_SLiMEidosBlock_Class =		new SLiMEidosBlock_Class(		gStr_SLiMEidosBlock,		gEidosDictionaryUnretained_Class);
 		gSLiM_Community_Class =				new Community_Class(			gStr_Community,				gEidosDictionaryUnretained_Class);
+		gSLiM_SpatialMap_Class =			new SpatialMap_Class(			gStr_SpatialMap,			gEidosDictionaryRetained_Class);
 		gSLiM_Species_Class =				new Species_Class(				gStr_Species,				gEidosDictionaryUnretained_Class);
 		gSLiM_Substitution_Class =			new Substitution_Class(			gStr_Substitution,			gEidosDictionaryRetained_Class);
 		gSLiM_Subpopulation_Class =			new Subpopulation_Class(		gStr_Subpopulation,			gEidosDictionaryUnretained_Class);
@@ -1238,7 +1240,10 @@ const std::string &gStr_description = EidosRegisteredString("description", gID_d
 const std::string &gStr_selfingRate = EidosRegisteredString("selfingRate", gID_selfingRate);
 const std::string &gStr_cloningRate = EidosRegisteredString("cloningRate", gID_cloningRate);
 const std::string &gStr_sexRatio = EidosRegisteredString("sexRatio", gID_sexRatio);
+const std::string &gStr_gridDimensions = EidosRegisteredString("gridDimensions", gID_gridDimensions);
+const std::string &gStr_interpolate = EidosRegisteredString("interpolate", gID_interpolate);
 const std::string &gStr_spatialBounds = EidosRegisteredString("spatialBounds", gID_spatialBounds);
+const std::string &gStr_spatialMaps = EidosRegisteredString("spatialMaps", gID_spatialMaps);
 const std::string &gStr_individualCount = EidosRegisteredString("individualCount", gID_individualCount);
 const std::string &gStr_fixationTick = EidosRegisteredString("fixationTick", gID_fixationTick);
 const std::string &gStr_age = EidosRegisteredString("age", gID_age);
@@ -1353,9 +1358,15 @@ const std::string &gStr_cachedFitness = EidosRegisteredString("cachedFitness", g
 const std::string &gStr_sampleIndividuals = EidosRegisteredString("sampleIndividuals", gID_sampleIndividuals);
 const std::string &gStr_subsetIndividuals = EidosRegisteredString("subsetIndividuals", gID_subsetIndividuals);
 const std::string &gStr_defineSpatialMap = EidosRegisteredString("defineSpatialMap", gID_defineSpatialMap);
+const std::string &gStr_addSpatialMap = EidosRegisteredString("addSpatialMap", gID_addSpatialMap);
+const std::string &gStr_removeSpatialMap = EidosRegisteredString("removeSpatialMap", gID_removeSpatialMap);
 const std::string &gStr_spatialMapColor = EidosRegisteredString("spatialMapColor", gID_spatialMapColor);
 const std::string &gStr_spatialMapImage = EidosRegisteredString("spatialMapImage", gID_spatialMapImage);
 const std::string &gStr_spatialMapValue = EidosRegisteredString("spatialMapValue", gID_spatialMapValue);
+const std::string &gStr_changeValues = EidosRegisteredString("changeValues", gID_changeValues);
+const std::string &gStr_mapColor = EidosRegisteredString("mapColor", gID_mapColor);
+const std::string &gStr_mapImage = EidosRegisteredString("mapImage", gID_mapImage);
+const std::string &gStr_mapValue = EidosRegisteredString("mapValue", gID_mapValue);
 const std::string &gStr_outputMSSample = EidosRegisteredString("outputMSSample", gID_outputMSSample);
 const std::string &gStr_outputVCFSample = EidosRegisteredString("outputVCFSample", gID_outputVCFSample);
 const std::string &gStr_outputSample = EidosRegisteredString("outputSample", gID_outputSample);
@@ -1425,6 +1436,7 @@ const std::string &gStr_GenomicElementType = EidosRegisteredString("GenomicEleme
 const std::string &gStr_MutationType = EidosRegisteredString("MutationType", gID_MutationType);
 const std::string &gStr_SLiMEidosBlock = EidosRegisteredString("SLiMEidosBlock", gID_SLiMEidosBlock);
 const std::string &gStr_Community = EidosRegisteredString("Community", gID_Community);
+const std::string &gStr_SpatialMap = EidosRegisteredString("SpatialMap", gID_SpatialMap);
 const std::string &gStr_Species = EidosRegisteredString("Species", gID_Species);
 const std::string &gStr_Subpopulation = EidosRegisteredString("Subpopulation", gID_Subpopulation);
 //const std::string &gStr_Individual = EidosRegisteredString("Individual", gID_Individual);		// in Eidos; see EidosValue_Object::EidosValue_Object()
