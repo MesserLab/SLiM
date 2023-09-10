@@ -892,6 +892,118 @@ static const int kMaxVertices = kMaxGLRects * 4;	// 4 vertices each
 	
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+	
+#if 0
+	// Experimental feature: draw boxes showing where the grid nodes are, since that is rather confusing!
+	NSRect individualArea = NSMakeRect(bounds.origin.x, bounds.origin.y, bounds.size.width - 1, bounds.size.height - 1);
+	int64_t xsize = background_map->grid_size_[0];
+	int64_t ysize = background_map->grid_size_[1];
+	double *values = background_map->values_;
+	
+	if ((xsize <= 51) && (ysize <= 51))
+	{
+		// Set up to draw rects
+		displayListIndex = 0;
+		
+		vertices = glArrayVertices;
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+		
+		colors = glArrayColors;
+		glEnableClientState(GL_COLOR_ARRAY);
+		glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+		
+		// first pass we draw squares to make outlines, second pass we draw the interiors in color
+		for (int pass = 0; pass <= 1; ++pass)
+		{
+			for (int x = 0; x < xsize; ++x)
+			{
+				for (int y = 0; y < ysize; ++y)
+				{
+					float position_x = x / (float)(xsize - 1);	// 0 to 1
+					float position_y = y / (float)(ysize - 1);	// 0 to 1
+					
+					float centerX = (float)(individualArea.origin.x + round(position_x * individualArea.size.width) + 0.5);
+					float centerY = (float)(individualArea.origin.y + individualArea.size.height - round(position_y * individualArea.size.height) + 0.5);
+					const float margin = ((pass == 0) ? 5.5f : 3.5f);
+					float left = centerX - margin;
+					float top = centerY - margin;
+					float right = centerX + margin;
+					float bottom = centerY + margin;
+					
+					if (left < individualArea.origin.x)
+						left = (float)individualArea.origin.x;
+					if (top < individualArea.origin.y)
+						top = (float)individualArea.origin.y;
+					if (right > individualArea.origin.x + individualArea.size.width)
+						right = (float)(individualArea.origin.x + individualArea.size.width);
+					if (bottom > individualArea.origin.y + individualArea.size.height)
+						bottom = (float)(individualArea.origin.y + individualArea.size.height);
+					
+					*(vertices++) = left;
+					*(vertices++) = top;
+					*(vertices++) = left;
+					*(vertices++) = bottom;
+					*(vertices++) = right;
+					*(vertices++) = bottom;
+					*(vertices++) = right;
+					*(vertices++) = top;
+					
+					if (pass == 0)
+					{
+						for (int j = 0; j < 4; ++j)
+						{
+							*(colors++) = 1.0;
+							*(colors++) = 0.25;
+							*(colors++) = 0.25;
+							*(colors++) = 1.0;
+						}
+					}
+					else
+					{
+						// look up the map's color at this grid point
+						float rgb[3];
+						double value = values[x + y * xsize];
+						
+						background_map->ColorForValue(value, rgb);
+						
+						for (int j = 0; j < 4; ++j)
+						{
+							*(colors++) = rgb[0];
+							*(colors++) = rgb[1];
+							*(colors++) = rgb[2];
+							*(colors++) = 1.0;
+						}
+					}
+					
+					displayListIndex++;
+					
+					// If we've filled our buffers, get ready to draw more
+					if (displayListIndex == kMaxGLRects)
+					{
+						// Draw our arrays
+						glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+						
+						// And get ready to draw more
+						vertices = glArrayVertices;
+						colors = glArrayColors;
+						displayListIndex = 0;
+					}
+				}
+			}
+		}
+		
+		// Draw any leftovers
+		if (displayListIndex)
+		{
+			// Draw our arrays
+			glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+		}
+		
+		glDisableClientState(GL_VERTEX_ARRAY);
+		glDisableClientState(GL_COLOR_ARRAY);
+	}
+#endif
 }
 
 - (void)chooseDefaultBackgroundSettings:(PopulationViewBackgroundSettings *)background map:(SpatialMap **)returnMap forSubpopulation:(Subpopulation *)subpop

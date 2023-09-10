@@ -906,11 +906,11 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
             {
                 switch (interactionType->if_type_)
                 {
-                    case IFType::kFixed:			return QVariant(QString("fixed"));
-                    case IFType::kLinear:			return QVariant(QString("linear"));
-                    case IFType::kExponential:		return QVariant(QString("exp"));
-                    case IFType::kNormal:			return QVariant(QString("normal"));
-                    case IFType::kCauchy:			return QVariant(QString("Cauchy"));
+                    case SpatialKernelType::kFixed:				return QVariant(QString("fixed"));
+                    case SpatialKernelType::kLinear:			return QVariant(QString("linear"));
+                    case SpatialKernelType::kExponential:		return QVariant(QString("exp"));
+                    case SpatialKernelType::kNormal:			return QVariant(QString("normal"));
+                    case SpatialKernelType::kCauchy:			return QVariant(QString("Cauchy"));
                 }
             }
             else if (p_index.column() == 3)
@@ -923,16 +923,16 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
                 // append second parameters where applicable
                 switch (interactionType->if_type_)
                 {
-                    case IFType::kFixed:
-                    case IFType::kLinear:
+                    case SpatialKernelType::kFixed:
+                    case SpatialKernelType::kLinear:
                         break;
-                    case IFType::kExponential:
+                    case SpatialKernelType::kExponential:
                         paramString += QString(", β=%1").arg(interactionType->if_param2_, 0, 'f', 3);
                         break;
-                    case IFType::kNormal:
+                    case SpatialKernelType::kNormal:
                         paramString += QString(", σ=%1").arg(interactionType->if_param2_, 0, 'f', 3);
                         break;
-                    case IFType::kCauchy:
+                    case SpatialKernelType::kCauchy:
                         paramString += QString(", γ=%1").arg(interactionType->if_param2_, 0, 'f', 3);
                         break;
                 }

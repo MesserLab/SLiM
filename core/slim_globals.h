@@ -956,6 +956,7 @@ extern const std::string &gStr_interpolateValues;
 extern const std::string &gStr_mapColor;
 extern const std::string &gStr_mapImage;
 extern const std::string &gStr_mapValue;
+extern const std::string &gStr_smoothValues;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
 extern const std::string &gStr_outputSample;
@@ -1339,6 +1340,7 @@ enum _SLiMGlobalStringID : int {
 	gID_mapColor,
 	gID_mapImage,
 	gID_mapValue,
+	gID_smoothValues,
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,

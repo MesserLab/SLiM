@@ -4941,11 +4941,11 @@
 				{
 					switch (interactionType->if_type_)
 					{
-						case IFType::kFixed:			return @"fixed";
-						case IFType::kLinear:			return @"linear";
-						case IFType::kExponential:		return @"exp";
-						case IFType::kNormal:			return @"normal";
-						case IFType::kCauchy:			return @"Cauchy";
+						case SpatialKernelType::kFixed:				return @"fixed";
+						case SpatialKernelType::kLinear:			return @"linear";
+						case SpatialKernelType::kExponential:		return @"exp";
+						case SpatialKernelType::kNormal:			return @"normal";
+						case SpatialKernelType::kCauchy:			return @"Cauchy";
 					}
 				}
 				else if (aTableColumn == interactionTypeIFParamsColumn)
@@ -4958,16 +4958,16 @@
 					// append second parameters where applicable
 					switch (interactionType->if_type_)
 					{
-						case IFType::kFixed:
-						case IFType::kLinear:
+						case SpatialKernelType::kFixed:
+						case SpatialKernelType::kLinear:
 							break;
-						case IFType::kExponential:
+						case SpatialKernelType::kExponential:
 							[paramString appendFormat:@", β=%.3f", interactionType->if_param2_];
 							break;
-						case IFType::kNormal:
+						case SpatialKernelType::kNormal:
 							[paramString appendFormat:@", σ=%.3f", interactionType->if_param2_];
 							break;
-						case IFType::kCauchy:
+						case SpatialKernelType::kCauchy:
 							[paramString appendFormat:@", γ=%.3f", interactionType->if_param2_];
 							break;
 					}

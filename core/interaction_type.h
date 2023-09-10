@@ -40,6 +40,7 @@
 #include "slim_eidos_block.h"
 #include "sparse_vector.h"
 #include "subpopulation.h"
+#include "spatial_kernel.h"
 
 
 class Species;
@@ -49,19 +50,6 @@ class InteractionType_Class;
 
 
 extern EidosClass *gSLiM_InteractionType_Class;
-
-
-// This enumeration represents a type of interaction function (IF) that an
-// interaction type can use to convert distances to interaction strengths
-enum class IFType : char {
-	kFixed = 0,
-	kLinear,
-	kExponential,
-	kNormal,
-	kCauchy
-};
-
-std::ostream& operator<<(std::ostream& p_out, IFType p_if_type);
 
 
 // This class uses an internal implementation of kd-trees for fast nearest-neighbor finding.  We use the same data structure to
@@ -149,7 +137,7 @@ private:
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
-	IFType if_type_;							// the interaction function (IF) to use
+	SpatialKernelType if_type_;					// the interaction function (IF) to use
 	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
 	double n_2param2sq_;						// for type "n", precalculated == 2.0 * if_param2_ * if_param2_
 	

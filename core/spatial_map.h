@@ -36,10 +36,11 @@
 #include "eidos_class_Dictionary.h"
 
 class Subpopulation;
+class SpatialKernel;
 
 
 #pragma mark -
-#pragma mark _SpatialMap
+#pragma mark SpatialMap
 #pragma mark -
 
 extern EidosClass *gSLiM_SpatialMap_Class;
@@ -103,6 +104,10 @@ public:
 	void ColorForValue(double p_value, double *p_rgb_ptr);
 	void ColorForValue(double p_value, float *p_rgb_ptr);
 	
+	void Convolve_S1(SpatialKernel &kernel);
+	void Convolve_S2(SpatialKernel &kernel);
+	void Convolve_S3(SpatialKernel &kernel);
+	
 	//
 	// Eidos support
 	//
@@ -118,6 +123,7 @@ public:
 	EidosValue_SP ExecuteMethod_mapColor(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mapImage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mapValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_smoothValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 
 class SpatialMap_Class : public EidosDictionaryRetained_Class

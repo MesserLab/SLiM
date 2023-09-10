@@ -1368,6 +1368,7 @@ const std::string &gStr_interpolateValues = EidosRegisteredString("interpolateVa
 const std::string &gStr_mapColor = EidosRegisteredString("mapColor", gID_mapColor);
 const std::string &gStr_mapImage = EidosRegisteredString("mapImage", gID_mapImage);
 const std::string &gStr_mapValue = EidosRegisteredString("mapValue", gID_mapValue);
+const std::string &gStr_smoothValues = EidosRegisteredString("smoothValues", gID_smoothValues);
 const std::string &gStr_outputMSSample = EidosRegisteredString("outputMSSample", gID_outputMSSample);
 const std::string &gStr_outputVCFSample = EidosRegisteredString("outputVCFSample", gID_outputVCFSample);
 const std::string &gStr_outputSample = EidosRegisteredString("outputSample", gID_outputSample);

@@ -5718,7 +5718,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)interpolateValues(integer$\'a0factor)\
+\f3\fs18 \cf2 \'96\'a0(void)interpolateValues(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Increases the resolution of the spatial map by 
@@ -5728,8 +5728,8 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  must be an integer in [
 \f3\fs18 2
 \f4\fs20 , 
-\f3\fs18 100
-\f4\fs20 ].\
+\f3\fs18 201
+\f4\fs20 ], somewhat arbitrarily\
 For a 1D spatial map, 
 \f3\fs18 factor-1
 \f4\fs20  new values will be inserted between every pair of values in the original value grid.  A 
@@ -5743,19 +5743,29 @@ For a 1D spatial map,
 \f4\fs20  of 
 \f1\i k
 \f4\i0  would be 
-\f1\i kN
-\f4\i0 \uc0\u8722 1, not 
+\f1\i k
+\f4\i0 (
+\f1\i N
+\f4\i0 \uc0\u8722 1)+1, not 
 \f1\i kN
 \f4\i0 , because new values are inserted only 
 \f1\i between
 \f4\i0  existing values.  For 2D and 3D spatial maps, essentially the same process is conducted along each axis of the map\'92s spatiality, increasing the resolution of the map by 
 \f3\fs18 factor
 \f4\fs20  in every dimension.\
-Linear (or bilinear or trilinear) interpolation will be used to interpolate the values for the new grid points; this is done even if interpolation is not normally enabled for the spatial map (i.e., if the map\'92s 
+If 
+\f3\fs18 method
+\f4\fs20  is 
+\f3\fs18 "linear"
+\f4\fs20  (the default), linear (or bilinear or trilinear) interpolation will be used to interpolate the values for the new grid points.  Alternatively, if 
+\f3\fs18 method
+\f4\fs20  is 
+\f3\fs18 "nearest"
+\f4\fs20 , the nearest value in the old grid will be used for new grid points; with this method, it is recommended that 
+\f3\fs18 factor
+\f4\fs20  be odd, not even, to avoid artifacts due to rounding of coordinates midway between the original grid positions.  Other interpolation methods may be added in future.  The choice of interpolation method used here is independent of the map\'92s 
 \f3\fs18 interpolate
-\f4\fs20  property is 
-\f3\fs18 F
-\f4\fs20 ).\
+\f4\fs20  property.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
@@ -5928,6 +5938,38 @@ The
 \f4\fs20  method of 
 \f3\fs18 Subpopulation
 \f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)smoothValues(float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Smooths (or blurs, one could say) the values of the spatial map by convolution with a kernel.  The kernel is specified with a maximum distance 
+\f3\fs18 maxDistance
+\f4\fs20  (beyond which the kernel cuts off to a value of zero), a kernel type 
+\f3\fs18 functionType
+\f4\fs20  that should be 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , or 
+\f3\fs18 "c"
+\f4\fs20 , and additional parameters in the ellipsis that depend upon the kernel type and further specify its shape.  The kernel types and their additional parameters are exactly the same as for the 
+\f3\fs18 setInteractionType()
+\f4\fs20  method of 
+\f3\fs18 InteractionType
+\f4\fs20 ; see the documentation of that method for details.\
+Distance metrics specified to this method, such as 
+\f3\fs18 maxDistance
+\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.\
+The density scale of the kernel is unimportant and will be normalized; for example, a kernel specified to have a maximum value of 
+\f3\fs18 1
+\f4\fs20 , versus a kernel specified to have a maximum value of 
+\f3\fs18 10
+\f4\fs20 , will produce the same effect.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.15  Class Species\

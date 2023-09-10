@@ -147,6 +147,7 @@ development head (in the master branch):
 		add a changeValues() method on SpatialMap to change the grid values of an existing spatial map
 		add various properties on SpatialMap: gridDimensions, interpolate, name, spatialBounds, spatiality, tag
 	add interpolateValues() to SpatialMap, to increase the resolution of a spatial map by interpolating new values
+	add smoothValues() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
 	
 
 version 4.0.1 (Eidos version 3.0.1):

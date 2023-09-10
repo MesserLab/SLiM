@@ -338,6 +338,10 @@
 		985F3F0E24BA31D900E712E0 /* eidos_test_functions_statistics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 985F3F0A24BA31D900E712E0 /* eidos_test_functions_statistics.cpp */; };
 		98606AEE1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
 		98606AEF1DED0DCD00821CFF /* mutation_run.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 98606AEC1DED0DCD00821CFF /* mutation_run.cpp */; };
+		986070EA2AACECD600FD6143 /* spatial_kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986070E82AACECD600FD6143 /* spatial_kernel.cpp */; };
+		986070EB2AACECD600FD6143 /* spatial_kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986070E82AACECD600FD6143 /* spatial_kernel.cpp */; };
+		986070EC2AACECD600FD6143 /* spatial_kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986070E82AACECD600FD6143 /* spatial_kernel.cpp */; };
+		986070ED2AACECD600FD6143 /* spatial_kernel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 986070E82AACECD600FD6143 /* spatial_kernel.cpp */; };
 		986926D41AA1337A0000E138 /* graph_submenu_H.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D21AA1337A0000E138 /* graph_submenu_H.pdf */; };
 		986926D51AA1337A0000E138 /* graph_submenu.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 986926D31AA1337A0000E138 /* graph_submenu.pdf */; };
 		986926D91AA140550000E138 /* GraphView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 986926D81AA140550000E138 /* GraphView.mm */; };
@@ -1612,6 +1616,8 @@
 		986021081A3BB504001BDCFE /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		98606AEC1DED0DCD00821CFF /* mutation_run.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = mutation_run.cpp; sourceTree = "<group>"; };
 		98606AED1DED0DCD00821CFF /* mutation_run.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mutation_run.h; sourceTree = "<group>"; };
+		986070E82AACECD600FD6143 /* spatial_kernel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = spatial_kernel.cpp; sourceTree = "<group>"; };
+		986070E92AACECD600FD6143 /* spatial_kernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = spatial_kernel.h; sourceTree = "<group>"; };
 		986764A92089066A00E81B2E /* tables.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tables.h; path = treerec/tskit/tables.h; sourceTree = "<group>"; };
 		986926D21AA1337A0000E138 /* graph_submenu_H.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu_H.pdf; sourceTree = "<group>"; };
 		986926D31AA1337A0000E138 /* graph_submenu.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = graph_submenu.pdf; sourceTree = "<group>"; };
@@ -2186,6 +2192,8 @@
 				98E9A69A1A3CD542000AD4FC /* polymorphism.cpp */,
 				985D1D8A2808B84F00461CFA /* sparse_vector.h */,
 				985D1D892808B84F00461CFA /* sparse_vector.cpp */,
+				986070E92AACECD600FD6143 /* spatial_kernel.h */,
+				986070E82AACECD600FD6143 /* spatial_kernel.cpp */,
 				98DB3D6E1E6122AE00E2C200 /* interaction_type.h */,
 				98DB3D6D1E6122AE00E2C200 /* interaction_type.cpp */,
 				98DEB47D2AA632AA00ABE60F /* spatial_map.h */,
@@ -3466,6 +3474,7 @@
 				981DC36C28E26F8B000ABE91 /* eidos_functions_other.cpp in Sources */,
 				98332AC21FDBA53F00274FF0 /* xerbla.c in Sources */,
 				985724D51AD481070047C223 /* eidos_test.cpp in Sources */,
+				986070EA2AACECD600FD6143 /* spatial_kernel.cpp in Sources */,
 				98332AB41FDBA1E100274FF0 /* blas.c in Sources */,
 				9809DFA02550F32500C4E82D /* log_file.cpp in Sources */,
 				989A5BE92525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
@@ -3779,6 +3788,7 @@
 				98CF5251294A3FC900557BBA /* eidos_class_Dictionary.cpp in Sources */,
 				98CF5252294A3FC900557BBA /* elementary.c in Sources */,
 				98CF5253294A3FC900557BBA /* SLiMHaplotypeManager.mm in Sources */,
+				986070EC2AACECD600FD6143 /* spatial_kernel.cpp in Sources */,
 				98CF5254294A3FC900557BBA /* GraphView_FitnessOverTime.mm in Sources */,
 				98CF5255294A3FC900557BBA /* SLiMWindowController.mm in Sources */,
 				98CF5256294A3FC900557BBA /* PopulationView.mm in Sources */,
@@ -4087,6 +4097,7 @@
 				989A5BEA2525304100E7192D /* eidos_class_Dictionary.cpp in Sources */,
 				98C821561C7A983700548839 /* elementary.c in Sources */,
 				98B40DFA1FB2DA8C0046F695 /* SLiMHaplotypeManager.mm in Sources */,
+				986070EB2AACECD600FD6143 /* spatial_kernel.cpp in Sources */,
 				986926E81AA40AFF0000E138 /* GraphView_FitnessOverTime.mm in Sources */,
 				98D4C2041A701D5A00FFB083 /* SLiMWindowController.mm in Sources */,
 				98D4C2071A704EA700FFB083 /* PopulationView.mm in Sources */,
@@ -4367,6 +4378,7 @@
 				98D7ECE228CE58FC00DEAAC4 /* eidos_token.cpp in Sources */,
 				98D7ECE328CE58FC00DEAAC4 /* core.c in Sources */,
 				98D7ECE428CE58FC00DEAAC4 /* minmax.c in Sources */,
+				986070ED2AACECD600FD6143 /* spatial_kernel.cpp in Sources */,
 				98D7ECE528CE58FC00DEAAC4 /* trees.c in Sources */,
 				98D7ECE628CE58FC00DEAAC4 /* xerbla.c in Sources */,
 				98D7ECE728CE58FC00DEAAC4 /* eidos_test.cpp in Sources */,
