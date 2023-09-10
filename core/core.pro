@@ -102,6 +102,7 @@ SOURCES += \
     slim_test_genetics.cpp \
     slim_test_other.cpp \
     sparse_vector.cpp \
+    spatial_kernel.cpp \
     spatial_map.cpp \
     species.cpp \
     species_eidos.cpp \
@@ -127,6 +128,7 @@ HEADERS += \
     slim_globals.h \
     slim_test.h \
     sparse_vector.h \
+    spatial_kernel.h \
     spatial_map.h \
     species.h \
     subpopulation.h \
