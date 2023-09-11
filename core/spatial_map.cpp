@@ -283,7 +283,7 @@ void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_co
 	const int64_t *values_dim = p_values->Dimensions();
 	
 	if (values_dimcount != spatiality_)
-		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_code_name << " the dimensionality of the supplied vector/matrix/array does not match the spatiality defined for the map." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " the dimensionality of the supplied vector/matrix/array does not match the spatiality defined for the map." << EidosTerminate();
 	
 	int dimension_index;
 	values_size_ = 1;
@@ -293,7 +293,7 @@ void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_co
 		int64_t dimension_size = (values_dimcount == 1) ? p_values->Count() : values_dim[dimension_index];	// treat a vector as a 1D matrix
 		
 		if (dimension_size < 2)
-			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_code_name << " all dimensions of value must be of size >= 2." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " all dimensions of value must be of size >= 2." << EidosTerminate();
 		
 		grid_size_[dimension_index] = dimension_size;
 		values_size_ *= dimension_size;
