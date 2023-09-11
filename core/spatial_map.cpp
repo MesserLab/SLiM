@@ -677,6 +677,8 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 	
 	for (int64_t a = 0; a < dim_a; ++a)
 	{
+		double coverage = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+		
 		// calculate the kernel's effect at point (a)
 		double kernel_total = 0.0;
 		double conv_total = 0.0;
@@ -690,7 +692,7 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 				continue;
 			
 			// this point is within bounds; add it in to the totals
-			double kernel_value = kernel_values[kernel_a];
+			double kernel_value = kernel_values[kernel_a] * coverage;
 			double pixel_value = values_[conv_a];
 			
 			// we keep a total of the kernel values that were within bounds, for this point
@@ -733,8 +735,13 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 	
 	for (int64_t b = 0; b < dim_b; ++b)
 	{
+		double coverage_b = ((b == 0) || (b == dim_b - 1)) ? 0.5 : 1.0;
+		
 		for (int64_t a = 0; a < dim_a; ++a)
 		{
+			double coverage_a = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+			double coverage = coverage_a * coverage_b;					// handles partial coverage at the edges of the spatial map
+			
 			// calculate the kernel's effect at point (a,b)
 			double kernel_total = 0.0;
 			double conv_total = 0.0;
@@ -756,7 +763,7 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 						continue;
 					
 					// this point is within bounds; add it in to the totals
-					double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a];
+					double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a] * coverage;
 					double pixel_value = values_[conv_a + conv_b * dim_a];
 					
 					// we keep a total of the kernel values that were within bounds, for this point
@@ -803,10 +810,17 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 	
 	for (int64_t c = 0; c < dim_c; ++c)
 	{
+		double coverage_c = ((c == 0) || (c == dim_c - 1)) ? 0.5 : 1.0;
+		
 		for (int64_t b = 0; b < dim_b; ++b)
 		{
+			double coverage_b = ((b == 0) || (b == dim_b - 1)) ? 0.5 : 1.0;
+			
 			for (int64_t a = 0; a < dim_a; ++a)
 			{
+				double coverage_a = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+				double coverage = coverage_a * coverage_b * coverage_c;			// handles partial coverage at the edges of the spatial map
+				
 				// calculate the kernel's effect at point (a,b,c)
 				double kernel_total = 0.0;
 				double conv_total = 0.0;
@@ -836,7 +850,7 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 								continue;
 							
 							// this point is within bounds; add it in to the totals
-							double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a + kernel_c * kernel_dim_a * kernel_dim_b];
+							double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a + kernel_c * kernel_dim_a * kernel_dim_b] * coverage;
 							double pixel_value = values_[conv_a + conv_b * dim_a + conv_c * dim_a * dim_b];
 							
 							// we keep a total of the kernel values that were within bounds, for this point
