@@ -1287,7 +1287,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_mapValue): mapValue() length of point must match spatiality of map " << name_ << ", or be a multiple thereof." << EidosTerminate();
 	
 	EIDOS_THREAD_COUNT(gEidos_OMP_threads_SPATIAL_MAP_VALUE);
-#pragma omp parallel for schedule(static) default(none) shared(x_count, float_singleton_result) firstprivate(map, map_spatiality, spatiality_type, point, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
+#pragma omp parallel for schedule(static) default(none) shared(x_count, float_singleton_result) firstprivate(point, float_result) if(x_count >= EIDOS_OMPMIN_SPATIAL_MAP_VALUE) num_threads(thread_count)
 	for (int value_index = 0; value_index < x_count; ++value_index)
 	{
 		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
