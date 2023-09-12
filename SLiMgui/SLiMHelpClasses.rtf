@@ -5706,7 +5706,27 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(void)changeValues(numeric\'a0values)\
+\f3\i0\fs18 \cf2 \'96\'a0(object<SpatialMap>$)add(ifo<SpatialMap>$\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds 
+\f3\fs18 x
+\f4\fs20  to the spatial map.  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is added to each grid value of the target spatial map.  The other possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is added to the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)changeValues(numeric\'a0values)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Changes the grid values used for the target spatial map.  The 
@@ -5720,7 +5740,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Increases the resolution of the spatial map by 
@@ -5731,7 +5751,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f3\fs18 2
 \f4\fs20 , 
 \f3\fs18 10001
-\f4\fs20 ], somewhat arbitrarily.\
+\f4\fs20 ], somewhat arbitrarily.  The target spatial map is returned, to allow easy chaining of operations.\
 For a 1D spatial map, 
 \f3\fs18 factor-1
 \f4\fs20  new values will be inserted between every pair of values in the original value grid.  A 
@@ -5946,7 +5966,17 @@ The
 \f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(float)range(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the range of values contained in the spatial map.  The result is a 
+\f3\fs18 float
+\f4\fs20  vector of length 
+\f3\fs18 2
+\f4\fs20 ; the first element is the minimum map value, and the second element is the maximum map value.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Smooths (or blurs, one could say) the values of the spatial map by convolution with a kernel.  The kernel is specified with a maximum distance 
@@ -5967,7 +5997,7 @@ The
 \f3\fs18 setInteractionType()
 \f4\fs20  method of 
 \f3\fs18 InteractionType
-\f4\fs20 ; see the documentation of that method for details.\
+\f4\fs20 ; see the documentation of that method for details.  The target spatial map is returned, to allow easy chaining of operations.\
 Distance metrics specified to this method, such as 
 \f3\fs18 maxDistance
 \f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.\
