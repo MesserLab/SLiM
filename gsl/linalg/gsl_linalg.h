@@ -46,6 +46,71 @@ __BEGIN_DECLS
 int gsl_linalg_cholesky_decomp (gsl_matrix * A);
 int gsl_linalg_cholesky_decomp1 (gsl_matrix * A);
 
+/* Linear solve for a symmetric tridiagonal system.
+
+ * The input vectors represent the NxN matrix as follows:
+ *
+ *     diag[0]  offdiag[0]             0    ...
+ *  offdiag[0]     diag[1]    offdiag[1]    ...
+ *           0  offdiag[1]       diag[2]    ...
+ *           0           0    offdiag[2]    ...
+ *         ...         ...           ...    ...
+ */
+int gsl_linalg_solve_symm_tridiag (const gsl_vector * diag,
+								   const gsl_vector * offdiag,
+								   const gsl_vector * b,
+								   gsl_vector * x);
+
+/* Linear solve for a nonsymmetric tridiagonal system.
+
+ * The input vectors represent the NxN matrix as follows:
+ *
+ *       diag[0]  abovediag[0]              0    ...
+ *  belowdiag[0]       diag[1]   abovediag[1]    ...
+ *             0  belowdiag[1]        diag[2]    ...
+ *             0             0   belowdiag[2]    ...
+ *           ...           ...            ...    ...
+ */
+int gsl_linalg_solve_tridiag (const gsl_vector * diag,
+								   const gsl_vector * abovediag,
+								   const gsl_vector * belowdiag,
+								   const gsl_vector * b,
+								   gsl_vector * x);
+
+
+/* Linear solve for a symmetric cyclic tridiagonal system.
+
+ * The input vectors represent the NxN matrix as follows:
+ *
+ *      diag[0]  offdiag[0]             0   .....  offdiag[N-1]
+ *   offdiag[0]     diag[1]    offdiag[1]   .....
+ *            0  offdiag[1]       diag[2]   .....
+ *            0           0    offdiag[2]   .....
+ *          ...         ...
+ * offdiag[N-1]         ...
+ */
+int gsl_linalg_solve_symm_cyc_tridiag (const gsl_vector * diag,
+									   const gsl_vector * offdiag,
+									   const gsl_vector * b,
+									   gsl_vector * x);
+
+/* Linear solve for a nonsymmetric cyclic tridiagonal system.
+
+ * The input vectors represent the NxN matrix as follows:
+ *
+ *        diag[0]  abovediag[0]             0   .....  belowdiag[N-1]
+ *   belowdiag[0]       diag[1]  abovediag[1]   .....
+ *              0  belowdiag[1]       diag[2]
+ *              0             0  belowdiag[2]   .....
+ *            ...           ...
+ * abovediag[N-1]           ...
+ */
+int gsl_linalg_solve_cyc_tridiag (const gsl_vector * diag,
+								  const gsl_vector * abovediag,
+								  const gsl_vector * belowdiag,
+								  const gsl_vector * b,
+								  gsl_vector * x);
+
 __END_DECLS
 
 #endif /* __GSL_LINALG_H__ */

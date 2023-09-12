@@ -146,8 +146,8 @@ development head (in the master branch):
 		add utility methods directly on SpatialMap for the things subpop already does – mapValue(), mapColor(), mapImage() – and deprecate the Subpopulation APIs (except spatialMapValue(), which remains useful and undeprecated, and can now take a SpatialMap object)
 		add a changeValues() method on SpatialMap to change the grid values of an existing spatial map
 		add various properties on SpatialMap: gridDimensions, interpolate, name, spatialBounds, spatiality, tag
-	add interpolateValues() to SpatialMap, to increase the resolution of a spatial map by interpolating new values
-	add smoothValues() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
+	add interpolate() to SpatialMap, to increase the resolution of a spatial map by interpolating new values
+	add smooth() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
 	
 
 version 4.0.1 (Eidos version 3.0.1):

@@ -23,6 +23,11 @@
 #include "subpopulation.h"
 #include "eidos_class_Image.h"
 
+#include "gsl_math.h"
+#include "gsl_spline.h"
+#include "gsl_interp2d.h"
+#include "gsl_spline2d.h"
+
 
 // Clamp a standardized coordinate, which should be in [0,1], to [0,1].
 #define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
@@ -976,11 +981,11 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gID_changeValues:			return ExecuteMethod_changeValues(p_method_id, p_arguments, p_interpreter);
-		case gID_interpolateValues:		return ExecuteMethod_interpolateValues(p_method_id, p_arguments, p_interpreter);
+		case gID_interpolate:			return ExecuteMethod_interpolate(p_method_id, p_arguments, p_interpreter);
 		case gID_mapColor:				return ExecuteMethod_mapColor(p_method_id, p_arguments, p_interpreter);
 		case gID_mapImage:				return ExecuteMethod_mapImage(p_method_id, p_arguments, p_interpreter);
 		case gID_mapValue:				return ExecuteMethod_mapValue(p_method_id, p_arguments, p_interpreter);
-		case gID_smoothValues:			return ExecuteMethod_smoothValues(p_method_id, p_arguments, p_interpreter);
+		case gID_smooth:				return ExecuteMethod_smooth(p_method_id, p_arguments, p_interpreter);
 		default:						return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
 }
@@ -1002,17 +1007,17 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)interpolateValues(integer$ factor, [string$ method = "linear"])
+//	*********************	- (void)interpolate(integer$ factor, [string$ method = "linear"])
 //
-EidosValue_SP SpatialMap::ExecuteMethod_interpolateValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *factor_value = p_arguments[0].get();
 	int64_t factor = factor_value->IntAtIndex(0, nullptr);
 	
 	// the upper limit here is arbitrary, but the goal is to prevent users from blowing up their memory usage unintentionally
-	if ((factor < 2) || (factor > 201))
-		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolateValues): interpolateValues() requires factor to be in [2, 201]." << EidosTerminate();
+	if ((factor < 2) || (factor > 10001))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): interpolate() requires factor to be in [2, 10001], rather arbitrarily." << EidosTerminate();
 	
 	EidosValue_String *method_value = (EidosValue_String *)p_arguments[1].get();
 	const std::string &method_string = method_value->StringRefAtIndex(0, nullptr);
@@ -1022,75 +1027,51 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolateValues(EidosGlobalStringID p_
 		method = 0;
 	else if (method_string == "linear")
 		method = 1;
+	else if (method_string == "cubic")
+		method = 2;
 	else
-		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolateValues): interpolateValues() requires method to be 'nearest' or 'linear'." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): interpolate() requires method to be 'nearest', 'linear', or 'cubic'." << EidosTerminate();
 	
-	// Temporarily force interpolation on
-	bool old_interpolate = interpolate_;
-	interpolate_ = (method ? true : false);
-	
-	// Generate the new values and set them
-	switch (spatiality_)
+	if ((method == 0) || (method == 1))
 	{
-		case 1:
+		// These methods are supported directly by ValueAtPoint_S1() / ValueAtPoint_S2() / ValueAtPoint_S3()
+		
+		// Temporarily force interpolation on
+		bool old_interpolate = interpolate_;
+		interpolate_ = (method ? true : false);
+		
+		// Generate the new values and set them
+		switch (spatiality_)
 		{
-			int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1;
-			double *new_values = (double *)malloc(dim_a * sizeof(double));
-			double *new_values_ptr = new_values;
-			double point_vec[1];
-			
-			if (!new_values)
-				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolateValues): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			for (int64_t a = 0; a < dim_a; ++a)
+			case 1:
 			{
-				point_vec[0] = a / (double)(dim_a - 1);
+				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1;
+				double *new_values = (double *)malloc(dim_a * sizeof(double));
+				double *new_values_ptr = new_values;
+				double point_vec[1];
 				
-				*(new_values_ptr++) = ValueAtPoint_S1(point_vec);
-			}
-			
-			TakeOverMallocedValues(new_values, 1, &dim_a);	// takes new_values from us
-			break;
-		}
-		case 2:
-		{
-			int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1;
-			double *new_values = (double *)malloc(dim_a * dim_b * sizeof(double));
-			double *new_values_ptr = new_values;
-			double point_vec[2];
-			
-			if (!new_values)
-				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolateValues): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			for (int64_t b = 0; b < dim_b; ++b)
-			{
-				point_vec[1] = b / (double)(dim_b - 1);
+				if (!new_values)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 				for (int64_t a = 0; a < dim_a; ++a)
 				{
 					point_vec[0] = a / (double)(dim_a - 1);
 					
-					*(new_values_ptr++) = ValueAtPoint_S2(point_vec);
+					*(new_values_ptr++) = ValueAtPoint_S1(point_vec);
 				}
+				
+				TakeOverMallocedValues(new_values, 1, &dim_a);	// takes new_values from us
+				break;
 			}
-			
-			int64_t dims[2] = {dim_a, dim_b};
-			TakeOverMallocedValues(new_values, 2, dims);	// takes new_values from us
-			break;
-		}
-		case 3:
-		{
-			int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1, dim_c = (factor * (grid_size_[2] - 1)) + 1;
-			double *new_values = (double *)malloc(dim_a * dim_b * dim_c * sizeof(double));
-			double *new_values_ptr = new_values;
-			double point_vec[3];
-			
-			if (!new_values)
-				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolateValues): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-			
-			for (int64_t c = 0; c < dim_c; ++c)
+			case 2:
 			{
-				point_vec[2] = c / (double)(dim_c - 1);
+				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1;
+				double *new_values = (double *)malloc(dim_a * dim_b * sizeof(double));
+				double *new_values_ptr = new_values;
+				double point_vec[2];
+				
+				if (!new_values)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
 				for (int64_t b = 0; b < dim_b; ++b)
 				{
@@ -1100,22 +1081,160 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolateValues(EidosGlobalStringID p_
 					{
 						point_vec[0] = a / (double)(dim_a - 1);
 						
-						*(new_values_ptr++) = ValueAtPoint_S3(point_vec);
+						*(new_values_ptr++) = ValueAtPoint_S2(point_vec);
 					}
 				}
+				
+				int64_t dims[2] = {dim_a, dim_b};
+				TakeOverMallocedValues(new_values, 2, dims);	// takes new_values from us
+				break;
 			}
-			
-			int64_t dims[3] = {dim_a, dim_b, dim_c};
-			TakeOverMallocedValues(new_values, 3, dims);	// takes new_values from us
-			break;
+			case 3:
+			{
+				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1, dim_c = (factor * (grid_size_[2] - 1)) + 1;
+				double *new_values = (double *)malloc(dim_a * dim_b * dim_c * sizeof(double));
+				double *new_values_ptr = new_values;
+				double point_vec[3];
+				
+				if (!new_values)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+				
+				for (int64_t c = 0; c < dim_c; ++c)
+				{
+					point_vec[2] = c / (double)(dim_c - 1);
+					
+					for (int64_t b = 0; b < dim_b; ++b)
+					{
+						point_vec[1] = b / (double)(dim_b - 1);
+						
+						for (int64_t a = 0; a < dim_a; ++a)
+						{
+							point_vec[0] = a / (double)(dim_a - 1);
+							
+							*(new_values_ptr++) = ValueAtPoint_S3(point_vec);
+						}
+					}
+				}
+				
+				int64_t dims[3] = {dim_a, dim_b, dim_c};
+				TakeOverMallocedValues(new_values, 3, dims);	// takes new_values from us
+				break;
+			}
+			default: break;
 		}
-		default: break;
+		
+		// Restore the user's interpolation value
+		interpolate_ = old_interpolate;
+		
+		// Min and max for the default grayscale map do not need to be fixed; new values are all intermediate
 	}
-	
-	// Restore  the user's interpolation value
-	interpolate_ = old_interpolate;
-	
-	// Min and max for the default grayscale map do not need to be fixed; new values are all intermediate
+	else	// method == 3
+	{
+		// This is cubic/bicubic interpolation; we use the GSL to do this for us
+		switch (spatiality_)
+		{
+			case 1:
+			{
+				// cubic interpolation
+				// FIXME should correctly handle periodic boundaries
+				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1;
+				double *new_values = (double *)malloc(dim_a * sizeof(double));
+				double *x = (double *)malloc(grid_size_[0] * sizeof(double));
+				double *y = (double *)malloc(grid_size_[0] * sizeof(double));
+				
+				if (!new_values || !x || !y)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+				
+				// set up coordinates on our grid, not in user coordinates, for simplicity
+				for (int i = 0; i < grid_size_[0]; ++i)
+				{
+					x[i] = i;
+					y[i] = values_[i];
+				}
+				
+				gsl_interp_accel *acc = gsl_interp_accel_alloc();
+				gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, grid_size_[0]);
+				double *new_values_ptr = new_values;
+				double scale = 1.0 / factor;
+				
+				gsl_spline_init(spline, x, y, grid_size_[0]);
+				
+				for (int64_t a = 0; a < dim_a; ++a)
+					*(new_values_ptr++) = gsl_spline_eval(spline, a * scale, acc);
+				
+				gsl_spline_free(spline);
+				gsl_interp_accel_free(acc);
+				free(x);
+				free(y);
+				
+				TakeOverMallocedValues(new_values, 1, &dim_a);	// takes new_values from us
+				break;
+			}
+			case 2:
+			{
+				// bicubic interpolation
+				// FIXME should correctly handle periodic boundaries
+				if ((grid_size_[0] < 4) || (grid_size_[1] < 4))
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): bicubic interpolation requires a starting map with a grid size at least 4x4." << EidosTerminate(nullptr);
+				
+				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1;
+				double *new_values = (double *)malloc(dim_a * dim_b * sizeof(double));
+				double *x = (double *)malloc(grid_size_[0] * sizeof(double));
+				double *y = (double *)malloc(grid_size_[1] * sizeof(double));
+				double *z = (double *)malloc(grid_size_[0] * grid_size_[1] * sizeof(double));
+				
+				if (!new_values || !x || !y || !z)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+				
+				// set up coordinates on our grid, not in user coordinates, for simplicity
+				for (int i = 0; i < grid_size_[0]; ++i)
+					x[i] = i;
+				for (int i = 0; i < grid_size_[1]; ++i)
+					y[i] = i;
+				
+				const gsl_interp2d_type *T = gsl_interp2d_bicubic;
+				gsl_spline2d *spline = gsl_spline2d_alloc(T, grid_size_[0], grid_size_[1]);
+				gsl_interp_accel *xacc = gsl_interp_accel_alloc();
+				gsl_interp_accel *yacc = gsl_interp_accel_alloc();
+				double *new_values_ptr = new_values;
+				double scale = 1.0 / factor;
+				
+				for (int64_t b = 0; b < grid_size_[1]; ++b)
+					for (int64_t a = 0; a < grid_size_[0]; ++a)
+						gsl_spline2d_set(spline, z, a, b, values_[a + b * grid_size_[0]]);
+				
+				gsl_spline2d_init(spline, x, y, z, grid_size_[0], grid_size_[1]);
+				
+				for (int64_t b = 0; b < dim_b; ++b)
+					for (int64_t a = 0; a < dim_a; ++a)
+						*(new_values_ptr++) = gsl_spline2d_eval(spline, a * scale, b * scale, xacc, yacc);
+				
+				gsl_spline2d_free(spline);
+				gsl_interp_accel_free(xacc);
+				gsl_interp_accel_free(yacc);
+				free(x);
+				free(y);
+				free(z);
+				
+				int64_t dims[2] = {dim_a, dim_b};
+				TakeOverMallocedValues(new_values, 2, dims);	// takes new_values from us
+				break;
+			}
+			case 3:
+			{
+				// tricubic interpolation - not supported by the GSL
+				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): cubic interpolation is not supported for 3D spatial maps." << EidosTerminate(nullptr);
+				break;
+			}
+			default: break;
+		}
+		
+		// Cubic interpolation can produce interpolated values that are out of the original range
+		// Reassess our min and max if we're using the default grayscale color map;
+		// otherwise they are user-supplied and should not be modified
+		if (n_colors_ == 0)
+			SetAutomaticColorMinMax();
+	}
 	
 	return gStaticEidosValueVOID;
 }
@@ -1352,9 +1471,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 		return EidosValue_SP(float_singleton_result);
 }
 
-//	*********************	- (void)smoothValues(float$ maxDistance, string$ functionType, ...)
+//	*********************	- (void)smooth(float$ maxDistance, string$ functionType, ...)
 //
-EidosValue_SP SpatialMap::ExecuteMethod_smoothValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	// Our arguments go to Kernel::Kernel(), which creates the kernel object that we use
@@ -1463,11 +1582,11 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddNumeric("values"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolateValues, kEidosValueMaskVOID))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskVOID))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapColor, kEidosValueMaskString))->AddNumeric("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapValue, kEidosValueMaskFloat))->AddFloat("point"));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_smoothValues, kEidosValueMaskVOID))->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_smooth, kEidosValueMaskVOID))->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);
 	}

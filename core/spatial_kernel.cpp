@@ -45,9 +45,9 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type)
 SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg) : dimensionality_(p_dimensionality), max_distance_(p_maxDistance)
 {
 	// This constructs a kernel from the arguments given, beginning at argument p_first_kernel_arg.
-	// For example, take the smoothValues() method of SpatialKernel:
+	// For example, take the smooth() method of SpatialKernel:
 	//
-	//	- (void)smoothValues(float$ maxDistance, string$ functionType, ...)
+	//	- (void)smooth(float$ maxDistance, string$ functionType, ...)
 	//
 	// It parses out maxDistance and passes it to us; it then forwards its remaining
 	// arguments, with p_first_kernel_arg == 1, to define the shape of the kernel it wants.

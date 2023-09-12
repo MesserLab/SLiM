@@ -5634,7 +5634,9 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f3\fs18 F
 \f4\fs20 ).  The initial value of this property is set by 
 \f3\fs18 defineSpatialMap()
-\f4\fs20 , but it can be changed.\
+\f4\fs20 , but it can be changed.  The interpolation performed is linear; for cubic interpolation, use the 
+\f3\fs18 interpolate()
+\f4\fs20  method.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 name => (string$)\
@@ -5718,7 +5720,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)interpolateValues(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
+\f3\fs18 \cf2 \'96\'a0(void)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Increases the resolution of the spatial map by 
@@ -5728,8 +5730,8 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  must be an integer in [
 \f3\fs18 2
 \f4\fs20 , 
-\f3\fs18 201
-\f4\fs20 ], somewhat arbitrarily\
+\f3\fs18 10001
+\f4\fs20 ], somewhat arbitrarily.\
 For a 1D spatial map, 
 \f3\fs18 factor-1
 \f4\fs20  new values will be inserted between every pair of values in the original value grid.  A 
@@ -5757,13 +5759,17 @@ If
 \f3\fs18 method
 \f4\fs20  is 
 \f3\fs18 "linear"
-\f4\fs20  (the default), linear (or bilinear or trilinear) interpolation will be used to interpolate the values for the new grid points.  Alternatively, if 
+\f4\fs20  (the default), linear (or bilinear or trilinear, for 2D/3D maps) interpolation will be used to interpolate the values for the new grid points.  Alternatively, if 
 \f3\fs18 method
 \f4\fs20  is 
 \f3\fs18 "nearest"
 \f4\fs20 , the nearest value in the old grid will be used for new grid points; with this method, it is recommended that 
 \f3\fs18 factor
-\f4\fs20  be odd, not even, to avoid artifacts due to rounding of coordinates midway between the original grid positions.  Other interpolation methods may be added in future.  The choice of interpolation method used here is independent of the map\'92s 
+\f4\fs20  be odd, not even, to avoid artifacts due to rounding of coordinates midway between the original grid positions.  If method is 
+\f3\fs18 "cubic"
+\f4\fs20 , cubic (or bicubic, for 2D maps) will be used; this generally produces smoother interpolation with fewer artifacts than 
+\f3\fs18 "linear"
+\f4\fs20 , but it is not supported for 3D maps.  The choice of interpolation method used here is independent of the map\'92s 
 \f3\fs18 interpolate
 \f4\fs20  property.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5940,7 +5946,7 @@ The
 \f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)smoothValues(float$\'a0maxDistance, string$\'a0functionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(void)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Smooths (or blurs, one could say) the values of the spatial map by convolution with a kernel.  The kernel is specified with a maximum distance 
@@ -8380,9 +8386,11 @@ The
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Defines a spatial map for the subpopulation.  The new map is automatically added to the subpopulation; 
+\f4\fs20 \cf2 Defines a spatial map for the subpopulation; see the 
+\f3\fs18 SpatialMap
+\f4\fs20  documentation regarding this class.  The new map is automatically added to the subpopulation; 
 \f3\fs18 addSpatialMap()
 \f4\fs20  does not need to be called.  (That method is for sharing the map with additional subpopulations, beyond the one for which the map was originally defined.)  The new 
 \f3\fs18 SpatialMap
@@ -8470,7 +8478,11 @@ Moving on to the other parameters of
 \f3\fs18 setSpatialBounds()
 \f4\fs20 , and the value grid is then stretched across the spatial extent of the subpopulation in such a manner as to produce equal spacing between the values along each dimension.  The setting of 
 \f3\fs18 interpolation
-\f4\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.\
+\f4\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.  Note that cubic/bicubic interpolation is generally smoother than linear/bilinear interpolation, with fewer artifacts, but it is substantially slower to calculate; use the 
+\f3\fs18 interpolate()
+\f4\fs20  method of 
+\f3\fs18 SpatialMap
+\f4\fs20  to precalculate an interpolated map using cubic/bucubic interpolation.\
 The 
 \f3\fs18 valueRange
 \f4\fs20  and 
