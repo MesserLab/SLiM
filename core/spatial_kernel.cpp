@@ -42,7 +42,7 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type)
 #pragma mark SpatialKernel
 #pragma mark -
 
-SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg) : dimensionality_(p_dimensionality), max_distance_(p_maxDistance)
+SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density) : dimensionality_(p_dimensionality), max_distance_(p_maxDistance)
 {
 	// This constructs a kernel from the arguments given, beginning at argument p_first_kernel_arg.
 	// For example, take the smooth() method of SpatialKernel:
@@ -51,9 +51,13 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	//
 	// It parses out maxDistance and passes it to us; it then forwards its remaining
 	// arguments, with p_first_kernel_arg == 1, to define the shape of the kernel it wants.
-	// The ellipsis arguments are as they are for setInteractionFunction(); this class is
+	// The ellipsis arguments are patterned after setInteractionFunction(); this class is
 	// basically a grid-sampled version of the same style of kernel that InteractionType
 	// uses, and indeed, InteractionType now uses SpatialKernel for some of its work.
+	// If p_expect_max_density is true, a maximum kernel density is expected and the kernel
+	// specification is as it is for setInteractionFunction(); if p_expect_max_density is
+	// false, the maximum kernel density is not expected, as for the smooth() method of
+	// SpatialMap.
 	//
 	// The grid sampling is based upon the spatial scale established by a given SpatialMap;
 	// the max distance and other kernel parameters are in terms of that scale.
@@ -77,12 +81,12 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	if (k_type_string.compare(gStr_f) == 0)
 	{
 		k_type = SpatialKernelType::kFixed;
-		expected_k_param_count = 1;
+		expected_k_param_count = (p_expect_max_density ? 1 : 0);
 	}
 	else if (k_type_string.compare(gStr_l) == 0)
 	{
 		k_type = SpatialKernelType::kLinear;
-		expected_k_param_count = 1;
+		expected_k_param_count = (p_expect_max_density ? 1 : 0);
 		
 		if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
 			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'l' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
@@ -90,17 +94,17 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	else if (k_type_string.compare(gStr_e) == 0)
 	{
 		k_type = SpatialKernelType::kExponential;
-		expected_k_param_count = 2;
+		expected_k_param_count = (p_expect_max_density ? 2 : 1);
 	}
 	else if (k_type_string.compare(gEidosStr_n) == 0)
 	{
 		k_type = SpatialKernelType::kNormal;
-		expected_k_param_count = 2;
+		expected_k_param_count = (p_expect_max_density ? 2 : 1);
 	}
 	else if (k_type_string.compare(gEidosStr_c) == 0)
 	{
 		k_type = SpatialKernelType::kCauchy;
-		expected_k_param_count = 2;
+		expected_k_param_count = (p_expect_max_density ? 2 : 1);
 	}
 	else
 		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType \"" << k_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", or \"c\"." << EidosTerminate();
@@ -121,6 +125,11 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		
 		k_parameters.emplace_back(k_param_value->FloatAtIndex(0, nullptr));
 	}
+	
+	// Internally, we always have a max kernel density.  If one was not expected from the arguments,
+	// we insert a value of 1.0 for the max kernel density.
+	if (!p_expect_max_density)
+		k_parameters.insert(k_parameters.begin(), 1.0);
 	
 	// Bounds-check the IF parameters in the cases where there is a hard bound
 	switch (k_type)

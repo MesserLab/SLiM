@@ -5740,7 +5740,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Increases the resolution of the spatial map by 
@@ -5976,7 +5976,7 @@ The
 \f4\fs20 ; the first element is the minimum map value, and the second element is the maximum map value.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Smooths (or blurs, one could say) the values of the spatial map by convolution with a kernel.  The kernel is specified with a maximum distance 
@@ -5993,19 +5993,42 @@ The
 \f3\fs18 "n"
 \f4\fs20 , or 
 \f3\fs18 "c"
-\f4\fs20 , and additional parameters in the ellipsis that depend upon the kernel type and further specify its shape.  The kernel types and their additional parameters are exactly the same as for the 
+\f4\fs20 , and additional parameters in the ellipsis 
+\f3\fs18 ...
+\f4\fs20  that depend upon the kernel type and further specify its shape.  The target spatial map is returned, to allow easy chaining of operations.\
+The kernel specification is similar to that for the 
 \f3\fs18 setInteractionType()
 \f4\fs20  method of 
 \f3\fs18 InteractionType
-\f4\fs20 ; see the documentation of that method for details.  The target spatial map is returned, to allow easy chaining of operations.\
+\f4\fs20 , but omits the maximum value of the kernel.  Specifically, 
+\f3\fs18 functionType
+\f4\fs20  may be 
+\f3\fs18 "f"
+\f4\fs20 , in which case no ellipsis arguments should be supplied; 
+\f3\fs18 "l"
+\f4\fs20 , similarly with no ellipsis arguments; 
+\f3\fs18 "e"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  lambda (shape) parameter for a negative exponential function; 
+\f3\fs18 "n"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f3\fs18 "c"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a Cauchy distribution function.  See the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation for discussions of these kernel types.\
 Distance metrics specified to this method, such as 
 \f3\fs18 maxDistance
-\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.\
-The density scale of the kernel is unimportant and will be normalized; for example, a kernel specified to have a maximum value of 
-\f3\fs18 1
-\f4\fs20 , versus a kernel specified to have a maximum value of 
-\f3\fs18 10
-\f4\fs20 , will produce the same effect.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
+\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.  Clipping at the edge of the spatial map is done; in particular, the weights of edge and corner grid values are adjusted for their partial (one-half and one-quarter) coverage.\
+The density scale of the kernel has no effect and will be normalized; this is the reason that 
+\f3\fs18 smooth()
+\f4\fs20 , unlike 
+\f3\fs18 InteractionType
+\f4\fs20 , does not require specification of the maximum value of the kernel.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.15  Class Species\

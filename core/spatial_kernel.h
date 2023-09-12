@@ -73,7 +73,7 @@ public:
 	SpatialKernel(const SpatialKernel&) = delete;							// no copying
 	SpatialKernel& operator=(const SpatialKernel&) = delete;				// no copying
 	SpatialKernel(void) = delete;											// no null construction
-	SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg);
+	SpatialKernel(int p_dimensionality, double p_maxDistance, const std::vector<EidosValue_SP> &p_arguments, int p_first_kernel_arg, bool p_expect_max_density);
 	~SpatialKernel(void);
 	
 	void CalculateGridValues(SpatialMap &p_map);
