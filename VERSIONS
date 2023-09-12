@@ -148,7 +148,7 @@ development head (in the master branch):
 		add various properties on SpatialMap: gridDimensions, interpolate, name, spatialBounds, spatiality, tag
 	add interpolate() to SpatialMap, to increase the resolution of a spatial map by interpolating new values
 	add smooth() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
-	add add() and range() methods to SpatialMap
+	add add(), multiply(), subtract(), divide(), power(), exp(), range(), and gridValues() methods to SpatialMap
 	
 
 version 4.0.1 (Eidos version 3.0.1):

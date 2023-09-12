@@ -5740,6 +5740,45 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)divide(ifo<SpatialMap>$\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Divides the spatial map by 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is divided by 
+\f3\fs18 x
+\f4\fs20 .  The other possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is divided by the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)exp(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Exponentiates the values of the spatial map.  More precisely, each grid value 
+\f1\i x
+\f4\i0  of the target spatial map is exponentiated \'96 replaced by the value 
+\f1\i e
+\fs13\fsmilli6667 \super x
+\f4\i0\fs20 \nosupersub .  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)gridValues(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the values for the spatial map\'92s grid as a vector (for a 1D map), a matrix (for a 2D map), or an array (for a 3D map).  The form and orientation of the returned values is such that it could be used to create a new spatial map, with 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , which would be identical to the original.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -5966,6 +6005,46 @@ The
 \f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)multiply(ifo<SpatialMap>$\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Multiplies the spatial map by 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is multiplied by 
+\f3\fs18 x
+\f4\fs20 .  The other possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is multiplied by the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)power(ifo<SpatialMap>$\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Raises the spatial map to the power 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is raised to the power 
+\f3\fs18 x
+\f4\fs20 .  The other possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is raised to power of the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(float)range(void)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -6029,6 +6108,26 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20 , unlike 
 \f3\fs18 InteractionType
 \f4\fs20 , does not require specification of the maximum value of the kernel.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)subtract(ifo<SpatialMap>$\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Subtracts 
+\f3\fs18 x
+\f4\fs20  from the spatial map.  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is subtracted from each grid value of the target spatial map.  The other possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is subtracted from the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
 \f0\b\fs22 \cf0 5.15  Class Species\

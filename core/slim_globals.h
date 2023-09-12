@@ -952,7 +952,13 @@ extern const std::string &gStr_spatialMapColor;
 extern const std::string &gStr_spatialMapImage;
 extern const std::string &gStr_spatialMapValue;
 extern const std::string &gStr_add;
+extern const std::string &gStr_multiply;
+extern const std::string &gStr_divide;
+extern const std::string &gStr_subtract;
+extern const std::string &gStr_power;
+extern const std::string &gStr_exp;
 extern const std::string &gStr_changeValues;
+extern const std::string &gStr_gridValues;
 extern const std::string &gStr_mapColor;
 extern const std::string &gStr_mapImage;
 extern const std::string &gStr_mapValue;
@@ -1336,7 +1342,13 @@ enum _SLiMGlobalStringID : int {
 	gID_spatialMapImage,
 	gID_spatialMapValue,
 	gID_add,
+	gID_multiply,
+	gID_subtract,
+	gID_divide,
+	gID_power,
+	gID_exp,
 	gID_changeValues,
+	gID_gridValues,
 	gID_mapColor,
 	gID_mapImage,
 	gID_mapValue,

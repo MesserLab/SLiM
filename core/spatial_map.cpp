@@ -1003,7 +1003,13 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gID_add:					return ExecuteMethod_add(p_method_id, p_arguments, p_interpreter);
+		case gID_multiply:				return ExecuteMethod_multiply(p_method_id, p_arguments, p_interpreter);
+		case gID_subtract:				return ExecuteMethod_subtract(p_method_id, p_arguments, p_interpreter);
+		case gID_divide:				return ExecuteMethod_divide(p_method_id, p_arguments, p_interpreter);
+		case gID_power:					return ExecuteMethod_power(p_method_id, p_arguments, p_interpreter);
+		case gID_exp:					return ExecuteMethod_exp(p_method_id, p_arguments, p_interpreter);
 		case gID_changeValues:			return ExecuteMethod_changeValues(p_method_id, p_arguments, p_interpreter);
+		case gID_gridValues:			return ExecuteMethod_gridValues(p_method_id, p_arguments, p_interpreter);
 		case gID_interpolate:			return ExecuteMethod_interpolate(p_method_id, p_arguments, p_interpreter);
 		case gID_mapColor:				return ExecuteMethod_mapColor(p_method_id, p_arguments, p_interpreter);
 		case gID_mapImage:				return ExecuteMethod_mapImage(p_method_id, p_arguments, p_interpreter);
@@ -1048,6 +1054,158 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
 
+//	*********************	- (object<SpatialMap>)multiply(ifo<SpatialMap>$ x)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
+	{
+		double multiply_scalar = x_value->FloatAtIndex(0, nullptr);
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] *= multiply_scalar;
+	}
+	else
+	{
+		SpatialMap *multiply_map = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		double *multiply_map_values = multiply_map->values_;
+		
+		if (!IsCompatibleWithMap(multiply_map))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_multiply): multiply() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] *= multiply_map_values[i];
+	}
+	
+	// Reassess our min and max if we're using the default grayscale color map;
+	// otherwise they are user-supplied and should not be modified
+	if (n_colors_ == 0)
+		SetAutomaticColorMinMax();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (object<SpatialMap>)subtract(ifo<SpatialMap>$ x)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
+	{
+		double subtract_scalar = x_value->FloatAtIndex(0, nullptr);
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] -= subtract_scalar;
+	}
+	else
+	{
+		SpatialMap *subtract_map = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		double *subtract_map_values = subtract_map->values_;
+		
+		if (!IsCompatibleWithMap(subtract_map))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_subtract): subtract() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] -= subtract_map_values[i];
+	}
+	
+	// Reassess our min and max if we're using the default grayscale color map;
+	// otherwise they are user-supplied and should not be modified
+	if (n_colors_ == 0)
+		SetAutomaticColorMinMax();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (object<SpatialMap>)divide(ifo<SpatialMap>$ x)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
+	{
+		double divide_scalar = x_value->FloatAtIndex(0, nullptr);
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] /= divide_scalar;
+	}
+	else
+	{
+		SpatialMap *divide_map = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		double *divide_map_values = divide_map->values_;
+		
+		if (!IsCompatibleWithMap(divide_map))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_divide): divide() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] /= divide_map_values[i];
+	}
+	
+	// Reassess our min and max if we're using the default grayscale color map;
+	// otherwise they are user-supplied and should not be modified
+	if (n_colors_ == 0)
+		SetAutomaticColorMinMax();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (object<SpatialMap>)power(ifo<SpatialMap>$ x)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *x_value = p_arguments[0].get();
+	
+	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
+	{
+		double power_scalar = x_value->FloatAtIndex(0, nullptr);
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] = pow(values_[i], power_scalar);
+	}
+	else
+	{
+		SpatialMap *power_map = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		double *power_map_values = power_map->values_;
+		
+		if (!IsCompatibleWithMap(power_map))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+		
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] = pow(values_[i], power_map_values[i]);
+	}
+	
+	// Reassess our min and max if we're using the default grayscale color map;
+	// otherwise they are user-supplied and should not be modified
+	if (n_colors_ == 0)
+		SetAutomaticColorMinMax();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (object<SpatialMap>)exp(void)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	for (int64_t i = 0; i < values_size_; ++i)
+		values_[i] = exp(values_[i]);
+	
+	// Reassess our min and max if we're using the default grayscale color map;
+	// otherwise they are user-supplied and should not be modified
+	if (n_colors_ == 0)
+		SetAutomaticColorMinMax();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
 //	*********************	- (void)changeValues(numeric values)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -1063,6 +1221,42 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_metho
 		SetAutomaticColorMinMax();
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	- (float)gridValues(void)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_gridValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(values_size_);
+	
+	if (spatiality_ == 1)
+	{
+		// Returning a vector for the 1D case is a simple copy
+		for (int i = 0; i < values_size_; ++i)
+			float_result->set_float_no_check(values_[i], i);
+	}
+	else
+	{
+		// In the 2D and 3D cases, a transpose/flip is needed
+		int64_t col_count = grid_size_[0];		// note grid_size_ got swapped above
+		int64_t row_count = grid_size_[1];
+		int64_t plane_count = (spatiality_ == 3) ? grid_size_[2] : 1;
+		
+		for (int64_t z = 0; z < plane_count; ++z)
+		{
+			int64_t plane_offset = z * (row_count * col_count);
+			
+			for (int64_t x = 0; x < col_count; ++x)
+				for (int64_t y = 0; y < row_count; ++y)
+					float_result->set_float_no_check(values_[plane_offset + x + (row_count - 1 - y) * col_count], plane_offset + y + x * row_count);
+		}
+		
+		int64_t dims[3] = {grid_size_[1], grid_size_[0], grid_size_[2]};
+		float_result->SetDimensions(spatiality_, dims);
+	}
+	
+	return EidosValue_SP(float_result);
 }
 
 //	*********************	- (object<SpatialMap>)interpolate(integer$ factor, [string$ method = "linear"])
@@ -1666,7 +1860,13 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_add, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_multiply, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subtract, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_divide, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_power, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_exp, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddNumeric("values"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_gridValues, kEidosValueMaskFloat)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapColor, kEidosValueMaskString))->AddNumeric("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
