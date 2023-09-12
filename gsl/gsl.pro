@@ -30,7 +30,7 @@ linux-*: {
     QMAKE_CFLAGS += -Wno-unknown-pragmas -Wno-attributes -Wno-unused-parameter -Wno-unused-but-set-parameter
 }
 
-INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
+INCLUDEPATH = . ./blas ./block ./cblas ./cdf ./complex ./err ./interpolation ./linalg ./matrix ./randist ./rng ./specfunc ./sys ./vector
 
 
 # prevent link dependency cycles
@@ -53,7 +53,19 @@ SOURCES += \
     err/error.c \
     err/message.c \
     err/stream.c \
+    interpolation/accel.c \
+    interpolation/akima.c \
+    interpolation/bicubic.c \
+    interpolation/bilinear.c \
+    interpolation/cspline.c \
+    interpolation/inline.c \
+    interpolation/interp.c \
+    interpolation/interp2d.c \
+    interpolation/linear.c \
+    interpolation/spline.c \
+    interpolation/spline2d.c \
     linalg/cholesky.c \
+    linalg/tridiag.c \
     matrix/copy.c \
     matrix/init.c \
     matrix/matrix.c \
@@ -100,7 +112,8 @@ SOURCES += \
     sys/pow_int.c \
     vector/init.c \
     vector/oper.c \
-    vector/vector.c
+    vector/vector.c \
+    vector/view.c
 
 HEADERS += \
     build.h \
@@ -133,7 +146,13 @@ HEADERS += \
     complex/gsl_complex_math.h \
     complex/gsl_complex.h \
     err/gsl_message.h \
+    interpolation/gsl_interp.h \
+    interpolation/gsl_interp2d.h \
+    interpolation/gsl_spline.h \
+    interpolation/gsl_spline2d.h \
+    interpolation/integ_eval.h \
     linalg/gsl_linalg.h \
+    linalg/tridiag.h \
     matrix/gsl_matrix_double.h \
     matrix/gsl_matrix.h \
     matrix/view.h \
@@ -156,6 +175,7 @@ HEADERS += \
     specfunc/gsl_sf_zeta.h \
     sys/gsl_sys.h \
     vector/gsl_vector_double.h \
-    vector/gsl_vector.h
+    vector/gsl_vector.h \
+    vector/view.h
 
 
