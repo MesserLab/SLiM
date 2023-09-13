@@ -6055,6 +6055,39 @@ The
 \f4\fs20 ; the first element is the minimum map value, and the second element is the maximum map value.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(float)sampleImprovedNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This variant of 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  samples a Metropolis\'96Hastings move on the spatial map.  See 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of individuals that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that individuals will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.\
+Note that unlike 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20 , this method requires that all map values are non-negative.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)sampleNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 For a spatial point supplied in 
+\f3\fs18 point
+\f4\fs20 , returns a nearby point sampled from a kernel weighted by the spatial map\'92s values.  Only points within the maximum distance of the kernel, 
+\f3\fs18 maxDistance
+\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.\
+The kernel is specified with a kernel shape, 
+\f3\fs18 functionType
+\f4\fs20 , followed by zero or more ellipsis arguments; see 
+\f3\fs18 smooth()
+\f4\fs20  for further information.  For this method, at present only a flat kernel (type 
+\f3\fs18 "f"
+\f4\fs20 ) or a Gaussian kernel (type 
+\f3\fs18 "n"
+\f4\fs20 ) are supported.\
+This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

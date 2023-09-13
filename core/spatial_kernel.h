@@ -78,6 +78,9 @@ public:
 	
 	void CalculateGridValues(SpatialMap &p_map);
 	double DensityForDistance(double p_distance);
+	void DrawDisplacement_S1(double *displacement);
+	void DrawDisplacement_S2(double *displacement);
+	void DrawDisplacement_S3(double *displacement);
 	
 	friend void SpatialMap::Convolve_S1(SpatialKernel &kernel);
 	friend void SpatialMap::Convolve_S2(SpatialKernel &kernel);

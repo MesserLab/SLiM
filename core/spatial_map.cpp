@@ -136,8 +136,6 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 	bool range_is_null = (p_value_range->Type() == EidosValueType::kValueNULL);
 	bool colors_is_null = (p_colors->Type() == EidosValueType::kValueNULL);
 	
-	min_value_ = 0.0;
-	max_value_ = 0.0;
 	n_colors_ = 0;
 	
 	if (!range_is_null || !colors_is_null)
@@ -149,21 +147,16 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
 		
 		// valueRange and colors were provided, so use them for coloring
-		min_value_ = p_value_range->FloatAtIndex(0, nullptr);
-		max_value_ = p_value_range->FloatAtIndex(1, nullptr);
+		colors_min_ = p_value_range->FloatAtIndex(0, nullptr);
+		colors_max_ = p_value_range->FloatAtIndex(1, nullptr);
 		
-		if (!std::isfinite(min_value_) || !std::isfinite(max_value_) || (min_value_ > max_value_))
+		if (!std::isfinite(colors_min_) || !std::isfinite(colors_max_) || (colors_min_ > colors_max_))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() valueRange must be finite, and min <= max is required." << EidosTerminate();
 		
 		n_colors_ = p_colors->Count();
 		
 		if (n_colors_ < 2)
 			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() colors must be of length >= 2." << EidosTerminate();
-	}
-	else
-	{
-		// so that we can provide a default color map, we find the value range here
-		SetAutomaticColorMinMax();
 	}
 	
 	// Allocate buffers to hold our color component vectors, if we were supplied with color info
@@ -190,7 +183,7 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 }
 
 SpatialMap::SpatialMap(std::string p_name, SpatialMap &p_original) :
-	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), min_value_(p_original.min_value_), max_value_(p_original.max_value_), n_colors_(p_original.n_colors_)
+	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), values_min_(p_original.values_min_), values_max_(p_original.values_max_), n_colors_(p_original.n_colors_), colors_min_(p_original.colors_min_), colors_max_(p_original.colors_max_)
 {
 	// Note that this does not copy the information from EidosDictionaryRetained, and it leaves tag unset
 	// This is intentional (that is very instance-specific state that should arguably not be copied)
@@ -248,7 +241,7 @@ SpatialMap::~SpatialMap(void)
 #endif
 }
 
-void SpatialMap::InvalidateDisplayBuffer(void)
+void SpatialMap::_ValuesChanged(void)
 {
 #if defined(SLIMGUI)
 	// Force a display image recache in SLiMgui
@@ -258,28 +251,29 @@ void SpatialMap::InvalidateDisplayBuffer(void)
 		display_buffer_ = nullptr;
 	}
 #endif
-}
-
-void SpatialMap::SetAutomaticColorMinMax(void)
-{
-	// This assesses the minimum and maximum values for the default grayscale color ramp
-	min_value_ = max_value_ = values_[0];
+	
+	// Reassesses our minimum and maximum values
+	values_min_ = values_max_ = values_[0];
 	
 	for (int64_t values_index = 1; values_index < values_size_; ++values_index)
 	{
 		double value = values_[values_index];
 		
-		min_value_ = std::min(min_value_, value);
-		max_value_ = std::max(max_value_, value);
+		values_min_ = std::min(values_min_, value);
+		values_max_ = std::max(values_max_, value);
 	}
 	
-	if (!std::isfinite(min_value_) || !std::isfinite(max_value_))
+	// If we're using our default grayscale colors, realign to the new range
+	if (n_colors_ == 0)
 	{
-		min_value_ = 0.0;
-		max_value_ = 0.0;
+		colors_min_ = values_min_;
+		colors_max_ = values_max_;
 	}
 	
-	InvalidateDisplayBuffer();
+	// At least for now, we have a policy of no INF/NAN in spatial maps;
+	// there is not a clear need for them, and this simplifies things
+	if (!std::isfinite(values_min_) || !std::isfinite(values_max_))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::_ValuesChanged): non-finite values (infinities, NANs) are not allowed in SpatialMap." << EidosTerminate();
 }
 
 void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_code_name, std::string p_eidos_name)
@@ -363,7 +357,7 @@ void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_co
 		}
 	}
 	
-	InvalidateDisplayBuffer();
+	_ValuesChanged();
 	
 	// Note that we do not change the min/max or the color map; that is up to the caller, if they wish to do so
 }
@@ -393,7 +387,7 @@ void SpatialMap::TakeOverMallocedValues(double *p_values, int64_t p_dimcount, in
 	free(values_);
 	values_ = p_values;
 	
-	InvalidateDisplayBuffer();
+	_ValuesChanged();
 	
 	// Note that we do not change the min/max or the color map; that is up to the caller, if they wish to do so
 }
@@ -603,7 +597,7 @@ void SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 	{
 		// this is the case when a color table was not defined; here, min could equal max
 		// in this case, all values in the map should fall in the interval [min_value_, max_value_]
-		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		double value_fraction = ((colors_min_ < colors_max_) ? ((p_value - colors_min_) / (colors_max_ - colors_min_)) : 0.0);
 		p_rgb_ptr[0] = value_fraction;
 		p_rgb_ptr[1] = value_fraction;
 		p_rgb_ptr[2] = value_fraction;
@@ -612,7 +606,7 @@ void SpatialMap::ColorForValue(double p_value, double *p_rgb_ptr)
 	{
 		// this is the case when a color table was defined; here, min < max (BCH 10/20/2021: now, can be equal here too)
 		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
-		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		double value_fraction = ((colors_min_ < colors_max_) ? ((p_value - colors_min_) / (colors_max_ - colors_min_)) : 0.0);
 		double color_index = value_fraction * (n_colors_ - 1);
 		int color_index_1 = (int)floor(color_index);
 		int color_index_2 = (int)ceil(color_index);
@@ -644,7 +638,7 @@ void SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 	{
 		// this is the case when a color table was not defined; here, min could equal max
 		// in this case, all values in the map should fall in the interval [min_value_, max_value_]
-		float value_fraction = (float)((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		float value_fraction = (float)((colors_min_ < colors_max_) ? ((p_value - colors_min_) / (colors_max_ - colors_min_)) : 0.0);
 		p_rgb_ptr[0] = value_fraction;
 		p_rgb_ptr[1] = value_fraction;
 		p_rgb_ptr[2] = value_fraction;
@@ -653,7 +647,7 @@ void SpatialMap::ColorForValue(double p_value, float *p_rgb_ptr)
 	{
 		// this is the case when a color table was defined; here, min < max (BCH 10/20/2021: now, can be equal here too)
 		// in this case, values in the map may fall outside the interval [min_value_, max_value_]
-		double value_fraction = ((min_value_ < max_value_) ? ((p_value - min_value_) / (max_value_ - min_value_)) : 0.0);
+		double value_fraction = ((colors_min_ < colors_max_) ? ((p_value - colors_min_) / (colors_max_ - colors_min_)) : 0.0);
 		double color_index = value_fraction * (n_colors_ - 1);
 		int color_index_1 = (int)floor(color_index);
 		int color_index_2 = (int)ceil(color_index);
@@ -1015,6 +1009,8 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_mapImage:				return ExecuteMethod_mapImage(p_method_id, p_arguments, p_interpreter);
 		case gID_mapValue:				return ExecuteMethod_mapValue(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_range:			return ExecuteMethod_range(p_method_id, p_arguments, p_interpreter);
+		case gID_sampleImprovedNearbyPoint:		return ExecuteMethod_sampleImprovedNearbyPoint(p_method_id, p_arguments, p_interpreter);
+		case gID_sampleNearbyPoint:		return ExecuteMethod_sampleNearbyPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_smooth:				return ExecuteMethod_smooth(p_method_id, p_arguments, p_interpreter);
 		default:						return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
 	}
@@ -1046,10 +1042,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 			values_[i] += add_map_values[i];
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1080,10 +1073,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 			values_[i] *= multiply_map_values[i];
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1114,10 +1104,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 			values_[i] -= subtract_map_values[i];
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1148,10 +1135,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 			values_[i] /= divide_map_values[i];
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1182,10 +1166,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 			values_[i] = pow(values_[i], power_map_values[i]);
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1198,10 +1179,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 	for (int64_t i = 0; i < values_size_; ++i)
 		values_[i] = exp(values_[i]);
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1214,11 +1192,6 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_metho
 	EidosValue *values = p_arguments[0].get();
 	
 	TakeValuesFromEidosValue(values, "SpatialMap::ExecuteMethod_changeValues", "changeValues()");
-	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
 	
 	return gStaticEidosValueVOID;
 }
@@ -1377,8 +1350,6 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 		
 		// Restore the user's interpolation value
 		interpolate_ = old_interpolate;
-		
-		// Min and max for the default grayscale map do not need to be fixed; new values are all intermediate
 	}
 	else	// method == 3
 	{
@@ -1480,12 +1451,6 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 			}
 			default: break;
 		}
-		
-		// Cubic interpolation can produce interpolated values that are out of the original range
-		// Reassess our min and max if we're using the default grayscale color map;
-		// otherwise they are user-supplied and should not be modified
-		if (n_colors_ == 0)
-			SetAutomaticColorMinMax();
 	}
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
@@ -1728,23 +1693,292 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 EidosValue_SP SpatialMap::ExecuteMethod_range(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	double max = values_[0];
-	double min = max;
-	
-	for (int64_t i = 1; i < values_size_; ++i)
-	{
-		double temp = values_[i];
-		
-		if (max < temp)
-			max = temp;
-		else if (min > temp)
-			min = temp;
-	}
-	
 	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(2);
 	
-	float_result->set_float_no_check(min, 0);
-	float_result->set_float_no_check(max, 1);
+	float_result->set_float_no_check(values_min_, 0);
+	float_result->set_float_no_check(values_max_, 1);
+	
+	return EidosValue_SP(float_result);
+}
+
+//	*********************	- (float)sampleImprovedNearbyPoint(float point, float$ maxDistance, string$ functionType, ...)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// Our arguments go to SpatialKernel::SpatialKernel(), which creates the kernel object that we use
+	EidosValue *point_value = p_arguments[0].get();
+	size_t point_count = point_value->Count();
+	
+	EidosValue *maxDistance_value = p_arguments[1].get();
+	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	
+	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false);	// uses our arguments starting at index 2
+	
+	if (values_min_ < 0.0)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires that all map values are non-negative." << EidosTerminate(nullptr);
+	
+	if (point_count % spatiality_ != 0)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	
+	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
+	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
+	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf_ptr = point_buf;
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);
+	double *result_ptr = float_result->data();
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
+	point_count /= spatiality_;
+	
+	if (spatiality_ == 1)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point[1];
+			point[0] = *(point_buf_ptr)++;
+			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			
+			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+			double displaced_point[1];
+			
+			do
+			{
+				kernel.DrawDisplacement_S1(displaced_point);
+				displaced_point[0] += point[0];
+			}
+			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+			
+			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
+			double original_map_value = ValueAtPoint_S1(point);
+			double map_value = ValueAtPoint_S1(displaced_point);
+			
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+				*(result_ptr++) = displaced_point[0];
+			else
+				*(result_ptr++) = point[0];
+		}
+	}
+	else if (spatiality_ == 2)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point[2];
+			point[0] = *(point_buf_ptr)++;
+			point[1] = *(point_buf_ptr)++;
+			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			
+			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+			double displaced_point[2];
+			
+			do
+			{
+				kernel.DrawDisplacement_S2(displaced_point);
+				displaced_point[0] += point[0];
+				displaced_point[1] += point[1];
+			}
+			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+				   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+			
+			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
+			double original_map_value = ValueAtPoint_S2(point);
+			double map_value = ValueAtPoint_S2(displaced_point);
+			
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+			{
+				*(result_ptr++) = displaced_point[0];
+				*(result_ptr++) = displaced_point[1];
+			}
+			else
+			{
+				*(result_ptr++) = point[0];
+				*(result_ptr++) = point[1];
+			}
+		}
+	}
+	else // (spatiality_ == 3)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point[3];
+			point[0] = *(point_buf_ptr)++;
+			point[1] = *(point_buf_ptr)++;
+			point[2] = *(point_buf_ptr)++;
+			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			point[2] = (point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+			
+			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+			double displaced_point[3];
+			
+			do
+			{
+				kernel.DrawDisplacement_S3(displaced_point);
+				displaced_point[0] += point[0];
+				displaced_point[1] += point[1];
+				displaced_point[2] += point[2];
+			}
+			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+				   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
+				   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+			
+			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
+			double original_map_value = ValueAtPoint_S3(point);
+			double map_value = ValueAtPoint_S3(displaced_point);
+			
+			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
+			{
+				*(result_ptr++) = displaced_point[0];
+				*(result_ptr++) = displaced_point[1];
+				*(result_ptr++) = displaced_point[2];
+			}
+			else
+			{
+				*(result_ptr++) = point[0];
+				*(result_ptr++) = point[1];
+				*(result_ptr++) = point[2];
+			}
+		}
+	}
+	
+	return EidosValue_SP(float_result);
+}
+
+//	*********************	- (float)sampleNearbyPoint(float point, float$ maxDistance, string$ functionType, ...)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	// Our arguments go to SpatialKernel::SpatialKernel(), which creates the kernel object that we use
+	EidosValue *point_value = p_arguments[0].get();
+	size_t point_count = point_value->Count();
+	
+	EidosValue *maxDistance_value = p_arguments[1].get();
+	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	
+	SpatialKernel kernel(spatiality_, max_distance, p_arguments, 2, /* p_expect_max_density */ false);	// uses our arguments starting at index 2
+	
+	if (point_count % spatiality_ != 0)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	
+	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
+	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
+	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf_ptr = point_buf;
+	
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(point_count);
+	double *result_ptr = float_result->data();
+	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	
+	point_count /= spatiality_;
+	
+	if (spatiality_ == 1)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point_a = *(point_buf_ptr)++;
+			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			
+			double displaced_point[1];
+			double map_value;
+			
+			// rejection sample to draw a displaced point from the product of the kernel times the map
+			do
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S1(displaced_point);
+					displaced_point[0] += point_a;
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+				
+				map_value = ValueAtPoint_S1(displaced_point);
+			}
+			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			
+			*(result_ptr++) = displaced_point[0];
+		}
+	}
+	else if (spatiality_ == 2)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point_a = *(point_buf_ptr)++;
+			double point_b = *(point_buf_ptr)++;
+			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			point_b = (point_b - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			
+			double displaced_point[2];
+			double map_value;
+			
+			// rejection sample to draw a displaced point from the product of the kernel times the map
+			do
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S2(displaced_point);
+					displaced_point[0] += point_a;
+					displaced_point[1] += point_b;
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+				
+				map_value = ValueAtPoint_S2(displaced_point);
+			}
+			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			
+			*(result_ptr++) = displaced_point[0];
+			*(result_ptr++) = displaced_point[1];
+		}
+	}
+	else // (spatiality_ == 3)
+	{
+		for (size_t point_index = 0; point_index < point_count; point_index++)
+		{
+			// scale point coordinates to [0, 1]
+			double point_a = *(point_buf_ptr)++;
+			double point_b = *(point_buf_ptr)++;
+			double point_c = *(point_buf_ptr)++;
+			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			point_b = (point_b - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			point_c = (point_c - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+			
+			double displaced_point[3];
+			double map_value;
+			
+			// rejection sample to draw a displaced point from the product of the kernel times the map
+			do
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S3(displaced_point);
+					displaced_point[0] += point_a;
+					displaced_point[1] += point_b;
+					displaced_point[2] += point_c;
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
+					   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+				
+				map_value = ValueAtPoint_S3(displaced_point);
+			}
+			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
+			
+			*(result_ptr++) = displaced_point[0];
+			*(result_ptr++) = displaced_point[1];
+			*(result_ptr++) = displaced_point[2];
+		}
+	}
 	
 	return EidosValue_SP(float_result);
 }
@@ -1754,7 +1988,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_range(EidosGlobalStringID p_method_id, c
 EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	// Our arguments go to Kernel::Kernel(), which creates the kernel object that we use
+	// Our arguments go to SpatialKernel::SpatialKernel(), which creates the kernel object that we use
 	EidosValue *maxDistance_value = p_arguments[0].get();
 	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
 	
@@ -1779,10 +2013,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, 
 		default:					break;
 	}
 	
-	// Reassess our min and max if we're using the default grayscale color map;
-	// otherwise they are user-supplied and should not be modified
-	if (n_colors_ == 0)
-		SetAutomaticColorMinMax();
+	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
@@ -1872,6 +2103,8 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapValue, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_range, kEidosValueMaskFloat)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleImprovedNearbyPoint, kEidosValueMaskFloat))->AddFloat("point")->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleNearbyPoint, kEidosValueMaskFloat))->AddFloat("point")->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_smooth, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
 		
 		std::sort(methods->begin(), methods->end(), CompareEidosCallSignatures);

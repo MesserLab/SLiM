@@ -52,8 +52,7 @@ class SpatialMap : public EidosDictionaryRetained
 private:
 	typedef EidosDictionaryRetained super;
 
-	void InvalidateDisplayBuffer(void);
-	void SetAutomaticColorMinMax(void);
+	void _ValuesChanged(void);
 	
 public:
 	
@@ -74,10 +73,10 @@ public:
 	int64_t values_size_;				// the number of values in values_ (the product of grid_size_)
 	double *values_;					// OWNED POINTER: the values for the grid points
 	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
-	
-	double min_value_, max_value_;		// min/max values permitted; used for color mapping, not for bounds-checking values
+	double values_min_, values_max_;	// min/max of values_; re-evaluated every time our data changes
 	
 	int n_colors_;						// the number of color values given to map across the min/max value range
+	double colors_min_, colors_max_;	// min/max for our color gradient
 	float *red_components_;				// OWNED POINTER: red components, n_colors_ in size, from min to max value
 	float *green_components_;			// OWNED POINTER: green components, n_colors_ in size, from min to max value
 	float *blue_components_;			// OWNED POINTER: blue components, n_colors_ in size, from min to max value
@@ -132,6 +131,8 @@ public:
 	EidosValue_SP ExecuteMethod_mapImage(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_mapValue(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_range(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_smooth(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 };
 

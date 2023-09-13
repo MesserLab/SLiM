@@ -1136,7 +1136,7 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
 					
-					float value_fraction = (background_map->min_value_ < background_map->max_value_) ? static_cast<float>((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_)) : 0.0f;
+					float value_fraction = (background_map->colors_min_ < background_map->colors_max_) ? static_cast<float>((value - background_map->colors_min_) / (background_map->colors_max_ - background_map->colors_min_)) : 0.0f;
 					float color_index = value_fraction * (n_colors - 1);
 					int color_index_1 = static_cast<int>(floorf(color_index));
 					int color_index_2 = static_cast<int>(ceilf(color_index));
