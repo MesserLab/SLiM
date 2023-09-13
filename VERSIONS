@@ -150,6 +150,7 @@ development head (in the master branch):
 	add smooth() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
 	add add(), multiply(), subtract(), divide(), power(), exp(), range(), and gridValues() methods to SpatialMap
 	add sampleNearbyPoint() and sampleImprovedNearbyPoint() to SpatialMap, for searching habitat and such
+	add a t-distribution option for SpatialKernel, to provide a fat-tailed distribution that behaves better than Cauchy
 	
 
 version 4.0.1 (Eidos version 3.0.1):

@@ -33,6 +33,7 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type)
 		case SpatialKernelType::kExponential:	p_out << gStr_e;		break;
 		case SpatialKernelType::kNormal:		p_out << gEidosStr_n;	break;
 		case SpatialKernelType::kCauchy:		p_out << gEidosStr_c;	break;
+		case SpatialKernelType::kStudentsT:		p_out << gEidosStr_t;	break;
 	}
 	
 	return p_out;
@@ -107,8 +108,13 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		k_type = SpatialKernelType::kCauchy;
 		expected_k_param_count = (p_expect_max_density ? 2 : 1);
 	}
+	else if (k_type_string.compare(gEidosStr_t) == 0)
+	{
+		k_type = SpatialKernelType::kStudentsT;
+		expected_k_param_count = (p_expect_max_density ? 3 : 2);
+	}
 	else
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType \"" << k_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", or \"c\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType \"" << k_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", \"c\", or \"t\"." << EidosTerminate();
 	
 	if ((dimensionality_ == 0) && (k_type != SpatialKernelType::kFixed))
 		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType 'f' is required for non-spatial interactions." << EidosTerminate();
@@ -154,12 +160,20 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 			if (k_parameters[1] <= 0.0)
 				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"c\" must have a scale parameter > 0." << EidosTerminate();
 			break;
+		case SpatialKernelType::kStudentsT:
+			// nu can range from -inf to +inf but must be greater than the dimensionality minus one; scale (sigma) must be >= 0
+			if (k_parameters[1] <= p_dimensionality - 1)
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"t\" must have a degrees of freedom parameter that is greater than the kernel dimensionality minus one." << EidosTerminate();
+			if (k_parameters[2] < 0.0)
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"t\" must have a scale parameter >= 0." << EidosTerminate();
+			break;
 	}
 	
 	// Everything seems to be in order, so replace our kernel info with the new info
 	kernel_type_ = k_type;
 	kernel_param1_ = ((k_parameters.size() >= 1) ? k_parameters[0] : 0.0);
 	kernel_param2_ = ((k_parameters.size() >= 2) ? k_parameters[1] : 0.0);
+	kernel_param3_ = ((k_parameters.size() >= 3) ? k_parameters[2] : 0.0);
 	n_2param2sq_ = (kernel_type_ == SpatialKernelType::kNormal) ? (2.0 * kernel_param2_ * kernel_param2_) : 0.0;
 }
 
@@ -316,6 +330,8 @@ double SpatialKernel::DensityForDistance(double p_distance)
 			double temp = p_distance / kernel_param2_;
 			return (kernel_param1_ / (1.0 + temp * temp));													// fmax / (1+(d/λ)^2)
 		}
+		case SpatialKernelType::kStudentsT:
+			return SpatialKernel::tdist(p_distance, kernel_param1_, kernel_param2_, kernel_param3_);		// fmax / (1+(d/t)^2/n)^(−(ν+1)/2)
 	}
 	EIDOS_TERMINATION << "ERROR (SpatialKernel::DensityForDistance): (internal error) unexpected SpatialKernelType value." << EidosTerminate();
 }
@@ -326,25 +342,59 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 	// Note that we could be going either plus or minus from the center
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	if (kernel_type_ == SpatialKernelType::kFixed)
+	switch (kernel_type_)
 	{
-		displacement[0] = Eidos_rng_uniform(rng) * 2 * max_distance_ - max_distance_;
-	}
-	else if (kernel_type_ == SpatialKernelType::kNormal)
-	{
-		double d;
-		
-		do {
-			d = gsl_ran_gaussian(rng, kernel_param2_);
-		} while (d > max_distance_);
-		
-		displacement[0] = d;
-	}
-	else
-	{
-		// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
-		// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S1): 1D case not implemented." << EidosTerminate();
+		case SpatialKernelType::kFixed:
+		{
+			displacement[0] = Eidos_rng_uniform(rng) * 2 * max_distance_ - max_distance_;
+			return;
+		}
+		case SpatialKernelType::kLinear:
+		{
+			double d = (1 - sqrt(Eidos_rng_uniform(rng))) * max_distance_;
+			
+			displacement[0] = d;
+			return;
+		}
+		case SpatialKernelType::kExponential:
+		{
+			double d;
+			
+			do {
+				d = gsl_ran_exponential(rng, kernel_param2_);
+			} while (d > max_distance_);
+			
+			displacement[0] = d;
+			return;
+		}
+		case SpatialKernelType::kNormal:
+		{
+			double d;
+			
+			do {
+				d = gsl_ran_gaussian(rng, kernel_param2_);
+			} while (d > max_distance_);
+			
+			displacement[0] = d;
+			return;
+		}
+		case SpatialKernelType::kStudentsT:
+		{
+			double d;
+			
+			do {
+				d = gsl_ran_tdist(rng, kernel_param2_) * kernel_param3_;
+			} while (d > max_distance_);
+			
+			displacement[0] = d;
+			return;
+		}
+		default:
+		{
+			// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
+			// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S1): kernel type not supported." << EidosTerminate();
+		}
 	}
 }
 
@@ -354,30 +404,73 @@ void SpatialKernel::DrawDisplacement_S2(double *displacement)
 	// Note that we could be going in any direction from the center
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	if (kernel_type_ == SpatialKernelType::kFixed)
+	switch (kernel_type_)
 	{
-		double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
-		double d = sqrt(Eidos_rng_uniform(rng)) * max_distance_;
-		displacement[0] = cos(theta) * d;
-		displacement[1] = sin(theta) * d;
-	}
-	else if (kernel_type_ == SpatialKernelType::kNormal)
-	{
-		double d1, d2;
-		
-		do {
-			d1 = gsl_ran_gaussian(rng, kernel_param2_);
-			d2 = gsl_ran_gaussian(rng, kernel_param2_);
-		} while (sqrt(d1*d1 + d2*d2) > max_distance_);
-		
-		displacement[0] = d1;
-		displacement[1] = d2;
-	}
-	else
-	{
-		// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
-		// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S2): 2D case not implemented." << EidosTerminate();
+		case SpatialKernelType::kFixed:
+		{
+			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			double d = sqrt(Eidos_rng_uniform(rng)) * max_distance_;
+			displacement[0] = cos(theta) * d;
+			displacement[1] = sin(theta) * d;
+			return;
+		}
+		case SpatialKernelType::kLinear:
+		{
+			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			double d = gsl_ran_beta(rng, 2.0, 2.0) * max_distance_;
+			displacement[0] = cos(theta) * d;
+			displacement[1] = sin(theta) * d;
+			return;
+		}
+		case SpatialKernelType::kExponential:
+		{
+			double d;
+			
+			do {
+				d = gsl_ran_gamma(rng, 2.0, 1.0 / kernel_param2_);
+			} while (d > max_distance_);
+			
+			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			
+			displacement[0] = cos(theta) * d;
+			displacement[1] = sin(theta) * d;
+			return;
+		}
+		case SpatialKernelType::kNormal:
+		{
+			double d1, d2;
+			
+			do {
+				d1 = gsl_ran_gaussian(rng, kernel_param2_);
+				d2 = gsl_ran_gaussian(rng, kernel_param2_);
+			} while (sqrt(d1*d1 + d2*d2) > max_distance_);
+			
+			displacement[0] = d1;
+			displacement[1] = d2;
+			return;
+		}
+		case SpatialKernelType::kStudentsT:
+		{
+			// df (nu) is kernel_param2_, scale is kernel_param3_
+			double d;
+			
+			do {
+				double x = 0.5 + abs(Eidos_rng_uniform(rng) - 0.5);
+				d = sqrt(std::max(0.0, kernel_param2_ * (pow(2.0 - 2.0 * x, -2.0 / (kernel_param2_ - 1.0)) - 1.0))) * kernel_param3_;
+			} while (d > max_distance_);
+			
+			double theta = Eidos_rng_uniform(rng) * 2 * M_PI;
+			
+			displacement[0] = cos(theta) * d;
+			displacement[1] = sin(theta) * d;
+			return;
+		}
+		default:
+		{
+			// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
+			// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S2): kernel type not supported." << EidosTerminate();
+		}
 	}
 }
 
@@ -387,37 +480,73 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 	// Note that we could be going in any direction from the center
 	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 	
-	if (kernel_type_ == SpatialKernelType::kFixed)
+	switch (kernel_type_)
 	{
-		double dx = gsl_ran_gaussian(rng, 1.0);
-		double dy = gsl_ran_gaussian(rng, 1.0);
-		double dz = gsl_ran_gaussian(rng, 1.0);
-		double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
-		double d = pow(Eidos_rng_uniform(rng), 1/3.0) * max_distance_;
-		
-		displacement[0] = dx * d / sphere_dist;
-		displacement[1] = dy * d / sphere_dist;
-		displacement[2] = dz * d / sphere_dist;
-	}
-	else if (kernel_type_ == SpatialKernelType::kNormal)
-	{
-		double d1, d2, d3;
-		
-		do {
-			d1 = gsl_ran_gaussian(rng, kernel_param2_);
-			d2 = gsl_ran_gaussian(rng, kernel_param2_);
-			d3 = gsl_ran_gaussian(rng, kernel_param2_);
-		} while (sqrt(d1*d1 + d2*d2 + d3*d3) > max_distance_);
-		
-		displacement[0] = d1;
-		displacement[1] = d2;
-		displacement[2] = d3;
-	}
-	else
-	{
-		// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
-		// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S3): 3D case not implemented." << EidosTerminate();
+		case SpatialKernelType::kFixed:
+		{
+			double dx = gsl_ran_gaussian(rng, 1.0);
+			double dy = gsl_ran_gaussian(rng, 1.0);
+			double dz = gsl_ran_gaussian(rng, 1.0);
+			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
+			double d = pow(Eidos_rng_uniform(rng), 1/3.0) * max_distance_;
+			
+			displacement[0] = dx * d / sphere_dist;
+			displacement[1] = dy * d / sphere_dist;
+			displacement[2] = dz * d / sphere_dist;
+			return;
+		}
+		case SpatialKernelType::kLinear:
+		{
+			double dx = gsl_ran_gaussian(rng, 1.0);
+			double dy = gsl_ran_gaussian(rng, 1.0);
+			double dz = gsl_ran_gaussian(rng, 1.0);
+			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
+			double d = gsl_ran_beta(rng, 3.0, 2.0) * max_distance_;
+			
+			displacement[0] = dx * d / sphere_dist;
+			displacement[1] = dy * d / sphere_dist;
+			displacement[2] = dz * d / sphere_dist;
+			return;
+		}
+		case SpatialKernelType::kExponential:
+		{
+			double dx = gsl_ran_gaussian(rng, 1.0);
+			double dy = gsl_ran_gaussian(rng, 1.0);
+			double dz = gsl_ran_gaussian(rng, 1.0);
+			double sphere_dist = sqrt(dx*dx + dy*dy + dz*dz);
+			double d;
+			
+			do {
+				d = gsl_ran_gamma(rng, 3.0, 1.0 / kernel_param2_) * max_distance_;
+			} while (d > max_distance_);
+			
+			displacement[0] = dx * d / sphere_dist;
+			displacement[1] = dy * d / sphere_dist;
+			displacement[2] = dz * d / sphere_dist;
+			return;
+		}
+		case SpatialKernelType::kNormal:
+		{
+			double d1, d2, d3;
+			
+			do {
+				d1 = gsl_ran_gaussian(rng, kernel_param2_);
+				d2 = gsl_ran_gaussian(rng, kernel_param2_);
+				d3 = gsl_ran_gaussian(rng, kernel_param2_);
+			} while (sqrt(d1*d1 + d2*d2 + d3*d3) > max_distance_);
+			
+			displacement[0] = d1;
+			displacement[1] = d2;
+			displacement[2] = d3;
+			return;
+		}
+		case SpatialKernelType::kStudentsT:		// punting for now
+		default:
+		{
+			// Other distributions are of unclear utility, since draws may cluster at the max distance; this is
+			// particularly bad for the Cauchy, because the area under it out to infinity is infinite for D>1
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::DrawDisplacement_S3): kernel type not supported." << EidosTerminate();
+		}
 	}
 }
 

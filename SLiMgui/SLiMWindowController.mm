@@ -4946,6 +4946,7 @@
 						case SpatialKernelType::kExponential:		return @"exp";
 						case SpatialKernelType::kNormal:			return @"normal";
 						case SpatialKernelType::kCauchy:			return @"Cauchy";
+						case SpatialKernelType::kStudentsT:			return @"Student's t";
 					}
 				}
 				else if (aTableColumn == interactionTypeIFParamsColumn)
@@ -4969,6 +4970,9 @@
 							break;
 						case SpatialKernelType::kCauchy:
 							[paramString appendFormat:@", γ=%.3f", interactionType->if_param2_];
+							break;
+						case SpatialKernelType::kStudentsT:
+							[paramString appendFormat:@", ν=%.3f, σ=%.3f", interactionType->if_param2_, interactionType->if_param3_];
 							break;
 					}
 					

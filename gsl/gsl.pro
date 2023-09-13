@@ -75,6 +75,7 @@ SOURCES += \
     randist/beta.c \
     randist/binomial_tpe.c \
     randist/cauchy.c \
+    randist/chisq.c \
     randist/discrete.c \
     randist/exponential.c \
     randist/fdist.c \
@@ -88,6 +89,7 @@ SOURCES += \
     randist/nbinomial.c \
     randist/poisson.c \
     randist/shuffle.c \
+    randist/tdist.c \
     randist/weibull.c \
     rng/inline.c \
     rng/mt.c \

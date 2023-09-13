@@ -37,11 +37,12 @@
 // This enumeration represents a type of interaction function (IF) that an
 // interaction type can use to convert distances to interaction strengths
 enum class SpatialKernelType : char {
-	kFixed = 0,
-	kLinear,
-	kExponential,
-	kNormal,
-	kCauchy
+	kFixed = 0,		// "f"
+	kLinear,		// "l"
+	kExponential,	// "e"
+	kNormal,		// "n"
+	kCauchy,		// "c"
+	kStudentsT,		// "t"
 };
 
 std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type);
@@ -62,12 +63,16 @@ public:
 	double pixels_to_spatial_c_;	// multiply by this to convert pixels to spatial scale for c
 	
 	SpatialKernelType kernel_type_;				// the kernel type to use
-	double kernel_param1_, kernel_param2_;		// parameters for that kernel type (not all of which may be used)
+	double kernel_param1_, kernel_param2_, kernel_param3_;	// parameters for that kernel type (not all of which may be used)
 	double n_2param2sq_;						// for type "n", precalc 2.0 * kernel_param2_ * kernel_param2_
 	
 	// discrete grid values; set up only if CalculateGridValues() is called
 	double *values_ = nullptr;		// raw kernel pixel data, malloced
 	int64_t dim[3] = {0, 0, 0};		// pixel dimensions of values_ for 1, 2, or 3 axes
+	
+	// calculate t-distribution PDF values in our fashion, for which the function is normalized to a maximum value
+	// we don't use the GSL for this, because it does two gamma-function calculations that we don't need (they normalize away)
+	static inline double tdist(double x, double max, double nu, double tau) { double x_over_tau = x / tau; return max / pow(1.0 + x_over_tau * x_over_tau / nu, -(nu + 1.0) / 2.0); };
 	
 public:
 	SpatialKernel(const SpatialKernel&) = delete;							// no copying

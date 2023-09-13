@@ -974,6 +974,7 @@ extern const std::string &gEidosStr_end;
 extern const std::string &gEidosStr_weights;
 extern const std::string &gEidosStr_range;
 extern const std::string &gEidosStr_c;
+extern const std::string &gEidosStr_t;
 extern const std::string &gEidosStr_n;
 extern const std::string &gEidosStr_s;
 extern const std::string &gEidosStr_x;
@@ -1100,6 +1101,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_weights,
 	gEidosID_range,
 	gEidosID_c,
+	gEidosID_t,
 	gEidosID_n,
 	gEidosID_s,
 	gEidosID_x,

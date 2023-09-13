@@ -763,6 +763,8 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 			double temp = p_distance / if_param2_;
 			return (if_param1_ / (1.0 + temp * temp));													// fmax / (1+(d/λ)^2)
 		}
+		case SpatialKernelType::kStudentsT:
+			return SpatialKernel::tdist(p_distance, if_param1_, if_param2_, if_param3_);				// fmax / (1+(d/t)^2/n)^(−(ν+1)/2)
 	}
 	EIDOS_TERMINATION << "ERROR (InteractionType::CalculateStrengthNoCallbacks): (internal error) unexpected SpatialKernelType." << EidosTerminate();
 }
@@ -2457,7 +2459,6 @@ void InteractionType::BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-
 // add neighbor strengths of type "c" (SpatialKernelType::kCauchy : Cauchy) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
@@ -2484,6 +2485,35 @@ void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_
 		if (root->right)				BuildSV_Strengths_c_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		if (dx2 > max_distance_sq_)		return;
 		if (root->left)					BuildSV_Strengths_c_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbor strengths of type "t" (SpatialKernelType::kStudentsT : Student's t) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_t_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)SpatialKernel::tdist(d, if_param1_, if_param2_, if_param3_));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_t_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_t_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_t_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_t_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 }
 
@@ -2726,6 +2756,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				case SpatialKernelType::kExponential:	BuildSV_Strengths_e_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
 				case SpatialKernelType::kNormal:		BuildSV_Strengths_n_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
 				case SpatialKernelType::kCauchy:		BuildSV_Strengths_c_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kStudentsT:		BuildSV_Strengths_t_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
 				default:
 					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized SpatialKernelType value." << EidosTerminate();
 			}
@@ -2817,6 +2848,16 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 					double temp = distance / if_param2_;
 					
 					values[col_iter] = (sv_value_t)(if_param1_ / (1.0 + temp * temp));
+				}
+				break;
+			}
+			case SpatialKernelType::kStudentsT:
+			{
+				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
+				{
+					sv_value_t distance = values[col_iter];
+					
+					values[col_iter] = (sv_value_t)SpatialKernel::tdist(distance, if_param1_, if_param2_, if_param3_);
 				}
 				break;
 			}

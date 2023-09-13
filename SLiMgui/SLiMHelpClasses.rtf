@@ -4140,7 +4140,7 @@ This method is similar to
 \f5 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
+\f4\fs20 \cf2 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
 \f3\fs18 functionType
 \f4\fs20  may be 
 \f3\fs18 "f"
@@ -4158,24 +4158,32 @@ This method is similar to
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  lambda (shape) parameter for a negative exponential function; \cf2 \expnd0\expndtw0\kerning0
-; 
+\f4\fs20  lambda (shape) parameter for a negative exponential function; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; 
 \f3\fs18 "c"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  scale parameter for a Cauchy distribution function\cf0 \kerning1\expnd0\expndtw0 .  Non-spatial interactions must use function type 
+\f4\fs20  scale parameter for a Cauchy distribution function; or 
+\f3\fs18 "t"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  maximum strength, a 
+\f3\fs18 numeric$
+\f4\fs20  degrees of freedom, and a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a 
+\f1\i t
+\f4\i0 -distribution function.  Non-spatial interactions must use function type 
 \f3\fs18 "f"
 \f4\fs20 , since no distance values are available in that case.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
+The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
 \f3\fs18 unevaluate()
 \f4\fs20  should be called first.
 \f5 \cf0 \
@@ -6080,12 +6088,22 @@ The kernel is specified with a kernel shape,
 \f3\fs18 functionType
 \f4\fs20 , followed by zero or more ellipsis arguments; see 
 \f3\fs18 smooth()
-\f4\fs20  for further information.  For this method, at present only a flat kernel (type 
+\f4\fs20  for further information.  For this method, at present only kernel types 
 \f3\fs18 "f"
-\f4\fs20 ) or a Gaussian kernel (type 
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
 \f3\fs18 "n"
-\f4\fs20 ) are supported.\
-This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.\
+\f4\fs20 , and 
+\f3\fs18 "t"
+\f4\fs20  are supported, and type 
+\f3\fs18 "t"
+\f4\fs20  is not presently supported for 3D kernels.\
+This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.  See 
+\f3\fs18 sampleImprovedNearbyPoint()
+\f4\fs20  for a variant that may be useful for directed movement across a landscape.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
@@ -6103,8 +6121,10 @@ This method can be used to find points in the vicinity of individuals that are f
 \f3\fs18 "e"
 \f4\fs20 , 
 \f3\fs18 "n"
-\f4\fs20 , or 
+\f4\fs20 , 
 \f3\fs18 "c"
+\f4\fs20 , or 
+\f3\fs18 "t"
 \f4\fs20 , and additional parameters in the ellipsis 
 \f3\fs18 ...
 \f4\fs20  that depend upon the kernel type and further specify its shape.  The target spatial map is returned, to allow easy chaining of operations.\
@@ -6126,11 +6146,19 @@ The kernel specification is similar to that for the
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; 
 \f3\fs18 "c"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  scale parameter for a Cauchy distribution function.  See the 
+\f4\fs20  scale parameter for a Cauchy distribution function; or 
+\f3\fs18 "t"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  degrees of freedom and a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a 
+\f1\i t
+\f4\i0 -distribution function.  See the 
 \f3\fs18 InteractionType
 \f4\fs20  class documentation for discussions of these kernel types.\
 Distance metrics specified to this method, such as 
@@ -6789,7 +6817,8 @@ Beginning with SLiM 3.3, the
 \f4\i0  include the nucleotides associated with any nucleotide-based mutations; the 
 \f3\fs18 ancestralNucleotides
 \f4\fs20  flag governs only the ancestral sequence.\
-\kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 Beginning with SLiM 3.5, the 
 \f3\fs18 pedigreeIDs
 \f4\fs20  parameter may be used to request that pedigree IDs be written out (and read in by 
 \f3\fs18 readFromPopulationFile()
@@ -6919,7 +6948,8 @@ As of SLiM 3.0, this method will read and restore the ages of individuals if tha
 As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mutations, and will restore the ancestral nucleotide sequence, if that information is present in the output file.  Loading an output file that contains nucleotide information in a non-nucleotide-based model, and 
 \f1\i vice versa
 \f4\i0 , will produce an error.\
-\kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 As of SLiM 3.5, this method will read and restore the pedigree IDs of individuals and genomes if that information is present in the output file (as requested with 
 \f3\fs18 outputFull(pedigreeIDs=T)
 \f4\fs20 ) 
 \f1\i and

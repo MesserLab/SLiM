@@ -138,7 +138,7 @@ private:
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
 	SpatialKernelType if_type_;					// the interaction function (IF) to use
-	double if_param1_, if_param2_;				// the parameters for that IF (not all of which may be used)
+	double if_param1_, if_param2_, if_param3_;	// the parameters for that IF (not all of which may be used)
 	double n_2param2sq_;						// for type "n", precalculated == 2.0 * if_param2_ * if_param2_
 	
 	std::map<slim_objectid_t, InteractionsData> data_;		// cached data for the interaction, for each "exerter" subpopulation
@@ -197,6 +197,7 @@ private:
 	void BuildSV_Strengths_e_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	void BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	void BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
+	void BuildSV_Strengths_t_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	
 	int CountNeighbors_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index);
 	int CountNeighbors_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_phase);

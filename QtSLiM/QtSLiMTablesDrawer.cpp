@@ -911,6 +911,7 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
                     case SpatialKernelType::kExponential:		return QVariant(QString("exp"));
                     case SpatialKernelType::kNormal:			return QVariant(QString("normal"));
                     case SpatialKernelType::kCauchy:			return QVariant(QString("Cauchy"));
+                    case SpatialKernelType::kStudentsT:			return QVariant(QString("Student's t"));
                 }
             }
             else if (p_index.column() == 3)
@@ -934,6 +935,9 @@ QVariant QtSLiMInteractionTypeTableModel::data(const QModelIndex &p_index, int r
                         break;
                     case SpatialKernelType::kCauchy:
                         paramString += QString(", γ=%1").arg(interactionType->if_param2_, 0, 'f', 3);
+                        break;
+                    case SpatialKernelType::kStudentsT:
+                        paramString += QString(", ν=%1, σ=%2").arg(interactionType->if_param2_, 0, 'f', 3).arg(interactionType->if_param3_, 0, 'f', 3);
                         break;
                 }
                 
