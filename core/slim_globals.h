@@ -1053,6 +1053,7 @@ extern const std::string &gStr_g;
 extern const std::string &gStr_e;
 //extern const std::string &gStr_n;		now gEidosStr_n
 extern const std::string &gStr_w;
+extern const std::string &gStr_la;
 extern const std::string &gStr_l;
 //extern const std::string &gStr_s;		now gEidosStr_s
 extern const std::string &gStr_species;
@@ -1422,6 +1423,7 @@ enum _SLiMGlobalStringID : int {
 	gID_e,
 	// gID_n,		now gEidosID_n
 	gID_w,
+	gID_la,
 	gID_l,
 	//gID_s,	now gEidosID_s
 	gID_species,

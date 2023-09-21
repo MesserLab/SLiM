@@ -70,6 +70,7 @@ SOURCES += \
     randist/gauss.c \
     randist/gausszig.c \
     randist/geometric.c \
+    randist/laplace.c \
     randist/lognormal.c \
     randist/multinomial.c \
     randist/mvgauss.c \
