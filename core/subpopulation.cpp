@@ -4333,6 +4333,7 @@ EidosValue_SP Subpopulation::ExecuteInstanceMethod(EidosGlobalStringID p_method_
 		case gID_removeSubpopulation:	return ExecuteMethod_removeSubpopulation(p_method_id, p_arguments, p_interpreter);
 		case gID_takeMigrants:			return ExecuteMethod_takeMigrants(p_method_id, p_arguments, p_interpreter);
 
+		case gID_pointDeviated:			return ExecuteMethod_pointDeviated(p_method_id, p_arguments, p_interpreter);
 		case gID_pointInBounds:			return ExecuteMethod_pointInBounds(p_method_id, p_arguments, p_interpreter);
 		case gID_pointReflected:		return ExecuteMethod_pointReflected(p_method_id, p_arguments, p_interpreter);
 		case gID_pointStopped:			return ExecuteMethod_pointStopped(p_method_id, p_arguments, p_interpreter);
@@ -4517,6 +4518,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 			species_.RecordNewGenome(nullptr, genome2, &parent_genome_2, nullptr);
 		}
 		
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent);
+		
 		if (defer)
 		{
 			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kClonal, parent, parent, genome1, genome2, child_sex);
@@ -4676,6 +4680,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
 		
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent1);
+		
 		if (defer)
 		{
 			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kCrossoverMutation, parent1, parent2, genome1, genome2, child_sex);
@@ -4815,6 +4822,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 			species_.RecordNewGenome(nullptr, genome1, nullptr, nullptr);
 			species_.RecordNewGenome(nullptr, genome2, nullptr, nullptr);
 		}
+		
+		// BCH 9/26/2023:  note that there is no parent, so the spatial position of the offspring is left uninitialized.
+		// individual->InheritSpatialPosition(species_.spatial_dimensionality_, ???)
 		
 		// set up empty mutation runs, since we're not calling DoCrossoverMutation() or DoClonalMutation()
 #if DEBUG
@@ -4983,27 +4993,24 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 			sex_value = static_sex_string_M.get();
 	}
 	
-	// Figure out the parents for purposes of pedigree recording
+	// Figure out the parents for purposes of pedigree recording.  	If only one parent was supplied, use it for both,
+	// just as we do for cloning and selfing; it makes relatedness() work correctly
+	// BCH 9/26/2023 the first parent can now also be used for spatial positioning, even if pedigree tracking is not enabled.
 	bool pedigrees_enabled = species_.PedigreesEnabled();
 	Individual *pedigree_parent1 = nullptr;
 	Individual *pedigree_parent2 = nullptr;
+	EidosValue *parent1_value = p_arguments[7].get();
+	EidosValue *parent2_value = p_arguments[8].get();
 	
-	if (pedigrees_enabled)
-	{
-		EidosValue *parent1_value = p_arguments[7].get();
-		EidosValue *parent2_value = p_arguments[8].get();
-		
-		if (parent1_value->Type() != EidosValueType::kValueNULL)
-			pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
-		if (parent2_value->Type() != EidosValueType::kValueNULL)
-			pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
-		
-		// if only one parent was supplied, use it for both, just as we do for cloning and selfing; it makes relatedness() work correctly
-		if (pedigree_parent1 && !pedigree_parent2)
-			pedigree_parent2 = pedigree_parent1;
-		if (pedigree_parent2 && !pedigree_parent1)
-			pedigree_parent1 = pedigree_parent2;
-	}
+	if (parent1_value->Type() != EidosValueType::kValueNULL)
+		pedigree_parent1 = (Individual *)parent1_value->ObjectElementAtIndex(0, nullptr);
+	if (parent2_value->Type() != EidosValueType::kValueNULL)
+		pedigree_parent2 = (Individual *)parent2_value->ObjectElementAtIndex(0, nullptr);
+	
+	if (pedigree_parent1 && !pedigree_parent2)
+		pedigree_parent2 = pedigree_parent1;
+	if (pedigree_parent2 && !pedigree_parent1)
+		pedigree_parent1 = pedigree_parent2;
 	
 	// Generate the number of children requested
 	Chromosome &chromosome = species_.TheChromosome();
@@ -5190,6 +5197,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// TREE SEQUENCE RECORDING
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
+		
+		// BCH 9/26/2023: inherit the spatial position of pedigree_parent1 by default, to set up for pointDeviated()
+		// Note that, unlike other addX() methods, the first parent is not necessarily defined; in that case, the
+		// spatial position of the offspring is left uninitialized.
+		if (pedigree_parent1)
+			individual->InheritSpatialPosition(species_.spatial_dimensionality_, pedigree_parent1);
 		
 		// Construct the first child genome, depending upon whether recombination is requested, etc.
 		if (strand1)
@@ -5514,6 +5527,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 		if (species_.RecordingTreeSequence())
 			species_.SetCurrentNewIndividual(individual);
 		
+		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent);
+		
 		if (defer)
 		{
 			population_.deferred_reproduction_nonrecombinant_.emplace_back(SLiM_DeferredReproductionType::kSelfed, parent, parent, genome1, genome2, child_sex);
@@ -5761,6 +5777,276 @@ EidosValue_SP Subpopulation::ExecuteMethod_setMigrationRates(EidosGlobalStringID
 	}
 	
 	return gStaticEidosValueVOID;
+}
+
+//	*********************	– (float)pointDeviated(integer$ n, float point, string$ boundary, numeric$ maxDistance, string$ functionType, ...)
+//
+EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	int dimensionality = species_.SpatialDimensionality();
+	
+	if (dimensionality == 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() cannot be called in non-spatial simulations." << EidosTerminate();
+	
+	EidosValue *n_value = p_arguments[0].get();
+	int64_t n = n_value->IntAtIndex(0, nullptr);
+	
+	if (n < 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires n >= 0." << EidosTerminate();
+	if (n == 0)
+		return gStaticEidosValue_Float_ZeroVec;
+	
+	int64_t length_out = n * dimensionality;
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(length_out);
+	double *float_result_data = float_result->data();
+	double *float_result_ptr = float_result_data;
+	
+	EidosValue *point_value = p_arguments[1].get();
+	int point_count = point_value->Count();
+	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
+	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
+	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
+	const double *point_buf_ptr = point_buf;
+	
+	if (point_count % dimensionality != 0)
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires the length of point to be a multiple of the model dimensionality (i.e., point should contain an integer number of complete points of the correct dimensionality)." << EidosTerminate();
+	
+	point_count /= dimensionality;		// convert from float elements to points
+	
+	if ((point_count != 1) && ((int64_t)point_count != n))
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() requires point to be contain either a single spatial point (to be deviated n times) or n spatial points (each to be deviated once)." << EidosTerminate();
+	
+	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[2].get();
+	const std::string &boundary_str = boundary_value->StringRefAtIndex(0, nullptr);
+	int boundary;
+	
+	if (boundary_str.compare("none") == 0)
+		boundary = 0;
+	else if (boundary_str.compare("stopping") == 0)
+		boundary = 1;
+	else if (boundary_str.compare("reflecting") == 0)
+		boundary = 2;
+	else if (boundary_str.compare("reprising") == 0)
+		boundary = 3;
+	else if (boundary_str.compare("periodic") == 0)
+		boundary = 4;
+	else
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): unrecognized boundary condition \"" << boundary_str << "\"." << EidosTerminate();
+	
+	// Periodic boundaries are a bit complicated.  If only some dimensions are periodic, 'none' will be used
+	// for the non-periodic boundaries, and the user can then use pointReflected(), pointStopped(), etc. to
+	// enforce a boundary condition on those dimensions.
+	bool periodic_x = false, periodic_y = false, periodic_z = false;
+	
+	if (boundary == 4)
+	{
+		species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
+		
+		if (!periodic_x && !periodic_y && !periodic_z)
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): pointDeviated() cannot apply periodic boundary conditions in a model without periodic boundaries." << EidosTerminate();
+	}
+	
+	EidosValue *maxDistance_value = p_arguments[3].get();
+	double max_distance = maxDistance_value->FloatAtIndex(0, nullptr);
+	
+	SpatialKernel kernel(dimensionality, max_distance, p_arguments, 4, /* p_expect_max_density */ false);	// uses our arguments starting at index 3
+	
+	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
+	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
+	// overhead of drawing a displacement from the kernel, which requires a random number draw.
+	switch (dimensionality)
+	{
+		case 1:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			int point_buf_ptr_inc = (point_count > 1) ? 1 : 0;		// move to the next point, unless we're repeatedly processing a single point
+			
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a[1];
+				
+			reprise_1:
+				kernel.DrawDisplacement_S1(a);
+				a[0] += point_buf_ptr[0];
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case 0:			// none
+						break;
+					case 1:			// stopping
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						break;
+					case 2:			// reflecting
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						break;
+					case 3:			// reprising
+						if ((a[0] < bx0) || (a[0] > bx1))
+							goto reprise_1;
+						break;
+					case 4:			// periodic (periodic_x must be true)
+						while (a[0] < 0.0)	a[0] += bx1;
+						while (a[0] > bx1)	a[0] -= bx1;
+						break;
+				}
+				
+				*(float_result_ptr++) = a[0];
+				point_buf_ptr += point_buf_ptr_inc;
+			}
+			break;
+		}
+		case 2:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			int point_buf_ptr_inc = (point_count > 1) ? 2 : 0;		// move to the next point, unless we're repeatedly processing a single point
+			
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a[2];
+				
+			reprise_2:
+				kernel.DrawDisplacement_S2(a);
+				a[0] += point_buf_ptr[0];
+				a[1] += point_buf_ptr[1];
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case 0:			// none
+						break;
+					case 1:			// stopping
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						a[1] = std::max(by0, std::min(by1, a[1]));
+						break;
+					case 2:			// reflecting
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[1] < by0) a[1] = by0 + (by0 - a[1]);
+							else if (a[1] > by1) a[1] = by1 - (a[1] - by1);
+							else break;
+						}
+						break;
+					case 3:			// reprising
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1))
+							goto reprise_2;
+						break;
+					case 4:			// periodic
+						if (periodic_x)
+						{
+							while (a[0] < 0.0)	a[0] += bx1;
+							while (a[0] > bx1)	a[0] -= bx1;
+						}
+						if (periodic_y)
+						{
+							while (a[1] < 0.0)	a[1] += by1;
+							while (a[1] > by1)	a[1] -= by1;
+						}
+						break;
+				}
+				
+				*(float_result_ptr++) = a[0];
+				*(float_result_ptr++) = a[1];
+				point_buf_ptr += point_buf_ptr_inc;
+			}
+			break;
+		}
+		case 3:
+		{
+			double bx0 = bounds_x0_, bx1 = bounds_x1_;
+			double by0 = bounds_y0_, by1 = bounds_y1_;
+			double bz0 = bounds_z0_, bz1 = bounds_z1_;
+			int point_buf_ptr_inc = (point_count > 1) ? 3 : 0;		// move to the next point, unless we're repeatedly processing a single point
+			
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a[3];
+				
+			reprise_3:
+				kernel.DrawDisplacement_S3(a);
+				a[0] += point_buf_ptr[0];
+				a[1] += point_buf_ptr[1];
+				a[2] += point_buf_ptr[2];
+				
+				// enforce the boundary condition
+				switch (boundary)
+				{
+					case 0:			// none
+						break;
+					case 1:			// stopping
+						a[0] = std::max(bx0, std::min(bx1, a[0]));
+						a[1] = std::max(by0, std::min(by1, a[1]));
+						a[2] = std::max(bz0, std::min(bz1, a[2]));
+						break;
+					case 2:			// reflecting
+						while (true)
+						{
+							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
+							else if (a[0] > bx1) a[0] = bx1 - (a[0] - bx1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[1] < by0) a[1] = by0 + (by0 - a[1]);
+							else if (a[1] > by1) a[1] = by1 - (a[1] - by1);
+							else break;
+						}
+						while (true)
+						{
+							if (a[2] < bz0) a[2] = bz0 + (bz0 - a[2]);
+							else if (a[2] > bz1) a[2] = bz1 - (a[2] - bz1);
+							else break;
+						}
+						break;
+					case 3:			// reprising
+						if ((a[0] < bx0) || (a[0] > bx1) ||
+							(a[1] < by0) || (a[1] > by1) ||
+							(a[2] < bz0) || (a[2] > bz1))
+							goto reprise_3;
+						break;
+					case 4:			// periodic
+						if (periodic_x)
+						{
+							while (a[0] < 0.0)	a[0] += bx1;
+							while (a[0] > bx1)	a[0] -= bx1;
+						}
+						if (periodic_y)
+						{
+							while (a[1] < 0.0)	a[1] += by1;
+							while (a[1] > by1)	a[1] -= by1;
+						}
+						if (periodic_z)
+						{
+							while (a[2] < 0.0)	a[2] += bz1;
+							while (a[2] > bz1)	a[2] -= bz1;
+						}
+						break;
+				}
+				
+				*(float_result_ptr++) = a[0];
+				*(float_result_ptr++) = a[1];
+				*(float_result_ptr++) = a[2];
+				point_buf_ptr += point_buf_ptr_inc;
+			}
+			break;
+		}
+	}
+	
+	return EidosValue_SP(float_result);
 }
 
 //	*********************	– (logical)pointInBounds(float point)
@@ -7643,6 +7929,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setMigrationRates, kEidosValueMaskVOID))->AddIntObject("sourceSubpops", gSLiM_Subpopulation_Class)->AddNumeric("rates"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointDeviated, kEidosValueMaskFloat))->AddInt_S(gEidosStr_n)->AddFloat("point")->AddString_S("boundary")->AddNumeric_S(gStr_maxDistance)->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointInBounds, kEidosValueMaskLogical))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointReflected, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_pointStopped, kEidosValueMaskFloat))->AddFloat("point"));

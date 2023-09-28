@@ -925,6 +925,7 @@ extern const std::string &gStr_treeSeqSimplify;
 extern const std::string &gStr_treeSeqRememberIndividuals;
 extern const std::string &gStr_treeSeqOutput;
 extern const std::string &gStr_setMigrationRates;
+extern const std::string &gStr_pointDeviated;
 extern const std::string &gStr_pointInBounds;
 extern const std::string &gStr_pointReflected;
 extern const std::string &gStr_pointStopped;
@@ -1317,6 +1318,7 @@ enum _SLiMGlobalStringID : int {
 	gID_treeSeqRememberIndividuals,
 	gID_treeSeqOutput,
 	gID_setMigrationRates,
+	gID_pointDeviated,
 	gID_pointInBounds,
 	gID_pointReflected,
 	gID_pointStopped,

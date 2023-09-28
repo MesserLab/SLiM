@@ -151,6 +151,9 @@ development head (in the master branch):
 	add add(), multiply(), subtract(), divide(), power(), exp(), range(), and gridValues() methods to SpatialMap
 	add sampleNearbyPoint() and sampleImprovedNearbyPoint() to SpatialMap, for searching habitat and such
 	add a t-distribution option for SpatialKernel, to provide a fat-tailed distribution that behaves better than Cauchy
+	add a Subpopulation method pointDeviated() that can deviate points using a kernel and enforce boundary conditions in one call
+	tweak WF reproduction, addCrossed(), addSelfed(), addCloned(), and addRecombinant() to give the new offspring the same spatial position as the first parent, allowing efficient positioning with pointDeviated() in the typical usage case
+	policy change: type 'f' kernels now require a finite maxDistance, since the alternative doesn't really make sense (note that type 'l' already required a finite maxDistance)
 	
 
 version 4.0.1 (Eidos version 3.0.1):

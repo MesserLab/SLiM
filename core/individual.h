@@ -246,6 +246,28 @@ public:
 	inline __attribute__((always_inline)) void SetParentPedigreeID(slim_pedigreeid_t p1_new_id, slim_pedigreeid_t p2_new_id)		{ pedigree_p1_ = p1_new_id; pedigree_p2_ = p2_new_id; }	// also?
 	inline __attribute__((always_inline)) int32_t ReproductiveOutput()				{ return reproductive_output_; }
 	
+	// Spatial position inheritance from a parent; should be called in every code path that generates an offspring from a parent
+	inline __attribute__((always_inline)) void InheritSpatialPosition(int p_dimensionality, Individual *p_parent) {
+		if (p_dimensionality > 0)
+		{
+			switch (p_dimensionality)
+			{
+				case 1:
+					spatial_x_ = p_parent->spatial_x_;
+					break;
+				case 2:
+					spatial_x_ = p_parent->spatial_x_;
+					spatial_y_ = p_parent->spatial_y_;
+					break;
+				case 3:
+					spatial_x_ = p_parent->spatial_x_;
+					spatial_y_ = p_parent->spatial_y_;
+					spatial_z_ = p_parent->spatial_z_;
+					break;
+			}
+		}
+	}
+	
 	//
 	// Eidos support
 	//

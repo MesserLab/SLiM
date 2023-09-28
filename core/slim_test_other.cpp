@@ -286,9 +286,14 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+		if (max_dist_on)
+		{
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+		}
+		else
+			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
 		
 		if (!max_dist_on)
 			SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('l', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
@@ -507,9 +512,14 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+		if (max_dist_on)
+		{
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+		}
+		else
+			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
 		
 		if (!max_dist_on)
 			SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('l', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
@@ -699,9 +709,14 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+	if (max_dist_on)
+	{
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f'); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0, 2.0); i1.evaluate(p1); stop(); }", "requires exactly", __LINE__);
+	}
+	else
+		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
 	
 	if (!max_dist_on)
 		SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('l', 5.0); i1.evaluate(p1); stop(); }", "finite maximum interaction distance", __LINE__);
@@ -872,7 +887,8 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(sortBy(i1.nearestNeighborsOfPoint(c(7.0, 3.0, 12.0), 1, 3), 'index'), ind[c(1,2,4)])) stop(); }", __LINE__);
 	
 	// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
+	if (max_dist_on)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('l', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('e', 5.0, 1.0); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.maxDistance=1.0; i1.setInteractionFunction('n', 5.0, 1.0); i1.evaluate(p1); stop(); }", __LINE__);

@@ -4158,7 +4158,7 @@ This method is similar to
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  lambda (shape) parameter for a negative exponential function; 
+\f4\fs20  lambda (rate) parameter for a negative exponential function; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
@@ -4180,7 +4180,7 @@ This method is similar to
 \f3\fs18 numeric$
 \f4\fs20  scale parameter for a 
 \f1\i t
-\f4\i0 -distribution function.  Non-spatial interactions must use function type 
+\f4\i0 -distribution function.  See section 25.8 above for discussions of these interaction functions.  Non-spatial interactions must use function type 
 \f3\fs18 "f"
 \f4\fs20 , since no distance values are available in that case.\
 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
@@ -8001,6 +8001,17 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
@@ -8129,6 +8140,17 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent1
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
 \f3\fs18 addCrossed()
 \f4\fs20  must be called only from 
@@ -8424,6 +8446,25 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent1
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .  If 
+\f3\fs18 parent1
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), 
+\f3\fs18 parent2
+\f4\fs20  will be used; if it is also 
+\f3\fs18 NULL
+\f4\fs20 , no spatial position will be inherited.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
@@ -8480,6 +8521,17 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
@@ -8902,6 +8954,100 @@ The parameters
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.
 \f5 \
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)pointDeviated(integer$\'a0n, float\'a0point, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing 
+\f3\fs18 n
+\f4\fs20  points that are derived from 
+\f3\fs18 point
+\f4\fs20  by adding a deviation drawn from a dispersal kernel (specified by 
+\f3\fs18 maxDistance
+\f4\fs20 , 
+\f3\fs18 functionType
+\f4\fs20 , and the ellipsis parameters 
+\f3\fs18 ...
+\f4\fs20 ) and then applying a boundary condition specified by 
+\f3\fs18 boundary
+\f4\fs20 .  This method therefore performs the steps of a simple dispersal algorithm in a single vectorized call.\
+The parameter 
+\f3\fs18 point
+\f4\fs20  may contain a single point which is deviated and bounded 
+\f3\fs18 n
+\f4\fs20  times, or may contain 
+\f3\fs18 n
+\f4\fs20  points each of which is deviated and bounded.  In any case, each point in 
+\f3\fs18 point
+\f4\fs20  should match the dimensionality of the model \'96 one element in a 1D model, two elements in a 2D model, or three elements in a 3D model.  This method should not be called in a non-spatial model.\
+The dispersal kernel is specified similarly to other kernel-based methods, such as 
+\f3\fs18 setInteractionFunction()
+\f4\fs20  and 
+\f3\fs18 smooth()
+\f4\fs20 ; see the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation for detailed discussion of the available spatial kernel types and their parameters (supplied in the ellipsis, 
+\f3\fs18 ...
+\f4\fs20 ).  For 
+\f3\fs18 pointDeviated()
+\f4\fs20 , the Cauchy (
+\f3\fs18 "c"
+\f4\fs20 ) kernel is not allowed since it is not well-behaved for this purpose, and the Student\'92s 
+\f1\i t
+\f4\i0  (
+\f3\fs18 "t"
+\f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the interaction strength \'96 in other words, at distance 
+\f1\i r
+\f4\i0  the density is proportional to the functional form referred to by 
+\f3\fs18 functionType
+\f4\fs20 .  For instance, the density of the probability distribution for type 
+\f3\fs18 "e"
+\f4\fs20  with rate 
+\f1\i a
+\f4\i0  at distance 
+\f1\i r
+\f4\i0  is proportional to exp(\uc0\u8722 
+\f1\i ra
+\f4\i0 ); and so the distribution of the distance in 1D is exponential, while in 2D it is proportional to 
+\f1\i r
+\f4\i0  exp(\uc0\u8722 
+\f1\i ra
+\f4\i0 ) (i.e., Gamma with shape parameter 1).\
+The boundary condition must be one of 
+\f3\fs18 "none"
+\f4\fs20 , 
+\f3\fs18 "periodic"
+\f4\fs20 , 
+\f3\fs18 "reflecting"
+\f4\fs20 , 
+\f3\fs18 "stopping"
+\f4\fs20 , or 
+\f3\fs18 "reprising"
+\f4\fs20 .  For 
+\f3\fs18 "none"
+\f4\fs20 , no boundary condition is enforced; the deviated points are simply returned as is.  For 
+\f3\fs18 "periodic"
+\f4\fs20 , 
+\f3\fs18 "reflecting"
+\f4\fs20 , and 
+\f3\fs18 "stopping"
+\f4\fs20 , the boundary condition is enforced just as it is by the 
+\f3\fs18 pointPeriodic()
+\f4\fs20 , 
+\f3\fs18 pointReflected()
+\f4\fs20 , and 
+\f3\fs18 pointStopped()
+\f4\fs20  methods; see their documentation for further details.  For 
+\f3\fs18 "reprising"
+\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.\
+In the typical usage case, 
+\f3\fs18 point
+\f4\fs20  comes from the 
+\f3\fs18 spatialPosition
+\f4\fs20  property for a vector of individuals, and the result is then set back onto the same vector of individuals using the 
+\f3\fs18 setSpatialPosition()
+\f4\fs20  method; however, this method might be useful in other situations too.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(logical)pointInBounds(float\'a0point)

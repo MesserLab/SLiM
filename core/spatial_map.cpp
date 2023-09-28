@@ -255,6 +255,7 @@ void SpatialMap::_ValuesChanged(void)
 	// Reassesses our minimum and maximum values
 	values_min_ = values_max_ = values_[0];
 	
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t values_index = 1; values_index < values_size_; ++values_index)
 	{
 		double value = values_[values_index];
@@ -696,6 +697,7 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 	double *kernel_values = kernel.values_;
 	double *new_values_ptr = new_values;
 	
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t a = 0; a < dim_a; ++a)
 	{
 		double coverage = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
@@ -754,6 +756,7 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 	double *kernel_values = kernel.values_;
 	double *new_values_ptr = new_values;
 	
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t b = 0; b < dim_b; ++b)
 	{
 		double coverage_b = ((b == 0) || (b == dim_b - 1)) ? 0.5 : 1.0;
@@ -829,6 +832,7 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 	double *kernel_values = kernel.values_;
 	double *new_values_ptr = new_values;
 	
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t c = 0; c < dim_c; ++c)
 	{
 		double coverage_c = ((c == 0) || (c == dim_c - 1)) ? 0.5 : 1.0;
@@ -1027,6 +1031,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 	{
 		double add_scalar = x_value->FloatAtIndex(0, nullptr);
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] += add_scalar;
 	}
@@ -1038,6 +1043,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 		if (!IsCompatibleWithMap(add_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_add): add() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] += add_map_values[i];
 	}
@@ -1058,6 +1064,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 	{
 		double multiply_scalar = x_value->FloatAtIndex(0, nullptr);
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] *= multiply_scalar;
 	}
@@ -1069,6 +1076,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 		if (!IsCompatibleWithMap(multiply_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_multiply): multiply() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] *= multiply_map_values[i];
 	}
@@ -1089,6 +1097,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 	{
 		double subtract_scalar = x_value->FloatAtIndex(0, nullptr);
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] -= subtract_scalar;
 	}
@@ -1100,6 +1109,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 		if (!IsCompatibleWithMap(subtract_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_subtract): subtract() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] -= subtract_map_values[i];
 	}
@@ -1120,6 +1130,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 	{
 		double divide_scalar = x_value->FloatAtIndex(0, nullptr);
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] /= divide_scalar;
 	}
@@ -1131,6 +1142,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 		if (!IsCompatibleWithMap(divide_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_divide): divide() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] /= divide_map_values[i];
 	}
@@ -1151,6 +1163,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 	{
 		double power_scalar = x_value->FloatAtIndex(0, nullptr);
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] = pow(values_[i], power_scalar);
 	}
@@ -1162,6 +1175,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 		if (!IsCompatibleWithMap(power_map))
 			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
 		
+		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] = pow(values_[i], power_map_values[i]);
 	}
@@ -1176,6 +1190,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t i = 0; i < values_size_; ++i)
 		values_[i] = exp(values_[i]);
 	
@@ -1278,6 +1293,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				if (!new_values)
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
+				// FIXME: TO BE PARALLELIZED
 				for (int64_t a = 0; a < dim_a; ++a)
 				{
 					point_vec[0] = a / (double)(dim_a - 1);
@@ -1298,6 +1314,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				if (!new_values)
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
+				// FIXME: TO BE PARALLELIZED
 				for (int64_t b = 0; b < dim_b; ++b)
 				{
 					point_vec[1] = b / (double)(dim_b - 1);
@@ -1324,6 +1341,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				if (!new_values)
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
+				// FIXME: TO BE PARALLELIZED
 				for (int64_t c = 0; c < dim_c; ++c)
 				{
 					point_vec[2] = c / (double)(dim_c - 1);
@@ -1382,6 +1400,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				
 				gsl_spline_init(spline, x, y, grid_size_[0]);
 				
+				// FIXME: TO BE PARALLELIZED
 				for (int64_t a = 0; a < dim_a; ++a)
 					*(new_values_ptr++) = gsl_spline_eval(spline, a * scale, acc);
 				
@@ -1428,6 +1447,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				
 				gsl_spline2d_init(spline, x, y, z, grid_size_[0], grid_size_[1]);
 				
+				// FIXME: TO BE PARALLELIZED
 				for (int64_t b = 0; b < dim_b; ++b)
 					for (int64_t a = 0; a < dim_a; ++a)
 						*(new_values_ptr++) = gsl_spline2d_eval(spline, a * scale, b * scale, xacc, yacc);
@@ -1734,6 +1754,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	
 	if (spatiality_ == 1)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]
@@ -1763,6 +1784,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	}
 	else if (spatiality_ == 2)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]
@@ -1802,6 +1824,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	}
 	else // (spatiality_ == 3)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]
@@ -1879,6 +1902,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	
 	if (spatiality_ == 1)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]
@@ -1908,6 +1932,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	}
 	else if (spatiality_ == 2)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]
@@ -1942,6 +1967,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	}
 	else // (spatiality_ == 3)
 	{
+		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
 			// scale point coordinates to [0, 1]

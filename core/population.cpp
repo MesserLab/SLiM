@@ -1467,6 +1467,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 							species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 						}
 						
+						// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+						new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
+						
 						DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
 						DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, mutation_callbacks);
 					}
@@ -1536,6 +1539,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						// TREE SEQUENCE RECORDING
 						if (recording_tree_sequence)
 							species_.SetCurrentNewIndividual(new_child);
+						
+						// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+						new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
 						
 						// recombination, gene-conversion, mutation
 						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
@@ -1623,6 +1629,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
 						species_.SetCurrentNewIndividual(new_child);
+					
+					// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+					new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
@@ -1916,6 +1925,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						species_.RecordNewGenome(nullptr, &child_genome_2, &parent_genome_2, nullptr);
 					}
 					
+					// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+					new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop->parent_individuals_[parent1]);
+					
 					DoClonalMutation(source_subpop, child_genome_1, parent_genome_1, child_sex, mutation_callbacks);
 					DoClonalMutation(source_subpop, child_genome_2, parent_genome_2, child_sex, mutation_callbacks);
 				}
@@ -1985,6 +1997,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					// TREE SEQUENCE RECORDING
 					if (recording_tree_sequence)
 						species_.SetCurrentNewIndividual(new_child);
+					
+					// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+					new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop->parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
 					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
@@ -2183,6 +2198,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									//if (recording_tree_sequence)
 									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
 									
+									// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+									new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
+									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
@@ -2220,6 +2238,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
 									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									
+									// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+									new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
@@ -2278,6 +2299,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 										}
 									}
 									
+									// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+									new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
+									
 									DoClonalMutation(&source_subpop, child_genome_1, parent_genome_1, child_sex, nullptr);
 									DoClonalMutation(&source_subpop, child_genome_2, parent_genome_2, child_sex, nullptr);
 								}
@@ -2331,6 +2355,9 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									// TREE SEQUENCE RECORDING
 									//if (recording_tree_sequence)
 									//	species_.SetCurrentNewIndividual(new_child);	// this is disabled because it is not thread-safe, and we have no callbacks so we will not retract this child
+									
+									// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
+									new_child->InheritSpatialPosition(species_.spatial_dimensionality_, source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
 									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);

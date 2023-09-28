@@ -84,13 +84,20 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	{
 		k_type = SpatialKernelType::kFixed;
 		expected_k_param_count = (p_expect_max_density ? 1 : 0);
+		
+		// BCH 9/26/2023: Adding this restriction because it is required for the DrawDisplacement_SX() methods.
+		// It makes sense – a kernel that doesn't fall off with distance at all shouldn't have infinite extent.
+		// For totalOfNeighborStrengths(), for example, this would become simply a count of all interacting
+		// individuals across the whole landscape - it is no longer really a spatial query at all.
+		if (std::isinf(max_distance_))
+			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'f' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (k_type_string.compare(gStr_l) == 0)
 	{
 		k_type = SpatialKernelType::kLinear;
 		expected_k_param_count = (p_expect_max_density ? 1 : 0);
 		
-		if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
+		if (std::isinf(max_distance_))
 			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'l' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (k_type_string.compare(gStr_e) == 0)
@@ -247,6 +254,7 @@ void SpatialKernel::CalculateGridValues(SpatialMap &p_map)
 		{
 			int64_t kernel_offset_a = dim[0] / 2;	// rounds down
 			
+			// FIXME: TO BE PARALLELIZED
 			for (int64_t a = 0; a < dim[0]; ++a)
 			{
 				double distance = (a - kernel_offset_a) * pixels_to_spatial_a_;
@@ -261,6 +269,7 @@ void SpatialKernel::CalculateGridValues(SpatialMap &p_map)
 			int64_t kernel_offset_a = dim[0] / 2;	// rounds down
 			int64_t kernel_offset_b = dim[1] / 2;	// rounds down
 			
+			// FIXME: TO BE PARALLELIZED
 			for (int64_t a = 0; a < dim[0]; ++a)
 			{
 				double dist_a = (a - kernel_offset_a) * pixels_to_spatial_a_;
@@ -285,6 +294,7 @@ void SpatialKernel::CalculateGridValues(SpatialMap &p_map)
 			int64_t kernel_offset_b = dim[1] / 2;	// rounds down
 			int64_t kernel_offset_c = dim[2] / 2;	// rounds down
 			
+			// FIXME: TO BE PARALLELIZED
 			for (int64_t a = 0; a < dim[0]; ++a)
 			{
 				double dist_a = (a - kernel_offset_a) * pixels_to_spatial_a_;
