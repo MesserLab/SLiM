@@ -4519,7 +4519,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 		}
 		
 		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
-		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent);
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
 		
 		if (defer)
 		{
@@ -4681,7 +4681,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCrossed(EidosGlobalStringID p_meth
 			species_.SetCurrentNewIndividual(individual);
 		
 		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
-		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent1);
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent1);
 		
 		if (defer)
 		{
@@ -5202,7 +5202,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		// Note that, unlike other addX() methods, the first parent is not necessarily defined; in that case, the
 		// spatial position of the offspring is left uninitialized.
 		if (pedigree_parent1)
-			individual->InheritSpatialPosition(species_.spatial_dimensionality_, pedigree_parent1);
+			individual->InheritSpatialPosition(species_.SpatialDimensionality(), pedigree_parent1);
 		
 		// Construct the first child genome, depending upon whether recombination is requested, etc.
 		if (strand1)
@@ -5528,7 +5528,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addSelfed(EidosGlobalStringID p_metho
 			species_.SetCurrentNewIndividual(individual);
 		
 		// BCH 9/26/2023: inherit the spatial position of the first parent by default, to set up for pointDeviated()
-		individual->InheritSpatialPosition(species_.spatial_dimensionality_, parent);
+		individual->InheritSpatialPosition(species_.SpatialDimensionality(), parent);
 		
 		if (defer)
 		{
