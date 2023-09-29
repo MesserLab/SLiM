@@ -476,6 +476,36 @@ bool SpatialMap::IsCompatibleWithMap(SpatialMap *p_map)
 	return true;
 }
 
+bool SpatialMap::IsCompatibleWithValue(EidosValue *p_value)
+{
+	// This checks that the dimensions of a vector/matrix/array are compatible with the spatial map
+	if (p_value->Count() != values_size_)
+		return false;
+	
+	if (p_value->DimensionCount() != spatiality_)
+		return false;
+	
+	const int64_t *values_dim = p_value->Dimensions();
+	
+	// Matrices and arrays use dim[0] as the number of rows, and dim[1] as the number of cols; spatial maps do the opposite,
+	// following standard image conventions (by row, not by column); we therefore need to swap grid_size_[0] and grid_size_[1]
+	switch (spatiality_)
+	{
+		case 1:
+			return true;
+		case 2:
+			if ((values_dim[0] != grid_size_[1]) || (values_dim[1] != grid_size_[0]))
+				return false;
+			break;
+		case 3:
+			if ((values_dim[0] != grid_size_[1]) || (values_dim[1] != grid_size_[0]) || (values_dim[2] != grid_size_[2]))
+				return false;
+			break;
+	}
+	
+	return true;
+}
+
 double SpatialMap::ValueAtPoint_S1(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
@@ -1020,12 +1050,23 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	}
 }
 
-//	*********************	- (object<SpatialMap>)add(ifo<SpatialMap>$ x)
+//	*********************	- (object<SpatialMap>)add(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_add): add() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_add", "add()");
+		x_value = spatialmap_temp.get();
+	}
 	
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
@@ -1041,7 +1082,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 		double *add_map_values = add_map->values_;
 		
 		if (!IsCompatibleWithMap(add_map))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_add): add() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_add): add() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
@@ -1053,12 +1094,23 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
 
-//	*********************	- (object<SpatialMap>)multiply(ifo<SpatialMap>$ x)
+//	*********************	- (object<SpatialMap>)multiply(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_multiply): multiply() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_multiply", "multiply()");
+		x_value = spatialmap_temp.get();
+	}
 	
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
@@ -1074,7 +1126,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 		double *multiply_map_values = multiply_map->values_;
 		
 		if (!IsCompatibleWithMap(multiply_map))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_multiply): multiply() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_multiply): multiply() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
@@ -1086,12 +1138,23 @@ EidosValue_SP SpatialMap::ExecuteMethod_multiply(EidosGlobalStringID p_method_id
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
 
-//	*********************	- (object<SpatialMap>)subtract(ifo<SpatialMap>$ x)
+//	*********************	- (object<SpatialMap>)subtract(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_subtract): subtract() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_subtract", "subtract()");
+		x_value = spatialmap_temp.get();
+	}
 	
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
@@ -1107,7 +1170,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 		double *subtract_map_values = subtract_map->values_;
 		
 		if (!IsCompatibleWithMap(subtract_map))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_subtract): subtract() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_subtract): subtract() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
@@ -1119,12 +1182,23 @@ EidosValue_SP SpatialMap::ExecuteMethod_subtract(EidosGlobalStringID p_method_id
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
 
-//	*********************	- (object<SpatialMap>)divide(ifo<SpatialMap>$ x)
+//	*********************	- (object<SpatialMap>)divide(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_divide): divide() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_divide", "divide()");
+		x_value = spatialmap_temp.get();
+	}
 	
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
@@ -1140,7 +1214,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 		double *divide_map_values = divide_map->values_;
 		
 		if (!IsCompatibleWithMap(divide_map))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_divide): divide() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_divide): divide() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
@@ -1152,12 +1226,23 @@ EidosValue_SP SpatialMap::ExecuteMethod_divide(EidosGlobalStringID p_method_id, 
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
 }
 
-//	*********************	- (object<SpatialMap>)power(ifo<SpatialMap>$ x)
+//	*********************	- (object<SpatialMap>)power(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *x_value = p_arguments[0].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_power", "power()");
+		x_value = spatialmap_temp.get();
+	}
 	
 	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
 	{
@@ -1173,7 +1258,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_power(EidosGlobalStringID p_method_id, c
 		double *power_map_values = power_map->values_;
 		
 		if (!IsCompatibleWithMap(power_map))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resultion)." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_power): power() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
 		
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
@@ -2053,6 +2138,27 @@ EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, 
 #pragma mark Object instantiation
 #pragma mark -
 
+// called internally to create a temporary spatial map from a vector/matrix/array, to perform an operation
+// first it copies the target spatial map, to get things like bounds etc.; then it copies values in from p_argument
+EidosValue_SP SpatialMap::_DeriveTemporarySpatialMapWithEidosValue(EidosValue *p_argument, std::string p_code_name, std::string p_eidos_name)
+{
+	if (!IsCompatibleWithValue(p_argument))
+		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " the dimensionality and grid dimensions of the supplied vector/matrix/array must match those of the target map (i.e., must be conformable)." << EidosTerminate();
+	
+	// make a duplicate of this SpatialMap
+	SpatialMap *objectElement = new SpatialMap("__tempmap__INTERNAL__", *this);
+	EidosValue_SP result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gSLiM_SpatialMap_Class));
+	
+	// objectElement is now retained by result_SP, so we can release it
+	objectElement->Release();
+	
+	// copy in values from p_argument
+	objectElement->TakeValuesFromEidosValue(p_argument, "SpatialMap::_DeriveTemporarySpatialMapWithEidosValue", "(internal error)");
+	
+	return result_SP;
+}
+
+
 //	(object<SpatialMap>$)SpatialMap(...)
 //	(object<SpatialMap>$)SpatialMap(string$ name, object<SpatialMap>$ map)
 static EidosValue_SP SLiM_Instantiate_SpatialMap(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
@@ -2116,11 +2222,11 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_add, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_multiply, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subtract, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_divide, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_power, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject | kEidosValueMaskSingleton, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_add, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_multiply, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subtract, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_divide, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_power, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_exp, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddNumeric("values"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_gridValues, kEidosValueMaskFloat)));

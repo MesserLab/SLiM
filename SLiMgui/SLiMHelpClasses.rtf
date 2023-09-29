@@ -5714,7 +5714,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\i0\fs18 \cf2 \'96\'a0(object<SpatialMap>$)add(ifo<SpatialMap>$\'a0x)\
+\f3\i0\fs18 \cf2 \'96\'a0(object<SpatialMap>$)add(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Adds 
@@ -5727,9 +5727,17 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f3\fs18 float
 \f4\fs20  value; in this case, 
 \f3\fs18 x
-\f4\fs20  is added to each grid value of the target spatial map.  The other possibility is that 
+\f4\fs20  is added to each grid value of the target spatial map.  Another possibility is that 
 \f3\fs18 x
-\f4\fs20  is itself a spatial map; in this case, each grid value of 
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is added to the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
 \f3\fs18 x
 \f4\fs20  is added to the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5748,7 +5756,7 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20 .\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)divide(ifo<SpatialMap>$\'a0x)\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)divide(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Divides the spatial map by 
@@ -5761,9 +5769,17 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f3\fs18 float
 \f4\fs20  value; in this case, each grid value of the target spatial map is divided by 
 \f3\fs18 x
-\f4\fs20 .  The other possibility is that 
+\f4\fs20 .  Another possibility is that 
 \f3\fs18 x
-\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is divided by the corresponding grid value of 
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is divided by the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is divided by the corresponding grid value of 
 \f3\fs18 x
 \f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6013,7 +6029,7 @@ The
 \f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)multiply(ifo<SpatialMap>$\'a0x)\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)multiply(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Multiplies the spatial map by 
@@ -6026,14 +6042,22 @@ The
 \f3\fs18 float
 \f4\fs20  value; in this case, each grid value of the target spatial map is multiplied by 
 \f3\fs18 x
-\f4\fs20 .  The other possibility is that 
+\f4\fs20 .  Another possibility is that 
 \f3\fs18 x
-\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is multiplied by the corresponding grid value of 
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is multiplied by the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is multiplied by the corresponding grid value of 
 \f3\fs18 x
 \f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)power(ifo<SpatialMap>$\'a0x)\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)power(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Raises the spatial map to the power 
@@ -6046,9 +6070,17 @@ The
 \f3\fs18 float
 \f4\fs20  value; in this case, each grid value of the target spatial map is raised to the power 
 \f3\fs18 x
-\f4\fs20 .  The other possibility is that 
+\f4\fs20 .  Another possibility is that 
 \f3\fs18 x
-\f4\fs20  is itself a spatial map; in this case, each grid value of the target spatial map is raised to power of the corresponding grid value of 
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is raised to the power of the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is raised to power of the corresponding grid value of 
 \f3\fs18 x
 \f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6171,7 +6203,7 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f4\fs20 , does not require specification of the maximum value of the kernel.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)subtract(ifo<SpatialMap>$\'a0x)\
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)subtract(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Subtracts 
@@ -6184,9 +6216,17 @@ The density scale of the kernel has no effect and will be normalized; this is th
 \f3\fs18 float
 \f4\fs20  value; in this case, 
 \f3\fs18 x
-\f4\fs20  is subtracted from each grid value of the target spatial map.  The other possibility is that 
+\f4\fs20  is subtracted from each grid value of the target spatial map.  Another possibility is that 
 \f3\fs18 x
-\f4\fs20  is itself a spatial map; in this case, each grid value of 
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is subtracted from the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
 \f3\fs18 x
 \f4\fs20  is subtracted from the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
