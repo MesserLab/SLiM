@@ -3703,7 +3703,9 @@ This method replaces the
 \f3\fs18 receiver
 \f4\fs20 , which must be singleton in the default mode of operation (but see below).  The probability of drawing particular individuals is proportional to the strength of interaction they exert upon 
 \f3\fs18 receiver
-\f4\fs20 .  All exerters must belong to a single subpopulation (but not necessarily the same subpopulation as 
+\f4\fs20  (which is zero for 
+\f3\fs18 receiver
+\f4\fs20  itself).  All exerters must belong to a single subpopulation (but not necessarily the same subpopulation as 
 \f3\fs18 receiver
 \f4\fs20 ).  The 
 \f3\fs18 evaluate()
@@ -3804,7 +3806,7 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f3\fs18 exerterSubpop
 \f4\fs20  (or, if that is 
 \f3\fs18 NULL
-\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method counts the number of individuals which can exert an interaction upon each receiver.  All of the receivers must belong to a single subpopulation, and all of the exerters must belong to a single subpopulation, but those two subpopulations do not need to be the same.  The 
+\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method counts the number of individuals which can exert an interaction upon each receiver (which does not include the receiver itself).  All of the receivers must belong to a single subpopulation, and all of the exerters must belong to a single subpopulation, but those two subpopulations do not need to be the same.  The 
 \f3\fs18 evaluate()
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.\
 This method is similar to 
@@ -3827,8 +3829,6 @@ Note that this method uses interaction eligibility as a criterion; it will not c
 \f3\fs18 receiver
 \f4\fs20  and individuals in 
 \f3\fs18 exerters
-\f4\fs20  that exert an interaction strength upon 
-\f3\fs18 receiver
 \f4\fs20 .  If 
 \f3\fs18 exerters
 \f4\fs20  is 
@@ -4204,7 +4204,9 @@ The interaction function for an interaction type is normally a constant in simul
 \f3\fs18 receiver
 \f4\fs20  (including 
 \f3\fs18 receiver
-\f4\fs20  itself) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.  Otherwise, all individuals in 
+\f4\fs20  itself, with a strength of 
+\f3\fs18 0.0
+\f4\fs20 ) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.  Otherwise, all individuals in 
 \f3\fs18 exerters
 \f4\fs20  must belong to a single subpopulation (but not necessarily the same subpopulation as 
 \f3\fs18 receiver
