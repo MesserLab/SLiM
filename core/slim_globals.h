@@ -958,6 +958,7 @@ extern const std::string &gStr_divide;
 extern const std::string &gStr_subtract;
 extern const std::string &gStr_power;
 extern const std::string &gStr_exp;
+extern const std::string &gStr_changeColors;
 extern const std::string &gStr_changeValues;
 extern const std::string &gStr_gridValues;
 extern const std::string &gStr_mapColor;
@@ -1351,6 +1352,7 @@ enum _SLiMGlobalStringID : int {
 	gID_divide,
 	gID_power,
 	gID_exp,
+	gID_changeColors,
 	gID_changeValues,
 	gID_gridValues,
 	gID_mapColor,

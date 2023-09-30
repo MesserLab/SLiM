@@ -5744,6 +5744,50 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  is added to the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(void)changeColors([Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Changes the color scheme for the target spatial map.  The meaning of 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  are identical to their meaning in 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , but are also described here.\
+The 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  parameters travel together; either both are 
+\f3\fs18 NULL
+\f4\fs20 , or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
+\f3\fs18 mapColor()
+\f4\fs20  method.  The 
+\f3\fs18 valueRange
+\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
+\f3\fs18 colors
+\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
+\f3\fs18 valueRange
+\f4\fs20 : values less than or equal to 
+\f3\fs18 valueRange[0]
+\f4\fs20  will map to 
+\f3\fs18 colors[0]
+\f4\fs20 , values greater than or equal to 
+\f3\fs18 valueRange[1]
+\f4\fs20  will map to the last 
+\f3\fs18 colors
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
+If 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  are both 
+\f3\fs18 NULL
+\f4\fs20 , a default grayscale color scheme will be used in SLiMgui, but an error will result if 
+\f3\fs18 mapColor()
+\f4\fs20  is called.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)changeValues(numeric\'a0values)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

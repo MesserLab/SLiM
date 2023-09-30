@@ -78,9 +78,9 @@ public:
 	
 	int n_colors_;						// the number of color values given to map across the min/max value range
 	double colors_min_, colors_max_;	// min/max for our color gradient
-	float *red_components_;				// OWNED POINTER: red components, n_colors_ in size, from min to max value
-	float *green_components_;			// OWNED POINTER: green components, n_colors_ in size, from min to max value
-	float *blue_components_;			// OWNED POINTER: blue components, n_colors_ in size, from min to max value
+	float *red_components_ = nullptr;	// OWNED POINTER: red components, n_colors_ in size, from min to max value
+	float *green_components_ = nullptr;	// OWNED POINTER: green components, n_colors_ in size, from min to max value
+	float *blue_components_ = nullptr;	// OWNED POINTER: blue components, n_colors_ in size, from min to max value
 	
 #if defined(SLIMGUI)
 	uint8_t *display_buffer_ = nullptr;	// OWNED POINTER: used by SLiMgui, contains RGB values for pixels in the PopulationView
@@ -94,6 +94,7 @@ public:
 	SpatialMap(std::string p_name, SpatialMap &p_original);
 	~SpatialMap(void);
 	
+	void TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, std::string p_code_name, std::string p_eidos_name);
 	void TakeValuesFromEidosValue(EidosValue *p_values, std::string p_code_name, std::string p_eidos_name);
 	void TakeOverMallocedValues(double *p_values, int64_t p_dimcount, int64_t *p_dimensions);
 	bool IsCompatibleWithSubpopulation(Subpopulation *p_subpop);
@@ -126,6 +127,7 @@ public:
 	EidosValue_SP ExecuteMethod_divide(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_power(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_exp(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_changeColors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_changeValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_gridValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_interpolate(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);

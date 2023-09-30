@@ -126,60 +126,7 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() spatiality \"" << spatiality_string_ << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << EidosTerminate();
 	
 	TakeValuesFromEidosValue(p_values, "SpatialMap::SpatialMap", "defineSpatialMap()");
-	
-	// Make our color map
-	const double *values_float_vec_ptr = (p_values->Type() == EidosValueType::kValueFloat) ? p_values->FloatVector()->data() : nullptr;
-	const int64_t *values_integer_vec_ptr = (p_values->Type() == EidosValueType::kValueInt) ? p_values->IntVector()->data() : nullptr;
-	
-	assert(values_float_vec_ptr || values_integer_vec_ptr);
-	
-	bool range_is_null = (p_value_range->Type() == EidosValueType::kValueNULL);
-	bool colors_is_null = (p_colors->Type() == EidosValueType::kValueNULL);
-	
-	n_colors_ = 0;
-	
-	if (!range_is_null || !colors_is_null)
-	{
-		if (range_is_null || colors_is_null)
-			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
-		
-		if (p_value_range->Count() != 2)
-			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
-		
-		// valueRange and colors were provided, so use them for coloring
-		colors_min_ = p_value_range->FloatAtIndex(0, nullptr);
-		colors_max_ = p_value_range->FloatAtIndex(1, nullptr);
-		
-		if (!std::isfinite(colors_min_) || !std::isfinite(colors_max_) || (colors_min_ > colors_max_))
-			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() valueRange must be finite, and min <= max is required." << EidosTerminate();
-		
-		n_colors_ = p_colors->Count();
-		
-		if (n_colors_ < 2)
-			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() colors must be of length >= 2." << EidosTerminate();
-	}
-	
-	// Allocate buffers to hold our color component vectors, if we were supplied with color info
-	if (n_colors_ > 0)
-	{
-		red_components_ = (float *)malloc(n_colors_ * sizeof(float));
-		green_components_ = (float *)malloc(n_colors_ * sizeof(float));
-		blue_components_ = (float *)malloc(n_colors_ * sizeof(float));
-		
-		if (!red_components_ || !green_components_ || !blue_components_)
-			EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		const std::string *colors_vec_ptr = p_colors->StringVector()->data();
-		
-		for (int colors_index = 0; colors_index < n_colors_; ++colors_index)
-			Eidos_GetColorComponents(colors_vec_ptr[colors_index], red_components_ + colors_index, green_components_ + colors_index, blue_components_ + colors_index);
-	}
-	else
-	{
-		red_components_ = nullptr;
-		green_components_ = nullptr;
-		blue_components_ = nullptr;
-	}
+	TakeColorsFromEidosValues(p_value_range, p_colors, "SpatialMap::SpatialMap", "defineSpatialMap()");
 }
 
 SpatialMap::SpatialMap(std::string p_name, SpatialMap &p_original) :
@@ -275,6 +222,63 @@ void SpatialMap::_ValuesChanged(void)
 	// there is not a clear need for them, and this simplifies things
 	if (!std::isfinite(values_min_) || !std::isfinite(values_max_))
 		EIDOS_TERMINATION << "ERROR (SpatialMap::_ValuesChanged): non-finite values (infinities, NANs) are not allowed in SpatialMap." << EidosTerminate();
+}
+
+void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, std::string p_code_name, std::string p_eidos_name)
+{
+	// Make our color map
+	bool range_is_null = (p_value_range->Type() == EidosValueType::kValueNULL);
+	bool colors_is_null = (p_colors->Type() == EidosValueType::kValueNULL);
+	
+	n_colors_ = 0;
+	
+	if (!range_is_null || !colors_is_null)
+	{
+		if (range_is_null || colors_is_null)
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " valueRange and colors must either both be supplied, or neither supplied." << EidosTerminate();
+		
+		if (p_value_range->Count() != 2)
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " valueRange must be exactly length 2 (giving the min and max value permitted)." << EidosTerminate();
+		
+		// valueRange and colors were provided, so use them for coloring
+		colors_min_ = p_value_range->FloatAtIndex(0, nullptr);
+		colors_max_ = p_value_range->FloatAtIndex(1, nullptr);
+		
+		if (!std::isfinite(colors_min_) || !std::isfinite(colors_max_) || (colors_min_ > colors_max_))
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " valueRange must be finite, and min <= max is required." << EidosTerminate();
+		
+		n_colors_ = p_colors->Count();
+		
+		if (n_colors_ < 2)
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " colors must be of length >= 2." << EidosTerminate();
+	}
+	
+	// Allocate buffers to hold our color component vectors, if we were supplied with color info
+	if (n_colors_ > 0)
+	{
+		red_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		green_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		blue_components_ = (float *)malloc(n_colors_ * sizeof(float));
+		
+		if (!red_components_ || !green_components_ || !blue_components_)
+			EIDOS_TERMINATION << "ERROR (" << p_code_name << "): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		const std::string *colors_vec_ptr = p_colors->StringVector()->data();
+		
+		for (int colors_index = 0; colors_index < n_colors_; ++colors_index)
+			Eidos_GetColorComponents(colors_vec_ptr[colors_index], red_components_ + colors_index, green_components_ + colors_index, blue_components_ + colors_index);
+	}
+	else
+	{
+		free(red_components_);
+		free(green_components_);
+		free(blue_components_);
+		red_components_ = nullptr;
+		green_components_ = nullptr;
+		blue_components_ = nullptr;
+	}
+	
+	_ValuesChanged();
 }
 
 void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_code_name, std::string p_eidos_name)
@@ -1036,6 +1040,7 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_divide:				return ExecuteMethod_divide(p_method_id, p_arguments, p_interpreter);
 		case gID_power:					return ExecuteMethod_power(p_method_id, p_arguments, p_interpreter);
 		case gID_exp:					return ExecuteMethod_exp(p_method_id, p_arguments, p_interpreter);
+		case gID_changeColors:			return ExecuteMethod_changeColors(p_method_id, p_arguments, p_interpreter);
 		case gID_changeValues:			return ExecuteMethod_changeValues(p_method_id, p_arguments, p_interpreter);
 		case gID_gridValues:			return ExecuteMethod_gridValues(p_method_id, p_arguments, p_interpreter);
 		case gID_interpolate:			return ExecuteMethod_interpolate(p_method_id, p_arguments, p_interpreter);
@@ -1282,6 +1287,19 @@ EidosValue_SP SpatialMap::ExecuteMethod_exp(EidosGlobalStringID p_method_id, con
 	_ValuesChanged();
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (void)changeColors([Nif valueRange = NULL], [Ns color = NULL])
+//
+EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *value_range = p_arguments[0].get();
+	EidosValue *colors = p_arguments[1].get();
+	
+	TakeColorsFromEidosValues(value_range, colors, "SpatialMap::ExecuteMethod_changeColors", "changeColors()");
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	- (void)changeValues(numeric values)
@@ -2228,6 +2246,7 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_divide, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_power, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_exp, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddNumeric("values"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_gridValues, kEidosValueMaskFloat)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));

@@ -1370,6 +1370,7 @@ const std::string &gStr_subtract = EidosRegisteredString("subtract", gID_subtrac
 const std::string &gStr_divide = EidosRegisteredString("divide", gID_divide);
 const std::string &gStr_power = EidosRegisteredString("power", gID_power);
 const std::string &gStr_exp = EidosRegisteredString("exp", gID_exp);
+const std::string &gStr_changeColors = EidosRegisteredString("changeColors", gID_changeColors);
 const std::string &gStr_changeValues = EidosRegisteredString("changeValues", gID_changeValues);
 const std::string &gStr_gridValues = EidosRegisteredString("gridValues", gID_gridValues);
 const std::string &gStr_mapColor = EidosRegisteredString("mapColor", gID_mapColor);
