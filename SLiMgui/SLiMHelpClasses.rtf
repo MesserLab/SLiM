@@ -5744,6 +5744,45 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  is added to the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)blend(ifo<SpatialMap>\'a0x, float$\'a0xFraction)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Blends 
+\f3\fs18 x
+\f4\fs20  into the spatial map, giving 
+\f3\fs18 x
+\f4\fs20  a weight of 
+\f3\fs18 xFraction
+\f4\fs20  and the existing values in the target spatial map a weight of 
+\f3\fs18 1 - xFraction
+\f4\fs20 , such that the resulting values in the target spatial map are then given by 
+\f3\fs18 x\'a0*\'a0xFraction + target\'a0*\'a0(1\'a0-\'a0xFraction)
+\f4\fs20 .  The value of 
+\f3\fs18 xFraction
+\f4\fs20  must be in [0.0, 1.0].\
+One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is blended with each grid value of the target spatial map.  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is blended with the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is blended with the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(void)changeColors([Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

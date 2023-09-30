@@ -953,6 +953,7 @@ extern const std::string &gStr_spatialMapColor;
 extern const std::string &gStr_spatialMapImage;
 extern const std::string &gStr_spatialMapValue;
 extern const std::string &gStr_add;
+extern const std::string &gStr_blend;
 extern const std::string &gStr_multiply;
 extern const std::string &gStr_divide;
 extern const std::string &gStr_subtract;
@@ -1347,6 +1348,7 @@ enum _SLiMGlobalStringID : int {
 	gID_spatialMapImage,
 	gID_spatialMapValue,
 	gID_add,
+	gID_blend,
 	gID_multiply,
 	gID_subtract,
 	gID_divide,

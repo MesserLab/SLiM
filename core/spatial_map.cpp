@@ -1035,6 +1035,7 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 	switch (p_method_id)
 	{
 		case gID_add:					return ExecuteMethod_add(p_method_id, p_arguments, p_interpreter);
+		case gID_blend:					return ExecuteMethod_blend(p_method_id, p_arguments, p_interpreter);
 		case gID_multiply:				return ExecuteMethod_multiply(p_method_id, p_arguments, p_interpreter);
 		case gID_subtract:				return ExecuteMethod_subtract(p_method_id, p_arguments, p_interpreter);
 		case gID_divide:				return ExecuteMethod_divide(p_method_id, p_arguments, p_interpreter);
@@ -1092,6 +1093,57 @@ EidosValue_SP SpatialMap::ExecuteMethod_add(EidosGlobalStringID p_method_id, con
 		// FIXME: TO BE PARALLELIZED
 		for (int64_t i = 0; i < values_size_; ++i)
 			values_[i] += add_map_values[i];
+	}
+	
+	_ValuesChanged();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
+//	*********************	- (object<SpatialMap>)blend(ifo<SpatialMap> x, float$ xFraction)
+//
+EidosValue_SP SpatialMap::ExecuteMethod_blend(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *xFraction_value = p_arguments[1].get();
+	EidosValue_SP spatialmap_temp;
+	
+	if (x_value->Count() > 1)
+	{
+		if (x_value->Type() == EidosValueType::kValueObject)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_blend): blend() requires x to be a singleton if it is of type object (i.e., a singleton SpatialMap)." << EidosTerminate();
+		
+		// handle a vector/matrix/array parameter by converting it to a spatial map and then following that code path
+		spatialmap_temp = _DeriveTemporarySpatialMapWithEidosValue(x_value, "SpatialMap::ExecuteMethod_add", "add()");
+		x_value = spatialmap_temp.get();
+	}
+	
+	double xFraction = xFraction_value->FloatAtIndex(0, nullptr);
+	double targetFraction = 1 - xFraction;
+	
+	if ((xFraction < 0.0) || (xFraction > 1.0))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_blend): blend() requires xFraction to be in [0.0, 1.0]." << EidosTerminate();
+	
+	if ((x_value->Type() == EidosValueType::kValueInt) || (x_value->Type() == EidosValueType::kValueFloat))
+	{
+		double blend_scalar = x_value->FloatAtIndex(0, nullptr);
+		
+		// FIXME: TO BE PARALLELIZED
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] = blend_scalar * xFraction + values_[i] * targetFraction;
+	}
+	else
+	{
+		SpatialMap *blend_map = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		double *blend_map_values = blend_map->values_;
+		
+		if (!IsCompatibleWithMap(blend_map))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_blend): blend() requires the target SpatialMap to be compatible with the SpatialMap supplied in x (using the same spatiality and bounds, and having the same grid resolution)." << EidosTerminate();
+		
+		// FIXME: TO BE PARALLELIZED
+		for (int64_t i = 0; i < values_size_; ++i)
+			values_[i] = blend_map_values[i] * xFraction + values_[i] * targetFraction;
 	}
 	
 	_ValuesChanged();
@@ -2241,6 +2293,7 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods = new std::vector<EidosMethodSignature_CSP>(*super::Methods());
 		
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_add, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_blend, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class)->AddFloat_S("xFraction"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_multiply, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_subtract, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_divide, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
