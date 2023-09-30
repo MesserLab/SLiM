@@ -1377,6 +1377,7 @@ const std::string &gStr_gridValues = EidosRegisteredString("gridValues", gID_gri
 const std::string &gStr_mapColor = EidosRegisteredString("mapColor", gID_mapColor);
 const std::string &gStr_mapImage = EidosRegisteredString("mapImage", gID_mapImage);
 const std::string &gStr_mapValue = EidosRegisteredString("mapValue", gID_mapValue);
+const std::string &gStr_rescale = EidosRegisteredString("rescale", gID_rescale);
 const std::string &gStr_sampleImprovedNearbyPoint = EidosRegisteredString("sampleImprovedNearbyPoint", gID_sampleImprovedNearbyPoint);
 const std::string &gStr_sampleNearbyPoint = EidosRegisteredString("sampleNearbyPoint", gID_sampleNearbyPoint);
 const std::string &gStr_smooth = EidosRegisteredString("smooth", gID_smooth);

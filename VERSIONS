@@ -155,7 +155,7 @@ development head (in the master branch):
 	tweak WF reproduction, addCrossed(), addSelfed(), addCloned(), and addRecombinant() to give the new offspring the same spatial position as the first parent, allowing efficient positioning with pointDeviated() in the typical usage case
 	policy change: type 'f' kernels now require a finite maxDistance, since the alternative doesn't really make sense (note that type 'l' already required a finite maxDistance)
 	new option in the Individuals view for spatial models, to display the underlying grid points of the spatial map
-	add changeColors() and blend() methods to SpatialMap
+	add changeColors(), blend(), and rescale() methods to SpatialMap; extend changeValues() so it can take a SpatialMap as its parameter
 	
 
 version 4.0.1 (Eidos version 3.0.1):

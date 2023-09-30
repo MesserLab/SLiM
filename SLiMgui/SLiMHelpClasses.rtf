@@ -5827,12 +5827,14 @@ If
 \f4\fs20  is called.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \'96\'a0(void)changeValues(numeric\'a0values)\
+\f3\fs18 \cf2 \'96\'a0(void)changeValues(ifo<SpatialMap>\'a0x)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Changes the grid values used for the target spatial map.  The 
-\f3\fs18 values
-\f4\fs20  parameter should be a vector, matrix, or array of numeric values as described in the documentation for 
+\f4\fs20 \cf2 Changes the grid values used for the target spatial map.  The parameter 
+\f3\fs18 x
+\f4\fs20  should be either a 
+\f3\fs18 SpatialMap
+\f4\fs20  object from which values are taken directly, or a vector, matrix, or array of numeric values as described in the documentation for 
 \f3\fs18 defineSpatialMap()
 \f4\fs20 .  Other characteristics of the spatial map, such as its color mapping (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
 \f3\fs18 defineSpatialMap()
@@ -5939,7 +5941,13 @@ If
 \f3\fs18 "linear"
 \f4\fs20 , but it is not supported for 3D maps.  The choice of interpolation method used here is independent of the map\'92s 
 \f3\fs18 interpolate
-\f4\fs20  property.\
+\f4\fs20  property.  Note that while the 
+\f3\fs18 "nearest"
+\f4\fs20  and 
+\f3\fs18 "linear"
+\f4\fs20  interpolation methods will leave the range of values in the map unchanged, 
+\f3\fs18 "cubic"
+\f4\fs20  interpolation may produce interpolated values that are outside the original range of values (by design).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
@@ -6178,6 +6186,28 @@ The
 \f4\fs20  vector of length 
 \f3\fs18 2
 \f4\fs20 ; the first element is the minimum map value, and the second element is the maximum map value.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)rescale([numeric$\'a0min\'a0=\'a00.0], [numeric$\'a0max\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Rescales the values of the spatial map to the range [
+\f3\fs18 min
+\f4\fs20 , 
+\f3\fs18 max
+\f4\fs20 ].  By default, the rescaling is to the range [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ].  It is required that 
+\f3\fs18 min
+\f4\fs20  be less than 
+\f3\fs18 max
+\f4\fs20 , and that both be finite.  Note that the final range may not be exactly [
+\f3\fs18 min
+\f4\fs20 , 
+\f3\fs18 max
+\f4\fs20 ] due to numerical error.  The target spatial map is returned, to allow easy chaining of operations.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)sampleImprovedNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\

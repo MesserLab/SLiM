@@ -480,6 +480,23 @@ bool SpatialMap::IsCompatibleWithMap(SpatialMap *p_map)
 	return true;
 }
 
+bool SpatialMap::IsCompatibleWithMapValues(SpatialMap *p_map)
+{
+	// This checks that grid value dimensions are compatible between the spatial map and a given spatial map
+	if (grid_size_[0] != p_map->grid_size_[0])
+		return false;
+	if ((spatiality_ >= 2) && (grid_size_[1] != p_map->grid_size_[1]))
+		return false;
+	if ((spatiality_ >= 3) && (grid_size_[2] != p_map->grid_size_[2]))
+		return false;
+	
+	// this one should never be true if the above were all false, but it's a safety check
+	if (values_size_ != p_map->values_size_)
+		return false;
+	
+	return true;
+}
+
 bool SpatialMap::IsCompatibleWithValue(EidosValue *p_value)
 {
 	// This checks that the dimensions of a vector/matrix/array are compatible with the spatial map
@@ -1049,6 +1066,7 @@ EidosValue_SP SpatialMap::ExecuteInstanceMethod(EidosGlobalStringID p_method_id,
 		case gID_mapImage:				return ExecuteMethod_mapImage(p_method_id, p_arguments, p_interpreter);
 		case gID_mapValue:				return ExecuteMethod_mapValue(p_method_id, p_arguments, p_interpreter);
 		case gEidosID_range:			return ExecuteMethod_range(p_method_id, p_arguments, p_interpreter);
+		case gID_rescale:				return ExecuteMethod_rescale(p_method_id, p_arguments, p_interpreter);
 		case gID_sampleImprovedNearbyPoint:		return ExecuteMethod_sampleImprovedNearbyPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_sampleNearbyPoint:		return ExecuteMethod_sampleNearbyPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_smooth:				return ExecuteMethod_smooth(p_method_id, p_arguments, p_interpreter);
@@ -1354,14 +1372,41 @@ EidosValue_SP SpatialMap::ExecuteMethod_changeColors(EidosGlobalStringID p_metho
 	return gStaticEidosValueVOID;
 }
 
-//	*********************	- (void)changeValues(numeric values)
+//	*********************	- (void)changeValues(ifo<SpatialMap> x)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_changeValues(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue *values = p_arguments[0].get();
+	EidosValue *x_value = p_arguments[0].get();
 	
-	TakeValuesFromEidosValue(values, "SpatialMap::ExecuteMethod_changeValues", "changeValues()");
+	if (x_value->Type() == EidosValueType::kValueObject)
+	{
+		if (x_value->Count() != 1)
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_changeValues): changeValues() requires that if x is of type object, it must be a singleton SpatialMap." << EidosTerminate();
+		
+		// If passed a SpatialMap object, we copy its values directly
+		SpatialMap *x = (SpatialMap *)x_value->ObjectElementAtIndex(0, nullptr);
+		
+		if (IsCompatibleWithMapValues(x))
+		{
+			memcpy(values_, x->values_, values_size_ * sizeof(double));
+		}
+		else
+		{
+			grid_size_[0] = x->grid_size_[0];
+			grid_size_[1] = x->grid_size_[1];
+			grid_size_[2] = x->grid_size_[2];
+			values_size_ = x->values_size_;
+			values_ = (double *)realloc(values_, values_size_ * sizeof(double));
+			memcpy(values_, x->values_, values_size_ * sizeof(double));
+		}
+		
+		_ValuesChanged();
+	}
+	else
+	{
+		TakeValuesFromEidosValue(x_value, "SpatialMap::ExecuteMethod_changeValues", "changeValues()");
+	}
 	
 	return gStaticEidosValueVOID;
 }
@@ -1876,6 +1921,35 @@ EidosValue_SP SpatialMap::ExecuteMethod_range(EidosGlobalStringID p_method_id, c
 	return EidosValue_SP(float_result);
 }
 
+//	*********************	- (object<SpatialMap>)rescale([numeric$ min = 0.0], [numeric$ max = 1.0])
+//
+EidosValue_SP SpatialMap::ExecuteMethod_rescale(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *min_value = p_arguments[0].get();
+	EidosValue *max_value = p_arguments[1].get();
+	
+	double min = min_value->FloatAtIndex(0, nullptr);
+	double max = max_value->FloatAtIndex(0, nullptr);
+	
+	if (!std::isfinite(min) || !std::isfinite(max) || (min >= max))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_rescale): rescale() requires that min and max are finite, and that min < max." << EidosTerminate(nullptr);
+	
+	if (values_max_ == values_min_)
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_rescale): rescale() requires that the current map values have a non-zero range width (i.e., a maximum value that is greater than the minimum value)." << EidosTerminate(nullptr);
+	
+	// rescale from our current range [values_min_, values_max_] to the new range [min, max]
+	double old_range_width = values_max_ - values_min_;
+	double new_range_width = max - min;
+	
+	for (int64_t i = 0; i < values_size_; ++i)
+		values_[i] = ((values_[i] - values_min_) / old_range_width) * new_range_width + min;
+	
+	_ValuesChanged();
+	
+	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_SpatialMap_Class));
+}
+
 //	*********************	- (float)sampleImprovedNearbyPoint(float point, float$ maxDistance, string$ functionType, ...)
 //
 EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -2300,13 +2374,14 @@ const std::vector<EidosMethodSignature_CSP> *SpatialMap_Class::Methods(void) con
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_power, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_exp, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeColors, kEidosValueMaskVOID))->AddNumeric_ON("valueRange", gStaticEidosValueNULL)->AddString_ON("colors", gStaticEidosValueNULL));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddNumeric("values"));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_changeValues, kEidosValueMaskVOID))->AddArg(kEidosValueMaskNumeric | kEidosValueMaskObject, "x", gSLiM_SpatialMap_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_gridValues, kEidosValueMaskFloat)));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_interpolate, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddInt_S("factor")->AddString_OS("method", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("linear"))));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapColor, kEidosValueMaskString))->AddNumeric("value"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapImage, kEidosValueMaskObject | kEidosValueMaskSingleton, gEidosImage_Class))->AddInt_OSN(gEidosStr_width, gStaticEidosValueNULL)->AddInt_OSN(gEidosStr_height, gStaticEidosValueNULL)->AddLogical_OS("centers", gStaticEidosValue_LogicalF)->AddLogical_OS(gEidosStr_color, gStaticEidosValue_LogicalT));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_mapValue, kEidosValueMaskFloat))->AddFloat("point"));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gEidosStr_range, kEidosValueMaskFloat)));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_rescale, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddNumeric_OS("min", gStaticEidosValue_Float0)->AddNumeric_OS("max", gStaticEidosValue_Float1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleImprovedNearbyPoint, kEidosValueMaskFloat))->AddFloat("point")->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_sampleNearbyPoint, kEidosValueMaskFloat))->AddFloat("point")->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_smooth, kEidosValueMaskObject | kEidosValueMaskSingleton, gSLiM_SpatialMap_Class))->AddFloat_S("maxDistance")->AddString_S("functionType")->AddEllipsis());
