@@ -63,6 +63,7 @@ public:
 	std::string spatiality_string_;		// "x", "y", "z", "xy", "xz", "yz", or "xyz": the spatial dimensions for the map
 	int spatiality_;					// 1, 2, or 3 for 1D, 2D, or 3D: the number of spatial dimensions
 	int spatiality_type_;				// 1=="x", 2=="y", 3=="z", 4=="xy", 5=="yz", 6=="xz", 7=="xyz"
+	bool periodic_a_, periodic_b_, periodic_c_;		// periodic boundary flags for spatiality dimensions a/b/c
 	
 	int required_dimensionality_;		// 1, 2, or 3 for the dimensionality we require; enough to encompass spatiality_type_
 	

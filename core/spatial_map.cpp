@@ -49,6 +49,9 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 1;
 		spatiality_ = 1;
 		spatiality_type_ = 1;
+		p_subpop->species_.SpatialPeriodicity(&periodic_a_, nullptr, nullptr);
+		periodic_b_ = false;
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_x0_;
 		bounds_a1_ = p_subpop->bounds_x1_;
 		bounds_b0_ = 0;
@@ -60,6 +63,9 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 2;
 		spatiality_ = 1;
 		spatiality_type_ = 2;
+		p_subpop->species_.SpatialPeriodicity(nullptr, &periodic_a_, nullptr);
+		periodic_b_ = false;
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_y0_;
 		bounds_a1_ = p_subpop->bounds_y1_;
 		bounds_b0_ = 0;
@@ -71,6 +77,9 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 3;
 		spatiality_ = 1;
 		spatiality_type_ = 3;
+		p_subpop->species_.SpatialPeriodicity(nullptr, nullptr, &periodic_a_);
+		periodic_b_ = false;
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_z0_;
 		bounds_a1_ = p_subpop->bounds_z1_;
 		bounds_b0_ = 0;
@@ -82,6 +91,8 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 2;
 		spatiality_ = 2;
 		spatiality_type_ = 4;
+		p_subpop->species_.SpatialPeriodicity(&periodic_a_, &periodic_b_, nullptr);
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_x0_;
 		bounds_a1_ = p_subpop->bounds_x1_;
 		bounds_b0_ = p_subpop->bounds_y0_;
@@ -93,6 +104,8 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 3;
 		spatiality_ = 2;
 		spatiality_type_ = 5;
+		p_subpop->species_.SpatialPeriodicity(&periodic_a_, nullptr, &periodic_b_);
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_x0_;
 		bounds_a1_ = p_subpop->bounds_x1_;
 		bounds_b0_ = p_subpop->bounds_z0_;
@@ -104,6 +117,8 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 3;
 		spatiality_ = 2;
 		spatiality_type_ = 6;
+		p_subpop->species_.SpatialPeriodicity(nullptr, &periodic_a_, &periodic_b_);
+		periodic_c_ = false;
 		bounds_a0_ = p_subpop->bounds_y0_;
 		bounds_a1_ = p_subpop->bounds_y1_;
 		bounds_b0_ = p_subpop->bounds_z0_;
@@ -115,6 +130,7 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		required_dimensionality_ = 3;
 		spatiality_ = 3;
 		spatiality_type_ = 7;
+		p_subpop->species_.SpatialPeriodicity(&periodic_a_, &periodic_b_, &periodic_c_);
 		bounds_a0_ = p_subpop->bounds_x0_;
 		bounds_a1_ = p_subpop->bounds_x1_;
 		bounds_b0_ = p_subpop->bounds_y0_;
@@ -130,7 +146,7 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 }
 
 SpatialMap::SpatialMap(std::string p_name, SpatialMap &p_original) :
-	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), values_min_(p_original.values_min_), values_max_(p_original.values_max_), n_colors_(p_original.n_colors_), colors_min_(p_original.colors_min_), colors_max_(p_original.colors_max_)
+	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), periodic_a_(p_original.periodic_a_), periodic_b_(p_original.periodic_b_), periodic_c_(p_original.periodic_c_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), values_min_(p_original.values_min_), values_max_(p_original.values_max_), n_colors_(p_original.n_colors_), colors_min_(p_original.colors_min_), colors_max_(p_original.colors_max_)
 {
 	// Note that this does not copy the information from EidosDictionaryRetained, and it leaves tag unset
 	// This is intentional (that is very instance-specific state that should arguably not be copied)
@@ -401,23 +417,29 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 {
 	// This checks that spatiality/dimensionality and bounds are compatible between the spatial map and a given subpopulation
 	int spatial_dimensionality = p_subpop->species_.SpatialDimensionality();
+	bool subpop_periodic_x, subpop_periodic_y, subpop_periodic_z;
+	
+	p_subpop->species_.SpatialPeriodicity(&subpop_periodic_x, &subpop_periodic_y, &subpop_periodic_z);
 	
 	if (spatiality_type_ == 1) {			// "x"
 		if ((required_dimensionality_ > spatial_dimensionality) ||
 			(bounds_a0_ != p_subpop->bounds_x0_) ||
-			(bounds_a1_ != p_subpop->bounds_x1_))
+			(bounds_a1_ != p_subpop->bounds_x1_) ||
+			(periodic_a_ != subpop_periodic_x))
 			return false;
 	}
 	else if (spatiality_type_ == 2) {		// "y"
 		if ((required_dimensionality_ > spatial_dimensionality) ||
 			(bounds_a0_ != p_subpop->bounds_y0_) ||
-			(bounds_a1_ != p_subpop->bounds_y1_))
+			(bounds_a1_ != p_subpop->bounds_y1_) ||
+			(periodic_a_ != subpop_periodic_y))
 			return false;
 	}
 	else if (spatiality_type_ == 3) {		// "z"
 		if ((required_dimensionality_ > spatial_dimensionality) ||
 			(bounds_a0_ != p_subpop->bounds_z0_) ||
-			(bounds_a1_ != p_subpop->bounds_z1_))
+			(bounds_a1_ != p_subpop->bounds_z1_) ||
+			(periodic_a_ != subpop_periodic_z))
 			return false;
 	}
 	else if (spatiality_type_ == 4) {		// "xy"
@@ -425,7 +447,9 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 			(bounds_a0_ != p_subpop->bounds_x0_) ||
 			(bounds_a1_ != p_subpop->bounds_x1_) ||
 			(bounds_b0_ != p_subpop->bounds_y0_) ||
-			(bounds_b1_ != p_subpop->bounds_y1_))
+			(bounds_b1_ != p_subpop->bounds_y1_) ||
+			(periodic_a_ != subpop_periodic_x) ||
+			(periodic_b_ != subpop_periodic_y))
 			return false;
 	}
 	else if (spatiality_type_ == 5) {		// "xz"
@@ -433,7 +457,9 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 			(bounds_a0_ != p_subpop->bounds_x0_) ||
 			(bounds_a1_ != p_subpop->bounds_x1_) ||
 			(bounds_b0_ != p_subpop->bounds_z0_) ||
-			(bounds_b1_ != p_subpop->bounds_z1_))
+			(bounds_b1_ != p_subpop->bounds_z1_) ||
+			(periodic_a_ != subpop_periodic_x) ||
+			(periodic_b_ != subpop_periodic_z))
 			return false;
 	}
 	else if (spatiality_type_ == 6) {		// "yz"
@@ -441,7 +467,9 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 			(bounds_a0_ != p_subpop->bounds_y0_) ||
 			(bounds_a1_ != p_subpop->bounds_y1_) ||
 			(bounds_b0_ != p_subpop->bounds_z0_) ||
-			(bounds_b1_ != p_subpop->bounds_z1_))
+			(bounds_b1_ != p_subpop->bounds_z1_) ||
+			(periodic_a_ != subpop_periodic_y) ||
+			(periodic_b_ != subpop_periodic_z))
 			return false;
 	}
 	else if (spatiality_type_ == 7) {		// "xyz"
@@ -451,7 +479,10 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 			(bounds_b0_ != p_subpop->bounds_y0_) ||
 			(bounds_b1_ != p_subpop->bounds_y1_) ||
 			(bounds_c0_ != p_subpop->bounds_z0_) ||
-			(bounds_c1_ != p_subpop->bounds_z1_))
+			(bounds_c1_ != p_subpop->bounds_z1_) ||
+			(periodic_a_ != subpop_periodic_x) ||
+			(periodic_b_ != subpop_periodic_y) ||
+			(periodic_c_ != subpop_periodic_z))
 			return false;
 	}
 	
@@ -460,8 +491,10 @@ bool SpatialMap::IsCompatibleWithSubpopulation(Subpopulation *p_subpop)
 
 bool SpatialMap::IsCompatibleWithMap(SpatialMap *p_map)
 {
-	// This checks that spatiality/dimensionality and bounds are compatible between the spatial map and a given spatial map
+	// This checks that spatiality/dimensionality/periodicity and bounds are compatible between the spatial map and a given spatial map
 	if ((spatiality_ != p_map->spatiality_) || (spatiality_type_ != p_map->spatiality_type_))
+		return false;
+	if ((periodic_a_ != p_map->periodic_a_) || (periodic_b_ != p_map->periodic_b_) || (periodic_c_ != p_map->periodic_c_))
 		return false;
 	
 	if ((bounds_a0_ != p_map->bounds_a0_) || (bounds_a1_ != p_map->bounds_a1_) || (grid_size_[0] != p_map->grid_size_[0]))
@@ -530,6 +563,7 @@ bool SpatialMap::IsCompatibleWithValue(EidosValue *p_value)
 double SpatialMap::ValueAtPoint_S1(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	// Note that this does NOT handle periodicity; it is assumed that the point has already been brought in bounds
 	assert (spatiality_ == 1);
 	
 	double x_fraction = p_point[0];
@@ -558,6 +592,7 @@ double SpatialMap::ValueAtPoint_S1(double *p_point)
 double SpatialMap::ValueAtPoint_S2(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	// Note that this does NOT handle periodicity; it is assumed that the point has already been brought in bounds
 	assert (spatiality_ == 2);
 	
 	double x_fraction = p_point[0];
@@ -596,6 +631,7 @@ double SpatialMap::ValueAtPoint_S2(double *p_point)
 double SpatialMap::ValueAtPoint_S3(double *p_point)
 {
 	// This looks up the value at point, which is in coordinates that have been normalized and clamped to [0,1]
+	// Note that this does NOT handle periodicity; it is assumed that the point has already been brought in bounds
 	assert (spatiality_ == 3);
 	
 	double x_fraction = p_point[0];
@@ -751,7 +787,7 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 	// FIXME: TO BE PARALLELIZED
 	for (int64_t a = 0; a < dim_a; ++a)
 	{
-		double coverage = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+		double coverage = (!periodic_a_ && ((a == 0) || (a == dim_a - 1))) ? 0.5 : 1.0;
 		
 		// calculate the kernel's effect at point (a)
 		double kernel_total = 0.0;
@@ -761,9 +797,18 @@ void SpatialMap::Convolve_S1(SpatialKernel &kernel)
 		{
 			int64_t conv_a = a + kernel_a + kernel_a_offset;
 			
-			// clip to bounds
+			// clip/wrap to bounds
 			if ((conv_a < 0) || (conv_a >= dim_a))
-				continue;
+			{
+				if (!periodic_a_)
+					continue;
+				
+				// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+				while (conv_a < 0)
+					conv_a += (dim_a - 1);	// move -1 to dim - 2
+				while (conv_a >= dim_a)
+					conv_a -= (dim_a - 1);	// move dim to 1
+			}
 			
 			// this point is within bounds; add it in to the totals
 			double kernel_value = kernel_values[kernel_a] * coverage;
@@ -810,11 +855,11 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 	// FIXME: TO BE PARALLELIZED
 	for (int64_t b = 0; b < dim_b; ++b)
 	{
-		double coverage_b = ((b == 0) || (b == dim_b - 1)) ? 0.5 : 1.0;
+		double coverage_b = (!periodic_b_ && ((b == 0) || (b == dim_b - 1))) ? 0.5 : 1.0;
 		
 		for (int64_t a = 0; a < dim_a; ++a)
 		{
-			double coverage_a = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+			double coverage_a = (!periodic_a_ && ((a == 0) || (a == dim_a - 1))) ? 0.5 : 1.0;
 			double coverage = coverage_a * coverage_b;					// handles partial coverage at the edges of the spatial map
 			
 			// calculate the kernel's effect at point (a,b)
@@ -827,7 +872,16 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 				
 				// handle bounds: either clip or wrap
 				if ((conv_a < 0) || (conv_a >= dim_a))
-					continue;
+				{
+					if (!periodic_a_)
+						continue;
+					
+					// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+					while (conv_a < 0)
+						conv_a += (dim_a - 1);	// move -1 to dim - 2
+					while (conv_a >= dim_a)
+						conv_a -= (dim_a - 1);	// move dim to 1
+				}
 				
 				for (int64_t kernel_b = 0; kernel_b < kernel_dim_b; kernel_b++)
 				{
@@ -835,7 +889,16 @@ void SpatialMap::Convolve_S2(SpatialKernel &kernel)
 					
 					// handle bounds: either clip or wrap
 					if ((conv_b < 0) || (conv_b >= dim_b))
-						continue;
+					{
+						if (!periodic_b_)
+							continue;
+						
+						// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+						while (conv_b < 0)
+							conv_b += (dim_b - 1);	// move -1 to dim - 2
+						while (conv_b >= dim_b)
+							conv_b -= (dim_b - 1);	// move dim to 1
+					}
 					
 					// this point is within bounds; add it in to the totals
 					double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a] * coverage;
@@ -886,15 +949,15 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 	// FIXME: TO BE PARALLELIZED
 	for (int64_t c = 0; c < dim_c; ++c)
 	{
-		double coverage_c = ((c == 0) || (c == dim_c - 1)) ? 0.5 : 1.0;
+		double coverage_c = (!periodic_c_ && ((c == 0) || (c == dim_c - 1))) ? 0.5 : 1.0;
 		
 		for (int64_t b = 0; b < dim_b; ++b)
 		{
-			double coverage_b = ((b == 0) || (b == dim_b - 1)) ? 0.5 : 1.0;
+			double coverage_b = (!periodic_b_ && ((b == 0) || (b == dim_b - 1))) ? 0.5 : 1.0;
 			
 			for (int64_t a = 0; a < dim_a; ++a)
 			{
-				double coverage_a = ((a == 0) || (a == dim_a - 1)) ? 0.5 : 1.0;
+				double coverage_a = (!periodic_a_ && ((a == 0) || (a == dim_a - 1))) ? 0.5 : 1.0;
 				double coverage = coverage_a * coverage_b * coverage_c;			// handles partial coverage at the edges of the spatial map
 				
 				// calculate the kernel's effect at point (a,b,c)
@@ -907,7 +970,16 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 					
 					// handle bounds: either clip or wrap
 					if ((conv_a < 0) || (conv_a >= dim_a))
-						continue;
+					{
+						if (!periodic_a_)
+							continue;
+						
+						// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+						while (conv_a < 0)
+							conv_a += (dim_a - 1);	// move -1 to dim - 2
+						while (conv_a >= dim_a)
+							conv_a -= (dim_a - 1);	// move dim to 1
+					}
 					
 					for (int64_t kernel_b = 0; kernel_b < kernel_dim_b; kernel_b++)
 					{
@@ -915,7 +987,16 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 						
 						// handle bounds: either clip or wrap
 						if ((conv_b < 0) || (conv_b >= dim_b))
-							continue;
+						{
+							if (!periodic_b_)
+								continue;
+							
+							// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+							while (conv_b < 0)
+								conv_b += (dim_b - 1);	// move -1 to dim - 2
+							while (conv_b >= dim_b)
+								conv_b -= (dim_b - 1);	// move dim to 1
+						}
 						
 						for (int64_t kernel_c = 0; kernel_c < kernel_dim_c; kernel_c++)
 						{
@@ -923,7 +1004,16 @@ void SpatialMap::Convolve_S3(SpatialKernel &kernel)
 							
 							// handle bounds: either clip or wrap
 							if ((conv_c < 0) || (conv_c >= dim_c))
-								continue;
+							{
+								if (!periodic_c_)
+									continue;
+								
+								// periodicity: assume the two edges have identical values, skip over the edge value on the opposite side
+								while (conv_c < 0)
+									conv_c += (dim_c - 1);	// move -1 to dim - 2
+								while (conv_c >= dim_c)
+									conv_c -= (dim_c - 1);	// move dim to 1
+							}
 							
 							// this point is within bounds; add it in to the totals
 							double kernel_value = kernel_values[kernel_a + kernel_b * kernel_dim_a + kernel_c * kernel_dim_a * kernel_dim_b] * coverage;
@@ -1572,12 +1662,18 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 	else	// method == 3
 	{
 		// This is cubic/bicubic interpolation; we use the GSL to do this for us
+		// Require all/nothing for periodicity
+		if (((spatiality_ == 2) && (periodic_a_ != periodic_b_)) ||
+			((spatiality_ == 3) && ((periodic_a_ != periodic_b_) || (periodic_a_ != periodic_c_))))
+			EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): interpolate() currently requires the spatial map to be either entirely non-periodic, or entirely periodic, for 'cubic' interpolation." << EidosTerminate(nullptr);
+		
+		bool periodic = periodic_a_;	// now guaranteed to apply to all dimensions
+		
 		switch (spatiality_)
 		{
 			case 1:
 			{
 				// cubic interpolation
-				// FIXME should correctly handle periodic boundaries
 				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1;
 				double *new_values = (double *)malloc(dim_a * sizeof(double));
 				double *x = (double *)malloc(grid_size_[0] * sizeof(double));
@@ -1594,7 +1690,8 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				}
 				
 				gsl_interp_accel *acc = gsl_interp_accel_alloc();
-				gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, grid_size_[0]);
+				auto interpolation_type = periodic ? gsl_interp_cspline_periodic : gsl_interp_cspline;
+				gsl_spline *spline = gsl_spline_alloc(interpolation_type, grid_size_[0]);
 				double *new_values_ptr = new_values;
 				double scale = 1.0 / factor;
 				
@@ -1615,7 +1712,14 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 			case 2:
 			{
 				// bicubic interpolation
-				// FIXME should correctly handle periodic boundaries
+				// FIXME the GSL does not support 2D periodic boundaries, but we could do it, I think,
+				// by replicating the map data into a 3x3 repeated pattern, doing the interpolation, and
+				// then taking the middle.  Not unreasonable, but I will wait until someone requests it.
+				// When this is done, note that one of the periodic edges in each dimension must be omitted,
+				// since the left/right and top/bottom are (or should be) duplicates.
+				if (periodic)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): bicubic interpolation does not currently support periodic boundaries; please open a feature request if you need this." << EidosTerminate(nullptr);
+				
 				if ((grid_size_[0] < 4) || (grid_size_[1] < 4))
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): bicubic interpolation requires a starting map with a grid size at least 4x4." << EidosTerminate(nullptr);
 				
@@ -1666,7 +1770,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 			case 3:
 			{
 				// tricubic interpolation - not supported by the GSL
-				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): cubic interpolation is not supported for 3D spatial maps." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): cubic interpolation is not currently supported for 3D spatial maps; please open a feature request if you need this." << EidosTerminate(nullptr);
 				break;
 			}
 			default: break;
@@ -1848,6 +1952,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 	{
 		// We need to use the correct spatial bounds for each coordinate, which depends upon our exact spatiality
 		// There is doubtless a way to make this code smarter, but brute force is sometimes best...
+		// Note that we clamp coordinates here, whether they are periodic or not; the caller should use pointPeriodic()
 		double map_value = 0;
 		
 		switch (spatiality_)
@@ -1970,6 +2075,13 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 	if (point_count % spatiality_ != 0)
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
 	
+	// Require all/nothing for periodicity
+	if (((spatiality_ == 2) && (periodic_a_ != periodic_b_)) ||
+		((spatiality_ == 3) && ((periodic_a_ != periodic_b_) || (periodic_a_ != periodic_c_))))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint): sampleImprovedNearbyPoint() currently requires the spatial map to be either entirely non-periodic, or entirely periodic." << EidosTerminate(nullptr);
+	
+	bool periodic = periodic_a_;	// now guaranteed to apply to all dimensions
+	
 	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
 	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
 	const double *point_buf = (point_count == 1) ? &point_singleton : point_vec->data();
@@ -1994,21 +2106,36 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[1];
 			
-			do
+			if (periodic)
 			{
+				// displace the point by a draw from the kernel, then enforce periodic boundaries
 				kernel.DrawDisplacement_S1(displaced_point);
 				displaced_point[0] += point[0];
+				
+				while (displaced_point[0] < 0.0)
+					displaced_point[0] += bounds_a1_;
+				while (displaced_point[0] > bounds_a1_)
+					displaced_point[0] -= bounds_a1_;
 			}
-			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+			else
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S1(displaced_point);
+					displaced_point[0] += point[0];
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+			}
 			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
 			double original_map_value = ValueAtPoint_S1(point);
 			double map_value = ValueAtPoint_S1(displaced_point);
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
-				*(result_ptr++) = displaced_point[0];
+				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
 			else
-				*(result_ptr++) = point[0];
+				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
 		}
 	}
 	else if (spatiality_ == 2)
@@ -2026,14 +2153,35 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[2];
 			
-			do
+			if (periodic)
 			{
+				// displace the point by a draw from the kernel, then enforce periodic boundaries
 				kernel.DrawDisplacement_S2(displaced_point);
 				displaced_point[0] += point[0];
 				displaced_point[1] += point[1];
+				
+				while (displaced_point[0] < 0.0)
+					displaced_point[0] += bounds_a1_;
+				while (displaced_point[0] > bounds_a1_)
+					displaced_point[0] -= bounds_a1_;
+				
+				while (displaced_point[1] < 0.0)
+					displaced_point[1] += bounds_b1_;
+				while (displaced_point[1] > bounds_b1_)
+					displaced_point[1] -= bounds_b1_;
 			}
-			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-				   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+			else
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S2(displaced_point);
+					displaced_point[0] += point[0];
+					displaced_point[1] += point[1];
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+			}
 			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
 			double original_map_value = ValueAtPoint_S2(point);
@@ -2041,13 +2189,13 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
 			{
-				*(result_ptr++) = displaced_point[0];
-				*(result_ptr++) = displaced_point[1];
+				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
 			}
 			else
 			{
-				*(result_ptr++) = point[0];
-				*(result_ptr++) = point[1];
+				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
 			}
 		}
 	}
@@ -2068,16 +2216,43 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[3];
 			
-			do
+			if (periodic)
 			{
+				// displace the point by a draw from the kernel, then enforce periodic boundaries
 				kernel.DrawDisplacement_S3(displaced_point);
 				displaced_point[0] += point[0];
 				displaced_point[1] += point[1];
 				displaced_point[2] += point[2];
+				
+				while (displaced_point[0] < 0.0)
+					displaced_point[0] += bounds_a1_;
+				while (displaced_point[0] > bounds_a1_)
+					displaced_point[0] -= bounds_a1_;
+				
+				while (displaced_point[1] < 0.0)
+					displaced_point[1] += bounds_b1_;
+				while (displaced_point[1] > bounds_b1_)
+					displaced_point[1] -= bounds_b1_;
+				
+				while (displaced_point[2] < 0.0)
+					displaced_point[2] += bounds_c1_;
+				while (displaced_point[2] > bounds_c1_)
+					displaced_point[2] -= bounds_c1_;
 			}
-			while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-				   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
-				   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+			else
+			{
+				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+				do
+				{
+					kernel.DrawDisplacement_S3(displaced_point);
+					displaced_point[0] += point[0];
+					displaced_point[1] += point[1];
+					displaced_point[2] += point[2];
+				}
+				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
+					   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+			}
 			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
 			double original_map_value = ValueAtPoint_S3(point);
@@ -2085,15 +2260,15 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
 			{
-				*(result_ptr++) = displaced_point[0];
-				*(result_ptr++) = displaced_point[1];
-				*(result_ptr++) = displaced_point[2];
+				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+				*(result_ptr++) = displaced_point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
 			}
 			else
 			{
-				*(result_ptr++) = point[0];
-				*(result_ptr++) = point[1];
-				*(result_ptr++) = point[2];
+				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+				*(result_ptr++) = point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
 			}
 		}
 	}
@@ -2117,6 +2292,13 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 	
 	if (point_count % spatiality_ != 0)
 		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() requires the length of point to be a multiple of the spatial map's spatiality (i.e., to contain complete points)." << EidosTerminate(nullptr);
+	
+	// Require all/nothing for periodicity
+	if (((spatiality_ == 2) && (periodic_a_ != periodic_b_)) ||
+		((spatiality_ == 3) && ((periodic_a_ != periodic_b_) || (periodic_a_ != periodic_c_))))
+		EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() currently requires the spatial map to be either entirely non-periodic, or entirely periodic." << EidosTerminate(nullptr);
+	
+	bool periodic = periodic_a_;	// now guaranteed to apply to all dimensions
 	
 	const EidosValue_Float_vector *point_vec = (point_count == 1) ? nullptr : point_value->FloatVector();
 	double point_singleton = (point_count == 1) ? point_value->FloatAtIndex(0, nullptr) : 0.0;
@@ -2144,19 +2326,34 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
-				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
-				do
+				if (periodic)
 				{
+					// displace the point by a draw from the kernel, then enforce periodic boundaries
 					kernel.DrawDisplacement_S1(displaced_point);
 					displaced_point[0] += point_a;
+					
+					while (displaced_point[0] < 0.0)
+						displaced_point[0] += bounds_a1_;
+					while (displaced_point[0] > bounds_a1_)
+						displaced_point[0] -= bounds_a1_;
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+				else
+				{
+					// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+					do
+					{
+						kernel.DrawDisplacement_S1(displaced_point);
+						displaced_point[0] += point_a;
+					}
+					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+				}
 				
 				map_value = ValueAtPoint_S1(displaced_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			*(result_ptr++) = displaced_point[0];
+			// scale point coordinates back to user space
+			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
 		}
 	}
 	else if (spatiality_ == 2)
@@ -2176,22 +2373,43 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
-				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
-				do
+				if (periodic)
 				{
+					// displace the point by a draw from the kernel, then enforce periodic boundaries
 					kernel.DrawDisplacement_S2(displaced_point);
 					displaced_point[0] += point_a;
 					displaced_point[1] += point_b;
+					
+					while (displaced_point[0] < 0.0)
+						displaced_point[0] += bounds_a1_;
+					while (displaced_point[0] > bounds_a1_)
+						displaced_point[0] -= bounds_a1_;
+					
+					while (displaced_point[1] < 0.0)
+						displaced_point[1] += bounds_b1_;
+					while (displaced_point[1] > bounds_b1_)
+						displaced_point[1] -= bounds_b1_;
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+				else
+				{
+					// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+					do
+					{
+						kernel.DrawDisplacement_S2(displaced_point);
+						displaced_point[0] += point_a;
+						displaced_point[1] += point_b;
+					}
+					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+						   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+				}
 				
 				map_value = ValueAtPoint_S2(displaced_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			*(result_ptr++) = displaced_point[0];
-			*(result_ptr++) = displaced_point[1];
+			// scale point coordinates back to user space
+			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+			*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
 		}
 	}
 	else // (spatiality_ == 3)
@@ -2213,25 +2431,52 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
-				// displace the point by a draw from the kernel, looping until the displaced point is in bounds
-				do
+				if (periodic)
 				{
+					// displace the point by a draw from the kernel, then enforce periodic boundaries
 					kernel.DrawDisplacement_S3(displaced_point);
 					displaced_point[0] += point_a;
 					displaced_point[1] += point_b;
 					displaced_point[2] += point_c;
+					
+					while (displaced_point[0] < 0.0)
+						displaced_point[0] += bounds_a1_;
+					while (displaced_point[0] > bounds_a1_)
+						displaced_point[0] -= bounds_a1_;
+					
+					while (displaced_point[1] < 0.0)
+						displaced_point[1] += bounds_b1_;
+					while (displaced_point[1] > bounds_b1_)
+						displaced_point[1] -= bounds_b1_;
+					
+					while (displaced_point[2] < 0.0)
+						displaced_point[2] += bounds_c1_;
+					while (displaced_point[2] > bounds_c1_)
+						displaced_point[2] -= bounds_c1_;
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
-					   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+				else
+				{
+					// displace the point by a draw from the kernel, looping until the displaced point is in bounds
+					do
+					{
+						kernel.DrawDisplacement_S3(displaced_point);
+						displaced_point[0] += point_a;
+						displaced_point[1] += point_b;
+						displaced_point[2] += point_c;
+					}
+					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
+						   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
+						   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+				}
 				
 				map_value = ValueAtPoint_S3(displaced_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			*(result_ptr++) = displaced_point[0];
-			*(result_ptr++) = displaced_point[1];
-			*(result_ptr++) = displaced_point[2];
+			// scale point coordinates back to user space
+			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+			*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+			*(result_ptr++) = displaced_point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
 		}
 	}
 	

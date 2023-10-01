@@ -5947,7 +5947,13 @@ If
 \f3\fs18 "linear"
 \f4\fs20  interpolation methods will leave the range of values in the map unchanged, 
 \f3\fs18 "cubic"
-\f4\fs20  interpolation may produce interpolated values that are outside the original range of values (by design).\
+\f4\fs20  interpolation may produce interpolated values that are outside the original range of values (by design).  Periodic boundaries are currently supported only for 
+\f3\fs18 "nearest"
+\f4\fs20 , 
+\f3\fs18 "linear"
+\f4\fs20 , and 1D 
+\f3\fs18 "cubic"
+\f4\fs20  interpolation.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
@@ -6067,13 +6073,7 @@ If
 \f3\fs18 defineSpatialMap()
 \f4\fs20 ) to translate the coordinates of 
 \f3\fs18 point
-\f4\fs20  into a corresponding map value.  The parameter 
-\f3\fs18 map
-\f4\fs20  may specify the map either as a 
-\f3\fs18 SpatialMap
-\f4\fs20  object, or by its 
-\f3\fs18 string
-\f4\fs20  name; in either case, the map must have been added to the subpopulation.  The length of 
+\f4\fs20  into a corresponding map value.  The length of 
 \f3\fs18 point
 \f4\fs20  must be equal to the spatiality of the spatial map; in other words, for a spatial map with spatiality 
 \f3\fs18 "xz"
@@ -6230,7 +6230,9 @@ Note that unlike
 \f3\fs18 point
 \f4\fs20 , returns a nearby point sampled from a kernel weighted by the spatial map\'92s values.  Only points within the maximum distance of the kernel, 
 \f3\fs18 maxDistance
-\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.\
+\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.  The point returned will be within spatial bounds, respecting periodic boundaries if in effect (so there is no need to call 
+\f3\fs18 pointPeriodic()
+\f4\fs20  on the result).\
 The kernel is specified with a kernel shape, 
 \f3\fs18 functionType
 \f4\fs20 , followed by zero or more ellipsis arguments; see 
@@ -6289,7 +6291,7 @@ The kernel specification is similar to that for the
 \f3\fs18 "e"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
-\f4\fs20  lambda (shape) parameter for a negative exponential function; 
+\f4\fs20  lambda (rate) parameter for a negative exponential function; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
@@ -6310,7 +6312,7 @@ The kernel specification is similar to that for the
 \f4\fs20  class documentation for discussions of these kernel types.\
 Distance metrics specified to this method, such as 
 \f3\fs18 maxDistance
-\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.  Clipping at the edge of the spatial map is done; in particular, the weights of edge and corner grid values are adjusted for their partial (one-half and one-quarter) coverage.\
+\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.  For non-periodic boundaries, clipping at the edge of the spatial map is done; in a 2D map with no periodic boundaries, for example, the weights of edge and corner grid values are adjusted for their partial (one-half and one-quarter) coverage.  For periodic boundaries, the smoothing operation will automatically wrap around based upon the assumption that the grid values at the two connected edges of the periodic boundary have identical values (which they should, since by definition they represent the same position in space).\
 The density scale of the kernel has no effect and will be normalized; this is the reason that 
 \f3\fs18 smooth()
 \f4\fs20 , unlike 
