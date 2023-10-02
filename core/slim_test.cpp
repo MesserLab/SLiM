@@ -368,6 +368,7 @@ int RunSLiMTests(void)
 	_RunSubstitutionTests();
 	_RunSLiMEidosBlockTests();
 	_RunContinuousSpaceTests();
+	_RunSpatialMapTests();
 	_RunNonWFTests();
 	_RunTreeSeqTests(temp_path);
 	_RunNucleotideFunctionTests();

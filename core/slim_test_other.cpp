@@ -994,6 +994,210 @@ void _RunContinuousSpaceTests(void)
 	// Tests of the basic functionality of properties and methods remain in the class tests, however.
 }
 
+#pragma mark Spatial map tests
+void _RunSpatialMapTests(void)
+{
+	//
+	//	1D
+	//
+	std::string prefix_1D = "initialize() { initializeSLiMOptions(dimensionality='x'); } 1 early() { sim.addSubpop('p1', 10); mv1 = runif(11); mv2 = runif(11); m1 = p1.defineSpatialMap('map1', 'x', mv1); m2 = p1.defineSpatialMap('map2', 'x', mv2); ";
+	
+	SLiMAssertScriptStop(prefix_1D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 1.0); if (identical(rep(17.3, 11), m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + rep(17.3, 11)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
+	
+	SLiMAssertScriptRaise(prefix_1D + "m1.changeValues(17.3); }", "must be of size >= 2", __LINE__);
+	SLiMAssertScriptStop(prefix_1D + "mx = rep(17.3, 10); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
+	
+	/* mapImage() only generates 2D images
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=F, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=T, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=F, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=T, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");*/
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(0)); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(1)); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(10)); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_1D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
+	SLiMAssertScriptStop(prefix_1D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+	
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'c', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 't', 2, 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+	
+	//
+	//	2D
+	//
+	std::string prefix_2D = "initialize() { initializeSLiMOptions(dimensionality='xy'); } 1 early() { sim.addSubpop('p1', 10); mv1 = matrix(runif(30), ncol=5); mv2 = matrix(runif(30), ncol=5); m1 = p1.defineSpatialMap('map1', 'xy', mv1); m2 = p1.defineSpatialMap('map2', 'xy', mv2); ";
+	
+	SLiMAssertScriptStop(prefix_2D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 1.0); if (identical(matrix(rep(17.3, 30), ncol=5), m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + matrix(rep(17.3, 30), ncol=5)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
+	
+	SLiMAssertScriptRaise(prefix_2D + "m1.changeValues(17.3); }", "does not match the spatiality", __LINE__);
+	SLiMAssertScriptStop(prefix_2D + "mx = matrix(rep(17.3, 30), ncol=5); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=F, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=T, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=F, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=T, color=F); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(0)); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(2)); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(20)); } ");
+	SLiMAssertScriptRaise(prefix_2D + "m1.mapValue(runif(21)); } ", "must match spatiality", __LINE__);
+	
+	SLiMAssertScriptStop(prefix_2D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
+	
+	SLiMAssertScriptStop(prefix_2D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
+	SLiMAssertScriptStop(prefix_2D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+	
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'c', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 't', 2, 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
+	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+	
+	std::cout << "DONE" << std::endl;
+}
+
 #pragma mark nonWF model tests
 void _RunNonWFTests(void)
 {
