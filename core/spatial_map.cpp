@@ -2047,6 +2047,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_rescale(EidosGlobalStringID p_method_id,
 	double old_range_width = values_max_ - values_min_;
 	double new_range_width = max - min;
 	
+	// FIXME: TO BE PARALLELIZED
 	for (int64_t i = 0; i < values_size_; ++i)
 		values_[i] = ((values_[i] - values_min_) / old_range_width) * new_range_width + min;
 	
