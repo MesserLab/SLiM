@@ -992,6 +992,239 @@ void _RunContinuousSpaceTests(void)
 	// Since these tests are so different from others – spatiality has to be enabled, interactions have to be set up,
 	// etc. – I decided to put them in their own test function, rather than wedging them into the class tests above.
 	// Tests of the basic functionality of properties and methods remain in the class tests, however.
+	
+	// BCH 10/5/2023: I'm not sure what I intended to go here!  This function was empty until now.  But now I've added
+	// the tests below, which test inheritance of position and pointDeviated().  Here's the full model that we test
+	// variants of:
+	
+	/*
+	 initialize() {
+		 // periodic bounds enabled/disabled
+		 initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+		 
+		 // sex enabled/disabled
+		 initializeSex("A");
+	 }
+	 1 early() {
+		 sim.addSubpop("p1", 500);
+		 if (sim.periodicity == "")
+			 p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2));
+		 else
+			 p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2));
+		 p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount));
+		 
+		 // cloning and selfing enabled/disabled
+		 p1.setCloningRate(0.2);
+		 if (!sim.sexEnabled)
+			 p1.setSelfingRate(0.2);
+	 }
+	 early() {
+		 defineGlobal("PARENT_POS", p1.individuals.spatialPosition);
+	 }
+	 // callback present/absent
+	 modifyChild() {
+		 if ((child.x != parent1.x) | (child.y != parent1.y))
+			 stop("child does not match parent!");
+		 return T;
+	 }
+	 late() {
+		 inds = p1.individuals;
+		 pos = inds.spatialPosition;
+		 if (any(match(pos, PARENT_POS) == -1))
+			 stop("child does not match parent!");
+		 
+		 // different boundary conditions and kernels
+		 inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, "reprising", INF, "n", 0.1));
+		 if (!all(p1.pointInBounds(inds.spatialPosition)))
+			 stop("position out of bounds!");
+	 }
+	 10 late() {}
+	 */
+	
+	// This exercises most cases in WF models, although it does not test the code path with migration.
+	
+	for (int sex_enabled = 0; sex_enabled <= 1; ++sex_enabled)
+	{
+		for (int cloning_selfing = 0; cloning_selfing <= 1; ++cloning_selfing)
+		{
+			for (int periodic = 0; periodic <= 1; ++periodic)
+			{
+				for (int callbacks = 0; callbacks <= 1; ++callbacks)
+				{
+					for (int boundary = 0; boundary <= 3; boundary++)
+					{
+						for (int kernel = 0; kernel <= 4; kernel++)
+						{
+							if ((boundary == 3) && (!periodic))
+								continue;
+							
+							std::string model_string = "initialize() { ";
+							
+							if (periodic)
+								model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
+							else
+								model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
+							
+							if (sex_enabled)
+								model_string.append("initializeSex('A'); ");
+							
+							model_string.append("} 1 early() { sim.addSubpop('p1', 500); ");
+							
+							if (periodic)
+								model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
+							else
+								model_string.append("p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2)); ");
+							
+							model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); ");
+							
+							if (cloning_selfing)
+								model_string.append("p1.setCloningRate(0.2); if (!sim.sexEnabled) p1.setSelfingRate(0.2); ");
+							
+							model_string.append("} early() { defineGlobal('PARENT_POS', p1.individuals.spatialPosition); } ");
+							
+							if (callbacks)
+								model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y)) stop('child does not match parent!'); return T; } ");
+							
+							model_string.append("late() { inds = p1.individuals; pos = inds.spatialPosition; ");
+							model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
+							model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
+							
+							switch (boundary)
+							{
+								case 0: model_string.append("'stopping'"); break;
+								case 1: model_string.append("'reflecting'"); break;
+								case 2: model_string.append("'reprising'"); break;
+								case 3: model_string.append("'periodic'"); break;
+							}
+							
+							switch (kernel)
+							{
+								case 0: model_string.append(", 0.1, 'f')); "); break;
+								case 1: model_string.append(", 0.1, 'l')); "); break;
+								case 2: model_string.append(", INF, 'e', 10.0)); "); break;
+								case 3: model_string.append(", INF, 'n', 0.1)); "); break;
+								case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
+							}
+							
+							model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+							model_string.append("} 10 late() {} ");
+							
+							SLiMAssertScriptSuccess(model_string);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// For nonWF models we have a different test model.  This is simpler since there are not so many code paths to check.
+	// Sex doesn't matter, callbacks present/absent doesn't matter, migration doesn't matter, cloning/selfing is tested
+	// in every variant here:
+	
+	/*
+	 initialize() {
+		 initializeSLiMModelType("nonWF");
+		 defineConstant("K", 100);	
+		 
+		 // periodic bounds enabled/disabled
+		 initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+		 
+		 // need genetics so we can use addRecombinant()
+		 initializeMutationType("m1", 0.5, "f", 0.0);
+		 initializeGenomicElementType("g1", m1, 1.0);
+		 initializeGenomicElement(g1, 0, 99999);
+		 initializeMutationRate(1e-7);
+		 initializeRecombinationRate(1e-8);
+	 }
+	 reproduction() {
+		 mate = subpop.sampleIndividuals(1);
+		 o1 = subpop.addCrossed(individual, mate);
+		 o2 = subpop.addCloned(individual);
+		 o3 = subpop.addSelfed(individual);
+		 ig = sample(individual.genomes, 2, F);
+		 mg = sample(mate.genomes, 2, F);
+		 o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(),
+					 mg[0], mg[1], sim.chromosome.drawBreakpoints(),
+					 parent1=individual, parent2=mate);
+		 for (o in c(o1, o2, o3, o4))
+			 if ((o.x != individual.x) | (o.y != individual.y))
+				 stop("child does not match parent!");
+	 }
+	 1 early() {
+		 sim.addSubpop("p1", K);
+		 if (sim.periodicity == "")
+			 p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2));
+		 else
+			 p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2));
+		 p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount));
+	 }
+	 early() {
+		 inds = p1.individuals;
+		 pos = inds.spatialPosition;
+		 
+		 // different boundary conditions and kernels
+		 inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, "reprising", INF, "n", 0.1));
+		 if (!all(p1.pointInBounds(inds.spatialPosition)))
+			 stop("position out of bounds!");
+		 
+		 p1.fitnessScaling = K / p1.individualCount;
+	 }
+	 10 late() {}
+	 */
+	
+	for (int periodic = 0; periodic <= 1; ++periodic)
+	{
+		for (int boundary = 0; boundary <= 3; boundary++)
+		{
+			for (int kernel = 0; kernel <= 4; kernel++)
+			{
+				if ((boundary == 3) && (!periodic))
+					continue;
+				
+				std::string model_string = "initialize() { initializeSLiMModelType('nonWF'); defineConstant('K', 100); ";
+				if (periodic)
+					model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
+				else
+					model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
+				model_string.append("initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeMutationRate(1e-7); initializeRecombinationRate(1e-8); } ");
+				
+				model_string.append("reproduction() { mate = subpop.sampleIndividuals(1); o1 = subpop.addCrossed(individual, mate); o2 = subpop.addCloned(individual); o3 = subpop.addSelfed(individual); ");
+				model_string.append("ig = sample(individual.genomes, 2, F); mg = sample(mate.genomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(), mg[0], mg[1], sim.chromosome.drawBreakpoints(), parent1=individual, parent2=mate); ");
+				model_string.append("for (o in c(o1, o2, o3, o4)) if ((o.x != individual.x) | (o.y != individual.y)) stop('child does not match parent!'); }");
+				
+				model_string.append("1 early() { sim.addSubpop('p1', K); ");
+				if (periodic)
+					model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
+				else
+					model_string.append("p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2)); ");
+				model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); }");
+				
+				model_string.append("early() { inds = p1.individuals; pos = inds.spatialPosition; inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
+				
+				switch (boundary)
+				{
+					case 0: model_string.append("'stopping'"); break;
+					case 1: model_string.append("'reflecting'"); break;
+					case 2: model_string.append("'reprising'"); break;
+					case 3: model_string.append("'periodic'"); break;
+				}
+				
+				switch (kernel)
+				{
+					case 0: model_string.append(", 0.1, 'f')); "); break;
+					case 1: model_string.append(", 0.1, 'l')); "); break;
+					case 2: model_string.append(", INF, 'e', 10.0)); "); break;
+					case 3: model_string.append(", INF, 'n', 0.1)); "); break;
+					case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
+				}
+				
+				model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+				model_string.append("p1.fitnessScaling = K / p1.individualCount; } 10 late() {} ");
+				
+				SLiMAssertScriptSuccess(model_string);
+			}
+		}
+	}
 }
 
 #pragma mark Spatial map tests
@@ -1194,8 +1427,6 @@ void _RunSpatialMapTests(void)
 	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
 	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
 	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
-	
-	std::cout << "DONE" << std::endl;
 }
 
 #pragma mark nonWF model tests

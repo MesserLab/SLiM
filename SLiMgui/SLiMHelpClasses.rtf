@@ -9197,7 +9197,7 @@ The boundary condition must be one of
 \f3\fs18 pointStopped()
 \f4\fs20  methods; see their documentation for further details.  For 
 \f3\fs18 "reprising"
-\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.\
+\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.  Note that absorbing boundaries (for which being out-of-bounds is lethal) would be implemented in script; this method cannot enforce them.\
 In the typical usage case, 
 \f3\fs18 point
 \f4\fs20  comes from the 
