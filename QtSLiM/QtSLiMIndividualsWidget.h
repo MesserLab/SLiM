@@ -37,6 +37,7 @@ class QContextMenuEvent;
 typedef struct {
 	int backgroundType;				// 0 == black, 1 == gray, 2 == white, 3 == named spatial map; if no preference has been set, no entry will exist
 	std::string spatialMapName;		// the name of the spatial map chosen, for backgroundType == 3
+	bool showGridPoints;            // if true show spatial grid points, for backgroundType == 3
 } PopulationViewSettings;
 
 typedef enum {
@@ -89,7 +90,7 @@ protected:
     void drawIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int squareSize);
     
     void cacheDisplayBufferForMapForSubpopulation(SpatialMap *background_map, Subpopulation *subpop);
-    void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop);
+    void _drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints);
     void chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *settings, SpatialMap **returnMap, Subpopulation *subpop);
     void drawSpatialBackgroundInBoundsForSubpopulation(QRect bounds, Subpopulation * subpop, int dimensionality);
     void drawSpatialIndividualsFromSubpopulationInArea(Subpopulation *subpop, QRect bounds, int dimensionality, float *forceColor);

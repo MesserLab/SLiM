@@ -64,7 +64,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nucleotidesToCodons", SLiM_ExecuteFunction_nucleotidesToCodons, kEidosValueMaskInt, "SLiM"))->AddIntString("sequence"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("randomNucleotides", SLiM_ExecuteFunction_randomNucleotides, kEidosValueMaskInt | kEidosValueMaskString, "SLiM"))->AddInt_S("length")->AddNumeric_ON("basis", gStaticEidosValueNULL)->AddString_OS("format", EidosValue_String_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton("string"))));
 		
-		// Population genetics utilities (implemented with Eidos code
+		// Population genetics utilities (implemented with Eidos code)
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcFST", gSLiMSourceCode_calcFST, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("genomes1", gSLiM_Genome_Class)->AddObject("genomes2", gSLiM_Genome_Class)->AddObject_ON("muts", gSLiM_Mutation_Class, gStaticEidosValueNULL)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcVA", gSLiMSourceCode_calcVA, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject("individuals", gSLiM_Individual_Class)->AddIntObject_S("mutType", gSLiM_MutationType_Class));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("calcPairHeterozygosity", gSLiMSourceCode_calcPairHeterozygosity, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM"))->AddObject_S("genome1", gSLiM_Genome_Class)->AddObject_S("genome2", gSLiM_Genome_Class)->AddInt_OSN("start", gStaticEidosValueNULL)->AddInt_OSN("end", gStaticEidosValueNULL)->AddLogical_OS("infiniteSites", gStaticEidosValue_LogicalT));
@@ -79,6 +79,15 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 		// Internal SLiM functions
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_startBenchmark", SLiM_ExecuteFunction__startBenchmark, kEidosValueMaskVOID, "SLiM"))->AddString_S("type"));
 		sim_func_signatures_.emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("_stopBenchmark", SLiM_ExecuteFunction__stopBenchmark, kEidosValueMaskFloat | kEidosValueMaskSingleton, "SLiM")));
+		
+		// ************************************************************************************
+		//
+		//	object instantiation – add in constructors for SLiM classes that have them
+		//	see also EidosInterpreter::BuiltInFunctions(), which this extends
+		//
+		const std::vector<EidosFunctionSignature_CSP> *class_functions = gSLiM_SpatialMap_Class->Functions();
+		
+		sim_func_signatures_.insert(sim_func_signatures_.end(), class_functions->begin(), class_functions->end());
 	}
 	
 	return &sim_func_signatures_;

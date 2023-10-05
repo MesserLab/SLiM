@@ -53,6 +53,7 @@ extern void _RunInteractionTypeTests(void);
 extern void _RunSubstitutionTests(void);
 extern void _RunSLiMEidosBlockTests(void);
 extern void _RunContinuousSpaceTests(void);
+extern void _RunSpatialMapTests(void);
 extern void _RunNonWFTests(void);
 extern void _RunTreeSeqTests(std::string temp_path);
 extern void _RunNucleotideFunctionTests(void);

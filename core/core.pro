@@ -57,7 +57,7 @@ win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../gsl/release/ -lgsl
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../gsl/debug/ -lgsl
 else:unix: LIBS += -L$$OUT_PWD/../gsl/ -lgsl
 INCLUDEPATH += $$PWD/../gsl $$PWD/../gsl/blas $$PWD/../gsl/block $$PWD/../gsl/cblas $$PWD/../gsl/cdf
-INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/linalg $$PWD/../gsl/matrix
+INCLUDEPATH += $$PWD/../gsl/complex $$PWD/../gsl/err $$PWD/../gsl/interpolation $$PWD/../gsl/linalg $$PWD/../gsl/matrix
 INCLUDEPATH += $$PWD/../gsl/randist $$PWD/../gsl/rng $$PWD/../gsl/specfunc $$PWD/../gsl/sys $$PWD/../gsl/vector
 DEPENDPATH += $$PWD/../gsl
 win32-g++:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../gsl/release/libgsl.a
@@ -102,6 +102,8 @@ SOURCES += \
     slim_test_genetics.cpp \
     slim_test_other.cpp \
     sparse_vector.cpp \
+    spatial_kernel.cpp \
+    spatial_map.cpp \
     species.cpp \
     species_eidos.cpp \
     subpopulation.cpp \
@@ -126,6 +128,8 @@ HEADERS += \
     slim_globals.h \
     slim_test.h \
     sparse_vector.h \
+    spatial_kernel.h \
+    spatial_map.h \
     species.h \
     subpopulation.h \
     substitution.h

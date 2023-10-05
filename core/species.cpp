@@ -3068,8 +3068,10 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 				}
 				if (map.red_components_)
 					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
+#if defined(SLIMGUI)
 				if (map.display_buffer_)
 					p_usage->subpopulationSpatialMapsDisplay += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 3;
+#endif
 			}
 		}
 	}
@@ -5118,7 +5120,7 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 				binary_derived_state_offset.emplace_back((tsk_size_t)(derived_state_total_part_count * sizeof(slim_mutationid_t)));
 			}
 		} catch (...) {
-			EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromAscii): a mutation derived state was not convertible into an int64_t mutation id.  The tree-sequence data may not be annotated for SLiM, or may be corrupted." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::DerivedStatesFromAscii): a mutation derived state was not convertible into an int64_t mutation id.  The tree-sequence data may not be annotated for SLiM, or may be corrupted.  If mutations were added in msprime, do you want to use the msprime.SLiMMutationModel?" << EidosTerminate();
 		}
 		
 		if (binary_derived_state.size() == 0)
@@ -7504,7 +7506,7 @@ void Species::__PrepareSubpopulationsFromTables(std::unordered_map<slim_objectid
 		if (p_subpopInfoMap.find(subpop_id) != p_subpopInfoMap.end())
 			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): subpopulation id (" << subpop_id << ") occurred twice in the subpopulation table." << EidosTerminate();
 		if (subpop_id != (int)pop_index)
-			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): slim_id value " << subpop_id << " occurred at the wrong index in the subpopulation table; entries must be at their corresponding index." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Species::__PrepareSubpopulationsFromTables): slim_id value " << subpop_id << " occurred at the wrong index in the subpopulation table; entries must be at their corresponding index.  This may result from simplification; if so, pass filter_populations=False to simplify()." << EidosTerminate();
 		
 		p_subpopInfoMap.emplace(subpop_id, ts_subpop_info());
 	}

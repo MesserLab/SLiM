@@ -829,7 +829,10 @@ extern const std::string &gStr_description;
 extern const std::string &gStr_selfingRate;
 extern const std::string &gStr_cloningRate;
 extern const std::string &gStr_sexRatio;
+extern const std::string &gStr_gridDimensions;
+extern const std::string &gStr_interpolate;
 extern const std::string &gStr_spatialBounds;
+extern const std::string &gStr_spatialMaps;
 extern const std::string &gStr_individualCount;
 extern const std::string &gStr_fixationTick;
 extern const std::string &gStr_age;
@@ -922,6 +925,7 @@ extern const std::string &gStr_treeSeqSimplify;
 extern const std::string &gStr_treeSeqRememberIndividuals;
 extern const std::string &gStr_treeSeqOutput;
 extern const std::string &gStr_setMigrationRates;
+extern const std::string &gStr_pointDeviated;
 extern const std::string &gStr_pointInBounds;
 extern const std::string &gStr_pointReflected;
 extern const std::string &gStr_pointStopped;
@@ -943,9 +947,28 @@ extern const std::string &gStr_cachedFitness;
 extern const std::string &gStr_sampleIndividuals;
 extern const std::string &gStr_subsetIndividuals;
 extern const std::string &gStr_defineSpatialMap;
+extern const std::string &gStr_addSpatialMap;
+extern const std::string &gStr_removeSpatialMap;
 extern const std::string &gStr_spatialMapColor;
 extern const std::string &gStr_spatialMapImage;
 extern const std::string &gStr_spatialMapValue;
+extern const std::string &gStr_add;
+extern const std::string &gStr_blend;
+extern const std::string &gStr_multiply;
+extern const std::string &gStr_divide;
+extern const std::string &gStr_subtract;
+extern const std::string &gStr_power;
+extern const std::string &gStr_exp;
+extern const std::string &gStr_changeColors;
+extern const std::string &gStr_changeValues;
+extern const std::string &gStr_gridValues;
+extern const std::string &gStr_mapColor;
+extern const std::string &gStr_mapImage;
+extern const std::string &gStr_mapValue;
+extern const std::string &gStr_rescale;
+extern const std::string &gStr_sampleImprovedNearbyPoint;
+extern const std::string &gStr_sampleNearbyPoint;
+extern const std::string &gStr_smooth;
 extern const std::string &gStr_outputMSSample;
 extern const std::string &gStr_outputVCFSample;
 extern const std::string &gStr_outputSample;
@@ -1012,6 +1035,7 @@ extern const std::string &gStr_GenomicElementType;
 extern const std::string &gStr_MutationType;
 extern const std::string &gStr_SLiMEidosBlock;
 extern const std::string &gStr_Community;
+extern const std::string &gStr_SpatialMap;
 extern const std::string &gStr_Species;
 extern const std::string &gStr_Subpopulation;
 //extern const std::string &gStr_Individual;		// in Eidos; see EidosValue_Object::EidosValue_Object()
@@ -1201,7 +1225,10 @@ enum _SLiMGlobalStringID : int {
 	gID_selfingRate,
 	gID_cloningRate,
 	gID_sexRatio,
+	gID_gridDimensions,
+	gID_interpolate,
 	gID_spatialBounds,
+	gID_spatialMaps,
 	gID_individualCount,
 	gID_fixationTick,
 	gID_age,
@@ -1294,6 +1321,7 @@ enum _SLiMGlobalStringID : int {
 	gID_treeSeqRememberIndividuals,
 	gID_treeSeqOutput,
 	gID_setMigrationRates,
+	gID_pointDeviated,
 	gID_pointInBounds,
 	gID_pointReflected,
 	gID_pointStopped,
@@ -1315,9 +1343,28 @@ enum _SLiMGlobalStringID : int {
 	gID_sampleIndividuals,
 	gID_subsetIndividuals,
 	gID_defineSpatialMap,
+	gID_addSpatialMap,
+	gID_removeSpatialMap,
 	gID_spatialMapColor,
 	gID_spatialMapImage,
 	gID_spatialMapValue,
+	gID_add,
+	gID_blend,
+	gID_multiply,
+	gID_subtract,
+	gID_divide,
+	gID_power,
+	gID_exp,
+	gID_changeColors,
+	gID_changeValues,
+	gID_gridValues,
+	gID_mapColor,
+	gID_mapImage,
+	gID_mapValue,
+	gID_rescale,
+	gID_sampleImprovedNearbyPoint,
+	gID_sampleNearbyPoint,
+	gID_smooth,
 	gID_outputMSSample,
 	gID_outputVCFSample,
 	gID_outputSample,
@@ -1384,6 +1431,7 @@ enum _SLiMGlobalStringID : int {
 	gID_MutationType,
 	gID_SLiMEidosBlock,
 	gID_Community,
+	gID_SpatialMap,
 	gID_Species,
 	gID_Subpopulation,
 	gID_Individual,

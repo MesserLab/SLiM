@@ -33,22 +33,6 @@
 #include <cmath>
 
 
-// stream output for enumerations
-std::ostream& operator<<(std::ostream& p_out, IFType p_if_type)
-{
-	switch (p_if_type)
-	{
-		case IFType::kFixed:			p_out << gStr_f;		break;
-		case IFType::kLinear:			p_out << gStr_l;		break;
-		case IFType::kExponential:		p_out << gStr_e;		break;
-		case IFType::kNormal:			p_out << gEidosStr_n;	break;
-		case IFType::kCauchy:			p_out << gEidosStr_c;	break;
-	}
-	
-	return p_out;
-}
-
-
 #pragma mark -
 #pragma mark InteractionType
 #pragma mark -
@@ -93,7 +77,7 @@ void InteractionType::_WarmUp(void)
 InteractionType::InteractionType(Community &p_community, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 			 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class))),
-	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(IFType::kFixed), if_param1_(1.0), if_param2_(0.0),
+	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(SpatialKernelType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	community_(p_community), interaction_type_id_(p_interaction_type_id)
 {
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
@@ -763,23 +747,26 @@ double InteractionType::CalculateStrengthNoCallbacks(double p_distance)
 	// It is the caller's responsibility to do that filtering, for performance reasons!
 	// The caller is also responsible for guaranteeing that this is not a self-interaction,
 	// and that it is not ruled out by sex-selectivity.
+	// SEE ALSO: Kernel::DensityForDistance(), which is parallel to this
 	switch (if_type_)
 	{
-		case IFType::kFixed:
+		case SpatialKernelType::kFixed:
 			return (if_param1_);																		// fmax
-		case IFType::kLinear:
+		case SpatialKernelType::kLinear:
 			return (if_param1_ * (1.0 - p_distance / max_distance_));									// fmax * (1 − d/dmax)
-		case IFType::kExponential:
+		case SpatialKernelType::kExponential:
 			return (if_param1_ * exp(-if_param2_ * p_distance));										// fmax * exp(−λd)
-		case IFType::kNormal:
+		case SpatialKernelType::kNormal:
 			return (if_param1_ * exp(-(p_distance * p_distance) / n_2param2sq_));						// fmax * exp(−d^2/2σ^2)
-		case IFType::kCauchy:
+		case SpatialKernelType::kCauchy:
 		{
 			double temp = p_distance / if_param2_;
 			return (if_param1_ / (1.0 + temp * temp));													// fmax / (1+(d/λ)^2)
 		}
+		case SpatialKernelType::kStudentsT:
+			return SpatialKernel::tdist(p_distance, if_param1_, if_param2_, if_param3_);				// fmax / (1+(d/t)^2/n)^(−(ν+1)/2)
 	}
-	EIDOS_TERMINATION << "ERROR (InteractionType::CalculateStrengthNoCallbacks): (internal error) unexpected if_type_ value." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (InteractionType::CalculateStrengthNoCallbacks): (internal error) unexpected SpatialKernelType." << EidosTerminate();
 }
 
 double InteractionType::CalculateStrengthWithCallbacks(double p_distance, Individual *p_receiver, Individual *p_exerter, std::vector<SLiMEidosBlock*> &p_interaction_callbacks)
@@ -2356,7 +2343,7 @@ void InteractionType::BuildSV_Distances_SS_3(SLiM_kdNode *root, double *nd, slim
 	}
 }
 
-// add neighbor strengths of type "f" (IFType::kFixed : fixed) to the sparse vector in 2D
+// add neighbor strengths of type "f" (SpatialKernelType::kFixed : fixed) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_f_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -2385,7 +2372,7 @@ void InteractionType::BuildSV_Strengths_f_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-// add neighbor strengths of type "l" (IFType::kLinear : linear) to the sparse vector in 2D
+// add neighbor strengths of type "l" (SpatialKernelType::kLinear : linear) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_l_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -2414,7 +2401,7 @@ void InteractionType::BuildSV_Strengths_l_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-// add neighbor strengths of type "e" (IFType::kExponential : exponential) to the sparse vector in 2D
+// add neighbor strengths of type "e" (SpatialKernelType::kExponential : exponential) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_e_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -2443,7 +2430,7 @@ void InteractionType::BuildSV_Strengths_e_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-// add neighbor strengths of type "n" (IFType::kNormal : normal/Gaussian) to the sparse vector in 2D
+// add neighbor strengths of type "n" (SpatialKernelType::kNormal : normal/Gaussian) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -2472,8 +2459,7 @@ void InteractionType::BuildSV_Strengths_n_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-
-// add neighbor strengths of type "c" (IFType::kCauchy : Cauchy) to the sparse vector in 2D
+// add neighbor strengths of type "c" (SpatialKernelType::kCauchy : Cauchy) to the sparse vector in 2D
 void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
 {
 	double d = dist_sq2(root, nd);
@@ -2499,6 +2485,35 @@ void InteractionType::BuildSV_Strengths_c_2(SLiM_kdNode *root, double *nd, slim_
 		if (root->right)				BuildSV_Strengths_c_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 		if (dx2 > max_distance_sq_)		return;
 		if (root->left)					BuildSV_Strengths_c_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	}
+}
+
+// add neighbor strengths of type "t" (SpatialKernelType::kStudentsT : Student's t) to the sparse vector in 2D
+void InteractionType::BuildSV_Strengths_t_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase)
+{
+	double d = dist_sq2(root, nd);
+#ifndef __clang_analyzer__
+	double dx = root->x[p_phase] - nd[p_phase];
+#else
+	double dx = 0.0;
+#endif
+	double dx2 = dx * dx;
+	
+	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index))
+	{
+		d = sqrt(d);
+		p_sparse_vector->AddEntryStrength(root->individual_index_, (sv_value_t)SpatialKernel::tdist(d, if_param1_, if_param2_, if_param3_));
+	}
+	
+	if (++p_phase >= 2) p_phase = 0;
+	if (dx > 0) {
+		if (root->left)					BuildSV_Strengths_t_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->right)				BuildSV_Strengths_t_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+	} else {
+		if (root->right)				BuildSV_Strengths_t_2(root->right, nd, p_focal_individual_index, p_sparse_vector, p_phase);
+		if (dx2 > max_distance_sq_)		return;
+		if (root->left)					BuildSV_Strengths_t_2(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
 	}
 }
 
@@ -2736,13 +2751,14 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			
 			switch (if_type_)
 			{
-				case IFType::kFixed:		BuildSV_Strengths_f_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case IFType::kLinear:		BuildSV_Strengths_l_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case IFType::kExponential:	BuildSV_Strengths_e_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case IFType::kNormal:		BuildSV_Strengths_n_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case IFType::kCauchy:		BuildSV_Strengths_c_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kFixed:			BuildSV_Strengths_f_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kLinear:		BuildSV_Strengths_l_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kExponential:	BuildSV_Strengths_e_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kNormal:		BuildSV_Strengths_n_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kCauchy:		BuildSV_Strengths_c_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kStudentsT:		BuildSV_Strengths_t_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
 				default:
-					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized IFType value." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized SpatialKernelType value." << EidosTerminate();
 			}
 			
 			sv->Finished();
@@ -2788,13 +2804,13 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 		// CalculateStrengthNoCallbacks() is basically inlined here, moved outside the loop; see that function for comments
 		switch (if_type_)
 		{
-			case IFType::kFixed:
+			case SpatialKernelType::kFixed:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 					values[col_iter] = (sv_value_t)if_param1_;
 				break;
 			}
-			case IFType::kLinear:
+			case SpatialKernelType::kLinear:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
@@ -2804,7 +2820,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				}
 				break;
 			}
-			case IFType::kExponential:
+			case SpatialKernelType::kExponential:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
@@ -2814,7 +2830,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				}
 				break;
 			}
-			case IFType::kNormal:
+			case SpatialKernelType::kNormal:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
@@ -2824,7 +2840,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 				}
 				break;
 			}
-			case IFType::kCauchy:
+			case SpatialKernelType::kCauchy:
 			{
 				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
 				{
@@ -2832,6 +2848,16 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 					double temp = distance / if_param2_;
 					
 					values[col_iter] = (sv_value_t)(if_param1_ / (1.0 + temp * temp));
+				}
+				break;
+			}
+			case SpatialKernelType::kStudentsT:
+			{
+				for (uint32_t col_iter = 0; col_iter < nnz; ++col_iter)
+				{
+					sv_value_t distance = values[col_iter];
+					
+					values[col_iter] = (sv_value_t)SpatialKernel::tdist(distance, if_param1_, if_param2_, if_param3_);
 				}
 				break;
 			}
@@ -2845,7 +2871,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 					values[col_iter] = (sv_value_t)CalculateStrengthNoCallbacks(distance);
 				}
 				
-				EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unimplemented IFType case." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unimplemented SpatialKernelType case." << EidosTerminate();
 			}
 		}
 	}
@@ -3450,7 +3476,7 @@ void InteractionType::SetProperty(EidosGlobalStringID p_property_id, const Eidos
 			
 			if (max_distance_ < 0.0)
 				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be greater than or equal to zero." << EidosTerminate();
-			if ((if_type_ == IFType::kLinear) && (std::isinf(max_distance_) || (max_distance_ <= 0.0)))
+			if ((if_type_ == SpatialKernelType::kLinear) && (std::isinf(max_distance_) || (max_distance_ <= 0.0)))
 				EIDOS_TERMINATION << "ERROR (InteractionType::SetProperty): the maximum interaction distance must be finite and greater than zero when interaction type 'l' has been chosen." << EidosTerminate();
 			
 			// tweak a flag to make SLiMgui update
@@ -4150,7 +4176,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires count >= 0." << EidosTerminate();
 	
 	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
-	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == IFType::kFixed));
+	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == SpatialKernelType::kFixed));
 	
 	if (!returnDict)
 	{
@@ -4189,7 +4215,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				
 				if (exerter_index_in_subpop != receiver_index)
 					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (IFType::kFixed), which is required
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				total_interaction_strength += strength;
 				cached_strength.emplace_back(strength);
@@ -4674,7 +4700,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	EidosValue *clipped_integrals = clipped_integrals_SP.get();
 	
 	// Decide whether we can use our optimized case below
-	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == IFType::kFixed));
+	bool optimize_fixed_interaction_strengths = (!has_interaction_callbacks && (if_type_ == SpatialKernelType::kFixed));
 	
 	if (receivers_count == 1)
 	{
@@ -5607,96 +5633,19 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCountOfPoint(EidosGlobalStr
 EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
-	EidosValue_String *functionType_value = (EidosValue_String *)p_arguments[0].get();
-	
-	const std::string &if_type_string = functionType_value->StringRefAtIndex(0, nullptr);
-	IFType if_type;
-	int expected_if_param_count = 0;
-	std::vector<double> if_parameters;
-	std::vector<std::string> if_strings;
 	
 	if (AnyEvaluated())
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setInteractionFunction() prior to evaluation of the interaction." << EidosTerminate();
 	
-	if (if_type_string.compare(gStr_f) == 0)
-	{
-		if_type = IFType::kFixed;
-		expected_if_param_count = 1;
-	}
-	else if (if_type_string.compare(gStr_l) == 0)
-	{
-		if_type = IFType::kLinear;
-		expected_if_param_count = 1;
-		
-		if (std::isinf(max_distance_) || (max_distance_ <= 0.0))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): interaction type 'l' cannot be set in setInteractionFunction() unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
-	}
-	else if (if_type_string.compare(gStr_e) == 0)
-	{
-		if_type = IFType::kExponential;
-		expected_if_param_count = 2;
-	}
-	else if (if_type_string.compare(gEidosStr_n) == 0)
-	{
-		if_type = IFType::kNormal;
-		expected_if_param_count = 2;
-	}
-	else if (if_type_string.compare(gEidosStr_c) == 0)
-	{
-		if_type = IFType::kCauchy;
-		expected_if_param_count = 2;
-	}
-	else
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", or \"c\"." << EidosTerminate();
-	
-	if ((spatiality_ == 0) && (if_type != IFType::kFixed))
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires functionType 'f' for non-spatial interactions." << EidosTerminate();
-	
-	if ((int)p_arguments.size() != 1 + expected_if_param_count)
-		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() functionType \"" << if_type << "\" requires exactly " << expected_if_param_count << " DFE parameter" << (expected_if_param_count == 1 ? "" : "s") << "." << EidosTerminate();
-	
-	for (int if_param_index = 0; if_param_index < expected_if_param_count; ++if_param_index)
-	{
-		EidosValue *if_param_value = p_arguments[1 + if_param_index].get();
-		EidosValueType if_param_type = if_param_value->Type();
-		
-		if ((if_param_type != EidosValueType::kValueFloat) && (if_param_type != EidosValueType::kValueInt))
-			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): setInteractionFunction() requires that the parameters for this interaction function be of type numeric (integer or float)." << EidosTerminate();
-		
-		if_parameters.emplace_back(if_param_value->FloatAtIndex(0, nullptr));
-	}
-	
-	// Bounds-check the IF parameters in the cases where there is a hard bound
-	switch (if_type)
-	{
-		case IFType::kFixed:
-			// no limits on fixed IFs; doesn't make much sense to use 0.0, but it's not illegal
-			break;
-		case IFType::kLinear:
-			// no limits on linear IFs; doesn't make much sense to use 0.0, but it's not illegal
-			break;
-		case IFType::kExponential:
-			// no limits on exponential IFs; a shape of 0.0 doesn't make much sense, but it's not illegal
-			break;
-		case IFType::kNormal:
-			// no limits on the maximum strength (although 0.0 doesn't make much sense); sd must be >= 0
-			if (if_parameters[1] < 0.0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): an interaction function of type \"n\" must have a standard deviation parameter >= 0." << EidosTerminate();
-			break;
-		case IFType::kCauchy:
-			// no limits on the maximum strength (although 0.0 doesn't make much sense); scale must be > 0
-			if (if_parameters[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setInteractionFunction): an interaction function of type \"c\" must have a scale parameter > 0." << EidosTerminate();
-			break;
-	}
+	// SpatialKernel parses and bounds-checks our arguments for us
+	SpatialKernel kernel(spatiality_, max_distance_, p_arguments, 0, /* p_expect_max_density */ true);
 	
 	// Everything seems to be in order, so replace our IF info with the new info
-	if_type_ = if_type;
-	if_param1_ = ((if_parameters.size() >= 1) ? if_parameters[0] : 0.0);
-	if_param2_ = ((if_parameters.size() >= 2) ? if_parameters[1] : 0.0);
-	
-	if (if_type_ == IFType::kNormal)
-		n_2param2sq_ = 2.0 * if_param2_ * if_param2_;
+	// FIXME we could consider actually keeping an internal SpatialKernel instance permanently
+	if_type_ = kernel.kernel_type_;
+	if_param1_ = kernel.kernel_param1_;
+	if_param2_ = kernel.kernel_param2_;
+	n_2param2sq_ = kernel.n_2param2sq_;
 	
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
 	community_.interaction_types_changed_ = true;
@@ -5848,7 +5797,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 					Individual *exerter = exerter_subpop->parent_individuals_[exerter_index];
 					
 					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (IFType::kFixed), which is required
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				}
 				
 				result_vec->set_float_no_check(strength, exerter_index);
@@ -5877,7 +5826,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				
 				if (exerter_index_in_subpop != receiver_index)
 					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (IFType::kFixed), which is required
+						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				result_vec->set_float_no_check(strength, exerter_index);
 			}

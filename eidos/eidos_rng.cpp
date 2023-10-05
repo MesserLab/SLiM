@@ -67,7 +67,7 @@ static unsigned long int _Eidos_GenerateRNGSeed(void)
 #pragma omp critical (Eidos_GenerateRNGSeed)
 	{
 		int fd = open("/dev/urandom", O_RDONLY);
-		read(fd, &seed, sizeof(seed));
+		(void)(read(fd, &seed, sizeof(seed)) + 1);	// ignore the result without a warning, ugh; see https://stackoverflow.com/a/13999461
 		close(fd);
 	}
 	
