@@ -5855,7 +5855,99 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	
 	// I'm not going to worry about unrolling each case, for dimensionality by boundary by kernel type; it would
 	// be a ton of cases (3 x 5 x 5 = 75), and the overhead for the switches ought to be small compared to the
-	// overhead of drawing a displacement from the kernel, which requires a random number draw.
+	// overhead of drawing a displacement from the kernel, which requires a random number draw.  I tested doing
+	// a special-case here for dimensionality==2, boundary==1 (stopping), kernel.kernel_type==kNormal,
+	// maxDistance==INF, and it clocked at 6.47 seconds versus 7.85 seconds for the unoptimized code below;
+	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
+	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
+	// are common, though.
+	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == 1) || (boundary == 2) || (boundary == 3) || ((boundary == 4) && periodic_x && periodic_y)))
+	{
+		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+		double stddev = kernel.kernel_param2_;
+		double bx0 = bounds_x0_, bx1 = bounds_x1_;
+		double by0 = bounds_y0_, by1 = bounds_y1_;
+		
+		if (boundary == 1)
+		{
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				
+				// stopping boundaries
+				a0 = std::max(bx0, std::min(bx1, a0));
+				a1 = std::max(by0, std::min(by1, a1));
+				
+				*(float_result_ptr++) = a0;
+				*(float_result_ptr++) = a1;
+			}
+		}
+		else if (boundary == 2)
+		{
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				
+				// reflecting boundaries
+				while (true)
+				{
+					if (a0 < bx0) a0 = bx0 + (bx0 - a0);
+					else if (a0 > bx1) a0 = bx1 - (a0 - bx1);
+					else break;
+				}
+				while (true)
+				{
+					if (a1 < by0) a1 = by0 + (by0 - a1);
+					else if (a1 > by1) a1 = by1 - (a1 - by1);
+					else break;
+				}
+				
+				*(float_result_ptr++) = a0;
+				*(float_result_ptr++) = a1;
+			}
+		}
+		else if (boundary == 3)
+		{
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a0_original = *(point_buf_ptr++);
+				double a1_original = *(point_buf_ptr++);
+				
+			reprise_specialcase:
+				double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
+				double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
+				
+				// reprising boundaries
+				if ((a0 < bx0) || (a0 > bx1) ||
+					(a1 < by0) || (a1 > by1))
+					goto reprise_specialcase;
+				
+				*(float_result_ptr++) = a0;
+				*(float_result_ptr++) = a1;
+			}
+		}
+		else if (boundary == 4)
+		{
+			for (int result_index = 0; result_index < n; ++result_index)
+			{
+				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
+				
+				// periodic boundaries (note periodic_x and periodic_y are required to be true above)
+				while (a0 < 0.0)	a0 += bx1;
+				while (a0 > bx1)	a0 -= bx1;
+				while (a1 < 0.0)	a1 += by1;
+				while (a1 > by1)	a1 -= by1;
+				
+				*(float_result_ptr++) = a0;
+				*(float_result_ptr++) = a1;
+			}
+		}
+		return EidosValue_SP(float_result);
+	}
+	
 	switch (dimensionality)
 	{
 		case 1:
