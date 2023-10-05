@@ -7179,8 +7179,9 @@ void Species::__RemapSubpopulationIDs(SUBPOP_REMAP_HASH &p_subpop_map, int p_fil
 					// and we will remap it and fix up its metadata
 					slim_objectid_t slim_id = subpop_metadata["slim_id"].get<slim_objectid_t>();
 					
-					// enforce the slim_id == index invariant here; it is not clear that we really need this
-					// invariant, but I'm going to enforce it for now so I don't have to think about it
+					// enforce the slim_id == index invariant here; removing this invariant would be
+					// possible but would require a bunch of bookeeping and checks; see treerec/implementation.md
+                    // for more discussion of this
 					if (slim_id != subpop_id)
 						EIDOS_TERMINATION << "ERROR (Species::__RemapSubpopulationIDs): population metadata value for key 'slim_id' is not equal to the table index; this file cannot be read." << EidosTerminate(nullptr);
 					
