@@ -2099,10 +2099,8 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
 			double point[1];
 			point[0] = *(point_buf_ptr)++;
-			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
 			
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[1];
@@ -2126,17 +2124,23 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 					kernel.DrawDisplacement_S1(displaced_point);
 					displaced_point[0] += point[0];
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+				while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_));
 			}
 			
+			// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+			double rescaled_point[1], rescaled_displaced[1];
+			
+			rescaled_point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			rescaled_displaced[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
-			double original_map_value = ValueAtPoint_S1(point);
-			double map_value = ValueAtPoint_S1(displaced_point);
+			double original_map_value = ValueAtPoint_S1(rescaled_point);
+			double map_value = ValueAtPoint_S1(rescaled_displaced);
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
-				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = displaced_point[0];
 			else
-				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+				*(result_ptr++) = point[0];
 		}
 	}
 	else if (spatiality_ == 2)
@@ -2144,12 +2148,9 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
 			double point[2];
 			point[0] = *(point_buf_ptr)++;
 			point[1] = *(point_buf_ptr)++;
-			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-			point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
 			
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[2];
@@ -2180,23 +2181,31 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 					displaced_point[0] += point[0];
 					displaced_point[1] += point[1];
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+				while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_) ||
+					   (displaced_point[1] < bounds_b0_) || (displaced_point[1] > bounds_b1_));
 			}
 			
+			// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+			double rescaled_point[2], rescaled_displaced[2];
+			
+			rescaled_point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			rescaled_point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			rescaled_displaced[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			rescaled_displaced[1] = (displaced_point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
-			double original_map_value = ValueAtPoint_S2(point);
-			double map_value = ValueAtPoint_S2(displaced_point);
+			double original_map_value = ValueAtPoint_S2(rescaled_point);
+			double map_value = ValueAtPoint_S2(rescaled_displaced);
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
 			{
-				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-				*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+				*(result_ptr++) = displaced_point[0];
+				*(result_ptr++) = displaced_point[1];
 			}
 			else
 			{
-				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-				*(result_ptr++) = point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+				*(result_ptr++) = point[0];
+				*(result_ptr++) = point[1];
 			}
 		}
 	}
@@ -2205,14 +2214,10 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
 			double point[3];
 			point[0] = *(point_buf_ptr)++;
 			point[1] = *(point_buf_ptr)++;
 			point[2] = *(point_buf_ptr)++;
-			point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-			point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
-			point[2] = (point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
 			
 			// displace the point by a draw from the kernel, looping until the displaced point is in bounds
 			double displaced_point[3];
@@ -2250,26 +2255,36 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleImprovedNearbyPoint(EidosGlobalStr
 					displaced_point[1] += point[1];
 					displaced_point[2] += point[2];
 				}
-				while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-					   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
-					   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+				while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_) ||
+					   (displaced_point[1] < bounds_b0_) || (displaced_point[1] > bounds_b1_) ||
+					   (displaced_point[2] < bounds_c0_) || (displaced_point[2] > bounds_c1_));
 			}
 			
+			// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+			double rescaled_point[3], rescaled_displaced[3];
+			
+			rescaled_point[0] = (point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			rescaled_point[1] = (point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			rescaled_point[2] = (point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+			rescaled_displaced[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+			rescaled_displaced[1] = (displaced_point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+			rescaled_displaced[2] = (displaced_point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+			
 			// Metropolis-Hastings: move to the new point if it is better, otherwise stay with probability equal to ratio of map values
-			double original_map_value = ValueAtPoint_S3(point);
-			double map_value = ValueAtPoint_S3(displaced_point);
+			double original_map_value = ValueAtPoint_S3(rescaled_point);
+			double map_value = ValueAtPoint_S3(rescaled_displaced);
 			
 			if ((map_value > original_map_value) || (map_value > original_map_value * Eidos_rng_uniform(rng)))
 			{
-				*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-				*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
-				*(result_ptr++) = displaced_point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
+				*(result_ptr++) = displaced_point[0];
+				*(result_ptr++) = displaced_point[1];
+				*(result_ptr++) = displaced_point[2];
 			}
 			else
 			{
-				*(result_ptr++) = point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-				*(result_ptr++) = point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
-				*(result_ptr++) = point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
+				*(result_ptr++) = point[0];
+				*(result_ptr++) = point[1];
+				*(result_ptr++) = point[2];
 			}
 		}
 	}
@@ -2317,10 +2332,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
 			double point_a = *(point_buf_ptr)++;
-			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-			
 			double displaced_point[1];
 			double map_value;
 			
@@ -2346,15 +2358,18 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 						kernel.DrawDisplacement_S1(displaced_point);
 						displaced_point[0] += point_a;
 					}
-					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0));
+					while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_));
 				}
 				
-				map_value = ValueAtPoint_S1(displaced_point);
+				// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+				double rescaled_point[1];
+				
+				rescaled_point[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				map_value = ValueAtPoint_S1(rescaled_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			// scale point coordinates back to user space
-			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
+			*(result_ptr++) = displaced_point[0];
 		}
 	}
 	else if (spatiality_ == 2)
@@ -2362,12 +2377,8 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 		// FIXME: TO BE PARALLELIZED
 		for (size_t point_index = 0; point_index < point_count; point_index++)
 		{
-			// scale point coordinates to [0, 1]
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
-			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-			point_b = (point_b - bounds_b0_) / (bounds_b1_ - bounds_b0_);
-			
 			double displaced_point[2];
 			double map_value;
 			
@@ -2400,17 +2411,21 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 						displaced_point[0] += point_a;
 						displaced_point[1] += point_b;
 					}
-					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-						   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0));
+					while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_) ||
+						   (displaced_point[1] < bounds_b0_) || (displaced_point[1] > bounds_b1_));
 				}
 				
-				map_value = ValueAtPoint_S2(displaced_point);
+				// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+				double rescaled_point[2];
+				
+				rescaled_point[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				rescaled_point[1] = (displaced_point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+				map_value = ValueAtPoint_S2(rescaled_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			// scale point coordinates back to user space
-			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-			*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
+			*(result_ptr++) = displaced_point[0];
+			*(result_ptr++) = displaced_point[1];
 		}
 	}
 	else // (spatiality_ == 3)
@@ -2422,10 +2437,6 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			double point_a = *(point_buf_ptr)++;
 			double point_b = *(point_buf_ptr)++;
 			double point_c = *(point_buf_ptr)++;
-			point_a = (point_a - bounds_a0_) / (bounds_a1_ - bounds_a0_);
-			point_b = (point_b - bounds_b0_) / (bounds_b1_ - bounds_b0_);
-			point_c = (point_c - bounds_c0_) / (bounds_c1_ - bounds_c0_);
-			
 			double displaced_point[3];
 			double map_value;
 			
@@ -2465,19 +2476,24 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 						displaced_point[1] += point_b;
 						displaced_point[2] += point_c;
 					}
-					while ((displaced_point[0] < 0.0) || (displaced_point[0] > 1.0) ||
-						   (displaced_point[1] < 0.0) || (displaced_point[1] > 1.0) ||
-						   (displaced_point[2] < 0.0) || (displaced_point[2] > 1.0));
+					while ((displaced_point[0] < bounds_a0_) || (displaced_point[0] > bounds_a1_) ||
+						   (displaced_point[1] < bounds_b0_) || (displaced_point[1] > bounds_b1_) ||
+						   (displaced_point[2] < bounds_c0_) || (displaced_point[2] > bounds_c1_));
 				}
 				
-				map_value = ValueAtPoint_S3(displaced_point);
+				// we do most of our work in user-space coordinates; here we scale to [0, 1] for ValueAtPoint
+				double rescaled_point[3];
+				
+				rescaled_point[0] = (displaced_point[0] - bounds_a0_) / (bounds_a1_ - bounds_a0_);
+				rescaled_point[1] = (displaced_point[1] - bounds_b0_) / (bounds_b1_ - bounds_b0_);
+				rescaled_point[2] = (displaced_point[2] - bounds_c0_) / (bounds_c1_ - bounds_c0_);
+				map_value = ValueAtPoint_S3(rescaled_point);
 			}
 			while (values_max_ * Eidos_rng_uniform(rng) > map_value);
 			
-			// scale point coordinates back to user space
-			*(result_ptr++) = displaced_point[0] * (bounds_a1_ - bounds_a0_) + bounds_a0_;
-			*(result_ptr++) = displaced_point[1] * (bounds_b1_ - bounds_b0_) + bounds_b0_;
-			*(result_ptr++) = displaced_point[2] * (bounds_c1_ - bounds_c0_) + bounds_c0_;
+			*(result_ptr++) = displaced_point[0];
+			*(result_ptr++) = displaced_point[1];
+			*(result_ptr++) = displaced_point[2];
 		}
 	}
 	
