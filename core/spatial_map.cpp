@@ -2332,10 +2332,14 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			double point_a = *(point_buf_ptr)++;
 			double displaced_point[1];
 			double map_value;
+			int num_tries = 0;
 			
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
+				if (++num_tries == 1000000)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() failed to generate a successful nearby point by rejection sampling after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+				
 				if (periodic)
 				{
 					// displace the point by a draw from the kernel, then enforce periodic boundaries
@@ -2378,10 +2382,14 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			double point_b = *(point_buf_ptr)++;
 			double displaced_point[2];
 			double map_value;
+			int num_tries = 0;
 			
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
+				if (++num_tries == 1000000)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() failed to generate a successful nearby point by rejection sampling after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+				
 				if (periodic)
 				{
 					// displace the point by a draw from the kernel, then enforce periodic boundaries
@@ -2436,10 +2444,14 @@ EidosValue_SP SpatialMap::ExecuteMethod_sampleNearbyPoint(EidosGlobalStringID p_
 			double point_c = *(point_buf_ptr)++;
 			double displaced_point[3];
 			double map_value;
+			int num_tries = 0;
 			
 			// rejection sample to draw a displaced point from the product of the kernel times the map
 			do
 			{
+				if (++num_tries == 1000000)
+					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_sampleNearbyPoint): sampleNearbyPoint() failed to generate a successful nearby point by rejection sampling after 1 million attempts; terminating to avoid infinite loop." << EidosTerminate();
+				
 				if (periodic)
 				{
 					// displace the point by a draw from the kernel, then enforce periodic boundaries
