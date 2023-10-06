@@ -6252,7 +6252,11 @@ The kernel is specified with a kernel shape,
 \f4\fs20  is not presently supported for 3D kernels.\
 This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.  See 
 \f3\fs18 sampleImprovedNearbyPoint()
-\f4\fs20  for a variant that may be useful for directed movement across a landscape.\
+\f4\fs20  for a variant that may be useful for directed movement across a landscape.  Note that the algorithm for 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  works by rejection sampling, and so will be very inefficient if the maximum value of the map (anywhere, across the entire map) is much larger than the typical value of the map where individuals are.  The algorithm for 
+\f3\fs18 sampleImprovedNearbyPoint()
+\f4\fs20  is different, and does not exhibit this performance issue.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
