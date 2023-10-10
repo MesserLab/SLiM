@@ -972,7 +972,9 @@ extern const std::string &gEidosStr_write;
 extern const std::string &gEidosStr_start;
 extern const std::string &gEidosStr_end;
 extern const std::string &gEidosStr_weights;
+extern const std::string &gEidosStr_range;
 extern const std::string &gEidosStr_c;
+extern const std::string &gEidosStr_t;
 extern const std::string &gEidosStr_n;
 extern const std::string &gEidosStr_s;
 extern const std::string &gEidosStr_x;
@@ -1097,7 +1099,9 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_start,
 	gEidosID_end,
 	gEidosID_weights,
+	gEidosID_range,
 	gEidosID_c,
+	gEidosID_t,
 	gEidosID_n,
 	gEidosID_s,
 	gEidosID_x,
@@ -1111,7 +1115,7 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_Individual,
 	
 	gEidosID_LastEntry,					// IDs added by the Context should start here
-	gEidosID_LastContextEntry = 460		// IDs added by the Context must end before this value; Eidos reserves the remaining values
+	gEidosID_LastContextEntry = 490		// IDs added by the Context must end before this value; Eidos reserves the remaining values
 };
 
 extern std::vector<std::string> gEidosConstantNames;	// T, F, NULL, PI, E, INF, NAN

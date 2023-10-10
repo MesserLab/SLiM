@@ -1360,7 +1360,8 @@ void _RunSubpopulationTests(void)
 	
 	// 1D sim with 1D x map
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'xy', c(0.0, 1.0)); stop(); }", "spatial dimensions beyond those set", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'xy', c(0.0, 1.0)); stop(); }", "does not match the spatiality defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'xy', matrix(1.0:4, nrow=2)); stop(); }", "spatial dimensions beyond those set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'x', 0.0); stop(); }", "must be of size >= 2", __LINE__);
 	
 	std::string gen1_setup_i1x_mapNI(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");

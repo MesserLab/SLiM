@@ -3703,7 +3703,9 @@ This method replaces the
 \f3\fs18 receiver
 \f4\fs20 , which must be singleton in the default mode of operation (but see below).  The probability of drawing particular individuals is proportional to the strength of interaction they exert upon 
 \f3\fs18 receiver
-\f4\fs20 .  All exerters must belong to a single subpopulation (but not necessarily the same subpopulation as 
+\f4\fs20  (which is zero for 
+\f3\fs18 receiver
+\f4\fs20  itself).  All exerters must belong to a single subpopulation (but not necessarily the same subpopulation as 
 \f3\fs18 receiver
 \f4\fs20 ).  The 
 \f3\fs18 evaluate()
@@ -3715,7 +3717,7 @@ This method may be used with either spatial or non-spatial interactions, but wil
 \f4\fs20 , rather than drawing individuals one at a time.  Note that if no individuals exert a non-zero interaction strength upon 
 \f3\fs18 receiver
 \f4\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
-Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -3804,7 +3806,7 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f3\fs18 exerterSubpop
 \f4\fs20  (or, if that is 
 \f3\fs18 NULL
-\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method counts the number of individuals which can exert an interaction upon each receiver.  All of the receivers must belong to a single subpopulation, and all of the exerters must belong to a single subpopulation, but those two subpopulations do not need to be the same.  The 
+\f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  More specifically, this method counts the number of individuals which can exert an interaction upon each receiver (which does not include the receiver itself).  All of the receivers must belong to a single subpopulation, and all of the exerters must belong to a single subpopulation, but those two subpopulations do not need to be the same.  The 
 \f3\fs18 evaluate()
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.\
 This method is similar to 
@@ -3827,8 +3829,6 @@ Note that this method uses interaction eligibility as a criterion; it will not c
 \f3\fs18 receiver
 \f4\fs20  and individuals in 
 \f3\fs18 exerters
-\f4\fs20  that exert an interaction strength upon 
-\f3\fs18 receiver
 \f4\fs20 .  If 
 \f3\fs18 exerters
 \f4\fs20  is 
@@ -3944,7 +3944,7 @@ To see the point of this method, consider a receiver located near the edge of th
 Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the receiver (due to sex-segregation, e.g.).  (It will also never return the receiver as a neighbor of itself.)  To find all neighbors of the receiver, whether they can interact with it or not, use 
 \f3\fs18 nearestNeighbors()
 \f4\fs20 .\
-Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -4016,7 +4016,7 @@ Beginning in SLiM 4.1, this method has a vectorized mode of operation in which t
 Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the receiver due to sex-segregation.  (It will never return the receiver as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the receiver, use 
 \f3\fs18 nearestInteractingNeighbors()
 \f4\fs20 .\
-Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
+Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -4140,7 +4140,7 @@ This method is similar to
 \f5 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
+\f4\fs20 \cf2 Set the function used to translate spatial distances into interaction strengths for an interaction type.  The 
 \f3\fs18 functionType
 \f4\fs20  may be 
 \f3\fs18 "f"
@@ -4158,24 +4158,32 @@ This method is similar to
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  lambda (shape) parameter for a negative exponential function; \cf2 \expnd0\expndtw0\kerning0
-; 
+\f4\fs20  lambda (rate) parameter for a negative exponential function; 
 \f3\fs18 "n"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; 
 \f3\fs18 "c"
 \f4\fs20 , in which case the ellipsis should supply a 
 \f3\fs18 numeric$
 \f4\fs20  maximum strength and a 
 \f3\fs18 numeric$
-\f4\fs20  scale parameter for a Cauchy distribution function\cf0 \kerning1\expnd0\expndtw0 .  Non-spatial interactions must use function type 
+\f4\fs20  scale parameter for a Cauchy distribution function; or 
+\f3\fs18 "t"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  maximum strength, a 
+\f3\fs18 numeric$
+\f4\fs20  degrees of freedom, and a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a 
+\f1\i t
+\f4\i0 -distribution function.  See section 25.8 above for discussions of these interaction functions.  Non-spatial interactions must use function type 
 \f3\fs18 "f"
 \f4\fs20 , since no distance values are available in that case.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
+The interaction function for an interaction type is normally a constant in simulations; in any case, it cannot be changed when an interaction has already been evaluated, so either it should be set prior to evaluation, or 
 \f3\fs18 unevaluate()
 \f4\fs20  should be called first.
 \f5 \cf0 \
@@ -4196,7 +4204,9 @@ This method is similar to
 \f3\fs18 receiver
 \f4\fs20  (including 
 \f3\fs18 receiver
-\f4\fs20  itself) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.  Otherwise, all individuals in 
+\f4\fs20  itself, with a strength of 
+\f3\fs18 0.0
+\f4\fs20 ) is returned; this case may be handled much more efficiently than if a vector of all individuals in the subpopulation is explicitly provided.  Otherwise, all individuals in 
 \f3\fs18 exerters
 \f4\fs20  must belong to a single subpopulation (but not necessarily the same subpopulation as 
 \f3\fs18 receiver
@@ -5586,10 +5596,766 @@ If the model is being profiled, or is executing forward to a tick number entered
 \f4\fs20  only pauses execution when SLiMgui is doing a simple \'93Play\'94 of the model.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.14  Class Species\
+\f0\b\fs22 \cf2 \kerning1\expnd0\expndtw0 5.14  Class SpatialMap
+\f4\b0 \
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 (object<SpatialMap>$)SpatialMap(string$\'a0name, object<SpatialMap>$\'a0map)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Creates a new 
+\f3\fs18 SpatialMap
+\f4\fs20  object that is a copy of 
+\f3\fs18 map
+\f4\fs20 , named 
+\f3\fs18 name
+\f4\fs20 .\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.14.1  
+\f1\i\fs22 \cf2 5.14.1  
+\f2\fs18 SpatialMap
+\f1\fs22  properties\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 gridDimensions => (integer)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The dimensions of the spatial map\'92s grid of values, in the order of the components of the map\'92s spatiality.  For example, a map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20  and a grid of values that is 
+\f3\fs18 500
+\f4\fs20  in the 
+\f3\fs18 "x"
+\f4\fs20  dimension by 
+\f3\fs18 300
+\f4\fs20  in the 
+\f3\fs18 "z"
+\f4\fs20  dimension would return 
+\f3\fs18 c(500, 300)
+\f4\fs20  for this property.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 interpolate <\'96> (logical$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Whether interpolation between grid values is enabled (
+\f3\fs18 T
+\f4\fs20 ) or disabled (
+\f3\fs18 F
+\f4\fs20 ).  The initial value of this property is set by 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , but it can be changed.  The interpolation performed is linear; for cubic interpolation, use the 
+\f3\fs18 interpolate()
+\f4\fs20  method.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 name => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The name of the spatial map, usually as provided to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 .  The names of spatial maps must be unique within any given subpopulation, but the same name may be reused for different spatial maps in different subpopulations.  The name is used to identify a map for methods such as 
+\f3\fs18 spatialMapValue()
+\f4\fs20 , and is also used for display in SLiMgui.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 spatialBounds => (float)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The spatial bounds to which the spatial map is aligned.  These bounds come from the subpopulation that originally created the map, with the 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  method, and cannot be subsequently changed.  All subpopulations that use a given spatial map must match that map\'92s spatial bounds, so that the map does not stretch or shrink relative to its initial configuration.  The components of the spatial bounds of a map correspond to the components of the map\'92s spatiality; for example, a map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20  will have bounds (
+\f3\fs18 x0
+\f4\fs20 , 
+\f3\fs18 z0
+\f4\fs20 , 
+\f3\fs18 x1
+\f4\fs20 , 
+\f3\fs18 z1
+\f4\fs20 ); bounds for 
+\f3\fs18 "y"
+\f4\fs20  are not included, since that dimension is not used by the spatial map.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 spatiality => (string$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The spatiality of the map: the subset of the model\'92s dimensions that are used by the spatial map.  The spatiality of a map is configured by 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  and cannot subsequently be changed.  For example, a 3D model (with dimensionality 
+\f3\fs18 "xyz"
+\f4\fs20 ) might define a 2D spatial map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20 , providing spatial values that do not depend upon the 
+\f3\fs18 "y"
+\f4\fs20  dimension.  Often, however, the spatiality of a map will match the dimensionality of the model.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 tag <\'96> (integer$)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
+\f3\fs18 integer
+\f4\fs20  value.  The value of 
+\f3\fs18 tag
+\f4\fs20  is initially undefined, and it is an error to try to read it; if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
+\f3\fs18 tag
+\f4\fs20  is not used by SLiM; it is free for you to use.  See also the 
+\f3\fs18 getValue()
+\f4\fs20  and 
+\f3\fs18 setValue()
+\f4\fs20  methods (provided by the 
+\f3\fs18 Dictionary
+\f4\fs20  class; see the Eidos manual), for another way of attaching state to spatial maps.\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\fs22 \cf2 5.14.2  
+\f2\fs18 SpatialMap
+\f1\fs22  methods\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\i0\fs18 \cf2 \'96\'a0(object<SpatialMap>$)add(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds 
+\f3\fs18 x
+\f4\fs20  to the spatial map.  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is added to each grid value of the target spatial map.  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is added to the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is added to the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)blend(ifo<SpatialMap>\'a0x, float$\'a0xFraction)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Blends 
+\f3\fs18 x
+\f4\fs20  into the spatial map, giving 
+\f3\fs18 x
+\f4\fs20  a weight of 
+\f3\fs18 xFraction
+\f4\fs20  and the existing values in the target spatial map a weight of 
+\f3\fs18 1 - xFraction
+\f4\fs20 , such that the resulting values in the target spatial map are then given by 
+\f3\fs18 x\'a0*\'a0xFraction + target\'a0*\'a0(1\'a0-\'a0xFraction)
+\f4\fs20 .  The value of 
+\f3\fs18 xFraction
+\f4\fs20  must be in [0.0, 1.0].\
+One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is blended with each grid value of the target spatial map.  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is blended with the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is blended with the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)changeColors([Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Changes the color scheme for the target spatial map.  The meaning of 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  are identical to their meaning in 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , but are also described here.\
+The 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  parameters travel together; either both are 
+\f3\fs18 NULL
+\f4\fs20 , or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
+\f3\fs18 mapColor()
+\f4\fs20  method.  The 
+\f3\fs18 valueRange
+\f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
+\f3\fs18 colors
+\f4\fs20  parameter then establishes the corresponding colors for values within the interval defined by 
+\f3\fs18 valueRange
+\f4\fs20 : values less than or equal to 
+\f3\fs18 valueRange[0]
+\f4\fs20  will map to 
+\f3\fs18 colors[0]
+\f4\fs20 , values greater than or equal to 
+\f3\fs18 valueRange[1]
+\f4\fs20  will map to the last 
+\f3\fs18 colors
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
+If 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  are both 
+\f3\fs18 NULL
+\f4\fs20 , a default grayscale color scheme will be used in SLiMgui, but an error will result if 
+\f3\fs18 mapColor()
+\f4\fs20  is called.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)changeValues(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Changes the grid values used for the target spatial map.  The parameter 
+\f3\fs18 x
+\f4\fs20  should be either a 
+\f3\fs18 SpatialMap
+\f4\fs20  object from which values are taken directly, or a vector, matrix, or array of numeric values as described in the documentation for 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 .  Other characteristics of the spatial map, such as its color mapping (if defined), its spatial bounds, and its spatiality, will remain unchanged.  The grid resolution of the spatial map is allowed to change with this method.  This method is useful for changing the values of a spatial map over time, such as to implement changes to the landscape\'92s characteristics due to seasonality, climate change, processes such as fire or urbanization, and so forth.  As with the original map values provided to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , it is often useful to read map values from a PNG image file using the Eidos class 
+\f3\fs18 Image
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)divide(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Divides the spatial map by 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is divided by 
+\f3\fs18 x
+\f4\fs20 .  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is divided by the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is divided by the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)exp(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Exponentiates the values of the spatial map.  More precisely, each grid value 
+\f1\i x
+\f4\i0  of the target spatial map is exponentiated \'96 replaced by the value 
+\f1\i e
+\fs13\fsmilli6667 \super x
+\f4\i0\fs20 \nosupersub .  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)gridValues(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the values for the spatial map\'92s grid as a vector (for a 1D map), a matrix (for a 2D map), or an array (for a 3D map).  The form and orientation of the returned values is such that it could be used to create a new spatial map, with 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 , which would be identical to the original.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)interpolate(integer$\'a0factor, [string$\'a0method\'a0=\'a0"linear"])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Increases the resolution of the spatial map by 
+\f3\fs18 factor
+\f4\fs20 , changing the dimensions of the spatial map\'92s grid of values (while leaving its spatial bounds unchanged), by interpolating new values between the existing values.  The parameter 
+\f3\fs18 factor
+\f4\fs20  must be an integer in [
+\f3\fs18 2
+\f4\fs20 , 
+\f3\fs18 10001
+\f4\fs20 ], somewhat arbitrarily.  The target spatial map is returned, to allow easy chaining of operations.\
+For a 1D spatial map, 
+\f3\fs18 factor-1
+\f4\fs20  new values will be inserted between every pair of values in the original value grid.  A 
+\f3\fs18 factor
+\f4\fs20  of 
+\f3\fs18 2
+\f4\fs20  would therefore insert one new value between each pair of existing values, thereby increasing the map\'92s resolution by a factor of two.  Note that if the spatial map\'92s original grid dimension was 
+\f1\i N
+\f4\i0 , the new grid dimension with a 
+\f3\fs18 factor
+\f4\fs20  of 
+\f1\i k
+\f4\i0  would be 
+\f1\i k
+\f4\i0 (
+\f1\i N
+\f4\i0 \uc0\u8722 1)+1, not 
+\f1\i kN
+\f4\i0 , because new values are inserted only 
+\f1\i between
+\f4\i0  existing values.  For 2D and 3D spatial maps, essentially the same process is conducted along each axis of the map\'92s spatiality, increasing the resolution of the map by 
+\f3\fs18 factor
+\f4\fs20  in every dimension.\
+If 
+\f3\fs18 method
+\f4\fs20  is 
+\f3\fs18 "linear"
+\f4\fs20  (the default), linear (or bilinear or trilinear, for 2D/3D maps) interpolation will be used to interpolate the values for the new grid points.  Alternatively, if 
+\f3\fs18 method
+\f4\fs20  is 
+\f3\fs18 "nearest"
+\f4\fs20 , the nearest value in the old grid will be used for new grid points; with this method, it is recommended that 
+\f3\fs18 factor
+\f4\fs20  be odd, not even, to avoid artifacts due to rounding of coordinates midway between the original grid positions.  If method is 
+\f3\fs18 "cubic"
+\f4\fs20 , cubic (or bicubic, for 2D maps) will be used; this generally produces smoother interpolation with fewer artifacts than 
+\f3\fs18 "linear"
+\f4\fs20 , but it is not supported for 3D maps.  The choice of interpolation method used here is independent of the map\'92s 
+\f3\fs18 interpolate
+\f4\fs20  property.  Note that while the 
+\f3\fs18 "nearest"
+\f4\fs20  and 
+\f3\fs18 "linear"
+\f4\fs20  interpolation methods will leave the range of values in the map unchanged, 
+\f3\fs18 "cubic"
+\f4\fs20  interpolation may produce interpolated values that are outside the original range of values (by design).  Periodic boundaries are currently supported only for 
+\f3\fs18 "nearest"
+\f4\fs20 , 
+\f3\fs18 "linear"
+\f4\fs20 , and 1D 
+\f3\fs18 "cubic"
+\f4\fs20  interpolation.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(string)mapColor(numeric\'a0value)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Uses the spatial map\'92s color-translation machinery (as defined by the 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  parameters to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 ) to translate each element of 
+\f3\fs18 value
+\f4\fs20  into a corresponding color string.  If the spatial map does not have color-translation capabilities, an error will result.  See the documentation for 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<Image>$)mapImage([Ni$\'a0width\'a0=\'a0NULL], [Ni$\'a0height\'a0=\'a0NULL], [logical$\'a0centers\'a0=\'a0F], [logical$\'a0color\'a0=\'a0T])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns an 
+\f3\fs18 Image
+\f4\fs20  object sampled from the spatial map.  The image will be 
+\f3\fs18 width
+\f4\fs20  pixels wide and 
+\f3\fs18 height
+\f4\fs20  pixels tall; the intrinsic size of the spatial map itself will be used if one of these parameters is 
+\f3\fs18 NULL
+\f4\fs20 .  The image will be oriented in the same way as it is displayed in SLiMgui (which conceptually entails a transformation from matrix coordinates, which store values by column, to standard image coordinates, which store values by row; see the Eidos manual\'92s documentation of 
+\f3\fs18 Image
+\f4\fs20  for details).  This method may only be called for 2D spatial maps at present.\
+The sampling of the spatial map can be done in one of two ways, as controlled by the 
+\f3\fs18 centers
+\f4\fs20  parameter.  If 
+\f3\fs18 centers
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , a (
+\f3\fs18 width+1
+\f4\fs20 ) \'d7 (
+\f3\fs18 height+1
+\f4\fs20 ) grid of lines that delineates 
+\f3\fs18 width
+\f4\fs20  \'d7 
+\f3\fs18 height
+\f4\fs20  rectangular pixels will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
+\f1\i center
+\f4\i0  of each of these pixels.  If 
+\f3\fs18 centers
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), a 
+\f3\fs18 width
+\f4\fs20  \'d7 
+\f3\fs18 height
+\f4\fs20  grid of lines will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
+\f1\i vertices
+\f4\i0  of the grid.  If interpolation is not enabled for the spatial map, these two options will both recover the original matrix of values used to define the spatial map (assuming, here and below, that 
+\f3\fs18 width
+\f4\fs20  and 
+\f3\fs18 height
+\f4\fs20  are 
+\f3\fs18 NULL
+\f4\fs20 ).  If interpolation is enabled for the spatial map, however, 
+\f3\fs18 centers == F
+\f4\fs20  will recover the original values, but will not capture the \'93typical\'94 value of each pixel in the image; 
+\f3\fs18 centers == T
+\f4\fs20 , on the other hand, will not recover the original values, but will capture the \'93typical\'94 value of each pixel in the image (i.e., the value at the center of each pixel, as produced by interpolation).  The figures in section 15.11 may be helpful for visualizing the difference between these options; the overlaid grids span the full extent of the spatial map, just as shown in that section.\
+If 
+\f3\fs18 color
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20  (the default), the 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  parameters supplied to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  will be used to translate map values to RGB color values as described in the documentation of that method, providing the same appearance as in SLiMgui; of course those parameters must have been supplied, otherwise an error will result.  If 
+\f3\fs18 color
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20 , on the other hand, a grayscale image will be produced that directly reflects the map values without color translation.  In this case, this method needs to translate map values, which can have any 
+\f3\fs18 float
+\f4\fs20  value, into grayscale pixel values that are integers in [
+\f3\fs18 0
+\f4\fs20 , 
+\f3\fs18 255
+\f4\fs20 ].  To do so, the map values are multiplied by 
+\f3\fs18 255.0
+\f4\fs20 , clamped to [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 255.0
+\f4\fs20 ], and then rounded to the nearest integer.  This translation scheme essentially assumes that map values are in [0, 1]; for spatial maps that were defined using the 
+\f3\fs18 floatK
+\f4\fs20  channel of a grayscale PNG image, this should recover the original image\'92s pixel values.  (If a different translation scheme is desired, 
+\f3\fs18 color=T
+\f4\fs20  with the desired 
+\f3\fs18 valueRange
+\f4\fs20  and 
+\f3\fs18 colors
+\f4\fs20  should be used.)\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)mapValue(float\'a0point)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Uses the spatial map\'92s mapping machinery (as defined by the 
+\f3\fs18 gridSize
+\f4\fs20 , 
+\f3\fs18 values
+\f4\fs20 , and 
+\f3\fs18 interpolate
+\f4\fs20  parameters to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20 ) to translate the coordinates of 
+\f3\fs18 point
+\f4\fs20  into a corresponding map value.  The length of 
+\f3\fs18 point
+\f4\fs20  must be equal to the spatiality of the spatial map; in other words, for a spatial map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20 , 
+\f3\fs18 point
+\f4\fs20  must be of length 
+\f3\fs18 2
+\f4\fs20 , specifying the 
+\f1\i x
+\f4\i0  and 
+\f1\i z
+\f4\i0  coordinates of the point to be evaluated.  Interpolation will automatically be used if it was enabled for the spatial map.  Point coordinates are clamped into the range defined by the spatial boundaries, even if the spatial boundaries are periodic; use 
+\f3\fs18 pointPeriodic()
+\f4\fs20  to wrap the point coordinates first if desired.  See the documentation for 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  for information regarding the details of value mapping.\
+Beginning in SLiM 3.3, 
+\f3\fs18 point
+\f4\fs20  may contain more than one point to be looked up.  In this case, the length of 
+\f3\fs18 point
+\f4\fs20  must be an exact multiple of the spatiality of the spatial map; for a spatial map with spatiality 
+\f3\fs18 "xz"
+\f4\fs20 , for example, the length of 
+\f3\fs18 point
+\f4\fs20  must be an exact multiple of 
+\f3\fs18 2
+\f4\fs20 , and successive pairs of elements from point (elements 
+\f3\fs18 0
+\f4\fs20  and 
+\f3\fs18 1
+\f4\fs20 , then elements 
+\f3\fs18 2
+\f4\fs20  and 
+\f3\fs18 3
+\f4\fs20 , etc.) will be taken as the 
+\f1\i x
+\f4\i0  and 
+\f1\i z
+\f4\i0  coordinates of the points to be evaluated.  This allows 
+\f3\fs18 spatialMapValue()
+\f4\fs20  to be used in a vectorized fashion.\
+The 
+\f3\fs18 spatialMapValue()
+\f4\fs20  method of 
+\f3\fs18 Subpopulation
+\f4\fs20  provides the same functionality as this method; it may be more convenient to use, for some usage cases, and it checks that the spatial map is actually added to the subpopulation in question, providing an additional consistency check.  However, either method may be used.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)multiply(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Multiplies the spatial map by 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is multiplied by 
+\f3\fs18 x
+\f4\fs20 .  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is multiplied by the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is multiplied by the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)power(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Raises the spatial map to the power 
+\f3\fs18 x
+\f4\fs20 .  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, each grid value of the target spatial map is raised to the power 
+\f3\fs18 x
+\f4\fs20 .  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each grid value of the target spatial map is raised to the power of the corresponding value of 
+\f3\fs18 x
+\f4\fs20 .  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of the target spatial map is raised to power of the corresponding grid value of 
+\f3\fs18 x
+\f4\fs20  (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)range(void)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns the range of values contained in the spatial map.  The result is a 
+\f3\fs18 float
+\f4\fs20  vector of length 
+\f3\fs18 2
+\f4\fs20 ; the first element is the minimum map value, and the second element is the maximum map value.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)rescale([numeric$\'a0min\'a0=\'a00.0], [numeric$\'a0max\'a0=\'a01.0])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Rescales the values of the spatial map to the range [
+\f3\fs18 min
+\f4\fs20 , 
+\f3\fs18 max
+\f4\fs20 ].  By default, the rescaling is to the range [
+\f3\fs18 0.0
+\f4\fs20 , 
+\f3\fs18 1.0
+\f4\fs20 ].  It is required that 
+\f3\fs18 min
+\f4\fs20  be less than 
+\f3\fs18 max
+\f4\fs20 , and that both be finite.  Note that the final range may not be exactly [
+\f3\fs18 min
+\f4\fs20 , 
+\f3\fs18 max
+\f4\fs20 ] due to numerical error.  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)sampleImprovedNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This variant of 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  samples a Metropolis\'96Hastings move on the spatial map.  See 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  for discussion of the basic idea.  This method proposes a nearby point drawn from the given kernel.  If the drawn point has a larger map value than the original point, the new point is returned.  If the drawn point has a smaller map value than the original point, it is returned with a probability equal to the ratio between its map value and the original map value, otherwise the original point is returned.  The distribution of individuals that move (or not) to new locations governed by this method will converge upon the map itself, in a similar manner to how MCMC converges upon the posterior distribution (assuming no other forces, such as birth or death, influence the distribution of individuals).  Movement governed by this method is \'93improved\'94 in the sense that individuals will tend to remain where they are unless the new sampled point is an improvement for them \'96 a higher map value.\
+Note that unlike 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20 , this method requires that all map values are non-negative.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(float)sampleNearbyPoint(float\'a0point, float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 For a spatial point supplied in 
+\f3\fs18 point
+\f4\fs20 , returns a nearby point sampled from a kernel weighted by the spatial map\'92s values.  Only points within the maximum distance of the kernel, 
+\f3\fs18 maxDistance
+\f4\fs20 , will be chosen, and the probability that a given point is chosen will be proportional to the density of the kernel at that point multiplied by the value of the map at that point (interpolated, if interpolation is enabled for the map).  Negative values of the map will be treated as zero.  The point returned will be within spatial bounds, respecting periodic boundaries if in effect (so there is no need to call 
+\f3\fs18 pointPeriodic()
+\f4\fs20  on the result).\
+The kernel is specified with a kernel shape, 
+\f3\fs18 functionType
+\f4\fs20 , followed by zero or more ellipsis arguments; see 
+\f3\fs18 smooth()
+\f4\fs20  for further information.  For this method, at present only kernel types 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , and 
+\f3\fs18 "t"
+\f4\fs20  are supported, and type 
+\f3\fs18 "t"
+\f4\fs20  is not presently supported for 3D kernels.\
+This method can be used to find points in the vicinity of individuals that are favorable \'96 possessing more resources, or better environmental conditions, etc.  It can also be used to guide the dispersal or foraging behavior of individuals.  See 
+\f3\fs18 sampleImprovedNearbyPoint()
+\f4\fs20  for a variant that may be useful for directed movement across a landscape.  Note that the algorithm for 
+\f3\fs18 sampleNearbyPoint()
+\f4\fs20  works by rejection sampling, and so will be very inefficient if the maximum value of the map (anywhere, across the entire map) is much larger than the typical value of the map where individuals are.  The algorithm for 
+\f3\fs18 sampleImprovedNearbyPoint()
+\f4\fs20  is different, and does not exhibit this performance issue.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)smooth(float$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Smooths (or blurs, one could say) the values of the spatial map by convolution with a kernel.  The kernel is specified with a maximum distance 
+\f3\fs18 maxDistance
+\f4\fs20  (beyond which the kernel cuts off to a value of zero), a kernel type 
+\f3\fs18 functionType
+\f4\fs20  that should be 
+\f3\fs18 "f"
+\f4\fs20 , 
+\f3\fs18 "l"
+\f4\fs20 , 
+\f3\fs18 "e"
+\f4\fs20 , 
+\f3\fs18 "n"
+\f4\fs20 , 
+\f3\fs18 "c"
+\f4\fs20 , or 
+\f3\fs18 "t"
+\f4\fs20 , and additional parameters in the ellipsis 
+\f3\fs18 ...
+\f4\fs20  that depend upon the kernel type and further specify its shape.  The target spatial map is returned, to allow easy chaining of operations.\
+The kernel specification is similar to that for the 
+\f3\fs18 setInteractionType()
+\f4\fs20  method of 
+\f3\fs18 InteractionType
+\f4\fs20 , but omits the maximum value of the kernel.  Specifically, 
+\f3\fs18 functionType
+\f4\fs20  may be 
+\f3\fs18 "f"
+\f4\fs20 , in which case no ellipsis arguments should be supplied; 
+\f3\fs18 "l"
+\f4\fs20 , similarly with no ellipsis arguments; 
+\f3\fs18 "e"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  lambda (rate) parameter for a negative exponential function; 
+\f3\fs18 "n"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; 
+\f3\fs18 "c"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a Cauchy distribution function; or 
+\f3\fs18 "t"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  degrees of freedom and a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a 
+\f1\i t
+\f4\i0 -distribution function.  See the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation for discussions of these kernel types.\
+Distance metrics specified to this method, such as 
+\f3\fs18 maxDistance
+\f4\fs20  and the additional kernel shape parameters, are measured in the distance scale of the spatial map \'96 the same distance scale in which the spatial bounds of the map are specified.  The operation is performed upon the grid values of the spatial map; distances are internally translated into the scale of the value grid.  For non-periodic boundaries, clipping at the edge of the spatial map is done; in a 2D map with no periodic boundaries, for example, the weights of edge and corner grid values are adjusted for their partial (one-half and one-quarter) coverage.  For periodic boundaries, the smoothing operation will automatically wrap around based upon the assumption that the grid values at the two connected edges of the periodic boundary have identical values (which they should, since by definition they represent the same position in space).\
+The density scale of the kernel has no effect and will be normalized; this is the reason that 
+\f3\fs18 smooth()
+\f4\fs20 , unlike 
+\f3\fs18 InteractionType
+\f4\fs20 , does not require specification of the maximum value of the kernel.  This normalization prevents the kernel from increasing or decreasing the average spatial map value (apart from possible edge effects).\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(object<SpatialMap>$)subtract(ifo<SpatialMap>\'a0x)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Subtracts 
+\f3\fs18 x
+\f4\fs20  from the spatial map.  One possibility is that 
+\f3\fs18 x
+\f4\fs20  is a singleton 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  value; in this case, 
+\f3\fs18 x
+\f4\fs20  is subtracted from each grid value of the target spatial map.  Another possibility is that 
+\f3\fs18 x
+\f4\fs20  is an 
+\f3\fs18 integer
+\f4\fs20  or 
+\f3\fs18 float
+\f4\fs20  vector/matrix/array of the same dimensions as the target spatial map\'92s grid; in this case, each value of 
+\f3\fs18 x
+\f4\fs20  is subtracted from the corresponding grid value of the target spatial map.  The third possibility is that 
+\f3\fs18 x
+\f4\fs20  is itself a (singleton) spatial map; in this case, each grid value of 
+\f3\fs18 x
+\f4\fs20  is subtracted from the corresponding grid value of the target spatial map (and thus the two spatial maps must match in their spatiality, their spatial bounds, and their grid dimensions).  The target spatial map is returned, to allow easy chaining of operations.\
+\pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
+
+\f0\b\fs22 \cf0 5.15  Class Species\
+\pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
+
+\f1\i\b0 \cf0 5.15.1  
 \f2\fs18 Species
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -5812,7 +6578,7 @@ The spatial periodicity of the simulation for this species, as specified in
 \f5 \
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.14.2  
+\f1\i\fs22 \cf0 5.15.2  
 \f2\fs18 Species
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -6356,7 +7122,9 @@ As of SLiM 3.3, this method will restore the nucleotides of nucleotide-based mut
 \f3\fs18 treeSeqOutput()
 \f4\fs20  or generated by the Python 
 \f3\fs18 pyslim
-\f4\fs20  package.  Beginning with SLiM 4, the 
+\f4\fs20  package.  Note that the user metadata for a tree-sequence file can be read separately with the 
+\f3\fs18 treeSeqMetadata()
+\f4\fs20  function.  Beginning with SLiM 4, the 
 \f3\fs18 subpopMap
 \f4\fs20  parameter may be supplied to re-order the populations of the input tree sequence when it is loaded in to SLiM.  This parameter must have a value that is a 
 \f3\fs18 Dictionary
@@ -6986,7 +7754,9 @@ Normally, the full SLiM script used to generate the tree sequence is written out
 \f3\fs18 LogFile
 \f4\fs20  instance; however, only the keys and values contained by the object\'92s 
 \f3\fs18 Dictionary
-\f4\fs20  superclass state will be serialized into the metadata (properties of the subclass will be ignored).\
+\f4\fs20  superclass state will be serialized into the metadata (properties of the subclass will be ignored).  This metadata dictionary can be recovered from the saved file using the 
+\f3\fs18 treeSeqMetadata()
+\f4\fs20  function.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
@@ -7070,10 +7840,10 @@ The metadata (age, location, etc) that are stored in the resulting tree sequence
 \f4\fs20 ), but it can also take a significant amount of time.  Typically calling this method is not necessary; the automatic simplification performed occasionally by SLiM should be sufficient for most models.\
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.15  Class Subpopulation\
+\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 5.16  Class Subpopulation\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.15.1  
+\f1\i\b0 \cf0 5.16.1  
 \f2\fs18 Subpopulation
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7293,6 +8063,12 @@ fitnessScaling <\'96> (float$)\
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 spatialMaps => (object<SpatialMap>)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 The spatial maps that are currently added to the subpopulation.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 spatialBounds => (float)\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -7344,7 +8120,7 @@ The species to which the target object belongs.\
 \f4\fs20  class; see the Eidos manual)\cf0 , for another way of attaching state to subpopulations.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.15.2  
+\f1\i\fs22 \cf0 5.16.2  
 \f2\fs18 Subpopulation
 \f1\fs22  methods\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -7360,7 +8136,7 @@ The species to which the target object belongs.\
 \f4\fs20  and 
 \f3\fs18 modifyChild()
 \f4\fs20  callbacks governing the generation of the offspring individual.\
-Beginning in SLiM 4.1, the 
+Beginning in SLiM 5.0, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -7373,7 +8149,7 @@ Beginning in SLiM 4.1, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 4.1, passing 
+Beginning in SLiM 5.0, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7386,6 +8162,17 @@ Beginning in SLiM 4.1, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
@@ -7486,7 +8273,7 @@ If the
 \f4\fs20  callback rejects all proposed children from those particular parents, your model will then hang, so care must be taken with this approach.  Usually, nonWF models do not force generation of offspring in this manner; rejection of a proposed offspring by a 
 \f3\fs18 modifyChild()
 \f4\fs20  callback typically represents a phenomenon such as post-mating reproductive isolation or lethal genetic incompatibilities that would reduce the expected litter size, so the default behavior is typically desirable.\
-Beginning in SLiM 4.1, the 
+Beginning in SLiM 5.0, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -7499,7 +8286,7 @@ Beginning in SLiM 4.1, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 4.1, passing 
+Beginning in SLiM 5.0, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7514,6 +8301,17 @@ Beginning in SLiM 4.1, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent1
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models, in which offspring generation is managed manually by the model script; in such models, 
 \f3\fs18 addCrossed()
 \f4\fs20  must be called only from 
@@ -7567,7 +8365,7 @@ By default \'96 when
 \f4\fs20  can be used to make one or both genomes be null genomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
 \f1\i second
 \f4\i0  genome is usually a null genome in SLiM).\
-Beginning in SLiM 4.1, the 
+Beginning in SLiM 5.0, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -7783,7 +8581,7 @@ Note that gene conversion tracts are not explicitly supported by this method; th
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 5.0, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -7796,7 +8594,7 @@ Note that gene conversion tracts are not explicitly supported by this method; th
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 4.1, passing 
+Beginning in SLiM 5.0, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7809,6 +8607,25 @@ Beginning in SLiM 4.1, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent1
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .  If 
+\f3\fs18 parent1
+\f4\fs20  is 
+\f3\fs18 NULL
+\f4\fs20  (the default), 
+\f3\fs18 parent2
+\f4\fs20  will be used; if it is also 
+\f3\fs18 NULL
+\f4\fs20 , no spatial position will be inherited.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 Note that this method is only for use in nonWF models.  See 
@@ -7837,7 +8654,7 @@ Since selfing requires that
 \f4\fs20  has no effect on this method (in contrast to the behavior of 
 \f3\fs18 addCrossed()
 \f4\fs20 , where selfing is assumed to be incidental).\
-Beginning in SLiM 4.1, the 
+Beginning in SLiM 5.0, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -7850,7 +8667,7 @@ Beginning in SLiM 4.1, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 4.1, passing 
+Beginning in SLiM 5.0, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -7865,9 +8682,55 @@ Beginning in SLiM 4.1, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
+Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+\f3\fs18 parent
+\f4\fs20 ; more specifically, the 
+\f3\fs18 x
+\f4\fs20  property will be inherited in all spatial models (1D/2D/3D), the 
+\f3\fs18 y
+\f4\fs20  property in 2D/3D models, and the 
+\f3\fs18 z
+\f4\fs20  property in 3D models.  Properties not inherited will be left uninitialized, as they were prior to SLiM 5.  The parent\'92s spatial position is probably not desirable in itself; the intention here is to make it easy to model the natal dispersal of all the new offspring for a given tick with a single vectorized call to 
+\f3\fs18 pointDeviated()
+\f4\fs20 .\
 Note that this method is only for use in nonWF models.  See 
 \f3\fs18 addCrossed()
 \f4\fs20  for further general notes on the addition of new offspring individuals.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)addSpatialMap(object<SpatialMap>$\'a0map)\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Adds the given 
+\f3\fs18 SpatialMap
+\f4\fs20  object, 
+\f3\fs18 map
+\f4\fs20 , to the subpopulation.  (The spatial map would have been previously created with a call to 
+\f3\fs18 defineSpatialMap()
+\f4\fs20  on a different subpopulation; 
+\f3\fs18 addSpatialMap()
+\f4\fs20  can then be used to add that existing spatial map with other subpopulations, sharing the map between subpopulations.)  If the map is already added to the target subpopulation, this method does nothing; if a different map with the same name is already added to the subpopulation, an error results (because map names must be unique within each subpopulation).  The map being added must be compatible with the target subpopulation; in particular, the spatial bounds utilized by the map must exactly match the corresponding spatial bounds for the subpopulation, and the dimensionality of the subpopulation must encompass the spatiality of the map.  For example, if the map has a spatiality of 
+\f3\fs18 "xz"
+\f4\fs20  then the subpopulation must have a dimensionality of 
+\f3\fs18 "xyz"
+\f4\fs20  so that it encompasses both 
+\f3\fs18 "x"
+\f4\fs20  and 
+\f3\fs18 "z"
+\f4\fs20 , and the subpopulation\'92s spatial bounds for 
+\f3\fs18 "x"
+\f4\fs20  and 
+\f3\fs18 "z"
+\f4\fs20  must match those for the map (but the spatial bounds for 
+\f3\fs18 "y"
+\f4\fs20  are unimportant, since the map does not use that dimension).\
+Adding a map to a subpopulation is not strictly necessary, at present; one may query a 
+\f3\fs18 SpatialMap
+\f4\fs20  object directly using 
+\f3\fs18 mapValue()
+\f4\fs20 , regarding points in a subpopulation, without the map actually having been added to that subpopulation.  However, it is a good idea to use 
+\f3\fs18 addSpatialMap()
+\f4\fs20 , both for its compatibility check that prevents unnoticed scripting errors, and because it ensures correct display of the model in SLiMgui.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(float)cachedFitness(Ni\'a0indices)\
@@ -7952,12 +8815,23 @@ The
 \f4\fs20 , SLiMgui\'92s default (fitness-based) color will be used.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(object<SpatialMap>$)defineSpatialMap(string$\'a0name, string$\'a0spatiality, numeric\'a0values, [logical$\'a0interpolate\'a0=\'a0F], [Nif\'a0valueRange\'a0=\'a0NULL], [Ns\'a0colors\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Defines a spatial map for the subpopulation.  The map will henceforth be identified by 
+\f4\fs20 \cf2 Defines a spatial map for the subpopulation; see the 
+\f3\fs18 SpatialMap
+\f4\fs20  documentation regarding this class.  The new map is automatically added to the subpopulation; 
+\f3\fs18 addSpatialMap()
+\f4\fs20  does not need to be called.  (That method is for sharing the map with additional subpopulations, beyond the one for which the map was originally defined.)  The new 
+\f3\fs18 SpatialMap
+\f4\fs20  object is returned, and may be retained permanently using 
+\f3\fs18 defineConstant()
+\f4\fs20  or 
+\f3\fs18 defineGlobal()
+\f4\fs20  for convenience.\
+The name of the map is given by 
 \f3\fs18 name
-\f4\fs20 .  The map uses the spatial dimensions referenced by 
+\f4\fs20 , and can be used to identify it.  The map uses the spatial dimensions referenced by 
 \f3\fs18 spatiality
 \f4\fs20 , which must be a subset of the dimensions defined for the simulation in 
 \f3\fs18 initializeSLiMOptions()
@@ -7991,7 +8865,7 @@ The
 \f3\fs18 "xyz"
 \f4\fs20 .  The spatial map is defined by a grid of values supplied in parameter 
 \f3\fs18 values
-\f4\fs20 .  The remaining optional parameters are described below.\
+\f4\fs20 .  That grid of values is aligned with the spatial bounds of the subpopulation, as described in more detail below; the spatial map is therefore coupled to those spatial bounds, and can only be used in subpopulations that match those particular spatial bounds (to avoid stretching or shrinking the map).  The remaining optional parameters are described below.\
 Note that the semantics of this method changed in SLiM 3.5; in particular, the 
 \f3\fs18 gridSize
 \f4\fs20  parameter was removed, and the interpretation of the 
@@ -8031,16 +8905,20 @@ Moving on to the other parameters of
 \f4\fs20  is 
 \f3\fs18 T
 \f4\fs20 , values across the spatial map will be interpolated (using linear, bilinear, or trilinear interpolation as appropriate) to produce spatially continuous variation in values.  In either case, the corners of the value grid are exactly aligned with the corners of the spatial boundaries of the subpopulation as specified by 
-\f3\fs18 setSpatialBoundary()
+\f3\fs18 setSpatialBounds()
 \f4\fs20 , and the value grid is then stretched across the spatial extent of the subpopulation in such a manner as to produce equal spacing between the values along each dimension.  The setting of 
 \f3\fs18 interpolation
-\f4\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.\
+\f4\fs20  only affects how values between these grid points are calculated: by nearest-neighbor, or by linear interpolation.  Interpolation of spatial maps with periodic boundaries is not handled specially; to ensure that the edges of a periodic spatial map join smoothly, simply ensure that the grid values at the edges of the map are identical, since they will be coincident after periodic wrapping.  Note that cubic/bicubic interpolation is generally smoother than linear/bilinear interpolation, with fewer artifacts, but it is substantially slower to calculate; use the 
+\f3\fs18 interpolate()
+\f4\fs20  method of 
+\f3\fs18 SpatialMap
+\f4\fs20  to precalculate an interpolated map using cubic/bucubic interpolation.\
 The 
 \f3\fs18 valueRange
 \f4\fs20  and 
 \f3\fs18 colors
 \f4\fs20  parameters travel together; either both are unspecified, or both are specified.  They control how map values will be transformed into colors, by SLiMgui and by the 
-\f3\fs18 spatialMapColor()
+\f3\fs18 mapColor()
 \f4\fs20  method.  The 
 \f3\fs18 valueRange
 \f4\fs20  parameter establishes the color-mapped range of spatial map values, as a vector of length two specifying a minimum and maximum; this does not need to match the actual range of values in the map.  The 
@@ -8055,7 +8933,7 @@ The
 \f3\fs18 valueRange[1]
 \f4\fs20  will map to the last 
 \f3\fs18 colors
-\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the example recipes for an illustration of its use.\
+\f4\fs20  value, and intermediate values will shade continuously through the specified vector of colors, with interpolation between adjacent colors to produce a continuous spectrum.  This is much simpler than it sounds in this description; see the recipes in chapter 15 for an illustration of its use.\
 Note that at present, SLiMgui will only display spatial maps of spatiality 
 \f3\fs18 "x"
 \f4\fs20 , 
@@ -8067,8 +8945,8 @@ Note that at present, SLiMgui will only display spatial maps of spatiality
 \f4\fs20  spatial map, for example, since it has no way to choose which 2D slice through the 
 \f1\i xyz
 \f4\i0  space it ought to display).  The 
-\f3\fs18 spatialMapColor()
-\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the context menu on the individuals view (with a right-click or control-click).\
+\f3\fs18 mapColor()
+\f4\fs20  method will return translated color strings for any spatial map, however, even if SLiMgui is unable to display the spatial map.  If there are multiple spatial maps that SLiMgui is capable of displaying, it choose one for display by default, but other maps may be selected from the action menu on the individuals view (by clicking on the button with the gear icon).\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)outputMSSample(integer$\'a0sampleSize, [logical$\'a0replace\'a0=\'a0T], [string$\'a0requestedSex\'a0=\'a0"*"], [Ns$\'a0filePath\'a0=\'a0NULL], [logical$\'a0append\'a0=\'a0F]\cf2 \expnd0\expndtw0\kerning0
@@ -8239,6 +9117,100 @@ The parameters
 \f5 \
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(float)pointDeviated(integer$\'a0n, float\'a0point, string$\'a0boundary, numeric$\'a0maxDistance, string$\'a0functionType, ...)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Returns a vector containing 
+\f3\fs18 n
+\f4\fs20  points that are derived from 
+\f3\fs18 point
+\f4\fs20  by adding a deviation drawn from a dispersal kernel (specified by 
+\f3\fs18 maxDistance
+\f4\fs20 , 
+\f3\fs18 functionType
+\f4\fs20 , and the ellipsis parameters 
+\f3\fs18 ...
+\f4\fs20 ) and then applying a boundary condition specified by 
+\f3\fs18 boundary
+\f4\fs20 .  This method therefore performs the steps of a simple dispersal algorithm in a single vectorized call.\
+The parameter 
+\f3\fs18 point
+\f4\fs20  may contain a single point which is deviated and bounded 
+\f3\fs18 n
+\f4\fs20  times, or may contain 
+\f3\fs18 n
+\f4\fs20  points each of which is deviated and bounded.  In any case, each point in 
+\f3\fs18 point
+\f4\fs20  should match the dimensionality of the model \'96 one element in a 1D model, two elements in a 2D model, or three elements in a 3D model.  This method should not be called in a non-spatial model.\
+The dispersal kernel is specified similarly to other kernel-based methods, such as 
+\f3\fs18 setInteractionFunction()
+\f4\fs20  and 
+\f3\fs18 smooth()
+\f4\fs20 ; see the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation for detailed discussion of the available spatial kernel types and their parameters (supplied in the ellipsis, 
+\f3\fs18 ...
+\f4\fs20 ).  For 
+\f3\fs18 pointDeviated()
+\f4\fs20 , the Cauchy (
+\f3\fs18 "c"
+\f4\fs20 ) kernel is not allowed since it is not well-behaved for this purpose, and the Student\'92s 
+\f1\i t
+\f4\i0  (
+\f3\fs18 "t"
+\f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the interaction strength \'96 in other words, at distance 
+\f1\i r
+\f4\i0  the density is proportional to the functional form referred to by 
+\f3\fs18 functionType
+\f4\fs20 .  For instance, the density of the probability distribution for type 
+\f3\fs18 "e"
+\f4\fs20  with rate 
+\f1\i a
+\f4\i0  at distance 
+\f1\i r
+\f4\i0  is proportional to exp(\uc0\u8722 
+\f1\i ra
+\f4\i0 ); and so the distribution of the distance in 1D is exponential, while in 2D it is proportional to 
+\f1\i r
+\f4\i0  exp(\uc0\u8722 
+\f1\i ra
+\f4\i0 ) (i.e., Gamma with shape parameter 1).\
+The boundary condition must be one of 
+\f3\fs18 "none"
+\f4\fs20 , 
+\f3\fs18 "periodic"
+\f4\fs20 , 
+\f3\fs18 "reflecting"
+\f4\fs20 , 
+\f3\fs18 "stopping"
+\f4\fs20 , or 
+\f3\fs18 "reprising"
+\f4\fs20 .  For 
+\f3\fs18 "none"
+\f4\fs20 , no boundary condition is enforced; the deviated points are simply returned as is.  For 
+\f3\fs18 "periodic"
+\f4\fs20 , 
+\f3\fs18 "reflecting"
+\f4\fs20 , and 
+\f3\fs18 "stopping"
+\f4\fs20 , the boundary condition is enforced just as it is by the 
+\f3\fs18 pointPeriodic()
+\f4\fs20 , 
+\f3\fs18 pointReflected()
+\f4\fs20 , and 
+\f3\fs18 pointStopped()
+\f4\fs20  methods; see their documentation for further details.  For 
+\f3\fs18 "reprising"
+\f4\fs20 , if the deviated point is out of bounds a new deviated point will be chosen, based upon the same original point, until a point inside bounds is obtained.  Note that absorbing boundaries (for which being out-of-bounds is lethal) would be implemented in script; this method cannot enforce them.\
+In the typical usage case, 
+\f3\fs18 point
+\f4\fs20  comes from the 
+\f3\fs18 spatialPosition
+\f4\fs20  property for a vector of individuals, and the result is then set back onto the same vector of individuals using the 
+\f3\fs18 setSpatialPosition()
+\f4\fs20  method; however, this method might be useful in other situations too.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf0 \'96\'a0(logical)pointInBounds(float\'a0point)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
@@ -8359,7 +9331,27 @@ The length of
 \f4\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0(void)removeSubpopulation(void)
+\f3\fs18 \cf2 \kerning1\expnd0\expndtw0 \'96\'a0(void)removeSpatialMap(so<SpatialMap>$\'a0map)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Removes the 
+\f3\fs18 SpatialMap
+\f4\fs20  object specified by 
+\f3\fs18 map
+\f4\fs20  from the subpopulation.  The parameter 
+\f3\fs18 map
+\f4\fs20  may be either a 
+\f3\fs18 SpatialMap
+\f4\fs20  object, or a 
+\f3\fs18 string
+\f4\fs20  name for spatial map.  The map must have been added to the subpopulation with 
+\f3\fs18 addSpatialMap()
+\f4\fs20 ; if it has not been, an error results.  Removing spatial maps that are no longer in use is optional in most cases.  It is generally a good idea because it might decrease SLiM\'92s memory footprint; also, it avoids an error if the subpopulation\'92s spatial bounds are changed (see 
+\f3\fs18 setSpatialBounds()
+\f4\fs20 ).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf0 \'96\'a0(void)removeSubpopulation(void)
 \f5 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -8540,6 +9532,12 @@ Set the spatial boundaries of the subpopulation to
 \f4\fs20  (a restriction that allows the handling of periodicity to be somewhat more efficient).  The current spatial bounds for the subpopulation may be obtained through the 
 \f3\fs18 spatialBounds
 \f4\fs20  property.\cf0 \kerning1\expnd0\expndtw0 \
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 The spatial bounds of a subpopulation are shared with any 
+\f3\fs18 SpatialMap
+\f4\fs20  objects added to the subpopulation.  For this reason, once a spatial map has been added to a subpopulation, the spatial bounds of the subpopulation can no longer be changed (because it would stretch or shrink the associated spatial map, which does not seem to make physical sense).  The bounds for a subpopulation should therefore be configured before any spatial maps are added to it.  If those bounds do need to change subsequently, any associated spatial maps must first be removed with 
+\f3\fs18 removeSpatialMap()
+\f4\fs20 , to ensure model consistency.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)setSubpopulationSize(integer$\'a0size)
@@ -8555,123 +9553,39 @@ Set the spatial boundaries of the subpopulation to
 \f5 \'a0
 \f3 (string)spatialMapColor(string$\'a0name, numeric\'a0value)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 Looks up the spatial map indicated by 
+\f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
+\f4\b0   In SLiM 5.0 and later, use the 
+\f3\fs18 SpatialMap
+\f4\fs20  method 
+\f3\fs18 mapColor()
+\f4\fs20  instead, and see that method\'92s documentation.  (This method differs only in taking a 
 \f3\fs18 name
-\f4\fs20 , and uses its color-translation machinery (as defined by the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20 ) to translate each element of 
-\f3\fs18 value
-\f4\fs20  into a corresponding color string.  If the spatial map does not have color-translation capabilities, an error will result.  See the documentation for 
-\f3\fs18 defineSpatialMap()
-\f4\fs20  for information regarding the details of color translation.  See the Eidos manual for further information on color strings.
-\f5 \
+\f4\fs20  parameter, which is used to look up the spatial map from those that have been added to the subpopulation.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(object<Image>$)spatialMapImage(string$\'a0name, [Ni$\'a0width\'a0=\'a0NULL], [Ni$\'a0height\'a0=\'a0NULL], [logical$\'a0centers\'a0=\'a0F], [logical$\'a0color\'a0=\'a0T])\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 Looks up the spatial map indicated by 
+\f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
+\f4\b0   In SLiM 5.0 and later, use the 
+\f3\fs18 SpatialMap
+\f4\fs20  method 
+\f3\fs18 mapImage()
+\f4\fs20  instead, and see that method\'92s documentation.  (This method differs only in taking a 
 \f3\fs18 name
-\f4\fs20 , and returns an 
-\f3\fs18 Image
-\f4\fs20  object sampled from it.  The image will be 
-\f3\fs18 width
-\f4\fs20  pixels wide and 
-\f3\fs18 height
-\f4\fs20  pixels tall; the intrinsic size of the spatial map itself will be used if one of these parameters is 
-\f3\fs18 NULL
-\f4\fs20 .  The image will be oriented in the same way as it is displayed in SLiMgui (which conceptually entails a transformation from matrix coordinates, which store values by column, to standard image coordinates, which store values by row; see the Eidos manual\'92s documentation of 
-\f3\fs18 Image
-\f4\fs20  for details).  This method may only be called for 2D spatial maps at present.\
-The sampling of the spatial map can be done in one of two ways, as controlled by the 
-\f3\fs18 centers
-\f4\fs20  parameter.  If 
-\f3\fs18 centers
-\f4\fs20  is 
-\f3\fs18 T
-\f4\fs20 , a (
-\f3\fs18 width+1
-\f4\fs20 ) \'d7 (
-\f3\fs18 height+1
-\f4\fs20 ) grid of lines that delineates 
-\f3\fs18 width
-\f4\fs20  \'d7 
-\f3\fs18 height
-\f4\fs20  rectangular pixels will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
-\f1\i center
-\f4\i0  of each of these pixels.  If 
-\f3\fs18 centers
-\f4\fs20  is 
-\f3\fs18 F
-\f4\fs20  (the default), a 
-\f3\fs18 width
-\f4\fs20  \'d7 
-\f3\fs18 height
-\f4\fs20  grid of lines will be overlaid on top of the spatial map, and values will be sampled from the spatial map at the 
-\f1\i vertices
-\f4\i0  of the grid.  If interpolation is not enabled for the spatial map, these two options will both recover the original matrix of values used to define the spatial map (assuming, here and below, that 
-\f3\fs18 width
-\f4\fs20  and 
-\f3\fs18 height
-\f4\fs20  are 
-\f3\fs18 NULL
-\f4\fs20 ).  If interpolation is enabled for the spatial map, however, 
-\f3\fs18 centers == F
-\f4\fs20  will recover the original values, but will not capture the \'93typical\'94 value of each pixel in the image; 
-\f3\fs18 centers == T
-\f4\fs20 , on the other hand, will not recover the original values, but will capture the \'93typical\'94 value of each pixel in the image (i.e., the value at the center of each pixel, as produced by interpolation).\
-If 
-\f3\fs18 color
-\f4\fs20  is 
-\f3\fs18 T
-\f4\fs20  (the default), the 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  parameters supplied to 
-\f3\fs18 defineSpatialMap()
-\f4\fs20  will be used to translate map values to RGB color values as described in the documentation of that method, providing the same appearance as in SLiMgui; of course those parameters must have been supplied, otherwise an error will result.  If 
-\f3\fs18 color
-\f4\fs20  is 
-\f3\fs18 F
-\f4\fs20 , on the other hand, a grayscale image will be produced that directly reflects the map values without color translation.  In this case, this method needs to translate map values, which can have any 
-\f3\fs18 float
-\f4\fs20  value, into grayscale pixel values that are integers in [
-\f3\fs18 0
-\f4\fs20 , 
-\f3\fs18 255
-\f4\fs20 ].  To do so, the map values are multiplied by 
-\f3\fs18 255.0
-\f4\fs20 , clamped to [
-\f3\fs18 0.0
-\f4\fs20 , 
-\f3\fs18 255.0
-\f4\fs20 ], and then rounded to the nearest integer.  This translation scheme essentially assumes that map values are in [0, 1]; for spatial maps that were defined using the 
-\f3\fs18 floatK
-\f4\fs20  channel of a grayscale PNG image, this should recover the original image\'92s pixel values.  (If a different translation scheme is desired, 
-\f3\fs18 color=T
-\f4\fs20  with the desired 
-\f3\fs18 valueRange
-\f4\fs20  and 
-\f3\fs18 colors
-\f4\fs20  should be used.)\
+\f4\fs20  parameter, which is used to look up the spatial map from those that have been added to the subpopulation.)\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96
 \f5 \'a0
-\f3 (float)spatialMapValue(string$\'a0name, float\'a0point)
+\f3 (float)spatialMapValue(so<SpatialMap>$\'a0map, float\'a0point)
 \f5 \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-Looks up the spatial map indicated by 
-\f3\fs18 name
+\f4\fs20 \cf2 Looks up the spatial map specified by 
+\f3\fs18 map
 \f4\fs20 , and uses its mapping machinery (as defined by the 
 \f3\fs18 gridSize
 \f4\fs20 , 
@@ -8682,7 +9596,13 @@ Looks up the spatial map indicated by
 \f3\fs18 defineSpatialMap()
 \f4\fs20 ) to translate the coordinates of 
 \f3\fs18 point
-\f4\fs20  into a corresponding map value.  The length of 
+\f4\fs20  into a corresponding map value.  The parameter 
+\f3\fs18 map
+\f4\fs20  may specify the map either as a 
+\f3\fs18 SpatialMap
+\f4\fs20  object, or by its 
+\f3\fs18 string
+\f4\fs20  name; in either case, the map must have been added to the subpopulation.  The length of 
 \f3\fs18 point
 \f4\fs20  must be equal to the spatiality of the spatial map; in other words, for a spatial map with spatiality 
 \f3\fs18 "xz"
@@ -8724,9 +9644,20 @@ Beginning in SLiM 3.3,
 \f4\i0  coordinates of the points to be evaluated.  This allows 
 \f3\fs18 spatialMapValue()
 \f4\fs20  to be used in a vectorized fashion.\
+The 
+\f3\fs18 mapValue()
+\f4\fs20  method of 
+\f3\fs18 SpatialMap
+\f4\fs20  provides the same functionality directly on the 
+\f3\fs18 SpatialMap
+\f4\fs20  class; 
+\f3\fs18 spatialMapValue()
+\f4\fs20  is provided on 
+\f3\fs18 Subpopulation
+\f4\fs20  partly for backward compatibility, but also for convenience for the most common usage case of spatial maps.\
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
+\f3\fs18 \cf0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
 (object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
@@ -8788,10 +9719,10 @@ Note that this method is only for use in nonWF models, in which migration is man
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 5.16  Class Substitution\
+\f0\b\fs22 \cf0 5.17  Class Substitution\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\b0 \cf0 5.16.1  
+\f1\i\b0 \cf0 5.17.1  
 \f2\fs18 Substitution
 \f1\fs22  properties\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -8906,7 +9837,7 @@ nucleotide <\'96> (string$)\
 \f4\fs20  is not used by SLiM; it is free for you to use.\
 \pard\pardeftab720\ri720\sb120\sa60\partightenfactor0
 
-\f1\i\fs22 \cf0 5.16.2  
+\f1\i\fs22 \cf0 5.17.2  
 \f2\fs18 Substitution
 \f1\fs22  methods\
 \pard\pardeftab397\fi274\ri720\sb40\sa40\partightenfactor0

@@ -121,7 +121,7 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmax",				Eidos_ExecuteFunction_pmax,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("pmin",				Eidos_ExecuteFunction_pmin,			kEidosValueMaskAnyBase))->AddAnyBase("x")->AddAnyBase("y"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("quantile",			Eidos_ExecuteFunction_quantile,		kEidosValueMaskFloat))->AddNumeric("x")->AddFloat_ON("probs", gStaticEidosValueNULL));
-		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("range",				Eidos_ExecuteFunction_range,		kEidosValueMaskNumeric))->AddNumeric("x")->AddEllipsis());
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature(gEidosStr_range,		Eidos_ExecuteFunction_range,		kEidosValueMaskNumeric))->AddNumeric("x")->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("sd",				Eidos_ExecuteFunction_sd,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("ttest",				Eidos_ExecuteFunction_ttest,		kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddFloat("x")->AddFloat_ON("y", gStaticEidosValueNULL)->AddFloat_OSN("mu", gStaticEidosValueNULL));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("var",				Eidos_ExecuteFunction_var,			kEidosValueMaskFloat | kEidosValueMaskSingleton))->AddNumeric("x"));

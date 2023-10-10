@@ -843,7 +843,7 @@ void QtSLiMIndividualsWidget::cacheDisplayBufferForMapForSubpopulation(SpatialMa
 	}
 }
 
-void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop)
+void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_map, QRect bounds, Subpopulation *subpop, bool showGridPoints)
 {
     // We have a spatial map with a color map, so use it to draw the background
 	int bounds_x1 = bounds.x();
@@ -1036,6 +1036,9 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 		if (display_buf)
 		{
 			// Use a cached display buffer to draw.
+			// FIXME I think there is a bug here somewhere, the boundaries of the pixels fluctuate oddly when the
+			// individuals pane is resized, even if the actual area the map is displaying in doesn't change size.
+			// Maybe try using GL_POINTS?
 			int buf_width = background_map->buffer_width_;
 			int buf_height = background_map->buffer_height_;
 			bool display_full_size = ((bounds.width() == buf_width) && (bounds.height() == buf_height));
@@ -1136,7 +1139,7 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 					if (x1 < bounds_x1) x1 = bounds_x1;
 					if (x2 > bounds_x2) x2 = bounds_x2;
 					
-					float value_fraction = (background_map->min_value_ < background_map->max_value_) ? static_cast<float>((value - background_map->min_value_) / (background_map->max_value_ - background_map->min_value_)) : 0.0f;
+					float value_fraction = (background_map->colors_min_ < background_map->colors_max_) ? static_cast<float>((value - background_map->colors_min_) / (background_map->colors_max_ - background_map->colors_min_)) : 0.0f;
 					float color_index = value_fraction * (n_colors - 1);
 					int color_index_1 = static_cast<int>(floorf(color_index));
 					int color_index_2 = static_cast<int>(ceilf(color_index));
@@ -1208,6 +1211,146 @@ void QtSLiMIndividualsWidget::_drawBackgroundSpatialMap(SpatialMap *background_m
 	
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+    
+    if (showGridPoints)
+    {
+        // BCH 9/29/2023 new feature: draw boxes showing where the grid nodes are, since that is rather confusing!
+        float margin_outer = 5.5f;
+        float margin_inner = 3.5f;
+        float spacing = 10.0f;
+        int64_t xsize = background_map->grid_size_[0];
+        int64_t ysize = background_map->grid_size_[1];
+        double *values = background_map->values_;
+        
+        // require that there is sufficient space that we're not just showing a packed grid of squares
+        // downsize to small and smaller depictions as needed
+        if (((xsize - 1) * (margin_outer * 2.0 + spacing) > bounds_x2) || ((ysize - 1) * (margin_outer * 2.0 + spacing) > bounds_y2))
+        {
+            margin_outer = 4.5f;
+            margin_inner = 2.5f;
+            spacing = 8.0;
+        }
+        if (((xsize - 1) * (margin_outer * 2.0 + spacing) > bounds_x2) || ((ysize - 1) * (margin_outer * 2.0 + spacing) > bounds_y2))
+        {
+            margin_outer = 3.5f;
+            margin_inner = 1.5f;
+            spacing = 6.0;
+        }
+        if (((xsize - 1) * (margin_outer * 2.0 + spacing) > bounds_x2) || ((ysize - 1) * (margin_outer * 2.0 + spacing) > bounds_y2))
+        {
+            margin_outer = 1.0f;
+            margin_inner = 0.0f;
+            spacing = 2.0;
+        }
+        
+        if (((xsize - 1) * (margin_outer * 2.0 + spacing) <= bounds_x2) && ((ysize - 1) * (margin_outer * 2.0 + spacing) <= bounds_y2))
+        {
+            // Set up to draw rects
+            displayListIndex = 0;
+            
+            vertices = glArrayVertices;
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glVertexPointer(2, GL_FLOAT, 0, glArrayVertices);
+            
+            colors = glArrayColors;
+            glEnableClientState(GL_COLOR_ARRAY);
+            glColorPointer(4, GL_FLOAT, 0, glArrayColors);
+            
+            // first pass we draw squares to make outlines, second pass we draw the interiors in color
+            for (int pass = 0; pass <= 1; ++pass)
+            {
+                const float margin = ((pass == 0) ? margin_outer : margin_inner);
+                
+                if (margin == 0.0)
+                    continue;
+                
+                for (int x = 0; x < xsize; ++x)
+                {
+                    for (int y = 0; y < ysize; ++y)
+                    {
+                        float position_x = x / (float)(xsize - 1);	// 0 to 1
+                        float position_y = y / (float)(ysize - 1);	// 0 to 1
+                        
+                        float centerX = (float)(bounds_x1 + round(position_x * bounds.width()));
+                        float centerY = (float)(bounds_y1 + bounds.height() - round(position_y * bounds.height()));
+                        float left = centerX - margin;
+                        float top = centerY - margin;
+                        float right = centerX + margin;
+                        float bottom = centerY + margin;
+                        
+                        if (left < bounds_x1)
+                            left = bounds_x1;
+                        if (top < bounds_y1)
+                            top = bounds_y1;
+                        if (right > bounds_x2)
+                            right = bounds_x2;
+                        if (bottom > bounds_y2)
+                            bottom = bounds_y2;
+                        
+                        *(vertices++) = left;
+                        *(vertices++) = top;
+                        *(vertices++) = left;
+                        *(vertices++) = bottom;
+                        *(vertices++) = right;
+                        *(vertices++) = bottom;
+                        *(vertices++) = right;
+                        *(vertices++) = top;
+                        
+                        if (pass == 0)
+                        {
+                            for (int j = 0; j < 4; ++j)
+                            {
+                                *(colors++) = 1.0;
+                                *(colors++) = 0.25;
+                                *(colors++) = 0.25;
+                                *(colors++) = 1.0;
+                            }
+                        }
+                        else
+                        {
+                            // look up the map's color at this grid point
+                            float rgb[3];
+                            double value = values[x + y * xsize];
+                            
+                            background_map->ColorForValue(value, rgb);
+                            
+                            for (int j = 0; j < 4; ++j)
+                            {
+                                *(colors++) = rgb[0];
+                                *(colors++) = rgb[1];
+                                *(colors++) = rgb[2];
+                                *(colors++) = 1.0;
+                            }
+                        }
+                        
+                        displayListIndex++;
+                        
+                        // If we've filled our buffers, get ready to draw more
+                        if (displayListIndex == kMaxGLRects)
+                        {
+                            // Draw our arrays
+                            glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+                            
+                            // And get ready to draw more
+                            vertices = glArrayVertices;
+                            colors = glArrayColors;
+                            displayListIndex = 0;
+                        }
+                    }
+                }
+            }
+            
+            // Draw any leftovers
+            if (displayListIndex)
+            {
+                // Draw our arrays
+                glDrawArrays(GL_QUADS, 0, 4 * displayListIndex);
+            }
+            
+            glDisableClientState(GL_VERTEX_ARRAY);
+            glDisableClientState(GL_COLOR_ARRAY);
+        }
+    }
 }
 
 void QtSLiMIndividualsWidget::chooseDefaultBackgroundSettingsForSubpopulation(PopulationViewSettings *background, SpatialMap **returnMap, Subpopulation *subpop)
@@ -1254,6 +1397,7 @@ void QtSLiMIndividualsWidget::chooseDefaultBackgroundSettingsForSubpopulation(Po
         {
             background->backgroundType = 3;
             background->spatialMapName = background_map_name;
+            background->showGridPoints = false;
             *returnMap = background_map;
         }
     }
@@ -1298,7 +1442,7 @@ void QtSLiMIndividualsWidget::drawSpatialBackgroundInBoundsForSubpopulation(QRec
 	
 	if ((background.backgroundType == 3) && background_map)
 	{
-		_drawBackgroundSpatialMap(background_map, bounds, subpop);
+		_drawBackgroundSpatialMap(background_map, bounds, subpop, background.showGridPoints);
 	}
 	else
 	{
@@ -1585,6 +1729,7 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
         auto backgroundIter = subviewSettings.find(subpopForEvent->subpopulation_id_);
         PopulationViewSettings *background = ((backgroundIter == subviewSettings.end()) ? nullptr : &backgroundIter->second);
         int backgroundType = (background ? background->backgroundType : -1);
+        bool showGrid = (background ? background->showGridPoints : false);
         
         QAction *blackAction = contextMenu.addAction("Black Background");
         blackAction->setData(10);
@@ -1633,13 +1778,26 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
                 else // (map->spatiality_ == 3)
                     menuItemTitle = QString("Spatial Map \"%1\" (\"%2\", %3×%4×%5)").arg(mapName).arg(spatialityName).arg(map->grid_size_[0]).arg(map->grid_size_[1]).arg(map->grid_size_[2]);
                 
-                QAction *mapAction = contextMenu.addAction(menuItemTitle);
-                mapAction->setData(mapName);
-                mapAction->setCheckable(true);
-                mapAction->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName)));
-                mapAction->setEnabled(!disableAll && displayable);
+                QAction *mapAction1 = contextMenu.addAction(menuItemTitle);
+                mapAction1->setData(mapName);
+                mapAction1->setCheckable(true);
+                mapAction1->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName) && !showGrid));
+                mapAction1->setEnabled(!disableAll && displayable);
                 
-                backgroundGroup->addAction(mapAction);
+                backgroundGroup->addAction(mapAction1);
+                
+                // 9/29/2023: now we support displaying spatial maps with a display of the underlying grid, too
+                // There is a second menu item for each map, with "with grid" added to the title and "__WITH_GRID" added to the data
+                menuItemTitle.append(" with grid");
+                QString mapDataName = mapName;
+                mapDataName.append("__WITH_GRID");
+                QAction *mapAction2 = contextMenu.addAction(menuItemTitle);
+                mapAction2->setData(mapDataName);
+                mapAction2->setCheckable(true);
+                mapAction2->setChecked((backgroundType == 3) && (mapName == QString::fromStdString(background->spatialMapName) && showGrid));
+                mapAction2->setEnabled(!disableAll && displayable);
+                
+                backgroundGroup->addAction(mapAction2);
             }
         }
     }
@@ -1665,6 +1823,7 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
         {
             // - (IBAction)setDisplayBackground:(id)sender
             int newDisplayBackground;
+            bool newShowGrid = false;
             auto backgroundIter = subviewSettings.find(subpopForEvent->subpopulation_id_);
             PopulationViewSettings *background = ((backgroundIter == subviewSettings.end()) ? nullptr : &backgroundIter->second);
             std::string mapName;
@@ -1672,7 +1831,16 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
             // If the user has selected a spatial map, extract its name
             if (static_cast<QMetaType::Type>(action->data().type()) == QMetaType::QString)  // for some reason this method's return type is apparently misdeclared; see the doc
             {
-                mapName = action->data().toString().toStdString();
+                QString qMapName = action->data().toString();
+                
+                // detect the "with grid" ending if present
+                if (qMapName.endsWith("__WITH_GRID"))
+                {
+                    qMapName.chop(11);
+                    newShowGrid = true;
+                }
+                
+                mapName = qMapName.toStdString();
                 
                 if (mapName.length() == 0)
                     return;
@@ -1682,6 +1850,7 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
             else
             {
                 newDisplayBackground = action->data().toInt() - 10;
+                newShowGrid = false;
             }
             
             // Update the existing background entry, or make a new entry
@@ -1689,11 +1858,12 @@ void QtSLiMIndividualsWidget::runContextMenuAtPoint(QPoint globalPoint, Subpopul
             {
                 background->backgroundType = newDisplayBackground;
                 background->spatialMapName = mapName;
+                background->showGridPoints = newShowGrid;
                 update();
             }
             else
             {
-                subviewSettings.emplace(subpopForEvent->subpopulation_id_, PopulationViewSettings{newDisplayBackground, mapName});
+                subviewSettings.emplace(subpopForEvent->subpopulation_id_, PopulationViewSettings{newDisplayBackground, mapName, newShowGrid});
                 update();
             }
         }

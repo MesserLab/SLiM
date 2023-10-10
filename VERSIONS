@@ -136,6 +136,26 @@ development head (in the master branch):
 	add five logical tag properties to Individual, tagL0 - tagL4, to hold user-defined values of type logical
 	add parent1 and parent2 parameters to addRecombinant() so that parental pedigreeIDs can be tracked properly if desired
 	add sharedParentCount() method, a simplified version of relatedness() using only parent pedigree IDs to find full sibs (2) and haf-sibs (1)
+	split SpatialMap out into its own Eidos class
+		make -defineSpatialMap() return an o<SpatialMap>$ object that can be used independently
+		make SpatialMap know the spatial bounds that it is aligned to; all uses of a given SpatialMap must use the same spatial bounds!  if a subpop changes its bounds, it checks the bounds of the spatial maps it is using
+		make SpatialMap know its name; it is now an intrinsic property of the map, used primarily for SLiMgui display, and must be unique within each subpopulation
+		add a constructor for SpatialMap that duplicates the spatial map object, with a new name
+		allow a given SpatialMap to be retained long-term (e.g., with defineConstant() / defineGlobal())
+		allow a given SpatialMap to be set on more than one subpopulation, with a new method addSpatialMap(); also removeSpatialMap() to take one out, and a spatialMaps property to get the maps currently on a subpop
+		add utility methods directly on SpatialMap for the things subpop already does – mapValue(), mapColor(), mapImage() – and deprecate the Subpopulation APIs (except spatialMapValue(), which remains useful and undeprecated, and can now take a SpatialMap object)
+		add a changeValues() method on SpatialMap to change the grid values of an existing spatial map
+		add various properties on SpatialMap: gridDimensions, interpolate, name, spatialBounds, spatiality, tag
+	add interpolate() to SpatialMap, to increase the resolution of a spatial map by interpolating new values
+	add smooth() to SpatialMap, to smooth/blur a map; internally, add the SpatialKernel class (not user-visible)
+	add add(), multiply(), subtract(), divide(), power(), exp(), range(), and gridValues() methods to SpatialMap
+	add sampleNearbyPoint() and sampleImprovedNearbyPoint() to SpatialMap, for searching habitat and such
+	add a t-distribution option for SpatialKernel, to provide a fat-tailed distribution that behaves better than Cauchy
+	add a Subpopulation method pointDeviated() that can deviate points using a kernel and enforce boundary conditions in one call
+	tweak WF reproduction, addCrossed(), addSelfed(), addCloned(), and addRecombinant() to give the new offspring the same spatial position as the first parent, allowing efficient positioning with pointDeviated() in the typical usage case
+	policy change: type 'f' kernels now require a finite maxDistance, since the alternative doesn't really make sense (note that type 'l' already required a finite maxDistance)
+	new option in the Individuals view for spatial models, to display the underlying grid points of the spatial map
+	add changeColors(), blend(), and rescale() methods to SpatialMap; extend changeValues() so it can take a SpatialMap as its parameter
 	
 
 version 4.0.1 (Eidos version 3.0.1):
