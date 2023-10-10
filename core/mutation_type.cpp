@@ -42,7 +42,7 @@ std::ostream& operator<<(std::ostream& p_out, DFEType p_dfe_type)
 		case DFEType::kExponential:		p_out << gStr_e;		break;
 		case DFEType::kNormal:			p_out << gEidosStr_n;	break;
 		case DFEType::kWeibull:			p_out << gStr_w;		break;
-		case DFEType::kLaplace:			p_out << gStr_la;		break;
+		case DFEType::kLaplace:			p_out << gStr_p;		break;
 		case DFEType::kScript:			p_out << gEidosStr_s;	break;
 	}
 	
@@ -138,7 +138,7 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		*p_dfe_type = DFEType::kWeibull;
 		expected_dfe_param_count = 2;
 	}
-	else if (p_dfe_type_string.compare(gStr_la) == 0)
+	else if (p_dfe_type_string.compare(gStr_p) == 0)
 	{
 		*p_dfe_type = DFEType::kLaplace;
 		expected_dfe_param_count = 2;
@@ -209,7 +209,7 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		case DFEType::kLaplace:
 			// mean is unrestricted, sd parameter must be >= 0
 			if ((*p_dfe_parameters)[1] < 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"la\" must have a scale parameter >= 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"p\" must have a scale parameter >= 0." << EidosTerminate();
 			break;
 		case DFEType::kScript:
 			// no limits on script here; the script is checked when it gets tokenized/parsed/executed
@@ -427,7 +427,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 			static EidosValue_SP static_dfe_string_e;
 			static EidosValue_SP static_dfe_string_n;
 			static EidosValue_SP static_dfe_string_w;
-			static EidosValue_SP static_dfe_string_la;
+			static EidosValue_SP static_dfe_string_p;
 			static EidosValue_SP static_dfe_string_s;
 			
 #pragma omp critical (GetProperty_distributionType_cache)
@@ -439,7 +439,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 					static_dfe_string_e = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_e));
 					static_dfe_string_n = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_n));
 					static_dfe_string_w = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_w));
-					static_dfe_string_la = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_la));					
+					static_dfe_string_p = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gStr_p));					
 					static_dfe_string_s = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_s));
 				}
 			}
@@ -451,7 +451,7 @@ EidosValue_SP MutationType::GetProperty(EidosGlobalStringID p_property_id)
 				case DFEType::kExponential:		return static_dfe_string_e;
 				case DFEType::kNormal:			return static_dfe_string_n;
 				case DFEType::kWeibull:			return static_dfe_string_w;
-				case DFEType::kLaplace:			return static_dfe_string_la;
+				case DFEType::kLaplace:			return static_dfe_string_p;
 				case DFEType::kScript:			return static_dfe_string_s;
 				default:						return gStaticEidosValueNULL;	// never hit; here to make the compiler happy
 			}
