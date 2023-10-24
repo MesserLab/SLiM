@@ -156,6 +156,7 @@ development head (in the master branch):
 	policy change: type 'f' kernels now require a finite maxDistance, since the alternative doesn't really make sense (note that type 'l' already required a finite maxDistance)
 	new option in the Individuals view for spatial models, to display the underlying grid points of the spatial map
 	add changeColors(), blend(), and rescale() methods to SpatialMap; extend changeValues() so it can take a SpatialMap as its parameter
+	add Laplace DFE for MutationType, type "p"; contributed by Nick O'Brien
 	
 
 version 4.0.1 (Eidos version 3.0.1):

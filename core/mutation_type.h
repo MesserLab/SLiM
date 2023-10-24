@@ -53,6 +53,7 @@ enum class DFEType : char {
 	kExponential,
 	kNormal,
 	kWeibull,
+	kLaplace,
 	kScript
 };
 

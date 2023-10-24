@@ -74,6 +74,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 7.5); if (m1.distributionType == 'g' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('e', -3); if (m1.distributionType == 'e' & m1.distributionParams == -3) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 7.5); if (m1.distributionType == 'n' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 7.5); if (m1.distributionType == 'p' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); if (m1.distributionType == 'w' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('s', 'return 1;'); if (m1.distributionType == 's' & identical(m1.distributionParams, 'return 1;')) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('x', 1.5); stop(); }", "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
@@ -83,6 +84,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', 3); stop(); }", "must be of type string", __LINE__);
@@ -92,6 +95,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', '1', 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', 3.1); stop(); }", "must be of type string", __LINE__);
@@ -101,6 +106,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('e', T); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', T, 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, T); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('s', T); stop(); }", "must be of type string", __LINE__);
@@ -108,6 +115,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, -1.0); }", "must have a shape parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, -1.0); }", "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 0.0); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, -1.0); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 0.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', -1.0, 7.5); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 0.0); }", "must have a shape parameter > 0", __LINE__);
@@ -127,6 +136,8 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('e', -3.0); if (abs(mean(m1.drawSelectionCoefficient(30000)) + 3.0) < 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 0.5); m1.drawSelectionCoefficient(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('n', 3.1, 0.5); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 3.1) < 0.1) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 7.5); m1.drawSelectionCoefficient(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 0.01); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 3.1) < 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); m1.drawSelectionCoefficient(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); if (abs(mean(m1.drawSelectionCoefficient(2000)) - 2.910106) < 0.1) stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup + "1 early() { m1.setDistribution('s', 'rbinom(1, 4, 0.5);'); m1.drawSelectionCoefficient(); }", __LINE__);

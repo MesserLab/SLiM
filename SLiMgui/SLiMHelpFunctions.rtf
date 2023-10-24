@@ -1,7 +1,7 @@
 {\rtf1\ansi\ansicpg1252\cocoartf2709
 \cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Optima-Bold;\f1\fnil\fcharset0 Menlo-Regular;\f2\fswiss\fcharset0 Optima-Regular;
-\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fswiss\fcharset0 Helvetica;
-\f6\fnil\fcharset0 Menlo-Bold;\f7\fnil\fcharset0 AppleColorEmoji;}
+\f3\fswiss\fcharset0 Optima-Italic;\f4\froman\fcharset0 TimesNewRomanPSMT;\f5\fnil\fcharset0 Menlo-Bold;
+\f6\fnil\fcharset0 AppleColorEmoji;}
 {\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red150\green150\blue150;}
 {\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c65500\c65500\c65500;}
 \margl1440\margr1440\vieww9000\viewh8400\viewkind0
@@ -533,7 +533,7 @@ If the optional
 \f4 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f2\fs20 \cf0 Add a mutation type at initialization time.  The 
+\f2\fs20 \cf2 Add a mutation type at initialization time.  The 
 \f1\fs18 id
 \f2\fs20  must not already be used for any mutation type in the simulation.  The 
 \f1\fs18 id
@@ -543,14 +543,13 @@ If the optional
 \f1\fs18 string
 \f2\fs20  giving the name of the new mutation type (such as 
 \f1\fs18 "m5"
-\f2\fs20  to specify an ID of 5).\cf2 \expnd0\expndtw0\kerning0
-  The dominanceCoeff parameter supplies the dominance coefficient for the mutation type; 
+\f2\fs20  to specify an ID of 5).  The dominanceCoeff parameter supplies the dominance coefficient for the mutation type; 
 \f1\fs18 0.0
 \f2\fs20  produces no dominance, 
 \f1\fs18 1.0
 \f2\fs20  complete dominance, and values greater than 
 \f1\fs18 1.0
-\f2\fs20 , overdominance.\cf0 \kerning1\expnd0\expndtw0   The 
+\f2\fs20 , overdominance.  The 
 \f1\fs18 distributionType
 \f2\fs20  may be 
 \f1\fs18 "f"
@@ -575,11 +574,17 @@ If the optional
 \f2\fs20  mean selection coefficient and a 
 \f1\fs18 numeric$
 \f2\fs20  sigma (standard deviation) parameter for a normal distribution; 
+\f1\fs18 "p"
+\f2\fs20 , in which case the ellipsis should supply a 
+\f1\fs18 numeric$
+\f2\fs20  mean selection coefficient and a 
+\f1\fs18 numeric$
+\f2\fs20  scale parameter for a Laplace distribution; 
 \f1\fs18 "w"
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 numeric$
 \f2\fs20  
-\f5 \uc0\u955 
+\f4 \uc0\u955 
 \f2  scale parameter and a 
 \f1\fs18 numeric$
 \f2\fs20  k shape parameter for a Weibull distribution; or 
@@ -587,8 +592,7 @@ If the optional
 \f2\fs20 , in which case the ellipsis should supply a 
 \f1\fs18 string$
 \f2\fs20  Eidos script parameter.  The global symbol for the new mutation type is immediately available; the return value also provides the new object.\
-\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \expnd0\expndtw0\kerning0
+\expnd0\expndtw0\kerning0
 Note that by default in WF models, all mutations of a given mutation type will be converted into 
 \f1\fs18 Substitution
 \f2\fs20  objects when they reach fixation, for efficiency reasons.  If you need to disable this conversion, to keep mutations of a given type active in the simulation even after they have fixed, you can do so by setting the 
@@ -766,7 +770,7 @@ If the optional
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b \cf2 The 
-\f6\fs18 xDominanceCoeff
+\f5\fs18 xDominanceCoeff
 \f0\fs20  parameter has been deprecated and removed.
 \f2\b0   In SLiM 3.7 and later, use the 
 \f1\fs18 haploidDominanceCoeff
@@ -1035,11 +1039,11 @@ The
 \f1\fs18 avatar
 \f2\fs20  should generally be a single character \'96 usually an emoji corresponding to the species, such as 
 \f1\fs18 "
-\f7\fs14 \uc0\u55358 \u56714 
+\f6\fs14 \uc0\u55358 \u56714 
 \f1\fs18 "
 \f2\fs20  for foxes or 
 \f1\fs18 "
-\f7\fs14 \uc0\u55357 \u56365 
+\f6\fs14 \uc0\u55357 \u56365 
 \f1\fs18 "
 \f2\fs20  for mice.  If 
 \f1\fs18 avatar
@@ -1734,9 +1738,8 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i \cf2 F
+\f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1748,8 +1751,7 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 where 
+\kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 

@@ -1910,6 +1910,7 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'e', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0); stop(); }", "requires exactly 2 DFE parameters", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
@@ -1917,6 +1918,8 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'e', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 0.0, 'foo'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0, 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 'foo', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0, 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', '1'); stop(); }", "must be of type numeric", __LINE__);
@@ -1925,6 +1928,8 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'e', '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', '1', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', '1', 0.0); stop(); }", "must be of type numeric", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', '1', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'x', 0.0); stop(); }", "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
@@ -1936,6 +1941,8 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 3.1, 0.0); stop(); }", "must have a shape parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'g', 3.1, -1.0); stop(); }", "must have a shape parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'n', 3.1, -1.0); stop(); }", "must have a standard deviation parameter >= 0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 3.1, 0.0); stop(); }", "must have a scale parameter > 0", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 3.1, -1.0); stop(); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0, 7.5); stop(); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', -1.0, 7.5); stop(); }", "must have a scale parameter > 0", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 3.1, 0.0); stop(); }", "must have a shape parameter > 0", __LINE__);
