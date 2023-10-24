@@ -71,6 +71,10 @@ private:
     
     int slimChangeCount = 0;                    // private change count governing the recycle button's highlight
     
+    QString lastSavedString;                    // the last string saved to disk, or initial script string
+    bool scriptChangeObserved = false;          // has a change to the script been observed since last saved?
+    bool isScriptModified(void);                // uses scriptChangeObserved / lastSavedString to determine modified status
+    
     // state variables that are globals in Eidos and SLiM; we swap these in and out as needed, to provide each sim with its own context
 	bool sim_RNG_initialized = false;
     Eidos_RNG_State sim_RNG;                // QtSLiM never runs multithreaded, so we do not need the _PERTHREAD variant here

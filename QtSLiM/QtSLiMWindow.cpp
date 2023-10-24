@@ -221,7 +221,10 @@ QtSLiMWindow::QtSLiMWindow(QtSLiMWindow::ModelType modelType, bool includeCommen
     else
         untitledScriptString = (modelType == QtSLiMWindow::ModelType::WF) ? defaultWFScriptString_NC() : defaultNonWFScriptString_NC();
     
-    ui->scriptTextEdit->setPlainText(QString::fromStdString(untitledScriptString));
+    lastSavedString = QString::fromStdString(untitledScriptString);
+    scriptChangeObserved = false;
+    
+    ui->scriptTextEdit->setPlainText(lastSavedString);
     
     if (consoleController)
         consoleController->invalidateSymbolTableAndFunctionMap();
@@ -252,6 +255,9 @@ QtSLiMWindow::QtSLiMWindow(const QString &recipeName, const QString &recipeScrip
     isTransient = false;
     
     // set up the initial script
+    lastSavedString = recipeScript;
+    scriptChangeObserved = false;
+    
     ui->scriptTextEdit->setPlainText(recipeScript);
     setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
     
@@ -1100,9 +1106,31 @@ void QtSLiMWindow::showEvent(QShowEvent *p_event)
     }
 }
 
+bool QtSLiMWindow::isScriptModified(void)
+{
+    // We used to use Qt's isWindowModified() change-tracking system.  Unfortunately, apparently that is broken on Debian;
+    // see https://github.com/MesserLab/SLiM/issues/370.  It looks like Qt internally calls textChanged() and modifies the
+    // document when it shouldn't, resulting in untitled documents being marked dirty.  So now we check whether the
+    // script string has been changed from was was last saved to disk, or from their initial state if they are not
+    // based on a disk file.  Once a change has been observed, the document stays dirty; it doesn't revert to clean if
+    // the script string goes back to its original state (although smart, that would be non-standard).  BCH 10/24/2023
+    if (scriptChangeObserved)
+        return true;
+    
+    QString currentScript = ui->scriptTextEdit->toPlainText();
+    
+    if (lastSavedString != currentScript)
+    {
+        scriptChangeObserved = true;    // sticky until saved
+        return true;
+    }
+    
+    return false;
+}
+
 bool QtSLiMWindow::windowIsReuseable(void)
 {
-    return (isUntitled && !isRecipe && isTransient && (slimChangeCount == 0) && !isWindowModified());
+    return (isUntitled && !isRecipe && isTransient && (slimChangeCount == 0) && !isScriptModified());
 }
 
 bool QtSLiMWindow::save()
@@ -1164,7 +1192,7 @@ void QtSLiMWindow::revert()
 bool QtSLiMWindow::maybeSave()
 {
     // the recycle button change state is irrelevant; the document change state is what matters
-    if (!isWindowModified())
+    if (!isScriptModified())
         return true;
     
     const QMessageBox::StandardButton ret = QMessageBox::warning(this, "SLiMgui", "The document has been modified.\nDo you want to save your changes?", QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
@@ -1191,6 +1219,10 @@ void QtSLiMWindow::loadFile(const QString &fileName)
     
     QTextStream in(&file);
     QString contents = in.readAll();
+    
+    lastSavedString = contents;
+    scriptChangeObserved = false;
+    
     ui->scriptTextEdit->setPlainText(contents);
     
     if (consoleController)
@@ -1216,6 +1248,10 @@ void QtSLiMWindow::loadRecipe(const QString &recipeName, const QString &recipeSc
         consoleController->invalidateSymbolTableAndFunctionMap();
     
     clearOutputClicked();
+    
+    lastSavedString = recipeScript;
+    scriptChangeObserved = false;
+    
     ui->scriptTextEdit->setPlainText(recipeScript);
     setScriptStringAndInitializeSimulation(recipeScript.toUtf8().constData());
     
@@ -1239,9 +1275,12 @@ bool QtSLiMWindow::saveFile(const QString &fileName)
         QMessageBox::warning(this, "SLiMgui", QString("Cannot write file %1:\n%2.").arg(QDir::toNativeSeparators(fileName), file.errorString()));
         return false;
     }
+    
+    lastSavedString = ui->scriptTextEdit->toPlainText();
+    scriptChangeObserved = false;
 
     QTextStream out(&file);
-    out << ui->scriptTextEdit->toPlainText();
+    out << lastSavedString;
 
     setCurrentFile(fileName);
     return true;
@@ -1280,7 +1319,13 @@ void QtSLiMWindow::documentWasModified()
     // This is not quite the same as scriptTexteditChanged(), which is called whenever anything happens that makes the recycle
     // button go green; recycling resets the recycle button to gray, whereas saving resets the document state to unmodified.
     // We could be called for things that are saveable but do not trigger a need for recycling.
-    setWindowModified(true);
+    
+    // Things are a little more complicated now, because of a Qt bug on Debian that calls us even though the document has not,
+    // in fact, been modified.  So we now determine the window modified state by comparing the script string to the last
+    // saved / original script string.  See isScriptModified().  BCH 10/24/2023
+    
+    //setWindowModified(true);              // the old way that produces buggy behavior
+    setWindowModified(isScriptModified());  // the new way that checks whether the script has actually changed
 }
 
 void QtSLiMWindow::tile(const QMainWindow *previous)
