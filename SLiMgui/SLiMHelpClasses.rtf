@@ -9159,7 +9159,7 @@ The parameters
 \f3\fs18 functionType
 \f4\fs20 , and the ellipsis parameters 
 \f3\fs18 ...
-\f4\fs20 ) and then applying a boundary condition specified by 
+\f4\fs20 , as detailed below) and then applying a boundary condition specified by 
 \f3\fs18 boundary
 \f4\fs20 .  This method therefore performs the steps of a simple dispersal algorithm in a single vectorized call.\
 The parameter 
@@ -9175,21 +9175,49 @@ The dispersal kernel is specified similarly to other kernel-based methods, such 
 \f3\fs18 setInteractionFunction()
 \f4\fs20  and 
 \f3\fs18 smooth()
-\f4\fs20 ; see the 
-\f3\fs18 InteractionType
-\f4\fs20  class documentation for detailed discussion of the available spatial kernel types and their parameters (supplied in the ellipsis, 
-\f3\fs18 ...
-\f4\fs20 ).  For 
+\f4\fs20 .  For 
 \f3\fs18 pointDeviated()
-\f4\fs20 , the Cauchy (
+\f4\fs20 , 
+\f3\fs18 functionType
+\f4\fs20  may be 
+\f3\fs18 \'93f"
+\f4\fs20  with no ellipsis arguments 
+\f3\fs18 ...
+\f4\fs20  to use a flat kernel out to 
+\f3\fs18 maxDistance
+\f4\fs20 ; 
+\f3\fs18 \'93l"
+\f4\fs20  with no ellpises arguments for a kernel that decreases linearly from the center to zero at 
+\f3\fs18 maxDistance
+\f4\fs20 ; 
+\f3\fs18 "e"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  lambda (rate) parameter for a negative exponential function; 
+\f3\fs18 "n"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  sigma (standard deviation) parameter for a Gaussian function; or 
+\f3\fs18 "t"
+\f4\fs20 , in which case the ellipsis should supply a 
+\f3\fs18 numeric$
+\f4\fs20  degrees of freedom and a 
+\f3\fs18 numeric$
+\f4\fs20  scale parameter for a 
+\f1\i t
+\f4\i0 -distribution function.  The Cauchy (
 \f3\fs18 "c"
-\f4\fs20 ) kernel is not allowed since it is not well-behaved for this purpose, and the Student\'92s 
+\f4\fs20 ) kernel is not supported by 
+\f3\fs18 pointDeviated()
+\f4\fs20  since it is not well-behaved for this purpose, and the Student\'92s 
 \f1\i t
 \f4\i0  (
 \f3\fs18 "t"
-\f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the interaction strength \'96 in other words, at distance 
+\f4\fs20 ) kernel is not allowed in 3D models at present simply because it hasn\'92t been implemented.  See the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation (section 25.8) for more detailed discussion of the available kernel types and their parameters and probability distribution functions.  The random points returned from this method are drawn from the probability distribution that is radially symmetric and has density proportional to the kernel \'96 in other words, at distance 
 \f1\i r
-\f4\i0  the density is proportional to the functional form referred to by 
+\f4\i0  the density is proportional to the kernel type referred to by 
 \f3\fs18 functionType
 \f4\fs20 .  For instance, the density of the probability distribution for type 
 \f3\fs18 "e"
