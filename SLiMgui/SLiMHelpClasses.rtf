@@ -7019,6 +7019,7 @@ Beginning with SLiM 3.3, the
 \f4\fs20 ), different file version values will be used, and backward compatibility with previous versions of SLiM will be lost.  This option may only be used if SLiM\'92s optional pedigree tracking has been enabled with 
 \f3\fs18 initializeSLiMOptions(keepPedigrees=T)
 \f4\fs20 .\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 \cf0 Output is generally done in a 
 \f3\fs18 late()
 \f4\fs20  event, so that the output reflects the state of the simulation at the end of a tick.
@@ -9424,12 +9425,12 @@ Note that this method is only for use in nonWF models, in which there is a disti
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \kerning1\expnd0\expndtw0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
+(object<Individual>)sampleIndividuals(integer$\'a0size, [logical$\'a0replace\'a0=\'a0F], [No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL]\kerning1\expnd0\expndtw0 , [Nl$\'a0tagL0\'a0=\'a0NULL], [Nl$\'a0tagL1\'a0=\'a0NULL], [Nl$\'a0tagL2\'a0=\'a0NULL], [Nl$\'a0tagL3\'a0=\'a0NULL], [Nl$\'a0tagL4\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-Returns a vector of individuals, of size less than or equal to parameter 
+\f4\fs20 \cf2 Returns a vector of individuals, of size less than or equal to parameter 
 \f3\fs18 size
 \f4\fs20 , sampled from the individuals in the target subpopulation.  Sampling is done without replacement if 
 \f3\fs18 replace
@@ -9455,7 +9456,9 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f3\fs18 tag
 \f4\fs20 , if non-
 \f3\fs18 NULL
-\f4\fs20 , may specify a tag value for the individuals to be drawn.  Parameters 
+\f4\fs20 , may specify a 
+\f3\fs18 tag
+\f4\fs20  property value for the individuals to be drawn.  Parameters 
 \f3\fs18 minAge
 \f4\fs20  and 
 \f3\fs18 maxAge
@@ -9471,9 +9474,47 @@ Returns a vector of individuals, of size less than or equal to parameter
 \f3\fs18 T
 \f4\fs20  will require that individuals be migrants, 
 \f3\fs18 F
-\f4\fs20  will require that they not be).  If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
+\f4\fs20  will require that they not be).  Finally, parameters 
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a required value (
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 ) for the corresponding properties (
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20 ) of the individuals to be drawn.  Note that if any 
+\f3\fs18 tag
+\f4\fs20 /
+\f3\fs18 tagL
+\f4\fs20  parameter is specified as non-
+\f3\fs18 NULL
+\f4\fs20 , that 
+\f3\fs18 tag
+\f4\fs20 /
+\f3\fs18 tagL
+\f4\fs20  property must have a defined value for every individual in the subpopulation, otherwise an error may result (although this requirement will not necessarily be checked comprehensively by this method in every invocation).  If the candidate pool is smaller than the requested sample size, all eligible candidates will be returned (in randomized order); the result will be a zero-length vector if no eligible candidates exist (unlike 
 \f3\fs18 sample()
 \f4\fs20 ).\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 This method is similar to getting the 
 \f3\fs18 individuals
 \f4\fs20  property of the subpopulation, using operator 
@@ -9715,12 +9756,12 @@ The
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0\cf2 \expnd0\expndtw0\kerning0
-(object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL])
+(object<Individual>)subsetIndividuals([No<Individual>$\'a0exclude\'a0=\'a0NULL], [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL]\kerning1\expnd0\expndtw0 , [Nl$\'a0tagL0\'a0=\'a0NULL], [Nl$\'a0tagL1\'a0=\'a0NULL], [Nl$\'a0tagL2\'a0=\'a0NULL], [Nl$\'a0tagL3\'a0=\'a0NULL], [Nl$\'a0tagL4\'a0=\'a0NULL]\expnd0\expndtw0\kerning0
+)
 \f5 \cf0 \kerning1\expnd0\expndtw0 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-Returns a vector of individuals subset from the individuals in the target subpopulation.  The parameters specify constraints upon the subset of individuals that will be returned.  Parameter 
+\f4\fs20 \cf2 Returns a vector of individuals subset from the individuals in the target subpopulation.  The parameters specify constraints upon the subset of individuals that will be returned.  Parameter 
 \f3\fs18 exclude
 \f4\fs20 , if non-
 \f3\fs18 NULL
@@ -9736,7 +9777,9 @@ Returns a vector of individuals subset from the individuals in the target subpop
 \f3\fs18 tag
 \f4\fs20 , if non-
 \f3\fs18 NULL
-\f4\fs20 , may specify a tag value for the individuals to be returned.  Parameters 
+\f4\fs20 , may specify a 
+\f3\fs18 tag
+\f4\fs20  property value for the individuals to be returned.  Parameters 
 \f3\fs18 minAge
 \f4\fs20  and 
 \f3\fs18 maxAge
@@ -9752,7 +9795,45 @@ Returns a vector of individuals subset from the individuals in the target subpop
 \f3\fs18 T
 \f4\fs20  will require that individuals be migrants, 
 \f3\fs18 F
-\f4\fs20  will require that they not be).\
+\f4\fs20  will require that they not be).  Finally, parameters 
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20 , if non-
+\f3\fs18 NULL
+\f4\fs20 , may specify a required value (
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20 ) for the corresponding properties (
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20 ) of the individuals to be returned.  Note that if any 
+\f3\fs18 tag
+\f4\fs20 /
+\f3\fs18 tagL
+\f4\fs20  parameter is specified as non-
+\f3\fs18 NULL
+\f4\fs20 , that 
+\f3\fs18 tag
+\f4\fs20 /
+\f3\fs18 tagL
+\f4\fs20  property must have a defined value for every individual in the subpopulation, otherwise an error may result (although this requirement will not necessarily be checked comprehensively by this method in every invocation).\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \expnd0\expndtw0\kerning0
 This method is shorthand for getting the 
 \f3\fs18 individuals
 \f4\fs20  property of the subpopulation, and then using operator 
