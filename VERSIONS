@@ -159,6 +159,7 @@ development head (in the master branch):
 	add Laplace DFE for MutationType, type "p"; contributed by Nick O'Brien
 	extend sampleIndividuals() and subsetIndividuals() to support constraining by tagL0 - tagL4
 		policy change: if tag is specified (non-NULL), the tag property must now have a defined value on all individuals; previously this was not checked, and individuals with an undefined tag value were simply excluded
+	add [logical$ randomizeStrands = F] flag to addRecombinant; if T, strand1/strand2 and strand3/strand4 will be randomized for each offspring generated
 	
 
 version 4.0.1 (Eidos version 3.0.1):

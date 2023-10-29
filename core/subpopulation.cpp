@@ -4881,7 +4881,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addEmpty(EidosGlobalStringID p_method
 //	*********************	– (o<Individual>)addRecombinant(No<Genome>$ strand1, No<Genome>$ strand2, Ni breaks1,
 //															No<Genome>$ strand3, No<Genome>$ strand4, Ni breaks2,
 //															[Nfs$ sex = NULL], [No<Individual>$ parent1 = NULL], [No<Individual>$ parent2 = NULL],
-//															[integer$ count = 1], [logical$ defer = F])
+//															[l$ randomizeStrands = F], [integer$ count = 1], [logical$ defer = F])
 //
 EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
@@ -4901,7 +4901,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_addRecombinant): method -addRecombinant() may not be called for a no-genetics species; recombination requires genetics." << EidosTerminate();
 	
 	// Check the count and short-circuit if it is zero
-	EidosValue *count_value = p_arguments[9].get();
+	EidosValue *count_value = p_arguments[10].get();
 	int64_t child_count = count_value->IntAtIndex(0, nullptr);
 	
 	if ((child_count < 0) || (child_count > SLIM_MAX_SUBPOP_SIZE))
@@ -5021,7 +5021,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 	if (!mutation_callbacks->size())
 		mutation_callbacks = nullptr;
 	
-	EidosValue *defer_value = p_arguments[10].get();
+	EidosValue *randomizeStrands_value = p_arguments[9].get();
+	bool randomizeStrands = randomizeStrands_value->LogicalAtIndex(0, nullptr);
+	
+	EidosValue *defer_value = p_arguments[11].get();
 	bool defer = defer_value->LogicalAtIndex(0, nullptr);
 	
 	if (defer && mutation_callbacks)
@@ -5032,6 +5035,25 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 		GenomeType genome1_type, genome2_type;
 		bool genome1_null, genome2_null;
 		IndividualSex child_sex = _GenomeConfigurationForSex(sex_value, genome1_type, genome2_type, genome1_null, genome2_null);
+		
+		// Randomly swap initial copy strands, if requested and applicable
+		if (randomizeStrands)
+		{
+			Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+			
+			if (strand1 && strand2 && Eidos_RandomBool(rng_state))
+			{
+				std::swap(strand1, strand2);
+				std::swap(strand1_parent, strand2_parent);
+				//std::swap(strand1_value, strand2_value);		// not used henceforth
+			}
+			if (strand3 && strand4 && Eidos_RandomBool(rng_state))
+			{
+				std::swap(strand3, strand4);
+				std::swap(strand3_parent, strand4_parent);
+				//std::swap(strand3_value, strand4_value);		// not used henceforth
+			}
+		}
 		
 		// Check that the chosen sex makes sense with respect to the strands given
 		// BCH 9/20/2021: Improved the logic here because in sexual sex-chromosome models the null/nonnull state of the offspring genomes is dictated by the sex.
@@ -5107,7 +5129,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				breakvec1.erase(breakvec1.begin());
 				std::swap(strand1, strand2);
 				std::swap(strand1_parent, strand2_parent);
-				std::swap(strand1_value, strand2_value);
+				//std::swap(strand1_value, strand2_value);		// not used henceforth
 			}
 		}
 		
@@ -5128,7 +5150,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_addRecombinant(EidosGlobalStringID p_
 				breakvec2.erase(breakvec2.begin());
 				std::swap(strand3, strand4);
 				std::swap(strand3_parent, strand4_parent);
-				std::swap(strand3_value, strand4_value);
+				//std::swap(strand3_value, strand4_value);		// not used henceforth
 			}
 		}
 		
@@ -8212,7 +8234,7 @@ const std::vector<EidosMethodSignature_CSP> *Subpopulation_Class::Methods(void) 
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCloned, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addCrossed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent1", gSLiM_Individual_Class)->AddObject_S("parent2", gSLiM_Individual_Class)->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addEmpty, kEidosValueMaskObject, gSLiM_Individual_Class))->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddLogical_OSN("genome1Null", gStaticEidosValueNULL)->AddLogical_OSN("genome2Null", gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1));
-		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addRecombinant, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_SN("strand1", gSLiM_Genome_Class)->AddObject_SN("strand2", gSLiM_Genome_Class)->AddInt_N("breaks1")->AddObject_SN("strand3", gSLiM_Genome_Class)->AddObject_SN("strand4", gSLiM_Genome_Class)->AddInt_N("breaks2")->AddArgWithDefault(kEidosValueMaskNULL | kEidosValueMaskFloat | kEidosValueMaskString | kEidosValueMaskSingleton | kEidosValueMaskOptional, "sex", nullptr, gStaticEidosValueNULL)->AddObject_OSN("parent1", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddObject_OSN("parent2", gSLiM_Individual_Class, gStaticEidosValueNULL)->AddLogical_OS("randomizeStrands", gStaticEidosValue_LogicalF)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_addSelfed, kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject_S("parent", gSLiM_Individual_Class)->AddInt_OS("count", gStaticEidosValue_Integer1)->AddLogical_OS("defer", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_takeMigrants, kEidosValueMaskVOID))->AddObject("migrants", gSLiM_Individual_Class));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_removeSubpopulation, kEidosValueMaskVOID)));

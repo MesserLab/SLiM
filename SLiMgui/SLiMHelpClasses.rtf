@@ -8414,7 +8414,7 @@ Note that this method is only for use in nonWF models.  See
 \pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \expnd0\expndtw0\kerning0
-\'96\'a0(object<Individual>)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
+\'96\'a0(object<Individual>)addRecombinant(No<Genome>$\'a0strand1, No<Genome>$\'a0strand2, Ni\'a0breaks1, No<Genome>$\'a0strand3, No<Genome>$\'a0strand4, Ni\'a0breaks2, [Nfs$\'a0sex\'a0=\'a0NULL], [No<Individual>$\'a0parent1\'a0=\'a0NULL], [No<Individual>$\'a0parent2\'a0=\'a0NULL], [logical$\'a0randomizeStrands\'a0=\'a0F], [integer$\'a0count\'a0=\'a01], [logical$\'a0defer\'a0=\'a0F])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f4\fs20 \cf2 Generates a new offspring individual from the given parental genomes with the specified crossover breakpoints, queues it for addition to the target subpopulation, and returns it.  The new offspring will not be visible as a member of the target subpopulation until the end of the offspring generation tick cycle stage.  The target subpopulation will be used to locate applicable 
@@ -8564,6 +8564,37 @@ By default, the offspring is considered to have no parents for the purposes of p
 \f4\fs20  or 
 \f3\fs18 parent2
 \f4\fs20  to actually be a genetic parent of the offspring at all, although typically they would be.\
+If 
+\f3\fs18 randomizeStrands
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), 
+\f3\fs18 strand1
+\f4\fs20  will be the initial copy strand when generating the first gamete to form the offspring, and 
+\f3\fs18 strand3
+\f4\fs20  will be the initial copy strand when generating the second gamete.  If 
+\f3\fs18 randomizeStrands
+\f4\fs20  is T, then if 
+\f3\fs18 strand1
+\f4\fs20  and 
+\f3\fs18 strand2
+\f4\fs20  are both non-
+\f3\fs18 NULL
+\f4\fs20 , 50% of the time they will be swapped, making 
+\f3\fs18 strand2
+\f4\fs20  the initial copy strand for the first gamete; and similarly, if 
+\f3\fs18 strand3
+\f4\fs20  and 
+\f3\fs18 strand4
+\f4\fs20  are both non-
+\f3\fs18 NULL
+\f4\fs20 , 50% of the time they will be swapped, making 
+\f3\fs18 strand4
+\f4\fs20  the initial copy strand for the second gamete.  This is probably usually the desired behavior, to avoid an inheritance bias due to a lack of randomization in the initial copy strand, so passing 
+\f3\fs18 T
+\f4\fs20  for 
+\f3\fs18 randomizeStrands
+\f4\fs20  is recommended unless you specifically desire otherwise.  It is not the default behavior only for reasons of backward compatibility.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 \cf2 \expnd0\expndtw0\kerning0
 These semantics allow several uses for 
