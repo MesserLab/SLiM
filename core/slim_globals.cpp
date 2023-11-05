@@ -1399,6 +1399,7 @@ const std::string &gStr_neighborCountOfPoint = EidosRegisteredString("neighborCo
 const std::string &gStr_nearestInteractingNeighbors = EidosRegisteredString("nearestInteractingNeighbors", gID_nearestInteractingNeighbors);
 const std::string &gStr_interactingNeighborCount = EidosRegisteredString("interactingNeighborCount", gID_interactingNeighborCount);
 const std::string &gStr_nearestNeighborsOfPoint = EidosRegisteredString("nearestNeighborsOfPoint", gID_nearestNeighborsOfPoint);
+const std::string &gStr_setConstraints = EidosRegisteredString("setConstraints", gID_setConstraints);
 const std::string &gStr_setInteractionFunction = EidosRegisteredString("setInteractionFunction", gID_setInteractionFunction);
 const std::string &gStr_strength = EidosRegisteredString("strength", gID_strength);
 const std::string &gStr_totalOfNeighborStrengths = EidosRegisteredString("totalOfNeighborStrengths", gID_totalOfNeighborStrengths);

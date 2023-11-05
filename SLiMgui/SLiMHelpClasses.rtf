@@ -3498,14 +3498,15 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 sexSegregation => (string$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 The sex-segregation of the interaction, as specified in 
+\f4\fs20 \cf2 The sex-segregation of the interaction, as specified in 
 \f3\fs18 initializeInteractionType()
+\f4\fs20  or with 
+\f3\fs18 setConstraints()
 \f4\fs20 .  For non-sexual simulations, this will be 
 \f3\fs18 "**"
-\f5\fs20 .
-\f4   For sexual simulations, this 
+\f4\fs20 .  For sexual simulations, this 
 \f3\fs18 string
 \f4\fs20  value indicates the sex of individuals feeling the interaction, and the sex of individuals exerting the interaction; see 
 \f3\fs18 initializeInteractionType()
@@ -3568,7 +3569,7 @@ More specifically, this method uses the parental pedigree IDs from the pedigree 
 
 \f4\fs20 \cf2 Returns a vector containing the integral of the interaction function as experienced by each of the individuals in 
 \f3\fs18 receivers
-\f4\fs20 .  For each given individual, the interaction function is clipped to the edges of the spatial bounds of the subpopulation that individual inhabits; the individual\'92s spatial position must be within bounds or an error is raised.  A periodic boundary will, correctly, not clip the interaction function.  The interaction function is also clipped to the interaction\'92s maximum distance; that distance must be less than half of the extent of the spatial bounds in each dimension (so that, for a given dimension, the interaction function is clipped by the spatial bounds on only one side), otherwise an error is raised.  Note that for sex-specific interaction types, the sex of the receiver does not matter; an individual might not actually receive any interactions because of its sex, but it is still considered to have the same interaction function integral.  If 
+\f4\fs20 .  For each given individual, the interaction function is clipped to the edges of the spatial bounds of the subpopulation that individual inhabits; the individual\'92s spatial position must be within bounds or an error is raised.  A periodic boundary will, correctly, not clip the interaction function.  The interaction function is also clipped to the interaction\'92s maximum distance; that distance must be less than half of the extent of the spatial bounds in each dimension (so that, for a given dimension, the interaction function is clipped by the spatial bounds on only one side), otherwise an error is raised.  Note that receiver constraints are not applied; an individual might not actually receive any interactions because of those constraints, but it is still considered to have the same interaction function integral.  If 
 \f3\fs18 receivers
 \f4\fs20  is 
 \f3\fs18 NULL
@@ -3631,7 +3632,7 @@ Importantly, distances are calculated according to the spatiality of the
 \f3\fs18 initializeSLiMOptions()
 \f4\fs20 ).  The distances returned are therefore the distances that would be used to calculate interaction strengths.  However, 
 \f3\fs18 distance()
-\f4\fs20  will return finite distances for all pairs of individuals, even if the individuals are non-interacting; the 
+\f4\fs20  will return finite distances for all pairs of individuals, even if the individuals are non-interacting due to the maximum interaction distance or the interaction constraints; the 
 \f3\fs18 distance()
 \f4\fs20  between an individual and itself will thus be 
 \f3\fs18 0
@@ -3682,7 +3683,7 @@ Importantly, distances are calculated according to the spatiality of the
 \f3\fs18 initializeInteractionType()
 \f4\fs20 ) not the dimensionality of the model as a whole (as declared in 
 \f3\fs18 initializeSLiMOptions()
-\f4\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.\
+\f4\fs20 ).  The distances are therefore interaction distances: the distances that are used to calculate interaction strengths.  However, the maximum interaction distance and interaction constraints are not used.\
 This method replaces the 
 \f3\fs18 distanceToPoint()
 \f4\fs20  method that existed prior to SLiM 4.\
@@ -3764,7 +3765,9 @@ Beginning in SLiM 5.0, this method has a vectorized mode of operation in which t
 \f3\fs18 integer
 \f4\fs20  IDs, or as 
 \f3\fs18 Subpopulation
-\f4\fs20  objects.  This method will discard all previously cached data for the subpopulation(s), and will cache the current spatial positions of all individuals they contain (so that the spatial positions of those individuals may then change without disturbing the state of the interaction at the moment of evaluation).  Particular interaction distances and strengths are not computed by 
+\f4\fs20  objects.  This method will discard all previously cached data for the subpopulation(s), and will cache the current spatial positions of all individuals they contain (so that the spatial positions of those individuals may then change without disturbing the state of the interaction at the moment of evaluation).  It will also cache which individuals in the subpopulation are eligible to act as exerters, according to the configured exerter constraints, but it will 
+\f1\i not
+\f4\i0  cache such eligibility information for receiver constraints (which are applied at the time a spatial query is made).  Particular interaction distances and strengths are not computed by 
 \f3\fs18 evaluate()
 \f4\fs20 , and 
 \f3\fs18 interaction()
@@ -3775,7 +3778,7 @@ You must explicitly call
 \f3\fs18 evaluate()
 \f4\fs20  at an appropriate time in the tick cycle before the interaction is used, but after any relevant changes have been made to the population.  SLiM will invalidate any existing interactions after any portion of the tick cycle in which new individuals have been born or existing individuals have died.  In a WF model, this occurs just before 
 \f3\fs18 late()
-\f4\fs20  events execute (see the WF tick cycle diagram), so 
+\f4\fs20  events execute (see the WF tick cycle diagram in chapter 23), so 
 \f3\fs18 late()
 \f4\fs20  events are often the appropriate place to put 
 \f3\fs18 evaluate()
@@ -3787,7 +3790,7 @@ You must explicitly call
 \f3\fs18 early()
 \f4\fs20  events and then individuals die just before 
 \f3\fs18 late()
-\f4\fs20  events (see the nonWF tick cycle diagram), so interactions will be invalidated twice during each tick cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
+\f4\fs20  events (see the nonWF tick cycle diagram in chapter 24), so interactions will be invalidated twice during each tick cycle.  This means that in a nonWF model, an interaction that influences reproduction should usually be evaluated in a 
 \f3\fs18 first()
 \f4\fs20  event, while an interaction that influences fitness or mortality should usually be evaluated in an 
 \f3\fs18 early()
@@ -3811,10 +3814,8 @@ If an interaction is never evaluated for a given subpopulation, it is guaranteed
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.\
 This method is similar to 
 \f3\fs18 nearestInteractingNeighbors()
-\f4\fs20  (when passed a large count so as to guarantee that all interacting individuals are returned), but this method returns only a count of the interacting individuals, not a vector containing the individuals.  This method may also be called in a vectorized fashion, with a non-singleton vector of individuals, unlike 
-\f3\fs18 nearestInteractingNeighbors()
-\f4\fs20 .\
-Note that this method uses interaction eligibility as a criterion; it will not count neighbors that cannot exert an interaction upon a receiver (due to sex-segregation, e.g.).  (It also does not count a receiver as a neighbor of itself.)  If a count of all neighbors is desired, rather than just interacting neighbors, use 
+\f4\fs20  (when passed a large count so as to guarantee that all interacting individuals are returned), but this method returns only a count of the interacting individuals, not a vector containing the individuals.\
+Note that this method uses interaction eligibility as a criterion; it will not count neighbors that do not exert an interaction upon a given receiver (due to the configured receiver or exerter constraints).  (It also does not count a receiver as a neighbor of itself.)  If a count of all neighbors is desired, rather than just interacting neighbors, use 
 \f3\fs18 neighborCount()
 \f4\fs20 .  If the 
 \f3\fs18 InteractionType
@@ -3864,7 +3865,7 @@ Importantly, distances are calculated according to the spatiality of the
 \f3\fs18 interactionDistance()
 \f4\fs20  between an individual and itself will thus be 
 \f3\fs18 INF
-\f4\fs20 , and likewise for pairs excluded from interacting by the sex segregation or max distance of the interaction type.  See 
+\f4\fs20 , and likewise for pairs excluded from interacting by receiver constraints, exerter constraints, or the maximum interaction distance of the interaction type.  See 
 \f3\fs18 distance()
 \f4\fs20  for an alternative distance definition.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
@@ -3941,7 +3942,7 @@ To see the point of this method, consider a receiver located near the edge of th
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.  If the 
 \f3\fs18 InteractionType
 \f4\fs20  is non-spatial, this method may not be called.\
-Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the receiver (due to sex-segregation, e.g.).  (It will also never return the receiver as a neighbor of itself.)  To find all neighbors of the receiver, whether they can interact with it or not, use 
+Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the receiver (due to the configured receiver or exerter constraints).  (It will also never return the receiver as a neighbor of itself.)  To find all neighbors of a receiver, whether they can interact with it or not, use 
 \f3\fs18 nearestNeighbors()
 \f4\fs20 .\
 Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
@@ -4013,10 +4014,12 @@ Beginning in SLiM 5.0, this method has a vectorized mode of operation in which t
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.  If the 
 \f3\fs18 InteractionType
 \f4\fs20  is non-spatial, this method may not be called.\
-Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the receiver due to sex-segregation.  (It will never return the receiver as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the receiver, use 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Note that this method does not use interaction eligibility as a criterion; it will return neighbors that could not interact with the receiver due to the configured receiver or exerter constraints.  (It will never return the receiver as a neighbor of itself, however.)  To find only neighbors that are eligible to exert an interaction upon the receiver, use 
 \f3\fs18 nearestInteractingNeighbors()
 \f4\fs20 .\
-Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -4101,12 +4104,11 @@ Beginning in SLiM 5.0, this method has a vectorized mode of operation in which t
 \f4\fs20 , then from among all individuals in the receiver\'92s subpopulation).  All of the receivers must belong to a single subpopulation, and all of the exerters must belong to a single subpopulation, but those two subpopulations do not need to be the same.  The 
 \f3\fs18 evaluate()
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.\
-This method is similar to 
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 This method is similar to 
 \f3\fs18 nearestNeighbors()
-\f4\fs20  (when passed a large count so as to guarantee that all neighbors are returned), but this method returns only a count of the individuals, not a vector containing the individuals.  This method may also be called in a vectorized fashion, with a non-singleton vector of individuals, unlike 
-\f3\fs18 nearestNeighbors()
-\f4\fs20 .\
-Note that this method does not use interaction eligibility as a criterion; it will count neighbors that cannot exert an interaction upon a receiver (due to sex-segregation, e.g.).  (It still does not count a receiver as a neighbor of itself, however.)  If a count of only interacting neighbors is desired, use 
+\f4\fs20  (when passed a large count so as to guarantee that all neighbors are returned), but this method returns only a count of the individuals, not a vector containing the individuals.\
+Note that this method does not use interaction eligibility as a criterion; it will count neighbors that cannot exert an interaction upon a receiver (due to the configured receiver or exerter constraints).  (It still does not count a receiver as a neighbor of itself, however.)  If a count of only interacting neighbors is desired, use 
 \f3\fs18 interactingNeighborCount()
 \f4\fs20 .  If the 
 \f3\fs18 InteractionType
@@ -4134,6 +4136,123 @@ Note that this method does not use interaction eligibility as a criterion; it wi
 This method is similar to 
 \f3\fs18 nearestNeighborsOfPoint()
 \f4\fs20  (when passed a large count so as to guarantee that all neighbors are returned), but this method returns only a count of the individuals, not a vector containing the individuals.\
+\pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 \'96\'a0(void)setConstraints(string$\'a0who, [Ns$\'a0sex\'a0=\'a0NULL], [Ni$\'a0tag\'a0=\'a0NULL], [Ni$\'a0minAge\'a0=\'a0NULL], [Ni$\'a0maxAge\'a0=\'a0NULL], [Nl$\'a0migrant\'a0=\'a0NULL], [Nl$\'a0tagL0\'a0=\'a0NULL], [Nl$\'a0tagL1\'a0=\'a0NULL], [Nl$\'a0tagL2\'a0=\'a0NULL], [Nl$\'a0tagL3\'a0=\'a0NULL], [Nl$\'a0tagL4\'a0=\'a0NULL])\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Sets constraints upon which individuals can be receivers and/or exerters, making the target 
+\f3\fs18 InteractionType
+\f4\fs20  measure interactions between only subsets of the population.  The parameter 
+\f3\fs18 who
+\f4\fs20  specifies upon whom the specified constraints apply; it may be 
+\f3\fs18 "exerters"
+\f4\fs20  to set constraints upon exerters, 
+\f3\fs18 "receivers"
+\f4\fs20  to set constraints upon receivers, or 
+\f3\fs18 "both"
+\f4\fs20  to set constraints upon both.  If 
+\f3\fs18 "both"
+\f4\fs20  is used, the 
+\f1\i same
+\f4\i0  constraints are set for both exerters and receivers; 
+\f1\i different
+\f4\i0  constraints can be set for exerters versus receivers by making a separate call to 
+\f3\fs18 setConstraints()
+\f4\fs20  for each.  Constraints only affect queries that involve the concept of interaction; for example, they will affect the result of 
+\f3\fs18 nearestInteractingNeighbors()
+\f4\fs20 , but not the result of 
+\f3\fs18 nearestNeighbors()
+\f4\fs20 .  The constraints specified by a given call to 
+\f3\fs18 setConstraints()
+\f4\fs20  override all previously set constraints for the category specified (receivers, exerter, or both).\
+There is a general policy for the remaining arguments: they are 
+\f3\fs18 NULL
+\f4\fs20  by default, and if 
+\f3\fs18 NULL
+\f4\fs20  is used, it specifies \'93no constraint\'94 for that property (removing any currently existing constraint for that property).  The 
+\f3\fs18 sex
+\f4\fs20  parameter constrains the sex of individuals; it may be 
+\f3\fs18 "M"
+\f4\fs20  or 
+\f3\fs18 \'93F"
+\f4\fs20  (or 
+\f3\fs18 "*"
+\f4\fs20  as another way of specifying no constraint, for historical reasons).  If 
+\f3\fs18 sex
+\f4\fs20  is 
+\f3\fs18 "M"
+\f4\fs20  or 
+\f3\fs18 "F"
+\f4\fs20 , the individuals to which the constraint is applied (potential receivers/exerters) must belong to a sexual species.  The 
+\f3\fs18 tag
+\f4\fs20  parameter constrains the 
+\f3\fs18 tag
+\f4\fs20  property of individuals; if this set, the individuals to which the constraint is applied must have defined 
+\f3\fs18 tag
+\f4\fs20  values.  The 
+\f3\fs18 minAge
+\f4\fs20  and 
+\f3\fs18 maxAge
+\f4\fs20  properties constrain the 
+\f3\fs18 age
+\f4\fs20  property of individuals to the given minimum and/or maximum values; these constraints can only be used in nonWF models.  The 
+\f3\fs18 migrant
+\f4\fs20  property constraints the 
+\f3\fs18 migrant
+\f4\fs20  property of individuals (
+\f3\fs18 T
+\f4\fs20  constrains to only migrants, 
+\f3\fs18 F
+\f4\fs20  to only non-migrants).  Finally, the 
+\f3\fs18 tagL0
+\f4\fs20 , 
+\f3\fs18 tagL1
+\f4\fs20 , 
+\f3\fs18 tagL2
+\f4\fs20 , 
+\f3\fs18 tagL3
+\f4\fs20 , and 
+\f3\fs18 tagL4
+\f4\fs20  properties constrain the corresponding 
+\f3\fs18 logical
+\f4\fs20  properties of individuals, requiring them to be either 
+\f3\fs18 T
+\f4\fs20  or 
+\f3\fs18 F
+\f4\fs20  as specified; the individuals to which these constraints are applied must have defined values for the constrained property or properties.  Again, 
+\f3\fs18 NULL
+\f4\fs20  should be supplied (as it is by default) for any property which you do not wish to constrain.\
+These constraints may be used in any combination, as desired.  For example, calling 
+\f3\fs18 setConstraints("receivers", sex="M", minAge=5, tagL0=T)
+\f4\fs20  constrains the interaction type\'92s operation so that receivers must be males, with an 
+\f3\fs18 age
+\f4\fs20  of at least 
+\f3\fs18 5
+\f4\fs20 , with a 
+\f3\fs18 tagL0
+\f4\fs20  property value of 
+\f3\fs18 T
+\f4\fs20 .  For that configuration the potential receivers used with the interaction type must be sexual (since 
+\f3\fs18 sex
+\f4\fs20  is specified), must be in a nonWF model (since 
+\f3\fs18 minAge
+\f4\fs20  is specified), and must have a defined value for their 
+\f3\fs18 tagL0
+\f4\fs20  property (since that property is constrained).  Note that the 
+\f3\fs18 sexSegregation
+\f4\fs20  parameter to 
+\f3\fs18 initializeInteractionType()
+\f4\fs20  is a shortcut which does the same thing as the corresponding calls to 
+\f3\fs18 setConstraints()
+\f4\fs20 .\
+Exerter constraints are applied at 
+\f3\fs18 evaluate()
+\f4\fs20  time, whereas receiver constraints are applied at query time; see the 
+\f3\fs18 InteractionType
+\f4\fs20  class documentation for further discussion.  The interaction constraints for an interaction type are normally a constant in simulations; in any case, they cannot be changed when an interaction has already been evaluated, so either they should be set prior to evaluation, or 
+\f3\fs18 unevaluate()
+\f4\fs20  should be called first.\
 \pard\pardeftab543\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf0 \'96\'a0(void)setInteractionFunction(string$\'a0functionType, ...)
@@ -4213,7 +4332,8 @@ The interaction function for an interaction type is normally a constant in simul
 \f4\fs20 ).  The 
 \f3\fs18 evaluate()
 \f4\fs20  method must have been previously called for the receiver and exerter subpopulations, and positions saved at evaluation time will be used.\
-If the strengths of interactions exerted by a single individual upon multiple individuals are needed instead (the inverse of what this method provides), multiple calls to this method will be necessary, one per pairwise interaction queried; the interaction engine is not optimized for the inverse case, and so it will likely be quite slow to compute.  If the interaction is reciprocal and sex-symmetric, the opposite query should provide identical results in a single efficient call (because then the interactions exerted are equal to the interactions received); otherwise, the best approach might be to define a second interaction type representing the inverse interaction that you wish to be able to query efficiently.\
+\pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 If the strengths of interactions exerted by a single individual upon multiple individuals are needed instead (the inverse of what this method provides), multiple calls to this method will be necessary, one per pairwise interaction queried; the interaction engine is not optimized for the inverse case, and so it will likely be quite slow to compute.  If the interaction is reciprocal and has the same receiver and exerter constraints, the opposite query should provide identical results in a single efficient call (because then the interactions exerted are equal to the interactions received); otherwise, the best approach might be to define a second interaction type representing the inverse interaction that you wish to be able to query efficiently.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f3\fs18 \cf2 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0receivers, [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL])\
@@ -4243,7 +4363,7 @@ If the strengths of interactions exerted by a single individual upon multiple in
 \f3\fs18 sum()
 \f4\fs20 .  This method is much faster than that implementation, however, since all of that work is done as a single operation.  Also, 
 \f3\fs18 totalOfNeighborStrengths()
-\f4\fs20  can total up interactions for more than one receiver in a single call.\
+\f4\fs20  can total up interactions for more than one receiver in a single vectorized call.\
 Similarly, for one individual this is essentially the same as calling 
 \f3\fs18 strength()
 \f4\fs20  to get the interaction strengths between a receiver and all individuals in the exerter subpopulation, and then calling 
@@ -4262,16 +4382,16 @@ See
 \f5 \
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf2 \expnd0\expndtw0\kerning0
-Discards all evaluation of this interaction, for all subpopulations.  The state of the 
+\f4\fs20 \cf2 Discards all evaluation of this interaction, for all subpopulations.  The state of the 
 \f3\fs18 InteractionType
-\f4\fs20  is reset to a state prior to evaluation.  This can be useful if the model state has changed in such a way that the evaluation already conducted is no longer valid.  For example, if the maximum distance or the interaction function of the 
+\f4\fs20  is reset to a state prior to evaluation.  This can be useful if the model state has changed in such a way that the evaluation already conducted is no longer valid.  For example, if the maximum distance, the interaction function, or the receiver or exerter constraints of the 
 \f3\fs18 InteractionType
 \f4\fs20  need to be changed with immediate effect, or if the data used by an 
 \f3\fs18 interaction()
 \f4\fs20  callback has changed in such a way that previously calculated interaction strengths are no longer correct, 
 \f3\fs18 unevaluate()
 \f4\fs20  allows the interaction to begin again from scratch.\
+\expnd0\expndtw0\kerning0
 In WF models, all interactions are automatically reset to an unevaluated state at the moment when the new offspring generation becomes the parental generation (at step 4 in the tick cycle).\
 In nonWF models, all interactions are automatically reset to an unevaluated state twice per tick: immediately after 
 \f3\fs18 reproduction()

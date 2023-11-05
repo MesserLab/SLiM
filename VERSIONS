@@ -160,6 +160,9 @@ development head (in the master branch):
 	extend sampleIndividuals() and subsetIndividuals() to support constraining by tagL0 - tagL4
 		policy change: if tag is specified (non-NULL), the tag property must now have a defined value on all individuals; previously this was not checked, and individuals with an undefined tag value were simply excluded
 	add [logical$ randomizeStrands = F] flag to addRecombinant; if T, strand1/strand2 and strand3/strand4 will be randomized for each offspring generated
+	add InteractionType method setConstraints(), generalizing sex-specificity with a whole raft of other possible constraints on receivers and/or exerters; interally, now keep two k-d trees, one constrained, one not
+		fixed a bug in passing: drawByStrength() and nearestInteractingNeighbors() were not applying sex-specificity to receivers, for the returnDict=T case (never released publicly)
+		fixed a bug in passing: partial sex-specificity (receivers but not exerters, or exerters but not receivers) was not applied flexibly in multispecies models where one species is sexual and one is not
 	
 
 version 4.0.1 (Eidos version 3.0.1):

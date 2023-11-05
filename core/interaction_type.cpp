@@ -77,7 +77,7 @@ void InteractionType::_WarmUp(void)
 InteractionType::InteractionType(Community &p_community, slim_objectid_t p_interaction_type_id, std::string p_spatiality_string, bool p_reciprocal, double p_max_distance, IndividualSex p_receiver_sex, IndividualSex p_exerter_sex) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('i', p_interaction_type_id)),
 			 EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_InteractionType_Class))),
-	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), receiver_sex_(p_receiver_sex), exerter_sex_(p_exerter_sex), if_type_(SpatialKernelType::kFixed), if_param1_(1.0), if_param2_(0.0),
+	spatiality_string_(p_spatiality_string), reciprocal_(p_reciprocal), max_distance_(p_max_distance), max_distance_sq_(p_max_distance * p_max_distance), if_type_(SpatialKernelType::kFixed), if_param1_(1.0), if_param2_(0.0),
 	community_(p_community), interaction_type_id_(p_interaction_type_id)
 {
 	// Figure out our spatiality, which is the number of spatial dimensions we actively use for distances
@@ -105,9 +105,24 @@ InteractionType::InteractionType(Community &p_community, slim_objectid_t p_inter
 	if ((required_dimensionality_ == 0) && (!std::isinf(max_distance_) || (max_distance_ < 0.0)))
 		EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): initializeInteractionType() maxDistance must be INF for non-spatial interactions." << EidosTerminate();
 	
-	if (single_species)
-		if (((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified)) && !single_species->SexEnabled())
-			EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): initializeInteractionType() sexSegregation value other than '**' are unsupported in non-sexual simulation." << EidosTerminate();
+	// sex-segregation can be configured here, for historical reasons; see setConstraints() for all other constraint setting
+	if ((p_receiver_sex != IndividualSex::kUnspecified) || (p_exerter_sex != IndividualSex::kUnspecified))
+	{
+		if (single_species && !single_species->SexEnabled())
+			EIDOS_TERMINATION << "ERROR (InteractionType::InteractionType): initializeInteractionType() sexSegregation value other than '**' are unsupported in non-sexual simulations." << EidosTerminate();
+		
+		if (p_receiver_sex != IndividualSex::kUnspecified)
+		{
+			receiver_constraints_.sex_ = p_receiver_sex;
+			receiver_constraints_.has_constraints_ = true;
+		}
+		
+		if (p_exerter_sex != IndividualSex::kUnspecified)
+		{
+			exerter_constraints_.sex_ = p_exerter_sex;
+			exerter_constraints_.has_constraints_ = true;
+		}
+	}
 	
 	if ((required_dimensionality_ > 0) && std::isinf(max_distance_))
 	{
@@ -137,15 +152,16 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 		EIDOS_TERMINATION << "ERROR (InteractionType::EvaluateSubpopulation): you cannot evaluate an InteractionType for a subpopulation that has been removed." << EidosTerminate();
 
 	// We evaluate for receiver and exerter subpopulations, so that all interaction evaluation state (except for
-	// interaction() callbacks) is frozen at the same time.  Evaluate is necessary because the k-d tree is built
-	// once and used to serve many queries, typically, and so it must be built based upon a fixed state snapshot.
+	// interaction() callbacks) is frozen at the same time.  Evaluate is necessary because the k-d trees are built
+	// once and used to serve many queries, typically, and so they must be built based upon a fixed state snapshot.
 	Species &species = p_subpop->species_;
 	slim_objectid_t subpop_id = p_subpop->subpopulation_id_;
 	slim_popsize_t subpop_size = p_subpop->parent_subpop_size_;
 	Individual **subpop_individuals = p_subpop->parent_individuals_.data();
 	
-	// Check that the exerter subpopulation is compatible with the configuration of this interaction type
-	CheckSpeciesCompatibility(p_subpop->species_);
+	// Check that the subpopulation is compatible with the configuration of this interaction type
+	// At this stage, we don't know whether it will be used as a receiver, exerter, or both
+	CheckSpeciesCompatibility_Generic(p_subpop->species_);
 	
 	// Find/create a data object for this exerter
 	auto data_iter = data_.find(subpop_id);
@@ -163,29 +179,45 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 		
 		subpop_data->individual_count_ = subpop_size;
 		subpop_data->first_male_index_ = p_subpop->parent_first_male_index_;
-		subpop_data->kd_node_count_ = 0;
 		
 		// Ensure that other parts of the subpop data block are correctly reset to the same state that Invalidate()
 		// uses; normally this has already been done by Initialize(), but not necessarily.
+		// FIXME we could keep the positions array allocated; we would then need a flag indicating whether it's valid.
 		if (subpop_data->positions_)
 		{
 			free(subpop_data->positions_);
 			subpop_data->positions_ = nullptr;
 		}
 		
-		if (subpop_data->kd_nodes_)
+		// Free both k-d trees, keeping in mind that the two might share their memory.  FIXME we could keep the
+		// k-d tree buffers around and reuse them; we would then need a flag indicating whether they're valid.
+		if (subpop_data->kd_nodes_ALL_ == subpop_data->kd_nodes_EXERTERS_)
+			subpop_data->kd_nodes_EXERTERS_ = nullptr;
+		
+		if (subpop_data->kd_nodes_ALL_)
 		{
-			free(subpop_data->kd_nodes_);
-			subpop_data->kd_nodes_ = nullptr;
+			free(subpop_data->kd_nodes_ALL_);
+			subpop_data->kd_nodes_ALL_ = nullptr;
 		}
 		
-		subpop_data->kd_root_ = nullptr;
+		if (subpop_data->kd_nodes_EXERTERS_)
+		{
+			free(subpop_data->kd_nodes_EXERTERS_);
+			subpop_data->kd_nodes_EXERTERS_ = nullptr;
+		}
 		
+		subpop_data->kd_root_ALL_ = nullptr;
+		subpop_data->kd_node_count_ALL_ = 0;
+		
+		subpop_data->kd_root_EXERTERS_ = nullptr;
+		subpop_data->kd_node_count_EXERTERS_ = 0;
+		
+		// Free the interaction() callbacks that were cached
 		subpop_data->evaluation_interaction_callbacks_.clear();
 	}
 	
-	// At this point, positions_ is guaranteed to be nullptr; dist_str_ is either (1) nullptr,
-	// or (2) allocated but empty.  Now we mark ourselves evaluated and fill in buffers as needed.
+	// At this point, positions_ is guaranteed to be nullptr, as are the k-d tree buffers.
+	// Now we mark ourselves evaluated and fill in buffers as needed.
 	subpop_data->evaluated_ = true;
 	
 	// At a minimum, fetch positional data from the subpopulation; this is guaranteed to be present (for spatiality > 0)
@@ -484,6 +516,50 @@ void InteractionType::EvaluateSubpopulation(Subpopulation *p_subpop)
 	// may not need one, depending upon what methods are called by the client, which may vary cycle by cycle.
 	// Also, receiver subpopulations need to be evaluated too, but (if used only for receivers) will not require a k-d tree.
 	// Methods that need the k-d tree must therefore call EnsureKDTreePresent() prior to using it.
+	
+	// BCH 10/1/2023: For SLiM 4.1 this policy is now altered slightly.  If non-sex exerter constraints are set, we need to cache
+	// the EXERTER k-d tree nodes here, because those constraints need to be applied to the state of individuals at snapshot
+	// time.  We do not build the tree, just cache its nodes so it knows which individuals it contains.  This is potentially
+	// a little bit wasteful, if a subpopulation that is evaluated is used only for receivers, not for exerters; that is
+	// a fairly uncommon usage pattern, and the overhead of caching the nodes is pretty minimal -- O(N) to cache, versus
+	// O(N log N) to build the tree, and the constant factor for both operations is small.
+	if ((spatiality_ > 0) && (exerter_constraints_.has_nonsex_constraints_))
+	{
+		// There is one little hitch.  CacheKDTreeNodes() will call CheckIndividualNonSexConstraints(), and that
+		// method will raise if an exerter constraint exists for a tag/tagL value but a candidate individual
+		// doesn't have that tag/tagL value defined.  If the k-d tree is actually going to be used to find exerters,
+		// then that raise is appropriate; an exerter has an unset tag/tagL and so the constraint cannot be applied.
+		// BUT if the k-d tree is only going to be used to find receivers, or perhaps not at all, then the raise is
+		// not appropriate and needs to be suppressed.  SO, here we pre-test for it, and set a flag remembering that
+		// "this subpop_data cannot be used to find exerters, because their state is non-compliant with the exerter
+		// constraints".  We check that flag in EnsureKDTreePresent_EXERTERS() and raise there, when we are certain
+		// that the tree is actually being used.
+		for (int i = 0; i < subpop_size; ++i)
+		{
+			Individual *ind = subpop_individuals[i];
+			
+			if (!_PrecheckIndividualNonSexConstraints(ind, exerter_constraints_))
+			{
+				// The k-d tree for this subpopulation will not get cached, because of an unset tag/tagL; if the
+				// user tries to use this subpop as an exerter subpop, EnsureKDTreePresent_EXERTERS() will raise,
+				// but if the user does not try to do that, there is no problem.
+				subpop_data->kd_constraints_raise_EXERTERS_ = true;
+				return;
+			}
+		}
+		
+		// OK, it's safe to proceed with caching the exerter k-d tree; nobody will raise.
+		CacheKDTreeNodes(p_subpop, *subpop_data, /* p_apply_exerter_constraints */ true, &subpop_data->kd_nodes_EXERTERS_, &subpop_data->kd_root_EXERTERS_, &subpop_data->kd_node_count_EXERTERS_);
+	}
+	
+	// Note that receiver constraints are evaluated at query time, not here.  This means that they are applied to the
+	// state of the receiver at query time, whereas exerter constraints are applied to the state of the exerter at
+	// evaluate() time.  This discrepancy is intentional and documented.  The alternative would be to go through the
+	// subpop here, at evaluate() time, and cache receiver eligibility for the whole subpopulation.  That would be
+	// made more complex by the fact that receivers might have undefined tag values that are needed to apply the
+	// constraints, but - as above for exerters - the raise from that condition must be suppressed until the individual
+	// is actually used as a receiver in a query.  Doing that would be even more complex than for exerters, and the
+	// performance penalty would be much larger than for exerters.
 }
 
 bool InteractionType::AnyEvaluated(void)
@@ -509,13 +585,27 @@ void InteractionType::_InvalidateData(InteractionsData &data)
 		data.positions_ = nullptr;
 	}
 	
-	if (data.kd_nodes_)
+	// keep in mind that the two k-d trees may share their memory
+	if (data.kd_nodes_ALL_ == data.kd_nodes_EXERTERS_)
+		data.kd_nodes_EXERTERS_ = nullptr;
+	
+	if (data.kd_nodes_ALL_)
 	{
-		free(data.kd_nodes_);
-		data.kd_nodes_ = nullptr;
+		free(data.kd_nodes_ALL_);
+		data.kd_nodes_ALL_ = nullptr;
 	}
 	
-	data.kd_root_ = nullptr;
+	if (data.kd_nodes_EXERTERS_)
+	{
+		free(data.kd_nodes_EXERTERS_);
+		data.kd_nodes_EXERTERS_ = nullptr;
+	}
+	
+	data.kd_root_ALL_ = nullptr;
+	data.kd_node_count_ALL_ = 0;
+	
+	data.kd_root_EXERTERS_ = nullptr;
+	data.kd_node_count_EXERTERS_ = 0;
 	
 	data.evaluation_interaction_callbacks_.clear();
 }
@@ -561,14 +651,37 @@ void InteractionType::InvalidateForSubpopulation(Subpopulation *p_invalid_subpop
 	}
 }
 
-void InteractionType::CheckSpeciesCompatibility(Species &species)
+void InteractionType::CheckSpeciesCompatibility_Generic(Species &species)
 {
-	// This checks that a given receiver subpop is compatible with this interaction type
+	// This checks that a given subpop (unknown whether receiver or exerter) is compatible with this interaction type
 	if (required_dimensionality_ > species.SpatialDimensionality())
 		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): the exerter or receiver species has insufficient dimensionality to be used with this interaction type." << EidosTerminate();
 	
-	if (((receiver_sex_ != IndividualSex::kUnspecified) || (exerter_sex_ != IndividualSex::kUnspecified)) && !species.SexEnabled())
-		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): sexSegregation value other than '**' are unsupported with non-sexual exerter/receiver species." << EidosTerminate();
+	// For this "generic" case we do not check sex constraints at all.  This is useful partly when we don't know
+	// whether the species will act as receiver or exerter, and partly when we specifically don't want to check
+	// sex constraints, for queries like nearestNeighbors() that do not use constraints.
+}
+
+void InteractionType::CheckSpeciesCompatibility_Receiver(Species &species)
+{
+	// This checks that a given receiver subpop is compatible with this interaction type
+	if (required_dimensionality_ > species.SpatialDimensionality())
+		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): the receiver species has insufficient dimensionality to be used with this interaction type." << EidosTerminate();
+	
+	// If there is a sex constraint for receivers, then the receiver species must be sexual
+	if ((receiver_constraints_.sex_ != IndividualSex::kUnspecified) && !species.SexEnabled())
+		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): a sex constraint exists for receivers, but the receiver species is non-sexual." << EidosTerminate();
+}
+
+void InteractionType::CheckSpeciesCompatibility_Exerter(Species &species)
+{
+	// This checks that a given exerter subpop is compatible with this interaction type
+	if (required_dimensionality_ > species.SpatialDimensionality())
+		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): the exerter species has insufficient dimensionality to be used with this interaction type." << EidosTerminate();
+	
+	// If there is a sex constraint for receivers, then the receiver species must be sexual
+	if ((exerter_constraints_.sex_ != IndividualSex::kUnspecified) && !species.SexEnabled())
+		EIDOS_TERMINATION << "ERROR (InteractionType::CheckSpeciesCompatibility): a sex constraint exists for exerters, but the exerter species is non-sexual." << EidosTerminate();
 }
 
 void InteractionType::CheckSpatialCompatibility(Subpopulation *receiver_subpop, Subpopulation *exerter_subpop)
@@ -1283,10 +1396,12 @@ size_t InteractionType::MemoryUsageForKDTrees(void)
 {
 	size_t usage = 0;
 	
+	// this may be an underestimate, since we overallocate in some cases (exerter constraints)
 	for (auto &iter : data_)
 	{
 		const InteractionsData &data = iter.second;
-		usage += sizeof(SLiM_kdNode) * data.individual_count_;
+		usage += sizeof(SLiM_kdNode) * data.kd_node_count_ALL_;
+		usage += sizeof(SLiM_kdNode) * data.kd_node_count_EXERTERS_;
 	}
 	
 	return usage;
@@ -1483,196 +1598,355 @@ SLiM_kdNode *InteractionType::MakeKDTree3_p2(SLiM_kdNode *t, int len)
 	return n;
 }
 
-void InteractionType::EnsureKDTreePresent(InteractionsData &p_subpop_data)
+void InteractionType::CacheKDTreeNodes(Subpopulation *subpop, InteractionsData &p_subpop_data, bool p_apply_exerter_constraints, SLiM_kdNode **kd_nodes_ptr, SLiM_kdNode **kd_root_ptr, slim_popsize_t *kd_node_count_ptr)
 {
-	if (!p_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the interaction has not been evaluated." << EidosTerminate();
+	Individual **subpop_individuals = subpop->parent_individuals_.data();
+	int individual_count = p_subpop_data.individual_count_;
+	int first_individual_index, last_individual_index;
 	
-	if (spatiality_ == 0)
+	// Calculate modified indices into the population, based on exerter sex-specificity.  This lets us skip over
+	// individuals that are disqualified by the exerter sex-specificity constraints without even looking at them.
+	if (p_apply_exerter_constraints && (exerter_constraints_.sex_ == IndividualSex::kMale))
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) k-d tree cannot be constructed for non-spatial interactions." << EidosTerminate();
+		first_individual_index = p_subpop_data.first_male_index_;
+		last_individual_index = individual_count - 1;
 	}
-	else if (!p_subpop_data.kd_nodes_)
+	else if (p_apply_exerter_constraints && (exerter_constraints_.sex_ == IndividualSex::kFemale))
 	{
-		int individual_count = p_subpop_data.individual_count_;
-		int count = individual_count;
-		
-		// If we have any periodic dimensions, we need to replicate our nodes spatially
-		int periodic_dimensions = (p_subpop_data.periodic_x_ ? 1 : 0) + (p_subpop_data.periodic_y_ ? 1 : 0) + (p_subpop_data.periodic_z_ ? 1 : 0);
-		int periodicity_multiplier = 1;
-		
-		if (periodic_dimensions == 1)
-			periodicity_multiplier = 3;
-		else if (periodic_dimensions == 2)
-			periodicity_multiplier = 9;
-		else if (periodic_dimensions == 3)
-			periodicity_multiplier = 27;
-		
-		count *= periodicity_multiplier;
-		p_subpop_data.kd_node_count_ = count;
-		
-		// Now allocate the chosen number of nodes
-		SLiM_kdNode *nodes = (SLiM_kdNode *)calloc(count, sizeof(SLiM_kdNode));
-		if (!nodes)
-			EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
-		
-		// Fill the nodes with their initial data
-		if (periodic_dimensions)
-		{
-			// This is the periodic case; we replicate the individual position data and add an offset to each replicate
-			for (int replicate = 0; replicate < periodicity_multiplier; ++replicate)
+		first_individual_index = 0;
+		last_individual_index = p_subpop_data.first_male_index_ - 1;
+	}
+	else
+	{
+		first_individual_index = 0;
+		last_individual_index = individual_count - 1;
+	}
+	
+	// Allocate the chosen number of nodes
+	int max_node_count = last_individual_index - first_individual_index + 1;
+	SLiM_kdNode *nodes = (SLiM_kdNode *)calloc(max_node_count, sizeof(SLiM_kdNode));
+	if (!nodes)
+		EIDOS_TERMINATION << "ERROR (InteractionType::CacheKDTreeNodes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+	
+	// Fill the nodes with their initial data; start assuming the non-periodic base case, split into spatiality cases for speed
+	int actual_node_count = 0;
+	
+	switch (spatiality_)
+	{
+		case 1:
+			if (p_apply_exerter_constraints && exerter_constraints_.has_nonsex_constraints_)
 			{
-				SLiM_kdNode *replicate_nodes = nodes + replicate * individual_count;
-				double x_offset = 0, y_offset = 0, z_offset = 0;
-				
-				// Determine the correct offsets for this replicate of the individual position data;
-				// maybe there is a smarter way to do this, but whatever
-				int replication_dim_1 = (replicate % 3) - 1;
-				int replication_dim_2 = ((replicate / 3) % 3) - 1;
-				int replication_dim_3 = (replicate / 9) - 1;
-				
-				if (p_subpop_data.periodic_x_)
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
 				{
-					x_offset = p_subpop_data.bounds_x1_ * replication_dim_1;
+					Individual *ind = subpop_individuals[i];
 					
-					if (p_subpop_data.periodic_y_)
+					if (CheckIndividualNonSexConstraints(ind, exerter_constraints_))		// potentially raises
 					{
-						y_offset = p_subpop_data.bounds_y1_ * replication_dim_2;
-						
-						if (p_subpop_data.periodic_z_)
-							z_offset = p_subpop_data.bounds_z1_ * replication_dim_3;
-					}
-					else if (p_subpop_data.periodic_z_)
-					{
-						z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
-					}
-				}
-				else if (p_subpop_data.periodic_y_)
-				{
-					y_offset = p_subpop_data.bounds_y1_ * replication_dim_1;
-					
-					if (p_subpop_data.periodic_z_)
-						z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
-				}
-				else if (p_subpop_data.periodic_z_)
-				{
-					z_offset = p_subpop_data.bounds_z1_ * replication_dim_1;
-				}
-				
-				// Now that we have our offsets, copy the data for the replicate
-				switch (spatiality_)
-				{
-					case 1:
-						for (int i = 0; i < individual_count; ++i)
-						{
-							SLiM_kdNode *node = replicate_nodes + i;
-							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
-							
-							node->x[0] = position_data[0] + x_offset;
-							node->individual_index_ = i;
-						}
-						break;
-					case 2:
-						for (int i = 0; i < individual_count; ++i)
-						{
-							SLiM_kdNode *node = replicate_nodes + i;
-							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
-							
-							node->x[0] = position_data[0] + x_offset;
-							node->x[1] = position_data[1] + y_offset;
-							node->individual_index_ = i;
-						}
-						break;
-					case 3:
-						for (int i = 0; i < individual_count; ++i)
-						{
-							SLiM_kdNode *node = replicate_nodes + i;
-							double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
-							
-							node->x[0] = position_data[0] + x_offset;
-							node->x[1] = position_data[1] + y_offset;
-							node->x[2] = position_data[2] + z_offset;
-							node->individual_index_ = i;
-						}
-						break;
-				}
-			}
-		}
-		else
-		{
-			// This is the non-periodic base case, split into spatiality cases for speed
-			switch (spatiality_)
-			{
-				case 1:
-					for (int i = 0; i < count; ++i)
-					{
-						SLiM_kdNode *node = nodes + i;
+						SLiM_kdNode *node = nodes + actual_node_count;
 						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
 						
 						node->x[0] = position_data[0];
 						node->individual_index_ = i;
+						actual_node_count++;
 					}
-					break;
-				case 2:
-					for (int i = 0; i < count; ++i)
+				}
+			}
+			else
+			{
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
+				{
+					SLiM_kdNode *node = nodes + actual_node_count;
+					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+					
+					node->x[0] = position_data[0];
+					node->individual_index_ = i;
+					actual_node_count++;
+				}
+			}
+			break;
+		case 2:
+			if (p_apply_exerter_constraints && exerter_constraints_.has_nonsex_constraints_)
+			{
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
+				{
+					Individual *ind = subpop_individuals[i];
+					
+					if (CheckIndividualNonSexConstraints(ind, exerter_constraints_))		// potentially raises
 					{
-						SLiM_kdNode *node = nodes + i;
+						SLiM_kdNode *node = nodes + actual_node_count;
 						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
 						
 						node->x[0] = position_data[0];
 						node->x[1] = position_data[1];
 						node->individual_index_ = i;
+						actual_node_count++;
 					}
-					break;
-				case 3:
-					for (int i = 0; i < count; ++i)
+				}
+			}
+			else
+			{
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
+				{
+					SLiM_kdNode *node = nodes + actual_node_count;
+					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+					
+					node->x[0] = position_data[0];
+					node->x[1] = position_data[1];
+					node->individual_index_ = i;
+					actual_node_count++;
+				}
+			}
+			break;
+		case 3:
+			if (p_apply_exerter_constraints && exerter_constraints_.has_nonsex_constraints_)
+			{
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
+				{
+					Individual *ind = subpop_individuals[i];
+					
+					if (CheckIndividualNonSexConstraints(ind, exerter_constraints_))		// potentially raises
 					{
-						SLiM_kdNode *node = nodes + i;
+						SLiM_kdNode *node = nodes + actual_node_count;
 						double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
 						
 						node->x[0] = position_data[0];
 						node->x[1] = position_data[1];
 						node->x[2] = position_data[2];
 						node->individual_index_ = i;
+						actual_node_count++;
+					}
+				}
+			}
+			else
+			{
+				for (int i = first_individual_index; i <= last_individual_index; ++i)
+				{
+					SLiM_kdNode *node = nodes + actual_node_count;
+					double *position_data = p_subpop_data.positions_ + i * SLIM_MAX_DIMENSIONALITY;
+					
+					node->x[0] = position_data[0];
+					node->x[1] = position_data[1];
+					node->x[2] = position_data[2];
+					node->individual_index_ = i;
+					actual_node_count++;
+				}
+			}
+			break;
+	}
+	
+	// Note that replication of nodes for the periodic case is done in BuildKDTree(),
+	// to save work when the k-d tree is not actually used for exerters
+	
+	// Write out the final constructed k-d tree to our parameters
+	*kd_nodes_ptr = nodes;
+	*kd_root_ptr = nullptr;
+	*kd_node_count_ptr = actual_node_count;
+}
+
+void InteractionType::BuildKDTree(InteractionsData &p_subpop_data, SLiM_kdNode **kd_nodes_ptr, SLiM_kdNode **kd_root_ptr, slim_popsize_t *kd_node_count_ptr)
+{
+	// If we have any periodic dimensions, we need to replicate our nodes spatially
+	// Note that exerter constraints have already been applied
+	int periodicity_multiplier = (p_subpop_data.periodic_x_ ? 3 : 1) * (p_subpop_data.periodic_y_ ? 3 : 1) * (p_subpop_data.periodic_z_ ? 3 : 1);
+	
+	if (periodicity_multiplier > 1)
+	{
+		SLiM_kdNode *nodes = *kd_nodes_ptr;
+		int actual_node_count = *kd_node_count_ptr;
+		int max_node_count = actual_node_count * periodicity_multiplier;
+		
+		nodes = (SLiM_kdNode *)realloc(nodes, max_node_count * sizeof(SLiM_kdNode));
+		if (!nodes)
+			EIDOS_TERMINATION << "ERROR (InteractionType::BuildKDTreeNodes): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		
+		// We want periodicity_multiplier replicates; 3 or 9 or 27.  The central replicate is the base replicate, which we have
+		// already created at replicate index 0 in the nodes buffer.  So we want to make the remaining replicates at the remaining
+		// indices.  Each replicate gets offsets from the base position; to make that work easily, we calculate a modified index
+		// that places the base replicate at the center of the buffer (even though it is really at position 0).
+		int replicate_index_of_center = periodicity_multiplier / 2;		// rounds down to nearest integer; 3 -> 1, 9 -> 4, 27 -> 13
+		
+		for (int replicate = 1; replicate < periodicity_multiplier; ++replicate)
+		{
+			int replicate_quadrant_index = (replicate <= replicate_index_of_center) ? (replicate - 1) : replicate;
+			SLiM_kdNode *replicate_nodes = nodes + replicate * actual_node_count;
+			double x_offset = 0, y_offset = 0, z_offset = 0;
+			
+			// Determine the correct offsets for this replicate of the individual position data;
+			// maybe there is a smarter way to do this, but whatever
+			int replication_dim_1 = (replicate_quadrant_index % 3) - 1;
+			int replication_dim_2 = ((replicate_quadrant_index / 3) % 3) - 1;
+			int replication_dim_3 = (replicate_quadrant_index / 9) - 1;
+			
+			if (p_subpop_data.periodic_x_)
+			{
+				x_offset = p_subpop_data.bounds_x1_ * replication_dim_1;
+				
+				if (p_subpop_data.periodic_y_)
+				{
+					y_offset = p_subpop_data.bounds_y1_ * replication_dim_2;
+					
+					if (p_subpop_data.periodic_z_)
+						z_offset = p_subpop_data.bounds_z1_ * replication_dim_3;
+				}
+				else if (p_subpop_data.periodic_z_)
+				{
+					z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
+				}
+			}
+			else if (p_subpop_data.periodic_y_)
+			{
+				y_offset = p_subpop_data.bounds_y1_ * replication_dim_1;
+				
+				if (p_subpop_data.periodic_z_)
+					z_offset = p_subpop_data.bounds_z1_ * replication_dim_2;
+			}
+			else if (p_subpop_data.periodic_z_)
+			{
+				z_offset = p_subpop_data.bounds_z1_ * replication_dim_1;
+			}
+			
+			// Now that we have our offsets, copy the data for the replicate
+			switch (spatiality_)
+			{
+				case 1:
+					for (int i = 0; i < actual_node_count; ++i)
+					{
+						SLiM_kdNode *original_node = nodes + i;
+						SLiM_kdNode *replicate_node = replicate_nodes + i;
+						
+						replicate_node->x[0] = original_node->x[0] + x_offset;
+						replicate_node->individual_index_ = original_node->individual_index_;
+					}
+					break;
+				case 2:
+					for (int i = 0; i < actual_node_count; ++i)
+					{
+						SLiM_kdNode *original_node = nodes + i;
+						SLiM_kdNode *replicate_node = replicate_nodes + i;
+						
+						replicate_node->x[0] = original_node->x[0] + x_offset;
+						replicate_node->x[1] = original_node->x[1] + y_offset;
+						replicate_node->individual_index_ = original_node->individual_index_;
+					}
+					break;
+				case 3:
+					for (int i = 0; i < actual_node_count; ++i)
+					{
+						SLiM_kdNode *original_node = nodes + i;
+						SLiM_kdNode *replicate_node = replicate_nodes + i;
+						
+						replicate_node->x[0] = original_node->x[0] + x_offset;
+						replicate_node->x[1] = original_node->x[1] + y_offset;
+						replicate_node->x[2] = original_node->x[2] + z_offset;
+						replicate_node->individual_index_ = original_node->individual_index_;
 					}
 					break;
 			}
 		}
 		
-		p_subpop_data.kd_nodes_ = nodes;
+		actual_node_count *= periodicity_multiplier;
 		
-		if (p_subpop_data.kd_node_count_ == 0)
+		// Write out the final constructed k-d tree to our parameters
+		*kd_nodes_ptr = nodes;
+		*kd_node_count_ptr = actual_node_count;
+	}
+	
+	if (*kd_node_count_ptr == 0)
+	{
+		// Usually a root pointer of nullptr indicates that the tree hasn't been built, but it is
+		// also used if the tree contains no nodes and thus has no root.
+		*kd_root_ptr = nullptr;
+	}
+	else
+	{
+		// Now call out to recursively construct the tree
+		switch (spatiality_)
 		{
-			p_subpop_data.kd_root_ = 0;
+			case 1: *kd_root_ptr = MakeKDTree1_p0(*kd_nodes_ptr, *kd_node_count_ptr);	break;
+			case 2: *kd_root_ptr = MakeKDTree2_p0(*kd_nodes_ptr, *kd_node_count_ptr);	break;
+			case 3: *kd_root_ptr = MakeKDTree3_p0(*kd_nodes_ptr, *kd_node_count_ptr);	break;
+		}
+		
+		// Check the tree for correctness; for now I will leave this enabled in the DEBUG case,
+		// because a bug was found in the k-d tree code in 2.4.1 that would have been caught by this.
+		// Eventually, when it is clear that this code is robust, this check can be disabled.
+#if DEBUG
+		int total_tree_count = 0;
+		
+		switch (spatiality_)
+		{
+			case 1: total_tree_count = CheckKDTree1_p0(*kd_root_ptr);	break;
+			case 2: total_tree_count = CheckKDTree2_p0(*kd_root_ptr);	break;
+			case 3: total_tree_count = CheckKDTree3_p0(*kd_root_ptr);	break;
+		}
+		
+		if (total_tree_count != *kd_node_count_ptr)
+			EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the allocated node count" << *kd_node_count_ptr << "." << EidosTerminate();
+#endif
+	}
+}
+
+SLiM_kdNode *InteractionType::EnsureKDTreePresent_ALL(Subpopulation *subpop, InteractionsData &p_subpop_data)
+{
+	if (!p_subpop_data.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_ALL): (internal error) the interaction has not been evaluated." << EidosTerminate();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_ALL): (internal error) a k-d tree cannot be constructed for non-spatial interactions." << EidosTerminate();
+	
+	if (!p_subpop_data.kd_nodes_ALL_)
+		CacheKDTreeNodes(subpop, p_subpop_data, /* p_apply_exerter_constraints */ false, &p_subpop_data.kd_nodes_ALL_, &p_subpop_data.kd_root_ALL_, &p_subpop_data.kd_node_count_ALL_);
+	
+	if (!p_subpop_data.kd_root_ALL_ && (p_subpop_data.kd_node_count_ALL_ > 0))
+		BuildKDTree(p_subpop_data, &p_subpop_data.kd_nodes_ALL_, &p_subpop_data.kd_root_ALL_, &p_subpop_data.kd_node_count_ALL_);
+	
+	return p_subpop_data.kd_root_ALL_;		// note that this will return nullptr if the k-d tree has zero entries!
+}
+
+SLiM_kdNode *InteractionType::EnsureKDTreePresent_EXERTERS(Subpopulation *subpop, InteractionsData &p_subpop_data)
+{
+	if (!p_subpop_data.evaluated_)
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_EXERTERS): (internal error) the interaction has not been evaluated." << EidosTerminate();
+	
+	if (spatiality_ == 0)
+		EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_EXERTERS): (internal error) a k-d tree cannot be constructed for non-spatial interactions." << EidosTerminate();
+	
+	if (!p_subpop_data.kd_nodes_EXERTERS_)
+	{
+		// If there are no exerter constraints, then the ALL tree should be the same as the EXERTERS tree; there's no reason to make both.
+		// So at this point, if there are no exerter constraints, we first force the ALL tree to be constructed, and then we just leech on to it.
+		if (!exerter_constraints_.has_constraints_)
+		{
+			EnsureKDTreePresent_ALL(subpop, p_subpop_data);
+			
+			p_subpop_data.kd_nodes_EXERTERS_ = p_subpop_data.kd_nodes_ALL_;
+			p_subpop_data.kd_root_EXERTERS_ = p_subpop_data.kd_root_ALL_;
+			p_subpop_data.kd_node_count_EXERTERS_ = p_subpop_data.kd_node_count_ALL_;
+			
+			return p_subpop_data.kd_root_EXERTERS_;
 		}
 		else
 		{
-			// Now call out to recursively construct the tree
-			switch (spatiality_)
-			{
-				case 1: p_subpop_data.kd_root_ = MakeKDTree1_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
-				case 2: p_subpop_data.kd_root_ = MakeKDTree2_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
-				case 3: p_subpop_data.kd_root_ = MakeKDTree3_p0(p_subpop_data.kd_nodes_, p_subpop_data.kd_node_count_);	break;
-			}
+			// If our flag is set that there was a constraint precondition violation earlier, then we cannot build an exerters
+			// tree, and instead need to show a user-visible error.  See EvaluateSubpopulation() for discussion.
+			if (p_subpop_data.kd_constraints_raise_EXERTERS_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_EXERTERS): a tag, tagL0, tagL1, tagL2, tagL3, or tagL4 constraint is set for exerters, but the corresponding property is undefined (has not been set) for a candidate exerter being queried." << EidosTerminate();
 			
-			// Check the tree for correctness; for now I will leave this enabled in the DEBUG case,
-			// because a bug was found in the k-d tree code in 2.4.1 that would have been caught by this.
-			// Eventually, when it is clear that this code is robust, this check can be disabled.
-#if DEBUG
-			int total_tree_count = 0;
+			// If there are non-sex exerter constraints, the k-d tree will be cached at evaluate() time.  This code path is
+			// therefore only hit when there are no non-sex exerter constraints (but there is an exerter sex constraint).
+			// Let's check that assertion, to make sure we don't have a logic error anywhere, since it is important for us
+			// to cache the exerter k-d tree at evaluate() time if non-sex constraints are present.
+			if (exerter_constraints_.has_nonsex_constraints_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent_EXERTERS): (internal error) an internal error in the exerter k-d tree caching logic has occurred; please report this error." << EidosTerminate();
 			
-			switch (spatiality_)
-			{
-				case 1: total_tree_count = CheckKDTree1_p0(p_subpop_data.kd_root_);	break;
-				case 2: total_tree_count = CheckKDTree2_p0(p_subpop_data.kd_root_);	break;
-				case 3: total_tree_count = CheckKDTree3_p0(p_subpop_data.kd_root_);	break;
-			}
-			
-			if (total_tree_count != p_subpop_data.kd_node_count_)
-				EIDOS_TERMINATION << "ERROR (InteractionType::EnsureKDTreePresent): (internal error) the k-d tree count " << total_tree_count << " does not match the allocated node count" << p_subpop_data.kd_node_count_ << "." << EidosTerminate();
-#endif
+			CacheKDTreeNodes(subpop, p_subpop_data, /* p_apply_exerter_constraints */ true, &p_subpop_data.kd_nodes_EXERTERS_, &p_subpop_data.kd_root_EXERTERS_, &p_subpop_data.kd_node_count_EXERTERS_);
 		}
 	}
+	
+	if (!p_subpop_data.kd_root_EXERTERS_ && (p_subpop_data.kd_node_count_EXERTERS_ > 0))
+		BuildKDTree(p_subpop_data, &p_subpop_data.kd_nodes_EXERTERS_, &p_subpop_data.kd_root_EXERTERS_, &p_subpop_data.kd_node_count_EXERTERS_);
+	
+	return p_subpop_data.kd_root_EXERTERS_;		// note that this will return nullptr if the k-d tree has zero entries!
 }
 
 
@@ -2007,118 +2281,6 @@ void InteractionType::BuildSV_Presences_3(SLiM_kdNode *root, double *nd, slim_po
 	}
 }
 
-// add neighbors to the sparse vector in 1D (exerter sex-specific)
-void InteractionType::BuildSV_Presences_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter)
-{
-	double d = dist_sq1(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[0] - nd[0];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryPresence(root->individual_index_);
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Presences_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Presences_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Presences_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Presences_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-	}
-}
-
-// add neighbors to the sparse vector in 2D (exerter sex-specific)
-void InteractionType::BuildSV_Presences_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
-{
-	double d = dist_sq2(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryPresence(root->individual_index_);
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Presences_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Presences_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Presences_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Presences_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-}
-
-// add neighbors to the sparse vector in 3D (exerter sex-specific)
-void InteractionType::BuildSV_Presences_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
-{
-	double d = dist_sq3(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryPresence(root->individual_index_);
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Presences_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Presences_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Presences_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Presences_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-}
-
 // add neighbors to the sparse vector in 1D
 void InteractionType::BuildSV_Distances_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector)
 {
@@ -2228,118 +2390,6 @@ void InteractionType::BuildSV_Distances_3(SLiM_kdNode *root, double *nd, slim_po
 		
 		if (root->left)
 			BuildSV_Distances_3(root->left, nd, p_focal_individual_index, p_sparse_vector, p_phase);
-	}
-}
-
-// add neighbors to the sparse vector in 1D (exerter sex-specific)
-void InteractionType::BuildSV_Distances_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter)
-{
-	double d = dist_sq1(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[0] - nd[0];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Distances_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Distances_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Distances_SS_1(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Distances_SS_1(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter);
-	}
-}
-
-// add neighbors to the sparse vector in 2D (exerter sex-specific)
-void InteractionType::BuildSV_Distances_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
-{
-	double d = dist_sq2(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
-	
-	if (++p_phase >= 2) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Distances_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Distances_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Distances_SS_2(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Distances_SS_2(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-}
-
-// add neighbors to the sparse vector in 3D (exerter sex-specific)
-void InteractionType::BuildSV_Distances_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase)
-{
-	double d = dist_sq3(root, nd);
-#ifndef __clang_analyzer__
-	double dx = root->x[p_phase] - nd[p_phase];
-#else
-	double dx = 0.0;
-#endif
-	double dx2 = dx * dx;
-	
-	if ((d <= max_distance_sq_) && (root->individual_index_ != p_focal_individual_index) && (root->individual_index_ >= start_exerter) && (root->individual_index_ < after_end_exerter))
-		p_sparse_vector->AddEntryDistance(root->individual_index_, (sv_value_t)sqrt(d));
-	
-	if (++p_phase >= 3) p_phase = 0;
-	
-	if (dx > 0)
-	{
-		if (root->left)
-			BuildSV_Distances_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->right)
-			BuildSV_Distances_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-	}
-	else
-	{
-		if (root->right)
-			BuildSV_Distances_SS_3(root->right, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
-		
-		if (dx2 > max_distance_sq_) return;
-		
-		if (root->left)
-			BuildSV_Distances_SS_3(root->left, nd, p_focal_individual_index, p_sparse_vector, start_exerter, after_end_exerter, p_phase);
 	}
 }
 
@@ -2517,31 +2567,126 @@ void InteractionType::BuildSV_Strengths_t_2(SLiM_kdNode *root, double *nd, slim_
 	}
 }
 
-void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+bool InteractionType::_CheckIndividualNonSexConstraints(Individual *p_individual, InteractionConstraints &p_constraints)
+{
+	// we do not check p_constraints.has_nonsex_constraints_; this should only be called when a constraint exists
+	// BEWARE: this checks for tag/tagL values being defined, as needed, and raises if they aren't
+	
+	if (p_constraints.tag_ != SLIM_TAG_UNSET_VALUE)
+	{
+		slim_usertag_t tag_value = p_individual->tag_value_;
+		
+		if (tag_value == SLIM_TAG_UNSET_VALUE)
+			EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tag constraint is set for the interaction type, but the tag property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+		
+		if (p_constraints.tag_ != tag_value)
+			return false;
+	}
+	if ((p_constraints.min_age_ != -1) && (p_constraints.min_age_ > p_individual->age_))
+		return false;
+	if ((p_constraints.max_age_ != -1) && (p_constraints.max_age_ < p_individual->age_))
+		return false;
+	if ((p_constraints.migrant_ != -1) && (p_constraints.migrant_ != p_individual->migrant_))
+		return false;
+	
+	if (p_constraints.has_tagL_constraints_)
+	{
+		if (p_constraints.tagL0_ != -1)
+		{
+			if (!p_individual->tagL0_set_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tagL0 constraint is set for the interaction type, but the tagL0 property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+			
+			if (p_constraints.tagL0_ != p_individual->tagL0_value_)
+				return false;
+		}
+		if (p_constraints.tagL1_ != -1)
+		{
+			if (!p_individual->tagL1_set_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tagL1 constraint is set for the interaction type, but the tagL1 property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+			
+			if (p_constraints.tagL1_ != p_individual->tagL1_value_)
+				return false;
+		}
+		if (p_constraints.tagL2_ != -1)
+		{
+			if (!p_individual->tagL2_set_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tagL2 constraint is set for the interaction type, but the tagL2 property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+			
+			if (p_constraints.tagL2_ != p_individual->tagL2_value_)
+				return false;
+		}
+		if (p_constraints.tagL3_ != -1)
+		{
+			if (!p_individual->tagL3_set_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tagL3 constraint is set for the interaction type, but the tagL3 property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+			
+			if (p_constraints.tagL3_ != p_individual->tagL3_value_)
+				return false;
+		}
+		if (p_constraints.tagL4_ != -1)
+		{
+			if (!p_individual->tagL4_set_)
+				EIDOS_TERMINATION << "ERROR (InteractionType::_CheckIndividualNonSexConstraints): a tagL4 constraint is set for the interaction type, but the tagL4 property is undefined (has not been set) for an individual being queried." << EidosTerminate();
+			
+			if (p_constraints.tagL4_ != p_individual->tagL4_value_)
+				return false;
+		}
+	}
+	
+	return true;
+}
+
+bool InteractionType::_PrecheckIndividualNonSexConstraints(Individual *p_individual, InteractionConstraints &p_constraints)
+{
+	// This is similar to _CheckIndividualNonSexConstraints(), but it does not actually check the constraints.
+	// Instead, it checks that the constraints *can* be checked, without raising.  If a tag/tagL value that is
+	// needed to do the constraint check is missing, this method returns false; otherwise it returns true,
+	// meaning "it is safe to check constraints".  See EvaluateSubpopulation() for discussion.
+	if ((p_constraints.tag_ != SLIM_TAG_UNSET_VALUE) && (p_individual->tag_value_ == SLIM_TAG_UNSET_VALUE))
+		return false;
+	
+	if (p_constraints.has_tagL_constraints_)
+	{
+		if ((p_constraints.tagL0_ != -1) && !p_individual->tagL0_set_)
+				return false;
+		if ((p_constraints.tagL1_ != -1) && !p_individual->tagL1_set_)
+				return false;
+		if ((p_constraints.tagL2_ != -1) && !p_individual->tagL2_set_)
+				return false;
+		if ((p_constraints.tagL3_ != -1) && !p_individual->tagL3_set_)
+				return false;
+		if ((p_constraints.tagL4_ != -1) && !p_individual->tagL4_set_)
+				return false;
+	}
+	
+	return true;
+}
+
+void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active)
 {
 #if DEBUG
 	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
-	CheckSpeciesCompatibility(receiver->subpopulation_->species_);
-	CheckSpeciesCompatibility(exerter_subpop->species_);
-	
-	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
-	if (!exerter_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	if (constraints_active)
+	{
+		CheckSpeciesCompatibility_Receiver(receiver->subpopulation_->species_);
+		CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
+	}
+	else
+	{
+		CheckSpeciesCompatibility_Generic(receiver->subpopulation_->species_);
+		CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
+	}
 	
 	// SparseVector relies on the k-d tree, so this is an error for now
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) request for k-d tree information from a non-spatial interaction." << EidosTerminate();
 	
-	// For spatial models, the caller should guarantee that the k-d tree is already present
-	if (!exerter_subpop_data.kd_nodes_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
-	
 	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
 	CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
 	
 	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	if (constraints_active && !CheckIndividualConstraints(receiver, receiver_constraints_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the receiver is disqualified by the current receiver constraints." << EidosTerminate();
 	
 	// The caller should be handing us a sparse vector set up for distance data
 	if (sv->DataType() != SparseVectorDataType::kPresences)
@@ -2552,62 +2697,47 @@ void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Ind
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) the receiver is a new juvenile." << EidosTerminate();
 #endif
 	
-	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
-	slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
-	
-	if (exerter_sex_ == IndividualSex::kUnspecified)
+	// if the root is nullptr, the tree is empty and we have no results
+	if (kd_root)
 	{
+		// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
+		slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
+		
 		// Without a specified exerter sex, we can add each exerter with no sex test
-		if (spatiality_ == 2)		BuildSV_Presences_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-		else if (spatiality_ == 1)	BuildSV_Presences_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
-		else if (spatiality_ == 3)	BuildSV_Presences_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-	}
-	else
-	{
-		// With a specified exerter sex, we use a special version of BuildSV_Presences_X() that tests for that by range
-		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
-		
-		if (exerter_sex_ == IndividualSex::kMale)
-			start_exerter = exerter_subpop_data.first_male_index_;
-		else if (exerter_sex_ == IndividualSex::kFemale)
-			after_end_exerter = exerter_subpop_data.first_male_index_;
-		else
-			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverPresences): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
-		
-		if (spatiality_ == 2)		BuildSV_Presences_SS_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
-		else if (spatiality_ == 1)	BuildSV_Presences_SS_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter);
-		else if (spatiality_ == 3)	BuildSV_Presences_SS_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
+		if (spatiality_ == 2)		BuildSV_Presences_2(kd_root, receiver_position, excluded_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Presences_1(kd_root, receiver_position, excluded_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Presences_3(kd_root, receiver_position, excluded_index, sv, 0);
 	}
 	
 	// After building the sparse vector above, we mark it finished
 	sv->Finished();
 }
 
-void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active)
 {
 #if DEBUG
 	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
-	CheckSpeciesCompatibility(receiver->subpopulation_->species_);
-	CheckSpeciesCompatibility(exerter_subpop->species_);
-	
-	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
-	if (!exerter_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	if (constraints_active)
+	{
+		CheckSpeciesCompatibility_Receiver(receiver->subpopulation_->species_);
+		CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
+	}
+	else
+	{
+		CheckSpeciesCompatibility_Generic(receiver->subpopulation_->species_);
+		CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
+	}
 	
 	// Non-spatial interactions do not have a concept of distance, so this is an error
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) request for distances from a non-spatial interaction." << EidosTerminate();
 	
-	// For spatial models, the caller should guarantee that the k-d tree is already present
-	if (!exerter_subpop_data.kd_nodes_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
-	
 	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
 	CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
 	
 	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	if (constraints_active && !CheckIndividualConstraints(receiver, receiver_constraints_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the receiver is disqualified by the current receiver constraints." << EidosTerminate();
 	
 	// The caller should be handing us a sparse vector set up for distance data
 	if (sv->DataType() != SparseVectorDataType::kDistances)
@@ -2618,112 +2748,67 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) the receiver is a new juvenile." << EidosTerminate();
 #endif
 	
-	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
-	slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
-	
-	if (exerter_sex_ == IndividualSex::kUnspecified)
+	// if the root is nullptr, the tree is empty and we have no results
+	if (kd_root)
 	{
-		// Without a specified exerter sex, we can add each exerter with no sex test
-		if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-		else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
-		else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-	}
-	else
-	{
-		// With a specified exerter sex, we use a special version of BuildSV_Distances_X() that tests for that by range
-		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
+		// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
+		slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
 		
-		if (exerter_sex_ == IndividualSex::kMale)
-			start_exerter = exerter_subpop_data.first_male_index_;
-		else if (exerter_sex_ == IndividualSex::kFemale)
-			after_end_exerter = exerter_subpop_data.first_male_index_;
-		else
-			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
-		
-		if (spatiality_ == 2)		BuildSV_Distances_SS_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
-		else if (spatiality_ == 1)	BuildSV_Distances_SS_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter);
-		else if (spatiality_ == 3)	BuildSV_Distances_SS_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
+		if (spatiality_ == 2)		BuildSV_Distances_2(kd_root, receiver_position, excluded_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_1(kd_root, receiver_position, excluded_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Distances_3(kd_root, receiver_position, excluded_index, sv, 0);
 	}
 	
 	// After building the sparse vector above, we mark it finished
 	sv->Finished();
 }
 
-void InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+void InteractionType::FillSparseVectorForPointDistances(SparseVector *sv, double *position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root)
 {
-	// This is a special version of FillSparseVectorForReceiverDistances() used for finding nearest neighbors.
-	// It replaces the FindNeighborsN_X() functions, which are not thread-safe, and it is more efficient too.
-	// Unlike FillSparseVectorForReceiverDistances(), it allows receiver to be nullptr, to accommodate
-	// nearestNeighborsOfPoint().
+	// This is a special version of FillSparseVectorForReceiverDistances() used for nearestNeighborsOfPoint().
+	// It searches for neighbors of a point, without using a receiver, just a point.
 #if DEBUG
-	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
-	if (receiver)
-		CheckSpeciesCompatibility(receiver->subpopulation_->species_);
-	CheckSpeciesCompatibility(exerter_subpop->species_);
-	
-	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
-	if (!exerter_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	// The caller should guarantee that the exerter species is compatible with the interaction
+	CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
 	
 	// Non-spatial interactions do not have a concept of distance, so this is an error
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) request for distances from a non-spatial interaction." << EidosTerminate();
 	
-	// For spatial models, the caller should guarantee that the k-d tree is already present
-	if (!exerter_subpop_data.kd_nodes_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
-	
-	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
-	if (receiver)
-		CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
-	
 	// The caller should be handing us a sparse vector set up for distance data
 	if (sv->DataType() != SparseVectorDataType::kDistances)
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the sparse vector is not configured for distances." << EidosTerminate();
-	
-	// The caller should guarantee that the receiver is not a new juvenile, because they need to have a saved position
-	if (receiver)
-		if (receiver->index_ < 0)
-			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverDistances_ALL_NEIGHBORS): (internal error) the receiver is a new juvenile." << EidosTerminate();
 #endif
 	
-	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
-	slim_popsize_t excluded_index = (receiver && (exerter_subpop == receiver->subpopulation_)) ? receiver->index_ : -1;
-	
-	// We always use BuildSV_Distances_X() since we want all neighbors, not just interacting neighbors
-	if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-	else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
-	else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
+	// if the root is nullptr, the tree is empty and we have no results
+	if (kd_root)
+	{
+		if (spatiality_ == 2)		BuildSV_Distances_2(kd_root, position, -1, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_1(kd_root, position, -1, sv);
+		else if (spatiality_ == 3)	BuildSV_Distances_3(kd_root, position, -1, sv, 0);
+	}
 	
 	// After building the sparse vector above, we mark it finished
 	sv->Finished();
 }
 
-void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data)
+void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, std::vector<SLiMEidosBlock*> &interaction_callbacks)
 {
 #if DEBUG
 	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
-	CheckSpeciesCompatibility(receiver->subpopulation_->species_);
-	CheckSpeciesCompatibility(exerter_subpop->species_);
-	
-	// The caller should guarantee that the interaction has been evaluated for the exerter subpopulation
-	if (!exerter_subpop_data.evaluated_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) interaction has not yet been evaluated for the exerter subpopulation." << EidosTerminate();
+	CheckSpeciesCompatibility_Receiver(receiver->subpopulation_->species_);
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	
 	// Non-spatial interactions are not handled by this method (they must be handled separately by logic in the caller), so this is an error
 	if (spatiality_ == 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) request for strengths from a non-spatial interaction." << EidosTerminate();
 	
-	// For spatial models, the caller should guarantee that the k-d tree is already present
-	if (!exerter_subpop_data.kd_nodes_)
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the k-d tree is not present for the exerter subpopulation." << EidosTerminate();
-	
 	// The caller should guarantee that the receiver and exerter subpops are compatible in spatial structure
 	CheckSpatialCompatibility(receiver->subpopulation_, exerter_subpop);
 	
 	// The caller should ensure that this method is never called for a receiver that cannot receive interactions
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
-		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the receiver is disqualified by sex-specificity." << EidosTerminate();
+	if (!CheckIndividualConstraints(receiver, receiver_constraints_))
+		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the receiver is disqualified by the current receiver constraints." << EidosTerminate();
 	
 	// The caller should be handing us a sparse vector set up for strength data
 	if (sv->DataType() != SparseVectorDataType::kStrengths)
@@ -2734,29 +2819,26 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 		EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) the receiver is a new juvenile." << EidosTerminate();
 #endif
 	
-	// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
-	slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
-	
-	// Set up to build distances first; this is an internal implementation detail, so we require the sparse vector set up for strengths above
-	sv->SetDataType(SparseVectorDataType::kDistances);
-	
-	if (exerter_sex_ == IndividualSex::kUnspecified)
+	// if the root is nullptr, the tree is empty and we have no results
+	if (kd_root)
 	{
-		// Without a specified exerter sex, we can add each exerter with no sex test
-		// We special-case some builds directly to strength values here, for efficiency, with
-		// no callbacks and spatiality "xy".
-		if ((exerter_subpop_data.evaluation_interaction_callbacks_.size() == 0) && (spatiality_ == 2))
+		// Figure out what index in the exerter subpopulation, if any, needs to be excluded so self-interaction is zero
+		slim_popsize_t excluded_index = (exerter_subpop == receiver->subpopulation_) ? receiver->index_ : -1;
+		
+		// We special-case some builds directly to strength values here, for efficiency,
+		// with no callbacks and spatiality "xy".
+		if ((interaction_callbacks.size() == 0) && (spatiality_ == 2))
 		{
 			sv->SetDataType(SparseVectorDataType::kStrengths);
 			
 			switch (if_type_)
 			{
-				case SpatialKernelType::kFixed:			BuildSV_Strengths_f_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case SpatialKernelType::kLinear:		BuildSV_Strengths_l_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case SpatialKernelType::kExponential:	BuildSV_Strengths_e_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case SpatialKernelType::kNormal:		BuildSV_Strengths_n_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case SpatialKernelType::kCauchy:		BuildSV_Strengths_c_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
-				case SpatialKernelType::kStudentsT:		BuildSV_Strengths_t_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kFixed:			BuildSV_Strengths_f_2(kd_root, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kLinear:		BuildSV_Strengths_l_2(kd_root, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kExponential:	BuildSV_Strengths_e_2(kd_root, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kNormal:		BuildSV_Strengths_n_2(kd_root, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kCauchy:		BuildSV_Strengths_c_2(kd_root, receiver_position, excluded_index, sv, 0); break;
+				case SpatialKernelType::kStudentsT:		BuildSV_Strengths_t_2(kd_root, receiver_position, excluded_index, sv, 0); break;
 				default:
 					EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unoptimized SpatialKernelType value." << EidosTerminate();
 			}
@@ -2765,25 +2847,12 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			return;
 		}
 		
-		if (spatiality_ == 2)		BuildSV_Distances_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-		else if (spatiality_ == 1)	BuildSV_Distances_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv);
-		else if (spatiality_ == 3)	BuildSV_Distances_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, 0);
-	}
-	else
-	{
-		// With a specified exerter sex, we use a special version of BuildSV_Distances_X() that tests for that by range
-		int start_exerter = 0, after_end_exerter = exerter_subpop_data.individual_count_;
+		// Set up to build distances first; this is an internal implementation detail, so we require the sparse vector set up for strengths above
+		sv->SetDataType(SparseVectorDataType::kDistances);
 		
-		if (exerter_sex_ == IndividualSex::kMale)
-			start_exerter = exerter_subpop_data.first_male_index_;
-		else if (exerter_sex_ == IndividualSex::kFemale)
-			after_end_exerter = exerter_subpop_data.first_male_index_;
-		else
-			EIDOS_TERMINATION << "ERROR (InteractionType::FillSparseVectorForReceiverStrengths): (internal error) unrecognized value for exerter_sex_." << EidosTerminate();
-		
-		if (spatiality_ == 2)		BuildSV_Distances_SS_2(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
-		else if (spatiality_ == 1)	BuildSV_Distances_SS_1(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter);
-		else if (spatiality_ == 3)	BuildSV_Distances_SS_3(exerter_subpop_data.kd_root_, receiver_position, excluded_index, sv, start_exerter, after_end_exerter, 0);
+		if (spatiality_ == 2)		BuildSV_Distances_2(kd_root, receiver_position, excluded_index, sv, 0);
+		else if (spatiality_ == 1)	BuildSV_Distances_1(kd_root, receiver_position, excluded_index, sv);
+		else if (spatiality_ == 3)	BuildSV_Distances_3(kd_root, receiver_position, excluded_index, sv, 0);
 	}
 	
 	// After building the sparse vector above, we mark it finished
@@ -2791,13 +2860,12 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 	
 	// Now we scan through the pre-existing sparse vector for interacting pairs,
 	// and transform distances into interaction strength values calculated for each.
-	std::vector<SLiMEidosBlock*> &callbacks = exerter_subpop_data.evaluation_interaction_callbacks_;
 	uint32_t nnz, *columns;
 	sv_value_t *values;
 	
 	sv->Distances(&nnz, &columns, &values);
 	
-	if (callbacks.size() == 0)
+	if (interaction_callbacks.size() == 0)
 	{
 		// No callbacks; strength calculations come from the interaction function only
 		
@@ -2887,7 +2955,7 @@ void InteractionType::FillSparseVectorForReceiverStrengths(SparseVector *sv, Ind
 			uint32_t col = columns[col_iter];
 			sv_value_t distance = values[col_iter];
 			
-			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], callbacks);
+			values[col_iter] = (sv_value_t)CalculateStrengthWithCallbacks(distance, receiver, subpop_individuals[col], interaction_callbacks);
 		}
 	}
 	
@@ -3251,103 +3319,104 @@ void InteractionType::FindNeighborsA_3(SLiM_kdNode *root, double *nd, slim_popsi
 	}
 }
 
-// BCH 5/24/2023: Here used to reside FindNeighborsN_1(), FindNeighborsN_2(), and FindNeighborsN_3().
-// They were not thread-safe, and were replaced by FillSparseVectorForReceiverDistances_ALL_NEIGHBORS().
+// BCH 5/24/2023: Here used to reside FindNeighborsN_1(), FindNeighborsN_2(), and FindNeighborsN_3(),
+// used for finding a particular number of neighbors (N), greater than 1 and less than all, in 1D / 2D / 3D.
+// They were not thread-safe, and were replaced by FillSparseVectorForReceiverDistances_ALL_NEIGHBORS();
+// now (11/2/2023) that has turned into FillSparseVectorForReceiverDistances() using kd_root_ALL_, below.
 
-void InteractionType::FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual)
+void InteractionType::FindNeighbors(Subpopulation *p_subpop, SLiM_kdNode *kd_root, slim_popsize_t kd_node_count, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual, bool constraints_active)
 {
+	// If this method is passed kd_root_ALL_, from EnsureKDTreePresent_ALL(), it finds all neighbors, regardless
+	// of exerter constraints.  If it is passed kd_root_EXERTERS_, from EnsureKDTreePresent_EXERTERS(), it finds
+	// only neighbors that satisfy the exerter constraints.
+	
 	if (spatiality_ == 0)
-	{
 		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) neighbors cannot be found for non-spatial interactions." << EidosTerminate();
-	}
-	else if (!p_subpop_data.kd_nodes_)
+	
+	// If zero neighbors are requested, or if the k-d tree root is nullptr (no nodes), return an empty result
+	// BCH 11/2/2023: returning an empty result for !kd_root is a change in behavior; we used to throw an exception.
+	if (!kd_root || (p_count == 0))
+		return;
+	
+	// Exclude the focal individual if and only if it is in the exerter subpopulation
+	slim_popsize_t focal_individual_index;
+	
+	if (p_excluded_individual && (p_excluded_individual->subpopulation_ == p_subpop))
+		focal_individual_index = p_excluded_individual->index_;
+	else
+		focal_individual_index = -1;
+	
+	if (p_count == 1)
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree has not been constructed." << EidosTerminate();
+		// Finding a single nearest neighbor is special-cased, and does not enforce the max distance; we do that after
+		SLiM_kdNode *best = nullptr;
+		double best_dist = 0.0;
+		
+		switch (spatiality_)
+		{
+			case 1: FindNeighbors1_1(kd_root, p_point, focal_individual_index, &best, &best_dist);		break;
+			case 2: FindNeighbors1_2(kd_root, p_point, focal_individual_index, &best, &best_dist, 0);	break;
+			case 3: FindNeighbors1_3(kd_root, p_point, focal_individual_index, &best, &best_dist, 0);	break;
+		}
+		
+		if (best && (best_dist <= max_distance_sq_))
+		{
+			Individual *best_individual = p_subpop->parent_individuals_[best->individual_index_];
+			
+			p_result_vec.push_object_element_NORR(best_individual);
+		}
 	}
-	else if (!p_subpop_data.kd_root_)
+	else if (p_count >= kd_node_count)	// can't do (kd_node_count - 1), because the focal individual might not be among the nodes in the k-d tree
 	{
-		EIDOS_TERMINATION << "ERROR (InteractionType::FindNeighbors): (internal error) the k-d tree is rootless." << EidosTerminate();
+		// Finding all neighbors within the interaction distance is special-cased
+		switch (spatiality_)
+		{
+			case 1: FindNeighborsA_1(kd_root, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_);		break;
+			case 2: FindNeighborsA_2(kd_root, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_, 0);		break;
+			case 3: FindNeighborsA_3(kd_root, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_, 0);		break;
+		}
 	}
 	else
 	{
-		if (p_count == 0)
-			return;
+		// Finding multiple neighbors is the slower general case; we use SparseVector to get all neighbors
+		// (we would have to look at all of them anyway), and then sort them and return the top N
+		// BCH 5/24/2023: This replaces the old algorithm using FindNeighborsN_X(), which was not thread-safe
+		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(p_subpop, SparseVectorDataType::kDistances);
 		
-		// Exclude the focal individual if and only if it is in the exerter subpopulation
-		slim_popsize_t focal_individual_index;
-		
-		if (p_excluded_individual && (p_excluded_individual->subpopulation_ == p_subpop))
-			focal_individual_index = p_excluded_individual->index_;
+		if (p_excluded_individual)
+			FillSparseVectorForReceiverDistances(sv, p_excluded_individual, p_point, p_subpop, kd_root, constraints_active);
 		else
-			focal_individual_index = -1;
+			FillSparseVectorForPointDistances(sv, p_point, p_subpop, kd_root);
 		
-		if (p_count == 1)
+		uint32_t nnz;
+		const uint32_t *columns;
+		const sv_value_t *distances;
+		
+		distances = sv->Distances(&nnz, &columns);
+		
+		std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
+		
+		for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+			neighbors.emplace_back(col_index, distances[col_index]);
+		
+		std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
+			return l.second < r.second;
+		});
+		
+		std::vector<Individual *> &exerters = p_subpop->parent_individuals_;
+		
+		// the client requested p_count items, but we may have fewer
+		if (p_count > (int)nnz)
+			p_count = (int)nnz;
+		
+		for (int neighbor_index = 0; neighbor_index < p_count; ++neighbor_index)
 		{
-			// Finding a single nearest neighbor is special-cased, and does not enforce the max distance; we do that after
-			SLiM_kdNode *best = nullptr;
-			double best_dist = 0.0;
+			Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
 			
-			switch (spatiality_)
-			{
-				case 1: FindNeighbors1_1(p_subpop_data.kd_root_, p_point, focal_individual_index, &best, &best_dist);		break;
-				case 2: FindNeighbors1_2(p_subpop_data.kd_root_, p_point, focal_individual_index, &best, &best_dist, 0);	break;
-				case 3: FindNeighbors1_3(p_subpop_data.kd_root_, p_point, focal_individual_index, &best, &best_dist, 0);	break;
-			}
-			
-			if (best && (best_dist <= max_distance_sq_))
-			{
-				Individual *best_individual = p_subpop->parent_individuals_[best->individual_index_];
-				
-				p_result_vec.push_object_element_NORR(best_individual);
-			}
+			p_result_vec.push_object_element_capcheck_NORR(exerter);
 		}
-		else if (p_count >= p_subpop_data.individual_count_ - 1)	// -1 because the focal individual is excluded
-		{
-			// Finding all neighbors within the interaction distance is special-cased
-			switch (spatiality_)
-			{
-				case 1: FindNeighborsA_1(p_subpop_data.kd_root_, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_);			break;
-				case 2: FindNeighborsA_2(p_subpop_data.kd_root_, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_, 0);		break;
-				case 3: FindNeighborsA_3(p_subpop_data.kd_root_, p_point, focal_individual_index, p_result_vec, p_subpop->parent_individuals_, 0);		break;
-			}
-		}
-		else
-		{
-			// Finding multiple neighbors is the slower general case; we use SparseVector to get all neighbors
-			// (we would have to look at all of them anyway), and then sort them and return the top N
-			// BCH 5/24/2023: This replaces the old algorithm using FindNeighborsN_X(), which was not thread-safe
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(p_subpop, SparseVectorDataType::kDistances);
-			FillSparseVectorForReceiverDistances_ALL_NEIGHBORS(sv, p_excluded_individual, p_point, p_subpop, p_subpop_data);
-			uint32_t nnz;
-			const uint32_t *columns;
-			const sv_value_t *distances;
-			
-			distances = sv->Distances(&nnz, &columns);
-			
-			std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				neighbors.emplace_back(col_index, distances[col_index]);
-			
-			std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
-				return l.second < r.second;
-			});
-			
-			std::vector<Individual *> &exerters = p_subpop->parent_individuals_;
-			
-			// the client requested p_count items, but we may have fewer
-			if (p_count > (int)nnz)
-				p_count = (int)nnz;
-			
-			for (int neighbor_index = 0; neighbor_index < p_count; ++neighbor_index)
-			{
-				Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
-				
-				p_result_vec.push_object_element_capcheck_NORR(exerter);
-			}
-			
-			FreeSparseVector(sv);
-		}
+		
+		FreeSparseVector(sv);
 	}
 }
 
@@ -3389,14 +3458,14 @@ EidosValue_SP InteractionType::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			std::string sex_segregation_string;
 			
-			switch (receiver_sex_)
+			switch (receiver_constraints_.sex_)
 			{
 				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
 				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
 				default:						sex_segregation_string += "*"; break;
 			}
 			
-			switch (exerter_sex_)
+			switch (exerter_constraints_.sex_)
 			{
 				case IndividualSex::kFemale:	sex_segregation_string += "F"; break;
 				case IndividualSex::kMale:		sex_segregation_string += "M"; break;
@@ -3520,6 +3589,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_nearestNeighborsOfPoint:	return ExecuteMethod_nearestNeighborsOfPoint(p_method_id, p_arguments, p_interpreter);
 		case gID_neighborCount:				return ExecuteMethod_neighborCount(p_method_id, p_arguments, p_interpreter);
 		case gID_neighborCountOfPoint:		return ExecuteMethod_neighborCountOfPoint(p_method_id, p_arguments, p_interpreter);
+		case gID_setConstraints:			return ExecuteMethod_setConstraints(p_method_id, p_arguments, p_interpreter);
 		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_interpreter);
 		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
 		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
@@ -3597,7 +3667,7 @@ EidosValue_SP InteractionType::ExecuteMethod_clippedIntegral(EidosGlobalStringID
 	if (!species)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_clippedIntegral): clippedIntegral() requires that all receivers belong to the same species." << EidosTerminate();
 	
-	CheckSpeciesCompatibility(*species);
+	CheckSpeciesCompatibility_Generic(*species);
 	
 	bool periodic_x, periodic_y, periodic_z;
 	
@@ -3872,7 +3942,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	Subpopulation *receiver_subpop = receiver->subpopulation_;
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Generic(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
@@ -3886,6 +3956,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distance(EidosGlobalStringID p_meth
 	
 	Subpopulation *exerter_subpop = (exerters_value_NULL ? receiver_subpop : ((Individual *)exerters_value->ObjectElementAtIndex(0, nullptr))->subpopulation_);
 	
+	CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
@@ -3986,7 +4057,7 @@ EidosValue_SP InteractionType::ExecuteMethod_distanceFromPoint(EidosGlobalString
 	Subpopulation *exerter_subpop = exerter_first->subpopulation_;
 	Species &exerter_species = exerter_subpop->species_;
 	
-	CheckSpeciesCompatibility(exerter_species);
+	CheckSpeciesCompatibility_Generic(exerter_species);
 	
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	double *exerter_position_data = exerter_subpop_data.positions_;
@@ -4159,11 +4230,12 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Receiver(receiver_species);
 	
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
@@ -4191,13 +4263,13 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		if (receiver_index_in_subpop < 0)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 		
-		// Check sex-specificity for the receiver; if the individual is disqualified, no draws can occur and the return is empty
-		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+		// Check constraints for the receiver; if the individual is disqualified, no draws can occur and the return is empty
+		if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
 		if (spatiality_ == 0)
 		{
-			// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
+			// Non-spatial case; no distances used.  We have to worry about exerter constraints; they are not handled for us.
 			// BCH 5/14/2023: We call ApplyInteractionCallbacks() below, so if this code ever goes parallel it
 			// should stay single-threaded if/when any interaction() callbacks are present!
 			slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
@@ -4213,9 +4285,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				Individual *exerter = exerters[exerter_index_in_subpop];
 				double strength = 0;
 				
-				if (exerter_index_in_subpop != receiver_index)
-					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				total_interaction_strength += strength;
 				cached_strength.emplace_back(strength);
@@ -4244,21 +4315,19 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			// Spatial case; we use the k-d tree to get strengths for all neighbors.
 			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-			
-			EnsureKDTreePresent(exerter_subpop_data);
-			
+			SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 			SparseVector *sv = nullptr;
 			
-			// BCH 5/24/2023: if the exerter subpop is empty, no individuals are drawn; short-circuit
-			if (exerter_subpop->parent_subpop_size_ == 0)
+			// If there are no exerters satisfying constraints, short-circuit
+			if (!kd_root_EXERTERS)
 				return EidosValue_SP(result_vec);
 			
 			if (optimize_fixed_interaction_strengths)
 			{
 				// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
 				uint32_t nnz;
 				const uint32_t *columns;
 				
@@ -4287,7 +4356,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				// BCH 5/14/2023: The call to FillSparseVectorForReceiverStrengths() means we run interaction() callbacks,
 				// so if this code is ever parallelized, it should stay single-threaded when callbacks are enabled.
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
 				uint32_t nnz;
 				const uint32_t *columns;
 				const sv_value_t *strengths;
@@ -4356,13 +4425,20 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 		
 		if ((count > 0) && (exerter_subpop_size > 0))	// BCH 5/24/2023: if the exerter subpop is empty, no individuals are drawn; short-circuit
 		{
-			bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
+			SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 			
+			// If there are no exerters satisfying constraints, short-circuit
+			if (!kd_root_EXERTERS)
+			{
+				free(result_vectors);
+				return result_SP;
+			}
+			
+			bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false, saw_error_4 = false;
 			InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-			EnsureKDTreePresent(exerter_subpop_data);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_DRAWBYSTRENGTH);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(gEidos_RNG_PERTHREAD, receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_EXERTERS, optimize_fixed_interaction_strengths) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) reduction(||: saw_error_4) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_DRAWBYSTRENGTH)) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4381,6 +4457,22 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					continue;
 				}
 				
+				// Check constraints for the receiver; if the individual is disqualified, there are no candidates to draw from
+#ifdef _OPENMP
+				// Under OpenMP, raises can't go past the end of the parallel region
+				try {
+					if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+						continue;
+				} catch (...) {
+					saw_error_4 = true;
+					continue;
+				}
+#else
+				// When not under OpenMP, we can just let raises go
+				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+					continue;
+#endif
+				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				
 				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
@@ -4390,7 +4482,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				{
 					// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
 					sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-					FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+					FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
 					uint32_t nnz;
 					const uint32_t *columns;
 					
@@ -4421,7 +4513,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 #ifdef _OPENMP
 					// Under OpenMP, raises can't go past the end of the parallel region
 					try {
-						FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+						FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 					} catch (...) {
 						saw_error_3 = true;
 						InteractionType::FreeSparseVector(sv);
@@ -4429,7 +4521,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					}
 #else
 					// When not under OpenMP, we can just let raises go
-					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 #endif
 					
 					uint32_t nnz;
@@ -4479,6 +4571,8 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
 			if (saw_error_3)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): an exception was caught inside a parallel region." << EidosTerminate();
+			if (saw_error_4)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		}
 		
 		free(result_vectors);
@@ -4513,6 +4607,7 @@ EidosValue_SP InteractionType::ExecuteMethod_evaluate(EidosGlobalStringID p_meth
 EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BCH 11/2/2023: Note that this method is now almost identical to ExecuteMethod_neighborCount()
 	EidosValue *receivers_value = p_arguments[0].get();
 	EidosValue *exerterSubpop_value = p_arguments[1].get();
 	int receivers_count = receivers_value->Count();
@@ -4527,10 +4622,15 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
-	CheckSpeciesCompatibility(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Receiver(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
-	if (exerter_subpop->parent_subpop_size_ == 0)
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
+	
+	// If there are no exerters satisfying constraints, short-circuit
+	if (!kd_root_EXERTERS)
 	{
 		// If the exerter subpop is empty then all count values for the receivers are zero
 		if (receivers_count == 1)
@@ -4549,8 +4649,6 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
 	
 	if (receivers_count == 1)
 	{
@@ -4561,27 +4659,32 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 		if (receiver_index_in_subpop < 0)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		
-		// Check sex-specificity for the receiver; if the individual is disqualified, the count is zero
-		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+		// Check constraints for the receiver; if the individual is disqualified, the count is zero
+		if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
 			return gStaticEidosValue_Integer0;
 		
+		// Find the neighbors
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-		FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+		slim_popsize_t focal_individual_index = (exerter_subpop == receiver_subpop) ? receiver_index_in_subpop : -1;
+		int neighborCount;
 		
-		uint32_t nnz;
-		sv->Presences(&nnz);
+		switch (spatiality_)
+		{
+			case 1: neighborCount = CountNeighbors_1(kd_root_EXERTERS, receiver_position, focal_individual_index);			break;
+			case 2: neighborCount = CountNeighbors_2(kd_root_EXERTERS, receiver_position, focal_individual_index, 0);		break;
+			case 3: neighborCount = CountNeighbors_3(kd_root_EXERTERS, receiver_position, focal_individual_index, 0);		break;
+			default: neighborCount = 0; break;	// unsupported value
+		}
 		
-		InteractionType::FreeSparseVector(sv);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(nnz));
+		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
 	}
 	else
 	{
 		EidosValue_Int_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(receivers_count);
-		bool saw_error_1 = false, saw_error_2 = false;
+		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_INTNEIGHCOUNT);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_INTNEIGHCOUNT) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_EXERTERS) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(receivers_count >= EIDOS_OMPMIN_INTNEIGHCOUNT) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4600,22 +4703,42 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 				continue;
 			}
 			
-			// Check sex-specificity for the receiver; if the individual is disqualified, the count is zero
-			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+			// Check constraints for the receiver; if the individual is disqualified, the count is zero
+#ifdef _OPENMP
+			// Under OpenMP, raises can't go past the end of the parallel region
+			try {
+				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+				{
+					result_vec->set_int_no_check(0, receiver_index);
+					continue;
+				}
+			} catch (...) {
+				saw_error_3 = true;
+				continue;
+			}
+#else
+			// When not under OpenMP, we can just let raises go
+			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 			{
 				result_vec->set_int_no_check(0, receiver_index);
 				continue;
 			}
+#endif
 			
+			// Find the neighbors
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-			FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			slim_popsize_t focal_individual_index = (exerter_subpop == receiver_subpop) ? receiver_index_in_subpop : -1;
+			int neighborCount;
 			
-			uint32_t nnz;
-			sv->Presences(&nnz);
+			switch (spatiality_)
+			{
+				case 1: neighborCount = CountNeighbors_1(kd_root_EXERTERS, receiver_position, focal_individual_index);			break;
+				case 2: neighborCount = CountNeighbors_2(kd_root_EXERTERS, receiver_position, focal_individual_index, 0);		break;
+				case 3: neighborCount = CountNeighbors_3(kd_root_EXERTERS, receiver_position, focal_individual_index, 0);		break;
+				default: neighborCount = 0; break;	// unsupported value
+			}
 			
-			InteractionType::FreeSparseVector(sv);
-			result_vec->set_int_no_check(nnz, receiver_index);
+			result_vec->set_int_no_check(neighborCount, receiver_index);
 		}
 		
 		// deferred raises, for OpenMP compatibility
@@ -4623,6 +4746,8 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		if (saw_error_2)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() requires that all receivers be in the same subpopulation." << EidosTerminate();
+		if (saw_error_3)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_interactingNeighborCount): interactingNeighborCount() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -4654,7 +4779,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
-	CheckSpeciesCompatibility(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Receiver(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	if (receiver_subpop != exerter_subpop)
@@ -4663,7 +4789,11 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			(receiver_subpop->bounds_z0_ != exerter_subpop->bounds_z0_) || (receiver_subpop->bounds_z1_ != exerter_subpop->bounds_z1_))
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that the receiver and exerter subpopulations have identical bounds." << EidosTerminate();
 	
-	if (exerter_subpop->parent_subpop_size_ == 0)
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
+	
+	// If there are no exerters satisfying constraints, short-circuit
+	if (!kd_root_EXERTERS)
 	{
 		// If the exerter subpop is empty then all density values for the receivers are zero (note that we
 		// already handled the case of receivers_count == 0 above, so the receiver is not in the exerter subpop)
@@ -4683,8 +4813,6 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
 	
 	double strength_for_zero_distance = CalculateStrengthNoCallbacks(0.0);	// probably always if_param1_, but let's not hard-code that...
 	bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
@@ -4710,8 +4838,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		if (receiver_index_in_subpop < 0)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		
-		// Check sex-specificity for the receiver; if the individual is disqualified, the local density of interacters is zero
-		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != first_receiver->sex_))
+		// Check constraints for the receiver; if the individual is disqualified, the local density of interacters is zero
+		if (!CheckIndividualConstraints(first_receiver, receiver_constraints_))		// potentially raises
 			return gStaticEidosValue_Float0;
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
@@ -4722,7 +4850,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			// Optimized case for fixed interaction strength and no callbacks
 			sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-			FillSparseVectorForReceiverPresences(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+			FillSparseVectorForReceiverPresences(sv, first_receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
 			
 			uint32_t nnz;
 			sv->Presences(&nnz);
@@ -4733,7 +4861,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 		{
 			// General case, totalling strengths
 			sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-			FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, exerter_subpop_data);	// we do not allow interaction() callbacks, so this should not raise
+			FillSparseVectorForReceiverStrengths(sv, first_receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// singleton case, not parallel
 			
 			// Get the sparse vector data
 			uint32_t nnz;
@@ -4762,10 +4890,10 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 	{
 		// Loop over the requested individuals and get the totals
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
-		bool saw_error_1 = false, saw_error_2 = false;
+		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_LOCALPOPDENSITY);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_EXERTERS, strength_for_zero_distance, clipped_integrals, optimize_fixed_interaction_strengths) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_LOCALPOPDENSITY)) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -4784,12 +4912,27 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				continue;
 			}
 			
-			// Check sex-specificity for the receiver; if the individual is disqualified, the local density of interacters is zero
-			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+			// Check constraints for the receiver; if the individual is disqualified, the local density of interacters is zero
+#ifdef _OPENMP
+			// Under OpenMP, raises can't go past the end of the parallel region
+			try {
+				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+				{
+					result_vec->set_float_no_check(0, receiver_index);
+					continue;
+				}
+			} catch (...) {
+				saw_error_3 = true;
+				continue;
+			}
+#else
+			// When not under OpenMP, we can just let raises go
+			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 			{
 				result_vec->set_float_no_check(0, receiver_index);
 				continue;
 			}
+#endif
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			double total_strength;
@@ -4799,7 +4942,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			{
 				// Optimized case for fixed interaction strength and no callbacks
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
 				
 				uint32_t nnz;
 				sv->Presences(&nnz);
@@ -4809,7 +4952,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			{
 				// General case, totalling strengths
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// we do not allow interaction() callbacks, so this should not raise
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// we do not allow interaction() callbacks, so this should not raise
 				
 				// Get the sparse vector data
 				uint32_t nnz;
@@ -4840,6 +4983,8 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires receivers to be visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		if (saw_error_2)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() requires that all receivers be in the same subpopulation." << EidosTerminate();
+		if (saw_error_3)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_localPopulationDensity): localPopulationDensity() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -4866,7 +5011,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	Subpopulation *receiver_subpop = receiver->subpopulation_;
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Receiver(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
@@ -4880,11 +5025,12 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	
 	Subpopulation *exerter_subpop = (exerters_value_NULL ? receiver_subpop : ((Individual *)exerters_value->ObjectElementAtIndex(0, nullptr))->subpopulation_);
 	
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
+	SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 	
 	// set up our return value
 	if (exerters_value_NULL)
@@ -4892,8 +5038,9 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	
 	EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
 	
-	// Check sex-specificity for the receiver; if the individual is disqualified, the distance to each exerter is zero
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+	// Check constraints the receiver; if the individual is disqualified, the distance to each exerter is zero
+	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
+	if (!CheckIndividualConstraints(receiver, receiver_constraints_) || !kd_root_EXERTERS)		// potentially raises
 	{
 		double *result_ptr = result_vec->data();
 		
@@ -4904,7 +5051,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	}
 	
 	SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-	FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+	FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
 	uint32_t nnz;
 	const uint32_t *columns;
 	const sv_value_t *distances;
@@ -4927,6 +5074,8 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 	{
 		// Otherwise, receiver is singleton, and exerters is any length, so we loop over exerters
 		// Each individual in exerters requires a linear search through the sparse vector, unfortunately
+		// FIXME we could just calculate the distance to each exerter directly, without the sparse array,
+		// which would allow us to avoid this O(N^2) behavior
 		for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 		{
 			Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
@@ -4968,6 +5117,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactionDistance(EidosGlobalStri
 EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BCH 11/2/2023: Note that this method is now almost identical to ExecuteMethod_nearestNeighbors()
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
@@ -4991,7 +5141,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	}
 	else
 	{
-		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object with vectors of Individual objects
 		if (receiver_value->Count() == 0)
 		{
 			// With no receivers, return an empty Dictionary
@@ -5012,21 +5162,18 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Receiver(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	
 	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
-	std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
-	
 	// Check the count
+	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	int64_t count = count_value->IntAtIndex(0, nullptr);
 	
 	if (count < 0)
@@ -5048,77 +5195,23 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		if (receiver_index_in_subpop < 0)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 		
-		// Check sex-specificity for the receiver; if the individual is disqualified, there are no interacting neighbors
-		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+		// Check constraints for the receiver; if the individual is disqualified, there are no interacting neighbors
+		if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
 		// Find the neighbors
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-		FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-		uint32_t nnz;
-		const uint32_t *columns;
-		const sv_value_t *distances;
+		InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+		SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 		
-		distances = sv->Distances(&nnz, &columns);
+		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
-		if (count >= nnz)
-		{
-			// return all of the individuals in the row
-			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(nnz);
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				result_vec->set_object_element_no_check_NORR(exerters[columns[col_index]], col_index);
-			
-			FreeSparseVector(sv);
-			return EidosValue_SP(result_vec);
-		}
-		else if (count == 1)
-		{
-			// return the individual in the row with the smallest distance
-			uint32_t min_col_index = UINT32_MAX;
-			double min_distance = INFINITY;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				if (distances[col_index] < min_distance)
-				{
-					min_distance = distances[col_index];
-					min_col_index = col_index;
-				}
-			
-			if (min_distance < INFINITY)
-			{
-				FreeSparseVector(sv);
-				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(exerters[columns[min_col_index]], gSLiM_Individual_Class));
-			}
-		}
-		else	// (count < nnz)
-		{
-			// return the <count> individuals with the smallest distances
-			std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
-			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				neighbors.emplace_back(col_index, distances[col_index]);
-			
-			std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
-				return l.second < r.second;
-			});
-			
-			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class))->resize_no_initialize(count);
-			
-			for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
-			{
-				Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
-				
-				result_vec->set_object_element_no_check_NORR(exerter, neighbor_index);
-			}
-			
-			FreeSparseVector(sv);
-			return EidosValue_SP(result_vec);
-		}
+		if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+			result_vec->reserve((int)count);
 		
-		FreeSparseVector(sv);
-		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+		FindNeighbors(exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.kd_node_count_EXERTERS_, receiver_position, (int)count, *result_vec, receiver, /* constraints_active */ true);
+		
+		return EidosValue_SP(result_vec);
 	}
 	else
 	{
@@ -5144,10 +5237,13 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 		
 		if (count > 0)
 		{
-			bool saw_error_1 = false, saw_error_2 = false;
+			bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
+			
+			InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+			SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEARESTINTNEIGH);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, exerters, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTINTNEIGH) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_EXERTERS) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(receivers_count >= EIDOS_OMPMIN_NEARESTINTNEIGH) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5166,68 +5262,30 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 					continue;
 				}
 				
+				// Check constraints for the receiver; if the individual is disqualified, there are no interacting neighbors
+#ifdef _OPENMP
+				// Under OpenMP, raises can't go past the end of the parallel region
+				try {
+					if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+						continue;
+				} catch (...) {
+					saw_error_3 = true;
+					continue;
+				}
+#else
+				// When not under OpenMP, we can just let raises go
+				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+					continue;
+#endif
+				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				
 				EidosValue_Object_vector *result_vec = result_vectors[receiver_index];
 				
-				SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kDistances);
-				FillSparseVectorForReceiverDistances(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
-				uint32_t nnz;
-				const uint32_t *columns;
-				const sv_value_t *distances;
+				if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
+					result_vec->reserve((int)count);
 				
-				distances = sv->Distances(&nnz, &columns);
-				
-				if (count >= nnz)
-				{
-					// return all of the individuals in the row
-					result_vec->resize_no_initialize(nnz);
-					
-					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						result_vec->set_object_element_no_check_NORR(exerters[columns[col_index]], col_index);
-				}
-				else if (count == 1)
-				{
-					// return the individual in the row with the smallest distance
-					uint32_t min_col_index = UINT32_MAX;
-					double min_distance = INFINITY;
-					
-					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						if (distances[col_index] < min_distance)
-						{
-							min_distance = distances[col_index];
-							min_col_index = col_index;
-						}
-					
-					if (min_distance < INFINITY)
-					{
-						result_vec->resize_no_initialize(1);
-						result_vec->set_object_element_no_check_NORR(exerters[columns[min_col_index]], 0);
-					}
-				}
-				else	// (count < nnz)
-				{
-					// return the <count> individuals with the smallest distances
-					std::vector<std::pair<uint32_t, sv_value_t>> neighbors;
-					
-					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-						neighbors.emplace_back(col_index, distances[col_index]);
-					
-					std::sort(neighbors.begin(), neighbors.end(), [](const std::pair<uint32_t, sv_value_t> &l, const std::pair<uint32_t, sv_value_t> &r) {
-						return l.second < r.second;
-					});
-					
-					result_vec->resize_no_initialize(count);
-					
-					for (uint32_t neighbor_index = 0; neighbor_index < count; ++neighbor_index)
-					{
-						Individual *exerter = exerters[columns[neighbors[neighbor_index].first]];
-						
-						result_vec->set_object_element_no_check_NORR(exerter, neighbor_index);
-					}
-				}
-				
-				FreeSparseVector(sv);
+				FindNeighbors(exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.kd_node_count_EXERTERS_, receiver_position, (int)count, *result_vec, receiver, /* constraints_active */ true);
 			}
 			
 			// deferred raises, for OpenMP compatibility
@@ -5235,6 +5293,8 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 			if (saw_error_2)
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			if (saw_error_3)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		}
 		
 		free(result_vectors);
@@ -5247,6 +5307,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BCH 11/2/2023: Note that this method is now almost identical to ExecuteMethod_nearestInteractingNeighbors()
 	EidosValue *receiver_value = p_arguments[0].get();
 	EidosValue *count_value = p_arguments[1].get();
 	EidosValue *exerterSubpop_value = p_arguments[2].get();
@@ -5270,7 +5331,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	}
 	else
 	{
-		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object vectors of Individual objects
+		// This is the multi-threaded, multi-receiver case; it returns a Dictionary object with vectors of Individual objects
 		if (receiver_value->Count() == 0)
 		{
 			// With no receivers, return an empty Dictionary
@@ -5291,13 +5352,14 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 	// shared logic for both cases
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Generic(receiver_species);
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 	
-	// figure out the exerter subpopulation and get info on it
+	// the exerter subpopulation defaults to the same subpop as the receivers
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
+	CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	// Check the count
@@ -5323,18 +5385,17 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 		if (receiver_index_in_subpop < 0)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighbors): nearestNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
 		
-		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
-		
 		// Find the neighbors
+		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-		EnsureKDTreePresent(exerter_subpop_data);
+		SLiM_kdNode *kd_root_ALL = EnsureKDTreePresent_ALL(exerter_subpop, exerter_subpop_data);
 		
 		EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
 		
 		if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
 			result_vec->reserve((int)count);
 		
-		FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
+		FindNeighbors(exerter_subpop, kd_root_ALL, exerter_subpop_data.kd_node_count_ALL_, receiver_position, (int)count, *result_vec, receiver, /* constraints_active */ false);
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -5365,10 +5426,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 			bool saw_error_1 = false, saw_error_2 = false;
 			
 			InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-			EnsureKDTreePresent(exerter_subpop_data);
+			SLiM_kdNode *kd_root_ALL = EnsureKDTreePresent_ALL(exerter_subpop, exerter_subpop_data);
 			
 			EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEARESTNEIGH);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTNEIGH) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_ALL) firstprivate(receiver_value, result_vectors, count, exerter_subpop_size) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEARESTNEIGH) num_threads(thread_count)
 			for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 			{
 				Individual *receiver = (Individual *)receiver_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5394,7 +5455,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighbors(EidosGlobalStringI
 				if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
 					result_vec->reserve((int)count);
 				
-				FindNeighbors(exerter_subpop, exerter_subpop_data, receiver_position, (int)count, *result_vec, receiver);
+				FindNeighbors(exerter_subpop, kd_root_ALL, exerter_subpop_data.kd_node_count_ALL_, receiver_position, (int)count, *result_vec, receiver, /* constraints_active */ false);
 			}
 			
 			// deferred raises, for OpenMP compatibility
@@ -5425,10 +5486,10 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	Subpopulation *exerter_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(exerterSubpop_value, 0, &community_, nullptr, "nearestNeighborsOfPoint()");
 	Species &exerter_species = exerter_subpop->species_;
 	
-	CheckSpeciesCompatibility(exerter_species);
+	CheckSpeciesCompatibility_Generic(exerter_species);
 	
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
+	SLiM_kdNode *kd_root_ALL = EnsureKDTreePresent_ALL(exerter_subpop, exerter_subpop_data);
 	
 	// Check the point
 	if (point_value->Count() != spatiality_)
@@ -5446,8 +5507,8 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	if (count < 0)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestNeighborsOfPoint): nearestNeighborsOfPoint() requires count >= 0." << EidosTerminate();
 	
-	if (count > exerter_subpop_size)
-		count = exerter_subpop_size;
+	if (count > exerter_subpop_data.kd_node_count_ALL_)
+		count = exerter_subpop_data.kd_node_count_ALL_;
 	
 	if (count == 0)
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
@@ -5458,7 +5519,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 	if (count < exerter_subpop_size)		// reserve only if we are finding fewer than every possible neighbor
 		result_vec->reserve((int)count);
 	
-	FindNeighbors(exerter_subpop, exerter_subpop_data, point_array, (int)count, *result_vec, nullptr);
+	FindNeighbors(exerter_subpop, kd_root_ALL, exerter_subpop_data.kd_node_count_ALL_, point_array, (int)count, *result_vec, nullptr, /* constraints_active */ false);
 	
 	return EidosValue_SP(result_vec);
 }
@@ -5468,6 +5529,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestNeighborsOfPoint(EidosGlobal
 EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
+	// BCH 11/2/2023: Note that this method is now almost identical to ExecuteMethod_interactingNeighborCount()
 	EidosValue *receivers_value = p_arguments[0].get();
 	EidosValue *exerterSubpop_value = p_arguments[1].get();
 	int receivers_count = receivers_value->Count();
@@ -5482,10 +5544,15 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
-	CheckSpeciesCompatibility(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Generic(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Generic(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
-	if (exerter_subpop->parent_subpop_size_ == 0)
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	SLiM_kdNode *kd_root_ALL = EnsureKDTreePresent_ALL(exerter_subpop, exerter_subpop_data);
+	
+	// If there are no individuals in the tree, short-circuit
+	if (!kd_root_ALL)
 	{
 		// If the exerter subpop is empty then all count values for the receivers are zero
 		if (receivers_count == 1)
@@ -5504,8 +5571,6 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
 
 	if (receivers_count == 1)
 	{
@@ -5523,9 +5588,9 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 		
 		switch (spatiality_)
 		{
-			case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
-			case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
-			case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+			case 1: neighborCount = CountNeighbors_1(kd_root_ALL, receiver_position, focal_individual_index);			break;
+			case 2: neighborCount = CountNeighbors_2(kd_root_ALL, receiver_position, focal_individual_index, 0);		break;
+			case 3: neighborCount = CountNeighbors_3(kd_root_ALL, receiver_position, focal_individual_index, 0);		break;
 			default: neighborCount = 0; break;	// unsupported value
 		}
 		
@@ -5537,7 +5602,7 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 		bool saw_error_1 = false, saw_error_2 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_NEIGHCOUNT);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEIGHCOUNT) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_ALL) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) if(receivers_count >= EIDOS_OMPMIN_NEIGHCOUNT) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5563,9 +5628,9 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCount(EidosGlobalStringID p
 			
 			switch (spatiality_)
 			{
-				case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index);			break;
-				case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
-				case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, receiver_position, focal_individual_index, 0);		break;
+				case 1: neighborCount = CountNeighbors_1(kd_root_ALL, receiver_position, focal_individual_index);			break;
+				case 2: neighborCount = CountNeighbors_2(kd_root_ALL, receiver_position, focal_individual_index, 0);		break;
+				case 3: neighborCount = CountNeighbors_3(kd_root_ALL, receiver_position, focal_individual_index, 0);		break;
 				default: neighborCount = 0; break;	// unsupported value
 			}
 			
@@ -5597,14 +5662,14 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCountOfPoint(EidosGlobalStr
 	Subpopulation *exerter_subpop = SLiM_ExtractSubpopulationFromEidosValue_io(exerterSubpop_value, 0, &community_, nullptr, "nearestNeighborsOfPoint()");
 	Species &exerter_species = exerter_subpop->species_;
 	
-	CheckSpeciesCompatibility(exerter_species);
-	
-	if (exerter_subpop->parent_subpop_size_ == 0)
-		return gStaticEidosValue_Integer0;
+	CheckSpeciesCompatibility_Generic(exerter_species);
 	
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
+	SLiM_kdNode *kd_root_ALL = EnsureKDTreePresent_ALL(exerter_subpop, exerter_subpop_data);
 
+	if (!kd_root_ALL)
+		return gStaticEidosValue_Integer0;
+	
 	// Check the point
 	if (point_value->Count() != spatiality_)
 		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): neighborCountOfPoint() requires that point is of length equal to the interaction spatiality." << EidosTerminate();
@@ -5619,13 +5684,206 @@ EidosValue_SP InteractionType::ExecuteMethod_neighborCountOfPoint(EidosGlobalStr
 	
 	switch (spatiality_)
 	{
-		case 1: neighborCount = CountNeighbors_1(exerter_subpop_data.kd_root_, point_array, -1);		break;
-		case 2: neighborCount = CountNeighbors_2(exerter_subpop_data.kd_root_, point_array, -1, 0);		break;
-		case 3: neighborCount = CountNeighbors_3(exerter_subpop_data.kd_root_, point_array, -1, 0);		break;
+		case 1: neighborCount = CountNeighbors_1(kd_root_ALL, point_array, -1);			break;
+		case 2: neighborCount = CountNeighbors_2(kd_root_ALL, point_array, -1, 0);		break;
+		case 3: neighborCount = CountNeighbors_3(kd_root_ALL, point_array, -1, 0);		break;
 		default: EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_neighborCountOfPoint): (internal error) unsupported spatiality" << EidosTerminate();
 	}
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(neighborCount));
+}
+
+//	*********************	- (void)setConstraints(string$ who, [Ns$ sex = NULL], [Ni$ tag = NULL], [Ni$ minAge = NULL], [Ni$ maxAge = NULL], [Nl$ migrant = NULL],
+//													[Nl$ tagL0 = NULL], [Nl$ tagL1 = NULL], [Nl$ tagL2 = NULL], [Nl$ tagL3 = NULL], [Nl$ tagL4 = NULL])
+//
+EidosValue_SP InteractionType::ExecuteMethod_setConstraints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	
+	if (AnyEvaluated())
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() cannot be called while the interaction is being evaluated; call unevaluate() first, or call setConstraints() prior to evaluation of the interaction." << EidosTerminate();
+	
+	EidosValue *who_value = p_arguments[0].get();
+	std::string who = who_value->StringAtIndex(0, nullptr);
+	bool set_receiver_constraints = false;
+	bool set_exerter_constraints = false;
+	
+	if (who == "receiver")
+	{
+		set_receiver_constraints = true;
+	}
+	else if (who == "exerter")
+	{
+		set_exerter_constraints = true;
+	}
+	else if (who == "both")
+	{
+		set_receiver_constraints = true;
+		set_exerter_constraints = true;
+	}
+	else
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires the parameter who to be one of 'receiver', 'exerter', or 'both'." << EidosTerminate();
+	
+	// do two passes, one for receiver constraints, one for exerter constraints
+	for (int i = 0; i <= 1; ++i)
+	{
+		InteractionConstraints *constraints = nullptr;
+		
+		if (i == 0)
+		{
+			if (!set_receiver_constraints)
+				continue;
+			constraints = &receiver_constraints_;
+		}
+		if (i == 1)
+		{
+			if (!set_exerter_constraints)
+				continue;
+			constraints = &exerter_constraints_;
+		}
+		
+		// first turn off all constraints
+		constraints->has_constraints_ = false;
+		constraints->sex_ = IndividualSex::kUnspecified;
+		constraints->has_nonsex_constraints_ = false;
+		constraints->tag_ = SLIM_TAG_UNSET_VALUE;
+		constraints->min_age_ = -1;
+		constraints->max_age_ = -1;
+		constraints->migrant_ = -1;
+		constraints->has_tagL_constraints_ = false;
+		constraints->tagL0_ = -1;
+		constraints->tagL1_ = -1;
+		constraints->tagL2_ = -1;
+		constraints->tagL3_ = -1;
+		constraints->tagL4_ = -1;
+		
+		// then turn on constraints as requested
+		EidosValue *sex_value = p_arguments[1].get();
+		if (sex_value->Type() != EidosValueType::kValueNULL)
+		{
+			std::string sex = sex_value->StringAtIndex(0, nullptr);
+			if (sex == "M")			{ constraints->sex_ = IndividualSex::kMale; constraints->has_constraints_ = true; }
+			else if (sex == "F")	{ constraints->sex_ = IndividualSex::kFemale; constraints->has_constraints_ = true; }
+			else if (sex == "*")	constraints->sex_ = IndividualSex::kUnspecified;
+			else
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires the parameter sex to be 'M', 'F', or '*'." << EidosTerminate();
+		}
+		
+		EidosValue *tag_value = p_arguments[2].get();
+		if (tag_value->Type() != EidosValueType::kValueNULL)
+		{
+			slim_usertag_t tag = tag_value->IntAtIndex(0, nullptr);
+			
+			constraints->tag_ = tag;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+		}
+		
+		EidosValue *minAge_value = p_arguments[3].get();
+		if (minAge_value->Type() != EidosValueType::kValueNULL)
+		{
+			if (community_.ModelType() == SLiMModelType::kModelTypeWF)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() cannot set a minAge constraint in a WF model (since the WF model is of non-overlapping generations)." << EidosTerminate();
+			
+			slim_age_t minAge = SLiMCastToAgeTypeOrRaise(minAge_value->IntAtIndex(0, nullptr));
+			
+			if ((minAge <= 0) || (minAge > 100000))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires the parameter minAge to be >= 0 and <= 100000." << EidosTerminate();
+			
+			constraints->min_age_ = minAge;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+		}
+		
+		EidosValue *maxAge_value = p_arguments[4].get();
+		if (maxAge_value->Type() != EidosValueType::kValueNULL)
+		{
+			if (community_.ModelType() == SLiMModelType::kModelTypeWF)
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() cannot set a maxAge constraint in a WF model (since the WF model is of non-overlapping generations)." << EidosTerminate();
+			
+			slim_age_t maxAge = SLiMCastToAgeTypeOrRaise(maxAge_value->IntAtIndex(0, nullptr));
+			
+			if ((maxAge <= 0) || (maxAge > 100000))
+				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires the parameter maxAge to be >= 0 and <= 100000." << EidosTerminate();
+			
+			constraints->max_age_ = maxAge;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+		}
+		
+		if ((constraints->min_age_ != -1) && (constraints->max_age_) && (constraints->min_age_ > constraints->max_age_))
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires minAge <= maxAge." << EidosTerminate();
+		
+		EidosValue *migrant_value = p_arguments[5].get();
+		if (migrant_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t migrant = migrant_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->migrant_ = migrant;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+		}
+		
+		EidosValue *tagL0_value = p_arguments[6].get();
+		if (tagL0_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t tagL0 = tagL0_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->tagL0_ = tagL0;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+			constraints->has_tagL_constraints_ = true;
+		}
+		
+		EidosValue *tagL1_value = p_arguments[7].get();
+		if (tagL1_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t tagL1 = tagL1_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->tagL1_ = tagL1;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+			constraints->has_tagL_constraints_ = true;
+		}
+		
+		EidosValue *tagL2_value = p_arguments[8].get();
+		if (tagL2_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t tagL2 = tagL2_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->tagL2_ = tagL2;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+			constraints->has_tagL_constraints_ = true;
+		}
+		
+		EidosValue *tagL3_value = p_arguments[9].get();
+		if (tagL3_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t tagL3 = tagL3_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->tagL3_ = tagL3;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+			constraints->has_tagL_constraints_ = true;
+		}
+		
+		EidosValue *tagL4_value = p_arguments[10].get();
+		if (tagL4_value->Type() != EidosValueType::kValueNULL)
+		{
+			eidos_logical_t tagL4 = tagL4_value->LogicalAtIndex(0, nullptr);
+			
+			constraints->tagL4_ = tagL4;
+			constraints->has_constraints_ = true;
+			constraints->has_nonsex_constraints_ = true;
+			constraints->has_tagL_constraints_ = true;
+		}
+	}
+	
+	// mark that interaction types changed, so they get redisplayed in SLiMgui
+	community_.interaction_types_changed_ = true;
+	
+	return gStaticEidosValueVOID;
 }
 
 //	*********************	- (void)setInteractionFunction(string$ functionType, ...)
@@ -5674,7 +5932,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	Subpopulation *receiver_subpop = receiver->subpopulation_;
 	Species &receiver_species = receiver_subpop->species_;
 	
-	CheckSpeciesCompatibility(receiver_species);
+	CheckSpeciesCompatibility_Receiver(receiver_species);
 	
 	// figure out the exerter subpopulation and get info on it
 	bool exerters_value_NULL = (exerters_value->Type() == EidosValueType::kValueNULL);
@@ -5685,16 +5943,21 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	
 	Subpopulation *exerter_subpop = (exerters_value_NULL ? receiver_subpop : ((Individual *)exerters_value->ObjectElementAtIndex(0, nullptr))->subpopulation_);
 	
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
 	slim_popsize_t exerter_subpop_size = exerter_subpop->parent_subpop_size_;
 	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
 	
-	// Check sex-specificity for the receiver; if the individual is disqualified, the distance to each exerter is zero
+	// Check constraints for the receiver; if the individual is disqualified, the strength to each exerter is zero
+	// The same applies if the k-d tree has no qualifying exerters; below this, we can assume the kd root is non-nullptr
+	SLiM_kdNode *kd_root_EXERTERS = (spatiality_ ? EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data) : nullptr);
+	
 	if (exerters_value_NULL)
 		exerters_count = exerter_subpop_size;
 	
-	if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+	if (!CheckIndividualConstraints(receiver, receiver_constraints_) ||		// potentially raises
+		(!kd_root_EXERTERS && spatiality_))
 	{
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
 		
@@ -5705,17 +5968,14 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	
 	if (spatiality_)
 	{
-		// Spatial case; we use the k-d tree to get strengths for all neighbors.  For non-null exerters_value, we could
-		// calculate distances and strengths with the receiver directly, to save building the sparse vector; FIXME.
+		// Spatial case; we use the k-d tree to get strengths for all neighbors.
 		// BCH 5/14/2023: The call to FillSparseVectorForReceiverStrengths() means we run interaction() callbacks,
 		// so if this code is ever parallelized, it should stay single-threaded when callbacks are enabled.
 		InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		
-		EnsureKDTreePresent(exerter_subpop_data);
-		
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);
+		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
 		uint32_t nnz;
 		const uint32_t *columns;
 		const sv_value_t *strengths;
@@ -5740,6 +6000,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		{
 			// Otherwise, receiver is singleton, and exerters_value is any length, so we loop over exerters
 			// Each individual in exerters_value requires a linear search through the sparse vector, unfortunately
+			// FIXME we could just calculate the strength to each exerter directly, without the sparse array,
+			// which would allow us to avoid this O(N^2) behavior
 			for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
 			{
 				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
@@ -5777,7 +6039,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	}
 	else
 	{
-		// Non-spatial case; no distances used.  We have to worry about sex-segregation; it is not handled for us.
+		// Non-spatial case; no distances used.  We have to worry about exerter constraints; they are not handled for us.
 		// BCH 5/14/2023: We call ApplyInteractionCallbacks() below, so if this code ever goes parallel it
 		// should stay single-threaded if/when any interaction() callbacks are present!
 		slim_popsize_t receiver_index = ((exerter_subpop == receiver->subpopulation_) && (receiver->index_ >= 0) ? receiver->index_ : -1);
@@ -5796,7 +6058,7 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				{
 					Individual *exerter = exerter_subpop->parent_individuals_[exerter_index];
 					
-					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
+					if (CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
 						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				}
 				
@@ -5824,9 +6086,8 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 				
 				double strength = 0;
 				
-				if (exerter_index_in_subpop != receiver_index)
-					if ((exerter_sex_ == IndividualSex::kUnspecified) || (exerter_sex_ == exerter->sex_))
-						strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
+				if ((exerter_index_in_subpop != receiver_index) && CheckIndividualConstraints(exerter, exerter_constraints_))		// potentially raises
+					strength = ApplyInteractionCallbacks(receiver, exerter, if_param1_, NAN, callbacks);	// hard-coding interaction function "f" (SpatialKernelType::kFixed), which is required
 				
 				result_vec->set_float_no_check(strength, exerter_index);
 			}
@@ -5855,10 +6116,15 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	Subpopulation *receiver_subpop = ((Individual *)receivers_value->ObjectElementAtIndex(0, nullptr))->subpopulation_;
 	Subpopulation *exerter_subpop = ((exerterSubpop_value->Type() == EidosValueType::kValueNULL) ? receiver_subpop : (Subpopulation *)exerterSubpop_value->ObjectElementAtIndex(0, nullptr));
 	
-	CheckSpeciesCompatibility(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Receiver(receiver_subpop->species_);
+	CheckSpeciesCompatibility_Exerter(exerter_subpop->species_);
 	CheckSpatialCompatibility(receiver_subpop, exerter_subpop);
 	
-	if (exerter_subpop->parent_subpop_size_ == 0)
+	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
+	SLiM_kdNode *kd_root_EXERTERS = EnsureKDTreePresent_EXERTERS(exerter_subpop, exerter_subpop_data);
+	
+	// If there are no exerters satisfying constraints, short-circuit
+	if (!kd_root_EXERTERS)
 	{
 		// If the exerter subpop is empty then all strength totals for the receivers are zero
 		if (receivers_count == 1)
@@ -5877,8 +6143,6 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	}
 	
 	InteractionsData &receiver_subpop_data = InteractionsDataForSubpop(data_, receiver_subpop);
-	InteractionsData &exerter_subpop_data = InteractionsDataForSubpop(data_, exerter_subpop);
-	EnsureKDTreePresent(exerter_subpop_data);
 	
 	if (receivers_count == 1)
 	{
@@ -5890,12 +6154,12 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that receivers are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
 		
 		// Check sex-specificity for the receiver; if the individual is disqualified, the total is zero
-		if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+		if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises
 			return gStaticEidosValue_Float0;
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// singleton case, not parallel
+		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// singleton case, not parallel
 		
 		// Get the sparse vector data
 		uint32_t nnz;
@@ -5919,10 +6183,10 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 #ifdef _OPENMP
 		bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
 #endif
-		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false;
+		bool saw_error_1 = false, saw_error_2 = false, saw_error_3 = false, saw_error_4 = false;
 		
 		EIDOS_THREAD_COUNT(gEidos_OMP_threads_TOTNEIGHSTRENGTH);
-#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH)) num_threads(thread_count)
+#pragma omp parallel for schedule(dynamic, 16) default(none) shared(receivers_count, receiver_subpop, exerter_subpop, receiver_subpop_data, exerter_subpop_data, kd_root_EXERTERS) firstprivate(receivers_value, result_vec) reduction(||: saw_error_1) reduction(||: saw_error_2) reduction(||: saw_error_3) reduction(||: saw_error_4) if(!has_interaction_callbacks && (receivers_count >= EIDOS_OMPMIN_TOTNEIGHSTRENGTH)) num_threads(thread_count)
 		for (int receiver_index = 0; receiver_index < receivers_count; ++receiver_index)
 		{
 			Individual *receiver = (Individual *)receivers_value->ObjectElementAtIndex(receiver_index, nullptr);
@@ -5941,12 +6205,27 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 				continue;
 			}
 			
-			// Check sex-specificity for the receiver; if the individual is disqualified, the total is zero
-			if ((receiver_sex_ != IndividualSex::kUnspecified) && (receiver_sex_ != receiver->sex_))
+			// Check constraints for the receiver; if the individual is disqualified, the total is zero
+#ifdef _OPENMP
+			// Under OpenMP, raises can't go past the end of the parallel region
+			try {
+				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
+				{
+					result_vec->set_float_no_check(0, receiver_index);
+					continue;
+				}
+			} catch (...) {
+				saw_error_4 = true;
+				continue;
+			}
+#else
+			// When not under OpenMP, we can just let raises go
+			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 			{
 				result_vec->set_float_no_check(0, receiver_index);
 				continue;
 			}
+#endif
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
@@ -5954,7 +6233,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 #ifdef _OPENMP
 			// Under OpenMP, raises can't go past the end of the parallel region
 			try {
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 			} catch (...) {
 				saw_error_3 = true;
 				InteractionType::FreeSparseVector(sv);
@@ -5962,7 +6241,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			}
 #else
 			// When not under OpenMP, we can just let raises go
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, exerter_subpop_data);		// protected from running interaction() callbacks in parallel, above
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 #endif
 			
 			// Get the sparse vector data
@@ -5988,6 +6267,8 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() requires that all receivers be in the same subpopulation." << EidosTerminate();
 		if (saw_error_3)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): an exception was caught inside a parallel region." << EidosTerminate();
+		if (saw_error_4)
+			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		
 		return EidosValue_SP(result_vec);
 	}
@@ -6061,6 +6342,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_nearestNeighborsOfPoint, kEidosValueMaskObject, gSLiM_Individual_Class))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class)->AddInt_OS("count", gStaticEidosValue_Integer1));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCount, kEidosValueMaskInt))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_neighborCountOfPoint, kEidosValueMaskInt | kEidosValueMaskSingleton))->AddFloat("point")->AddIntObject_S("exerterSubpop", gSLiM_Subpopulation_Class));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setConstraints, kEidosValueMaskVOID))->AddString_S("who")->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
@@ -6086,19 +6368,37 @@ _InteractionsData::_InteractionsData(_InteractionsData&& p_source)
 	evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
 	individual_count_ = p_source.individual_count_;
 	first_male_index_ = p_source.first_male_index_;
-	kd_node_count_ = p_source.kd_node_count_;
+	periodic_x_ = p_source.periodic_x_;
+	periodic_y_ = p_source.periodic_y_;
+	periodic_z_ = p_source.periodic_z_;
+	bounds_x1_ = p_source.bounds_x1_;
+	bounds_y1_ = p_source.bounds_y1_;
+	bounds_z1_ = p_source.bounds_z1_;
 	positions_ = p_source.positions_;
-	kd_nodes_ = p_source.kd_nodes_;
-	kd_root_ = p_source.kd_root_;
+	kd_nodes_ALL_ = p_source.kd_nodes_ALL_;
+	kd_root_ALL_ = p_source.kd_root_ALL_;
+	kd_node_count_ALL_ = p_source.kd_node_count_ALL_;
+	kd_nodes_EXERTERS_ = p_source.kd_nodes_EXERTERS_;
+	kd_root_EXERTERS_ = p_source.kd_root_EXERTERS_;
+	kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 	
 	p_source.evaluated_ = false;
 	p_source.evaluation_interaction_callbacks_.clear();
 	p_source.individual_count_ = 0;
 	p_source.first_male_index_ = 0;
-	p_source.kd_node_count_ = 0;
+	p_source.periodic_x_ = false;
+	p_source.periodic_y_ = false;
+	p_source.periodic_z_ = false;
+	p_source.bounds_x1_ = 0.0;
+	p_source.bounds_y1_ = 0.0;
+	p_source.bounds_z1_ = 0.0;
 	p_source.positions_ = nullptr;
-	p_source.kd_nodes_ = nullptr;
-	p_source.kd_root_ = nullptr;
+	p_source.kd_nodes_ALL_ = nullptr;
+	p_source.kd_root_ALL_ = nullptr;
+	p_source.kd_node_count_ALL_ = 0;
+	p_source.kd_nodes_EXERTERS_ = nullptr;
+	p_source.kd_root_EXERTERS_ = nullptr;
+	p_source.kd_node_count_EXERTERS_ = 0;
 }
 
 _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
@@ -6107,26 +6407,50 @@ _InteractionsData& _InteractionsData::operator=(_InteractionsData&& p_source)
 	{
 		if (positions_)
 			free(positions_);
-		if (kd_nodes_)
-			free(kd_nodes_);
+		
+		// keep in mind that the two k-d trees may share their memory
+		if (kd_nodes_ALL_ == kd_nodes_EXERTERS_)
+			kd_nodes_EXERTERS_ = nullptr;
+		if (kd_nodes_ALL_)
+			free(kd_nodes_ALL_);
+		if (kd_nodes_EXERTERS_)
+			free(kd_nodes_EXERTERS_);
 		
 		evaluated_ = p_source.evaluated_;
 		evaluation_interaction_callbacks_.swap(p_source.evaluation_interaction_callbacks_);
 		individual_count_ = p_source.individual_count_;
 		first_male_index_ = p_source.first_male_index_;
-		kd_node_count_ = p_source.kd_node_count_;
+		periodic_x_ = p_source.periodic_x_;
+		periodic_y_ = p_source.periodic_y_;
+		periodic_z_ = p_source.periodic_z_;
+		bounds_x1_ = p_source.bounds_x1_;
+		bounds_y1_ = p_source.bounds_y1_;
+		bounds_z1_ = p_source.bounds_z1_;
 		positions_ = p_source.positions_;
-		kd_nodes_ = p_source.kd_nodes_;
-		kd_root_ = p_source.kd_root_;
+		kd_nodes_ALL_ = p_source.kd_nodes_ALL_;
+		kd_root_ALL_ = p_source.kd_root_ALL_;
+		kd_node_count_ALL_ = p_source.kd_node_count_ALL_;
+		kd_nodes_EXERTERS_ = p_source.kd_nodes_EXERTERS_;
+		kd_root_EXERTERS_ = p_source.kd_root_EXERTERS_;
+		kd_node_count_EXERTERS_ = p_source.kd_node_count_EXERTERS_;
 		
 		p_source.evaluated_ = false;
 		p_source.evaluation_interaction_callbacks_.clear();
 		p_source.individual_count_ = 0;
 		p_source.first_male_index_ = 0;
-		p_source.kd_node_count_ = 0;
+		p_source.periodic_x_ = false;
+		p_source.periodic_y_ = false;
+		p_source.periodic_z_ = false;
+		p_source.bounds_x1_ = 0.0;
+		p_source.bounds_y1_ = 0.0;
+		p_source.bounds_z1_ = 0.0;
 		p_source.positions_ = nullptr;
-		p_source.kd_nodes_ = nullptr;
-		p_source.kd_root_ = nullptr;
+		p_source.kd_nodes_ALL_ = nullptr;
+		p_source.kd_root_ALL_ = nullptr;
+		p_source.kd_node_count_ALL_ = 0;
+		p_source.kd_nodes_EXERTERS_ = nullptr;
+		p_source.kd_root_EXERTERS_ = nullptr;
+		p_source.kd_node_count_EXERTERS_ = 0;
 	}
 	
 	return *this;
@@ -6148,13 +6472,27 @@ _InteractionsData::~_InteractionsData(void)
 		positions_ = nullptr;
 	}
 	
-	if (kd_nodes_)
+	// keep in mind that the two k-d trees may share their memory
+	if (kd_nodes_ALL_ == kd_nodes_EXERTERS_)
+		kd_nodes_EXERTERS_ = nullptr;
+	
+	if (kd_nodes_ALL_)
 	{
-		free(kd_nodes_);
-		kd_nodes_ = nullptr;
+		free(kd_nodes_ALL_);
+		kd_nodes_ALL_ = nullptr;
 	}
 	
-	kd_root_ = nullptr;
+	if (kd_nodes_EXERTERS_)
+	{
+		free(kd_nodes_EXERTERS_);
+		kd_nodes_EXERTERS_ = nullptr;
+	}
+	
+	kd_root_ALL_ = nullptr;
+	kd_node_count_ALL_ = 0;
+	
+	kd_root_EXERTERS_ = nullptr;
+	kd_node_count_EXERTERS_ = 0;
 	
 	// Unnecessary since it's about to be destroyed anyway
 	//evaluation_interaction_callbacks_.clear();

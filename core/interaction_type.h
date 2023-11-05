@@ -61,7 +61,7 @@ extern EidosClass *gSLiM_InteractionType_Class;
 struct _SLiM_kdNode
 {
 	double x[SLIM_MAX_DIMENSIONALITY];		// the coordinates of the individual
-	slim_popsize_t individual_index_;		// the index of the individual in its subpopulation
+	slim_popsize_t individual_index_;		// the index of the individual in its subpopulation, and into positions_
 	struct _SLiM_kdNode *left;				// the index of the KDNode for the left side
 	struct _SLiM_kdNode *right;				// the index of the KDNode for the right side
 };
@@ -84,7 +84,6 @@ struct _InteractionsData
 	
 	slim_popsize_t individual_count_ = 0;	// the number of individuals managed; this will be equal to the size of the corresponding subpopulation
 	slim_popsize_t first_male_index_ = 0;	// from the subpopulation's value; needed for sex-segregation handling
-	slim_popsize_t kd_node_count_ = 0;		// the number of entries in the k-d tree; may be a multiple of individual_count_ due to periodicity
 	
 	bool periodic_x_ = false;					// true if this spatial coordinate is periodic, from the evaluated Species
 	bool periodic_y_ = false;					// these are in terms of the InteractionType's spatiality, not the simulation's dimensionality!
@@ -92,9 +91,33 @@ struct _InteractionsData
 	
 	double bounds_x1_, bounds_y1_, bounds_z1_;	// copied from the Subpopulation; the zero-bound in each dimension is guaranteed to be zero *if* the dimension is periodic
 	
-	double *positions_ = nullptr;			// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions
-	SLiM_kdNode *kd_nodes_ = nullptr;		// individual_count_ entries, holding the nodes of the k-d tree
-	SLiM_kdNode *kd_root_ = nullptr;		// the root of the k-d tree
+	// individual_count_ * SLIM_MAX_DIMENSIONALITY entries, holding coordinate positions for all subpop individuals regardless of constraints
+	double *positions_ = nullptr;
+	
+	// BCH 10/31/2023: We now have two separate k-d trees, one containing all individuals (ALL) and one containing only individuals
+	// that satisfy the exerter constraints of the interaction type (EXERTERS).  Each is constructed on demand, so probably most models
+	// will only trigger the construction of one or the other; but models that exercise both facilities will now have ~2x the memory usage
+	// for the k-d tree(s).  That is not typically a ton of memory anyway.  Note that receiver constraints are checked at query time,
+	// whereas sex-specificity for exerters is checked at k-d tree construction time.  Individuals that do not satisfy the exerter
+	// constraints are omitted from the EXERTERS k-d tree, and are thus never found/returned.  If no exerter constraints are present,
+	// the EXERTERS k-d tree will share the same malloced blocks as the ALL k-d tree -- they will be the same tree.
+	//
+	// If a given kd_nodes_ pointer is nullptr, the tree has not yet been cached by CacheKDTreeNodes().  If that pointer is non-nullptr
+	// but the kd_root_ pointer is nullptr, the tree has been cached, but it has not yet been built, OR the k-d tree has zero nodes
+	// (i.e., is empty); the kd_node_count_ value can be used to distinguish these cases.  If the kd_root_ pointer is also non-nullptr,
+	// the tree is built and ready to use.  This is all checked by the EnsureKDTreePresent_X() methods, which should always be called to
+	// get the pointer to a k-d tree root; the pointers below should never be accessed directly by clients of the trees.
+	
+	// This k-d tree contains ALL subpop individuals regardless of constraints; it finds "neighbors", whether interacting or not
+	SLiM_kdNode *kd_nodes_ALL_ = nullptr;		// individual_count_ entries, holding the nodes of the k-d tree
+	SLiM_kdNode *kd_root_ALL_ = nullptr;		// the root of the k-d tree
+	slim_popsize_t kd_node_count_ALL_ = 0;		// the number of entries in the k-d tree; may be a multiple of individual_count_ due to periodicity
+	
+	// This k-d tree contains only individuals satisfying the EXERTERS constraints; it finds "exerters" or "interacting neighbors"
+	SLiM_kdNode *kd_nodes_EXERTERS_ = nullptr;		// up to individual_count_ entries, holding the nodes of the k-d tree
+	SLiM_kdNode *kd_root_EXERTERS_ = nullptr;		// the root of the k-d tree
+	slim_popsize_t kd_node_count_EXERTERS_ = 0;		// the number of entries in the k-d tree; may be greater than individual_count_ due to periodicity
+	bool kd_constraints_raise_EXERTERS_ = false;	// an exerter tree cannot be constructed due to constraints; see EvaluateSubpopulation() for discussion
 	
 	_InteractionsData(const _InteractionsData&) = delete;					// no copying
 	_InteractionsData& operator=(const _InteractionsData&) = delete;		// no copying
@@ -106,6 +129,28 @@ struct _InteractionsData
 	~_InteractionsData(void);
 };
 typedef struct _InteractionsData InteractionsData;
+
+
+// This structure expresses constraints present for exerters or receivers; see the
+// setConstraints() method for details.
+typedef struct _InteractionConstraints {
+	bool has_constraints_ = false;							// true if any constraints at all are present
+	
+	IndividualSex sex_ = IndividualSex::kUnspecified;		// IndividualSex::kUnspecified if unspecified
+	
+	bool has_nonsex_constraints_ = false;					// true if any non-sex constraints are present
+	
+	slim_usertag_t tag_ = SLIM_TAG_UNSET_VALUE;				// SLIM_TAG_UNSET_VALUE if unspecified
+	slim_age_t min_age_ = -1, max_age_ = -1;				// -1 if unspecified; >= 0 otherwise
+	int8_t migrant_ = -1;									// -1 if unspecified; 0 or 1 otherwise
+	
+	bool has_tagL_constraints_ = false;						// true if tagLX constraints are present
+	int8_t tagL0_ = -1;										// -1 if unspecified; 0 or 1 otherwise
+	int8_t tagL1_ = -1;										// -1 if unspecified; 0 or 1 otherwise
+	int8_t tagL2_ = -1;										// -1 if unspecified; 0 or 1 otherwise
+	int8_t tagL3_ = -1;										// -1 if unspecified; 0 or 1 otherwise
+	int8_t tagL4_ = -1;										// -1 if unspecified; 0 or 1 otherwise
+} InteractionConstraints;
 
 
 class InteractionType : public EidosDictionaryUnretained
@@ -132,8 +177,30 @@ private:
 	bool reciprocal_;							// if true, interaction strengths A->B == B->A; NOW UNUSED
 	double max_distance_;						// the maximum distance, beyond which interaction strength is assumed to be zero
 	double max_distance_sq_;					// the maximum distance squared, cached for speed
-	IndividualSex receiver_sex_;				// the sex of the individuals that feel the interaction
-	IndividualSex exerter_sex_;					// the sex of the individuals that exert the interaction
+	
+	InteractionConstraints receiver_constraints_;	// constraints on who can be a receiver
+	InteractionConstraints exerter_constraints_;	// constraints on who can be an exerter
+	static bool _CheckIndividualNonSexConstraints(Individual *p_individual, InteractionConstraints &p_constraints);
+	static bool _PrecheckIndividualNonSexConstraints(Individual *p_individual, InteractionConstraints &p_constraints);
+	
+	static inline __attribute__((always_inline)) bool CheckIndividualNonSexConstraints(Individual *p_individual, InteractionConstraints &p_constraints)
+	{
+		if (p_constraints.has_nonsex_constraints_)
+			return _CheckIndividualNonSexConstraints(p_individual, p_constraints);
+		return true;
+	}
+	
+	static inline __attribute__((always_inline)) bool CheckIndividualConstraints(Individual *p_individual, InteractionConstraints &p_constraints)
+	{
+		if (p_constraints.has_constraints_)
+		{
+			if ((p_constraints.sex_ != IndividualSex::kUnspecified) && (p_constraints.sex_ != p_individual->sex_))
+				return false;
+			if (p_constraints.has_nonsex_constraints_)
+				return _CheckIndividualNonSexConstraints(p_individual, p_constraints);
+		}
+		return true;
+	}
 	
 	slim_usertag_t tag_value_ = SLIM_TAG_UNSET_VALUE;	// a user-defined tag value
 	
@@ -145,7 +212,9 @@ private:
 	
 	void _InvalidateData(InteractionsData &data);
 	
-	void CheckSpeciesCompatibility(Species &species);
+	void CheckSpeciesCompatibility_Generic(Species &species);
+	void CheckSpeciesCompatibility_Receiver(Species &species);
+	void CheckSpeciesCompatibility_Exerter(Species &species);
 	void CheckSpatialCompatibility(Subpopulation *receiver_subpop, Subpopulation *exerter_subpop);
 	
 	double CalculateDistance(double *p_position1, double *p_position2);
@@ -163,7 +232,18 @@ private:
 	SLiM_kdNode *MakeKDTree3_p0(SLiM_kdNode *t, int len);
 	SLiM_kdNode *MakeKDTree3_p1(SLiM_kdNode *t, int len);
 	SLiM_kdNode *MakeKDTree3_p2(SLiM_kdNode *t, int len);
-	void EnsureKDTreePresent(InteractionsData &p_subpop_data);
+	
+	// Setting up the k-d trees now proceeds in several steps.  CacheKDTreeNodes() allocates the k-d tree buffers and copies positions and indices in, but does not
+	// set up the left/right pointers -- it doesn't actually make the tree.  It is called at evaluate() time to set up the EXERTERS tree if exerter constraints
+	// are set up, so that those constraints get applied to the state of the model at snapshot time.  For all other cases, it is called on demand when the tree
+	// is needed.  BuildKDTree() takes the structure set up by CacheKDTreeNodes() and actually builds the tree structure recursively; it is called on demand when
+	// the tree is needed.  EnsureKDTreePresent_ALL() and EnsureKDTreePresent_EXERTERS() are called when the corresponding k-d tree is actually needed, and it
+	// triggers caching and building of the tree as needed.  They return a pointer to the tree root, which is all that is needed to use the tree for queries.
+	// BEWARE!  Note that the EnsureKDTreePresent_X() methods will return nullptr if the requested tree contains zero nodes!  This needs to be checked!
+	void CacheKDTreeNodes(Subpopulation *subpop, InteractionsData &p_subpop_data, bool p_apply_exerter_constraints, SLiM_kdNode **kd_nodes_ptr, SLiM_kdNode **kd_root_ptr, slim_popsize_t *kd_node_count_ptr);
+	void BuildKDTree(InteractionsData &p_subpop_data, SLiM_kdNode **kd_nodes_ptr, SLiM_kdNode **kd_root_ptr, slim_popsize_t *kd_node_count_ptr);
+	SLiM_kdNode *EnsureKDTreePresent_ALL(Subpopulation *subpop, InteractionsData &p_subpop_data);
+	SLiM_kdNode *EnsureKDTreePresent_EXERTERS(Subpopulation *subpop, InteractionsData &p_subpop_data);
 	
 	int CheckKDTree1_p0(SLiM_kdNode *t);
 	void CheckKDTree1_p0_r(SLiM_kdNode *t, double split, bool isLeftSubtree);
@@ -181,16 +261,10 @@ private:
 	void BuildSV_Presences_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector);
 	void BuildSV_Presences_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	void BuildSV_Presences_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
-	void BuildSV_Presences_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter);
-	void BuildSV_Presences_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
-	void BuildSV_Presences_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
 	
 	void BuildSV_Distances_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector);
 	void BuildSV_Distances_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	void BuildSV_Distances_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
-	void BuildSV_Distances_SS_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter);
-	void BuildSV_Distances_SS_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
-	void BuildSV_Distances_SS_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int start_exerter, int after_end_exerter, int p_phase);
 	
 	void BuildSV_Strengths_f_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
 	void BuildSV_Strengths_l_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, SparseVector *p_sparse_vector, int p_phase);
@@ -212,7 +286,7 @@ private:
 	void FindNeighborsN_1(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist);
 	void FindNeighborsN_2(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
 	void FindNeighborsN_3(SLiM_kdNode *root, double *nd, slim_popsize_t p_focal_individual_index, int p_count, SLiM_kdNode **best, double *best_dist, int p_phase);
-	void FindNeighbors(Subpopulation *p_subpop, InteractionsData &p_subpop_data, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual);
+	void FindNeighbors(Subpopulation *p_subpop, SLiM_kdNode *kd_root, slim_popsize_t kd_node_count, double *p_point, int p_count, EidosValue_Object_vector &p_result_vec, Individual *p_excluded_individual, bool constraints_active);
 	
 	// this is a malloced 1D/2D/3D buffer, depending on our spatiality, that contains clipped integral values
 	// for distances, for a focal individual, from 0 to max_distance_ to the nearest edge in each dimension
@@ -292,10 +366,10 @@ private:
 #endif
 	}
 	
-	void FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
-	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
-	void FillSparseVectorForReceiverDistances_ALL_NEIGHBORS(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
-	void FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, InteractionsData &exerter_subpop_data);
+	void FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active);
+	void FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active);
+	void FillSparseVectorForPointDistances(SparseVector *sv, double *position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root);
+	void FillSparseVectorForReceiverStrengths(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, std::vector<SLiMEidosBlock*> &interaction_callbacks);
 	
 public:
 	
@@ -387,6 +461,7 @@ public:
 	EidosValue_SP ExecuteMethod_nearestNeighborsOfPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_neighborCount(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_neighborCountOfPoint(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
+	EidosValue_SP ExecuteMethod_setConstraints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_setInteractionFunction(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_strength(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
 	EidosValue_SP ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter);
