@@ -2662,7 +2662,7 @@ bool InteractionType::_PrecheckIndividualNonSexConstraints(Individual *p_individ
 	return true;
 }
 
-void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active)
+void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, __attribute__((__unused__)) bool constraints_active)
 {
 #if DEBUG
 	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
@@ -2713,7 +2713,7 @@ void InteractionType::FillSparseVectorForReceiverPresences(SparseVector *sv, Ind
 	sv->Finished();
 }
 
-void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, bool constraints_active)
+void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Individual *receiver, double *receiver_position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root, __attribute__((__unused__)) bool constraints_active)
 {
 #if DEBUG
 	// The caller should guarantee that the receiver and exerter species are compatible with the interaction
@@ -2763,7 +2763,7 @@ void InteractionType::FillSparseVectorForReceiverDistances(SparseVector *sv, Ind
 	sv->Finished();
 }
 
-void InteractionType::FillSparseVectorForPointDistances(SparseVector *sv, double *position, Subpopulation *exerter_subpop, SLiM_kdNode *kd_root)
+void InteractionType::FillSparseVectorForPointDistances(SparseVector *sv, double *position, __attribute__((__unused__)) Subpopulation *exerter_subpop, SLiM_kdNode *kd_root)
 {
 	// This is a special version of FillSparseVectorForReceiverDistances() used for nearestNeighborsOfPoint().
 	// It searches for neighbors of a point, without using a receiver, just a point.
