@@ -64,7 +64,7 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 	// The grid sampling is based upon the spatial scale established by a given SpatialMap;
 	// the max distance and other kernel parameters are in terms of that scale.
 	
-	if ((p_dimensionality < 0) || (p_dimensionality > 3))
+	if ((dimensionality_ < 0) || (dimensionality_ > 3))
 		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel dimensionality must be 0, 1, 2, or 3." << EidosTerminate();
 	if (max_distance_ <= 0)
 		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel maxDistance must be greater than zero." << EidosTerminate();
@@ -89,7 +89,7 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		// It makes sense – a kernel that doesn't fall off with distance at all shouldn't have infinite extent.
 		// For totalOfNeighborStrengths(), for example, this would become simply a count of all interacting
 		// individuals across the whole landscape - it is no longer really a spatial query at all.
-		if (std::isinf(max_distance_))
+		if ((dimensionality_ > 0) && std::isinf(max_distance_))
 			EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'f' cannot be used unless a finite maximum interaction distance greater than zero has been set." << EidosTerminate();
 	}
 	else if (k_type_string.compare(gStr_l) == 0)
