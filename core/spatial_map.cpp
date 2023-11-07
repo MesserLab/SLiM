@@ -1712,49 +1712,94 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 			case 2:
 			{
 				// bicubic interpolation
-				// FIXME the GSL does not support 2D periodic boundaries, but we could do it, I think,
-				// by replicating the map data into a 3x3 repeated pattern, doing the interpolation, and
-				// then taking the middle.  Not unreasonable, but I will wait until someone requests it.
-				// When this is done, note that one of the periodic edges in each dimension must be omitted,
-				// since the left/right and top/bottom are (or should be) duplicates.
-				if (periodic)
-					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): bicubic interpolation does not currently support periodic boundaries; please open a feature request if you need this." << EidosTerminate(nullptr);
-				
 				if ((grid_size_[0] < 4) || (grid_size_[1] < 4))
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): bicubic interpolation requires a starting map with a grid size at least 4x4." << EidosTerminate(nullptr);
 				
+				// the periodic boundaries case is similar to the non-periodic case, except that we perform
+				// the (non-periodic) interpolation on an expanded grid with margins of 20 grid points on
+				// all sides (20 comes from here: https://stackoverflow.com/a/25106574/2752221 as a suggested
+				// margin to produce acceptably small error).  Then we use the central part of that grid,
+				// minus the margins.
+				
+				int64_t margin = periodic ? 20 : 0;
+				int64_t gs0_with_margins = grid_size_[0] + margin * 2;
+				int64_t gs1_with_margins = grid_size_[1] + margin * 2;
+				
+				// dim_a and dim_b are the dimensions of the final grid we want, without margins; new_values is the final values
 				int64_t dim_a = (factor * (grid_size_[0] - 1)) + 1, dim_b = (factor * (grid_size_[1] - 1)) + 1;
 				double *new_values = (double *)malloc(dim_a * dim_b * sizeof(double));
-				double *x = (double *)malloc(grid_size_[0] * sizeof(double));
-				double *y = (double *)malloc(grid_size_[1] * sizeof(double));
-				double *z = (double *)malloc(grid_size_[0] * grid_size_[1] * sizeof(double));
+				
+				// x and y are the coordinates of the grid with margins; z is the original values to interpolate, with margins
+				double *x = (double *)malloc(gs0_with_margins * sizeof(double));
+				double *y = (double *)malloc(gs1_with_margins * sizeof(double));
+				double *z = (double *)malloc(gs0_with_margins * gs1_with_margins * sizeof(double));
 				
 				if (!new_values || !x || !y || !z)
 					EIDOS_TERMINATION << "ERROR (SpatialMap::ExecuteMethod_interpolate): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				
-				// set up coordinates on our grid, not in user coordinates, for simplicity
-				for (int i = 0; i < grid_size_[0]; ++i)
+				// set up coordinates on our grid with margins, not in user coordinates, for simplicity
+				for (int i = 0; i < gs0_with_margins; ++i)
 					x[i] = i;
-				for (int i = 0; i < grid_size_[1]; ++i)
+				for (int i = 0; i < gs1_with_margins; ++i)
 					y[i] = i;
 				
 				const gsl_interp2d_type *T = gsl_interp2d_bicubic;
-				gsl_spline2d *spline = gsl_spline2d_alloc(T, grid_size_[0], grid_size_[1]);
+				gsl_spline2d *spline = gsl_spline2d_alloc(T, gs0_with_margins, gs1_with_margins);
 				gsl_interp_accel *xacc = gsl_interp_accel_alloc();
 				gsl_interp_accel *yacc = gsl_interp_accel_alloc();
 				double *new_values_ptr = new_values;
 				double scale = 1.0 / factor;
 				
-				for (int64_t b = 0; b < grid_size_[1]; ++b)
-					for (int64_t a = 0; a < grid_size_[0]; ++a)
-						gsl_spline2d_set(spline, z, a, b, values_[a + b * grid_size_[0]]);
+				if (!periodic)
+				{
+					// in the non-periodic case, there are no margins so we can use our grid values directly
+					// the periodic case with margin==0 reduces to this, so this is just optimization
+					for (int64_t b = 0; b < gs1_with_margins; ++b)
+						for (int64_t a = 0; a < gs0_with_margins; ++a)
+							gsl_spline2d_set(spline, z, a, b, values_[a + b * grid_size_[0]]);
+				}
+				else
+				{
+					// in the periodic case, we have to add the margins, so there is some futzing around
+					// note that we repeat (grid_size_[0] - 1) and (grid_size_[1] - 1) elements, because
+					// the last column/row ought to be duplicates of the first column/row (we don't check)
+					// the "+ (grid_size_[1] - 1) * 10)" term is to make things positive so % is not wonky
+					for (int64_t b = 0; b < gs1_with_margins; ++b)
+					{
+						int64_t original_grid_b = (b - margin + (grid_size_[1] - 1) * 10) % (grid_size_[1] - 1);
+						
+						for (int64_t a = 0; a < gs0_with_margins; ++a)
+						{
+							int64_t original_grid_a = (a - margin + (grid_size_[0] - 1) * 10) % (grid_size_[0] - 1);
+							
+							gsl_spline2d_set(spline, z, a, b, values_[original_grid_a + original_grid_b * grid_size_[0]]);
+						}
+					}
+				}
 				
-				gsl_spline2d_init(spline, x, y, z, grid_size_[0], grid_size_[1]);
+				gsl_spline2d_init(spline, x, y, z, gs0_with_margins, gs1_with_margins);
 				
 				// FIXME: TO BE PARALLELIZED
-				for (int64_t b = 0; b < dim_b; ++b)
-					for (int64_t a = 0; a < dim_a; ++a)
-						*(new_values_ptr++) = gsl_spline2d_eval(spline, a * scale, b * scale, xacc, yacc);
+				if (!periodic)
+				{
+					// in the non-periodic case, there are no margins so we can extract grid values directly
+					// the periodic case with margin==0 reduces to this, so this is just optimization
+					for (int64_t b = 0; b < dim_b; ++b)
+						for (int64_t a = 0; a < dim_a; ++a)
+							*(new_values_ptr++) = gsl_spline2d_eval(spline, a * scale, b * scale, xacc, yacc);
+				}
+				else
+				{
+					// in the periodic case, we want to extract grid values from the central area, within the margins
+					// recall that (factor-1) values are inserted between each grid value, so for interpolate() with
+					// b==0 with margin==2 and factor==3, we want to start at 6: M**M**X, X is at position 6; when
+					// non-periodic, margin==0 and so offset==0.
+					int64_t offset = margin * factor;
+					
+					for (int64_t b = 0; b < dim_b; ++b)
+						for (int64_t a = 0; a < dim_a; ++a)
+							*(new_values_ptr++) = gsl_spline2d_eval(spline, (a + offset) * scale, (b + offset) * scale, xacc, yacc);
+				}
 				
 				gsl_spline2d_free(spline);
 				gsl_interp_accel_free(xacc);
@@ -1765,6 +1810,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_interpolate(EidosGlobalStringID p_method
 				
 				int64_t dims[2] = {dim_a, dim_b};
 				TakeOverMallocedValues(new_values, 2, dims);	// takes new_values from us
+				
 				break;
 			}
 			case 3:
