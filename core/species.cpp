@@ -6654,18 +6654,16 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_treeseq_init()", ret);
 		
 		// allocate and set up the variant object we'll update as we walk along the sequence
-		tsk_variant_t *variant;
-		variant = (tsk_variant_t *)malloc(sizeof(tsk_variant_t));
-		if (!variant)
-			EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+		tsk_variant_t variant;
+
 		ret = tsk_variant_init(
-				variant, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
+				&variant, ts, NULL, 0, NULL, TSK_ISOLATED_NOT_MISSING);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_init()", ret);
 		
 		// crosscheck by looping through variants
 		for (tsk_size_t i = 0; i < ts->tables->sites.num_rows; i++)
 		{
-			ret = tsk_variant_decode(variant, (tsk_id_t)i, 0);
+			ret = tsk_variant_decode(&variant, (tsk_id_t)i, 0);
 			if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_decode()", ret);
 			
 			// Check this variant against SLiM.  A variant represents a site at which a tracked mutation exists.
@@ -6675,7 +6673,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			// described by the variant.  The variants are returned in sorted order by position, so we can keep pointers into
 			// every extant genome's mutruns, advance those pointers a step at a time, and check that everything matches at every
 			// step.  Keep in mind that some mutations may have been fixed (substituted) or lost.
-			slim_position_t variant_pos_int = (slim_position_t)variant->site.position;		// should be no loss of precision, fingers crossed
+			slim_position_t variant_pos_int = (slim_position_t)variant.site.position;		// should be no loss of precision, fingers crossed
 			
 			// Get all the substitutions involved at this site, which should be present in every sample
 			auto substitution_range_iter = population_.treeseq_substitutions_map_.equal_range(variant_pos_int);
@@ -6689,8 +6687,8 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 			for (size_t genome_index = 0; genome_index < genome_count; genome_index++)
 			{
 				GenomeWalker &genome_walker = genome_walkers[genome_index];
-				int32_t genome_variant = variant->genotypes[genome_index];
-				tsk_size_t genome_allele_length = variant->allele_lengths[genome_variant];
+				int32_t genome_variant = variant.genotypes[genome_index];
+				tsk_size_t genome_allele_length = variant.allele_lengths[genome_variant];
 				
 				if (genome_allele_length % sizeof(slim_mutationid_t) != 0)
 					EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) variant allele had length that was not a multiple of sizeof(slim_mutationid_t)." << EidosTerminate();
@@ -6714,7 +6712,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				// in the genome in question, which is a bit annoying since the lists may not be in the same order.  Note that if
 				// the variant is for a mutation that has fixed, it will not be present in the genome; we check for a substitution
 				// with the right ID.
-				slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant->alleles[genome_variant];
+				slim_mutationid_t *genome_allele = (slim_mutationid_t *)variant.alleles[genome_variant];
 				
 				if (genome_allele_length == 0)
 				{
@@ -6826,7 +6824,7 @@ void Species::CrosscheckTreeSeqIntegrity(void)
 				EIDOS_TERMINATION << "ERROR (Species::CrosscheckTreeSeqIntegrity): (internal error) mutations left in genome beyond those in tree." << EidosTerminate();
 		
 		// free
-		ret = tsk_variant_free(variant);
+		ret = tsk_variant_free(&variant);
 		if (ret != 0) handle_error("CrosscheckTreeSeqIntegrity tsk_variant_free()", ret);
 		
 		ret = tsk_treeseq_free(ts);
