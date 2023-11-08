@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2019-2022 Tskit Developers
+ * Copyright (c) 2019-2023 Tskit Developers
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -250,7 +250,7 @@ tsk_ls_hmm_reset(tsk_ls_hmm_t *self)
 
     /* This is safe because we've already zero'd out the memory. */
     tsk_diff_iter_free(&self->diffs);
-    ret = tsk_diff_iter_init(&self->diffs, self->tree_sequence, false);
+    ret = tsk_diff_iter_init_from_ts(&self->diffs, self->tree_sequence, false);
     if (ret != 0) {
         goto out;
     }

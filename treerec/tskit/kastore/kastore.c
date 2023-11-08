@@ -683,14 +683,39 @@ kastore_close(kastore_t *self)
     return ret;
 }
 
+static int
+kastore_find_item(kastore_t *self, const char *key, size_t key_len, kaitem_t **item)
+{
+    int ret = KAS_ERR_KEY_NOT_FOUND;
+    kaitem_t search;
+    search.key = (char *) malloc(key_len);
+    search.key_len = key_len;
+
+    if (self->mode != KAS_READ) {
+        ret = KAS_ERR_ILLEGAL_OPERATION;
+        goto out;
+    }
+    if (search.key == NULL) {
+        ret = KAS_ERR_NO_MEMORY;
+        goto out;
+    }
+    memcpy(search.key, key, key_len);
+    *item = bsearch(
+        &search, self->items, self->num_items, sizeof(kaitem_t), compare_items);
+    if (*item == NULL) {
+        goto out;
+    }
+    ret = 0;
+out:
+    kas_safe_free(search.key);
+    return ret;
+}
+
 int KAS_WARN_UNUSED
 kastore_contains(kastore_t *self, const char *key, size_t key_len)
 {
-    void *array;
-    size_t array_len;
-    int type;
-    int ret = kastore_get(self, key, key_len, &array, &array_len, &type);
-
+    kaitem_t *item;
+    int ret = kastore_find_item(self, key, key_len, &item);
     if (ret == 0) {
         ret = 1;
     } else if (ret == KAS_ERR_KEY_NOT_FOUND) {
@@ -709,24 +734,9 @@ int KAS_WARN_UNUSED
 kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
     size_t *array_len, int *type)
 {
-    int ret = KAS_ERR_KEY_NOT_FOUND;
-    kaitem_t search;
     kaitem_t *item;
-    search.key = (char *) malloc(key_len);
-    search.key_len = key_len;
-
-    if (self->mode != KAS_READ) {
-        ret = KAS_ERR_ILLEGAL_OPERATION;
-        goto out;
-    }
-    if (search.key == NULL) {
-        ret = KAS_ERR_NO_MEMORY;
-        goto out;
-    }
-    memcpy(search.key, key, key_len);
-    item = bsearch(
-        &search, self->items, self->num_items, sizeof(kaitem_t), compare_items);
-    if (item == NULL) {
+    int ret = kastore_find_item(self, key, key_len, &item);
+    if (ret != 0) {
         goto out;
     }
     if (item->array == NULL) {
@@ -743,7 +753,6 @@ kastore_get(kastore_t *self, const char *key, size_t key_len, void **array,
     }
     ret = 0;
 out:
-    kas_safe_free(search.key);
     return ret;
 }
 
