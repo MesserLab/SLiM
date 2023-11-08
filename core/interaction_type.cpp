@@ -5811,7 +5811,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setConstraints(EidosGlobalStringID 
 			constraints->has_nonsex_constraints_ = true;
 		}
 		
-		if ((constraints->min_age_ != -1) && (constraints->max_age_) && (constraints->min_age_ > constraints->max_age_))
+		if ((constraints->min_age_ != -1) && (constraints->max_age_ != -1) && (constraints->min_age_ > constraints->max_age_))
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_setConstraints): setConstraints() requires minAge <= maxAge." << EidosTerminate();
 		
 		EidosValue *migrant_value = p_arguments[5].get();
