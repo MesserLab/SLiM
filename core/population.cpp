@@ -6368,6 +6368,27 @@ slim_refcount_t Population::TallyMutationReferencesAcrossPopulation(bool p_force
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		
+#if DEBUG
+		std::vector<Genome*> genomes;
+		
+		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
+		{
+			Subpopulation *subpop = subpop_pair.second;
+			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			
+			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+			{
+				Genome *genome = subpop_genomes[i];
+				
+				if (!genome->IsNull())
+					genomes.push_back(genome);
+			}
+		}
+		
+		_CheckMutationTallyAcrossGenomes(genomes);
+#endif
 	}
 	else
 	{
@@ -6547,6 +6568,28 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		
+#if DEBUG
+		{
+			std::vector<Genome*> genomes;
+			
+			for (Subpopulation *subpop : *p_subpops_to_tally)
+			{
+				slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
+				std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+				
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome *genome = subpop_genomes[i];
+					
+					if (!genome->IsNull())
+						genomes.push_back(genome);
+				}
+			}
+			
+			_CheckMutationTallyAcrossGenomes(genomes);
+		}
+#endif
 	}
 	else
 	{
@@ -6616,6 +6659,10 @@ slim_refcount_t Population::TallyMutationReferencesAcrossGenomes(std::vector<Gen
 		
 		// Give the core work to our fast worker method; this zeroes and then tallies
 		_TallyMutationReferences_FAST_FromMutationRunUsage();
+		
+#if DEBUG
+		_CheckMutationTallyAcrossGenomes(*p_genomes_to_tally);
+#endif
 	}
 	else
 	{
@@ -6697,65 +6744,56 @@ void Population::_TallyMutationReferences_FAST_FromMutationRunUsage(void)
 			}
 		}
 	}
-	
+}
+
 #if DEBUG
+void Population::_CheckMutationTallyAcrossGenomes(std::vector<Genome*> &p_genomes)
+{
+	// This does a DEBUG check on the results of _TallyMutationReferences_FAST_FromMutationRunUsage().
+	// It should be called immediately after that method, and passed a vector of the genomes tallied across.
+	int registry_count;
+	const MutationIndex *registry_iter = MutationRegistry(&registry_count);
+	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+	
+	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
 	{
-		int registry_count;
-		const MutationIndex *registry_iter = MutationRegistry(&registry_count);
-		Mutation *mut_block_ptr = gSLiM_Mutation_Block;
+		const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
+		mut->refcount_CHECK_ = 0;
+	}
+	
+	for (Genome *genome : p_genomes)
+	{
+		int mutrun_count = genome->mutrun_count_;
 		
-		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+		for (int run_index = 0; run_index < mutrun_count; ++run_index)
 		{
-			const Mutation *mut = mut_block_ptr + registry_iter[registry_index];
-			mut->refcount_CHECK_ = 0;
-		}
-		
-		for (const std::pair<const slim_objectid_t,Subpopulation*> &subpop_pair : subpops_)
-		{
-			Subpopulation *subpop = subpop_pair.second;
-			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
-			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
+			const MutationRun *mutrun = genome->mutruns_[run_index];
+			const MutationIndex *genome_iter = mutrun->begin_pointer_const();
+			const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
 			
-			for (slim_popsize_t i = 0; i < subpop_genome_count; i++)							// child genomes
-			{
-				Genome &genome = *subpop_genomes[i];
-				
-				if (!genome.IsNull())
-				{
-					int mutrun_count = genome.mutrun_count_;
-					
-					for (int run_index = 0; run_index < mutrun_count; ++run_index)
-					{
-						const MutationRun *mutrun = genome.mutruns_[run_index];
-						const MutationIndex *genome_iter = mutrun->begin_pointer_const();
-						const MutationIndex *genome_end_iter = mutrun->end_pointer_const();
-						
-						for (; genome_iter != genome_end_iter; ++genome_iter)
-							(mut_block_ptr + *genome_iter)->refcount_CHECK_++;
-					}
-				}
-			}
-		}
-		
-		slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
-		
-		for (int registry_index = 0; registry_index < registry_count; ++registry_index)
-		{
-			MutationIndex mut_blockindex = registry_iter[registry_index];
-			const Mutation *mut = mut_block_ptr + mut_blockindex;
-			
-			if (mut->state_ == MutationState::kInRegistry)
-			{
-				slim_refcount_t refcount_standard = *(refcount_block_ptr + mut_blockindex);
-				slim_refcount_t refcount_checkback = mut->refcount_CHECK_;
-				
-				if (refcount_standard != refcount_checkback)
-					EIDOS_TERMINATION << "ERROR (Population::_TallyMutationReferences_FAST_FromMutationRunUsage): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << "." << EidosTerminate();
-			}
+			for (; genome_iter != genome_end_iter; ++genome_iter)
+				(mut_block_ptr + *genome_iter)->refcount_CHECK_++;
 		}
 	}
-#endif
+	
+	slim_refcount_t *refcount_block_ptr = gSLiM_Mutation_Refcounts;
+	
+	for (int registry_index = 0; registry_index < registry_count; ++registry_index)
+	{
+		MutationIndex mut_blockindex = registry_iter[registry_index];
+		const Mutation *mut = mut_block_ptr + mut_blockindex;
+		
+		if (mut->state_ == MutationState::kInRegistry)
+		{
+			slim_refcount_t refcount_standard = *(refcount_block_ptr + mut_blockindex);
+			slim_refcount_t refcount_checkback = mut->refcount_CHECK_;
+			
+			if (refcount_standard != refcount_checkback)
+				EIDOS_TERMINATION << "ERROR (Population::_CheckMutationTallyAcrossGenomes): (internal error) mutation refcount " << refcount_standard << " != checkback " << refcount_checkback << "." << EidosTerminate();
+		}
+	}
 }
+#endif
 
 EidosValue_SP Population::Eidos_FrequenciesForTalliedMutations(EidosValue *mutations_value, int total_genome_count)
 {

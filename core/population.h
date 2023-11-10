@@ -285,6 +285,9 @@ public:
 	void _CopyRefcountsToSLiMgui(void);
 #endif
 	void _TallyMutationReferences_FAST_FromMutationRunUsage(void);
+#if DEBUG
+	void _CheckMutationTallyAcrossGenomes(std::vector<Genome*> &p_genomes);
+#endif
 	
 	// Eidos back-end code that counts up tallied mutations, to be called after TallyMutationReferences...().
 	// These methods correctly handle cases where the mutations are fixed, removed, substituted, lost, etc.,
