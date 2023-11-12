@@ -4336,6 +4336,74 @@ The interaction function for an interaction type is normally a constant in simul
 \cf2 If the strengths of interactions exerted by a single individual upon multiple individuals are needed instead (the inverse of what this method provides), multiple calls to this method will be necessary, one per pairwise interaction queried; the interaction engine is not optimized for the inverse case, and so it will likely be quite slow to compute.  If the interaction is reciprocal and has the same receiver and exerter constraints, the opposite query should provide identical results in a single efficient call (because then the interactions exerted are equal to the interactions received); otherwise, the best approach might be to define a second interaction type representing the inverse interaction that you wish to be able to query efficiently.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
+\f3\fs18 \cf2 \'96\'a0(lo<Individual>)testConstraints(object<Individual>\'a0individuals, string$\'a0constraints, [logical$\'a0returnIndividuals\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 Tests the individuals in the parameter 
+\f3\fs18 individuals
+\f4\fs20  against the interaction constraints specified by 
+\f3\fs18 constraints
+\f4\fs20 .  The value of 
+\f3\fs18 constraints
+\f4\fs20  may be 
+\f3\fs18 "receiver"
+\f4\fs20  to use the receiver constraints, or 
+\f3\fs18 "exerter"
+\f4\fs20  to use the exerter constraints.  If 
+\f3\fs18 returnIndividuals
+\f4\fs20  is 
+\f3\fs18 F
+\f4\fs20  (the default), a 
+\f3\fs18 logical
+\f4\fs20  vector will be returned, with 
+\f3\fs18 T
+\f4\fs20  values indicating that the corresponding individual satisfied the constraints, 
+\f3\fs18 F
+\f4\fs20  values indicating that it did not.  If 
+\f3\fs18 returnIndividuals
+\f4\fs20  is 
+\f3\fs18 T
+\f4\fs20 , an 
+\f3\fs18 object
+\f4\fs20  vector of class 
+\f3\fs18 Individual
+\f4\fs20  will be returned containing only those elements of 
+\f3\fs18 individuals
+\f4\fs20  that satisfied the constraints (in the same order as 
+\f3\fs18 individuals
+\f4\fs20 ).  Note that unlike most queries, the 
+\f3\fs18 InteractionType
+\f4\fs20  does not need to have been evaluated before calling this method, and the individuals passed in need not belong to a single population or even a single species.\
+This method can be useful for narrowing a vector of individuals down to just those that satisfy constraints.  Outside the context of 
+\f3\fs18 InteractionType
+\f4\fs20 , similar functionality is provided by the 
+\f3\fs18 Subpopulation
+\f4\fs20  method 
+\f3\fs18 subsetIndividuals()
+\f4\fs20 .  Note that the use of 
+\f3\fs18 testConstraints()
+\f4\fs20  is somewhat rare; usually, queries are evaluated across a vector of individuals, each of which might or might not satisfy the defined constraints.  Individuals that do not satisfy constraints do not participate in interactions, so their interaction strength with other individuals will simply be zero.\
+See the 
+\f3\fs18 setConstraints()
+\f4\fs20  method to set up constraints, as well as the 
+\f3\fs18 sexSegregation
+\f4\fs20  parameter to 
+\f3\fs18 initializeInteractionType()
+\f4\fs20 .  Note that if the constraints tested involve 
+\f3\fs18 tag
+\f4\fs20  values (including 
+\f3\fs18 tagL0
+\f4\fs20  / 
+\f3\fs18 tagL1
+\f4\fs20  / 
+\f3\fs18 tagL2
+\f4\fs20  / 
+\f3\fs18 tagL3
+\f4\fs20  / 
+\f3\fs18 tagL4
+\f4\fs20 ), the corresponding property or properties of the tested individuals must be defined (i.e., must have been set to a value), or an error will result because the constraints cannot be applied.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
 \f3\fs18 \cf2 \'96\'a0(float)totalOfNeighborStrengths(object<Individual>\'a0receivers, [No<Subpopulation>$\'a0exerterSubpop\'a0=\'a0NULL])\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 

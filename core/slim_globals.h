@@ -990,6 +990,7 @@ extern const std::string &gStr_nearestNeighborsOfPoint;
 extern const std::string &gStr_setConstraints;
 extern const std::string &gStr_setInteractionFunction;
 extern const std::string &gStr_strength;
+extern const std::string &gStr_testConstraints;
 extern const std::string &gStr_totalOfNeighborStrengths;
 extern const std::string &gStr_unevaluate;
 extern const std::string &gStr_drawByStrength;
@@ -1388,6 +1389,7 @@ enum _SLiMGlobalStringID : int {
 	gID_setConstraints,
 	gID_setInteractionFunction,
 	gID_strength,
+	gID_testConstraints,
 	gID_totalOfNeighborStrengths,
 	gID_unevaluate,
 	gID_drawByStrength,

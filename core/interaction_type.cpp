@@ -3592,6 +3592,7 @@ EidosValue_SP InteractionType::ExecuteInstanceMethod(EidosGlobalStringID p_metho
 		case gID_setConstraints:			return ExecuteMethod_setConstraints(p_method_id, p_arguments, p_interpreter);
 		case gID_setInteractionFunction:	return ExecuteMethod_setInteractionFunction(p_method_id, p_arguments, p_interpreter);
 		case gID_strength:					return ExecuteMethod_strength(p_method_id, p_arguments, p_interpreter);
+		case gID_testConstraints:			return ExecuteMethod_testConstraints(p_method_id, p_arguments, p_interpreter);
 		case gID_totalOfNeighborStrengths:	return ExecuteMethod_totalOfNeighborStrengths(p_method_id, p_arguments, p_interpreter);
 		case gID_unevaluate:				return ExecuteMethod_unevaluate(p_method_id, p_arguments, p_interpreter);
 		default:							return super::ExecuteInstanceMethod(p_method_id, p_arguments, p_interpreter);
@@ -6097,6 +6098,86 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 	}
 }
 
+//	*********************	– (lo<Individual>)testConstraints(object<Individual> individuals, string$ constraints, [logical$ returnIndividuals = F])
+//
+EidosValue_SP InteractionType::ExecuteMethod_testConstraints(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
+{
+#pragma unused (p_method_id, p_arguments, p_interpreter)
+	EidosValue *individuals_value = p_arguments[0].get();
+	EidosValue_String *constraints_value = (EidosValue_String *)p_arguments[1].get();
+	EidosValue *returnIndividuals_value = p_arguments[2].get();
+	
+	int individuals_count = individuals_value->Count();
+	
+	const std::string &constraints_str = constraints_value->StringRefAtIndex(0, nullptr);
+	InteractionConstraints *constraints;
+	
+	if (constraints_str == "receiver")
+		constraints = &receiver_constraints_;
+	else if (constraints_str == "exerter")
+		constraints = &exerter_constraints_;
+	else
+		EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_testConstraints): testConstraints() requires that parameter constraints be 'receiver' or 'exerter'." << EidosTerminate();
+	
+	bool returnIndividuals = returnIndividuals_value->LogicalAtIndex(0, nullptr);
+	
+	if (individuals_count == 1)
+	{
+		// singleton case
+		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
+		
+		if (CheckIndividualConstraints(ind, *constraints))
+		{
+			if (returnIndividuals)
+				return p_arguments[0];	// return the individual as it was passed in
+			else
+				return gStaticEidosValue_LogicalT;
+		}
+		else
+		{
+			if (returnIndividuals)
+				return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			else
+				return gStaticEidosValue_LogicalF;
+		}
+	}
+	else
+	{
+		// non-singleton case
+		Individual * const *inds = (Individual * const *)individuals_value->ObjectElementVector()->data();
+		
+		if (returnIndividuals)
+		{
+			EidosValue_Object_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_Individual_Class));
+			
+			for (int index = 0; index < individuals_count; ++index)
+			{
+				Individual *ind = inds[index];
+				
+				if (CheckIndividualConstraints(ind, *constraints))
+					result_vec->push_object_element_NORR(ind);
+			}
+			
+			return EidosValue_SP(result_vec);
+		}
+		else
+		{
+			EidosValue_Logical *result_vec = new (gEidosValuePool->AllocateChunk()) EidosValue_Logical();
+			result_vec->resize_no_initialize(individuals_count);
+			
+			for (int index = 0; index < individuals_count; ++index)
+			{
+				Individual *ind = inds[index];
+				bool satisfied = CheckIndividualConstraints(ind, *constraints);
+				
+				result_vec->set_logical_no_check(satisfied, index);
+			}
+			
+			return EidosValue_Logical_SP(result_vec);
+		}
+	}
+}
+
 //	*********************	– (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
 //
 EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGlobalStringID p_method_id, const std::vector<EidosValue_SP> &p_arguments, EidosInterpreter &p_interpreter)
@@ -6345,6 +6426,7 @@ const std::vector<EidosMethodSignature_CSP> *InteractionType_Class::Methods(void
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setConstraints, kEidosValueMaskVOID))->AddString_S("who")->AddString_OSN("sex", gStaticEidosValueNULL)->AddInt_OSN("tag", gStaticEidosValueNULL)->AddInt_OSN("minAge", gStaticEidosValueNULL)->AddInt_OSN("maxAge", gStaticEidosValueNULL)->AddLogical_OSN("migrant", gStaticEidosValueNULL)->AddLogical_OSN("tagL0", gStaticEidosValueNULL)->AddLogical_OSN("tagL1", gStaticEidosValueNULL)->AddLogical_OSN("tagL2", gStaticEidosValueNULL)->AddLogical_OSN("tagL3", gStaticEidosValueNULL)->AddLogical_OSN("tagL4", gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_setInteractionFunction, kEidosValueMaskVOID))->AddString_S("functionType")->AddEllipsis());
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_strength, kEidosValueMaskFloat))->AddObject_S("receiver", gSLiM_Individual_Class)->AddObject_ON("exerters", gSLiM_Individual_Class, gStaticEidosValueNULL));
+		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_testConstraints, kEidosValueMaskLogical | kEidosValueMaskObject, gSLiM_Individual_Class))->AddObject("individuals", gSLiM_Individual_Class)->AddString_S("constraints")->AddLogical_OS("returnIndividuals", gStaticEidosValue_LogicalF));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_totalOfNeighborStrengths, kEidosValueMaskFloat))->AddObject("receivers", gSLiM_Individual_Class)->AddObject_OSN("exerterSubpop", gSLiM_Subpopulation_Class, gStaticEidosValueNULL));
 		methods->emplace_back((EidosInstanceMethodSignature *)(new EidosInstanceMethodSignature(gStr_unevaluate, kEidosValueMaskVOID)));
 		

@@ -1402,6 +1402,7 @@ const std::string &gStr_nearestNeighborsOfPoint = EidosRegisteredString("nearest
 const std::string &gStr_setConstraints = EidosRegisteredString("setConstraints", gID_setConstraints);
 const std::string &gStr_setInteractionFunction = EidosRegisteredString("setInteractionFunction", gID_setInteractionFunction);
 const std::string &gStr_strength = EidosRegisteredString("strength", gID_strength);
+const std::string &gStr_testConstraints = EidosRegisteredString("testConstraints", gID_testConstraints);
 const std::string &gStr_totalOfNeighborStrengths = EidosRegisteredString("totalOfNeighborStrengths", gID_totalOfNeighborStrengths);
 const std::string &gStr_unevaluate = EidosRegisteredString("unevaluate", gID_unevaluate);
 const std::string &gStr_drawByStrength = EidosRegisteredString("drawByStrength", gID_drawByStrength);
