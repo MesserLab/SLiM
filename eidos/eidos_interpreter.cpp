@@ -6193,102 +6193,103 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 																		return_type.type_mask,
 																		return_type.object_class));
 		
-		for (EidosASTNode *param_node : param_nodes)
-		{
-			const std::vector<EidosASTNode *> &param_children = param_node->children_;
-			int param_children_count = (int)param_children.size();
-			
-			if ((param_children_count == 2) || (param_children_count == 3))
+		try {
+			for (EidosASTNode *param_node : param_nodes)
 			{
-				EidosTypeSpecifier &param_type = param_children[0]->typespec_;
-				const std::string &param_name = param_children[1]->token_->token_string_;
+				const std::vector<EidosASTNode *> &param_children = param_node->children_;
+				int param_children_count = (int)param_children.size();
 				
-				// Check param_name; it needs to not be used by another parameter
-				if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
+				if ((param_children_count == 2) || (param_children_count == 3))
 				{
-					delete sig;
-					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << EidosTerminate(p_node->token_);
-				}
-				
-				if (param_children_count == 2)
-				{
-					// param_node has 2 children (type, identifier)
-					sig->AddArg(param_type.type_mask, param_name, param_type.object_class);
-				}
-				else if (param_children_count == 3)
-				{
-					// param_node has 3 children (type, identifier, default); we need to figure out the default value,
-					// which is either a constant of some sort, or is an identifier representing a built-in Eidos constant
-					EidosASTNode *default_node = param_children[2];
-					EidosValue_SP default_value;
+					EidosTypeSpecifier &param_type = param_children[0]->typespec_;
+					const std::string &param_name = param_children[1]->token_->token_string_;
 					
-					if (default_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+					// Check param_name; it needs to not be used by another parameter
+					if (std::find(used_param_names.begin(), used_param_names.end(), param_name) != used_param_names.end())
 					{
-						// We just hard-code the names of the built-in Eidos constants here, for now
-						const std::string &default_string = default_node->token_->token_string_;
+						EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid name for parameter '" << param_name << "'; this name was already used for a previous parameter in this declaration." << EidosTerminate(p_node->token_);
+					}
+					
+					if (param_children_count == 2)
+					{
+						// param_node has 2 children (type, identifier)
+						sig->AddArg(param_type.type_mask, param_name, param_type.object_class);
+					}
+					else if (param_children_count == 3)
+					{
+						// param_node has 3 children (type, identifier, default); we need to figure out the default value,
+						// which is either a constant of some sort, or is an identifier representing a built-in Eidos constant
+						EidosASTNode *default_node = param_children[2];
+						EidosValue_SP default_value;
 						
-						if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), default_string) != gEidosConstantNames.end())
-							default_value = FastEvaluateNode(default_node);
+						if (default_node->token_->token_type_ == EidosTokenType::kTokenIdentifier)
+						{
+							// We just hard-code the names of the built-in Eidos constants here, for now
+							const std::string &default_string = default_node->token_->token_string_;
+							
+							if (std::find(gEidosConstantNames.begin(), gEidosConstantNames.end(), default_string) != gEidosConstantNames.end())
+								default_value = FastEvaluateNode(default_node);
+							else
+							{
+								EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(default_node->token_);
+							}
+						}
 						else
 						{
-							delete sig;
-							EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): invalid default value for parameter '" << param_name << "'; a default value must be a numeric constant, a string constant, or a built-in Eidos constant (T, F, NULL, PI, E, INF, or NAN)." << EidosTerminate(default_node->token_);
+							default_value = FastEvaluateNode(default_node);
 						}
-					}
-					else
-					{
-						default_value = FastEvaluateNode(default_node);
+						
+						sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, std::move(default_value));
 					}
 					
-					sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, std::move(default_value));
+					used_param_names.emplace_back(std::move(param_name));
 				}
-				
-				used_param_names.emplace_back(std::move(param_name));
 			}
-		}
-		
-		// Add the function body to the function signature.  We can't just use body_node, because we don't know what its
-		// lifetime will be; we need our own private copy.  The best thing, really, is to make our own EidosScript object
-		// with the appropriate substring, and re-tokenize and re-parse.  This is somewhat wasteful, but it's one-time
-		// overhead so it shouldn't matter.  It will smooth out all of the related issues with error reporting, etc.,
-		// since we won't be dependent upon somebody else's script object.  Errors in tokenization/parsing should never
-		// occur, since the code for the function body already passed through that process once.
-		// BCH 2/8/2021: Note that we now base this EidosScript on body_node->token_->token_line_ for purposes of debug
-		// point detection, so Eidos knows that this script is a substring of the original user script.
-		EidosScript *script = new EidosScript(body_node->token_->token_string_, body_node->token_->token_line_);
-		
-		script->Tokenize();
-		script->ParseInterpreterBlockToAST(false);
-		
-		sig->body_script_ = script;
-		sig->user_defined_ = true;
-		sig->user_definition_line_ = p_node->token_->token_line_;
-		
-		//std::cout << *sig << std::endl;
-		
-		// Check that a built-in function is not already defined with this name; no replacing the built-ins.
-		auto signature_iter = function_map_.find(function_name);
-		
-		if (signature_iter != function_map_.end())
-		{
-			const EidosFunctionSignature *prior_sig = signature_iter->second.get();
 			
-			if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+			// Add the function body to the function signature.  We can't just use body_node, because we don't know what its
+			// lifetime will be; we need our own private copy.  The best thing, really, is to make our own EidosScript object
+			// with the appropriate substring, and re-tokenize and re-parse.  This is somewhat wasteful, but it's one-time
+			// overhead so it shouldn't matter.  It will smooth out all of the related issues with error reporting, etc.,
+			// since we won't be dependent upon somebody else's script object.  Errors in tokenization/parsing should never
+			// occur, since the code for the function body already passed through that process once.
+			// BCH 2/8/2021: Note that we now base this EidosScript on body_node->token_->token_line_ for purposes of debug
+			// point detection, so Eidos knows that this script is a substring of the original user script.
+			EidosScript *script = new EidosScript(body_node->token_->token_string_, body_node->token_->token_line_);
+			
+			script->Tokenize();
+			script->ParseInterpreterBlockToAST(false);
+			
+			sig->body_script_ = script;
+			sig->user_defined_ = true;
+			sig->user_definition_line_ = p_node->token_->token_line_;
+			
+			//std::cout << *sig << std::endl;
+			
+			// Check that a built-in function is not already defined with this name; no replacing the built-ins.
+			auto signature_iter = function_map_.find(function_name);
+			
+			if (signature_iter != function_map_.end())
 			{
-				delete sig;
-				EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << EidosTerminate(p_node->token_);
+				const EidosFunctionSignature *prior_sig = signature_iter->second.get();
+				
+				if (prior_sig->internal_function_ || !prior_sig->delegate_name_.empty() || !prior_sig->user_defined_)
+					EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_FunctionDecl): cannot replace built-in function " << function_name << "()." << EidosTerminate(p_node->token_);
 			}
+			
+			// Add the user-defined function to our function map (possibly replacing a previous version)
+			auto found_iter = function_map_.find(sig->call_name_);
+			
+			if (found_iter != function_map_.end())
+				function_map_.erase(found_iter);
+			
+			function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_CSP(sig)));
+			
+			// the signature is now under shared_ptr, or deleted, and so variable sig falls out of scope here
 		}
-		
-		// Add the user-defined function to our function map (possibly replacing a previous version)
-		auto found_iter = function_map_.find(sig->call_name_);
-		
-		if (found_iter != function_map_.end())
-			function_map_.erase(found_iter);
-		
-		function_map_.insert(EidosFunctionMapPair(sig->call_name_, EidosFunctionSignature_CSP(sig)));
-		
-		// the signature is now under shared_ptr, or deleted, and so variable sig falls out of scope here
+		catch (...) {
+			delete sig;
+			throw;
+		}
 	}
 	
 	// Always return void

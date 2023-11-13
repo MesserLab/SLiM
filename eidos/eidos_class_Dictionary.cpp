@@ -867,6 +867,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 				{
 					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
 					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+					dictionary->Release();		// now retained by state_ptr->dictionary_symbols_
 				}
 				else if (value.is_boolean())
 				{
@@ -893,6 +894,7 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 					EidosDictionaryRetained *dictionary = new EidosDictionaryRetained();
 					dictionary->AddJSONFrom(value);
 					state_ptr->dictionary_symbols_[key] = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(dictionary, gEidosDictionaryRetained_Class));
+					dictionary->Release();		// now retained by state_ptr->dictionary_symbols_
 				}
 				else if (value.is_array())
 				{
