@@ -260,23 +260,33 @@ EidosValue_SP Eidos_ExecuteFunction_dmvnorm(const std::vector<EidosValue_SP> &p_
 	if (!gsl_mu || !gsl_Sigma || !gsl_L || !gsl_x || !gsl_work)
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	
-	for (int dim_index = 0; dim_index < d; ++dim_index)
-		gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
-	
-	for (int row_index = 0; row_index < d; ++row_index)
-	{
-		for (int col_index = 0; col_index < d; ++col_index)
+	try {
+		for (int dim_index = 0; dim_index < d; ++dim_index)
+			gsl_vector_set(gsl_mu, dim_index, arg_mu->FloatAtIndex(dim_index, nullptr));
+		
+		for (int row_index = 0; row_index < d; ++row_index)
 		{
-			double value = arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr);
-			
-			if (std::isnan(value))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
-			
-			gsl_matrix_set(gsl_Sigma, row_index, col_index, value);
+			for (int col_index = 0; col_index < d; ++col_index)
+			{
+				double value = arg_sigma->FloatAtIndex(row_index + col_index * d, nullptr);
+				
+				if (std::isnan(value))
+					EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_dmvnorm): function dmvnorm() does not allow sigma to contain NANs." << EidosTerminate(nullptr);	// oddly, GSL does not raise an error on this!
+				
+				gsl_matrix_set(gsl_Sigma, row_index, col_index, value);
+			}
 		}
+		
+		gsl_matrix_memcpy(gsl_L, gsl_Sigma);
 	}
-	
-	gsl_matrix_memcpy(gsl_L, gsl_Sigma);
+	catch (...) {
+		gsl_vector_free(gsl_mu);
+		gsl_matrix_free(gsl_Sigma);
+		gsl_matrix_free(gsl_L);
+		gsl_vector_free(gsl_x);
+		gsl_vector_free(gsl_work);
+		throw;
+	}
 	
 	// Disable the GSL's default error handler, which calls abort().  Normally we run with that handler,
 	// which is perhaps a bit risky, but we want to check for all error cases and avert them before we

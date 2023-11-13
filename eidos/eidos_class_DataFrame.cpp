@@ -62,69 +62,35 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 	AssertKeysAreStrings();
 	
 	EidosDataFrame *dataframe = new EidosDataFrame();
-	EidosValueType index_type = index_value->Type();
-	int index_count = index_value->Count();
-	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 	
-	if (!symbols)
-	{
-		// With no columns, we either throw an error (if columns were selected) or return an empty DataFrame
-		if (index_count > 0)
-			EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): cannot select columns from an empty DataFrame." << EidosTerminate(nullptr);
+	try {
+		EidosValueType index_type = index_value->Type();
+		int index_count = index_value->Count();
+		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
 		
-		return dataframe;
-	}
-	
-	const std::vector<std::string> keys = SortedKeys_StringKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
-	
-	if (index_type == EidosValueType::kValueInt)
-	{
-		int64_t key_count = (int64_t)keys.size();
-		
-		for (int i = 0; i < index_count; ++i)
+		if (!symbols)
 		{
-			int64_t index = index_value->IntAtIndex(i, nullptr);
+			// With no columns, we either throw an error (if columns were selected) or return an empty DataFrame
+			if (index_count > 0)
+				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): cannot select columns from an empty DataFrame." << EidosTerminate(nullptr);
 			
-			if ((index < 0) || (index >= key_count))
-				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): column index out of range (" << index << " not in [0, " << (key_count - 1) << "])." << EidosTerminate(nullptr);
-			
-			const std::string &key = keys[index];
-			auto value_iter = symbols->find(key);
-			
-			if (value_iter == symbols->end())
-				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): (internal error) no value for defined key." << EidosTerminate(nullptr);
-			
-			dataframe->SetKeyValue_StringKeys(key, value_iter->second);
+			return dataframe;
 		}
-	}
-	else if (index_type == EidosValueType::kValueString)
-	{
-		for (int i = 0; i < index_count; ++i)
-		{
-			const std::string &key = ((EidosValue_String *)index_value)->StringRefAtIndex(i, nullptr);
-			
-			auto value_iter = symbols->find(key);
-			
-			if (value_iter == symbols->end())
-				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): key " << key << " is not defined in the target DataFrame." << EidosTerminate(nullptr);
-			
-			dataframe->SetKeyValue_StringKeys(key, value_iter->second);
-		}
-	}
-	else // (index_type == EidosValueType::kValueLogical)
-	{
-		int64_t symbols_count = (int64_t)symbols->size();
 		
-		if (index_count != symbols_count)
-			EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): logical index vector length does not match the number of columns in the DataFrame." << EidosTerminate(nullptr);
+		const std::vector<std::string> keys = SortedKeys_StringKeys();	// if symbols_ptr is not nullptr, this is also not nullptr
 		
-		for (int i = 0; i < index_count; ++i)
+		if (index_type == EidosValueType::kValueInt)
 		{
-			bool selected = index_value->LogicalAtIndex(i, nullptr);
+			int64_t key_count = (int64_t)keys.size();
 			
-			if (selected)
+			for (int i = 0; i < index_count; ++i)
 			{
-				const std::string &key = keys[i];
+				int64_t index = index_value->IntAtIndex(i, nullptr);
+				
+				if ((index < 0) || (index >= key_count))
+					EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): column index out of range (" << index << " not in [0, " << (key_count - 1) << "])." << EidosTerminate(nullptr);
+				
+				const std::string &key = keys[index];
 				auto value_iter = symbols->find(key);
 				
 				if (value_iter == symbols->end())
@@ -133,9 +99,49 @@ EidosDataFrame *EidosDataFrame::SubsetColumns(EidosValue *index_value)
 				dataframe->SetKeyValue_StringKeys(key, value_iter->second);
 			}
 		}
+		else if (index_type == EidosValueType::kValueString)
+		{
+			for (int i = 0; i < index_count; ++i)
+			{
+				const std::string &key = ((EidosValue_String *)index_value)->StringRefAtIndex(i, nullptr);
+				
+				auto value_iter = symbols->find(key);
+				
+				if (value_iter == symbols->end())
+					EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): key " << key << " is not defined in the target DataFrame." << EidosTerminate(nullptr);
+				
+				dataframe->SetKeyValue_StringKeys(key, value_iter->second);
+			}
+		}
+		else // (index_type == EidosValueType::kValueLogical)
+		{
+			int64_t symbols_count = (int64_t)symbols->size();
+			
+			if (index_count != symbols_count)
+				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): logical index vector length does not match the number of columns in the DataFrame." << EidosTerminate(nullptr);
+			
+			for (int i = 0; i < index_count; ++i)
+			{
+				bool selected = index_value->LogicalAtIndex(i, nullptr);
+				
+				if (selected)
+				{
+					const std::string &key = keys[i];
+					auto value_iter = symbols->find(key);
+					
+					if (value_iter == symbols->end())
+						EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetColumns): (internal error) no value for defined key." << EidosTerminate(nullptr);
+					
+					dataframe->SetKeyValue_StringKeys(key, value_iter->second);
+				}
+			}
+		}
+		
+		return dataframe;
+	} catch (...) {
+		dataframe->Release();
+		throw;
 	}
-	
-	return dataframe;
 }
 
 EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
@@ -144,29 +150,34 @@ EidosDataFrame *EidosDataFrame::SubsetRows(EidosValue *index_value, bool drop)
 	
 	EidosDataFrame *dataframe = new EidosDataFrame();
 	
-	// With no columns, the indices don't matter, and the result is a new empty dictionary
-	const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
-	
-	if (!symbols || (symbols->size() == 0))
+	try {
+		// With no columns, the indices don't matter, and the result is a new empty dictionary
+		const EidosDictionaryHashTable_StringKeys *symbols = DictionarySymbols_StringKeys();
+		
+		if (!symbols || (symbols->size() == 0))
+			return dataframe;
+		
+		// Otherwise, we subset to get the result value for each key we contain
+		const std::vector<std::string> keys = SortedKeys_StringKeys();
+		
+		for (const std::string &key : keys)
+		{
+			auto kv_pair = symbols->find(key);
+			
+			if (kv_pair == symbols->end())
+				EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetRows): (internal error) key not found in symbols." << EidosTerminate(nullptr);
+			
+			EidosValue_SP subset = SubsetEidosValue(kv_pair->second.get(), index_value, nullptr, /* p_raise_range_errors */ true);
+			
+			if (!drop || subset->Count())
+				dataframe->SetKeyValue_StringKeys(kv_pair->first, subset);
+		}
+		
 		return dataframe;
-	
-	// Otherwise, we subset to get the result value for each key we contain
-	const std::vector<std::string> keys = SortedKeys_StringKeys();
-	
-	for (const std::string &key : keys)
-	{
-		auto kv_pair = symbols->find(key);
-		
-		if (kv_pair == symbols->end())
-			EIDOS_TERMINATION << "ERROR (EidosDataFrame::SubsetRows): (internal error) key not found in symbols." << EidosTerminate(nullptr);
-		
-		EidosValue_SP subset = SubsetEidosValue(kv_pair->second.get(), index_value, nullptr, /* p_raise_range_errors */ true);
-		
-		if (!drop || subset->Count())
-			dataframe->SetKeyValue_StringKeys(kv_pair->first, subset);
+	} catch (...) {
+		dataframe->Release();
+		throw;
 	}
-	
-	return dataframe;
 }
 
 std::vector<std::string> EidosDataFrame::SortedKeys_StringKeys(void) const
@@ -597,37 +608,43 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_subset(EidosGlobalStringID p_method_
 		rows_subset->ContentsChanged("subset()");
 	}
 	
-	// Then subset the columns
-	EidosDataFrame *cols_subset;
-	
-	if (cols_value->Type() == EidosValueType::kValueNULL)
-	{
-		cols_subset = rows_subset;
-		cols_subset->Retain();
-	}
-	else
-	{
-		cols_subset = rows_subset->SubsetColumns(cols_value);
-		cols_subset->ContentsChanged("subset()");
-	}
-	
-	// Then return the resulting DataFrame, or if it contains exactly one column, return the vector of values from that column instead
-	if (cols_subset->ColumnCount() == 1)
-	{
-		const EidosDictionaryHashTable_StringKeys *symbols = cols_subset->DictionarySymbols_StringKeys();
-		auto col_iter = symbols->begin();
+	try {
+		// Then subset the columns
+		EidosDataFrame *cols_subset;
 		
-		result_SP = col_iter->second;
+		if (cols_value->Type() == EidosValueType::kValueNULL)
+		{
+			cols_subset = rows_subset;
+			cols_subset->Retain();
+		}
+		else
+		{
+			cols_subset = rows_subset->SubsetColumns(cols_value);
+			cols_subset->ContentsChanged("subset()");
+		}
+		
+		// Then return the resulting DataFrame, or if it contains exactly one column, return the vector of values from that column instead
+		if (cols_subset->ColumnCount() == 1)
+		{
+			const EidosDictionaryHashTable_StringKeys *symbols = cols_subset->DictionarySymbols_StringKeys();
+			auto col_iter = symbols->begin();
+			
+			result_SP = col_iter->second;
+		}
+		else
+		{
+			// Note that this retains cols_subset, before the call to Release below
+			result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(cols_subset, gEidosDataFrame_Class));
+		}
+		
+		rows_subset->Release();
+		cols_subset->Release();
+		return result_SP;
 	}
-	else
-	{
-		// Note that this retains cols_subset, before the call to Release below
-		result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(cols_subset, gEidosDataFrame_Class));
+	catch (...) {
+		rows_subset->Release();
+		throw;
 	}
-	
-	rows_subset->Release();
-	cols_subset->Release();
-	return result_SP;
 }
 
 //	*********************	- (object<DataFrame>$)subsetColumns(lis index)

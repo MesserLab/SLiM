@@ -1649,11 +1649,11 @@ static EidosValue_SP Eidos_Instantiate_EidosDictionaryRetained(const std::vector
 	EidosDictionaryRetained *objectElement = new EidosDictionaryRetained();
 	result_SP = EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(objectElement, gEidosDictionaryRetained_Class));
 	
-	objectElement->ConstructFromEidos(p_arguments, p_interpreter, "Eidos_Instantiate_EidosDictionaryRetained", "Dictionary");
-	objectElement->ContentsChanged("Dictionary()");
-	
 	// objectElement is now retained by result_SP, so we can release it
 	objectElement->Release();
+	
+	objectElement->ConstructFromEidos(p_arguments, p_interpreter, "Eidos_Instantiate_EidosDictionaryRetained", "Dictionary");
+	objectElement->ContentsChanged("Dictionary()");
 	
 	return result_SP;
 }

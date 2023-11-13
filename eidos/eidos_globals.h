@@ -195,8 +195,9 @@ extern bool eidos_do_memory_checks;
 //	- run "leaks slim" in Terminal; the leaks tool in Instruments seems to be very confused and reports tons of false positives
 //
 // To run slim under Valgrind, setting this flag to 1 is also recommended as it will enable some thunks that will
-// keep Valgrind from getting confused.
 #define SLIM_LEAK_CHECKING	0
+// keep Valgrind from getting confused.  Use a DEBUG build so it is symbolicated (-g) and minimally optimized (-Og),
+// or add those flags to CMAKE_C_FLAGS_RELEASE and CMAKE_CXX_FLAGS_RELEASE in CMakeLists.txt.
 
 #if SLIM_LEAK_CHECKING
 #warning SLIM_LEAK_CHECKING enabled!
