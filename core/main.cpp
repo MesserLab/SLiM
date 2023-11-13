@@ -43,6 +43,8 @@
 #include "eidos_test.h"
 #include "slim_test.h"
 #include "eidos_symbol_table.h"
+#include "interaction_type.h"
+#include "eidos_rng.h"
 
 // Get our Git commit SHA-1, as C string "g_GIT_SHA1"
 #include "../cmake/GitSHA1.h"
@@ -159,7 +161,7 @@ static void clean_up_leak_false_positives(void)
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
 	InteractionType::DeleteSparseVectorFreeList();
 	FreeSymbolTablePool();
-	Eidos_FreeRNG(gEidos_RNG);
+	Eidos_FreeRNG();
 }
 #endif
 
@@ -729,7 +731,7 @@ int main(int argc, char *argv[])
 		Eidos_FlushFiles();
 		
 #if SLIM_LEAK_CHECKING
-		community->Release();
+		delete community;
 		community = nullptr;
 		clean_up_leak_false_positives();
 		
