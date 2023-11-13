@@ -77,7 +77,7 @@ public:
 	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
 	double values_min_, values_max_;	// min/max of values_; re-evaluated every time our data changes
 	
-	int n_colors_;						// the number of color values given to map across the min/max value range
+	int n_colors_ = 0;						// the number of color values given to map across the min/max value range
 	double colors_min_, colors_max_;	// min/max for our color gradient
 	float *red_components_ = nullptr;	// OWNED POINTER: red components, n_colors_ in size, from min to max value
 	float *green_components_ = nullptr;	// OWNED POINTER: green components, n_colors_ in size, from min to max value
