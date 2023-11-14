@@ -4459,8 +4459,6 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				}
 				
 				// Check constraints for the receiver; if the individual is disqualified, there are no candidates to draw from
-#ifdef _OPENMP
-				// Under OpenMP, raises can't go past the end of the parallel region
 				try {
 					if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 						continue;
@@ -4468,11 +4466,6 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					saw_error_4 = true;
 					continue;
 				}
-#else
-				// When not under OpenMP, we can just let raises go
-				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
-					continue;
-#endif
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				
@@ -4712,8 +4705,7 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 			}
 			
 			// Check constraints for the receiver; if the individual is disqualified, the count is zero
-#ifdef _OPENMP
-			// Under OpenMP, raises can't go past the end of the parallel region
+			// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 			try {
 				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 				{
@@ -4724,14 +4716,6 @@ EidosValue_SP InteractionType::ExecuteMethod_interactingNeighborCount(EidosGloba
 				saw_error_3 = true;
 				continue;
 			}
-#else
-			// When not under OpenMP, we can just let raises go
-			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
-			{
-				result_vec->set_int_no_check(0, receiver_index);
-				continue;
-			}
-#endif
 			
 			// Find the neighbors
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
@@ -4921,8 +4905,7 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 			}
 			
 			// Check constraints for the receiver; if the individual is disqualified, the local density of interacters is zero
-#ifdef _OPENMP
-			// Under OpenMP, raises can't go past the end of the parallel region
+			// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 			try {
 				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 				{
@@ -4933,14 +4916,6 @@ EidosValue_SP InteractionType::ExecuteMethod_localPopulationDensity(EidosGlobalS
 				saw_error_3 = true;
 				continue;
 			}
-#else
-			// When not under OpenMP, we can just let raises go
-			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
-			{
-				result_vec->set_float_no_check(0, receiver_index);
-				continue;
-			}
-#endif
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			double total_strength;
@@ -5271,8 +5246,7 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 				}
 				
 				// Check constraints for the receiver; if the individual is disqualified, there are no interacting neighbors
-#ifdef _OPENMP
-				// Under OpenMP, raises can't go past the end of the parallel region
+				// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 				try {
 					if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 						continue;
@@ -5280,11 +5254,6 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 					saw_error_3 = true;
 					continue;
 				}
-#else
-				// When not under OpenMP, we can just let raises go
-				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
-					continue;
-#endif
 				
 				double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 				
@@ -5298,11 +5267,20 @@ EidosValue_SP InteractionType::ExecuteMethod_nearestInteractingNeighbors(EidosGl
 			
 			// deferred raises, for OpenMP compatibility
 			if (saw_error_1)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+			}
 			if (saw_error_2)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			}
 			if (saw_error_3)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_nearestInteractingNeighbors): nearestInteractingNeighbors() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
+			}
 		}
 		
 		free(result_vectors);
@@ -6294,8 +6272,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 			}
 			
 			// Check constraints for the receiver; if the individual is disqualified, the total is zero
-#ifdef _OPENMP
-			// Under OpenMP, raises can't go past the end of the parallel region
+			// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 			try {
 				if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
 				{
@@ -6306,20 +6283,11 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 				saw_error_4 = true;
 				continue;
 			}
-#else
-			// When not under OpenMP, we can just let raises go
-			if (!CheckIndividualConstraints(receiver, receiver_constraints_))		// potentially raises; protected
-			{
-				result_vec->set_float_no_check(0, receiver_index);
-				continue;
-			}
-#endif
 			
 			double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 			SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 			
-#ifdef _OPENMP
-			// Under OpenMP, raises can't go past the end of the parallel region
+			// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 			try {
 				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 			} catch (...) {
@@ -6327,10 +6295,6 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 				InteractionType::FreeSparseVector(sv);
 				continue;
 			}
-#else
-			// When not under OpenMP, we can just let raises go
-			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
-#endif
 			
 			// Get the sparse vector data
 			uint32_t nnz;

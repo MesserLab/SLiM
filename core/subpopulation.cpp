@@ -7722,7 +7722,10 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 	SpatialMap *spatial_map = new SpatialMap(map_name, spatiality_string, this, values, interpolate, value_range, colors);
 	
 	if (!spatial_map->IsCompatibleWithSubpopulation(this))
+	{
+		spatial_map->Release();
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_defineSpatialMap): defineSpatialMap() requires the spatial map to be compatible with the target subpopulation; spatiality cannot utilize spatial dimensions beyond those set for the target species, and spatial bounds must match." << EidosTerminate();
+	}
 	
 	// Add the new SpatialMap to our map for future reference
 	auto map_iter = spatial_maps_.find(map_name);
