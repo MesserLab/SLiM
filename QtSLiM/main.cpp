@@ -12,15 +12,16 @@
 #include <locale.h>
 
 #include "eidos_globals.h"
+#include "interaction_type.h"
 
 #if SLIM_LEAK_CHECKING
 static void clean_up_leak_false_positives(void)
 {
 	// This does a little cleanup that helps Valgrind to understand that some things have not been leaked.
 	// I think perhaps unordered_map keeps values in an unaligned manner that Valgrind doesn't see as pointers.
-	Eidos_FreeGlobalStrings();
-    FreeSymbolTablePool();
-	Eidos_FreeRNG(gEidos_RNG);
+	InteractionType::DeleteSparseVectorFreeList();
+	FreeSymbolTablePool();
+	Eidos_FreeRNG();
 }
 
 // Note that we still get some leaks reported, many of which are likely spurious.  That seems to be caused by:

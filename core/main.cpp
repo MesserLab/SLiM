@@ -572,7 +572,8 @@ int main(int argc, char *argv[])
 	{
 		// no input file supplied; either the user forgot (if stdin is a tty) or they're piping a script into stdin
 		// we checked for the tty case above, so here we assume stdin will supply the script
-		community = new Community(std::cin);
+		community = new Community();
+		community->InitializeFromFile(std::cin);
 		model_name = "stdin";
 	}
 	else
@@ -605,7 +606,8 @@ int main(int argc, char *argv[])
 		if (!infile.is_open())
 			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
 		
-		community = new Community(infile);
+		community = new Community();
+		community->InitializeFromFile(infile);
 		model_name = Eidos_LastPathComponent(std::string(input_file));
 	}
 	

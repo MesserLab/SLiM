@@ -52,7 +52,8 @@ void SLiMAssertScriptSuccess(const std::string &p_script_string, int p_lineNumbe
 	std::istringstream infile(p_script_string);
 	
 	try {
-		community = new Community(infile);
+		community = new Community();
+		community->InitializeFromFile(infile);
 		community->InitializeRNGFromSeed(nullptr);
 	}
 	catch (...)
@@ -119,7 +120,8 @@ void SLiMAssertScriptRaise(const std::string &p_script_string, const std::string
 	try {
 		std::istringstream infile(p_script_string);
 		
-		community = new Community(infile);
+		community = new Community();
+		community->InitializeFromFile(infile);
 		community->InitializeRNGFromSeed(nullptr);
 		
 		while (community->_RunOneTick());
@@ -230,7 +232,8 @@ void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineNumber)
 	try {
 		std::istringstream infile(p_script_string);
 		
-		community = new Community(infile);
+		community = new Community();
+		community->InitializeFromFile(infile);
 		community->InitializeRNGFromSeed(nullptr);
 		
 		while (community->_RunOneTick());

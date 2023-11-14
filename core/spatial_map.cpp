@@ -270,6 +270,13 @@ void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue
 	}
 	
 	// Allocate buffers to hold our color component vectors, if we were supplied with color info
+	free(red_components_);
+	free(green_components_);
+	free(blue_components_);
+	red_components_ = nullptr;
+	green_components_ = nullptr;
+	blue_components_ = nullptr;
+	
 	if (n_colors_ > 0)
 	{
 		red_components_ = (float *)malloc(n_colors_ * sizeof(float));
@@ -283,15 +290,6 @@ void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue
 		
 		for (int colors_index = 0; colors_index < n_colors_; ++colors_index)
 			Eidos_GetColorComponents(colors_vec_ptr[colors_index], red_components_ + colors_index, green_components_ + colors_index, blue_components_ + colors_index);
-	}
-	else
-	{
-		free(red_components_);
-		free(green_components_);
-		free(blue_components_);
-		red_components_ = nullptr;
-		green_components_ = nullptr;
-		blue_components_ = nullptr;
 	}
 	
 	_ValuesChanged();
@@ -327,6 +325,9 @@ void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_co
 		std::swap(grid_size_[0], grid_size_[1]);
 	
 	// Allocate a values buffer of the proper size
+	free(values_);
+	values_ = nullptr;
+	
 	values_ = (double *)malloc(values_size_ * sizeof(double));
 	if (!values_)
 		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);

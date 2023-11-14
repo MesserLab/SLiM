@@ -81,7 +81,7 @@ extern "C" {
 #pragma mark Community
 #pragma mark -
 
-Community::Community(std::istream &p_infile) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
+Community::Community(void) : self_symbol_(gID_community, EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_Community_Class)))
 {
 	// BCH 3/16/2022: We used to allocate the Species object here, as the first thing we did.  In SLiM 4 there can
 	// be multiple species and they can have names other than "sim", so we delay species creation until parse time.
@@ -97,25 +97,7 @@ Community::Community(std::istream &p_infile) : self_symbol_(gID_community, Eidos
 	AddZeroTickFunctionsToMap(simulation_functions_);
 	AddSLiMFunctionsToMap(simulation_functions_);
 	
-	// read all configuration information from the input file
-	p_infile.clear();
-	p_infile.seekg(0, std::fstream::beg);
-	
-	try {
-		InitializeFromFile(p_infile);
-	}
-	catch (...) {
-		// try to clean up what we've allocated so far
-		delete simulation_globals_;
-		simulation_globals_ = nullptr;
-		
-		delete simulation_constants_;
-		simulation_constants_ = nullptr;
-		
-		simulation_functions_.clear();
-		
-		throw;
-	}
+	// reading from the input file is deferred to InitializeFromFile() to make raise-handling simpler - finish construction
 }
 
 Community::~Community(void)
@@ -165,6 +147,9 @@ void Community::InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr)
 
 void Community::InitializeFromFile(std::istream &p_infile)
 {
+	p_infile.clear();
+	p_infile.seekg(0, std::fstream::beg);
+	
 	// Reset error position indicators used by SLiMgui
 	ClearErrorPosition();
 	

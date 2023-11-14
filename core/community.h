@@ -135,9 +135,6 @@ private:
 	// LogFile registry, for logging data out to a file
 	std::vector<LogFile *> log_file_registry_;										// OWNED POINTERS (under retain/release)
 	
-	// private initialization methods
-	void InitializeFromFile(std::istream &p_infile);								// parse a input file and set up the simulation state from its contents
-	
 public:
 	
 	bool is_explicit_species_ = false;												// true if we have explicit species declarations (even if only one, even if named "sim")
@@ -196,10 +193,11 @@ public:
 	
 	Community(const Community&) = delete;											// no copying
 	Community& operator=(const Community&) = delete;								// no copying
-	explicit Community(std::istream &p_infile);										// construct a Community from an input stream
+	explicit Community(void);														// construct a Community; call InitializeFromFile() next
 	~Community(void);																// destructor
 	
-	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// should be called right after construction, generally
+	void InitializeFromFile(std::istream &p_infile);								// parse an input file; call after construction
+	void InitializeRNGFromSeed(unsigned long int *p_override_seed_ptr);				// call after InitializeFromFile(), generally
 	
 	void TabulateSLiMMemoryUsage_Community(SLiMMemoryUsage_Community *p_usage, EidosSymbolTable *p_current_symbols);		// used by outputUsage() and SLiMgui profiling
 	

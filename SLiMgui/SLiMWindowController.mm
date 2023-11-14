@@ -543,7 +543,8 @@
 	
 	try
 	{
-		community = new Community(infile);
+		community = new Community();
+		community->InitializeFromFile(infile);
 		community->InitializeRNGFromSeed(nullptr);
 		
 		// Swap out our RNG

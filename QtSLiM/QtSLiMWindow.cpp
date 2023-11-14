@@ -1858,7 +1858,8 @@ void QtSLiMWindow::startNewSimulationFromScript(void)
 
     try
     {
-        community = new Community(infile);
+        community = new Community();
+        community->InitializeFromFile(infile);
         community->InitializeRNGFromSeed(nullptr);
         community->SetDebugPoints(&ui->scriptTextEdit->debuggingPoints());
 
