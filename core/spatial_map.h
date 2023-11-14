@@ -73,7 +73,7 @@ public:
 	
 	int64_t grid_size_[3];				// the number of points in the first, second, and third spatial dimensions
 	int64_t values_size_;				// the number of values in values_ (the product of grid_size_)
-	double *values_;					// OWNED POINTER: the values for the grid points
+	double *values_ = nullptr;			// OWNED POINTER: the values for the grid points
 	bool interpolate_;					// if true, the map will interpolate values; otherwise, nearest-neighbor
 	double values_min_, values_max_;	// min/max of values_; re-evaluated every time our data changes
 	
