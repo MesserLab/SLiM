@@ -120,7 +120,7 @@
 		{
 			slim_objectid_t subpopID = popIter->first;
 			//Subpopulation *subpop = popIter->second;
-			NSString *subpopString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
+			NSString *subpopString = [NSString stringWithFormat:@"p%lld", (long long int)subpopID];
 			
 			[subpopulationButton addItemWithTitle:subpopString];
 			lastItem = [subpopulationButton lastItem];
@@ -174,7 +174,7 @@
 			MutationType *mutationType = mutTypeIter->second;
 			slim_objectid_t mutationTypeID = mutationType->mutation_type_id_;
 			int mutationTypeIndex = mutationType->mutation_type_index_;
-			NSString *mutationTypeString = [NSString stringWithFormat:@"m%lld", (int64_t)mutationTypeID];
+			NSString *mutationTypeString = [NSString stringWithFormat:@"m%lld", (long long int)mutationTypeID];
 			
 			[mutationTypeButton addItemWithTitle:mutationTypeString];
 			lastItem = [mutationTypeButton lastItem];
@@ -366,7 +366,7 @@
 			NSNumber *mutationIDNumber = [[NSNumber alloc] initWithLongLong:mutation->mutation_id_];
 			MutationFrequencyHistory *history = [frequencyHistoryDict objectForKey:mutationIDNumber];
 			
-			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, mutation->mutation_id_);
+			//NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, (long long int)(mutation->mutation_id_));
 			
 			if (history)
 			{
@@ -466,7 +466,7 @@
 		[historiesToAddToColdStorage release];
 	}
 	
-	//NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
+	//NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (long long int)[frequencyHistoryDict count], (long long int)[frequencyHistoryColdStorageLost count], (long long int)[frequencyHistoryColdStorageFixed count]);
 	
 	lastTick = community.Tick();
 }

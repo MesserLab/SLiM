@@ -1644,7 +1644,7 @@ static std::string StringForByteCount(int64_t bytes)
 	}
 	else
 	{
-		snprintf(buf, 128, "%lld", bytes);
+		snprintf(buf, 128, "%lld", (long long int)bytes);
 		return std::string(buf).append(" bytes");
 	}
 }

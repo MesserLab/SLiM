@@ -2101,25 +2101,25 @@
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutation_total_usage_] attributes:menlo11_d];
 		[content eidosAppendString:@" mutations referenced, summed across all ticks\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_nonneutral_mutation_total_] attributes:menlo11_d];
 		[content eidosAppendString:@" mutations considered potentially nonneutral\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%0.2f%%", ((focal_species->profile_mutation_total_usage_ - focal_species->profile_nonneutral_mutation_total_) / (double)focal_species->profile_mutation_total_usage_) * 100.0] attributes:menlo11_d];
 		[content eidosAppendString:@" of mutations excluded from fitness calculations\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_max_mutation_index_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_max_mutation_index_] attributes:menlo11_d];
 		[content eidosAppendString:@" maximum simultaneous mutations\n" attributes:optima13_d];
 		
 		
 		[content eidosAppendString:@"\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_mutrun_total_usage_] attributes:menlo11_d];
 		[content eidosAppendString:@" mutation runs referenced, summed across all ticks\n" attributes:optima13_d];
 		
-		[content eidosAppendString:[NSString stringWithFormat:@"%lld", focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
+		[content eidosAppendString:[NSString stringWithFormat:@"%lld", (long long int)focal_species->profile_unique_mutrun_total_] attributes:menlo11_d];
 		[content eidosAppendString:@" unique mutation runs maintained among those\n" attributes:optima13_d];
 		
 		[content eidosAppendString:[NSString stringWithFormat:@"%6.2f%%", (focal_species->profile_mutrun_nonneutral_recache_total_ / (double)focal_species->profile_unique_mutrun_total_) * 100.0] attributes:menlo11_d];
@@ -2152,7 +2152,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.chromosomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Chromosome objects (%0.2f / %lld)\n", mem_tot_S.chromosomeObjects_count / ddiv, mem_last_S.chromosomeObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Chromosome objects (%0.2f / %lld)\n", mem_tot_S.chromosomeObjects_count / ddiv, (long long int)mem_last_S.chromosomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.chromosomeMutationRateMaps / div total:average_total attributes:menlo11_d]];
@@ -2184,7 +2184,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, mem_last_S.genomeObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Genome objects (%0.2f / %lld)\n", mem_tot_S.genomeObjects_count / ddiv, (long long int)mem_last_S.genomeObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomeExternalBuffers / div total:average_total attributes:menlo11_d]];
@@ -2209,21 +2209,21 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomicElementObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomicElementObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElement objects (%0.2f / %lld)\n", mem_tot_S.genomicElementObjects_count / ddiv, mem_last_S.genomicElementObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElement objects (%0.2f / %lld)\n", mem_tot_S.genomicElementObjects_count / ddiv, (long long int)mem_last_S.genomicElementObjects_count] attributes:optima13_d];
 		
 		// GenomicElementType
 		[content eidosAppendString:@"\n" attributes:optima8_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.genomicElementTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.genomicElementTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElementType objects (%0.2f / %lld)\n", mem_tot_S.genomicElementTypeObjects_count / ddiv, mem_last_S.genomicElementTypeObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : GenomicElementType objects (%0.2f / %lld)\n", mem_tot_S.genomicElementTypeObjects_count / ddiv, (long long int)mem_last_S.genomicElementTypeObjects_count] attributes:optima13_d];
 		
 		// Individual
 		[content eidosAppendString:@"\n" attributes:optima8_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.individualObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot_S.individualObjects_count / ddiv, mem_last_S.individualObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Individual objects (%0.2f / %lld)\n", mem_tot_S.individualObjects_count / ddiv, (long long int)mem_last_S.individualObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.individualUnusedPoolSpace / div total:average_total attributes:menlo11_d]];
@@ -2236,7 +2236,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.interactionTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_C.interactionTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot_C.interactionTypeObjects_count / ddiv, mem_last_C.interactionTypeObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : InteractionType objects (%0.2f / %lld)\n", mem_tot_C.interactionTypeObjects_count / ddiv, (long long int)mem_last_C.interactionTypeObjects_count] attributes:optima13_d];
 		
 		if (mem_tot_C.interactionTypeObjects_count || mem_last_C.interactionTypeObjects_count)
 		{
@@ -2264,7 +2264,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Mutation objects (%0.2f / %lld)\n", mem_tot_S.mutationObjects_count / ddiv, mem_last_S.mutationObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Mutation objects (%0.2f / %lld)\n", mem_tot_S.mutationObjects_count / ddiv, (long long int)mem_last_S.mutationObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_C.mutationRefcountBuffer / div total:average_total attributes:menlo11_d]];
@@ -2283,7 +2283,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationRunObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : MutationRun objects (%0.2f / %lld)\n", mem_tot_S.mutationRunObjects_count / ddiv, mem_last_S.mutationRunObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationRun objects (%0.2f / %lld)\n", mem_tot_S.mutationRunObjects_count / ddiv, (long long int)mem_last_S.mutationRunObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationRunExternalBuffers / div total:average_total attributes:menlo11_d]];
@@ -2314,14 +2314,14 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.mutationTypeObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.mutationTypeObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : MutationType objects (%0.2f / %lld)\n", mem_tot_S.mutationTypeObjects_count / ddiv, mem_last_S.mutationTypeObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : MutationType objects (%0.2f / %lld)\n", mem_tot_S.mutationTypeObjects_count / ddiv, (long long int)mem_last_S.mutationTypeObjects_count] attributes:optima13_d];
 		
 		// Species
 		[content eidosAppendString:@"\n" attributes:optima8_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.speciesObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.speciesObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Species objects (%0.2f / %lld)\n", mem_tot_S.speciesObjects_count / ddiv, mem_last_S.speciesObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Species objects (%0.2f / %lld)\n", mem_tot_S.speciesObjects_count / ddiv, (long long int)mem_last_S.speciesObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.speciesTreeSeqTables / div total:average_total attributes:menlo11_d]];
@@ -2334,7 +2334,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.subpopulationObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Subpopulation objects (%0.2f / %lld)\n", mem_tot_S.subpopulationObjects_count / ddiv, mem_last_S.subpopulationObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Subpopulation objects (%0.2f / %lld)\n", mem_tot_S.subpopulationObjects_count / ddiv, (long long int)mem_last_S.subpopulationObjects_count] attributes:optima13_d];
 		
 		[content eidosAppendString:@"   " attributes:menlo11_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.subpopulationFitnessCaches / div total:average_total attributes:menlo11_d]];
@@ -2368,7 +2368,7 @@
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_tot_S.substitutionObjects / div total:average_total attributes:menlo11_d]];
 		[content eidosAppendString:@" / " attributes:optima13_d];
 		[content appendAttributedString:[NSAttributedString attributedStringForByteCount:mem_last_S.substitutionObjects total:final_total attributes:menlo11_d]];
-		[content eidosAppendString:[NSString stringWithFormat:@" : Substitution objects (%0.2f / %lld)\n", mem_tot_S.substitutionObjects_count / ddiv, mem_last_S.substitutionObjects_count] attributes:optima13_d];
+		[content eidosAppendString:[NSString stringWithFormat:@" : Substitution objects (%0.2f / %lld)\n", mem_tot_S.substitutionObjects_count / ddiv, (long long int)mem_last_S.substitutionObjects_count] attributes:optima13_d];
 		
 		// Eidos
 		[content eidosAppendString:@"\n" attributes:optima8_d];
@@ -4722,11 +4722,11 @@
 				
 				if (aTableColumn == subpopIDColumn)
 				{
-					return [NSString stringWithFormat:@"p%lld", (int64_t)subpop_id];
+					return [NSString stringWithFormat:@"p%lld", (long long int)subpop_id];
 				}
 				else if (aTableColumn == subpopSizeColumn)
 				{
-					return [NSString stringWithFormat:@"%lld", (int64_t)subpop->parent_subpop_size_];
+					return [NSString stringWithFormat:@"%lld", (long long int)subpop->parent_subpop_size_];
 				}
 				else if (community->ModelType() == SLiMModelType::kModelTypeNonWF)
 				{
@@ -4801,7 +4801,7 @@
 				
 				if (aTableColumn == mutTypeIDColumn)
 				{
-					NSString *idString = [NSString stringWithFormat:@"m%lld", (int64_t)mutTypeID];
+					NSString *idString = [NSString stringWithFormat:@"m%lld", (long long int)mutTypeID];
 					
 					if (community->all_species_.size() > 1)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:mutationType->species_.avatar_.c_str()]];
@@ -4887,7 +4887,7 @@
 				
 				if (aTableColumn == genomicElementTypeIDColumn)
 				{
-					NSString *idString = [NSString stringWithFormat:@"g%lld", (int64_t)genomicElementTypeID];
+					NSString *idString = [NSString stringWithFormat:@"g%lld", (long long int)genomicElementTypeID];
 					
 					if (community->all_species_.size() > 1)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:genomicElementType->species_.avatar_.c_str()]];
@@ -4907,7 +4907,7 @@
 						MutationType *mutType = genomicElementType->mutation_type_ptrs_[mutTypeIndex];
 						double mutTypeFraction = genomicElementType->mutation_fractions_[mutTypeIndex];
 						
-						[paramString appendFormat:@"m%lld=%.3f", (int64_t)mutType->mutation_type_id_, mutTypeFraction];
+						[paramString appendFormat:@"m%lld=%.3f", (long long int)mutType->mutation_type_id_, mutTypeFraction];
 						
 						if (mutTypeIndex < genomicElementType->mutation_fractions_.size() - 1)
 							[paramString appendString:@", "];
@@ -4932,7 +4932,7 @@
 				
 				if (aTableColumn == interactionTypeIDColumn)
 				{
-					NSString *idString = [NSString stringWithFormat:@"i%lld", (int64_t)interactionTypeID];
+					NSString *idString = [NSString stringWithFormat:@"i%lld", (long long int)interactionTypeID];
 					
 					return idString;
 				}
@@ -5002,7 +5002,7 @@
 					else if (block_id == -1)
 						idString = @"—";
 					else
-						idString = [NSString stringWithFormat:@"s%lld", (int64_t)block_id];
+						idString = [NSString stringWithFormat:@"s%lld", (long long int)block_id];
 					
 					if ((community->all_species_.size() > 1) && scriptBlock->species_spec_)
 						idString = [idString stringByAppendingFormat:@" %@", [NSString stringWithUTF8String:scriptBlock->species_spec_->avatar_.c_str()]];
@@ -5018,7 +5018,7 @@
 					else if (scriptBlock->start_tick_ == -1)
 						return @"MIN";
 					else
-						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->start_tick_];
+						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->start_tick_];
 				}
 				else if (aTableColumn == scriptBlocksEndColumn)
 				{
@@ -5027,7 +5027,7 @@
 					else if (scriptBlock->end_tick_ == SLIM_MAX_TICK + 1)
 						return @"MAX";
 					else
-						return [NSString stringWithFormat:@"%lld", (int64_t)scriptBlock->end_tick_];
+						return [NSString stringWithFormat:@"%lld", (long long int)scriptBlock->end_tick_];
 				}
 				else if (aTableColumn == scriptBlocksTypeColumn)
 				{

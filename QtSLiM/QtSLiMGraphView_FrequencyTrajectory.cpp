@@ -147,7 +147,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
             slim_mutationid_t mutationID = mutation->mutation_id_;
             auto history_iter = frequencyHistoryDict_.find(mutationID);
             
-            //NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, mutation->mutation_id_);
+            //NSLog(@"mutation refcount %d has uint16_t value %d, found history %p for id %lld", refcount, value, history, (long long int)mutation->mutation_id_);
             
             if (history_iter != frequencyHistoryDict_.end())
             {
@@ -242,7 +242,7 @@ void QtSLiMGraphView_FrequencyTrajectory::fetchDataForFinishedTick(void)
         frequencyHistoryDict_.erase(history_iter);
     }
     
-    //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (int64_t)[frequencyHistoryDict count], (int64_t)[frequencyHistoryColdStorageLost count], (int64_t)[frequencyHistoryColdStorageFixed count]);
+    //NSLog(@"frequencyHistoryDict has %lld entries, frequencyHistoryColdStorageLost has %lld entries, frequencyHistoryColdStorageFixed has %lld entries", (long long int)[frequencyHistoryDict count], (long long int)[frequencyHistoryColdStorageLost count], (long long int)[frequencyHistoryColdStorageFixed count]);
     
     lastTick_ = community->Tick();
 }

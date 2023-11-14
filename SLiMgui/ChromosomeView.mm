@@ -422,7 +422,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 		if (tickBase >= 1e10)
 			tickLabel = [NSString stringWithFormat:@"%.6e", (double)tickBase];
 		else
-			tickLabel = [NSString stringWithFormat:@"%lld", (int64_t)tickBase];
+			tickLabel = [NSString stringWithFormat:@"%lld", (long long int)tickBase];
 		
 		NSAttributedString *tickAttrLabel = [[NSAttributedString alloc] initWithString:tickLabel attributes:tickAttrs];
 		NSSize tickLabelSize = [tickAttrLabel size];
@@ -1997,7 +1997,7 @@ static const int selectionKnobSize = selectionKnobSizeExtension + selectionKnobS
 	if (selectionBase >= 1e10)
 		[*marker setLabel:[NSString stringWithFormat:@"%.6e", (double)selectionBase]];
 	else
-		[*marker setLabel:[NSString stringWithFormat:@"%lld", (int64_t)selectionBase]];
+		[*marker setLabel:[NSString stringWithFormat:@"%lld", (long long int)selectionBase]];
 	
 	[*marker setTipPoint:tipPoint];
 	[*marker setIsLeftMarker:isLeftMarker];

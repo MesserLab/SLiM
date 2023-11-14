@@ -408,7 +408,7 @@
 	{
 		slim_tick_t fixation_tick = substitution->fixation_tick_;
 		
-		[string appendFormat:@"%lld, ", (int64_t)fixation_tick];
+		[string appendFormat:@"%lld, ", (long long int)fixation_tick];
 	}
 	
 	// Fitness history
@@ -482,7 +482,7 @@
 		{
 			if (history_record_iter.first != -1)
 			{
-				NSString *labelString = [NSString stringWithFormat:@"p%lld", (int64_t)history_record_iter.first];
+				NSString *labelString = [NSString stringWithFormat:@"p%lld", (long long int)history_record_iter.first];
 				
 				[legendKey addObject:@[labelString, [SLiMWindowController whiteContrastingColorForIndex:history_record_iter.first]]];
 			}

@@ -100,7 +100,7 @@
 		}
 		
 		if (usingSubrange)
-			title = [title stringByAppendingFormat:@", positions %lld:%lld", (int64_t)subrangeFirstBase, (int64_t)subrangeLastBase];
+			title = [title stringByAppendingFormat:@", positions %lld:%lld", (long long int)subrangeFirstBase, (long long int)subrangeLastBase];
 		
 		title = [title stringByAppendingFormat:@", tick %d", (int)controller->community->Tick()];
 		
@@ -1693,7 +1693,7 @@ cancelExit:
 	int64_t original_distance = [self lengthOfPath:path withDistances:distances size:genome_count];
 	int64_t best_distance = original_distance;
 	
-	//NSLog(@"2-opt initial length: %lld", best_distance);
+	//NSLog(@"2-opt initial length: %lld", (long long int)best_distance);
 	
 	// Iterate until we can find no 2-opt improvement; this algorithm courtesy of https://en.wikipedia.org/wiki/2-opt
 	int farthest_i = 0;	// for our progress bar
@@ -1754,8 +1754,8 @@ startAgain:
 				
 				best_distance = new_distance;
 				
-				//NSLog(@"Improved path length: %lld (inverted from %d to %d)", best_distance, i, k);
-				//NSLog(@"   checkback: new path length is %lld", [self lengthOfPath:path withDistances:distances size:genome_count]);
+				//NSLog(@"Improved path length: %lld (inverted from %d to %d)", (long long int)best_distance, i, k);
+				//NSLog(@"   checkback: new path length is %lld", (long long int)[self lengthOfPath:path withDistances:distances size:genome_count]);
 				goto startAgain;
 			}
 		}
@@ -1770,7 +1770,7 @@ startAgain:
 			break;
 	}
 	
-	//NSLog(@"Distance changed from %lld to %lld (%.3f%% improvement)", original_distance, best_distance, ((original_distance - best_distance) / (double)original_distance) * 100.0);
+	//NSLog(@"Distance changed from %lld to %lld (%.3f%% improvement)", (long long int)original_distance, (long long int)best_distance, ((original_distance - best_distance) / (double)original_distance) * 100.0);
 }
 
 @end

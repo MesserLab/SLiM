@@ -1144,7 +1144,7 @@
 	{
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
-		NSString *labelString = [NSString stringWithFormat:@"m%lld", (int64_t)mutationType->mutation_type_id_];
+		NSString *labelString = [NSString stringWithFormat:@"m%lld", (long long int)mutationType->mutation_type_id_];
 		
 		[legendKey replaceObjectAtIndex:mutationTypeIndex withObject:@[labelString, [SLiMWindowController blackContrastingColorForIndex:mutationTypeIndex]]];
 	}

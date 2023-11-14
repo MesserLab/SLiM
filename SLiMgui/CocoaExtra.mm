@@ -1145,7 +1145,7 @@ void RGBForSelectionCoeff(double value, float *colorRed, float *colorGreen, floa
 	else if (bytes > 512L)
 		return [NSString stringWithFormat:@"%0.2f KB", bytes / 1024.0];
 	else
-		return [NSString stringWithFormat:@"%lld bytes", bytes];
+		return [NSString stringWithFormat:@"%lld bytes", (long long int)bytes];
 }
 @end
 

@@ -121,7 +121,7 @@
 	[subpopCircle stroke];
 	
 	// label it with the subpopulation ID
-	NSString *popString = [NSString stringWithFormat:@"p%lld", (int64_t)subpopID];
+	NSString *popString = [NSString stringWithFormat:@"p%lld", (long long int)subpopID];
 	double brightness = 0.299 * colorRed + 0.587 * colorGreen + 0.114 * colorBlue;
 	NSDictionary *labelAttrs;
 	double scaling = 1.0;

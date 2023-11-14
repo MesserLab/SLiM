@@ -161,7 +161,7 @@
 		if (!attrs)
 			attrs = [@{NSFontAttributeName : [NSFont fontWithName:[GraphView labelFontName] size:10], NSForegroundColorAttributeName : [NSColor darkGrayColor]} retain];
 		
-		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
+		NSString *labelText = [NSString stringWithFormat:@"%lld – %lld", (long long int)selectionFirstBase, (long long int)selectionLastBase];
 		NSAttributedString *attributedLabel = [[NSMutableAttributedString alloc] initWithString:labelText attributes:attrs];
 		NSSize labelSize = [attributedLabel size];
 		double labelX = interiorRect.origin.x + (interiorRect.size.width - labelSize.width) / 2.0;
@@ -192,7 +192,7 @@
 		slim_position_t selectionFirstBase = chromosome->selectionFirstBase;
 		slim_position_t selectionLastBase = chromosome->selectionLastBase;
 		
-		[string appendFormat:@"# Selected chromosome range: %lld – %lld\n", (int64_t)selectionFirstBase, (int64_t)selectionLastBase];
+		[string appendFormat:@"# Selected chromosome range: %lld – %lld\n", (long long int)selectionFirstBase, (long long int)selectionLastBase];
 	}
 	
 	[string appendString:[self dateline]];
@@ -208,7 +208,7 @@
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
-		[string appendFormat:@"\"m%lld\", ", (int64_t)mutationType->mutation_type_id_];
+		[string appendFormat:@"\"m%lld\", ", (long long int)mutationType->mutation_type_id_];
 		
 		for (int i = 0; i < binCount; ++i)
 		{

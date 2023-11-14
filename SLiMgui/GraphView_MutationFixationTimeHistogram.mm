@@ -142,7 +142,7 @@
 		MutationType *mutationType = (*mutationTypeIter).second;
 		int mutationTypeIndex = mutationType->mutation_type_index_;		// look up the index used for this mutation type in the history info; not necessarily sequential!
 		
-		[string appendFormat:@"\"m%lld\", ", (int64_t)mutationType->mutation_type_id_];
+		[string appendFormat:@"\"m%lld\", ", (long long int)mutationType->mutation_type_id_];
 		
 		for (int i = 0; i < binCount; ++i)
 		{
