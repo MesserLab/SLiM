@@ -7732,12 +7732,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_defineSpatialMap(EidosGlobalStringID 
 		// there is an existing entry under this name; remove it
 		SpatialMap *old_map = map_iter->second;
 		
-		old_map->Release();
 		spatial_maps_.erase(map_iter);
+		old_map->Release();
 	}
 	
-	spatial_map->Retain();
-	spatial_maps_.emplace(map_name, spatial_map);
+	spatial_maps_.emplace(map_name, spatial_map);	// already retained by new SpatialMap(); that is the retain for spatial_maps_
 	
 	return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(spatial_map, gSLiM_SpatialMap_Class));
 }
@@ -7791,8 +7790,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSpatialMap(EidosGlobalStringID 
 		if (map_iter != spatial_maps_.end())
 		{
 			// there is an existing entry under this name; remove it and we're done
-			map_iter->second->Release();
+			SpatialMap *old_map = map_iter->second;
+			
 			spatial_maps_.erase(map_iter);
+			old_map->Release();
+			
 			return gStaticEidosValueVOID;
 		}
 	}
@@ -7809,8 +7811,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_removeSpatialMap(EidosGlobalStringID 
 			
 			if (found_map == map)
 			{
-				map->Release();
 				spatial_maps_.erase(map_iter);
+				map->Release();
+				
 				return gStaticEidosValueVOID;
 			}
 			

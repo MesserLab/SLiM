@@ -4511,8 +4511,7 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 					// General case, getting strengths and doing weighted draws
 					sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
 					
-#ifdef _OPENMP
-					// Under OpenMP, raises can't go past the end of the parallel region
+					// Under OpenMP, raises can't go past the end of the parallel region; handle things the same way when not under OpenMP for simplicity
 					try {
 						FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
 					} catch (...) {
@@ -4520,10 +4519,6 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 						InteractionType::FreeSparseVector(sv);
 						continue;
 					}
-#else
-					// When not under OpenMP, we can just let raises go
-					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// protected from running interaction() callbacks in parallel, above
-#endif
 					
 					uint32_t nnz;
 					const uint32_t *columns;
@@ -4567,13 +4562,25 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			
 			// deferred raises, for OpenMP compatibility
 			if (saw_error_1)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that the receiver is visible in a subpopulation (i.e., not a new juvenile)." << EidosTerminate();
+			}
 			if (saw_error_2)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() requires that all receivers be in the same subpopulation." << EidosTerminate();
+			}
 			if (saw_error_3)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): an exception was caught inside a parallel region." << EidosTerminate();
+			}
 			if (saw_error_4)
+			{
+				free(result_vectors);
 				EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_drawByStrength): drawByStrength() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
+			}
 		}
 		
 		free(result_vectors);
