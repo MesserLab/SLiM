@@ -4328,27 +4328,33 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 			{
 				// Optimized case: fixed interaction strength, no callbacks, so we can do uniform draws using presences only
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kPresences);
-				FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
-				uint32_t nnz;
-				const uint32_t *columns;
 				
-				sv->Presences(&nnz, &columns);
-				
-				if (nnz > 0)
-				{
-					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
-					gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+				try {
+					FillSparseVectorForReceiverPresences(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, /* constraints_active */ true);
+					uint32_t nnz;
+					const uint32_t *columns;
 					
-					result_vec->resize_no_initialize(count);
+					sv->Presences(&nnz, &columns);
 					
-					for (int64_t result_index = 0; result_index < count; ++result_index)
+					if (nnz > 0)
 					{
-						int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
-						uint32_t exerter_index = columns[presence_index];
-						Individual *chosen_individual = exerters[exerter_index];
+						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 						
-						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						result_vec->resize_no_initialize(count);
+						
+						for (int64_t result_index = 0; result_index < count; ++result_index)
+						{
+							int presence_index = Eidos_rng_uniform_int(rng, nnz);	// equal probability for each exerter
+							uint32_t exerter_index = columns[presence_index];
+							Individual *chosen_individual = exerters[exerter_index];
+							
+							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						}
 					}
+				} catch (...) {
+					InteractionType::FreeSparseVector(sv);
+					throw;
 				}
 			}
 			else
@@ -4357,41 +4363,47 @@ EidosValue_SP InteractionType::ExecuteMethod_drawByStrength(EidosGlobalStringID 
 				// BCH 5/14/2023: The call to FillSparseVectorForReceiverStrengths() means we run interaction() callbacks,
 				// so if this code is ever parallelized, it should stay single-threaded when callbacks are enabled.
 				sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-				FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
-				uint32_t nnz;
-				const uint32_t *columns;
-				const sv_value_t *strengths;
-				std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
 				
-				strengths = sv->Strengths(&nnz, &columns);
-				
-				// Total the interaction strengths, and gather a vector of strengths as doubles
-				double total_interaction_strength = 0.0;
-				
-				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				{
-					sv_value_t strength = strengths[col_index];
+				try {
+					FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
+					uint32_t nnz;
+					const uint32_t *columns;
+					const sv_value_t *strengths;
+					std::vector<double> double_strengths;	// needed by DrawByWeights() for gsl_ran_discrete_preproc()
 					
-					total_interaction_strength += strength;
-					double_strengths.emplace_back((double)strength);
-				}
-				
-				// Draw individuals
-				if (total_interaction_strength > 0.0)
-				{
-					std::vector<int> strength_indices;
-					std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+					strengths = sv->Strengths(&nnz, &columns);
 					
-					result_vec->resize_no_initialize(count);
-					DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+					// Total the interaction strengths, and gather a vector of strengths as doubles
+					double total_interaction_strength = 0.0;
 					
-					for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
 					{
-						int strength_index = strength_indices[result_index];
-						Individual *chosen_individual = exerters[columns[strength_index]];
+						sv_value_t strength = strengths[col_index];
 						
-						result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						total_interaction_strength += strength;
+						double_strengths.emplace_back((double)strength);
 					}
+					
+					// Draw individuals
+					if (total_interaction_strength > 0.0)
+					{
+						std::vector<int> strength_indices;
+						std::vector<Individual *> &exerters = exerter_subpop->parent_individuals_;
+						
+						result_vec->resize_no_initialize(count);
+						DrawByWeights((int)count, double_strengths.data(), nnz, total_interaction_strength, strength_indices);
+						
+						for (size_t result_index = 0; result_index < strength_indices.size(); ++result_index)
+						{
+							int strength_index = strength_indices[result_index];
+							Individual *chosen_individual = exerters[columns[strength_index]];
+							
+							result_vec->set_object_element_no_check_NORR(chosen_individual, result_index);
+						}
+					}
+				} catch (...) {
+					InteractionType::FreeSparseVector(sv);
+					throw;
 				}
 			}
 			
@@ -5961,67 +5973,72 @@ EidosValue_SP InteractionType::ExecuteMethod_strength(EidosGlobalStringID p_meth
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
-		uint32_t nnz;
-		const uint32_t *columns;
-		const sv_value_t *strengths;
-		
-		strengths = sv->Strengths(&nnz, &columns);
-		
-		// set up our return value
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(exerters_count);
+		EidosValue_SP result_SP(result_vec);
 		
-		if (exerters_value_NULL)
-		{
-			// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
-			// We initialize the return vector to 0, and fill in non-zero values from the sparse vector
-			double *result_ptr = result_vec->data();
+		try {
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);
+			uint32_t nnz;
+			const uint32_t *columns;
+			const sv_value_t *strengths;
 			
-			EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
+			strengths = sv->Strengths(&nnz, &columns);
 			
-			for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-				*(result_ptr + columns[col_index]) = strengths[col_index];
-		}
-		else
-		{
-			// Otherwise, receiver is singleton, and exerters_value is any length, so we loop over exerters
-			// Each individual in exerters_value requires a linear search through the sparse vector, unfortunately
-			// FIXME we could just calculate the strength to each exerter directly, without the sparse array,
-			// which would allow us to avoid this O(N^2) behavior
-			for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
+			if (exerters_value_NULL)
 			{
-				Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
+				// NULL means return distances from individuals1 (which must be singleton) to all individuals in the subpopulation
+				// We initialize the return vector to 0, and fill in non-zero values from the sparse vector
+				double *result_ptr = result_vec->data();
 				
-				// SPECIES CONSISTENCY CHECK
-				if (exerter_subpop != exerter->subpopulation_)
-				{
-					InteractionType::FreeSparseVector(sv);
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all exerters be in the same subpopulation." << EidosTerminate();
-				}
-				
-				slim_popsize_t exerter_index_in_subpop = exerter->index_;
-				
-				if (exerter_index_in_subpop < 0)
-				{
-					InteractionType::FreeSparseVector(sv);
-					EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that exerters are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
-				}
-				
-				double strength = 0;
+				EIDOS_BZERO(result_ptr, exerter_subpop_size * sizeof(double));
 				
 				for (uint32_t col_index = 0; col_index < nnz; ++col_index)
-					if ((slim_popsize_t)columns[col_index] == exerter_index_in_subpop)
-					{
-						strength = strengths[col_index];
-						break;
-					}
-				
-				result_vec->set_float_no_check(strength, exerter_index);
+					*(result_ptr + columns[col_index]) = strengths[col_index];
 			}
+			else
+			{
+				// Otherwise, receiver is singleton, and exerters_value is any length, so we loop over exerters
+				// Each individual in exerters_value requires a linear search through the sparse vector, unfortunately
+				// FIXME we could just calculate the strength to each exerter directly, without the sparse array,
+				// which would allow us to avoid this O(N^2) behavior
+				for (int exerter_index = 0; exerter_index < exerters_count; ++exerter_index)
+				{
+					Individual *exerter = (Individual *)exerters_value->ObjectElementAtIndex(exerter_index, nullptr);
+					
+					// SPECIES CONSISTENCY CHECK
+					if (exerter_subpop != exerter->subpopulation_)
+					{
+						InteractionType::FreeSparseVector(sv);
+						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that all exerters be in the same subpopulation." << EidosTerminate();
+					}
+					
+					slim_popsize_t exerter_index_in_subpop = exerter->index_;
+					
+					if (exerter_index_in_subpop < 0)
+					{
+						InteractionType::FreeSparseVector(sv);
+						EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_strength): strength() requires that exerters are visible in a subpopulation (i.e., not new juveniles)." << EidosTerminate();
+					}
+					
+					double strength = 0;
+					
+					for (uint32_t col_index = 0; col_index < nnz; ++col_index)
+						if ((slim_popsize_t)columns[col_index] == exerter_index_in_subpop)
+						{
+							strength = strengths[col_index];
+							break;
+						}
+					
+					result_vec->set_float_no_check(strength, exerter_index);
+				}
+			}
+		} catch (...) {
+			InteractionType::FreeSparseVector(sv);
+			throw;
 		}
 		
 		InteractionType::FreeSparseVector(sv);
-		return EidosValue_SP(result_vec);
+		return result_SP;
 	}
 	else
 	{
@@ -6225,7 +6242,13 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		
 		double *receiver_position = receiver_subpop_data.positions_ + receiver_index_in_subpop * SLIM_MAX_DIMENSIONALITY;
 		SparseVector *sv = InteractionType::NewSparseVectorForExerterSubpop(exerter_subpop, SparseVectorDataType::kStrengths);
-		FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// singleton case, not parallel
+		
+		try {
+			FillSparseVectorForReceiverStrengths(sv, receiver, receiver_position, exerter_subpop, kd_root_EXERTERS, exerter_subpop_data.evaluation_interaction_callbacks_);		// singleton case, not parallel
+		} catch (...) {
+			InteractionType::FreeSparseVector(sv);
+			throw;
+		}
 		
 		// Get the sparse vector data
 		uint32_t nnz;
@@ -6246,6 +6269,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 	{
 		// Loop over the requested individuals and get the totals
 		EidosValue_Float_vector *result_vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(receivers_count);
+		EidosValue_SP result_SP(result_vec);
 #ifdef _OPENMP
 		bool has_interaction_callbacks = (exerter_subpop_data.evaluation_interaction_callbacks_.size() != 0);
 #endif
@@ -6322,7 +6346,7 @@ EidosValue_SP InteractionType::ExecuteMethod_totalOfNeighborStrengths(EidosGloba
 		if (saw_error_4)
 			EIDOS_TERMINATION << "ERROR (InteractionType::ExecuteMethod_totalOfNeighborStrengths): totalOfNeighborStrengths() tested a tag or tagL constraint, but a receiver's value for that property was not defined (had not been set)." << EidosTerminate();
 		
-		return EidosValue_SP(result_vec);
+		return result_SP;
 	}
 }
 
