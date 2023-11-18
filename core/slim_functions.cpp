@@ -107,7 +107,7 @@ const std::vector<EidosFunctionSignature_CSP> *Community::SLiMFunctionSignatures
 
 // (float$)calcFST(object<Genome> genomes1, object<Genome> genomes2, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcFST = 
-R"({
+R"V0G0N({
 	if ((genomes1.length() == 0) | (genomes2.length() == 0))
 		stop("ERROR (calcFST()): genomes1 and genomes2 must both be non-empty.");
 	if (community.allSpecies.length() > 1)
@@ -150,11 +150,11 @@ R"({
 	H_s = p1_p * (1.0 - p1_p) + p2_p * (1.0 - p2_p);
 	fst = 1.0 - mean(H_s) / mean(H_t);
 	return fst;
-})";
+})V0G0N";
 
 // (float$)calcVA(object<Individual> individuals, io<MutationType>$ mutType)
 const char *gSLiMSourceCode_calcVA = 
-R"({
+R"V0G0N({
 	species = mutType.species;
 	if (community.allSpecies.length() > 1)
 		if (!all(individuals.subpopulation.species == species))
@@ -166,11 +166,11 @@ R"({
 		assert(length(mutType) == 1, "calcVA() mutation type lookup failed");
 	}
 	return var(individuals.sumOfMutationsOfType(mutType));
-})";
+})V0G0N";
 
 // (float$)calcPairHeterozygosity(object<Genome>$ genome1, object<Genome>$ genome2, [Ni$ start = NULL], [Ni$ end = NULL], [l$ infiniteSites = T])
 const char *gSLiMSourceCode_calcPairHeterozygosity = 
-R"({
+R"V0G0N({
 	if (community.allSpecies.length() > 1)
 	{
 		species = unique(c(genome1.individual.subpopulation.species, genome2.individual.subpopulation.species), preserveOrder=F);
@@ -208,11 +208,11 @@ R"({
 		unshared = unique(unshared.position, preserveOrder=F);
 
 	return size(unshared) / length;
-})";
+})V0G0N";
 
 // (float$)calcHeterozygosity(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcHeterozygosity = 
-R"({
+R"V0G0N({
 	if (genomes.length() == 0)
 		stop("ERROR (calcHeterozygosity()): genomes must be non-empty.");
 	if (community.allSpecies.length() > 1)
@@ -251,11 +251,11 @@ R"({
 	p = genomes.mutationFrequenciesInGenomes(muts);
 	heterozygosity = 2 * sum(p * (1 - p)) / length;
 	return heterozygosity;
-})";
+})V0G0N";
 
 // (float$)calcWattersonsTheta(o<Genome> genomes, [No<Mutation> muts = NULL], [Ni$ start = NULL], [Ni$ end = NULL])
 const char *gSLiMSourceCode_calcWattersonsTheta = 
-R"({
+R"V0G0N({
 	if (genomes.length() == 0)
 		stop("ERROR (calcWattersonsTheta()): genomes must be non-empty.");
 	if (community.allSpecies.length() > 1)
@@ -299,11 +299,11 @@ R"({
 	a_n = sum(1 / 1:(n-1));
 	theta = (k / a_n) / (species.chromosome.lastPosition + 1);
 	return theta;
-})";
+})V0G0N";
 
 // (float$)calcInbreedingLoad(object<Genome> genomes, [No<MutationType>$ mutType = NULL])
 const char *gSLiMSourceCode_calcInbreedingLoad = 
-R"({
+R"V0G0N({
 	if (genomes.length() == 0)
 		stop("ERROR (calcInbreedingLoad()): genomes must be non-empty.");
 	if (community.allSpecies.length() > 1)
@@ -350,7 +350,7 @@ R"({
 	// calculate number of haploid lethal equivalents (B or inbreeding load)
 	// this equation is from Morton et al. 1956
 	return (sum(q*s) - sum(q^2*s) - 2*sum(q*(1-q)*s*h));
-})";
+})V0G0N";
 
 
 // ************************************************************************************

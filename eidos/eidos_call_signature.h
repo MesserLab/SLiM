@@ -233,14 +233,14 @@ public:
 	// Constructors for functions written in C++
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask);
 	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class);
-	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name);
-	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, std::string p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class, std::string p_delegate_name);
 	
 	// Constructors for functions written in Eidos
 	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask);
 	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class);
-	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const std::string &p_delegate_name);
-	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, std::string p_delegate_name);
+	EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class, std::string p_delegate_name);
 	void ProcessEidosScript(const std::string &p_script_string);
 	
 	virtual std::string CallType(void) const override;

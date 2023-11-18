@@ -51,6 +51,23 @@
 
 cmake_minimum_required (VERSION 2.8.12 FATAL_ERROR)
 
+
+# clang-tidy support (for internal development); must come before the project() line
+# note that the hard-coded paths below will need to be fixed for other platforms
+option(TIDY "Run clang-tidy on SLiM (for development)" OFF)
+
+if(TIDY)
+	cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+	message(STATUS "TIDY is ${TIDY}; building with clang-tidy (for development)")
+	set(CMAKE_C_COMPILER "/opt/local/libexec/llvm-17/bin/clang")
+	set(CMAKE_CXX_COMPILER "/opt/local/libexec/llvm-17/bin/clang++")
+	find_program(CLANG_TIDY_EXE NAMES "clang-tidy" PATHS "/opt/local/libexec/llvm-17/bin/" NO_DEFAULT_PATH REQUIRED)
+	set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "-checks=-*,modernize-*,-modernize-redundant-void-arg,-modernize-use-trailing-return-type,-modernize-use-auto,-modernize-avoid-c-arrays,-modernize-use-equals-default,-modernize-deprecated-headers,-modernize-use-nullptr,-modernize-return-braced-init-list,bugprone-*,-bugprone-narrowing-conversions,-bugprone-easily-swappable-parameters,performance-*,-performance-avoid-endl")
+	message(STATUS "+++ clang-tidy is at ${CLANG_TIDY_EXE}")
+	message(STATUS "+++ CLANG_TIDY_COMMAND is ${CLANG_TIDY_COMMAND}")
+endif()
+
+
 project(SLiM)
 if(WIN32)
     include(ExternalProject)
@@ -376,6 +393,11 @@ if(BUILD_SLIMGUI)
 	endif()
 endif(BUILD_SLIMGUI)
 
+# implement clang-tidy
+if(TIDY)
+	set_target_properties(eidos PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+	set_target_properties(slim PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+endif()
 
 
 

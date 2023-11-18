@@ -97,7 +97,7 @@ class EidosPropertySignature;
 @end
 
 
-extern std::string Eidos_Beep_MACOS(std::string p_sound_name);
+extern std::string Eidos_Beep_MACOS(const std::string &p_sound_name);
 
 
 

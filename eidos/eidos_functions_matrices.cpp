@@ -129,10 +129,15 @@ EidosValue_SP Eidos_ExecuteFunction_apply(const std::vector<EidosValue_SP> &p_ar
 		std::vector<std::vector<int64_t>> inclusion_indices;	// the chosen indices for each dimension
 		std::vector<int> inclusion_counts;						// the number of chosen indices for each dimension
 		
+		inclusion_indices.reserve(x_dimcount);
+		inclusion_counts.reserve(x_dimcount);
+		
 		for (int subset_index = 0; subset_index < x_dimcount; ++subset_index)
 		{
 			int dim_size = (int)x_dim[subset_index];
 			std::vector<int64_t> indices;
+			
+			indices.reserve(dim_size);
 			
 			for (int dim_index = 0; dim_index < dim_size; ++dim_index)
 				indices.emplace_back(dim_index);
@@ -385,7 +390,7 @@ EidosValue_SP Eidos_ExecuteFunction_cbind(const std::vector<EidosValue_SP> &p_ar
 	
 	switch (result_type)
 	{
-		case EidosValueType::kValueVOID:	break;		// never hit
+		case EidosValueType::kValueVOID:	break;		// never hit	// NOLINT(*-branch-clone) : intentional consecutive branches
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;
@@ -903,7 +908,7 @@ EidosValue_SP Eidos_ExecuteFunction_rbind(const std::vector<EidosValue_SP> &p_ar
 	
 	switch (result_type)
 	{
-		case EidosValueType::kValueVOID:	break;		// never hit
+		case EidosValueType::kValueVOID:	break;		// never hit	// NOLINT(*-branch-clone) : intentional consecutive branches
 		case EidosValueType::kValueNULL:	break;		// never hit
 		case EidosValueType::kValueLogical:	result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->reserve(result_length)); break;
 		case EidosValueType::kValueInt:		result_SP = EidosValue_SP((new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->reserve(result_length)); break;

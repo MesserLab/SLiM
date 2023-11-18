@@ -1112,6 +1112,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 				}
 		}
 		
+		// NOLINTBEGIN(*-branch-clone) : intentional branch clones
 		if (containsF1 && containsT1)
 			result_SP = gStaticEidosValue_Logical_ZeroVec;
 		else if (containsT0 && containsF0 && !containsT1 && !containsF1)
@@ -1129,6 +1130,7 @@ EidosValue_SP Eidos_ExecuteFunction_setDifference(const std::vector<EidosValue_S
 			result_SP = gStaticEidosValue_LogicalF;
 		else
 			result_SP = gStaticEidosValue_Logical_ZeroVec;
+		// NOLINTEND(*-branch-clone)
 	}
 	else if ((x_count == 1) && (y_count == 1))
 	{

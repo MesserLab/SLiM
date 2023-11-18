@@ -79,7 +79,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 void Eidos_WarmUp(void);
 
 // This can be called at startup, after Eidos_WarmUp(), to define global constants from the command line
-void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants);
+void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_constants);
 
 
 // This governs whether "Robin Hood Hashing" is used instead of std::unordered_map in key spots, for speed
@@ -257,7 +257,7 @@ size_t Eidos_GetMaxRSS(void);
 // This checks whether our memory usage has gotten within 10 MB of the maximum memory usage, and terminates if so.
 // p_message1 should be the name of the calling function/method; p_message2 can be any clarifying message.
 // It is a good idea to check eidos_do_memory_checks before calling this, to save calling overhead.
-void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2);
+void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &p_message2);
 
 
 // *******************************************************************************************************************
@@ -544,7 +544,7 @@ enum class EidosFileFlush {
 	kForceFlush			// flush, no matter what; not recommended with compression
 };
 
-void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option);
+void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const std::string *> &p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option);
 
 
 // *******************************************************************************************************************

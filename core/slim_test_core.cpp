@@ -695,7 +695,7 @@ void _RunSpeciesTests(std::string temp_path)
 	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
 	// unusually, we do this with custom SLiM scripts that check the API stochastically, since it would be difficult
 	// to test all the possible parameter combinations otherwise; we do a non-nucleotide test and a nucleotide test
-	SLiMAssertScriptSuccess(R"(
+	SLiMAssertScriptSuccess(R"V0G0N(
 	initialize() {
 		initializeMutationRate(1e-2);
 		initializeMutationType('m1', 0.5, 'f', 0.0);
@@ -727,8 +727,8 @@ void _RunSpeciesTests(std::string temp_path)
 			if (!identical(method1,method2)) stop();
 		}
 	}
-	)", __LINE__);
-	SLiMAssertScriptSuccess(R"(
+	)V0G0N", __LINE__);
+	SLiMAssertScriptSuccess(R"V0G0N(
 	initialize() {
 		initializeSLiMOptions(nucleotideBased=T);
 		initializeAncestralNucleotides(randomNucleotides(100));
@@ -763,7 +763,7 @@ void _RunSpeciesTests(std::string temp_path)
 			if (!identical(method1,method2)) stop();
 		}
 	}
-	)", __LINE__);
+	)V0G0N", __LINE__);
 	
 	// Test sim EidosDictionaryUnretained functionality: - (+)getValue(is$ key) and - (void)setValue(is$ key, + value)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.setValue('foo', 7:9); sim.setValue('bar', 'baz'); } 10 early() { if (identical(sim.getValue('foo'), 7:9) & identical(sim.getValue('bar'), 'baz')) stop(); }", __LINE__);

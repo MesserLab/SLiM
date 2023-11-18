@@ -58,7 +58,7 @@ bool EidosPropertySignature::CheckAssignedValue(const EidosValue &p_value) const
 	
 	switch (p_value.Type())
 	{
-		case EidosValueType::kValueVOID:
+		case EidosValueType::kValueVOID:								// NOLINT(*-branch-clone) : intentional consecutive branches
 			value_type_ok = false;	// never OK regardless of retmask
 			break;
 		case EidosValueType::kValueNULL:

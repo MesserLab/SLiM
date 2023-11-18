@@ -94,7 +94,7 @@ void EidosASTNode::_OptimizeConstants(void) const
 		try {
 			cached_literal_value_ = EidosInterpreter::NumericValueForString(token_->token_string_, token_);
 		}
-		catch (...) {
+		catch (...) {		// NOLINT(*-empty-catch) : intentional empty catch
 			// if EidosInterpreter::NumericValueForString() raises, we just don't cache the value
 		}
 	}

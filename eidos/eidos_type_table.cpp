@@ -102,11 +102,11 @@ void EidosTypeTable::SetTypeForSymbol(EidosGlobalStringID p_symbol_name, EidosTy
 		
 		if (existing_symbol_slot_iter == hash_symbols_.end())
 		{
-			hash_symbols_.insert(EidosTypeTableEntry(p_symbol_name, std::move(p_type)));	// could raise, but I've never seen it happen here
+			hash_symbols_.insert(EidosTypeTableEntry(p_symbol_name, p_type));	// could raise, but I've never seen it happen here
 		}
 		else
 		{
-			existing_symbol_slot_iter->second = std::move(p_type);
+			existing_symbol_slot_iter->second = p_type;
 		}
 	}
 }

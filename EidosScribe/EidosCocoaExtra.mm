@@ -484,7 +484,7 @@
 
 // Eidos_Beep() is declared in eidos_beep.h, with a default implementation; in the GUI case (EidosScribe and SLiMgui)
 // it is redefined here, because we want to be able to use Objective-C and Cocoa.
-std::string Eidos_Beep_MACOS(std::string p_sound_name)
+std::string Eidos_Beep_MACOS(const std::string &p_sound_name)
 {
 	NSString *soundName = [NSString stringWithUTF8String:p_sound_name.c_str()];
 	

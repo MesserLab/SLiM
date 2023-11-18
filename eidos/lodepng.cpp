@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 // Also there is one bug fix at line 4951 introduced by me, to generate an error for RGB->grayscale
 // following what the documentation and the error codes seem to indicate should occur.
 // All such changes are marked with BCH.  This code is based on a git clone from 8 Oct. 2020.
+// NOLINTBEGIN : lodepng has lots of linting problems, which are within a somebody else's problem field
 
 /*
 The manual and changelog are in the header file "lodepng.h"
@@ -6431,3 +6432,4 @@ unsigned encode(const std::string& filename,
 // BCH 8 Oct. 2020 : terminating diagnostic pushes to avoid warnings
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
+// NOLINTEND

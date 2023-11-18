@@ -307,7 +307,7 @@ std::string EidosDictionaryUnretained::Serialization_SLiM(void) const
 	return ss.str();
 }
 
-EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(std::string p_delimiter) const
+EidosValue_SP EidosDictionaryUnretained::Serialization_CSV(const std::string &p_delimiter) const
 {
 	if (!state_ptr_)
 		return gStaticEidosValue_StringEmpty;
@@ -1423,7 +1423,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_Accelerated_setValue(Eido
 {
 #pragma unused (p_method_id, p_arguments, p_interpreter)
 	EidosValue *key_value = p_arguments[0].get();
-	EidosValue_SP value = p_arguments[1];
+	const EidosValue_SP &value = p_arguments[1];
 	
 	for (size_t element_index = 0; element_index < p_elements_size; ++element_index)
 	{
@@ -1479,7 +1479,7 @@ EidosValue_SP EidosDictionaryUnretained::ExecuteMethod_serialize(EidosGlobalStri
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_serialize): serialize() does not recognize the format \"" << format_name << "\"; it should be \"slim\", \"json\", \"csv\", or \"tsv\"." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::ExecuteMethod_serialize): serialize() does not recognize the format '" << format_name << "'; it should be 'slim', 'json', 'csv', or 'tsv'." << EidosTerminate(nullptr);
 	}
 }
 
@@ -1567,7 +1567,7 @@ void EidosDictionaryRetained::SelfDelete(void)
 	delete this;
 }
 
-void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, std::string p_caller_name, std::string p_constructor_name)
+void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, const std::string &p_caller_name, const std::string &p_constructor_name)
 {
 	if (p_arguments.size() == 0)
 	{
@@ -1618,8 +1618,8 @@ void EidosDictionaryRetained::ConstructFromEidos(const std::vector<EidosValue_SP
 		
 		for (int kv_index = 0; kv_index < kv_count; ++kv_index)
 		{
-			EidosValue *key = p_arguments[kv_index * 2].get();
-			EidosValue_SP value = p_arguments[kv_index * 2 + 1];
+			EidosValue *key = p_arguments[(size_t)kv_index * 2].get();
+			const EidosValue_SP &value = p_arguments[(size_t)kv_index * 2 + 1];
 			
 			if (key->Count() != 1)
 				EIDOS_TERMINATION << "ERROR (" << p_caller_name << "): " << p_constructor_name << " requires that keys be singletons." << EidosTerminate(nullptr);

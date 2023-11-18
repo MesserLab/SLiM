@@ -73,8 +73,8 @@ static size_t Eidos_utf8_utf16width(const unsigned char *string, size_t len)
 #pragma mark EidosScript
 #pragma mark -
 
-EidosScript::EidosScript(const std::string &p_script_string, int32_t p_user_script_line_offset) :
-	script_string_(p_script_string), user_script_line_offset_(p_user_script_line_offset)
+EidosScript::EidosScript(std::string p_script_string, int32_t p_user_script_line_offset) :
+	script_string_(std::move(p_script_string)), user_script_line_offset_(p_user_script_line_offset)
 {
 }
 
@@ -461,7 +461,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						{
 							int chn = (unsigned char)script_string_[token_end];
 							
-							if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop
+							if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop		// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 							{
 								break;
 							}
@@ -508,7 +508,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 							{
 								int chn = (unsigned char)script_string_[token_end + 1];
 								
-								if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop
+								if ((chn & 0x00C0) == 0x00C0)	// start of a new Unicode multi-byte sequence; stop		// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 								{
 									break;
 								}
@@ -556,7 +556,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 						
 						unsigned char chn = (unsigned char)script_string_[token_end + 1];
 						
-						if (chn == (double_quoted ? '"' : '\''))
+						if (chn == (double_quoted ? '"' : '\''))	// NOLINT(*-signed-char-misuse) : using unsigned char to make BYTE_WIDTHS accesses safe
 						{
 							// end of string
 							token_end++;
@@ -648,7 +648,7 @@ void EidosScript::Tokenize(bool p_make_bad_tokens, bool p_keep_nonsignificant)
 					{
 						int chn = (unsigned char)script_string_[token_end];
 						
-						if ((chn & 0x00C0) == 0x00C0)
+						if ((chn & 0x00C0) == 0x00C0)		// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 						{
 							// the two high bits are both set, so this is the beginning of a successive Unicode multi-byte sequence, which we don't want to run into
 							break;
@@ -858,7 +858,7 @@ void EidosScript::Match(EidosTokenType p_token_type, const char *p_context_cstr)
 		{
 			// We give a special error message if the token encountered is an R-style assignment, <-, to help the user understand
 			if (current_token_->token_type_ == EidosTokenType::kTokenAssign_R)
-				EIDOS_TERMINATION << "ERROR (EidosScript::Match): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like \"a = b;\".  For comparison to a negative quantity, use spaces to fix the tokenization, like \"a < -b;\"." << EidosTerminate(current_token_);
+				EIDOS_TERMINATION << R"V0G0N(ERROR (EidosScript::Match): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like "a = b;".  For comparison to a negative quantity, use spaces to fix the tokenization, like "a < -b;".)V0G0N" << EidosTerminate(current_token_);
 			else
 				EIDOS_TERMINATION << "ERROR (EidosScript::Match): unexpected token '" << *current_token_ << "' in " << std::string(p_context_cstr) << "; expected '" << p_token_type << "'." << EidosTerminate(current_token_);
 		}
@@ -2418,7 +2418,7 @@ EidosASTNode *EidosScript::Parse_DefaultValue(void)
 					}
 				}
 			}
-			catch (...)
+			catch (...)		// NOLINT(*-empty-catch) : intentional empty catch
 			{
 				// negated_value remains nullptr; no need to do anything else here
 			}

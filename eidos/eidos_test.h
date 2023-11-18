@@ -55,7 +55,7 @@ int RunEidosTests(void);
 
 
 // Helper functions for testing
-extern void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result);
+extern void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosValue_SP &p_correct_result);
 extern void EidosAssertScriptSuccess_VOID(const std::string &p_script_string);
 extern void EidosAssertScriptSuccess_NULL(const std::string &p_script_string);
 extern void EidosAssertScriptSuccess_L(const std::string &p_script_string, eidos_logical_t p_logical);
@@ -121,11 +121,11 @@ extern void _RunFunctionValueInspectionManipulationTests_m_through_r(void);
 extern void _RunFunctionValueInspectionManipulationTests_s_through_z(void);
 extern void _RunStringManipulationTests(void);
 extern void _RunFunctionValueTestingCoercionTests(void);
-extern void _RunFunctionFilesystemTests(std::string temp_path);
+extern void _RunFunctionFilesystemTests(const std::string &temp_path);
 extern void _RunColorManipulationTests(void);
 extern void _RunFunctionMiscTests_apply_sapply(void);
-extern void _RunFunctionMiscTests(std::string temp_path);
-extern void _RunClassTests(std::string temp_path);
+extern void _RunFunctionMiscTests(const std::string &temp_path);
+extern void _RunClassTests(const std::string &temp_path);
 extern void _RunCodeExampleTests(void);
 extern void _RunUserDefinedFunctionTests(void);
 extern void _RunVoidEidosValueTests(void);

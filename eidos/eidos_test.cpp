@@ -51,7 +51,7 @@ static int gEidosTestFailureCount = 0;
 
 
 // Instantiates and runs the script, and prints an error if the result does not match expectations
-void EidosAssertScriptSuccess(const std::string &p_script_string, EidosValue_SP p_correct_result)
+void EidosAssertScriptSuccess(const std::string &p_script_string, const EidosValue_SP &p_correct_result)
 {
 	{
 	EidosScript script(p_script_string, -1);
@@ -1392,6 +1392,7 @@ int RunEidosTests(void)
 void _RunLiteralsIdentifiersAndTokenizationTests(void)
 {
 	// test literals, built-in identifiers, and tokenization
+	// NOLINTBEGIN(*-raw-string-literal) : these strings are fine
 	EidosAssertScriptSuccess_I("3;", 3);
 	EidosAssertScriptSuccess_I("3e2;", 300);
 	EidosAssertScriptSuccess_F("3.1;", 3.1);
@@ -1437,6 +1438,7 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 	EidosAssertScriptRaise("NAN = 5;", 4, "is a constant");
 	EidosAssertScriptRaise("E = 5;", 2, "is a constant");
 	EidosAssertScriptRaise("PI = 5;", 3, "is a constant");
+	// NOLINTEND(*-raw-string-literal)
 	
 	// tests related to the R-style assignment operator, <-, which is explicitly illegal in Eidos to prevent mistakes ("a <- b;" meaning "a < -b;")
 	EidosAssertScriptSuccess_L("x = -9; x < -8;", true);

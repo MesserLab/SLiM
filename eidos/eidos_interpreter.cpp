@@ -926,7 +926,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			for (int64_t range_index = 0; range_index <= second_int - first_int; ++range_index)
 				int_result->set_int_no_check(range_index + first_int, range_index);
 			
-			result_SP = std::move(int_result_SP);
+			result_SP = int_result_SP;
 		}
 		else
 		{
@@ -939,7 +939,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 			for (int64_t range_index = 0; range_index <= first_int - second_int; ++range_index)
 				int_result->set_int_no_check(first_int - range_index, range_index);
 			
-			result_SP = std::move(int_result_SP);
+			result_SP = int_result_SP;
 		}
 	}
 	else
@@ -975,7 +975,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				range_index = next_index;
 			}
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 		else
 		{
@@ -1002,7 +1002,7 @@ EidosValue_SP EidosInterpreter::_Evaluate_RangeExpr_Internal(const EidosASTNode 
 				range_index = next_index;
 			}
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 	}
 	
@@ -1295,7 +1295,7 @@ EidosValue_SP EidosInterpreter::DispatchUserDefinedFunction(const EidosFunctionS
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::DispatchUserDefinedFunction): (internal error) parameter count does not match argument count." << EidosTerminate(nullptr);
 	
 	for (size_t arg_index = 0; arg_index < p_arguments.size(); ++arg_index)
-		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], std::move(p_arguments[arg_index]));
+		new_symbols.SetValueForSymbol(p_function_signature.arg_name_IDs_[arg_index], p_arguments[arg_index]);
 	
 	// Errors in functions should be reported for the function's script, not for the calling script,
 	// if possible.  In the GUI this does not work well, however; there, errors should be
@@ -1537,7 +1537,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Call(const EidosASTNode *p_node)
 		call_identifier_token = second_child_node->token_;
 		
 		EidosGlobalStringID method_id = second_child_node->cached_stringID_;
-		EidosValue_Object_SP method_object = static_pointer_cast<EidosValue_Object>(std::move(first_child_value));	// guaranteed by the Type() call above
+		EidosValue_Object_SP method_object = static_pointer_cast<EidosValue_Object>(first_child_value);	// guaranteed by the Type() call above
 		
 		// Look up the method signature; this could be cached in the tree, probably, since we guarantee that method signatures are unique by name
 		const EidosMethodSignature *method_signature = method_object->Class()->SignatureForMethod(method_id);
@@ -1967,7 +1967,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + second_child_value->StringAtIndex(value_index, operator_token));
 					
-					result_SP = std::move(string_result_SP);
+					result_SP = string_result_SP;
 				}
 				else if (first_child_count == 1)
 				{
@@ -1978,7 +1978,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < second_child_count; ++value_index)
 						string_result->PushString(singleton_string + second_child_value->StringAtIndex(value_index, operator_token));
 					
-					result_SP = std::move(string_result_SP);
+					result_SP = string_result_SP;
 				}
 				else if (second_child_count == 1)
 				{
@@ -1989,7 +1989,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					for (int value_index = 0; value_index < first_child_count; ++value_index)
 						string_result->PushString(first_child_value->StringAtIndex(value_index, operator_token) + singleton_string);
 					
-					result_SP = std::move(string_result_SP);
+					result_SP = string_result_SP;
 				}
 				else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 				{
@@ -2040,7 +2040,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						int_result->set_int_no_check(add_result, value_index);
 					}
 					
-					result_SP = std::move(int_result_SP);
+					result_SP = int_result_SP;
 				}
 			}
 			else if (first_child_count == 1)
@@ -2065,7 +2065,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					int_result->set_int_no_check(add_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 			else if (second_child_count == 1)
 			{
@@ -2089,7 +2089,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 					int_result->set_int_no_check(add_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
@@ -2138,7 +2138,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 							float_result->set_float_no_check(first_child_data[value_index] + second_child_data[value_index], value_index);
 					}
 					
-					result_SP = std::move(float_result_SP);
+					result_SP = float_result_SP;
 				}
 			}
 			else if (first_child_count == 1)
@@ -2162,7 +2162,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						float_result->set_float_no_check(singleton_float + second_child_data[value_index], value_index);
 				}
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 			else if (second_child_count == 1)
 			{
@@ -2185,7 +2185,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Plus(const EidosASTNode *p_node)
 						float_result->set_float_no_check(first_child_data[value_index] + singleton_float, value_index);
 				}
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
@@ -2257,7 +2257,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					int_result->set_int_no_check(subtract_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 		}
 		else
@@ -2275,7 +2275,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 				for (int value_index = 0; value_index < first_child_count; ++value_index)
 					float_result->set_float_no_check(-first_child_data[value_index], value_index);
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 		}
 		
@@ -2343,7 +2343,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						int_result->set_int_no_check(subtract_result, value_index);
 					}
 					
-					result_SP = std::move(int_result_SP);
+					result_SP = int_result_SP;
 				}
 			}
 			else if (first_child_count == 1)
@@ -2368,7 +2368,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					int_result->set_int_no_check(subtract_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 			else if (second_child_count == 1)
 			{
@@ -2392,7 +2392,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 					int_result->set_int_no_check(subtract_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
@@ -2438,7 +2438,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 							float_result->set_float_no_check(first_child_data[value_index] - second_child_data[value_index], value_index);
 					}
 					
-					result_SP = std::move(float_result_SP);
+					result_SP = float_result_SP;
 				}
 			}
 			else if (first_child_count == 1)
@@ -2462,7 +2462,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						float_result->set_float_no_check(singleton_float - second_child_data[value_index], value_index);
 				}
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 			else if (second_child_count == 1)
 			{
@@ -2485,7 +2485,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Minus(const EidosASTNode *p_node)
 						float_result->set_float_no_check(first_child_data[value_index] - singleton_float, value_index);
 				}
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 			else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 			{
@@ -2580,7 +2580,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 					float_result->set_float_no_check(fmod(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 	}
 	else if (first_child_count == 1)
@@ -2604,7 +2604,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 				float_result->set_float_no_check(fmod(singleton_float, second_child_data[value_index]), value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else if (second_child_count == 1)
 	{
@@ -2627,7 +2627,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mod(const EidosASTNode *p_node)
 				float_result->set_float_no_check(fmod(first_child_data[value_index], singleton_float), value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
@@ -2715,7 +2715,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 					int_result->set_int_no_check(multiply_result, value_index);
 				}
 				
-				result_SP = std::move(int_result_SP);
+				result_SP = int_result_SP;
 			}
 		}
 		else
@@ -2754,7 +2754,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 						float_result->set_float_no_check(first_child_data[value_index] * second_child_data[value_index], value_index);
 				}
 				
-				result_SP = std::move(float_result_SP);
+				result_SP = float_result_SP;
 			}
 		}
 	}
@@ -2803,7 +2803,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 				int_result->set_int_no_check(multiply_result, value_index);
 			}
 			
-			result_SP = std::move(int_result_SP);
+			result_SP = int_result_SP;
 		}
 		else if (any_type == EidosValueType::kValueInt)
 		{
@@ -2815,7 +2815,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			for (int value_index = 0; value_index < any_count; ++value_index)
 				float_result->set_float_no_check(any_count_data[value_index] * singleton_float, value_index);
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 		else	// (any_type == EidosValueType::kValueFloat)
 		{
@@ -2827,7 +2827,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Mult(const EidosASTNode *p_node)
 			for (int value_index = 0; value_index < any_count; ++value_index)
 				float_result->set_float_no_check(any_count_data[value_index] * singleton_float, value_index);
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 	}
 	else
@@ -2925,7 +2925,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 					float_result->set_float_no_check(first_child_data[value_index] / (double)second_child_data[value_index], value_index);
 			}
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 	}
 	else if (first_child_count == 1)
@@ -2949,7 +2949,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 				float_result->set_float_no_check(singleton_float / second_child_data[value_index], value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else if (second_child_count == 1)
 	{
@@ -2972,7 +2972,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Div(const EidosASTNode *p_node)
 				float_result->set_float_no_check(first_child_data[value_index] / singleton_float, value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else	// if ((first_child_count != second_child_count) && (first_child_count != 1) && (second_child_count != 1))
 	{
@@ -3102,7 +3102,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 					float_result->set_float_no_check(pow(first_child_data[value_index], second_child_data[value_index]), value_index);
 			}
 			
-			result_SP = std::move(float_result_SP);
+			result_SP = float_result_SP;
 		}
 	}
 	else if (first_child_count == 1)
@@ -3126,7 +3126,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 				float_result->set_float_no_check(pow(singleton_float, second_child_data[value_index]), value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else if (second_child_count == 1)
 	{
@@ -3149,7 +3149,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Exp(const EidosASTNode *p_node)
 				float_result->set_float_no_check(pow(first_child_data[value_index], singleton_float), value_index);
 		}
 		
-		result_SP = std::move(float_result_SP);
+		result_SP = float_result_SP;
 	}
 	else
 	{
@@ -3277,7 +3277,7 @@ EidosValue_SP EidosInterpreter::Evaluate_And(const EidosASTNode *p_node)
 				else if ((child_type == EidosValueType::kValueLogical) && (child_result->UseCount() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
-					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
+					result_SP = static_pointer_cast<EidosValue_Logical>(child_result);
 					result_count = child_count;
 				}
 				else
@@ -3498,7 +3498,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Or(const EidosASTNode *p_node)
 				else if ((child_type == EidosValueType::kValueLogical) && (child_result->UseCount() == 1))
 				{
 					// child_result is a logical EidosValue owned only by us, so we can just take it over as our initial result
-					result_SP = static_pointer_cast<EidosValue_Logical>(std::move(child_result));
+					result_SP = static_pointer_cast<EidosValue_Logical>(child_result);
 					result_count = child_count;
 				}
 				else
@@ -3989,7 +3989,7 @@ EidosValue_SP EidosInterpreter::Evaluate_Assign_R(const EidosASTNode *p_node)
 	// be a parse error caught in EidosScript::Match(), giving an error message similar to the one here.
 	EidosToken *operator_token = p_node->token_;
 	
-	EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_Assign_R): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like \"a = b;\".  For comparison to a negative quantity, use spaces to fix the tokenization, like \"a < -b;\"." << EidosTerminate(operator_token);
+	EIDOS_TERMINATION << R"V0G0N(ERROR (EidosInterpreter::Evaluate_Assign_R): the R-style assignment operator <- is not legal in Eidos.  For assignment, use operator =, like "a = b;".  For comparison to a negative quantity, use spaces to fix the tokenization, like "a < -b;".)V0G0N" << EidosTerminate(operator_token);
 }
 
 EidosValue_SP EidosInterpreter::Evaluate_Eq(const EidosASTNode *p_node)
@@ -5725,7 +5725,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 			EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 			EidosValue_Int_singleton *index_value = index_value_SP.get();
 			
-			global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+			global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 			
 			for (int range_index = 0; range_index < range_count; ++range_index)
 			{
@@ -5812,7 +5812,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Int_singleton_SP index_value_SP = EidosValue_Int_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(0));
 					EidosValue_Int_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -5845,7 +5845,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Float_singleton_SP index_value_SP = EidosValue_Float_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(0));
 					EidosValue_Float_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -5878,7 +5878,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_String_singleton_SP index_value_SP = EidosValue_String_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_String_singleton(gEidosStr_empty_string));
 					EidosValue_String_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -5911,7 +5911,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					EidosValue_Object_singleton_SP index_value_SP = EidosValue_Object_singleton_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(nullptr, ((EidosValue_Object *)range_value.get())->Class()));
 					EidosValue_Object_singleton *index_value = index_value_SP.get();
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -5946,7 +5946,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 					
 					index_value->set_logical_no_check(false, 0);	// initial placeholder
 					
-					global_symbols_->SetValueForSymbolNoCopy(identifier_name, std::move(index_value_SP));
+					global_symbols_->SetValueForSymbolNoCopy(identifier_name, index_value_SP);
 					
 					for (int range_index = 0; range_index < range_count; ++range_index)
 					{
@@ -6242,7 +6242,7 @@ EidosValue_SP EidosInterpreter::Evaluate_FunctionDecl(const EidosASTNode *p_node
 						sig->AddArgWithDefault(param_type.type_mask, param_name, param_type.object_class, std::move(default_value));
 					}
 					
-					used_param_names.emplace_back(std::move(param_name));
+					used_param_names.emplace_back(param_name);
 				}
 			}
 			

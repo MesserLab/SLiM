@@ -589,7 +589,7 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		
 		if (dimcount > static_dim_buffer_size)
 		{
-			static_dim_buffer = (int64_t *)realloc(static_dim_buffer, (dimcount + 1) * sizeof(int64_t));	// +1 so the zero case doesn't result in a zero-size allocation
+			static_dim_buffer = (int64_t *)realloc(static_dim_buffer, (dimcount + 1) * sizeof(int64_t));	// +1 so the zero case doesn't result in a zero-size allocation		// NOLINT(*-realloc-usage) : if realloc fails, it's a fatal error anyway
 			if (!static_dim_buffer)
 				EIDOS_TERMINATION << "ERROR (EidosValue::Subset): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
@@ -1306,14 +1306,14 @@ EidosValue_String_vector::EidosValue_String_vector(const std::vector<std::string
 
 EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const std::string> p_init_list) : EidosValue_String(false)
 {
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.emplace_back(*init_item);
+	for (const auto &init_item : p_init_list)
+		values_.emplace_back(init_item);
 }
 
 EidosValue_String_vector::EidosValue_String_vector(std::initializer_list<const char *> p_init_list) : EidosValue_String(false)
 {
-	for (auto init_item = p_init_list.begin(); init_item != p_init_list.end(); init_item++)
-		values_.emplace_back(*init_item);
+	for (const auto &init_item : p_init_list)
+		values_.emplace_back(init_item);
 }
 
 int EidosValue_String_vector::Count_Virtual(void) const
@@ -2168,7 +2168,7 @@ void EidosValue_Object_vector::PatchPointersByAdding(std::uintptr_t p_pointer_di
 		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
 		std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
 		
-		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);
+		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);				// NOLINT(*-no-int-to-ptr)
 	}
 }
 
@@ -2182,7 +2182,7 @@ void EidosValue_Object_vector::PatchPointersBySubtracting(std::uintptr_t p_point
 		std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(values_[i]);
 		std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
 		
-		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);
+		values_[i] = reinterpret_cast<EidosObject *>(new_element_ptr);				// NOLINT(*-no-int-to-ptr)
 	}
 }
 
@@ -2192,7 +2192,7 @@ void EidosValue_Object_singleton::PatchPointersByAdding(std::uintptr_t p_pointer
 	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
 	std::uintptr_t new_element_ptr = old_element_ptr + p_pointer_difference;
 	
-	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);
+	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);						// NOLINT(*-no-int-to-ptr)
 }
 
 // Provided to SLiM for the Mutation-pointer hack; see EidosValue_Object::EidosValue_Object() for comments
@@ -2201,7 +2201,7 @@ void EidosValue_Object_singleton::PatchPointersBySubtracting(std::uintptr_t p_po
 	std::uintptr_t old_element_ptr = reinterpret_cast<std::uintptr_t>(value_);
 	std::uintptr_t new_element_ptr = old_element_ptr - p_pointer_difference;
 	
-	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);
+	value_ = reinterpret_cast<EidosObject *>(new_element_ptr);						// NOLINT(*-no-int-to-ptr)
 }
 
 void EidosValue_Object::RaiseForClassMismatch(void) const
@@ -2395,8 +2395,8 @@ static bool CompareIntObjectSortPairsDescending(std::pair<int64_t, EidosObject*>
 static bool CompareFloatObjectSortPairsAscending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first < j.first); }
 static bool CompareFloatObjectSortPairsDescending(std::pair<double, EidosObject*> i, std::pair<double, EidosObject*> j)				{ return (i.first > j.first); }
 
-static bool CompareStringObjectSortPairsAscending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)		{ return (i.first < j.first); }
-static bool CompareStringObjectSortPairsDescending(std::pair<std::string, EidosObject*> i, std::pair<std::string, EidosObject*> j)	{ return (i.first > j.first); }
+static bool CompareStringObjectSortPairsAscending(const std::pair<std::string, EidosObject*> &i, const std::pair<std::string, EidosObject*> &j)		{ return (i.first < j.first); }
+static bool CompareStringObjectSortPairsDescending(const std::pair<std::string, EidosObject*> &i, const std::pair<std::string, EidosObject*> &j)	{ return (i.first > j.first); }
 
 void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_ascending)
 {
@@ -2573,12 +2573,12 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			
 			if (class_uses_retain_release_)
 			{
-				for (auto sorted_pair : sortable_pairs)
+				for (const auto &sorted_pair : sortable_pairs)
 					push_object_element_no_check_RR(sorted_pair.second);
 			}
 			else
 			{
-				for (auto sorted_pair : sortable_pairs)
+				for (const auto &sorted_pair : sortable_pairs)
 					push_object_element_no_check_NORR(sorted_pair.second);
 			}
 			

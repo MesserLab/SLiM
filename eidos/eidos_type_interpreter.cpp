@@ -189,6 +189,8 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_FunctionCall_Internal(std
 	// makes it so that any other type-evaluation side effects of arguments will occur correctly; it was always a bit of
 	// an assumption that no such side effects would exist.  Note that TypeEvaluateNode() is safe to call with nullptr,
 	// which is important since p_arguments can contain nullptr for missing/bad arguments.
+	argument_types.reserve(argument_count);
+	
 	for (int argument_index = 0; argument_index < argument_count; ++argument_index)
 		argument_types.emplace_back(TypeEvaluateNode(p_arguments[argument_index]));
 	
@@ -286,6 +288,8 @@ EidosTypeSpecifier EidosTypeInterpreter::_TypeEvaluate_MethodCall_Internal(const
 	// makes it so that any other type-evaluation side effects of arguments will occur correctly; it was always a bit of
 	// an assumption that no such side effects would exist.  Note that TypeEvaluateNode() is safe to call with nullptr,
 	// which is important since p_arguments can contain nullptr for missing/bad arguments.
+	argument_types.reserve(argument_count);
+	
 	for (int argument_index = 0; argument_index < argument_count; ++argument_index)
 		argument_types.emplace_back(TypeEvaluateNode(p_arguments[argument_index]));
 	

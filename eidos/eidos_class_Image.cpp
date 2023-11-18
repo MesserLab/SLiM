@@ -43,7 +43,7 @@
 #pragma mark EidosImage
 #pragma mark -
 
-EidosImage::EidosImage(std::string p_file_path)
+EidosImage::EidosImage(const std::string &p_file_path)
 {
 	if (!Eidos_string_hasSuffix(p_file_path, ".png") && !Eidos_string_hasSuffix(p_file_path, ".PNG"))
 		EIDOS_TERMINATION << "ERROR (EidosImage::EidosImage): only PNG files are supported; a .png or .PNG filename extension must be present" << EidosTerminate(nullptr);

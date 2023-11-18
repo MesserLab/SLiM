@@ -73,7 +73,7 @@ public:
 	// to allow debug points set on specific line numbers in the full script to work; there is now a line offset, used to
 	// translate points in this script into points in the full script.  Pass -1 for scripts that are not based in the
 	// user's full script string (lambdas, etc.).
-	explicit EidosScript(const std::string &p_script_string, int32_t p_user_script_line_offset);
+	explicit EidosScript(std::string p_script_string, int32_t p_user_script_line_offset);
 	
 	virtual ~EidosScript(void);
 	

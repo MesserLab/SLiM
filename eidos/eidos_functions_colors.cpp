@@ -152,7 +152,7 @@ EidosValue_SP Eidos_ExecuteFunction_color2rgb(const std::vector<EidosValue_SP> &
 	}
 	else
 	{
-		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+		EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((size_t)color_count * 3);
 		result_SP = EidosValue_SP(float_result);
 		
 		for (int value_index = 0; value_index < color_count; ++value_index)
@@ -214,7 +214,7 @@ EidosValue_SP Eidos_ExecuteFunction_hsv2rgb(const std::vector<EidosValue_SP> &p_
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_hsv2rgb): in function hsv2rgb(), hsv must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
 	int color_count = hsv_count / 3;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((size_t)color_count * 3);
 	result_SP = EidosValue_SP(float_result);
 	
 	for (int value_index = 0; value_index < color_count; ++value_index)
@@ -368,7 +368,7 @@ EidosValue_SP Eidos_ExecuteFunction_rgb2hsv(const std::vector<EidosValue_SP> &p_
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): in function rgb2hsv(), rgb must contain exactly three elements, or be a matrix with exactly three columns." << EidosTerminate(nullptr);
 	
 	int color_count = rgb_count / 3;
-	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize(color_count * 3);
+	EidosValue_Float_vector *float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector())->resize_no_initialize((size_t)color_count * 3);
 	result_SP = EidosValue_SP(float_result);
 	
 	for (int value_index = 0; value_index < color_count; ++value_index)

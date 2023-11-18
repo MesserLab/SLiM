@@ -344,7 +344,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 		
 		switch (x_type)
 		{
-			case EidosValueType::kValueVOID: break;
+			case EidosValueType::kValueVOID: break;			// NOLINT(*-branch-clone) : intentional consecutive branches
 			case EidosValueType::kValueNULL: break;
 			case EidosValueType::kValueLogical:
 				Eidos_ran_shuffle(main_thread_rng, result->LogicalVector_Mutable()->data(), x_count);
@@ -2167,7 +2167,7 @@ EidosValue_SP Eidos_ExecuteFunction_paste(const std::vector<EidosValue_SP> &p_ar
 		if ((pseudosep == "") || (pseudosep == " ") || (pseudosep == "\t") || (pseudosep == "\n") || (pseudosep == ",") || (pseudosep == ", ") || (pseudosep == " , ") || (pseudosep == ";") || (pseudosep == "; ") || (pseudosep == " ; "))
 		{
 			if (!gEidosSuppressWarnings)
-				p_interpreter.ErrorOutputStream() << "#WARNING (Eidos_ExecuteFunction_paste): function paste() changed its semantics in Eidos 2.5 (SLiM 3.5).  The second argument here is no longer interpreted to be a separator string; if you want those semantics, use 'sep=' to name the second argument, as in 'paste(1:5, sep=\",\");'.  That is the way to regain backward compatibility.  If, on the other hand, you do not intend the second argument here to be a separator string, you can get rid of this warning by appending the second argument using the + operator instead.  For example, you would transform 'x = paste(1:5, \",\");' into 'x = paste(1:5) + \" ,\";'.  You can also use suppressWarnings() to avoid this warning message." << std::endl;
+				p_interpreter.ErrorOutputStream() << R"V0G0N(#WARNING (Eidos_ExecuteFunction_paste): function paste() changed its semantics in Eidos 2.5 (SLiM 3.5).  The second argument here is no longer interpreted to be a separator string; if you want those semantics, use 'sep=' to name the second argument, as in 'paste(1:5, sep=",");'.  That is the way to regain backward compatibility.  If, on the other hand, you do not intend the second argument here to be a separator string, you can get rid of this warning by appending the second argument using the + operator instead.  For example, you would transform 'x = paste(1:5, ",");' into 'x = paste(1:5) + " ,";'.  You can also use suppressWarnings() to avoid this warning message.)V0G0N" << std::endl;
 		}
 	}
 	
@@ -2329,7 +2329,7 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 				const int64_t *int_data = x_value->IntVector()->data();
 				
 				for (int index = 0; index < x_count; ++index)
-					pairs.emplace_back(std::pair<int64_t, size_t>(int_data[index], index));
+					pairs.emplace_back(int_data[index], index);
 				
 				// sort by the original x value; we use a stable sort if needed by the ties method
 				if ((tiesMethod == TiesMethod::kTiesFirst) || (tiesMethod == TiesMethod::kTiesLast))
@@ -2409,7 +2409,7 @@ EidosValue_SP Eidos_ExecuteFunction_rank(const std::vector<EidosValue_SP> &p_arg
 				const double *float_data = x_value->FloatVector()->data();
 				
 				for (int index = 0; index < x_count; ++index)
-					pairs.emplace_back(std::pair<double, size_t>(float_data[index], index));
+					pairs.emplace_back(float_data[index], index);
 				
 				// sort by the original x value; we use a stable sort if needed by the ties method
 				if ((tiesMethod == TiesMethod::kTiesFirst) || (tiesMethod == TiesMethod::kTiesLast))

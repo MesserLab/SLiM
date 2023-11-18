@@ -575,7 +575,7 @@ EidosValue_SP EidosClass::ExecuteClassMethod(EidosGlobalStringID p_method_id, Ei
 	{
 		case gEidosID_propertySignature:	return ExecuteMethod_propertySignature(p_method_id, p_target, p_arguments, p_interpreter);
 		case gEidosID_methodSignature:		return ExecuteMethod_methodSignature(p_method_id, p_target, p_arguments, p_interpreter);
-		case gEidosID_size:					return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_interpreter);
+		case gEidosID_size:					return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_interpreter);		// NOLINT(*-branch-clone) : intentional consecutive branches
 		case gEidosID_length:				return ExecuteMethod_size_length(p_method_id, p_target, p_arguments, p_interpreter);
 			
 		default:

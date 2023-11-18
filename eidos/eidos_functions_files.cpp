@@ -143,7 +143,7 @@ EidosValue_SP Eidos_ExecuteFunction_filesAtPath(const std::vector<EidosValue_SP>
 			std::string filename = ep->d_name;
 			
 			if (fullPaths)
-				filename = base_path + (base_path_ends_in_slash ? "" : "/") + filename;
+				filename = base_path + (base_path_ends_in_slash ? "" : "/") + filename;		// NOLINT(*-inefficient-string-concatenation) : this is fine
 			
 			string_result->PushString(filename);
 		}
@@ -275,6 +275,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 	int contents_count = contents_value->Count();
 	std::vector<const std::string *> contents_buffer;
 	
+	contents_buffer.reserve(contents_count);
+	
 	for (int value_index = 0; value_index < contents_count; ++value_index)
 		contents_buffer.emplace_back(&contents_value->StringRefAtIndex(value_index, nullptr));
 	
@@ -339,7 +341,7 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 	std::string filename = prefix + "XXXXXX" + suffix;
 	std::string file_path_template = Eidos_TemporaryDirectory() + filename;
 	
-	if ((filename.find("~") != std::string::npos) || (filename.find("/") != std::string::npos))
+	if ((filename.find('~') != std::string::npos) || (filename.find('/') != std::string::npos))
 		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_writeTempFile): in function writeTempFile(), prefix and suffix may not contain '~' or '/'; they may specify only a filename." << EidosTerminate(nullptr);
 	
 	// write the contents out; thanks to http://stackoverflow.com/questions/499636/how-to-create-a-stdofstream-to-a-temp-file for the temp file creation code

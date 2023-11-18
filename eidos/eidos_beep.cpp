@@ -27,10 +27,10 @@
 
 
 // The base implementation, defined below
-static std::string Eidos_Beep_BASE(std::string p_sound_name);
+static std::string Eidos_Beep_BASE(const std::string &p_sound_name);
 
 // The function pointer that delivers whatever platform-specific implementation we want to use
-std::string (*Eidos_Beep)(std::string p_sound_name) = &Eidos_Beep_BASE;
+std::string (*Eidos_Beep)(const std::string &p_sound_name) = &Eidos_Beep_BASE;
 
 
 // This code is derived from the code of the beep utility, by Johnathan Nightingale, found at https://github.com/johnath/beep
@@ -49,16 +49,16 @@ std::string (*Eidos_Beep)(std::string p_sound_name) = &Eidos_Beep_BASE;
  *
  */
 
-std::string Eidos_Beep_BASE(std::string p_sound_name)
+std::string Eidos_Beep_BASE(const std::string &p_sound_name)
 {
 #pragma unused (p_sound_name)
 	// Find a device to output to.  The beep utility uses /dev/tty0 or /dev/vc/0, but those do not seem to work on OS X;
 	// I think perhaps this usage of them is a Linux-only thing?  No idea.  The mysteries of Unix.  So on OS X, we fall
 	// through to the printf("\a"), which outputs a \a to the output stream, unfortunately; undesirable but apparently
 	// unavoidable.  We will have to document that using beep() may result in \a characters in the output stream.
-	int console_fd = -1;
+	int console_fd = open("/dev/tty0", O_WRONLY);
 	
-	if ((console_fd = open("/dev/tty0", O_WRONLY)) == -1)
+	if (console_fd == -1)
 		console_fd = open("/dev/vc/0", O_WRONLY);
 	
 	if (console_fd == -1)

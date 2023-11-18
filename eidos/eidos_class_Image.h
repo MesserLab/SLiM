@@ -63,7 +63,7 @@ public:
 	EidosImage(const EidosImage &p_original) = delete;	// no copy-construct
 	EidosImage& operator=(const EidosImage&) = delete;	// no copying
 	
-	explicit EidosImage(std::string p_file_path);
+	explicit EidosImage(const std::string &p_file_path);
 	EidosImage(int64_t p_width, int64_t p_height, bool p_grayscale);
 	virtual ~EidosImage(void) override;
 	

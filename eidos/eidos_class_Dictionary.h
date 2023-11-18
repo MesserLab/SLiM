@@ -164,7 +164,7 @@ public:
 	virtual EidosValue_SP AllKeys(void) const;
 	
 	std::string Serialization_SLiM(void) const;
-	EidosValue_SP Serialization_CSV(std::string p_delimiter) const;
+	EidosValue_SP Serialization_CSV(const std::string &p_delimiter) const;
 	virtual nlohmann::json JSONRepresentation(void) const override;
 	
 	// Non-const methods: callers of these methods must ensure that ContentsChanged() is called!
@@ -281,7 +281,7 @@ public:
 	virtual void SelfDelete(void);
 	
 	// construct from Eidos arguments; shared with DataFrame; the caller must call ContentsChanged()
-	void ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, std::string p_caller_name, std::string p_constructor_name);
+	void ConstructFromEidos(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter, const std::string &p_caller_name, const std::string &p_constructor_name);
 	
 	//
 	// Eidos support

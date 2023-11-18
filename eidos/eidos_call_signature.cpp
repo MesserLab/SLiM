@@ -53,6 +53,7 @@ EidosCallSignature *EidosCallSignature::AddArg(EidosValueMask p_arg_mask, const 
 	return AddArgWithDefault(p_arg_mask, p_argument_name, p_argument_class, EidosValue_SP(nullptr));
 }
 
+//NOLINTNEXTLINE : clang-tidy doesn't like that p_default_value gets copied instead of passed by reference, but I prefer this
 EidosCallSignature *EidosCallSignature::AddArgWithDefault(EidosValueMask p_arg_mask, const std::string &p_argument_name, const EidosClass *p_argument_class, EidosValue_SP p_default_value, bool p_fault_tolerant)
 {
 	bool is_optional = !!(p_arg_mask & kEidosValueMaskOptional);
@@ -584,13 +585,13 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask), internal_function_(p_function_ptr), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, std::string p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask), internal_function_(p_function_ptr), delegate_name_(std::move(p_delegate_name))
 {
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), internal_function_(p_function_ptr), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, EidosInternalFunctionPtr p_function_ptr, EidosValueMask p_return_mask, const EidosClass *p_return_class, std::string p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), internal_function_(p_function_ptr), delegate_name_(std::move(p_delegate_name))
 {
 }
 
@@ -606,14 +607,14 @@ EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_nam
 	ProcessEidosScript(p_script_string);
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, std::string p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask), delegate_name_(std::move(p_delegate_name))
 {
 	ProcessEidosScript(p_script_string);
 }
 
-EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class, const std::string &p_delegate_name)
-	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), delegate_name_(p_delegate_name)
+EidosFunctionSignature::EidosFunctionSignature(const std::string &p_function_name, const std::string &p_script_string, EidosValueMask p_return_mask, const EidosClass *p_return_class, std::string p_delegate_name)
+	: EidosCallSignature(p_function_name, p_return_mask, p_return_class), delegate_name_(std::move(p_delegate_name))
 {
 	ProcessEidosScript(p_script_string);
 }

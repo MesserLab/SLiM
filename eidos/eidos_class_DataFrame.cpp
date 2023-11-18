@@ -465,7 +465,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_asMatrix(EidosGlobalStringID p_metho
 	}
 	else
 	{
-		for (auto symbols_iter : *symbols)
+		for (auto const &symbols_iter : *symbols)
 		{
 			if (!type_template)
 			{
@@ -529,7 +529,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_cbind(EidosGlobalStringID p_method_i
 	// (basic DataFrame requirement).  Three, this method handles multiple adds; source does not have to be a singleton,
 	// and the ellipsis can contain further Dictionary/DataFrame arguments, which also don't have to be singleton.  We
 	// can use AddKeysAndValuesFrom() to do the work for us under the hood.
-	for (EidosValue_SP arg : p_arguments)
+	for (const EidosValue_SP &arg : p_arguments)
 	{
 		int arg_count = arg->Count();
 		
@@ -562,7 +562,7 @@ EidosValue_SP EidosDataFrame::ExecuteMethod_rbind(EidosGlobalStringID p_method_i
 	// (basic DataFrame requirement).  Three, this method handles multiple adds; source does not have to be a singleton,
 	// and the ellipsis can contain further Dictionary/DataFrame arguments, which also don't have to be singleton.  We
 	// can use AppendKeysAndValuesFrom() to do the work for us under the hood.
-	for (EidosValue_SP arg : p_arguments)
+	for (const EidosValue_SP &arg : p_arguments)
 	{
 		int arg_count = arg->Count();
 		
@@ -902,6 +902,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 					ch = *(++line_ptr);
 					
 					// now decide what to do about the next character
+					// NOLINTBEGIN(*-branch-clone) : intentional branch clones
 					if (ch == 0)
 					{
 						// we reached the end of the line, which terminates the element
@@ -928,6 +929,7 @@ static EidosValue_SP Eidos_ExecuteFunction_readCSV(const std::vector<EidosValue_
 						line_ended_without_separator = true;
 						break;
 					}
+					// NOLINTEND(*-branch-clone)
 					
 					// the character is part of the element; let the top of the loop handle it
 				}

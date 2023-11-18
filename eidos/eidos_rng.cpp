@@ -35,7 +35,7 @@ std::vector<Eidos_RNG_State *> gEidos_RNG_PERTHREAD;
 #endif
 
 
-static unsigned long int _Eidos_GenerateRNGSeed(void)
+static unsigned long int _Eidos_GenerateRNGSeed(void)	// NOLINT(*-reserved-identifier) : "_Eidos_" scopes this, so whatever
 {
 #ifdef _WIN32
 	// on Windows, we continue to hash together the PID and the time; I think there is a

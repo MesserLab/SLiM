@@ -34,6 +34,16 @@ cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-p
 	cd /Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM 
 	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
 
+clang-tidy with CMake:
+	see https://danielsieger.com/blog/2021/12/21/clang-tidy-cmake.html
+	install a good version of clang first: sudo port install clang-17 if you use MacPorts
+	find where clang-tidy is living: port contents clang-17 (for me it is at /opt/local/libexec/llvm-17/bin/clang-tidy)
+	similarly locate clang and clang++ (for me, /opt/local/libexec/llvm-17/bin/clang and /opt/local/libexec/llvm-17/bin/clang++)
+	fix the CMakeLists.txt file to have the correct paths for these things (in the section near the top, "if(TIDY)")
+	make a build directory for SLiM with mkdir, and cd to it
+	cmake -D TIDY=ON path-to-SLiM-repo
+	make eidos / make slim
+
 CR/LF issues:
 	file -e soft <file> tells you what a file is (-e soft turns off "magic", which misdiagnoses SLiM files)
 	tab2space -lf <file> converts a file to Unix-style LF only

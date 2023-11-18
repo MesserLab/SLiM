@@ -99,7 +99,7 @@
 #endif
 
 
-static std::string Eidos_Beep_QT(std::string p_sound_name);
+static std::string Eidos_Beep_QT(const std::string &p_sound_name);
 
 
 QtSLiMAppDelegate *qtSLiMAppDelegate = nullptr;
@@ -1837,7 +1837,7 @@ QWidget *QtSLiMAppDelegate::activeWindowExcluding(QWidget *excluded)
 
 // This is declared in eidos_beep.h, but in QtSLiM it is actually defined here,
 // so that we can produce the beep sound with Qt
-std::string Eidos_Beep_QT(std::string __attribute__((__unused__)) p_sound_name)
+std::string Eidos_Beep_QT(const std::string &__attribute__((__unused__)) p_sound_name)
 {
     std::string return_string;
     

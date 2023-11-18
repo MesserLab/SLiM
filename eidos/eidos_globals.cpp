@@ -1291,14 +1291,14 @@ EidosValue_SP Eidos_ValueForCommandLineExpression(std::string &p_value_expressio
 	return value;
 }
 
-void Eidos_DefineConstantsFromCommandLine(std::vector<std::string> p_constants)
+void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_constants)
 {
 	// We want to throw exceptions, even in SLiM, so that we can catch them here
 	bool save_throws = gEidosTerminateThrows;
 	
 	gEidosTerminateThrows = true;
 	
-	for (std::string &constant : p_constants)
+	for (const std::string &constant : p_constants)
 	{
 		// Each constant must be in the form x=y, where x is a valid identifier and y is a valid Eidos expression.
 		// We parse the assignment using EidosScript, and work with the resulting AST, for generality.
@@ -2075,7 +2075,7 @@ size_t Eidos_GetMaxRSS(void)
 	return max_rss;
 }
 
-void Eidos_CheckRSSAgainstMax(std::string p_message1, std::string p_message2)
+void Eidos_CheckRSSAgainstMax(const std::string &p_message1, const std::string &p_message2)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_CheckRSSAgainstMax():  usage of statics");
 	
@@ -2150,9 +2150,9 @@ std::string Eidos_ResolvedPath(const std::string &p_path)
 		if (bufsize == -1)
 		{
 			// non-reentrant code when we can't get a buffer size
-			const char *homedir;
+			const char *homedir = getenv("HOME");
 			
-			if ((homedir = getenv("HOME")) == NULL)
+			if (homedir == NULL)
 				homedir = getpwuid(getuid())->pw_dir;
 			
 			if (strlen(homedir))
@@ -2433,7 +2433,7 @@ int Eidos_mkstemps(char *p_pattern, int p_suffix_len)
 	static uint64_t value;
 	size_t len = strlen(p_pattern);
 	
-	if (((int)len < 6 + p_suffix_len) || strncmp(&p_pattern[len - 6 - p_suffix_len], "XXXXXX", 6))
+	if (((int)len < 6 + p_suffix_len) || (strncmp(&p_pattern[len - 6 - p_suffix_len], "XXXXXX", 6) != 0))
 		return -1;
 	
 	char *XXXXXX = &p_pattern[len - 6 - p_suffix_len];
@@ -2487,7 +2487,7 @@ int Eidos_mkstemps_directory(char *p_pattern, int p_suffix_len)
 	static uint64_t value;
 	size_t len = strlen(p_pattern);
 	
-	if (((int)len < 6 + p_suffix_len) || strncmp(&p_pattern[len - 6 - p_suffix_len], "XXXXXX", 6))
+	if (((int)len < 6 + p_suffix_len) || (strncmp(&p_pattern[len - 6 - p_suffix_len], "XXXXXX", 6) != 0))
 		return -1;
 	
 	char *XXXXXX = &p_pattern[len - 6 - p_suffix_len];
@@ -2616,7 +2616,7 @@ void Eidos_FlushFiles(void)
 #endif
 }
 
-void Eidos_WriteToFile(const std::string &p_file_path, std::vector<const std::string *> p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)
+void Eidos_WriteToFile(const std::string &p_file_path, const std::vector<const std::string *> &p_contents, bool p_append, bool p_compress, EidosFileFlush p_flush_option)
 {
 	THREAD_SAFETY_IN_ACTIVE_PARALLEL("Eidos_WriteToFile():  filesystem write");
 	
@@ -3037,7 +3037,7 @@ double Eidos_ExactSum(const double *p_double_vec, int64_t p_vec_length)
 				if (n >= m)
 				{
 					m = m * 2;
-					p = (double *)realloc(p, m * sizeof(double));
+					p = (double *)realloc(p, m * sizeof(double));	// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 					if (!p)
 						EIDOS_TERMINATION << "ERROR (Eidos_ExactSum): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				}
@@ -3318,7 +3318,7 @@ std::string EidosStringForFloat(double p_value)
 		// since it increases clarity and consistency.  So now we look for a decimal point in the float,
 		// and if there is none, we append ".0".  We also need to worry about scientific notation; if there
 		// is an "e" or "E", we insert the ".0" just before that to produce 1.0e30 rather than 1e30.
-		if (string_value.find(".") == std::string::npos)
+		if (string_value.find('.') == std::string::npos)
 		{
 			size_t e_pos = string_value.find_first_of("eE");
 			
