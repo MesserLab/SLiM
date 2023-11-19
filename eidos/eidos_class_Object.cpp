@@ -620,7 +620,7 @@ EidosValue_SP EidosClass::ExecuteMethod_propertySignature(EidosGlobalStringID p_
 	}
 	
 	if (has_match_string && !signature_found)
-		output_stream << "No property found for \"" << match_string << "\"." << std::endl;
+		output_stream << "No property found for '" << match_string << "'." << std::endl;
 	
 	return gStaticEidosValueVOID;
 }
@@ -669,7 +669,7 @@ EidosValue_SP EidosClass::ExecuteMethod_methodSignature(EidosGlobalStringID p_me
 	}
 	
 	if (has_match_string && !signature_found)
-		output_stream << "No method signature found for \"" << match_string << "\"." << std::endl;
+		output_stream << "No method signature found for '" << match_string << "'." << std::endl;
 	
 	return gStaticEidosValueVOID;
 }

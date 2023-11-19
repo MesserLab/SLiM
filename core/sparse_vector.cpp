@@ -79,7 +79,7 @@ void SparseVector::ResizeToFitMaxNNZ(uint32_t max_nnz)
 		values_ = (sv_value_t *)realloc(values_, nnz_capacity_ * sizeof(sv_value_t));
 		
 		if (!columns_ || !values_)
-			EIDOS_TERMINATION << "ERROR (SparseVector::_ResizeToFitNNZ): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (SparseVector::ResizeToFitMaxNNZ): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 	}
 }
 

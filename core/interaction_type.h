@@ -121,8 +121,8 @@ struct _InteractionsData
 	
 	_InteractionsData(const _InteractionsData&) = delete;					// no copying
 	_InteractionsData& operator=(const _InteractionsData&) = delete;		// no copying
-	_InteractionsData(_InteractionsData&&);									// move constructor, for std::map compatibility
-	_InteractionsData& operator=(_InteractionsData&&);						// move assignment, for std::map compatibility
+	_InteractionsData(_InteractionsData&&) noexcept;						// move constructor, for std::map compatibility
+	_InteractionsData& operator=(_InteractionsData&&) noexcept;				// move assignment, for std::map compatibility
 	_InteractionsData(void);												// null construction, for std::map compatibility
 	
 	_InteractionsData(slim_popsize_t p_individual_count, slim_popsize_t p_first_male_index);

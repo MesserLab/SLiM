@@ -179,7 +179,7 @@ static void test_exit(int test_result)
 	exit(test_result);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[])	// FIXME: clang-tidy flags this with bugprone-exception-escape, which is probably true
 {
 	// parse command-line arguments
 	unsigned long int override_seed = 0;					// this is the type used for seeds in the GSL
@@ -553,7 +553,10 @@ int main(int argc, char *argv[])
 		mem_record_capacity = 16384;
 		mem_record = (size_t *)malloc(mem_record_capacity * sizeof(size_t));
 		if (!mem_record)
-			EIDOS_TERMINATION << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+		{
+			SLIM_OUTSTREAM << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << std::endl;
+			exit(EXIT_FAILURE);
+		}
 	}
 	
 	if (keep_mem)
@@ -584,19 +587,26 @@ int main(int argc, char *argv[])
 			FILE *fp = fopen(input_file, "r");
 			
 			if (!fp)
-				EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+			{
+				SLIM_OUTSTREAM << std::endl << "ERROR (main): could not open input file: " << input_file << "." << std::endl;
+				exit(EXIT_FAILURE);
+			}
 			
 			struct stat fileInfo;
 			int retval = fstat(fileno(fp), &fileInfo);
 			
 			if (retval != 0)
-				EIDOS_TERMINATION << std::endl << "ERROR (main): could not access input file: " << input_file << "." << EidosTerminate();
+			{
+				SLIM_OUTSTREAM << std::endl << "ERROR (main): could not access input file: " << input_file << "." << std::endl;
+				exit(EXIT_FAILURE);
+			}
 			
 			// BCH 30 March 2020: adding S_ISFIFO() as a permitted file type here, to re-enable redirection of input
 			if (!S_ISREG(fileInfo.st_mode) && !S_ISFIFO(fileInfo.st_mode))
 			{
 				fclose(fp);
-				EIDOS_TERMINATION << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << EidosTerminate();
+				SLIM_OUTSTREAM << std::endl << "ERROR (main): input file " << input_file << " is not a regular file (it might be a directory or other special file)." << std::endl;
+				exit(EXIT_FAILURE);
 			}
 			fclose(fp);
 		}
@@ -605,7 +615,10 @@ int main(int argc, char *argv[])
 		std::ifstream infile(input_file);
 		
 		if (!infile.is_open())
-			EIDOS_TERMINATION << std::endl << "ERROR (main): could not open input file: " << input_file << "." << EidosTerminate();
+		{
+			SLIM_OUTSTREAM << std::endl << "ERROR (main): could not open input file: " << input_file << "." << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		
 		community = new Community();
 		community->InitializeFromFile(infile);
@@ -695,9 +708,12 @@ int main(int argc, char *argv[])
 				if (mem_record_index == mem_record_capacity)
 				{
 					mem_record_capacity <<= 1;
-					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));
+					mem_record = (size_t *)realloc(mem_record, mem_record_capacity * sizeof(size_t));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 					if (!mem_record)
-						EIDOS_TERMINATION << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate();
+					{
+						SLIM_OUTSTREAM << std::endl << "ERROR (main): allocation failed; you may need to raise the memory limit for SLiM." << std::endl;
+						exit(EXIT_FAILURE);
+					}
 				}
 				
 				mem_record[mem_record_index++] = Eidos_GetCurrentRSS() - mem_record_capacity * sizeof(size_t);

@@ -139,7 +139,7 @@ EidosValue *GenomicElement::GetProperty_Accelerated_tag(EidosObject **p_values, 
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (GenomicElement::GetProperty): property tag accessed on genomic element before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (GenomicElement::GetProperty_Accelerated_tag): property tag accessed on genomic element before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}

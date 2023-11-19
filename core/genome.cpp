@@ -849,7 +849,7 @@ EidosValue_SP Genome::ExecuteMethod_Accelerated_countOfMutationsOfType(EidosObje
 	}
 	
 	if (saw_error)
-		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Genome::ExecuteMethod_Accelerated_countOfMutationsOfType): countOfMutationsOfType() cannot be called on a null genome." << EidosTerminate();
 	
 	return EidosValue_SP(integer_result);
 }
@@ -1136,7 +1136,7 @@ EidosValue_SP Genome::ExecuteMethod_nucleotides(EidosGlobalStringID p_method_id,
 				int8_t nuc = mut->nucleotide_;
 				
 				if (nuc != -1)
-					int_vec[pos-start] = nuc;
+					int_vec[pos-start] = (int)nuc;
 				
 				walker.NextMutation();
 			}
@@ -1491,8 +1491,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 	
 	for (slim_popsize_t s = 0; s < sample_size; s++)
 	{
-		Genome &genome1 = *p_genomes[s * 2];
-		Genome &genome2 = *p_genomes[s * 2 + 1];
+		Genome &genome1 = *p_genomes[(size_t)s * 2];
+		Genome &genome2 = *p_genomes[(size_t)s * 2 + 1];
 		
 		if (!genome1.IsNull())
 		{
@@ -1651,7 +1651,7 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				
 				for (Polymorphism *polymorphism : nuc_based)
 				{
-					int derived_nuc_index = polymorphism->mutation_ptr_->nucleotide_;
+					int derived_nuc_index = (unsigned char)polymorphism->mutation_ptr_->nucleotide_;
 					
 					if (derived_nuc_index != ancestral_nuc_index)
 						total_prevalence[derived_nuc_index] += polymorphism->prevalence_;
@@ -1697,15 +1697,15 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					// emit the INFO fields and the Genotype marker; note mutation-specific fields are omitted since we are aggregating
 					p_out << "AC=";
 					firstEmitted = true;
-					for (int nuc_index=0; nuc_index < 4; ++nuc_index)
+					for (int nuc_prevalence : total_prevalence)
 					{
-						if (total_prevalence[nuc_index] > 0)
+						if (nuc_prevalence > 0)
 						{
 							if (!firstEmitted)
 								p_out << ',';
 							firstEmitted = false;
 							
-							p_out << total_prevalence[nuc_index];
+							p_out << nuc_prevalence;
 						}
 					}
 					p_out << ";DP=1000;";
@@ -1716,8 +1716,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					// emit the individual calls
 					for (slim_popsize_t s = 0; s < sample_size; s++)
 					{
-						Genome &g1 = *p_genomes[s * 2];
-						Genome &g2 = *p_genomes[s * 2 + 1];
+						Genome &g1 = *p_genomes[(size_t)s * 2];
+						Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
 						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 						
 						if (g1_null && g2_null)
@@ -1858,8 +1858,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 				// emit the individual calls
 				for (slim_popsize_t s = 0; s < sample_size; s++)
 				{
-					Genome &g1 = *p_genomes[s * 2];
-					Genome &g2 = *p_genomes[s * 2 + 1];
+					Genome &g1 = *p_genomes[(size_t)s * 2];
+					Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
 					bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 					
 					if (g1_null && g2_null)
@@ -1948,8 +1948,8 @@ void Genome::PrintGenomes_VCF(std::ostream &p_out, std::vector<Genome *> &p_geno
 					// emit the individual calls
 					for (slim_popsize_t s = 0; s < sample_size; s++)
 					{
-						Genome &g1 = *p_genomes[s * 2];
-						Genome &g2 = *p_genomes[s * 2 + 1];
+						Genome &g1 = *p_genomes[(size_t)s * 2];
+						Genome &g2 = *p_genomes[(size_t)s * 2 + 1];
 						bool g1_null = g1.IsNull(), g2_null = g2.IsNull();
 						
 						if (g1_null && g2_null)
@@ -2548,7 +2548,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 		{
 			for (int nucleotide_index = 0; nucleotide_index < nucleotide_count; ++nucleotide_index)
 			{
-				uint8_t nuc = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0])];
+				uint8_t nuc = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex(nucleotide_index, nullptr)[0])];
 				
 				if (nuc > 3)
 					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_addNewMutation): " << method_name << " requires string nucleotide values to be 'A', 'C', 'G', or 'T'." << EidosTerminate();
@@ -2645,7 +2645,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 	else if (arg_nucleotide->Type() == EidosValueType::kValueInt)
 		singleton_nucleotide = arg_nucleotide->IntAtIndex(0, nullptr);
 	else
-		singleton_nucleotide = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(0, nullptr)[0])];
+		singleton_nucleotide = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex(0, nullptr)[0])];
 	
 	// ok, now loop to add the mutations in a single bulk operation per mutation run
 	bool recording_tree_sequence_mutations = species->RecordingTreeSequenceMutations();
@@ -2703,7 +2703,7 @@ EidosValue_SP Genome_Class::ExecuteMethod_addNewMutation(EidosGlobalStringID p_m
 					if (arg_nucleotide->Type() == EidosValueType::kValueInt)
 						nucleotide = arg_nucleotide->IntAtIndex(mut_parameter_index, nullptr);
 					else
-						nucleotide = nucleotide_lookup[(int)(arg_nucleotide->StringAtIndex(mut_parameter_index, nullptr)[0])];
+						nucleotide = nucleotide_lookup[(unsigned char)(arg_nucleotide->StringAtIndex(mut_parameter_index, nullptr)[0])];
 				}
 				
 				MutationIndex new_mut_index = SLiM_NewMutationFromBlock();
@@ -2966,6 +2966,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_outputX(EidosGlobalStringID p_method_i
 				case gID_outputVCF:
 					Genome::PrintGenomes_VCF(outfile, genomes, output_multiallelics, simplify_nucs, output_nonnucs, species->IsNucleotideBased(), chromosome.AncestralSequence());
 					break;
+				default:
+					EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_outputX): (internal error) unhandled case." << EidosTerminate();
 			}
 			
 			outfile.close(); 
@@ -3114,6 +3116,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromMS(EidosGlobalStringID p_metho
 				calls.emplace_back(line);
 				break;
 			}
+			default:
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromMS): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
@@ -3305,13 +3309,13 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 					iss.get();	// eat the initial #
 					
 					// verify that the expected standard columns are present
-					for (int header_index = 0; header_index < 9; ++header_index)
+					for (const char *header_field : header_fields)
 					{
 						if (iss.eof())
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_fields[header_index] << "'." << EidosTerminate();
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): missing VCF header '" << header_field << "'." << EidosTerminate();
 						iss >> sub;
-						if (sub != header_fields[header_index])
-							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_fields[header_index] << "', saw '" << sub << "'." << EidosTerminate();
+						if (sub != header_field)
+							EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): expected VCF header '" << header_field << "', saw '" << sub << "'." << EidosTerminate();
 					}
 					
 					// the remaining columns are sample IDs; we don't care what they are, we just count them
@@ -3350,6 +3354,8 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 				call_lines.emplace_back(pos, line);
 				break;
 			}
+			default:
+				EIDOS_TERMINATION << "ERROR (Genome_Class::ExecuteMethod_readFromVCF): (internal error) unhandled case." << EidosTerminate();
 		}
 	}
 	
@@ -3595,9 +3601,9 @@ EidosValue_SP Genome_Class::ExecuteMethod_readFromVCF(EidosGlobalStringID p_meth
 			{
 				std::vector<std::string> genotype_substrs;
 				
-				if (sub.find("|") != std::string::npos)
+				if (sub.find('|') != std::string::npos)
 					genotype_substrs = Eidos_string_split(sub, "|");	// phased
-				else if (sub.find("/") != std::string::npos)
+				else if (sub.find('/') != std::string::npos)
 					genotype_substrs = Eidos_string_split(sub, "/");	// unphased; we don't worry about that
 				else
 					genotype_substrs.emplace_back(sub);					// haploid, presumably

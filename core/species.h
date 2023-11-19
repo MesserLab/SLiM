@@ -557,7 +557,7 @@ public:
 	inline __attribute__((always_inline)) bool RecordingTreeSequenceMutations(void) const									{ return recording_mutations_; }
 	void AboutToSplitSubpop(void);	// see Population::AddSubpopulationSplit()
 	
-	static void handle_error(std::string msg, int error);
+	static void handle_error(const std::string &msg, int error);
 	static void MetadataForMutation(Mutation *p_mutation, MutationMetadataRec *p_metadata);
 	static void MetadataForSubstitution(Substitution *p_substitution, MutationMetadataRec *p_metadata);
 	static void MetadataForGenome(Genome *p_genome, GenomeMetadataRec *p_metadata);
@@ -587,9 +587,7 @@ public:
 	void SimplifyTreeSequence(void);
 	void CheckCoalescenceAfterSimplification(void);
 	void CheckAutoSimplification(void);
-    void TreeSequenceDataFromAscii(std::string NodeFileName, 
-            std::string EdgeFileName, std::string SiteFileName, std::string MutationFileName, 
-            std::string IndividualsFileName, std::string PopulationFileName, std::string ProvenanceFileName);
+    void TreeSequenceDataFromAscii(const std::string &NodeFileName, const std::string &EdgeFileName, const std::string &SiteFileName, const std::string &MutationFileName, const std::string &IndividualsFileName, const std::string &PopulationFileName, const std::string &ProvenanceFileName);
 	void FreeTreeSequence();
 	void RecordAllDerivedStatesFromSLiM(void);
 	void DumpMutationTable(void);

@@ -427,12 +427,12 @@ SLiMEidosBlock *SLiM_ExtractSLiMEidosBlockFromEidosValue_io(EidosValue *p_value,
 #endif
 		
 		if (!found_block)
-			EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a SLiMEidosBlock." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): (internal error) " << p_method_name << " was passed an object that is not a SLiMEidosBlock." << EidosTerminate();
 		
 	}
 	
 	if (p_species && (found_block->species_spec_ != p_species))
-		EIDOS_TERMINATION << "ERROR (SLiM_ExtractMutationTypeFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SLiM_ExtractSLiMEidosBlockFromEidosValue_io): " << p_method_name << " SLiMEidosBlock s" << found_block->block_id_ << " not defined in the focal species." << EidosTerminate();
 	
 	return found_block;
 }
@@ -760,7 +760,7 @@ NucleotideArray::NucleotideArray(std::size_t p_length, const char *p_char_buffer
 		for (std::size_t i = 0; i < 32; )
 		{
 			char nuc_char = p_char_buffer[index + i];
-			uint64_t nuc = nuc_lookup[(int)(nuc_char)];
+			uint64_t nuc = nuc_lookup[(int)(unsigned char)(nuc_char)];
 			
 			if (nuc > 3)
 			{
@@ -845,6 +845,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsIntegerVector(int64_t start, int64_t
 			case 1:		return gStaticEidosValue_Integer1;
 			case 2:		return gStaticEidosValue_Integer2;
 			case 3:		return gStaticEidosValue_Integer3;
+			default:
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsIntegerVector): nucleotide value out of range." << EidosTerminate();
 		}
 	}
 	else
@@ -912,6 +914,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringVector(int64_t start, int64_t 
 			case 1:		return gStaticEidosValue_StringC;
 			case 2:		return gStaticEidosValue_StringG;
 			case 3:		return gStaticEidosValue_StringT;
+			default:
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsStringVector): nucleotide value out of range." << EidosTerminate();
 		}
 	}
 	else
@@ -927,7 +931,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringVector(int64_t start, int64_t 
 				case 1:		string_result->PushString(gStr_C); break;
 				case 2:		string_result->PushString(gStr_G); break;
 				case 3:		string_result->PushString(gStr_T); break;
-				default:	string_result->PushString("*"); break;		// should never happen
+				default:
+					EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsStringVector): nucleotide value out of range." << EidosTerminate();
 			}
 		}
 		
@@ -949,6 +954,8 @@ EidosValue_SP NucleotideArray::NucleotidesAsStringSingleton(int64_t start, int64
 			case 1:		return gStaticEidosValue_StringC;
 			case 2:		return gStaticEidosValue_StringG;
 			case 3:		return gStaticEidosValue_StringT;
+			default:
+				EIDOS_TERMINATION << "ERROR (NucleotideArray::NucleotidesAsStringSingleton): nucleotide value out of range." << EidosTerminate();
 		}
 	}
 	else

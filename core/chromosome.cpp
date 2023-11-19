@@ -61,10 +61,6 @@ inline __attribute__((always_inline)) GESubrange::GESubrange(GenomicElement *p_g
 
 Chromosome::Chromosome(Species &p_species) :
 
-	single_recombination_map_(true), 
-	single_mutation_map_(true),
-	lookup_mutation_H_(nullptr), lookup_mutation_M_(nullptr), lookup_mutation_F_(nullptr), 
-	lookup_recombination_H_(nullptr), lookup_recombination_M_(nullptr), lookup_recombination_F_(nullptr),
 	exp_neg_overall_mutation_rate_H_(0.0), exp_neg_overall_mutation_rate_M_(0.0), exp_neg_overall_mutation_rate_F_(0.0),
 	exp_neg_overall_recombination_rate_H_(0.0), exp_neg_overall_recombination_rate_M_(0.0), exp_neg_overall_recombination_rate_F_(0.0), 
 	
@@ -205,10 +201,10 @@ void Chromosome::InitializeDraws(void)
 	cached_value_lastpos_.reset();
 	last_position_ = 0;
 	
-	for (unsigned int i = 0; i < genomic_elements_.size(); i++) 
+	for (GenomicElement *genomic_element : genomic_elements_)
 	{ 
-		if (genomic_elements_[i]->end_position_ > last_position_)
-			last_position_ = genomic_elements_[i]->end_position_;
+		if (genomic_element->end_position_ > last_position_)
+			last_position_ = genomic_element->end_position_;
 	}
 	
 	if (single_mutation_map_)
@@ -407,7 +403,7 @@ void Chromosome::ChooseMutationRunLayout(int p_preferred_count)
 				EIDOS_TERMINATION << "ERROR (Chromosome::ChooseMutationRunLayout): when multithreaded, if the number of mutation runs is specified it must be a multiple of the number of threads, or it must be less than the number of threads (clipped mutationRuns count is " << p_preferred_count << ", thread count is " << gEidosMaxThreads << ")." << EidosTerminate();
 #endif
 			
-			if (p_preferred_count == gEidosMaxThreads)
+			if (p_preferred_count == gEidosMaxThreads)		// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 			{
 				// We have p_preferred_count mutrun sections, each containing 1 mutation run; this is really the same as the next case
 				mutrun_count_base_ = p_preferred_count;
@@ -642,9 +638,9 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 	unsigned int mutrange_index = 0;
 	slim_position_t end_of_previous_mutrange = -1;
 	
-	for (unsigned int ge_index = 0; ge_index < sorted_ge_vec.size(); ge_index++) 
+	for (GenomicElement *ge_ptr : sorted_ge_vec)
 	{
-		GenomicElement &ge = *sorted_ge_vec[ge_index];
+		GenomicElement &ge = *ge_ptr;
 		
 		for ( ; mutrange_index < p_rates.size(); mutrange_index++)
 		{
@@ -678,7 +674,7 @@ void Chromosome::_InitializeOneMutationMap(gsl_ran_discrete_t *&p_lookup, std::v
 				B.emplace_back(adjusted_subrange_weight);
 				p_subranges.emplace_back(&ge, subrange_start, subrange_end);
 				
-				// Now we need to decide whether to advance ge_index or not; advancing mutrange_index here is not needed
+				// Now we need to decide whether to advance the genomic element or not; advancing mutrange_index here is not needed
 				if (end_of_mutrange >= ge.end_position_)
 					break;
 			}
@@ -1053,7 +1049,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 				original_nucleotide = (int8_t)ancestral_seq_buffer_->NucleotideAtIndex(position);
 			
 			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
-			double *nuc_thresholds = genomic_element_type.mm_thresholds + original_nucleotide * 4;
+			double *nuc_thresholds = genomic_element_type.mm_thresholds + (size_t)original_nucleotide * 4;
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			double draw = Eidos_rng_uniform(rng);
 			
@@ -1127,7 +1123,7 @@ MutationIndex Chromosome::DrawNewMutationExtended(std::pair<slim_position_t, Gen
 			
 			// OK, now we know the background nucleotide; determine the mutation rates to derived nucleotides
 			int trinuc = ((int)background_nuc1) * 16 + ((int)original_nucleotide) * 4 + (int)background_nuc3;
-			double *nuc_thresholds = genomic_element_type.mm_thresholds + trinuc * 4;
+			double *nuc_thresholds = genomic_element_type.mm_thresholds + (size_t)trinuc * 4;
 			gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 			double draw = Eidos_rng_uniform(rng);
 			
@@ -2210,7 +2206,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setHotspotMap(EidosGlobalStringID p_meth
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setHotspotMap): setHotspotMap() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
 	if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
@@ -2320,7 +2316,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setMutationRate(EidosGlobalStringID p_me
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setMutationRate): setMutationRate() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
 	if (((requested_sex == IndividualSex::kUnspecified) && !single_mutation_map_) ||
@@ -2427,7 +2423,7 @@ EidosValue_SP Chromosome::ExecuteMethod_setRecombinationRate(EidosGlobalStringID
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Chromosome::ExecuteMethod_setRecombinationRate): setRecombinationRate() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	// Make sure specifying a map for that sex is legal, given our current state
 	if (((requested_sex == IndividualSex::kUnspecified) && !single_recombination_map_) ||

@@ -299,6 +299,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeFile(const std::vector<EidosValue_SP> &
 		EidosContext *context = p_interpreter.Context();
 		std::vector<std::string> slimgui_buffer;
 		
+		slimgui_buffer.reserve(contents_count);
+		
 		for (int value_index = 0; value_index < contents_count; ++value_index)
 			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex(value_index, nullptr));
 		
@@ -361,6 +363,8 @@ EidosValue_SP Eidos_ExecuteFunction_writeTempFile(const std::vector<EidosValue_S
 		EidosContext *context = p_interpreter.Context();
 		std::string file_path(file_path_cstr);
 		std::vector<std::string> slimgui_buffer;
+		
+		slimgui_buffer.reserve(contents_count);
 		
 		for (int value_index = 0; value_index < contents_count; ++value_index)
 			slimgui_buffer.emplace_back(contents_value->StringRefAtIndex(value_index, nullptr));

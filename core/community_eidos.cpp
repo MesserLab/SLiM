@@ -84,7 +84,7 @@ EidosValue_SP Community::ContextDefinedFunctionDispatch(const std::string &p_fun
 	if (p_function_name.compare(gStr_initializeAncestralNucleotides) == 0)		return active_species_->ExecuteContextFunction_initializeAncestralNucleotides(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElement) == 0)		return active_species_->ExecuteContextFunction_initializeGenomicElement(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGenomicElementType) == 0)	return active_species_->ExecuteContextFunction_initializeGenomicElementType(p_function_name, p_arguments, p_interpreter);
-	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
+	else if (p_function_name.compare(gStr_initializeMutationType) == 0)			return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);			// NOLINT(*-branch-clone) : intentional consecutive branches
 	else if (p_function_name.compare(gStr_initializeMutationTypeNuc) == 0)		return active_species_->ExecuteContextFunction_initializeMutationType(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeRecombinationRate) == 0)	return active_species_->ExecuteContextFunction_initializeRecombinationRate(p_function_name, p_arguments, p_interpreter);
 	else if (p_function_name.compare(gStr_initializeGeneConversion) == 0)		return active_species_->ExecuteContextFunction_initializeGeneConversion(p_function_name, p_arguments, p_interpreter);
@@ -1194,6 +1194,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 	// Figure out what cycle stage the rescheduled block executes in; this is annoying, but necessary for the new scheduling check call
 	SLiMCycleStage stage = SLiMCycleStage::kStagePostCycle;	// unused below, just here to silence a warning
 	
+	// NOLINTBEGIN(*-branch-clone) : multiple internal tick stages map to the same user-level stage
 	if (model_type_ == SLiMModelType::kModelTypeWF)
 	{
 		switch (block->type_)
@@ -1238,6 +1239,7 @@ EidosValue_SP Community::ExecuteMethod_rescheduleScriptBlock(EidosGlobalStringID
 				EIDOS_TERMINATION << "ERROR (Community::ExecuteMethod_rescheduleScriptBlock): (internal error) rescheduleScriptBlock() cannot be called on this type of script block." << EidosTerminate();
 		}
 	}
+	// NOLINTEND(*-branch-clone)
 	
 	if ((!start_null || !end_null) && ticks_null)
 	{

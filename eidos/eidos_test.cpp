@@ -34,6 +34,7 @@
 #include <limits>
 #include <random>
 #include <ctime>
+#include <algorithm>
 
 #if 0
 // includes for the timing code in RunEidosTests(), which is normally #if 0

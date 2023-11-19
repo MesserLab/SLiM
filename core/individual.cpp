@@ -2298,17 +2298,17 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 			Individual *target = targets[target_index];
 			
 			if (target->subpopulation_->species_.SpatialDimensionality() != dimensionality)
-				EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires that all individuals in the target vector have the same spatial dimensionality." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires that all individuals in the target vector have the same spatial dimensionality." << EidosTerminate();
 		}
 	}
 	
 	if ((target_size > 0) && (dimensionality == 0))
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): setSpatialPosition() cannot be called in non-spatial simulations." << EidosTerminate();
 	if ((dimensionality < 0) || (dimensionality > 3))
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) unrecognized dimensionality." << EidosTerminate();
 	
 	if (value_count < dimensionality)
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires at least as many coordinates as the spatial dimensionality of the simulation." << EidosTerminate();
 	
 	if (value_count == dimensionality)
 	{
@@ -2332,6 +2332,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					target->spatial_y_ = position_value->FloatAtIndex(1, nullptr);
 					target->spatial_z_ = position_value->FloatAtIndex(2, nullptr);
 					break;
+				default:
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) dimensionality out of range." << EidosTerminate(nullptr);
 			}
 		}
 		else if (target_size > 1)
@@ -2387,6 +2389,8 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					}
 					break;
 				}
+				default:
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) dimensionality out of range." << EidosTerminate(nullptr);
 			}
 		}
 	}
@@ -2480,12 +2484,14 @@ EidosValue_SP Individual_Class::ExecuteMethod_setSpatialPosition(EidosGlobalStri
 					}
 					break;
 				}
+				default:
+					EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): (internal error) dimensionality out of range." << EidosTerminate(nullptr);
 			}
 		}
 	}
 	else
 	{
-		EIDOS_TERMINATION << "ERROR (Individual::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires the position parameter to contain either one point, or one point per individual (where each point has a number of coordinates equal to the spatial dimensionality of the simulation)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Individual_Class::ExecuteMethod_setSpatialPosition): setSpatialPosition() requires the position parameter to contain either one point, or one point per individual (where each point has a number of coordinates equal to the spatial dimensionality of the simulation)." << EidosTerminate();
 	}
 	
 	return gStaticEidosValueVOID;

@@ -689,7 +689,7 @@ EidosValue_SP LogFile::ExecuteMethod_addCustomColumn(EidosGlobalStringID p_metho
 	
 	gEidosErrorContext = error_context_save;
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CustomScript, source_script, -1, context_value});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_CustomScript, source_script, -1, std::move(context_value));
 	column_names_.emplace_back(column_name);
 	
 	return gStaticEidosValueVOID;
@@ -703,10 +703,10 @@ EidosValue_SP LogFile::ExecuteMethod_addCycle(EidosGlobalStringID p_method_id, c
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addCycle");
 	
 	// Figure out the species to log; if species is NULL, check for a singleton species to default to
-	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addCycle()");
+	EidosValue *species_value = p_arguments[0].get();
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value, 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addCycle()");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Cycle, nullptr, species->species_id_, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_Cycle, nullptr, species->species_id_, EidosValue_SP());
 	
 	// column name is "cycle" in single-species models; append the species name in multispecies models
 	std::string col_name = "cycle";
@@ -729,7 +729,7 @@ EidosValue_SP LogFile::ExecuteMethod_addCycleStage(EidosGlobalStringID p_method_
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addCycleStage");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CycleStage, nullptr, -1, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_CycleStage, nullptr, -1, EidosValue_SP());
 	column_names_.emplace_back("cycle_stage");
 	
 	return gStaticEidosValueVOID;
@@ -766,12 +766,12 @@ EidosValue_SP LogFile::ExecuteMethod_addMeanSDColumns(EidosGlobalStringID p_meth
 		delete source_script;
 		source_script = nullptr;
 		
-		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addCustomColumn): tokenize/parse error in script for addMeanSDColumns()." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_addMeanSDColumns): tokenize/parse error in script for addMeanSDColumns()." << EidosTerminate();
 	}
 	
 	gEidosErrorContext = error_context_save;
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_CustomMeanAndSD, source_script, -1, context_value});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_CustomMeanAndSD, source_script, -1, std::move(context_value));
 	column_names_.emplace_back(column_name + "_mean");
 	column_names_.emplace_back(column_name + "_sd");
 	
@@ -786,10 +786,10 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSexRatio(EidosGlobalStringID p
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSexRatio");
 	
 	// Figure out the species to log; if species is NULL, check for a singleton species to default to
-	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
+	EidosValue *species_value = p_arguments[0].get();
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value, 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSexRatio()");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, species->species_id_, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_PopulationSexRatio, nullptr, species->species_id_, EidosValue_SP());
 
 	// column name is "sex_ratio" in single-species models; append the species name in multispecies models
 	std::string col_name = "sex_ratio";
@@ -813,10 +813,10 @@ EidosValue_SP LogFile::ExecuteMethod_addPopulationSize(EidosGlobalStringID p_met
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addPopulationSize");
 	
 	// Figure out the species to log; if species is NULL, check for a singleton species to default to
-	EidosValue_SP species_value = p_arguments[0];
-	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value.get(), 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSize()");
+	EidosValue *species_value = p_arguments[0].get();
+	Species *species = SLiM_ExtractSpeciesFromEidosValue_No(species_value, 0, &SLiM_GetCommunityFromInterpreter(p_interpreter), "addPopulationSize()");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_PopulationSize, nullptr, species->species_id_, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_PopulationSize, nullptr, species->species_id_, EidosValue_SP());
 	
 	// column name is "num_individuals" in single-species models; append the species name in multispecies models
 	std::string col_name = "num_individuals";
@@ -840,7 +840,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringI
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addSubpopulationSexRatio");
 	
 	// Extract the subpopulation id; we allow reference to nonexistent subpopulations, which is unusual, so there's no function to use
-	EidosValue_SP subpop_value = p_arguments[0];
+	EidosValue *subpop_value = p_arguments[0].get();
 	slim_objectid_t subpop_id;
 	
 	if (subpop_value->Type() == EidosValueType::kValueInt)
@@ -860,7 +860,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSexRatio(EidosGlobalStringI
 		subpop_id = subpop->subpopulation_id_;
 	}
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SubpopulationSexRatio, nullptr, subpop_id, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_SubpopulationSexRatio, nullptr, subpop_id, EidosValue_SP());
 	column_names_.emplace_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_sex_ratio");
 	
 	return gStaticEidosValueVOID;
@@ -874,7 +874,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addSubpopulationSize");
 	
 	// Extract the subpopulation id; we allow reference to nonexistent subpopulations, which is unusual, so there's no function to use
-	EidosValue_SP subpop_value = p_arguments[0];
+	EidosValue *subpop_value = p_arguments[0].get();
 	slim_objectid_t subpop_id;
 	
 	if (subpop_value->Type() == EidosValueType::kValueInt)
@@ -894,7 +894,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSubpopulationSize(EidosGlobalStringID p_
 		subpop_id = subpop->subpopulation_id_;
 	}
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SubpopulationSize, nullptr, subpop_id, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_SubpopulationSize, nullptr, subpop_id, EidosValue_SP());
 	column_names_.emplace_back(SLiMEidosScript::IDStringWithPrefix('p', subpop_id) + "_num_individuals");
 	
 	return gStaticEidosValueVOID;
@@ -910,7 +910,7 @@ EidosValue_SP LogFile::ExecuteMethod_addSuppliedColumn(EidosGlobalStringID p_met
 	EidosValue_String *columnName_value = (EidosValue_String *)p_arguments[0].get();
 	const std::string &column_name = columnName_value->StringRefAtIndex(0, nullptr);
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_SuppliedColumn, nullptr, -1, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_SuppliedColumn, nullptr, -1, EidosValue_SP());
 	column_names_.emplace_back(column_name);
 	
 	return gStaticEidosValueVOID;
@@ -923,7 +923,7 @@ EidosValue_SP LogFile::ExecuteMethod_addTick(EidosGlobalStringID p_method_id, co
 	if (header_logged_)
 		RaiseForLockedHeader("LogFile::ExecuteMethod_addTick");
 	
-	generator_info_.emplace_back(LogFileGeneratorInfo{LogFileGeneratorType::kGenerator_Tick, nullptr, -1, EidosValue_SP()});
+	generator_info_.emplace_back(LogFileGeneratorType::kGenerator_Tick, nullptr, -1, EidosValue_SP());
 	
 	column_names_.emplace_back("tick");
 	
@@ -1035,7 +1035,7 @@ EidosValue_SP LogFile::ExecuteMethod_setSuppliedValue(EidosGlobalStringID p_meth
 		EIDOS_TERMINATION << "ERROR (LogFile::ExecuteMethod_setSuppliedValue): column name " << column_name << " is not a supplied column; use addSuppliedColumn() to create a column whose value can be supplied to LogFile." << EidosTerminate();
 	
 	// remember the supplied value
-	supplied_values_.SetKeyValue_StringKeys(column_name, value);
+	supplied_values_.SetKeyValue_StringKeys(column_name, std::move(value));
 	
 	return gStaticEidosValueVOID;
 }

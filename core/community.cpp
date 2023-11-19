@@ -1814,7 +1814,7 @@ void Community::ExecuteEidosEvent(SLiMEidosBlock *p_script_block)
 		EidosValue_SP result = interpreter.EvaluateInternalBlock(p_script_block->script_);
 		
 		if (result->Type() != EidosValueType::kValueVOID)
-			EIDOS_TERMINATION << "ERROR (Population::ExecuteScript): " << p_script_block->type_ << " callbacks must not return a value; use a \"return;\" statement to explicitly return void if desired." << EidosTerminate(p_script_block->identifier_token_);
+			EIDOS_TERMINATION << "ERROR (Community::ExecuteEidosEvent): " << p_script_block->type_ << " callbacks must not return a value; use a \"return;\" statement to explicitly return void if desired." << EidosTerminate(p_script_block->identifier_token_);
 	}
 	catch (...)
 	{
@@ -1879,9 +1879,8 @@ void Community::AllSpecies_CheckIntegrity(void)
 	
 #if DEBUG
 	// Check the integrity of the mutation registry; all MutationIndex values should be in range
-	for (size_t species_index = 0; species_index < all_species_.size(); ++species_index)
+	for (Species *species : all_species_)
 	{
-		Species *species = all_species_[species_index];
 		int registry_size;
 		const MutationIndex *registry = species->population_.MutationRegistry(&registry_size);
 		std::vector<MutationIndex> indices;

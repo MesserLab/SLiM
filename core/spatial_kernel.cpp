@@ -22,6 +22,9 @@
 #include "eidos_value.h"
 #include "eidos_rng.h"
 
+#include <string>
+#include <algorithm>
+
 
 // stream output for enumerations
 std::ostream& operator<<(std::ostream& p_out, SpatialKernelType p_kernel_type)
@@ -121,13 +124,13 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		expected_k_param_count = (p_expect_max_density ? 3 : 2);
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType \"" << k_type_string << "\" must be \"f\", \"l\", \"e\", \"n\", \"c\", or \"t\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType '" << k_type_string << "' must be 'f', 'l', 'e', 'n', 'c', or 't'." << EidosTerminate();
 	
 	if ((dimensionality_ == 0) && (k_type != SpatialKernelType::kFixed))
 		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType 'f' is required for non-spatial interactions." << EidosTerminate();
 	
 	if ((int)p_arguments.size() - p_first_kernel_arg != 1 + expected_k_param_count)
-		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType \"" << k_type << "\" requires exactly " << expected_k_param_count << " kernel configuration parameter" << (expected_k_param_count == 1 ? "" : "s") << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel functionType '" << k_type << "' requires exactly " << expected_k_param_count << " kernel configuration parameter" << (expected_k_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	for (int k_param_index = 0; k_param_index < expected_k_param_count; ++k_param_index)
 	{
@@ -146,6 +149,7 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		k_parameters.insert(k_parameters.begin(), 1.0);
 	
 	// Bounds-check the IF parameters in the cases where there is a hard bound
+	// NOLINTBEGIN(*-branch-clone) : intentional consecutive branches
 	switch (k_type)
 	{
 		case SpatialKernelType::kFixed:
@@ -160,21 +164,22 @@ SpatialKernel::SpatialKernel(int p_dimensionality, double p_maxDistance, const s
 		case SpatialKernelType::kNormal:
 			// no limits on the maximum strength (although 0.0 doesn't make much sense); sd must be >= 0
 			if (k_parameters[1] < 0.0)
-				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"n\" must have a standard deviation parameter >= 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'n' must have a standard deviation parameter >= 0." << EidosTerminate();
 			break;
 		case SpatialKernelType::kCauchy:
 			// no limits on the maximum strength (although 0.0 doesn't make much sense); scale must be > 0
 			if (k_parameters[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"c\" must have a scale parameter > 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 'c' must have a scale parameter > 0." << EidosTerminate();
 			break;
 		case SpatialKernelType::kStudentsT:
 			// nu can range from -inf to +inf but must be greater than the dimensionality minus one; scale (sigma) must be >= 0
 			if (k_parameters[1] <= p_dimensionality - 1)
-				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"t\" must have a degrees of freedom parameter that is greater than the kernel dimensionality minus one." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 't' must have a degrees of freedom parameter that is greater than the kernel dimensionality minus one." << EidosTerminate();
 			if (k_parameters[2] < 0.0)
-				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type \"t\" must have a scale parameter >= 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (SpatialKernel::SpatialKernel): spatial kernel type 't' must have a scale parameter >= 0." << EidosTerminate();
 			break;
 	}
+	// NOLINTEND(*-branch-clone)
 	
 	// Everything seems to be in order, so replace our kernel info with the new info
 	kernel_type_ = k_type;
@@ -581,7 +586,8 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernel &p_kernel)
 	
 	switch (p_kernel.dimensionality_)
 	{
-		case 1:
+		case 1:										// NOLINT(*-branch-clone) : intentional duplicate branches
+			// unimplemented
 			break;
 		case 2:
 			for (int b = 0; b < p_kernel.dim[1]; b++)
@@ -600,7 +606,8 @@ std::ostream& operator<<(std::ostream& p_out, SpatialKernel &p_kernel)
 				}
 			}
 			break;
-		case 3:
+		case 3:										// NOLINT(*-branch-clone) : intentional duplicate branches
+			// unimplemented
 			break;
 		default: break;
 	}

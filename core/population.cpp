@@ -306,11 +306,11 @@ Subpopulation *Population::AddSubpopulationSplit(slim_objectid_t p_subpop_id, Su
 			migrant_index = p_source_subpop.DrawParentUsingFitness(rng);
 		}
 		
-		Genome *source_genome1 = p_source_subpop.parent_genomes_[2 * migrant_index];
-		Genome *source_genome2 = p_source_subpop.parent_genomes_[2 * migrant_index + 1];
+		Genome *source_genome1 = p_source_subpop.parent_genomes_[2 * (size_t)migrant_index];
+		Genome *source_genome2 = p_source_subpop.parent_genomes_[2 * (size_t)migrant_index + 1];
 		
-		Genome *dest_genome1 = subpop.parent_genomes_[2 * parent_index];
-		Genome *dest_genome2 = subpop.parent_genomes_[2 * parent_index + 1];
+		Genome *dest_genome1 = subpop.parent_genomes_[2 * (size_t)parent_index];
+		Genome *dest_genome2 = subpop.parent_genomes_[2 * (size_t)parent_index + 1];
 		
 		dest_genome1->copy_from_genome(*source_genome1);
 		dest_genome2->copy_from_genome(*source_genome2);
@@ -445,8 +445,8 @@ void Population::ResolveSurvivalPhaseMovement(void)
 				// individuals that remain get copied down to the next available slot
 				if (remaining_individual_index != individual_index)
 				{
-					genome_data[remaining_genome_index] = genome_data[individual_index * 2];
-					genome_data[remaining_genome_index + 1] = genome_data[individual_index * 2 + 1];
+					genome_data[remaining_genome_index] = genome_data[(size_t)individual_index * 2];
+					genome_data[remaining_genome_index + 1] = genome_data[(size_t)individual_index * 2 + 1];
 					individual_data[remaining_individual_index] = individual;
 					
 					// fix the individual's index_
@@ -474,7 +474,7 @@ void Population::ResolveSurvivalPhaseMovement(void)
 			if (sex_enabled)
 				subpop->parent_first_male_index_ -= females_leaving;
 			
-			subpop->parent_genomes_.resize(subpop->parent_subpop_size_ * 2);
+			subpop->parent_genomes_.resize((size_t)subpop->parent_subpop_size_ * 2);
 			subpop->parent_individuals_.resize(subpop->parent_subpop_size_);
 			
 			subpop->cached_parent_genomes_value_.reset();
@@ -522,7 +522,7 @@ void Population::PurgeRemovedSubpopulations(void)
 	}
 }
 
-void Population::CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, std::string p_caller)
+void Population::CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, const std::string &p_caller)
 {
 	if (HasDeferredGenomes())
 	{
@@ -536,7 +536,7 @@ void Population::CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_el
 	}
 }
 
-void Population::CheckForDeferralInGenomes(EidosValue_Object *p_genomes, std::string p_caller)
+void Population::CheckForDeferralInGenomes(EidosValue_Object *p_genomes, const std::string &p_caller)
 {
 	if (HasDeferredGenomes())
 	{
@@ -552,7 +552,7 @@ void Population::CheckForDeferralInGenomes(EidosValue_Object *p_genomes, std::st
 	}
 }
 
-void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, std::string p_caller)
+void Population::CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller)
 {
 	if (HasDeferredGenomes())
 	{
@@ -929,8 +929,7 @@ slim_popsize_t Population::ApplyMateChoiceCallbacks(slim_popsize_t p_parent1_ind
 			// not an important distinction.  Returning float(0) is faster in principle, but if one is already constructing a vector
 			// of weights that can simply end up being all zero, then this path is much easier.  BCH 5 March 2017
 			//EIDOS_TERMINATION << "ERROR (Population::ApplyMateChoiceCallbacks): weights returned by mateChoice() callback sum to 0.0 or less." << EidosTerminate(last_interventionist_mate_choice_callback->identifier_token_);
-			if (weights_modified)
-				free(current_weights);
+			free(current_weights);
 			
 			community_.executing_block_type_ = old_executing_block_type;
 			
@@ -1275,7 +1274,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 				
 				if (planned_offspring_alloc_size < total_children)
 				{
-					planned_offspring = (offspring_plan_no_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_no_source));
+					planned_offspring = (offspring_plan_no_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_no_source));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 					if (!planned_offspring)
 						EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 					planned_offspring_alloc_size = total_children;
@@ -1448,10 +1447,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						
 						parent2 = parent1;
 						
-						Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_index];
-						Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_index + 1];
-						Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
-						Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+						Genome &child_genome_1 = *p_subpop.child_genomes_[2 * (size_t)child_index];
+						Genome &child_genome_2 = *p_subpop.child_genomes_[2 * (size_t)child_index + 1];
+						Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * (size_t)parent1];
+						Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * (size_t)parent1 + 1];
 						
 						Individual *new_child = p_subpop.child_individuals_[child_index];
 						new_child->migrant_ = false;
@@ -1544,15 +1543,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 						new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 						
 						// recombination, gene-conversion, mutation
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
-						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+						DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 					}
 					
 					if (modify_child_callbacks)
 					{
 						Individual *child = p_subpop.child_individuals_[child_index];
-						Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
-						Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
+						Genome *child_genome1 = p_subpop.child_genomes_[(size_t)child_index * 2];
+						Genome *child_genome2 = p_subpop.child_genomes_[(size_t)child_index * 2 + 1];
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
@@ -1634,14 +1633,14 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
-					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * child_count + 1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_count], parent1, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_count + 1], parent2, IndividualSex::kHermaphrodite, IndividualSex::kHermaphrodite, recombination_callbacks, mutation_callbacks);
 					
 					if (modify_child_callbacks)
 					{
 						Individual *child = p_subpop.child_individuals_[child_count];
-						Genome *child_genome1 = p_subpop.child_genomes_[child_count * 2];
-						Genome *child_genome2 = p_subpop.child_genomes_[child_count * 2 + 1];
+						Genome *child_genome1 = p_subpop.child_genomes_[(size_t)child_count * 2];
+						Genome *child_genome2 = p_subpop.child_genomes_[(size_t)child_count * 2 + 1];
 						Individual *parent1_ind = source_subpop.parent_individuals_[parent1];
 						Individual *parent2_ind = source_subpop.parent_individuals_[parent2];
 						
@@ -1698,7 +1697,7 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 			
 			if (planned_offspring_alloc_size < total_children)
 			{
-				planned_offspring = (offspring_plan_with_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_with_source));
+				planned_offspring = (offspring_plan_with_source *)realloc(planned_offspring, total_children * sizeof(offspring_plan_with_source));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 				if (!planned_offspring)
 					EIDOS_TERMINATION << "ERROR (Population::EvolveSubpopulation): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 				planned_offspring_alloc_size = total_children;
@@ -1906,10 +1905,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					
 					parent2 = parent1;
 					
-					Genome &child_genome_1 = *p_subpop.child_genomes_[2 * child_index];
-					Genome &child_genome_2 = *p_subpop.child_genomes_[2 * child_index + 1];
-					Genome &parent_genome_1 = *source_subpop->parent_genomes_[2 * parent1];
-					Genome &parent_genome_2 = *source_subpop->parent_genomes_[2 * parent1 + 1];
+					Genome &child_genome_1 = *p_subpop.child_genomes_[2 * (size_t)child_index];
+					Genome &child_genome_2 = *p_subpop.child_genomes_[2 * (size_t)child_index + 1];
+					Genome &parent_genome_1 = *source_subpop->parent_genomes_[2 * (size_t)parent1];
+					Genome &parent_genome_2 = *source_subpop->parent_genomes_[2 * (size_t)parent1 + 1];
 					
 					Individual *new_child = p_subpop.child_individuals_[child_index];
 					new_child->migrant_ = (source_subpop != &p_subpop);
@@ -2002,15 +2001,15 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 					new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop->parent_individuals_[parent1]);
 					
 					// recombination, gene-conversion, mutation
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
-					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_index], parent1, child_sex, parent1_sex, recombination_callbacks, mutation_callbacks);
+					DoCrossoverMutation(source_subpop, *p_subpop.child_genomes_[2 * (size_t)child_index + 1], parent2, child_sex, parent2_sex, recombination_callbacks, mutation_callbacks);
 				}
 				
 				if (modify_child_callbacks)
 				{
 					Individual *child = p_subpop.child_individuals_[child_index];
-					Genome *child_genome1 = p_subpop.child_genomes_[child_index * 2];
-					Genome *child_genome2 = p_subpop.child_genomes_[child_index * 2 + 1];
+					Genome *child_genome1 = p_subpop.child_genomes_[(size_t)child_index * 2];
+					Genome *child_genome2 = p_subpop.child_genomes_[(size_t)child_index * 2 + 1];
 					Individual *parent1_ind = source_subpop->parent_individuals_[parent1];
 					Individual *parent2_ind = source_subpop->parent_individuals_[parent2];
 					
@@ -2202,8 +2201,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index], parent1, child_sex, IndividualSex::kFemale, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index + 1], parent2, child_sex, IndividualSex::kMale, nullptr, nullptr);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2243,8 +2242,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index], parent1, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index + 1], parent2, child_sex, IndividualSex::kHermaphrodite, nullptr, nullptr);
 								}
 							}
 							EIDOS_BENCHMARK_END(EidosBenchmarkType::k_WF_REPRO);
@@ -2277,10 +2276,10 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									(void)parent2;		// tell the static analyzer that we know we just did a dead store
 									
 									slim_popsize_t this_child_index = base_child_count + migrant_count;
-									Genome &child_genome_1 = *p_subpop.child_genomes_[2 * this_child_index];
-									Genome &child_genome_2 = *p_subpop.child_genomes_[2 * this_child_index + 1];
-									Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * parent1];
-									Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * parent1 + 1];
+									Genome &child_genome_1 = *p_subpop.child_genomes_[2 * (size_t)this_child_index];
+									Genome &child_genome_2 = *p_subpop.child_genomes_[2 * (size_t)this_child_index + 1];
+									Genome &parent_genome_1 = *source_subpop.parent_genomes_[2 * (size_t)parent1];
+									Genome &parent_genome_2 = *source_subpop.parent_genomes_[2 * (size_t)parent1 + 1];
 									
 									Individual *new_child = p_subpop.child_individuals_[this_child_index];
 									new_child->migrant_ = (&source_subpop != &p_subpop);
@@ -2360,8 +2359,8 @@ void Population::EvolveSubpopulation(Subpopulation &p_subpop, bool p_mate_choice
 									new_child->InheritSpatialPosition(species_.SpatialDimensionality(), source_subpop.parent_individuals_[parent1]);
 									
 									// recombination, gene-conversion, mutation
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);
-									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * this_child_index + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index], parent1, child_sex, parent1_sex, nullptr, nullptr);
+									DoCrossoverMutation(&source_subpop, *p_subpop.child_genomes_[2 * (size_t)this_child_index + 1], parent2, child_sex, parent2_sex, nullptr, nullptr);
 								}
 							}
 						}
@@ -2756,7 +2755,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 			{
 				// a non-zero number of breakpoints, with recombination callbacks
 				if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
-					EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
+					EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 				
 				ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, *p_recombination_callbacks);
 				num_breakpoints = (int)all_breakpoints.size();
@@ -2789,7 +2788,7 @@ void Population::DoCrossoverMutation(Subpopulation *p_source_subpop, Genome &p_c
 		{
 			// zero breakpoints from the SLiM core, but we have recombination() callbacks
 			if (chromosome.using_DSB_model_ && (chromosome.simple_conversion_fraction_ != 1.0))
-				EIDOS_TERMINATION << "ERROR (Chromosome::DrawDSBBreakpoints): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): recombination() callbacks may not be used when complex gene conversion tracts are in use, since recombination() callbacks have no support for heteroduplex regions." << EidosTerminate();
 			
 			ApplyRecombinationCallbacks(p_parent_index, parent_genome_1, parent_genome_2, p_source_subpop, all_breakpoints, *p_recombination_callbacks);
 			num_breakpoints = (int)all_breakpoints.size();
@@ -3577,7 +3576,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	int heteroduplex_tract_count = (int)(p_heteroduplex.size() / 2);
 	
 	if (heteroduplex_tract_count * 2 != (int)p_heteroduplex.size())
-		EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) The heteroduplex tract vector has an odd length." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) The heteroduplex tract vector has an odd length." << EidosTerminate();
 	
 	// We accumulate vectors of all mutations to add to and to remove from the offspring genome,
 	// and do all addition/removal in a single pass at the end of the process
@@ -3588,8 +3587,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 	
 	for (int heteroduplex_tract_index = 0; heteroduplex_tract_index < heteroduplex_tract_count; ++heteroduplex_tract_index)
 	{
-		slim_position_t tract_start = p_heteroduplex[heteroduplex_tract_index * 2];
-		slim_position_t tract_end = p_heteroduplex[heteroduplex_tract_index * 2 + 1];
+		slim_position_t tract_start = p_heteroduplex[(size_t)heteroduplex_tract_index * 2];
+		slim_position_t tract_end = p_heteroduplex[(size_t)heteroduplex_tract_index * 2 + 1];
 		
 		// Determine which parental strand was the non-copy strand in this region, by scanning
 		// the breakpoints vector; it must remain the non-copy strand throughout.
@@ -3602,7 +3601,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 			else if (breakpoint > tract_end)
 				break;
 			else
-				EIDOS_TERMINATION << "ERROR (Population::DoCrossoverMutation): (internal error) The heteroduplex tract does not have a consistent copy strand." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Population::DoHeteroduplexRepair): (internal error) The heteroduplex tract does not have a consistent copy strand." << EidosTerminate();
 		}
 		
 		Genome *noncopy_genome = (copy_strand_is_1 ? p_parent_genome_2 : p_parent_genome_1);
@@ -3642,7 +3641,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				// this is a mismatch that needs to be repaired one way or the other
 				if (repairs_biased)
 				{
-					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();
+					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();		// NOLINT(*-signed-char-misuse) : intentional
 					
 					// The offspring nucleotide is ancestral; if the noncopy nuc is too, GC bias is irrelevant
 					if (noncopy_nuc != -1)
@@ -3680,7 +3679,7 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				// this is a mismatch that needs to be repaired one way or the other
 				if (repairs_biased)
 				{
-					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();
+					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();		// NOLINT(*-signed-char-misuse) : intentional
 					
 					// The noncopy nucleotide is ancestral; if the offspring nuc is too, GC bias is irrelevant
 					if (offspring_nuc != -1)
@@ -3728,8 +3727,8 @@ void Population::DoHeteroduplexRepair(std::vector<slim_position_t> &p_heterodupl
 				// The walkers are at the same position, and there is a mismatch.
 				if (repairs_biased)
 				{
-					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();
-					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();
+					int noncopy_nuc = noncopy_walker.NucleotideAtCurrentPosition();			// NOLINT(*-signed-char-misuse) : intentional
+					int offspring_nuc = offspring_walker.NucleotideAtCurrentPosition();		// NOLINT(*-signed-char-misuse) : intentional
 					
 					// If both nucleotides are ancestral, GC bias is irrelevant
 					if ((noncopy_nuc != -1) || (offspring_nuc != -1))
@@ -4834,7 +4833,7 @@ void Population::RecordFitness(slim_tick_t p_history_index, slim_objectid_t p_su
 		history_record.history_ = nullptr;
 		history_record.history_length_ = 0;
 		
-		auto emplace_rec = fitness_histories_.emplace(p_subpop_id, std::move(history_record));
+		auto emplace_rec = fitness_histories_.emplace(p_subpop_id, history_record);
 		
 		if (emplace_rec.second)
 			history_rec_ptr = &(emplace_rec.first->second);
@@ -4883,7 +4882,7 @@ void Population::RecordSubpopSize(slim_tick_t p_history_index, slim_objectid_t p
 		history_record.history_ = nullptr;
 		history_record.history_length_ = 0;
 		
-		auto emplace_rec = subpop_size_histories_.emplace(p_subpop_id, std::move(history_record));
+		auto emplace_rec = subpop_size_histories_.emplace(p_subpop_id, history_record);
 		
 		if (emplace_rec.second)
 			history_rec_ptr = &(emplace_rec.first->second);
@@ -5140,7 +5139,7 @@ void Population::RecalculateFitness(slim_tick_t p_tick)
 	}
 	
 	// trigger a recache of nonneutral mutation lists for some regime transitions; see mutation_run.h
-	if (last_regime == 0)
+	if (last_regime == 0)									// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 		species_.nonneutral_change_counter_++;
 	else if ((current_regime == 1) && ((last_regime == 2) || (last_regime == 3)))
 		species_.nonneutral_change_counter_++;
@@ -6556,7 +6555,7 @@ slim_refcount_t Population::TallyMutationReferencesAcrossSubpopulations(std::vec
 	// mutation runs is expected to be faster.
 	bool can_tally_using_mutruns = true;
 
-	if (p_subpops_to_tally->size() == 0)
+	if (p_subpops_to_tally->size() == 0)			// NOLINTNEXTLINE(*-branch-clone) : intentional branch clones
 		can_tally_using_mutruns = false;
 	else if ((p_subpops_to_tally->size() == 1) && ((*p_subpops_to_tally)[0]->CurrentGenomeCount() <= 10))
 		can_tally_using_mutruns = false;

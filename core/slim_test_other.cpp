@@ -26,8 +26,8 @@
 
 
 #pragma mark InteractionType tests
-static void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation);
-static void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation);
+static void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation);
+static void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation);
 static void _RunInteractionTypeTests_LocalPopDensity(void);
 
 void _RunInteractionTypeTests(void)
@@ -76,7 +76,7 @@ void _RunInteractionTypeTests(void)
 		// combination; we just test for a crash or error.
 		std::string seg_str;
 		
-		switch (sex_seg_index)
+		switch (sex_seg_index)		// NOLINT(*-missing-default-case) : loop bounds
 		{
 			case 0: seg_str = "**"; break;
 			case 1: seg_str = "*M"; break;
@@ -99,7 +99,7 @@ void _RunInteractionTypeTests(void)
 	}
 }
 
-void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation)
+void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation)
 {
 	std::string reciprocal_string = p_reciprocal ? "reciprocal=T" : "reciprocal=F";
 	std::string sex_string = p_sex_enabled ? "initializeSex('A'); " : "                    ";
@@ -140,7 +140,7 @@ void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, 
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.totalOfNeighborStrengths(ind[0]); stop(); }", "interaction be spatial", __LINE__);
 }
 
-void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_reciprocal, bool p_sex_enabled, std::string p_sex_segregation)
+void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation)
 {
 	std::string reciprocal_string = p_reciprocal ? "reciprocal=T" : "reciprocal=F";
 	std::string sex_string = p_sex_enabled ? "initializeSex('A'); " : "                    ";
@@ -285,7 +285,7 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		
 		// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType 'q' must be", __LINE__);
 		if (max_dist_on)
 		{
 			SLiMAssertScriptStop(gen1_setup_i1x_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
@@ -511,7 +511,7 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 		
 		// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
-		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
+		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType 'q' must be", __LINE__);
 		if (max_dist_on)
 		{
 			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
@@ -708,7 +708,7 @@ void _RunInteractionTypeTests_Spatial(std::string p_max_distance, bool p_recipro
 	
 	// Test InteractionType – (void)setInteractionFunction(string$ functionType, ...)
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "while the interaction is being evaluated", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType \"q\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('q', 10.0); i1.evaluate(p1); stop(); }", "functionType 'q' must be", __LINE__);
 	if (max_dist_on)
 	{
 		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.setInteractionFunction('f', 5.0); i1.evaluate(p1); stop(); }", __LINE__);
@@ -1089,7 +1089,7 @@ void _RunContinuousSpaceTests(void)
 							model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
 							model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
 							
-							switch (boundary)
+							switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
 							{
 								case 0: model_string.append("'stopping'"); break;
 								case 1: model_string.append("'reflecting'"); break;
@@ -1097,7 +1097,7 @@ void _RunContinuousSpaceTests(void)
 								case 3: model_string.append("'periodic'"); break;
 							}
 							
-							switch (kernel)
+							switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
 							{
 								case 0: model_string.append(", 0.1, 'f')); "); break;
 								case 1: model_string.append(", 0.1, 'l')); "); break;
@@ -1201,7 +1201,7 @@ void _RunContinuousSpaceTests(void)
 				
 				model_string.append("early() { inds = p1.individuals; pos = inds.spatialPosition; inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
 				
-				switch (boundary)
+				switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
 				{
 					case 0: model_string.append("'stopping'"); break;
 					case 1: model_string.append("'reflecting'"); break;
@@ -1209,7 +1209,7 @@ void _RunContinuousSpaceTests(void)
 					case 3: model_string.append("'periodic'"); break;
 				}
 				
-				switch (kernel)
+				switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
 				{
 					case 0: model_string.append(", 0.1, 'f')); "); break;
 					case 1: model_string.append(", 0.1, 'l')); "); break;
@@ -1503,7 +1503,7 @@ void _RunNonWFTests(void)
 }
 
 #pragma mark treeseq tests
-void _RunTreeSeqTests(std::string temp_path)
+void _RunTreeSeqTests(const std::string &temp_path)
 {
 	// initializeTreeSeq()
 	SLiMAssertScriptStop("initialize() { initializeTreeSeq(); } " + gen1_setup_p1 + "100 early() { stop(); }", __LINE__);
@@ -1884,9 +1884,9 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(1.0, integer(0)); } ", "of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(float(0), 1e2-1); } ", "of equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(float(0), integer(0)); } ", "of equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(1.0, sex='A'); } ", "requested sex \"A\" unsupported", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(1.0, sex='A'); } ", "requested sex 'A' unsupported", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(1.0, sex='M'); } ", "supplied in non-sexual simulation", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeSex('A'); initializeHotspotMap(1.0, sex='A'); } ", "requested sex \"A\" unsupported", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeSex('A'); initializeHotspotMap(1.0, sex='A'); } ", "requested sex 'A' unsupported", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeSex('A'); initializeHotspotMap(1.0, sex='M'); initializeHotspotMap(1.0, sex='F'); initializeHotspotMap(1.0, sex='M'); } ", "may be called only once", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(1.0); initializeHotspotMap(1.0); } ", "may be called only once", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeHotspotMap(c(1.0, 1.2)); } ", "multipliers to be a singleton", __LINE__);
@@ -1903,7 +1903,7 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptStop(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "initializeMutationTypeNuc(1, 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc(-1, 0.5, 'f', 0.0); stop(); }", "identifier value is out of range", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix \"m\" was expected", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix 'm' was expected", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('mm1', 0.5, 'f', 0.0); stop(); }", "must be a simple integer", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
@@ -1932,7 +1932,7 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'p', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', '1', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'w', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'x', 0.0); stop(); }", "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
+	SLiMAssertScriptRaise(nuc_model_start + "initializeMutationTypeNuc('m1', 0.5, 'x', 0.0); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "x = initializeMutationTypeNuc('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptStop(nuc_model_start + "x = initializeMutationTypeNuc(7, 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(nuc_model_start + "m7 = 15; initializeMutationTypeNuc(7, 0.5, 'f', 0.0); stop(); }", "already defined", __LINE__);
@@ -2010,7 +2010,7 @@ void _RunNucleotideMethodTests(void)
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, integer(0)); }", "equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(float(0), 1e2-1); }", "equal and nonzero size", __LINE__);
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(float(0), integer(0)); }", "equal and nonzero size", __LINE__);
-	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, sex='A'); }", "sex \"A\" unsupported", __LINE__);
+	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, sex='A'); }", "sex 'A' unsupported", __LINE__);
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(1.0, sex='M'); }", "original configuration", __LINE__);
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(c(1.0, 1.2)); }", "to be a singleton if", __LINE__);
 	SLiMAssertScriptRaise(nuc_w_hotspot + "1 early() { sim.chromosome.setHotspotMap(-0.1); }", "multipliers must be >= 0", __LINE__);

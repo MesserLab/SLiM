@@ -34,6 +34,7 @@
 #include <sys/utsname.h>
 #include <chrono>
 #include <ctime>
+#include <algorithm>
 
 #if 0
 // These would enable further keys in sysinfo(), but cause problems on Ubuntu 18.04 and/or Windows
@@ -79,7 +80,7 @@ EidosValue_SP Eidos_ExecuteFunction_assert(const std::vector<EidosValue_SP> &p_a
 			
 			p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 			
-			EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_assert): assertion failed: " + stop_string + ".") << EidosTerminate(nullptr);
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_assert): assertion failed: " << stop_string << "." << EidosTerminate(nullptr);
 		}
 		else
 		{
@@ -563,7 +564,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSignature(const std::vector<EidosVal
 	
 	if (function_name_specified && !signature_found)
 	{
-		output_stream << "No function signature found for \"" << match_string << "\".";
+		output_stream << "No function signature found for '" << match_string << "'.";
 		if (p_interpreter.Context() == nullptr)
 			output_stream << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
 		output_stream << std::endl;
@@ -608,7 +609,7 @@ EidosValue_SP Eidos_ExecuteFunction_functionSource(const std::vector<EidosValue_
 		return gStaticEidosValueVOID;
 	}
 	
-	output_stream << "No function found for \"" << match_string << "\".";
+	output_stream << "No function found for '" << match_string << "'.";
 	if (p_interpreter.Context() == nullptr)
 		output_stream << "  This may be because the current Eidos context (such as the current SLiM simulation) is invalid.";
 	output_stream << std::endl;
@@ -1133,7 +1134,7 @@ EidosValue_SP Eidos_ExecuteFunction_sapply(const std::vector<EidosValue_SP> &p_a
 	else if (simplify_string == "matrix")	simplify = 1;
 	else if (simplify_string == "match")	simplify = 2;
 	else
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): unrecognized simplify option \"" << simplify_string << "\" in function sapply()." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sapply): unrecognized simplify option '" << simplify_string << "' in function sapply()." << EidosTerminate(nullptr);
 	
 	// Get the lambda string and cache its script
 	EidosValue *lambda_value = p_arguments[1].get();
@@ -1306,7 +1307,7 @@ EidosValue_SP Eidos_ExecuteFunction_stop(const std::vector<EidosValue_SP> &p_arg
 		
 		p_interpreter.ErrorOutputStream() << stop_string << std::endl;
 		
-		EIDOS_TERMINATION << ("ERROR (Eidos_ExecuteFunction_stop): stop() called with error message:\n\n" + stop_string) << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_stop): stop() called with error message:\n\n" << stop_string << EidosTerminate(nullptr);
 	}
 	else
 	{

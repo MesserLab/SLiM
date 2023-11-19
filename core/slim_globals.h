@@ -591,6 +591,17 @@ extern EidosValue_String_SP gStaticEidosValue_StringT;
 extern const char gSLiM_Nucleotides[4];		// A, C, G, T
 
 
+// This enumeration represents possible boundary conditions supported by SLiM.  Note that "absorbing"
+// is not included here, because there is no SLiM API that supports absorbing boundaries.
+enum class BoundaryCondition : char {
+	kNone = 0,
+	kStopping,
+	kReflecting,
+	kReprising,
+	kPeriodic
+};
+
+
 // *******************************************************************************************************************
 //
 //	TSKIT/tree sequence tables related

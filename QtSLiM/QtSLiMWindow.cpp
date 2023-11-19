@@ -4372,6 +4372,7 @@ void QtSLiMWindow::eidos_openDocument(QString path)
     if (path.endsWith(".pdf", Qt::CaseInsensitive))
     {
         // Block opening PDFs; SLiMgui supported PDF but QtSLiM doesn't, so we should explicitly intercept and error out, otherwise we'll try to open the PDF as a SLiM model
+		// FIXME: This shouldn't be using EIDOS_TERMINATION!
         EIDOS_TERMINATION << "ERROR (QtSLiMWindow::eidos_openDocument): opening PDF files is not supported in SLiMgui; using PNG instead is suggested." << EidosTerminate(nullptr);
     }
     

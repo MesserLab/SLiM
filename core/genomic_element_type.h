@@ -83,7 +83,7 @@ public:
 	void InitializeDraws(void);									// reinitialize our mutation-type lookup after changing our mutation type or proportions
 	MutationType *DrawMutationType(void) const;					// draw a mutation type from the distribution for this genomic element type
 	
-	void SetNucleotideMutationMatrix(EidosValue_Float_vector_SP p_mutation_matrix);
+	void SetNucleotideMutationMatrix(const EidosValue_Float_vector_SP &p_mutation_matrix);
 	
 	
 	//

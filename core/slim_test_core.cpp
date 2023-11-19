@@ -48,7 +48,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeMutationType(1, 0.5, 'f', 0.0); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType(-1, 0.5, 'f', 0.0); stop(); }", "identifier value is out of range", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix \"m\" was expected", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('p2', 0.5, 'f', 0.0); stop(); }", "identifier prefix 'm' was expected", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('mm1', 0.5, 'f', 0.0); stop(); }", "must be a simple integer", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f'); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'f', 0.0, 0.0); stop(); }", "requires exactly 1 DFE parameter", __LINE__);
@@ -77,7 +77,7 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'p', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', '1', 0.0); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'w', 0.0, '1'); stop(); }", "must be of type numeric", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeMutationType('m1', 0.5, 'x', 0.0); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType('m7', 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { x = initializeMutationType(7, 0.5, 'f', 0.0); if (x == m7) stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { m7 = 15; initializeMutationType(7, 0.5, 'f', 0.0); stop(); }", "already defined", __LINE__);
@@ -260,8 +260,8 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeInteractionType('i0', ''); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, 'x'); stop(); }", "spatial dimensions beyond those set", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType('i0', 'x'); stop(); }", "spatial dimensions beyond those set", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, 'w'); stop(); }", "spatiality \"w\" must be", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeInteractionType('i0', 'w'); stop(); }", "spatiality \"w\" must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, 'w'); stop(); }", "spatiality 'w' must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeInteractionType('i0', 'w'); stop(); }", "spatiality 'w' must be", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeInteractionType(0, '', T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, '', T, 0.1); stop(); }", "must be INF for non-spatial interactions", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeInteractionType(0, '', T, INF, '**'); stop(); }", __LINE__);
@@ -278,8 +278,8 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, '', T, INF, 'W*'); stop(); }", "unsupported sexSegregation value", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeInteractionType(0, '', T, INF, '*W'); stop(); }", "unsupported sexSegregation value", __LINE__);
 
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType(0, 'w'); stop(); }", "spatiality \"w\" must be", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType('i0', 'w'); stop(); }", "spatiality \"w\" must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType(0, 'w'); stop(); }", "spatiality 'w' must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType('i0', 'w'); stop(); }", "spatiality 'w' must be", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType(0, '', T); stop(); }", __LINE__);
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType(0, '', T, 0.1); stop(); }", "must be INF for non-spatial interactions", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='x'); initializeInteractionType(0, '', T, INF, '**'); stop(); }", __LINE__);
@@ -305,13 +305,13 @@ void _RunInitTests(void)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'yz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'xz'); stop(); }", __LINE__);
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'xyz'); stop(); }", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'w'); stop(); }", "spatiality \"w\" must be", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'yx'); stop(); }", "spatiality \"yx\" must be", __LINE__);
-	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'zyx'); stop(); }", "spatiality \"zyx\" must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'w'); stop(); }", "spatiality 'w' must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'yx'); stop(); }", "spatiality 'yx' must be", __LINE__);
+	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'zyx'); stop(); }", "spatiality 'zyx' must be", __LINE__);
 }
 
 #pragma mark Species tests
-void _RunSpeciesTests(std::string temp_path)
+void _RunSpeciesTests(const std::string &temp_path)
 {
 	// ************************************************************************************
 	//
@@ -1333,7 +1333,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz_bounds + "if (identical(p1.pointPeriodic(c(-10.5, -1.0, 4.5, -8.0, 2.5, 14.5)), c(7.5, -1.0, 4.5, 1.0, 2.5, 1.5))) stop(); }", __LINE__);
 	
 	// Test spatial stuff including defineSpatialMap(), spatialMapColor(), and spatialMapValue()
-	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.defineSpatialMap('map', 'x', c(0.0, 1.0)); stop(); }", "spatial dimensions beyond those set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.spatialMapColor('m', 0.5); stop(); }", "could not find map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.spatialMapValue('m', float(0)); stop(); }", "could not find map", __LINE__);
@@ -1366,7 +1366,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'xyz', array(1.0:12, c(2,3,2))); stop(); }", __LINE__);
 	
 	// 1D sim with 1D x map
-	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'xy', c(0.0, 1.0)); stop(); }", "does not match the spatiality defined", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'xy', matrix(1.0:4, nrow=2)); stop(); }", "spatial dimensions beyond those set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { p1.defineSpatialMap('map', 'x', 0.0); stop(); }", "must be of size >= 2", __LINE__);
@@ -1406,7 +1406,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x_mapI + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D x map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'x', 0.0); stop(); }", "must be of size >= 2", __LINE__);
 	
 	std::string gen1_setup_i1xyz_mapNIx(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'x', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
@@ -1444,7 +1444,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIx + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 1D z map
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'z', 0.0); stop(); }", "must be of size >= 2", __LINE__);
 	
 	std::string gen1_setup_i1xyz_mapNIz(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'z', c(0.0, 1.0, 3.0), interpolate=F, valueRange=c(-5.0, 5.0), colors=c('black', 'white')); ");
@@ -1482,7 +1482,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 2D xz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'xz', 0.0); stop(); }", "does not match the spatiality defined for the map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'xz', matrix(0.0)); stop(); }", "must be of size >= 2", __LINE__);
 	
@@ -1564,7 +1564,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_mapIxz + "if (p1.spatialMapColor('map', 5.0) == '#00FFFF') stop(); }", __LINE__);
 	
 	// 3D sim with 3D xyz map; note that these tests were designed with the old matrix interpretation, so now a transpose/flip is needed to make them match
-	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality \"\" must be", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', '', float(0)); stop(); }", "spatiality '' must be", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'xyz', 0.0); stop(); }", "does not match the spatiality defined for the map", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.defineSpatialMap('map', 'xyz', array(0.0, c(1,1,1))); stop(); }", "must be of size >= 2", __LINE__);
 	
@@ -1889,7 +1889,7 @@ void _RunSLiMEidosBlockTests(void)
 
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "fitnessEffect(p4) { stop(); } 100 early() { ; }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 fitnessEffect(p1) { stop(); } 100 early() { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitnessEffect(m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "fitnessEffect(m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	// mutationEffect() callbacks
 	SLiMAssertScriptStop(gen1_setup_p1p2p3 + "mutationEffect(m1) { return effect; } 100 early() { stop(); }", __LINE__);
@@ -1906,9 +1906,9 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect() { stop(); } 100 early() { ; }", "mutation type id is required", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(p1) { stop(); } 100 early() { ; }", "identifier prefix \"m\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(p1) { stop(); } 100 early() { ; }", "identifier prefix 'm' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { ; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutationEffect(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
@@ -1938,9 +1938,9 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mateChoice(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(m1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(NULL) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { ; } 10 early() { ; }", "must explicitly return a value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mateChoice(p1) { return F; } 10 early() { ; }", "return value", __LINE__);
@@ -1970,9 +1970,9 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 modifyChild(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(m1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(NULL) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { ; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "modifyChild(p1) { return NULL; } 10 early() { ; }", "return value", __LINE__);
@@ -2002,9 +2002,9 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 recombination(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(m1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(NULL) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { ; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "recombination(p1) { return NULL; } 10 early() { ; }", "return value", __LINE__);
@@ -2039,10 +2039,10 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction() { stop(); } 10 early() { ; }", "interaction type id is required", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, p1, p2) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, i1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(p1) { stop(); } 10 early() { ; }", "identifier prefix \"i\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, NULL) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(NULL, i1) { stop(); } 10 early() { ; }", "identifier prefix \"i\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, i1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(p1) { stop(); } 10 early() { ; }", "identifier prefix 'i' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1, NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(NULL, i1) { stop(); } 10 early() { ; }", "identifier prefix 'i' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { ; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_i1 + "interaction(i1) { return NULL; } 10 early() { ; }", "return value", __LINE__);
@@ -2081,7 +2081,7 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF + "reproduction() { s1.active = 0; } s1 reproduction(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(m1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(p1, p1) { stop(); } 10 early() { ; }", "needs a value for sex", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF + "reproduction(NULL, '*') { stop(); } 10 early() { ; }", "needs a value for sex", __LINE__);
 	
@@ -2130,10 +2130,10 @@ void _RunSLiMEidosBlockTests(void)
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "early() { s1.active = 0; } s1 mutation(NULL, p1) { stop(); } 100 early() { ; }", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, p1, p2) { stop(); } 100 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(p1) { stop(); } 100 early() { ; }", "identifier prefix \"m\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(NULL, m1) { stop(); } 100 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(p1) { stop(); } 100 early() { ; }", "identifier prefix 'm' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1, NULL) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(NULL, m1) { stop(); } 100 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { ; } 100 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3 + "mutation(m1) { return NULL; } 100 early() { ; }", "return value", __LINE__);
@@ -2167,9 +2167,9 @@ void _RunSLiMEidosBlockTests(void)
 	
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3_nonWF_clonal + "early() { s1.active = 0; } s1 survival(p1) { stop(); } 10 early() { ; }", __LINE__);
 	
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(m1) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(m1) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1, p1) { stop(); } 10 early() { ; }", "unexpected token", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(NULL) { stop(); } 10 early() { ; }", "identifier prefix \"p\" was expected", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(NULL) { stop(); } 10 early() { ; }", "identifier prefix 'p' was expected", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { ; } 10 early() { ; }", "return value", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1p2p3_nonWF_clonal + "survival(p1) { return 1; } 10 early() { ; }", "return value", __LINE__);

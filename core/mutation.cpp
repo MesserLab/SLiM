@@ -42,7 +42,7 @@ EidosDebugLock gSLiM_Mutation_LOCK("gSLiM_Mutation_LOCK");
 
 slim_refcount_t *gSLiM_Mutation_Refcounts = nullptr;
 
-#define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable
+#define SLIM_MUTATION_BLOCK_INITIAL_SIZE	16384		// makes for about a 1 MB block; not unreasonable		// NOLINT(*-macro-to-enum) : this is fine
 
 extern std::vector<EidosValue_Object *> gEidosValue_Object_Mutation_Registry;	// this is in Eidos; see SLiM_IncreaseMutationBlockCapacity()
 
@@ -120,8 +120,8 @@ void SLiM_IncreaseMutationBlockCapacity(void)
 		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): too many mutations; there is a limit of 2^31 (2147483648) segregating mutations in SLiM." << EidosTerminate(nullptr);
 	
 	gSLiM_Mutation_Block_Capacity *= 2;
-	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));
-	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));
+	gSLiM_Mutation_Block = (Mutation *)realloc((void*)gSLiM_Mutation_Block, gSLiM_Mutation_Block_Capacity * sizeof(Mutation));						// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
+	gSLiM_Mutation_Refcounts = (slim_refcount_t *)realloc(gSLiM_Mutation_Refcounts, gSLiM_Mutation_Block_Capacity * sizeof(slim_refcount_t));		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 	
 	if (!gSLiM_Mutation_Block || !gSLiM_Mutation_Refcounts)
 		EIDOS_TERMINATION << "ERROR (SLiM_IncreaseMutationBlockCapacity): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
@@ -395,8 +395,9 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				case 1:	return gStaticEidosValue_StringC;
 				case 2:	return gStaticEidosValue_StringG;
 				case 3:	return gStaticEidosValue_StringT;
+				default:
+					EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 			}
-			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_nucleotideValue:	// ACCELERATED
 		{
@@ -409,8 +410,9 @@ EidosValue_SP Mutation::GetProperty(EidosGlobalStringID p_property_id)
 				case 1:	return gStaticEidosValue_Integer1;
 				case 2:	return gStaticEidosValue_Integer2;
 				case 3:	return gStaticEidosValue_Integer3;
+				default:
+					EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 			}
-			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_subpopID:			// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
@@ -482,7 +484,7 @@ EidosValue *Mutation::GetProperty_Accelerated_nucleotide(EidosObject **p_values,
 		int8_t nucleotide = value->nucleotide_;
 		
 		if (nucleotide == -1)
-			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty_Accelerated_nucleotideValue): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty_Accelerated_nucleotide): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
 		
 		if (nucleotide == 0)
 			string_result->PushString(gStr_A);
@@ -567,7 +569,7 @@ EidosValue *Mutation::GetProperty_Accelerated_tag(EidosObject **p_values, size_t
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty): property tag accessed on mutation before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Mutation::GetProperty_Accelerated_tag): property tag accessed on mutation before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}

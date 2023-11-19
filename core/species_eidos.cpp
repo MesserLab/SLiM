@@ -441,7 +441,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationType(const std::
 			}
 			else
 			{
-				for (std::string dfe_param : dfe_strings)
+				for (const std::string &dfe_param : dfe_strings)
 					output_stream << ", \"" << dfe_param << "\"";
 			}
 			
@@ -476,7 +476,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeRecombinationRate(const 
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeRecombinationRate): initializeRecombinationRate() sex-specific recombination map supplied in non-sexual simulation." << EidosTerminate();
@@ -682,7 +682,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeHotspotMap(const std::st
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeHotspotMap): initializeHotspotMap() sex-specific hotspot map supplied in non-sexual simulation." << EidosTerminate();
@@ -832,7 +832,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeMutationRate(const std::
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	if ((requested_sex != IndividualSex::kUnspecified) && !sex_enabled_)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeMutationRate): initializeMutationRate() sex-specific mutation map supplied in non-sexual simulation." << EidosTerminate();
@@ -977,7 +977,7 @@ EidosValue_SP Species::ExecuteContextFunction_initializeSex(const std::string &p
 	else if (chromosome_type.compare(gStr_Y) == 0)
 		modeled_chromosome_type_ = GenomeType::kYChromosome;
 	else
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of \"A\", \"X\", or \"Y\" (\"" << chromosome_type << "\" supplied)." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteContextFunction_initializeSex): initializeSex() requires a chromosomeType of 'A', 'X', or 'Y' ('" << chromosome_type << "' supplied)." << EidosTerminate();
 	
 	if (SLiM_verbosity_level >= 1)
 	{
@@ -2046,8 +2046,8 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
 				
-				source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_first_male - 1) * 2];
-				source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1];
+				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2];
+				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1];
 			}
 			
 			if (source_first_male - 1 < source_subpop_size - 1)
@@ -2057,13 +2057,13 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 				backfill->index_ = source_first_male - 1;
 				
-				source_subpop->parent_genomes_[(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
+				source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 			
 			source_subpop->parent_first_male_index_ = --source_first_male;
 		}
@@ -2077,13 +2077,13 @@ EidosValue_SP Species::ExecuteMethod_killIndividuals(EidosGlobalStringID p_metho
 				source_subpop->parent_individuals_[source_subpop_index] = backfill;
 				backfill->index_ = source_subpop_index;
 				
-				source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
-				source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
+				source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 			}
 			
 			source_subpop->parent_subpop_size_ = --source_subpop_size;
 			source_subpop->parent_individuals_.resize(source_subpop_size);
-			source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+			source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 		}
 		
 		// add the doomed individual to our temporary graveyard
@@ -3281,7 +3281,7 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	Species *species = Community::SpeciesForIndividuals(individuals_value);
 	
 	if (species != this)
-		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_subsetMutations): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
 	if (ind_count == 1)
 	{

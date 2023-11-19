@@ -53,7 +53,7 @@ private:
 	typedef EidosDictionaryRetained super;
 
 	void _ValuesChanged(void);
-	EidosValue_SP _DeriveTemporarySpatialMapWithEidosValue(EidosValue *p_argument, std::string p_code_name, std::string p_eidos_name);
+	EidosValue_SP _DeriveTemporarySpatialMapWithEidosValue(EidosValue *p_argument, const std::string &p_code_name, const std::string &p_eidos_name);
 	
 public:
 	
@@ -95,8 +95,8 @@ public:
 	SpatialMap(std::string p_name, SpatialMap &p_original);
 	~SpatialMap(void);
 	
-	void TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, std::string p_code_name, std::string p_eidos_name);
-	void TakeValuesFromEidosValue(EidosValue *p_values, std::string p_code_name, std::string p_eidos_name);
+	void TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name);
+	void TakeValuesFromEidosValue(EidosValue *p_values, const std::string &p_code_name, const std::string &p_eidos_name);
 	void TakeOverMallocedValues(double *p_values, int64_t p_dimcount, int64_t *p_dimensions);
 	bool IsCompatibleWithSubpopulation(Subpopulation *p_subpop);
 	bool IsCompatibleWithMap(SpatialMap *p_map);

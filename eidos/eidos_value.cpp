@@ -589,7 +589,7 @@ EidosValue_SP EidosValue::Subset(std::vector<std::vector<int64_t>> &p_inclusion_
 		
 		if (dimcount > static_dim_buffer_size)
 		{
-			static_dim_buffer = (int64_t *)realloc(static_dim_buffer, (dimcount + 1) * sizeof(int64_t));	// +1 so the zero case doesn't result in a zero-size allocation		// NOLINT(*-realloc-usage) : if realloc fails, it's a fatal error anyway
+			static_dim_buffer = (int64_t *)realloc(static_dim_buffer, (dimcount + 1) * sizeof(int64_t));	// +1 so the zero case doesn't result in a zero-size allocation		// NOLINT(*-realloc-usage) : realloc failure is a fatal error anyway
 			if (!static_dim_buffer)
 				EIDOS_TERMINATION << "ERROR (EidosValue::Subset): allocation failed; you may need to raise the memory limit for SLiM." << EidosTerminate(nullptr);
 			
@@ -1356,7 +1356,7 @@ int64_t EidosValue_String_vector::IntAtIndex(int p_idx, const EidosToken *p_blam
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 	if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): \"" << values_[p_idx] << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_vector::IntAtIndex): '" << values_[p_idx] << "' could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
 }
@@ -1448,7 +1448,7 @@ int64_t EidosValue_String_singleton::IntAtIndex(int p_idx, const EidosToken *p_b
 	
 	// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 	if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
-		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::IntAtIndex): \"" << value_ << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosValue_String_singleton::IntAtIndex): '" << value_ << "' could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 	
 	return static_cast<int64_t>(converted_value);
 }

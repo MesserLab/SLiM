@@ -751,7 +751,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 			
 			// This is for DataFrame's rbind(), which wants columns to match exactly (if any columns are already there)
 			if (p_require_column_match && keys.size() && (keys != source_keys))
-				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AppendKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
 			
 			for (const std::string &key : source_keys)
 			{
@@ -803,7 +803,7 @@ void EidosDictionaryUnretained::AppendKeysAndValuesFrom(EidosDictionaryUnretaine
 			
 			// This is for DataFrame's rbind(), which wants columns to match exactly (if any columns are already there)
 			if (p_require_column_match && keys.size() && (keys != source_keys))
-				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
+				EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AppendKeysAndValuesFrom): the columns of the target do not match the columns of the dictionary being appended." << EidosTerminate(nullptr);
 			
 			for (int64_t key : source_keys)
 			{
@@ -996,13 +996,13 @@ void EidosDictionaryUnretained::AddJSONFrom(nlohmann::json &json)
 						}
 						else
 						{
-							EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported array value type \"" << value[0].type_name() << "\" in AddJSONFrom()." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported array value type '" << value[0].type_name() << "' in AddJSONFrom()." << EidosTerminate(nullptr);
 						}
 					}
 				}
 				else
 				{
-					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported value type \"" << value.type_name() << "\" in AddJSONFrom()." << EidosTerminate(nullptr);
+					EIDOS_TERMINATION << "ERROR (EidosDictionaryUnretained::AddJSONFrom): unsupported value type '" << value.type_name() << "' in AddJSONFrom()." << EidosTerminate(nullptr);
 				}
 				
 				KeyAddedToDictionary_StringKeys(key);

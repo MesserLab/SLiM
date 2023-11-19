@@ -53,6 +53,8 @@ struct LogFileGeneratorInfo
 	EidosScript *script_;				// a script to execute to generate the data, or nullptr
 	slim_objectid_t objectid_;			// the identifier for whatever object type might be relevant, or -1
 	EidosValue_SP context_;				// the context value for the generator, if any
+	
+	LogFileGeneratorInfo(LogFileGeneratorType p_type, EidosScript *p_script, slim_objectid_t p_objectid, EidosValue_SP p_context) : type_(p_type), script_(p_script), objectid_(p_objectid), context_(p_context) {};
 };
 
 

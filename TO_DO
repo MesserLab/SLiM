@@ -18,7 +18,7 @@ look for exported symbols that are not tagged with "eidos" or "Eidos" somewhere 
 dump demangled symbols from SLiMgui:
 	nm -g -U -j ./SLiMgui | c++filt
 
-some valgrind commands:
+some valgrind commands (set SLIM_LEAK_CHECKING to 1):
 	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testEidos		(with Debug version)
 	valgrind --leak-check=yes --track-origins=yes --expensive-definedness-checks=yes --num-callers=20 ./slim -testSLiM		(with Debug version)
 	valgrind --tool=cachegrind ./slim -seed 1 /Users/bhaller/Desktop/MK_SLiMGUIsim4.txt		(with Release version)
@@ -41,8 +41,11 @@ clang-tidy with CMake:
 	similarly locate clang and clang++ (for me, /opt/local/libexec/llvm-17/bin/clang and /opt/local/libexec/llvm-17/bin/clang++)
 	fix the CMakeLists.txt file to have the correct paths for these things (in the section near the top, "if(TIDY)")
 	make a build directory for SLiM with mkdir, and cd to it
-	cmake -D TIDY=ON path-to-SLiM-repo
-	make eidos / make slim
+	run cmake (one of the below):
+		cmake -D TIDY=ON path-to-SLiM-repo
+		cmake -D TIDY=ON -D CMAKE_BUILD_TYPE=Debug path-to-SLiM-repo
+		cmake -D TIDY=ON -D CMAKE_BUILD_TYPE=Debug -D CMAKE_PREFIX_PATH=/Users/bhaller/Qt5.15.2/5.15.2/clang_64 -D BUILD_SLIMGUI=ON /Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM 
+	make eidos / make slim / make SLiMgui
 
 CR/LF issues:
 	file -e soft <file> tells you what a file is (-e soft turns off "magic", which misdiagnoses SLiM files)

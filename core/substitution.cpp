@@ -106,8 +106,9 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 1:	return gStaticEidosValue_StringC;
 				case 2:	return gStaticEidosValue_StringG;
 				case 3:	return gStaticEidosValue_StringT;
+				default:
+					EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 			}
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_nucleotideValue:		// ACCELERATED
 		{
@@ -120,8 +121,9 @@ EidosValue_SP Substitution::GetProperty(EidosGlobalStringID p_property_id)
 				case 1:	return gStaticEidosValue_Integer1;
 				case 2:	return gStaticEidosValue_Integer2;
 				case 3:	return gStaticEidosValue_Integer3;
+				default:
+					EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 			}
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): (internal error) unrecognized value for nucleotide_." << EidosTerminate();
 		}
 		case gID_subpopID:				// ACCELERATED
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(subpop_index_));
@@ -165,7 +167,7 @@ EidosValue *Substitution::GetProperty_Accelerated_nucleotide(EidosObject **p_val
 		int8_t nucleotide = value->nucleotide_;
 		
 		if (nucleotide == -1)
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotideValue): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_nucleotide): property nucleotide is only defined for nucleotide-based mutations." << EidosTerminate();
 		
 		if (nucleotide == 0)
 			string_result->PushString(gStr_A);
@@ -264,7 +266,7 @@ EidosValue *Substitution::GetProperty_Accelerated_tag(EidosObject **p_values, si
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty): property tag accessed on substitution before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Substitution::GetProperty_Accelerated_tag): property tag accessed on substitution before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}

@@ -340,9 +340,9 @@ public:
 	
 	// checks for deferred genomes in queue right now; allows optimization when none are present
 	inline bool HasDeferredGenomes(void) { return ((deferred_reproduction_nonrecombinant_.size() > 0) || (deferred_reproduction_recombinant_.size() > 0)); }
-	void CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, std::string p_caller);
-	void CheckForDeferralInGenomes(EidosValue_Object *p_genomes, std::string p_caller);
-	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, std::string p_caller);
+	void CheckForDeferralInGenomesVector(Genome **p_genomes, size_t p_elements_size, const std::string &p_caller);
+	void CheckForDeferralInGenomes(EidosValue_Object *p_genomes, const std::string &p_caller);
+	void CheckForDeferralInIndividualsVector(Individual **p_individuals, size_t p_elements_size, const std::string &p_caller);
 	
 	void DoDeferredReproduction(void);
 	

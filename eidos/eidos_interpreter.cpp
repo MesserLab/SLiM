@@ -37,15 +37,15 @@
 
 #if DEBUG || defined(EIDOS_GUI)
 
-#define EIDOS_ENTRY_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(execution_log_indent_++) << method_name << " entered\n";
-#define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << method_name << " : return == " << *result_SP << "\n";
+#define EIDOS_ENTRY_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(execution_log_indent_++) << (method_name) << " entered\n";
+#define EIDOS_EXIT_EXECUTION_LOG(method_name)						if (logging_execution_) *execution_log_ << IndentString(--execution_log_indent_) << (method_name) << " : return == " << *result_SP << "\n";
 #define EIDOS_BEGIN_EXECUTION_LOG()									if (logging_execution_) execution_log_indent_ = 0;
 #define EIDOS_END_EXECUTION_LOG()									if (gEidosLogEvaluation) std::cout << ExecutionLog();
-#define EIDOS_ASSERT_CHILD_COUNT(method_name, count)				if (p_node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren)." << EidosTerminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)		if (p_node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren)." << EidosTerminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)			if ((p_node->children_.size() < lower) || (p_node->children_.size() > upper)) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << lower << " to " << upper << " children." << EidosTerminate(p_node->token_);
-#define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)		if (node->children_.size() != count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << count << " child(ren) for " << node_type << " node." << EidosTerminate(blame_token);
-#define EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(node, node_type, method_name, min_count, blame_token)		if (node->children_.size() < min_count) EIDOS_TERMINATION << "ERROR (" << method_name << "): (internal error) expected " << min_count << "+ child(ren) for " << node_type << " node." << EidosTerminate(blame_token);
+#define EIDOS_ASSERT_CHILD_COUNT(method_name, count)				if (p_node->children_.size() != (count)) EIDOS_TERMINATION << "ERROR (" << (method_name) << "): (internal error) expected " << (count) << " child(ren)." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_COUNT_GTEQ(method_name, min_count)		if (p_node->children_.size() < (min_count)) EIDOS_TERMINATION << "ERROR (" << (method_name) << "): (internal error) expected " << (min_count) << "+ child(ren)." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_RANGE(method_name, lower, upper)			if ((p_node->children_.size() < (lower)) || (p_node->children_.size() > (upper))) EIDOS_TERMINATION << "ERROR (" << (method_name) << "): (internal error) expected " << (lower) << " to " << (upper) << " children." << EidosTerminate(p_node->token_);
+#define EIDOS_ASSERT_CHILD_COUNT_X(node, node_type, method_name, count, blame_token)		if ((node)->children_.size() != (count)) EIDOS_TERMINATION << "ERROR (" << (method_name) << "): (internal error) expected " << (count) << " child(ren) for " << (node_type) << " node." << EidosTerminate(blame_token);
+#define EIDOS_ASSERT_CHILD_COUNT_GTEQ_X(node, node_type, method_name, min_count, blame_token)		if ((node)->children_.size() < (min_count)) EIDOS_TERMINATION << "ERROR (" << (method_name) << "): (internal error) expected " << (min_count) << "+ child(ren) for " << (node_type) << " node." << EidosTerminate(blame_token);
 
 #else
 
@@ -177,7 +177,7 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement '" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "' encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 		
 		// Restore the normal error context; note that a raise blows through this, of course, since we want the raise-catch
 		// machinery to report the error using the error information set up by the raise.
@@ -189,7 +189,7 @@ EidosValue_SP EidosInterpreter::EvaluateInternalBlock(EidosScript *p_script_for_
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInternalBlock): statement '" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "' encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 	}
 	
 	// handle a return statement; we're at the top level, so there's not much to do
@@ -230,7 +230,7 @@ EidosValue_SP EidosInterpreter::EvaluateInterpreterBlock(bool p_print_output, bo
 		
 		// if a next or break statement was hit and was not handled by a loop, throw an error
 		if (next_statement_hit_ || break_statement_hit_)
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement \"" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "\" encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::EvaluateInterpreterBlock): statement '" << (next_statement_hit_ ? gEidosStr_next : gEidosStr_break) << "' encountered with no enclosing loop." << EidosTerminate(nullptr);		// nullptr used to allow the token set by the next/break to be used
 		
 		// send the result of each statement to our output stream; result==nullptr indicates invisible NULL, so we don't print
 		EidosValue *statement_result = statement_result_SP.get();
@@ -5070,7 +5070,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 	
 	if ((p_number_string.find('.') != std::string::npos) || (p_number_string.find('-') != std::string::npos))
 	{
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (decimal or negative exponent)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): '" << p_number_string << "' could not be represented as an integer (decimal or negative exponent)." << EidosTerminate(p_blame_token);
 		return 0;
 	}
 	else if ((p_number_string.find('e') != std::string::npos) || (p_number_string.find('E') != std::string::npos))	// has an exponent
@@ -5078,11 +5078,11 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): '" << p_number_string << "' could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): '" << p_number_string << "' could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return static_cast<int64_t>(converted_value);
 	}
@@ -5091,7 +5091,7 @@ int64_t EidosInterpreter::NonnegativeIntegerForString(const std::string &p_numbe
 		int64_t converted_value = strtoll(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): \"" << p_number_string << "\" could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NonnegativeIntegerForString): '" << p_number_string << "' could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
 		
 		return converted_value;
 	}
@@ -5109,7 +5109,7 @@ double EidosInterpreter::FloatForString(const std::string &p_number_string, cons
 	double converted_value = strtod(c_str, &last_used_char);
 	
 	if (errno || (last_used_char == c_str))
-		EIDOS_TERMINATION << "ERROR (EidosInterpreter::FloatForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (EidosInterpreter::FloatForString): '" << p_number_string << "' could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
 	
 	return converted_value;
 }
@@ -5132,7 +5132,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as a float (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(converted_value));
 	}
@@ -5141,11 +5141,11 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		double converted_value = strtod(c_str, &last_used_char);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as an integer (strtod conversion error)." << EidosTerminate(p_blame_token);
 		
 		// nwellnhof on stackoverflow points out that the >= here is correct even though it looks wrong, because reasons...
 		if ((converted_value < (double)INT64_MIN) || (converted_value >= (double)INT64_MAX))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as an integer (out of range)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(static_cast<int64_t>(converted_value)));
 	}
@@ -5154,7 +5154,7 @@ EidosValue_SP EidosInterpreter::NumericValueForString(const std::string &p_numbe
 		int64_t converted_value = strtoll(c_str, &last_used_char, 10);
 		
 		if (errno || (last_used_char == c_str))
-			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): \"" << p_number_string << "\" could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (EidosInterpreter::NumericValueForString): '" << p_number_string << "' could not be represented as an integer (strtoll conversion error)." << EidosTerminate(p_blame_token);
 		
 		return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Int_singleton(converted_value));
 	}

@@ -679,14 +679,14 @@ slim_objectid_t SLiMEidosScript::ExtractIDFromStringWithPrefix(const std::string
 	size_t id_cstr_len = strlen(id_cstr);
 	
 	if ((id_cstr_len < 1) || (*id_cstr != p_prefix_char))
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix \"" << p_prefix_char << "\" was expected." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an identifier prefix '" << p_prefix_char << "' was expected." << EidosTerminate(p_blame_token);
 	
 	for (unsigned int str_index = 1; str_index < id_cstr_len; ++str_index)
 		if ((id_cstr[str_index] < '0') || (id_cstr[str_index] > '9'))
-			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the \"" << p_prefix_char << "\" prefix must be a simple integer." << EidosTerminate(p_blame_token);
+			EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): the id after the '" << p_prefix_char << "' prefix must be a simple integer." << EidosTerminate(p_blame_token);
 	
 	if (id_cstr_len < 2)
-		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the \"" << p_prefix_char << "\" prefix." << EidosTerminate(p_blame_token);
+		EIDOS_TERMINATION << "ERROR (SLiMEidosScript::ExtractIDFromStringWithPrefix): an integer id was expected after the '" << p_prefix_char << "' prefix." << EidosTerminate(p_blame_token);
 	
 	errno = 0;
 	char *end_scan_char = nullptr;

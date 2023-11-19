@@ -39,13 +39,13 @@ extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineN
 
 // Defined in various slim_test_X.cpp files
 extern void _RunInitTests(void);
-extern void _RunSpeciesTests(std::string temp_path);
+extern void _RunSpeciesTests(const std::string &temp_path);
 extern void _RunMutationTypeTests(void);
 extern void _RunGenomicElementTypeTests(void);
 extern void _RunGenomicElementTests(void);
 extern void _RunChromosomeTests(void);
 extern void _RunMutationTests(void);
-extern void _RunGenomeTests(std::string temp_path);
+extern void _RunGenomeTests(const std::string &temp_path);
 extern void _RunSubpopulationTests(void);
 extern void _RunIndividualTests(void);
 extern void _RunRelatednessTests(void);
@@ -55,7 +55,7 @@ extern void _RunSLiMEidosBlockTests(void);
 extern void _RunContinuousSpaceTests(void);
 extern void _RunSpatialMapTests(void);
 extern void _RunNonWFTests(void);
-extern void _RunTreeSeqTests(std::string temp_path);
+extern void _RunTreeSeqTests(const std::string &temp_path);
 extern void _RunNucleotideFunctionTests(void);
 extern void _RunNucleotideMethodTests(void);
 extern void _RunParallelSLiMTests();

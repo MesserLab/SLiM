@@ -190,7 +190,7 @@ inline __attribute__((always_inline)) void SparseVector::Finished(void)
 #endif
 	
 	if (value_type_ == SparseVectorDataType::kNoData)
-		EIDOS_TERMINATION << "ERROR (SparseVector::Distance): sparse vector was never specialized to presences, distances, or strengths." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (SparseVector::Finished): sparse vector was never specialized to presences, distances, or strengths." << EidosTerminate(nullptr);
 	
 	finished_ = true;
 }
@@ -305,7 +305,7 @@ inline void SparseVector::Strengths(uint32_t *p_nnz, uint32_t **p_columns, sv_va
 #if DEBUG
 	// should be done building the vector
 	if (!finished_)
-		EIDOS_TERMINATION << "ERROR (SparseVector::Interactions): sparse vector is not finished being built." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (SparseVector::Strengths): sparse vector is not finished being built." << EidosTerminate(nullptr);
 	if (value_type_ != SparseVectorDataType::kStrengths)
 		EIDOS_TERMINATION << "ERROR (SparseVector::Strengths): sparse vector is not specialized for strengths." << EidosTerminate(nullptr);
 #endif

@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 
 // set these to true to get logging of tokens / AST / evaluation

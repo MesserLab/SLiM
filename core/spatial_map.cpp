@@ -28,9 +28,14 @@
 #include "gsl_interp2d.h"
 #include "gsl_spline2d.h"
 
+#include <utility>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 
 // Clamp a standardized coordinate, which should be in [0,1], to [0,1].
-#define SLiMClampCoordinate(x) ((x < 0.0) ? 0.0 : ((x > 1.0) ? 1.0 : x))
+#define SLiMClampCoordinate(x) (((x) < 0.0) ? 0.0 : (((x) > 1.0) ? 1.0 : (x)))
 
 
 #pragma mark -
@@ -38,7 +43,7 @@
 #pragma mark -
 
 SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subpopulation *p_subpop, EidosValue *p_values, bool p_interpolate, EidosValue *p_value_range, EidosValue *p_colors) :
-	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_spatiality_string), interpolate_(p_interpolate)
+	name_(std::move(p_name)), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(std::move(p_spatiality_string)), interpolate_(p_interpolate)
 {
 	// The spatiality string determines what dimensionality we require for subpops using us; it must be large enough to
 	// encompass our spatiality ("xyz" to encompass "xz", for example).  It also determines how many dimensions of map
@@ -139,14 +144,14 @@ SpatialMap::SpatialMap(std::string p_name, std::string p_spatiality_string, Subp
 		bounds_c1_ = p_subpop->bounds_z1_;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() spatiality \"" << spatiality_string_ << "\" must be \"x\", \"y\", \"z\", \"xy\", \"xz\", \"yz\", or \"xyz\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (SpatialMap::SpatialMap): defineSpatialMap() spatiality '" << spatiality_string_ << "' must be 'x', 'y', 'z', 'xy', 'xz', 'yz', or 'xyz'." << EidosTerminate();
 	
 	TakeValuesFromEidosValue(p_values, "SpatialMap::SpatialMap", "defineSpatialMap()");
 	TakeColorsFromEidosValues(p_value_range, p_colors, "SpatialMap::SpatialMap", "defineSpatialMap()");
 }
 
 SpatialMap::SpatialMap(std::string p_name, SpatialMap &p_original) :
-	name_(p_name), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), periodic_a_(p_original.periodic_a_), periodic_b_(p_original.periodic_b_), periodic_c_(p_original.periodic_c_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), values_min_(p_original.values_min_), values_max_(p_original.values_max_), n_colors_(p_original.n_colors_), colors_min_(p_original.colors_min_), colors_max_(p_original.colors_max_)
+	name_(std::move(p_name)), tag_value_(SLIM_TAG_UNSET_VALUE), spatiality_string_(p_original.spatiality_string_), spatiality_(p_original.spatiality_), spatiality_type_(p_original.spatiality_type_), periodic_a_(p_original.periodic_a_), periodic_b_(p_original.periodic_b_), periodic_c_(p_original.periodic_c_), required_dimensionality_(p_original.required_dimensionality_), bounds_a0_(p_original.bounds_a0_), bounds_a1_(p_original.bounds_a1_), bounds_b0_(p_original.bounds_b0_), bounds_b1_(p_original.bounds_b1_), bounds_c0_(p_original.bounds_c0_), bounds_c1_(p_original.bounds_c1_), interpolate_(p_original.interpolate_), values_min_(p_original.values_min_), values_max_(p_original.values_max_), n_colors_(p_original.n_colors_), colors_min_(p_original.colors_min_), colors_max_(p_original.colors_max_)
 {
 	// Note that this does not copy the information from EidosDictionaryRetained, and it leaves tag unset
 	// This is intentional (that is very instance-specific state that should arguably not be copied)
@@ -240,7 +245,7 @@ void SpatialMap::_ValuesChanged(void)
 		EIDOS_TERMINATION << "ERROR (SpatialMap::_ValuesChanged): non-finite values (infinities, NANs) are not allowed in SpatialMap." << EidosTerminate();
 }
 
-void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, std::string p_code_name, std::string p_eidos_name)
+void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue *p_colors, const std::string &p_code_name, const std::string &p_eidos_name)
 {
 	// Make our color map
 	bool range_is_null = (p_value_range->Type() == EidosValueType::kValueNULL);
@@ -295,7 +300,7 @@ void SpatialMap::TakeColorsFromEidosValues(EidosValue *p_value_range, EidosValue
 	_ValuesChanged();
 }
 
-void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, std::string p_code_name, std::string p_eidos_name)
+void SpatialMap::TakeValuesFromEidosValue(EidosValue *p_values, const std::string &p_code_name, const std::string &p_eidos_name)
 {
 	int values_dimcount = p_values->DimensionCount();
 	const int64_t *values_dim = p_values->Dimensions();
@@ -556,6 +561,8 @@ bool SpatialMap::IsCompatibleWithValue(EidosValue *p_value)
 			if ((values_dim[0] != grid_size_[1]) || (values_dim[1] != grid_size_[0]) || (values_dim[2] != grid_size_[2]))
 				return false;
 			break;
+		default:
+			EIDOS_TERMINATION << "ERROR (SpatialMap::IsCompatibleWithValue): (internal error) spatiality_ out of range." << EidosTerminate(nullptr);
 	}
 	
 	return true;
@@ -2002,7 +2009,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_mapValue(EidosGlobalStringID p_method_id
 		// Note that we clamp coordinates here, whether they are periodic or not; the caller should use pointPeriodic()
 		double map_value = 0;
 		
-		switch (spatiality_)
+		switch (spatiality_)	// NOLINT(*-missing-default-case) : our spatiality is always in [1,3], and we can't throw from a parallel region
 		{
 			case 1:
 			{
@@ -2602,7 +2609,7 @@ EidosValue_SP SpatialMap::ExecuteMethod_smooth(EidosGlobalStringID p_method_id, 
 
 // called internally to create a temporary spatial map from a vector/matrix/array, to perform an operation
 // first it copies the target spatial map, to get things like bounds etc.; then it copies values in from p_argument
-EidosValue_SP SpatialMap::_DeriveTemporarySpatialMapWithEidosValue(EidosValue *p_argument, std::string p_code_name, std::string p_eidos_name)
+EidosValue_SP SpatialMap::_DeriveTemporarySpatialMapWithEidosValue(EidosValue *p_argument, const std::string &p_code_name, const std::string &p_eidos_name)
 {
 	if (!IsCompatibleWithValue(p_argument))
 		EIDOS_TERMINATION << "ERROR (" << p_code_name << "): " << p_eidos_name << " the dimensionality and grid dimensions of the supplied vector/matrix/array must match those of the target map (i.e., must be conformable)." << EidosTerminate();

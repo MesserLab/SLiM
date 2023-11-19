@@ -97,8 +97,8 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 		{
 			for (int index = 0; index < p_individual_count; ++index)
 			{
-				p_genomes[index * 2]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
-				p_genomes[index * 2 + 1]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+				p_genomes[(size_t)index * 2]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
+				p_genomes[(size_t)index * 2 + 1]->ReinitializeGenomeNullptr(GenomeType::kAutosome, mutrun_count, mutrun_length);
 			}
 		}
 	}
@@ -107,8 +107,8 @@ void Subpopulation::WipeIndividualsAndGenomes(std::vector<Individual *> &p_indiv
 		// make females and males
 		for (int index = 0; index < p_individual_count; ++index)
 		{
-			Genome *genome1 = p_genomes[index * 2];
-			Genome *genome2 = p_genomes[index * 2 + 1];
+			Genome *genome1 = p_genomes[(size_t)index * 2];
+			Genome *genome2 = p_genomes[(size_t)index * 2 + 1];
 			Individual *individual = p_individuals[index];
 			bool is_female = (index < p_first_male);
 			
@@ -164,7 +164,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 	if (new_individual_count > old_individual_count)
 	{
 		// We also have to make space for the pointers to the genomes and individuals
-		child_genomes_.reserve(new_individual_count * 2);
+		child_genomes_.reserve((size_t)new_individual_count * 2);
 		child_individuals_.reserve(new_individual_count);
 		
 		if (species_.HasGenetics())
@@ -207,8 +207,8 @@ void Subpopulation::GenerateChildrenToFitWF()
 	{
 		for (int old_index = new_individual_count; old_index < old_individual_count; ++old_index)
 		{
-			Genome *genome1 = child_genomes_[old_index * 2];
-			Genome *genome2 = child_genomes_[old_index * 2 + 1];
+			Genome *genome1 = child_genomes_[(size_t)old_index * 2];
+			Genome *genome2 = child_genomes_[(size_t)old_index * 2 + 1];
 			Individual *individual = child_individuals_[old_index];
 			
 			// dispose of the genomes and individual
@@ -219,7 +219,7 @@ void Subpopulation::GenerateChildrenToFitWF()
 			individual_pool_.DisposeChunk(const_cast<Individual *>(individual));
 		}
 		
-		child_genomes_.resize(new_individual_count * 2);
+		child_genomes_.resize((size_t)new_individual_count * 2);
 		child_individuals_.resize(new_individual_count);
 	}
 	
@@ -276,7 +276,7 @@ void Subpopulation::GenerateParentsToFit(slim_age_t p_initial_age, double p_sex_
 	}
 	
 	// We also have to make space for the pointers to the genomes and individuals
-	parent_genomes_.reserve(parent_subpop_size_ * 2);
+	parent_genomes_.reserve((size_t)parent_subpop_size_ * 2);
 	parent_individuals_.reserve(parent_subpop_size_);
 	
 	// Now create new individuals and genomes appropriate for the requested sex ratio and subpop size
@@ -495,8 +495,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 	for (int ind_index = 0; ind_index < parent_subpop_size_; ++ind_index)
 	{
 		Individual *individual = parent_individuals_[ind_index];
-		Genome *genome1 = parent_genomes_[ind_index * 2];
-		Genome *genome2 = parent_genomes_[ind_index * 2 + 1];
+		Genome *genome1 = parent_genomes_[(size_t)ind_index * 2];
+		Genome *genome2 = parent_genomes_[(size_t)ind_index * 2 + 1];
 		bool invalid_age = false;
 		
 		if (!individual)
@@ -656,8 +656,8 @@ void Subpopulation::CheckIndividualIntegrity(void)
 		for (int ind_index = 0; ind_index < child_subpop_size_; ++ind_index)
 		{
 			Individual *individual = child_individuals_[ind_index];
-			Genome *genome1 = child_genomes_[ind_index * 2];
-			Genome *genome2 = child_genomes_[ind_index * 2 + 1];
+			Genome *genome1 = child_genomes_[(size_t)ind_index * 2];
+			Genome *genome2 = child_genomes_[(size_t)ind_index * 2 + 1];
 			
 			if (!individual)
 				EIDOS_TERMINATION << "ERROR (Subpopulation::CheckIndividualIntegrity): (internal error) null pointer for individual." << EidosTerminate();
@@ -2410,8 +2410,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_NoCallbacks(slim_popsize_
 #endif
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
-	Genome *genome1 = parent_genomes_[p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
+	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -2611,8 +2611,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_Callbacks(slim_popsize_t 
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
+	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -2850,8 +2850,8 @@ double Subpopulation::FitnessOfParentWithGenomeIndices_SingleCallback(slim_popsi
 	
 	Mutation *mut_block_ptr = gSLiM_Mutation_Block;
 	Individual *individual = parent_individuals_[p_individual_index];
-	Genome *genome1 = parent_genomes_[p_individual_index * 2];
-	Genome *genome2 = parent_genomes_[p_individual_index * 2 + 1];
+	Genome *genome1 = parent_genomes_[(size_t)p_individual_index * 2];
+	Genome *genome2 = parent_genomes_[(size_t)p_individual_index * 2 + 1];
 	bool genome1_null = genome1->IsNull();
 	bool genome2_null = genome2->IsNull();
 	
@@ -3414,7 +3414,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 	if (sex_enabled_)
 	{
 		// resize to create new slots for the new individuals
-		parent_genomes_.resize(parent_genomes_.size() + new_count * 2);
+		parent_genomes_.resize(parent_genomes_.size() + (size_t)new_count * 2);
 		parent_individuals_.resize(parent_individuals_.size() + new_count);
 		
 		// in sexual models, females must be put before males and parent_first_male_index_ must be adjusted
@@ -3430,7 +3430,7 @@ void Subpopulation::MergeReproductionOffspring(void)
 		
 		// move old males up that many slots to make room; need to fix the index_ ivars of the moved males
 		memmove(parent_individual_ptrs + parent_first_male_index_ + new_female_count, parent_individual_ptrs + parent_first_male_index_, old_male_count * sizeof(Individual *));
-		memmove(parent_genome_ptrs + (parent_first_male_index_ + new_female_count) * 2, parent_genome_ptrs + parent_first_male_index_ * 2, old_male_count * 2 * sizeof(Genome *));
+		memmove(parent_genome_ptrs + (size_t)(parent_first_male_index_ + new_female_count) * 2, parent_genome_ptrs + (size_t)parent_first_male_index_ * 2, (size_t)old_male_count * 2 * sizeof(Genome *));
 		
 		for (int moved_index = 0; moved_index < old_male_count; moved_index++)
 		{
@@ -3445,8 +3445,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 		
 		for (int new_index = 0; new_index < new_count; ++new_index)
 		{
-			Genome *genome1 = nonWF_offspring_genomes_[new_index * 2];
-			Genome *genome2 = nonWF_offspring_genomes_[new_index * 2 + 1];
+			Genome *genome1 = nonWF_offspring_genomes_[(size_t)new_index * 2];
+			Genome *genome2 = nonWF_offspring_genomes_[(size_t)new_index * 2 + 1];
 			Individual *individual = nonWF_offspring_individuals_[new_index];
 			slim_popsize_t insert_index;
 			
@@ -3457,8 +3457,8 @@ void Subpopulation::MergeReproductionOffspring(void)
 			
 			individual->index_ = insert_index;
 			
-			parent_genome_ptrs[insert_index * 2] = genome1;
-			parent_genome_ptrs[insert_index * 2 + 1] = genome2;
+			parent_genome_ptrs[(size_t)insert_index * 2] = genome1;
+			parent_genome_ptrs[(size_t)insert_index * 2 + 1] = genome2;
 			parent_individual_ptrs[insert_index] = individual;
 		}
 		
@@ -3467,14 +3467,14 @@ void Subpopulation::MergeReproductionOffspring(void)
 	else
 	{
 		// reserve space for the new offspring to be merged in
-		parent_genomes_.reserve(parent_genomes_.size() + new_count * 2);
+		parent_genomes_.reserve(parent_genomes_.size() + (size_t)new_count * 2);
 		parent_individuals_.reserve(parent_individuals_.size() + new_count);
 		
 		// in hermaphroditic models there is no ordering, so just add new stuff at the end
 		for (int new_index = 0; new_index < new_count; ++new_index)
 		{
-			Genome *genome1 = nonWF_offspring_genomes_[new_index * 2];
-			Genome *genome2 = nonWF_offspring_genomes_[new_index * 2 + 1];
+			Genome *genome1 = nonWF_offspring_genomes_[(size_t)new_index * 2];
+			Genome *genome2 = nonWF_offspring_genomes_[(size_t)new_index * 2 + 1];
 			Individual *individual = nonWF_offspring_individuals_[new_index];
 			
 			individual->index_ = parent_subpop_size_ + new_index;
@@ -3730,8 +3730,8 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 			// individuals that survive get copied down to the next available slot
 			if (survived_individual_index != individual_index)
 			{
-				genome_data[survived_genome_index] = genome_data[individual_index * 2];
-				genome_data[survived_genome_index + 1] = genome_data[individual_index * 2 + 1];
+				genome_data[survived_genome_index] = genome_data[(size_t)individual_index * 2];
+				genome_data[survived_genome_index + 1] = genome_data[(size_t)individual_index * 2 + 1];
 				individual_data[survived_individual_index] = individual;
 				
 				// fix the individual's index_
@@ -3744,8 +3744,8 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 		else
 		{
 			// individuals that do not survive get deallocated, and will be overwritten
-			Genome *genome1 = genome_data[individual_index * 2];
-			Genome *genome2 = genome_data[individual_index * 2 + 1];
+			Genome *genome1 = genome_data[(size_t)individual_index * 2];
+			Genome *genome2 = genome_data[(size_t)individual_index * 2 + 1];
 			
 			if (pedigrees_enabled)
 			{
@@ -3790,7 +3790,7 @@ void Subpopulation::ViabilitySurvival(std::vector<SLiMEidosBlock*> &p_survival_c
 		if (sex_enabled_)
 			parent_first_male_index_ -= females_deceased;
 		
-		parent_genomes_.resize(parent_subpop_size_ * 2);
+		parent_genomes_.resize((size_t)parent_subpop_size_ * 2);
 		parent_individuals_.resize(parent_subpop_size_);
 		
 		cached_parent_genomes_value_.reset();
@@ -4023,7 +4023,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_lifetimeReproductiveOutput:
 		{
 			if (!species_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property lifetimeReproductiveOutput is not available because pedigree recording has not been enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep_M = lifetime_reproductive_output_MH_;
 			std::vector<int32_t> &lifetime_rep_F = lifetime_reproductive_output_F_;
@@ -4041,9 +4041,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_lifetimeReproductiveOutputM:
 		{
 			if (!species_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputM is not available because pedigree recording has not been enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property lifetimeReproductiveOutputM is not available because pedigree recording has not been enabled." << EidosTerminate();
 			if (!species_.SexEnabled())
-				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputM is not defined since separate sexes are not enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property lifetimeReproductiveOutputM is not defined since separate sexes are not enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_MH_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
@@ -4057,9 +4057,9 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		case gID_lifetimeReproductiveOutputF:
 		{
 			if (!species_.PedigreesEnabledByUser())
-				EIDOS_TERMINATION << "ERROR (Individual::GetProperty): property lifetimeReproductiveOutputF is not available because pedigree recording has not been enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property lifetimeReproductiveOutputF is not available because pedigree recording has not been enabled." << EidosTerminate();
 			if (!species_.SexEnabled())
-				EIDOS_TERMINATION << "ERROR (Chromosome::GetProperty): property lifetimeReproductiveOutputF is not defined since separate sexes are not enabled." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property lifetimeReproductiveOutputF is not defined since separate sexes are not enabled." << EidosTerminate();
 			
 			std::vector<int32_t> &lifetime_rep = lifetime_reproductive_output_F_;
 			int lifetime_rep_count = (int)lifetime_rep.size();
@@ -4119,7 +4119,7 @@ EidosValue_SP Subpopulation::GetProperty(EidosGlobalStringID p_property_id)
 		{
 			EidosValue_Object_vector *vec = (new (gEidosValuePool->AllocateChunk()) EidosValue_Object_vector(gSLiM_SpatialMap_Class))->reserve(spatial_maps_.size());
 			
-			for (auto spatialMapIter : spatial_maps_)
+			for (const auto &spatialMapIter : spatial_maps_)
 				vec->push_object_element_no_check_RR(spatialMapIter.second);
 			
 			return EidosValue_SP(vec);
@@ -4202,7 +4202,7 @@ EidosValue *Subpopulation::GetProperty_Accelerated_tag(EidosObject **p_values, s
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty): property tag accessed on subpopulation before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::GetProperty_Accelerated_tag): property tag accessed on subpopulation before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}
@@ -4485,8 +4485,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
 	slim_position_t mutrun_length = chromosome.mutrun_length_;
-	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * parent->index_];
-	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * parent->index_ + 1];
+	Genome &parent_genome_1 = *parent_subpop.parent_genomes_[2 * (size_t)parent->index_];
+	Genome &parent_genome_2 = *parent_subpop.parent_genomes_[2 * (size_t)parent->index_ + 1];
 	std::vector<SLiMEidosBlock*> *parent_mutation_callbacks = &parent_subpop.registered_mutation_callbacks_;
 	std::vector<SLiMEidosBlock*> &modify_child_callbacks_ = parent_subpop.registered_modify_child_callbacks_;
 	
@@ -5657,8 +5657,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					source_subpop->parent_individuals_[source_subpop_index] = backfill;
 					backfill->index_ = source_subpop_index;
 					
-					source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_first_male - 1) * 2];
-					source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1];
+					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2];
+					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1];
 				}
 				
 				if (source_first_male - 1 < source_subpop_size - 1)
@@ -5668,13 +5668,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					source_subpop->parent_individuals_[source_first_male - 1] = backfill;
 					backfill->index_ = source_first_male - 1;
 					
-					source_subpop->parent_genomes_[(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
-					source_subpop->parent_genomes_[(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+					source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
+					source_subpop->parent_genomes_[(size_t)(source_first_male - 1) * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 				}
 				
 				source_subpop->parent_subpop_size_ = --source_subpop_size;
 				source_subpop->parent_individuals_.resize(source_subpop_size);
-				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+				source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 				
 				source_subpop->parent_first_male_index_ = --source_first_male;
 			}
@@ -5688,13 +5688,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 					source_subpop->parent_individuals_[source_subpop_index] = backfill;
 					backfill->index_ = source_subpop_index;
 					
-					source_subpop->parent_genomes_[source_subpop_index * 2] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2];
-					source_subpop->parent_genomes_[source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(source_subpop_size - 1) * 2 + 1];
+					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2];
+					source_subpop->parent_genomes_[(size_t)source_subpop_index * 2 + 1] = source_subpop->parent_genomes_[(size_t)(source_subpop_size - 1) * 2 + 1];
 				}
 				
 				source_subpop->parent_subpop_size_ = --source_subpop_size;
 				source_subpop->parent_individuals_.resize(source_subpop_size);
-				source_subpop->parent_genomes_.resize(source_subpop_size * 2);
+				source_subpop->parent_genomes_.resize((size_t)source_subpop_size * 2);
 			}
 			
 			// insert the migrant into ourselves
@@ -5704,13 +5704,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				Individual *backfill = parent_individuals_[parent_first_male_index_];
 				
 				parent_individuals_.emplace_back(backfill);
-				parent_genomes_.emplace_back(parent_genomes_[parent_first_male_index_ * 2]);
-				parent_genomes_.emplace_back(parent_genomes_[parent_first_male_index_ * 2 + 1]);
+				parent_genomes_.emplace_back(parent_genomes_[(size_t)parent_first_male_index_ * 2]);
+				parent_genomes_.emplace_back(parent_genomes_[(size_t)parent_first_male_index_ * 2 + 1]);
 				backfill->index_ = parent_subpop_size_;
 				
 				parent_individuals_[parent_first_male_index_] = migrant;
-				parent_genomes_[parent_first_male_index_ * 2] = migrant->genome1_;
-				parent_genomes_[parent_first_male_index_ * 2 + 1] = migrant->genome2_;
+				parent_genomes_[(size_t)parent_first_male_index_ * 2] = migrant->genome1_;
+				parent_genomes_[(size_t)parent_first_male_index_ * 2 + 1] = migrant->genome2_;
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_first_male_index_;
 				
@@ -5842,27 +5842,27 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	
 	EidosValue_String *boundary_value = (EidosValue_String *)p_arguments[2].get();
 	const std::string &boundary_str = boundary_value->StringRefAtIndex(0, nullptr);
-	int boundary;
+	BoundaryCondition boundary;
 	
 	if (boundary_str.compare("none") == 0)
-		boundary = 0;
+		boundary = BoundaryCondition::kNone;
 	else if (boundary_str.compare("stopping") == 0)
-		boundary = 1;
+		boundary = BoundaryCondition::kStopping;
 	else if (boundary_str.compare("reflecting") == 0)
-		boundary = 2;
+		boundary = BoundaryCondition::kReflecting;
 	else if (boundary_str.compare("reprising") == 0)
-		boundary = 3;
+		boundary = BoundaryCondition::kReprising;
 	else if (boundary_str.compare("periodic") == 0)
-		boundary = 4;
+		boundary = BoundaryCondition::kPeriodic;
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): unrecognized boundary condition \"" << boundary_str << "\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): unrecognized boundary condition '" << boundary_str << "'." << EidosTerminate();
 	
 	// Periodic boundaries are a bit complicated.  If only some dimensions are periodic, 'none' will be used
 	// for the non-periodic boundaries, and the user can then use pointReflected(), pointStopped(), etc. to
 	// enforce a boundary condition on those dimensions.
 	bool periodic_x = false, periodic_y = false, periodic_z = false;
 	
-	if (boundary == 4)
+	if (boundary == BoundaryCondition::kPeriodic)
 	{
 		species_.SpatialPeriodicity(&periodic_x, &periodic_y, &periodic_z);
 		
@@ -5883,21 +5883,20 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 	// that's about a 17.6% speedup, which is worthwhile for a handful of special cases like that.  I think
 	// normal deviations in 2D with an INF maxDistance are the 95% case, if not 99%; several boundary conditions
 	// are common, though.
-	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == 1) || (boundary == 2) || (boundary == 3) || ((boundary == 4) && periodic_x && periodic_y)))
+	if ((dimensionality == 2) && (kernel.kernel_type_ == SpatialKernelType::kNormal) && std::isinf(kernel.max_distance_) && ((boundary == BoundaryCondition::kStopping) || (boundary == BoundaryCondition::kReflecting) || (boundary == BoundaryCondition::kReprising) || ((boundary == BoundaryCondition::kPeriodic) && periodic_x && periodic_y)))
 	{
 		gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
 		double stddev = kernel.kernel_param2_;
 		double bx0 = bounds_x0_, bx1 = bounds_x1_;
 		double by0 = bounds_y0_, by1 = bounds_y1_;
 		
-		if (boundary == 1)
+		if (boundary == BoundaryCondition::kStopping)
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
 				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				
-				// stopping boundaries
 				a0 = std::max(bx0, std::min(bx1, a0));
 				a1 = std::max(by0, std::min(by1, a1));
 				
@@ -5905,14 +5904,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				*(float_result_ptr++) = a1;
 			}
 		}
-		else if (boundary == 2)
+		else if (boundary == BoundaryCondition::kReflecting)
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
 				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				
-				// reflecting boundaries
 				while (true)
 				{
 					if (a0 < bx0) a0 = bx0 + (bx0 - a0);
@@ -5930,7 +5928,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				*(float_result_ptr++) = a1;
 			}
 		}
-		else if (boundary == 3)
+		else if (boundary == BoundaryCondition::kReprising)
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
@@ -5941,7 +5939,6 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				double a0 = a0_original + gsl_ran_gaussian(rng, stddev);
 				double a1 = a1_original + gsl_ran_gaussian(rng, stddev);
 				
-				// reprising boundaries
 				if ((a0 < bx0) || (a0 > bx1) ||
 					(a1 < by0) || (a1 > by1))
 					goto reprise_specialcase;
@@ -5950,14 +5947,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				*(float_result_ptr++) = a1;
 			}
 		}
-		else if (boundary == 4)
+		else if (boundary == BoundaryCondition::kPeriodic)
 		{
 			for (int result_index = 0; result_index < n; ++result_index)
 			{
 				double a0 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				double a1 = *(point_buf_ptr++) + gsl_ran_gaussian(rng, stddev);
 				
-				// periodic boundaries (note periodic_x and periodic_y are required to be true above)
+				// (note periodic_x and periodic_y are required to be true above)
 				while (a0 < 0.0)	a0 += bx1;
 				while (a0 > bx1)	a0 -= bx1;
 				while (a1 < 0.0)	a1 += by1;
@@ -5988,12 +5985,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				// enforce the boundary condition
 				switch (boundary)
 				{
-					case 0:			// none
+					case BoundaryCondition::kNone:
 						break;
-					case 1:			// stopping
+					case BoundaryCondition::kStopping:
 						a[0] = std::max(bx0, std::min(bx1, a[0]));
 						break;
-					case 2:			// reflecting
+					case BoundaryCondition::kReflecting:
 						while (true)
 						{
 							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
@@ -6001,11 +5998,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 							else break;
 						}
 						break;
-					case 3:			// reprising
+					case BoundaryCondition::kReprising:
 						if ((a[0] < bx0) || (a[0] > bx1))
 							goto reprise_1;
 						break;
-					case 4:			// periodic (periodic_x must be true)
+					case BoundaryCondition::kPeriodic:			// (periodic_x must be true)
 						while (a[0] < 0.0)	a[0] += bx1;
 						while (a[0] > bx1)	a[0] -= bx1;
 						break;
@@ -6034,13 +6031,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				// enforce the boundary condition
 				switch (boundary)
 				{
-					case 0:			// none
+					case BoundaryCondition::kNone:
 						break;
-					case 1:			// stopping
+					case BoundaryCondition::kStopping:
 						a[0] = std::max(bx0, std::min(bx1, a[0]));
 						a[1] = std::max(by0, std::min(by1, a[1]));
 						break;
-					case 2:			// reflecting
+					case BoundaryCondition::kReflecting:
 						while (true)
 						{
 							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
@@ -6054,12 +6051,12 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 							else break;
 						}
 						break;
-					case 3:			// reprising
+					case BoundaryCondition::kReprising:
 						if ((a[0] < bx0) || (a[0] > bx1) ||
 							(a[1] < by0) || (a[1] > by1))
 							goto reprise_2;
 						break;
-					case 4:			// periodic
+					case BoundaryCondition::kPeriodic:
 						if (periodic_x)
 						{
 							while (a[0] < 0.0)	a[0] += bx1;
@@ -6099,14 +6096,14 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 				// enforce the boundary condition
 				switch (boundary)
 				{
-					case 0:			// none
+					case BoundaryCondition::kNone:
 						break;
-					case 1:			// stopping
+					case BoundaryCondition::kStopping:
 						a[0] = std::max(bx0, std::min(bx1, a[0]));
 						a[1] = std::max(by0, std::min(by1, a[1]));
 						a[2] = std::max(bz0, std::min(bz1, a[2]));
 						break;
-					case 2:			// reflecting
+					case BoundaryCondition::kReflecting:
 						while (true)
 						{
 							if (a[0] < bx0) a[0] = bx0 + (bx0 - a[0]);
@@ -6126,13 +6123,13 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 							else break;
 						}
 						break;
-					case 3:			// reprising
+					case BoundaryCondition::kReprising:
 						if ((a[0] < bx0) || (a[0] > bx1) ||
 							(a[1] < by0) || (a[1] > by1) ||
 							(a[2] < bz0) || (a[2] > bz1))
 							goto reprise_3;
 						break;
-					case 4:			// periodic
+					case BoundaryCondition::kPeriodic:
 						if (periodic_x)
 						{
 							while (a[0] < 0.0)	a[0] += bx1;
@@ -6158,6 +6155,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointDeviated(EidosGlobalStringID p_m
 			}
 			break;
 		}
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_pointDeviated): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
 	
 	return EidosValue_SP(float_result);
@@ -6253,8 +6252,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 #pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS_2D) num_threads(thread_count)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = point_buf[point_index * 2];
-				double y = point_buf[point_index * 2 + 1];
+				double x = point_buf[(size_t)point_index * 2];
+				double y = point_buf[(size_t)point_index * 2 + 1];
 				eidos_logical_t in_bounds = ((x >= bx0) && (x <= bx1) && (y >= by0) && (y <= by1));
 				
 				logical_result_data[point_index] = in_bounds;
@@ -6269,9 +6268,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_pointInBounds(EidosGlobalStringID p_m
 #pragma omp parallel for schedule(static) default(none) shared(point_count) firstprivate(point_buf, logical_result_data, bx0, bx1, by0, by1, bz0, bz1) if(point_count >= EIDOS_OMPMIN_POINT_IN_BOUNDS_3D) num_threads(thread_count)
 			for (int point_index = 0; point_index < point_count; ++point_index)
 			{
-				double x = point_buf[point_index * 3];
-				double y = point_buf[point_index * 3 + 1];
-				double z = point_buf[point_index * 3 + 2];
+				double x = point_buf[(size_t)point_index * 3];
+				double y = point_buf[(size_t)point_index * 3 + 1];
+				double z = point_buf[(size_t)point_index * 3 + 2];
 				eidos_logical_t in_bounds = ((x >= bx0) && (x <= bx1) && (y >= by0) && (y <= by1) && (z >= bz0) && (z <= bz1));
 				
 				logical_result_data[point_index] = in_bounds;
@@ -6894,6 +6893,8 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 				bad_periodic_bounds = true;
 			
 			break;
+		default:
+			EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): (internal error) unrecognized dimensionality." << EidosTerminate();
 	}
 	
 	if (bad_bounds)
@@ -6905,7 +6906,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_setSpatialBounds(EidosGlobalStringID 
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_setSpatialBounds): setSpatialBounds() requires min coordinates to be 0.0 for dimensions that are periodic." << EidosTerminate();
 	
 	// Check that all spatial maps attached to this subpop are compatible with our new bounds; error if not
-	for (auto map_iter : spatial_maps_)
+	for (const auto &map_iter : spatial_maps_)
 	{
 		SpatialMap *map = map_iter.second;
 		
@@ -7994,7 +7995,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_outputXSample(EidosGlobalStringID p_m
 	else if (sex_string.compare("*") == 0)
 		requested_sex = IndividualSex::kUnspecified;
 	else
-		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex \"" << sex_string << "\" unsupported." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex '" << sex_string << "' unsupported." << EidosTerminate();
 	
 	if (!species_.SexEnabled() && requested_sex != IndividualSex::kUnspecified)
 		EIDOS_TERMINATION << "ERROR (Subpopulation::ExecuteMethod_outputXSample): " << EidosStringRegistry::StringForGlobalStringID(p_method_id) << "() requested sex is not legal in a non-sexual simulation." << EidosTerminate();

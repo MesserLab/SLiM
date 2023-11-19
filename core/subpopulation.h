@@ -279,7 +279,7 @@ public:
 	{
 #if DEBUG
 		if (p_mutrun_count == 0)
-			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Subpopulation::NewSubpopGenome_NONNULL): (internal error) mutrun count of zero with p_is_null == false." << EidosTerminate();
 #endif
 		
 		if (genome_junkyard_nonnull.size())

@@ -77,7 +77,7 @@ void _RunMutationTypeTests(void)
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('p', 3.1, 7.5); if (m1.distributionType == 'p' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('w', 3.1, 7.5); if (m1.distributionType == 'w' & identical(m1.distributionParams, c(3.1, 7.5))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { m1.setDistribution('s', 'return 1;'); if (m1.distributionType == 's' & identical(m1.distributionParams, 'return 1;')) stop(); }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('x', 1.5); stop(); }", "must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('x', 1.5); stop(); }", "must be 'f', 'g', 'e', 'n', 'w', or 's'", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('f', 'foo'); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 'foo', 7.5); stop(); }", "must be of type numeric", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { m1.setDistribution('g', 3.1, 'foo'); stop(); }", "must be of type numeric", __LINE__);
@@ -680,7 +680,7 @@ void _RunSubstitutionTests(void)
 }
 
 #pragma mark Genome tests
-void _RunGenomeTests(std::string temp_path)
+void _RunGenomeTests(const std::string &temp_path)
 {
 	// ************************************************************************************
 	//

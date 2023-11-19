@@ -30,6 +30,7 @@
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <utility>
 
 
 // stream output for enumerations
@@ -60,7 +61,7 @@ MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_i
 MutationType::MutationType(Species &p_species, slim_objectid_t p_mutation_type_id, double p_dominance_coeff, bool p_nuc_based, DFEType p_dfe_type, std::vector<double> p_dfe_parameters, std::vector<std::string> p_dfe_strings) :
 #endif
 self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('m', p_mutation_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_MutationType_Class))),
-	species_(p_species), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), haploid_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(p_dfe_parameters), dfe_strings_(p_dfe_strings), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
+	species_(p_species), mutation_type_id_(p_mutation_type_id), dominance_coeff_(static_cast<slim_selcoeff_t>(p_dominance_coeff)), haploid_dominance_coeff_(1.0), dfe_type_(p_dfe_type), dfe_parameters_(std::move(p_dfe_parameters)), dfe_strings_(std::move(p_dfe_strings)), nucleotide_based_(p_nuc_based), convert_to_substitution_(false), stack_policy_(MutationStackPolicy::kStack), stack_group_(p_mutation_type_id), cached_dfe_script_(nullptr)
 #ifdef SLIM_KEEP_MUTTYPE_REGISTRIES
 	, muttype_registry_call_count_(0), keeping_muttype_registry_(false)
 #endif
@@ -150,10 +151,10 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		params_are_numeric = false;
 	}
 	else
-		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type \"" << p_dfe_type_string << "\" must be \"f\", \"g\", \"e\", \"n\", \"w\", or \"s\"." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type '" << p_dfe_type_string << "' must be 'f', 'g', 'e', 'n', 'w', or 's'." << EidosTerminate();
 	
 	if (p_argument_count != expected_dfe_param_count)
-		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type \"" << *p_dfe_type << "\" requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): distribution type '" << *p_dfe_type << "' requires exactly " << expected_dfe_param_count << " DFE parameter" << (expected_dfe_param_count == 1 ? "" : "s") << "." << EidosTerminate();
 	
 	// Next we extract the parameter values, checking their types in accordance with params_are_numeric
 	p_dfe_parameters->clear();
@@ -167,14 +168,14 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		if (params_are_numeric)
 		{
 			if ((dfe_param_type != EidosValueType::kValueFloat) && (dfe_param_type != EidosValueType::kValueInt))
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type \"" << *p_dfe_type << "\" must be of type numeric (integer or float)." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type numeric (integer or float)." << EidosTerminate();
 			
 			p_dfe_parameters->emplace_back(dfe_param_value->FloatAtIndex(0, nullptr));
 		}
 		else
 		{
 			if (dfe_param_type != EidosValueType::kValueString)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type \"" << *p_dfe_type << "\" must be of type string." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): the parameters for a DFE of type '" << *p_dfe_type << "' must be of type string." << EidosTerminate();
 			
 			p_dfe_strings->emplace_back(dfe_param_value->StringAtIndex(0, nullptr));
 		}
@@ -189,7 +190,7 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		case DFEType::kGamma:
 			// mean is unrestricted, shape parameter must be >0 (officially mean > 0, but we allow mean <= 0 and the GSL handles it)
 			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"g\" must have a shape parameter > 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'g' must have a shape parameter > 0." << EidosTerminate();
 			break;
 		case DFEType::kExponential:
 			// no limits on exponential DFEs (officially scale > 0, but we allow scale <= 0 and the GSL handles it)
@@ -197,19 +198,19 @@ void MutationType::ParseDFEParameters(std::string &p_dfe_type_string, const Eido
 		case DFEType::kNormal:
 			// mean is unrestricted, sd parameter must be >= 0
 			if ((*p_dfe_parameters)[1] < 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"n\" must have a standard deviation parameter >= 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'n' must have a standard deviation parameter >= 0." << EidosTerminate();
 			break;
 		case DFEType::kWeibull:
 			// scale and shape must both be > 0
 			if ((*p_dfe_parameters)[0] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"w\" must have a scale parameter > 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'w' must have a scale parameter > 0." << EidosTerminate();
 			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"w\" must have a shape parameter > 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'w' must have a shape parameter > 0." << EidosTerminate();
 			break;
 		case DFEType::kLaplace:
 			// mean is unrestricted, scale parameter must be > 0
 			if ((*p_dfe_parameters)[1] <= 0.0)
-				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type \"p\" must have a scale parameter > 0." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::ParseDFEParameters): a DFE of type 'p' must have a scale parameter > 0." << EidosTerminate();
 			break;
 		case DFEType::kScript:
 			// no limits on script here; the script is checked when it gets tokenized/parsed/executed
@@ -549,7 +550,7 @@ EidosValue *MutationType::GetProperty_Accelerated_tag(EidosObject **p_values, si
 		slim_usertag_t tag_value = value->tag_value_;
 		
 		if (tag_value == SLIM_TAG_UNSET_VALUE)
-			EIDOS_TERMINATION << "ERROR (MutationType::GetProperty): property tag accessed on mutation type before being set." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (MutationType::GetProperty_Accelerated_tag): property tag accessed on mutation type before being set." << EidosTerminate();
 		
 		int_result->set_int_no_check(tag_value, value_index);
 	}
@@ -646,7 +647,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			std::string value = p_value.StringAtIndex(0, nullptr);
 			
 			if (nucleotide_based_ && (value != gStr_l))
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be \"l\" for nucleotide-based mutation types." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 'l' for nucleotide-based mutation types." << EidosTerminate();
 			
 			if (value.compare(gEidosStr_s) == 0)
 				stack_policy_ = MutationStackPolicy::kStack;
@@ -655,7 +656,7 @@ void MutationType::SetProperty(EidosGlobalStringID p_property_id, const EidosVal
 			else if (value.compare(gStr_l) == 0)
 				stack_policy_ = MutationStackPolicy::kKeepLast;
 			else
-				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be \"s\", \"f\", or \"l\"." << EidosTerminate();
+				EIDOS_TERMINATION << "ERROR (MutationType::SetProperty): new value for property " << EidosStringRegistry::StringForGlobalStringID(p_property_id) << " must be 's', 'f', or 'l'." << EidosTerminate();
 			
 			species_.MutationStackPolicyChanged();
 			return;

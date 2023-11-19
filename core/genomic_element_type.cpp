@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 
 #pragma mark -
@@ -36,7 +37,7 @@
 
 GenomicElementType::GenomicElementType(Species &p_species, slim_objectid_t p_genomic_element_type_id, std::vector<MutationType*> p_mutation_type_ptrs, std::vector<double> p_mutation_fractions) :
 	self_symbol_(EidosStringRegistry::GlobalStringIDForString(SLiMEidosScript::IDStringWithPrefix('g', p_genomic_element_type_id)), EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Object_singleton(this, gSLiM_GenomicElementType_Class))),
-	species_(p_species), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(p_mutation_type_ptrs), mutation_fractions_(p_mutation_fractions), mutation_matrix_(nullptr)
+	species_(p_species), genomic_element_type_id_(p_genomic_element_type_id), mutation_type_ptrs_(std::move(p_mutation_type_ptrs)), mutation_fractions_(std::move(p_mutation_fractions)), mutation_matrix_(nullptr)
 {
 	InitializeDraws();
 }
@@ -105,7 +106,7 @@ MutationType *GenomicElementType::DrawMutationType(void) const
 	return mutation_type_ptrs_[gsl_ran_discrete(rng, lookup_mutation_type_)];
 }
 
-void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP p_mutation_matrix)
+void GenomicElementType::SetNucleotideMutationMatrix(const EidosValue_Float_vector_SP &p_mutation_matrix)
 {
 	mutation_matrix_ = p_mutation_matrix;
 	
@@ -122,8 +123,8 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 		// check for zeros in the necessary positions
 		static int required_zeros_4x4[4] = {0, 5, 10, 15};
 		
-		for (int index = 0; index < 4; ++index)
-			if (mutation_matrix_->FloatAtIndex(required_zeros_4x4[index], nullptr) != 0.0)
+		for (int required_zeros : required_zeros_4x4)
+			if (mutation_matrix_->FloatAtIndex(required_zeros, nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check
@@ -149,8 +150,8 @@ void GenomicElementType::SetNucleotideMutationMatrix(EidosValue_Float_vector_SP 
 		// check for zeros in the necessary positions
 		static int required_zeros_64x4[64] = {0, 1, 2, 3, 16, 17, 18, 19, 32, 33, 34, 35, 48, 49, 50, 51, 68, 69, 70, 71, 84, 85, 86, 87, 100, 101, 102, 103, 116, 117, 118, 119, 136, 137, 138, 139, 152, 153, 154, 155, 168, 169, 170, 171, 184, 185, 186, 187, 204, 205, 206, 207, 220, 221, 222, 223, 236, 237, 238, 239, 252, 253, 254, 255};
 		
-		for (int index = 0; index < 64; ++index)
-			if (mutation_matrix_->FloatAtIndex(required_zeros_64x4[index], nullptr) != 0.0)
+		for (int required_zeros : required_zeros_64x4)
+			if (mutation_matrix_->FloatAtIndex(required_zeros, nullptr) != 0.0)
 				EIDOS_TERMINATION << "ERROR (GenomicElementType::SetNucleotideMutationMatrix): the mutationMatrix must contain 0.0 for all entries that correspond to a nucleotide mutating to itself." << EidosTerminate();
 		
 		// check that each row sums to <= 1.0; in fact this has to be <= 1.0 even when multiplied by the hotspot map, but this is a preliminary sanity check

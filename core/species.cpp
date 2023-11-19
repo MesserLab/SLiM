@@ -82,7 +82,7 @@ extern "C" {
 // different work from one cycle to the next, this seems best, although it does mean that the impact of the number
 // of mutation runs on the execution time of Eidos events is not measured.
 #define MUTRUNEXP_START_TIMING(var) std::clock_t var = (x_experiments_enabled_ ? std::clock() : 0);
-#define MUTRUNEXP_END_TIMING(var) if (x_experiments_enabled_) x_total_gen_clocks_ += (std::clock() - var);
+#define MUTRUNEXP_END_TIMING(var) if (x_experiments_enabled_) x_total_gen_clocks_ += (std::clock() - (var));
 
 
 // This is the version written to the provenance table of .trees files
@@ -297,7 +297,7 @@ void Species::_CleanAllReferencesToSpecies(EidosInterpreter *p_interpreter)
 		std::vector<std::string> all_symbols = symbols.AllSymbols();
 		std::vector<EidosGlobalStringID> symbols_to_remove;
 		
-		for (std::string symbol_name : all_symbols)
+		for (const std::string &symbol_name : all_symbols)
 		{
 			EidosGlobalStringID symbol_ID = EidosStringRegistry::GlobalStringIDForString(symbol_name);
 			EidosValue_SP symbol_value = symbols.GetValueOrRaiseForSymbol(symbol_ID);
@@ -749,7 +749,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 			std::istringstream iss(line);
 			
 			iss >> sub;		// pX:iY – individual identifier
-			int pos = static_cast<int>(sub.find_first_of(":"));
+			int pos = static_cast<int>(sub.find_first_of(':'));
 			std::string &&subpop_id_string = sub.substr(0, pos);
 			
 			slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
@@ -853,7 +853,7 @@ slim_tick_t Species::_InitializePopulationFromTextFile(const char *p_file, Eidos
 		std::istringstream iss(line);
 		
 		iss >> sub;
-		int pos = static_cast<int>(sub.find_first_of(":"));
+		int pos = static_cast<int>(sub.find_first_of(':'));
 		std::string &&subpop_id_string = sub.substr(0, pos);
 		slim_objectid_t subpop_id = SLiMEidosScript::ExtractIDFromStringWithPrefix(subpop_id_string, 'p', nullptr);
 		
@@ -2590,7 +2590,7 @@ void Species::SimulationHasFinished(void)
 		int modal_index, modal_tally;
 		int power_tallies[20];	// we only go up to 1024 mutruns right now, but this gives us some headroom
 		
-		for (int i = 0; i < 20; ++i)
+		for (int i = 0; i < 20; ++i)		// NOLINT(*-loop-convert) : parallel to the loop below
 			power_tallies[i] = 0;
 		
 		for (int32_t count : x_mutcount_history_)
@@ -2759,7 +2759,7 @@ void Species::CacheNucleotideMatrices(void)
 					double rateT = mm_data[nuc + 12];
 					double total_rate = rateA + rateC + rateG + rateT;
 					double fraction_of_max_rate = total_rate / max_nucleotide_mut_rate_;
-					double *nuc_thresholds = ge_type->mm_thresholds + nuc * 4;
+					double *nuc_thresholds = ge_type->mm_thresholds + (size_t)nuc * 4;
 					
 					nuc_thresholds[0] = (rateA / total_rate) * fraction_of_max_rate;
 					nuc_thresholds[1] = ((rateA + rateC) / total_rate) * fraction_of_max_rate;
@@ -2781,7 +2781,7 @@ void Species::CacheNucleotideMatrices(void)
 					double rateT = mm_data[trinuc + 192];
 					double total_rate = rateA + rateC + rateG + rateT;
 					double fraction_of_max_rate = total_rate / max_nucleotide_mut_rate_;
-					double *nuc_thresholds = ge_type->mm_thresholds + trinuc * 4;
+					double *nuc_thresholds = ge_type->mm_thresholds + (size_t)trinuc * 4;
 					
 					nuc_thresholds[0] = (rateA / total_rate) * fraction_of_max_rate;
 					nuc_thresholds[1] = ((rateA + rateC) / total_rate) * fraction_of_max_rate;
@@ -2838,18 +2838,18 @@ void Species::CreateNucleotideMutationRateMap(void)
 	if ((hotspot_multipliers_M.size() > 0) && (hotspot_multipliers_F.size() > 0))
 	{
 		// two sex-specific hotspot maps
-		for (size_t index = 0; index < hotspot_multipliers_M.size(); ++index)
+		for (double multiplier_M : hotspot_multipliers_M)
 		{
-			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_M[index];
+			double rate = max_nucleotide_mut_rate_ * multiplier_M;
 			
 			if (rate > 1.0)
 				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
 			
 			mut_rates_M.emplace_back(rate);
 		}
-		for (size_t index = 0; index < hotspot_multipliers_F.size(); ++index)
+		for (double multiplier_F : hotspot_multipliers_F)
 		{
-			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_F[index];
+			double rate = max_nucleotide_mut_rate_ * multiplier_F;
 			
 			if (rate > 1.0)
 				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
@@ -2863,9 +2863,9 @@ void Species::CreateNucleotideMutationRateMap(void)
 	else if (hotspot_multipliers_H.size() > 0)
 	{
 		// one hotspot map
-		for (size_t index = 0; index < hotspot_multipliers_H.size(); ++index)
+		for (double multiplier_H : hotspot_multipliers_H)
 		{
-			double rate = max_nucleotide_mut_rate_ * hotspot_multipliers_H[index];
+			double rate = max_nucleotide_mut_rate_ * multiplier_H;
 			
 			if (rate > 1.0)
 				EIDOS_TERMINATION << "ERROR (Species::CreateNucleotideMutationRateMap): the maximum mutation rate in nucleotide-based models is 1.0." << EidosTerminate();
@@ -3053,7 +3053,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 			
 			p_usage->subpopulationParentTables += subpop.MemoryUsageForParentTables();
 			
-			for (auto iter_map : subpop.spatial_maps_)
+			for (const auto &iter_map : subpop.spatial_maps_)
 			{
 				SpatialMap &map = *iter_map.second;
 				
@@ -3070,7 +3070,7 @@ void Species::TabulateSLiMMemoryUsage_Species(SLiMMemoryUsage_Species *p_usage)
 					p_usage->subpopulationSpatialMaps += map.n_colors_ * sizeof(float) * 3;
 #if defined(SLIMGUI)
 				if (map.display_buffer_)
-					p_usage->subpopulationSpatialMapsDisplay += map.buffer_width_ * map.buffer_height_ * sizeof(uint8_t) * 3;
+					p_usage->subpopulationSpatialMapsDisplay += (size_t)map.buffer_width_ * (size_t)map.buffer_height_ * sizeof(uint8_t) * 3;
 #endif
 			}
 		}
@@ -3717,7 +3717,7 @@ void Species::AboutToSplitSubpop(void)
 	community_.tree_seq_tick_offset_ += 0.00001;
 }
 
-void Species::handle_error(std::string msg, int err)
+void Species::handle_error(const std::string &msg, int err)
 {
 	std::cout << "Error:" << msg << ": " << tsk_strerror(err) << std::endl;
 	EIDOS_TERMINATION << msg << ": " << tsk_strerror(err) << EidosTerminate();
@@ -4644,13 +4644,13 @@ void Species::CheckAutoSimplification(void)
 	}
 }
 
-void Species::TreeSequenceDataFromAscii(std::string NodeFileName,
-										std::string EdgeFileName,
-										std::string SiteFileName,
-										std::string MutationFileName,
-										std::string IndividualsFileName,
-										std::string PopulationFileName,
-										std::string ProvenanceFileName)
+void Species::TreeSequenceDataFromAscii(const std::string &NodeFileName,
+										const std::string &EdgeFileName,
+										const std::string &SiteFileName,
+										const std::string &MutationFileName,
+										const std::string &IndividualsFileName,
+										const std::string &PopulationFileName,
+										const std::string &ProvenanceFileName)
 {
 	FILE *MspTxtNodeTable = fopen(NodeFileName.c_str(), "r");
 	FILE *MspTxtEdgeTable = fopen(EdgeFileName.c_str(), "r");
@@ -5100,7 +5100,7 @@ void Species::DerivedStatesFromAscii(tsk_table_collection_t *p_tables)
 				{
 					// nothing to do for an empty derived state
 				}
-				else if (string_derived_state.find(",") == std::string::npos)
+				else if (string_derived_state.find(',') == std::string::npos)
 				{
 					// a single mutation can be handled more efficiently, and this is the common case so it's worth optimizing
 					binary_derived_state.emplace_back((slim_mutationid_t)std::stoll(string_derived_state));
@@ -7642,6 +7642,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 		
 		if (sex_enabled_)
 		{
+			// NOLINTBEGIN(*-branch-clone) : ok, this is a little weird, but it makes it explicit what happens for males versus females
 			if (modeled_chromosome_type_ == GenomeType::kXChromosome)
 			{
 				expected_is_null_0 = (sex == IndividualSex::kMale) ? false : false;
@@ -7656,6 +7657,7 @@ void Species::__TabulateSubpopulationsFromTreeSequence(std::unordered_map<slim_o
 				expected_genome_type_0 = (sex == IndividualSex::kMale) ? GenomeType::kXChromosome : GenomeType::kXChromosome;
 				expected_genome_type_1 = (sex == IndividualSex::kMale) ? GenomeType::kYChromosome : GenomeType::kXChromosome;
 			}
+			// NOLINTEND(*-branch-clone)
 		}
 		
 		// BCH 9/27/2021: Null genomes are now allowed to occur arbitrarily in nonWF models, as long as they aren't sex-chromosome models
@@ -7737,8 +7739,8 @@ void Species::__CreateSubpopulationsFromTabulation(std::unordered_map<slim_objec
 				if (individual->sex_ != generating_sex)
 					EIDOS_TERMINATION << "ERROR (Species::__CreateSubpopulationsFromTabulation): (internal error) unexpected individual sex." << EidosTerminate();
 				
-				tsk_id_t node_id_0 = subpop_info.nodes_[tabulation_index * 2];
-				tsk_id_t node_id_1 = subpop_info.nodes_[tabulation_index * 2 + 1];
+				tsk_id_t node_id_0 = subpop_info.nodes_[(size_t)tabulation_index * 2];
+				tsk_id_t node_id_1 = subpop_info.nodes_[(size_t)tabulation_index * 2 + 1];
 				
 				individual->genome1_->tsk_node_id_ = node_id_0;
 				individual->genome2_->tsk_node_id_ = node_id_1;

@@ -1007,7 +1007,7 @@ void Eidos_WarmUpOpenMP(std::ostream *outstream, bool changed_max_thread_count, 
 	else if (thread_count_set_name == "XeonGold2_40")
 		_Eidos_SetOpenMPThreadCounts(EidosPerTaskThreadCounts::kXeonGold2_40);
 	else
-		EIDOS_TERMINATION << "ERROR (_Eidos_SetOpenMPThreadCounts): (internal error) unrecognized EidosPerTaskThreadCounts value." << EidosTerminate(nullptr);
+		EIDOS_TERMINATION << "ERROR (Eidos_WarmUpOpenMP): (internal error) unrecognized EidosPerTaskThreadCounts value." << EidosTerminate(nullptr);
 	
 	// Write some diagnostic output about our configuration.  If the verbosity level is 0, outstream will be nullptr.
 	if (outstream)
@@ -1381,7 +1381,7 @@ void Eidos_DefineConstantsFromCommandLine(const std::vector<std::string> &p_cons
 						{
 							gEidosTerminateThrows = save_throws;
 							
-							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name \"" << symbol_name << "\"." << EidosTerminate(nullptr);
+							EIDOS_TERMINATION << "ERROR (Eidos_DefineConstantsFromCommandLine): illegal defined constant name '" << symbol_name << "'." << EidosTerminate(nullptr);
 						}
 					}
 				}
@@ -4593,7 +4593,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 		}
 		catch (...)
 		{
-			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification \"" << p_color_name << "\" is malformed." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
 		}
 	}
 	else
@@ -4610,7 +4610,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, float *p_red_comp
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named \"" << p_color_name << "\" could not be found." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
 }
 
 void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_component, uint8_t *p_green_component, uint8_t *p_blue_component)
@@ -4631,7 +4631,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 		}
 		catch (...)
 		{
-			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification \"" << p_color_name << "\" is malformed." << EidosTerminate();
+			EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color specification '" << p_color_name << "' is malformed." << EidosTerminate();
 		}
 	}
 	else
@@ -4648,7 +4648,7 @@ void Eidos_GetColorComponents(const std::string &p_color_name, uint8_t *p_red_co
 		}
 	}
 	
-	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named \"" << p_color_name << "\" could not be found." << EidosTerminate();
+	EIDOS_TERMINATION << "ERROR (Eidos_GetColorComponents): color named '" << p_color_name << "' could not be found." << EidosTerminate();
 }
 
 void Eidos_GetColorString(double p_red, double p_green, double p_blue, char *p_string_buffer)
@@ -4729,7 +4729,7 @@ void Eidos_HSV2RGB(double h, double s, double v, double *p_r, double *p_g, doubl
 void Eidos_RGB2HSV(double r, double g, double b, double *p_h, double *p_s, double *p_v)
 {
 	if (std::isnan(r) || std::isnan(g) || std::isnan(b))
-		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_rgb2hsv): color component with value NAN is not legal." << EidosTerminate();
+		EIDOS_TERMINATION << "ERROR (Eidos_RGB2HSV): color component with value NAN is not legal." << EidosTerminate();
 	
 	if (r < 0.0) r = 0.0;
 	if (r > 1.0) r = 1.0;

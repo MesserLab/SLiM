@@ -166,7 +166,7 @@ development head (in the master branch):
 	implement 2D bicubic interpolation with periodic boundaries for the interpolate() method
 	update from tskit C_1.0 to C_1.1.2, fixing a memory leak on load of a .trees file, and presumably other things also
 	add testConstraints() method to InteractionType, to test whether a set of individuals satisfy constraints or not
-	add clang-tidy support in CMake (for internal development), do a pass over eidos
+	add clang-tidy support in CMake (for internal development), do a pass over eidos and core
 	
 
 version 4.0.1 (Eidos version 3.0.1):
