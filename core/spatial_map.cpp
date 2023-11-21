@@ -1128,6 +1128,17 @@ void SpatialMap::SetProperty(EidosGlobalStringID p_property_id, const EidosValue
 			eidos_logical_t value = p_value.LogicalAtIndex(0, nullptr);
 			
 			interpolate_ = value;
+			
+			// We don't need to call _ValuesChanged(), just recache display
+#if defined(SLIMGUI)
+			// Force a display image recache in SLiMgui
+			if (display_buffer_)
+			{
+				free(display_buffer_);
+				display_buffer_ = nullptr;
+			}
+#endif
+			
 			return;
 		}
 		case gID_tag:
