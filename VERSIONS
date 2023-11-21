@@ -167,7 +167,7 @@ development head (in the master branch):
 	update from tskit C_1.0 to C_1.1.2, fixing a memory leak on load of a .trees file, and presumably other things also
 	add testConstraints() method to InteractionType, to test whether a set of individuals satisfy constraints or not
 	add clang-tidy support in CMake (for internal development), do a pass over eidos and core
-	add/modify recipes for new spatial modeling features: new 15.3 V on pointDeviated()
+	add/modify recipes for new spatial modeling features: new 15.3 V on pointDeviated(), new 15.14 on SpatialMap, inerpolate(), smooth(), and sampleNearbyPoint()
 	
 
 version 4.0.1 (Eidos version 3.0.1):

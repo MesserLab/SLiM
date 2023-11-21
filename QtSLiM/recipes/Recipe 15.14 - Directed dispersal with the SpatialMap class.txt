@@ -1,0 +1,45 @@
+// Keywords: continuous space, continuous spatial landscape, spatial maps, directed dispersal
+
+initialize() {
+	defineConstant("K", 1000);
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(dimensionality="xy", periodicity="xy");
+}
+1 late() {
+	sim.addSubpop("p1", K);
+	p1.individuals.setSpatialPosition(c(0.0, 0.0));
+	p1.individuals.color = rainbow(K);
+	
+	do {
+		m = matrix(rbinom(16, 1, 0.2), ncol=4, byrow=T);
+		m = cbind(m, m[,0]);
+		m = rbind(m, m[0,]);
+	} while ((sum(m) == 0) | (sum(m) == 1));
+	
+	map = p1.defineSpatialMap("habitat", "xy", m, valueRange=c(0,1), colors=c("black", "white"));
+	defineConstant("MAP", map);
+}
+2 late() {
+	MAP.interpolate(15, method="cubic");
+}
+3 late() {
+	MAP.rescale();
+}
+4 late() {
+	MAP.smooth(0.3, "n", 0.1);
+}
+5 late() {
+	MAP.rescale();
+}
+6 late() {
+	MAP.interpolate = T;
+}
+10 late() {
+	p1.individuals.setSpatialPosition(p1.pointUniform(K));
+}
+11:100000 late() {
+	inds = p1.individuals;
+	pos = inds.spatialPosition;
+	pos = MAP.sampleNearbyPoint(pos, INF, "n", 0.002);
+	inds.setSpatialPosition(pos);
+}
