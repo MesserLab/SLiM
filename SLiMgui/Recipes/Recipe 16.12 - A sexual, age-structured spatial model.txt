@@ -1,0 +1,57 @@
+// Keywords: nonWF, non-Wright-Fisher, continuous space, continuous spatial landscape, selfing, spatial competition, spatial mate choice
+
+initialize() {
+	initializeSLiMModelType("nonWF");
+	initializeSLiMOptions(dimensionality="xy");
+	initializeSex("A");
+	defineConstant("K", 300);   // carrying-capacity density
+	defineConstant("S", 0.1);   // sigma_S, the spatial interaction width
+	
+	// spatial competition
+	initializeInteractionType(1, "xy", reciprocal=T, maxDistance=S * 3);
+	i1.setInteractionFunction("n", 1.0, S);
+	
+	// spatial mate choice
+	initializeInteractionType(2, "xy", reciprocal=T, maxDistance=0.1);
+	i2.setConstraints("receiver", sex="F", minAge=2, maxAge=4);
+	i2.setConstraints("exerter", sex="M", minAge=2);
+}
+1 early() {
+	sim.addSubpop("p1", K);
+	p1.individuals.setSpatialPosition(p1.pointUniform(K));
+}
+2: first() {
+	// look for mates
+	i2.evaluate(p1);
+}
+reproduction(NULL, "F") {
+	// choose our nearest neighbor as a mate, within the max distance
+	mate = i2.nearestInteractingNeighbors(individual, 1);
+	
+	if (mate.size() > 0)
+		subpop.addCrossed(individual, mate, count=rpois(1, 1.5));
+}
+early() {
+	// first, conduct age-related mortality with killIndividuals()
+	inds = p1.individuals;
+	ages = inds.age;
+	
+	inds4 = inds[ages == 4];
+	inds5 = inds[ages == 5];
+	inds6 = inds[ages >= 6];
+	death4 = (runif(inds4.size()) < 0.10);
+	death5 = (runif(inds5.size()) < 0.30);
+	sim.killIndividuals(c(inds4[death4], inds5[death5], inds6));
+	
+	// disperse prior to density-dependence
+	inds = p1.individuals;
+	pos = inds.spatialPosition;
+	pos = p1.pointDeviated(inds.size(), pos, "reprising", INF, "n", 0.02);
+	inds.setSpatialPosition(pos);
+	
+	// spatial competition provides density-dependent selection
+	i1.evaluate(p1);
+	competition = i1.localPopulationDensity(inds);
+	inds.fitnessScaling = K / competition;
+}
+10000 late() { }

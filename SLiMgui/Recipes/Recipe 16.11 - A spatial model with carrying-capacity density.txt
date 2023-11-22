@@ -1,4 +1,4 @@
-// Keywords: nonWF, non-Wright-Fisher, continuous space, continuous spatial landscape, periodic boundaries, selfing, spatial competition, spatial mate choice
+// Keywords: nonWF, non-Wright-Fisher, continuous space, continuous spatial landscape, selfing, spatial competition, spatial mate choice
 
 initialize() {
 	initializeSLiMModelType("nonWF");
