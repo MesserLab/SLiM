@@ -12,33 +12,33 @@ initialize() {
 }
 reproduction() {
 	// we focus on the reproduction of the females here
-	if (individual.tag == 1)
+	if (individual.tagL0 == F)
 	{
 		if (runif(1) < 0.7)
 		{
 			// choose a male mate and produce a son or daughter
-			mate = subpop.sampleIndividuals(1, tag=0);
+			mate = subpop.sampleIndividuals(1, tagL0=T);
 			offspring = subpop.addCrossed(individual, mate);
-			offspring.tag = rbinom(1, 1, 0.5);
+			offspring.tagL0 = (runif(1) <= 0.5);
 		}
 		else
 		{
 			// reproduce through automixis to produce a daughter
 			offspring = subpop.addSelfed(individual);
-			offspring.tag = 1;
+			offspring.tagL0 = F;
 		}
 	}
 }
 1 early() {
 	sim.addSubpop("p1", K);
 	
-	// assign random sexes (0 = male, 1 = female)
-	p1.individuals.tag = rbinom(p1.individualCount, 1, 0.5);
+	// assign random sexes (T = male, F = female)
+	p1.individuals.tagL0 = (runif(p1.individualCount) <= 0.5);
 }
 early() {
 	p1.fitnessScaling = K / p1.individualCount;
 }
 1:2000 late() {
-	ratio = sum(p1.individuals.tag == 0) / p1.individualCount;
+	ratio = mean(p1.individuals.tagL0);
 	catn(sim.cycle + ": " + ratio);
 }

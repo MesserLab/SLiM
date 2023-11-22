@@ -50,8 +50,8 @@ reproduction(p1)
 }
 reproduction(p2, "F")
 {
-	mate = p2.sampleIndividuals(1, sex="M", tag=0);
-	mate.tag = 1;
+	mate = p2.sampleIndividuals(1, sex="M", tagL0=F);
+	mate.tagL0 = T;
 	
 	child = p1.addRecombinant(individual.genome1, NULL, NULL,
 		mate.genome1, NULL, NULL);
@@ -61,7 +61,7 @@ early()
 	if (sim.cycle % 2 == 0)
 	{
 		p1.fitnessScaling = 0.0;
-		p2.individuals.tag = 0;
+		p2.individuals.tagL0 = F;
 		sim.chromosome.setMutationRate(0.0);
 	}
 	else
@@ -75,4 +75,3 @@ early()
 {
 	sim.simulationFinished();
 }
-

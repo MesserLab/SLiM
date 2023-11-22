@@ -12,16 +12,16 @@ initialize() {
 }
 late() {
 	// initially, everybody lives
-	sim.subpopulations.individuals.tag = 1;
+	sim.subpopulations.individuals.tagL0 = F;
 	
 	// here be dragons
-	sample(sim.subpopulations.individuals, 100).tag = 0;
+	sample(sim.subpopulations.individuals, 100).tagL0 = T;
 }
 fitnessEffect() {
 	// individuals tagged for death die here
-	if (individual.tag == 1)
-		return 1.0;
-	else
+	if (individual.tagL0)
 		return 0.0;
+	else
+		return 1.0;
 }
 10000 late() { sim.outputFull(); }

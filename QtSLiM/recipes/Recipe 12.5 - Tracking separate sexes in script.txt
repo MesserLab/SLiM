@@ -9,15 +9,15 @@ initialize() {
 }
 1 early() {
 	sim.addSubpop("p1", 500);
-	p1.individuals.tag = repEach(0:1, 250);  // F==0, M==1
+	p1.individuals.tagL0 = repEach(c(F,T), 250);  // f==F, m==T
 }
 modifyChild() {
-	if (parent1.tag + parent2.tag != 1)
+	if (parent1.tagL0 == parent2.tagL0)
 		return F;
-	child.tag = rdunif(1);
+	child.tagL0 = (runif(1) <= 0.5);
 	return T;
 }
 1: late() {
-	catn("Sex ratio (M:M+F): " + mean(p1.individuals.tag));
+	catn("Sex ratio (M:M+F): " + mean(p1.individuals.tagL0));
 }
 2000 late() { sim.outputFixedMutations(); }

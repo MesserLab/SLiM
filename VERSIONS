@@ -168,6 +168,7 @@ development head (in the master branch):
 	add testConstraints() method to InteractionType, to test whether a set of individuals satisfy constraints or not
 	add clang-tidy support in CMake (for internal development), do a pass over eidos and core
 	add/modify recipes for new spatial modeling features: new 15.3 V on pointDeviated(); new 15.14 on SpatialMap, interpolate(), smooth(), and sampleNearbyPoint(); new 16.12 on interaction constraints and other stuff
+	modify recipes to demonstrate the use of tagL0: 10.4.2, 12.1, 12.5, 14.2 II, 16.17, 16.24
 	
 
 version 4.0.1 (Eidos version 3.0.1):
