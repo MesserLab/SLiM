@@ -256,7 +256,9 @@ const std::vector<EidosFunctionSignature_CSP> &EidosInterpreter::BuiltInFunction
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("nrow",				Eidos_ExecuteFunction_nrow,			kEidosValueMaskInt | kEidosValueMaskSingleton))->AddAny("x"));
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("rbind",				Eidos_ExecuteFunction_rbind,		kEidosValueMaskAny))->AddEllipsis());
 		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("t",					Eidos_ExecuteFunction_t,			kEidosValueMaskAny))->AddAny("x"));
-		
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("upperTri",			Eidos_ExecuteFunction_upperTri,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("diag", gStaticEidosValue_LogicalF));
+		signatures->emplace_back((EidosFunctionSignature *)(new EidosFunctionSignature("lowerTri",			Eidos_ExecuteFunction_lowerTri,		kEidosValueMaskAny))->AddAny("x")->AddLogical_OS("diag", gStaticEidosValue_LogicalF));
+
 		
 		// ************************************************************************************
 		//

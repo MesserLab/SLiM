@@ -992,7 +992,143 @@ EidosValue_SP Eidos_ExecuteFunction_t(const std::vector<EidosValue_SP> &p_argume
 	return result_SP;
 }
 
+// (*)lowerTri(* x, [logical$ diag = F])
+EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	EidosValue *x_value = p_arguments[0].get();
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_lowerTri): in function lowerTri() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim = x_value->Dimensions();
+	int64_t nrows = dim[0];
+	int64_t ncols = dim[1];
+	
+	// Create new empty logical matrix
+	EidosValue_Logical *result = (new (gEidosValuePool->AllocateChunk()) 
+									EidosValue_Logical())->resize_no_initialize(nrows * ncols);
+	result_SP = EidosValue_SP(result);
 
+	// Iterate through result matrix and set lower triangle to T, remaining values to F
+	// If we want the diagonal elements included, need to include them in our condition, row idx <= col idx
+	if (diag)
+	{
+		for (int64_t row_index = 0; row_index < nrows; ++row_index)
+		{
+			for (int64_t col_index = 0; col_index < ncols; ++col_index)
+			{
+				// Get 1D index from rows/cols
+				int64_t index = row_index * ncols + col_index;
+				
+				// Initialize value to F
+				result->set_logical_no_check(false, (int)index);
+
+				// Set lower triangle values to T
+				if ( row_index <= col_index )
+				{
+					result->set_logical_no_check(true, (int)index);
+				}
+			}
+		}
+	} 
+	else 
+	{
+		for (int64_t row_index = 0; row_index < nrows; ++row_index)
+		{
+			for (int64_t col_index = 0; col_index < ncols; ++col_index)
+			{
+				// Get 1D index from rows/cols
+				int64_t index = row_index * ncols + col_index;
+
+				// Initialize value to F
+				result->set_logical_no_check(false, (int)index);
+
+				// Set lower triangle values to T
+				if ( row_index < col_index )
+				{
+					result->set_logical_no_check(true, (int)index);
+				}
+			}
+		}
+	}
+
+	// Apply dimension attributes and return
+	const int64_t dim_buf[2] = {nrows, ncols};
+	result->SetDimensions(2, dim_buf);
+	
+	return result_SP;
+}
+
+// (*)lowerTri(* x, [logical$ diag = F])
+EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	EidosValue_SP result_SP(nullptr);
+	EidosValue *x_value = p_arguments[0].get();
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_upperTri): in function upperTri() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim = x_value->Dimensions();
+	int64_t nrows = dim[0];
+	int64_t ncols = dim[1];
+	
+	// Create new empty logical matrix
+	EidosValue_Logical *result = (new (gEidosValuePool->AllocateChunk()) 
+									EidosValue_Logical())->resize_no_initialize(nrows * ncols);
+	result_SP = EidosValue_SP(result);
+
+	// Iterate through result matrix and set lower triangle to T, remaining values to F
+	// If we want the diagonal elements included, need to include them in our condition, row idx >= col idx
+	if (diag)
+	{
+		for (int64_t row_index = 0; row_index < nrows; ++row_index)
+		{
+			for (int64_t col_index = 0; col_index < ncols; ++col_index)
+			{
+				// Get 1D index from rows/cols
+				int64_t index = row_index * ncols + col_index;
+
+				// Initialize value to F
+				result->set_logical_no_check(false, (int)index);
+
+				// Set upper triangle values to T
+				if ( row_index >= col_index )
+				{
+					result->set_logical_no_check(true, (int)index);
+				}
+			}
+		}
+	} 
+	else 
+	{
+		for (int64_t row_index = 0; row_index < nrows; ++row_index)
+		{
+			for (int64_t col_index = 0; col_index < ncols; ++col_index)
+			{
+				// Get 1D index from rows/cols
+				int64_t index = row_index * ncols + col_index;
+
+				// Initialize value to F
+				result->set_logical_no_check(false, (int)index);
+
+				// Set upper triangle values to T
+				if ( row_index > col_index )
+				{
+					result->set_logical_no_check(true, (int)index);
+				}
+			}
+		}
+	}
+
+	// Apply dimension attributes and return
+	const int64_t dim_buf[2] = {nrows, ncols};
+	result->SetDimensions(2, dim_buf);
+	
+	return result_SP;
+}
 
 
 
