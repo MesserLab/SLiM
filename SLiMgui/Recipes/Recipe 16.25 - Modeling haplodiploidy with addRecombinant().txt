@@ -14,10 +14,8 @@ initialize() {
 	initializeSex("A");
 }
 reproduction(NULL, "F") {
-	// choose an initial copy strand based on a coin flip
-	strand = rbinom(1, 1, 0.5);
-	gen1 = strand ? individual.genome1 else individual.genome2;
-	gen2 = strand ? individual.genome2 else individual.genome1;
+	gen1 = individual.genome1;
+	gen2 = individual.genome2;
 	breaks = sim.chromosome.drawBreakpoints(individual);
 	
 	// decide whether we're generating a haploid male or a diploid female
@@ -26,7 +24,8 @@ reproduction(NULL, "F") {
 		// didn't find a mate; make a haploid male from an unfertilized egg:
 		//		- one genome comes from recombination of the female's genomes
 		//		- the other genome is a null genome (a placeholder)
-		subpop.addRecombinant(gen1, gen2, breaks, NULL, NULL, NULL, "M");
+		subpop.addRecombinant(gen1, gen2, breaks, NULL, NULL, NULL, "M",
+			randomizeStrands=T);
 	}
 	else
 	{
@@ -34,7 +33,8 @@ reproduction(NULL, "F") {
 		//		- one genome comes from recombination of the female's genomes
 		//		- the other genome comes from the mate (a haploid male)
 		mate = subpop.sampleIndividuals(1, sex="M");
-		subpop.addRecombinant(gen1, gen2, breaks, mate.genome1, NULL, NULL, "F");
+		subpop.addRecombinant(gen1, gen2, breaks, mate.genome1, NULL, NULL, "F",
+			randomizeStrands=T);
 	}
 }
 1 early() {
