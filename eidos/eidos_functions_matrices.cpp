@@ -1020,13 +1020,13 @@ EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p
 			for (int64_t col_index = 0; col_index < ncols; ++col_index)
 			{
 				// Get 1D index from rows/cols
-				int64_t index = row_index * ncols + col_index;
+				int64_t index = col_index * nrows + row_index;
 				
 				// Initialize value to F
 				result->set_logical_no_check(false, (int)index);
 
 				// Set lower triangle values to T
-				if ( row_index <= col_index )
+				if ( row_index >= col_index )
 				{
 					result->set_logical_no_check(true, (int)index);
 				}
@@ -1040,13 +1040,13 @@ EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p
 			for (int64_t col_index = 0; col_index < ncols; ++col_index)
 			{
 				// Get 1D index from rows/cols
-				int64_t index = row_index * ncols + col_index;
+				int64_t index = col_index * nrows + row_index;
 
 				// Initialize value to F
 				result->set_logical_no_check(false, (int)index);
 
 				// Set lower triangle values to T
-				if ( row_index < col_index )
+				if ( row_index > col_index )
 				{
 					result->set_logical_no_check(true, (int)index);
 				}
@@ -1089,13 +1089,13 @@ EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p
 			for (int64_t col_index = 0; col_index < ncols; ++col_index)
 			{
 				// Get 1D index from rows/cols
-				int64_t index = row_index * ncols + col_index;
+				int64_t index = col_index * nrows + row_index;
 
 				// Initialize value to F
 				result->set_logical_no_check(false, (int)index);
 
 				// Set upper triangle values to T
-				if ( row_index >= col_index )
+				if ( row_index <= col_index )
 				{
 					result->set_logical_no_check(true, (int)index);
 				}
@@ -1109,13 +1109,13 @@ EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p
 			for (int64_t col_index = 0; col_index < ncols; ++col_index)
 			{
 				// Get 1D index from rows/cols
-				int64_t index = row_index * ncols + col_index;
+				int64_t index = col_index * nrows + row_index;
 
 				// Initialize value to F
 				result->set_logical_no_check(false, (int)index);
 
 				// Set upper triangle values to T
-				if ( row_index > col_index )
+				if ( row_index < col_index )
 				{
 					result->set_logical_no_check(true, (int)index);
 				}
