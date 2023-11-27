@@ -1131,7 +1131,147 @@ EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p
 }
 
 
+// (*)diag([* x = 1], [integer$ nrow], [integer$ ncol])
+EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	/* 
+		Four return modes depending on the form of inputs (matching R behaviour)
+		1: x is a matrix - return the diagonal elements of x (nrow and ncol cannot be specified in this mode)
+	 	2: x is missing and nrow and/or ncol is given - return an identity matrix with dimensions nrow * ncol, nrow*nrow, 1*ncol
+		3: x is a singleton vector and is the only input - return an identity matrix with dimensions equal to the length of x
+		4: x is a numeric or logical vector - return a matrix with the given diagonal entries and 0/F in the off diagonals
+	*/
 
+	EidosValue *x_value = p_arguments[0].get();
+
+	if (x_value->DimensionCount() > 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() x must be a vector or a matrix." << EidosTerminate(nullptr);
+
+	// 1: If x is a matrix we return the diagonals
+	if (x_value->DimensionCount() == 2)
+	{	
+		if (p_arguments[1].get() != gStaticEidosValueNULL || p_arguments[2].get() != gStaticEidosValueNULL ) 	
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() 'nrow' or 'ncol' cannot be specified when x is a matrix." << EidosTerminate(nullptr);
+
+		// Setup output
+		EidosValue_SP result_SP = x_value->NewMatchingType();
+		EidosValue *result = result_SP.get();
+
+		const int64_t *source_dim = x_value->Dimensions();
+		int64_t nrow = source_dim[0];
+		int64_t ncol= source_dim[1];
+
+		// Iterate over diagonals: number of diagonals is the minimum of nrows and ncols 
+		for (int64_t diag_index = 0; diag_index < std::min(nrow, ncol); ++diag_index)
+		{
+			// Convert to 1D: because row == col, we can use diag_index in place of both
+			int64_t result_index = diag_index * nrow + diag_index;
+
+			result->PushValueFromIndexOfEidosValue((int)result_index, *x_value, nullptr);	
+		}
+		return result_SP;
+	}
+
+	// Otherwise we check if x is a vector and generate a matrix, filling the diagonals with that value
+	// and either inferring nrow or using the specified nrow
+	EidosValue *nrow_value = p_arguments[1].get();
+	EidosValue *ncol_value = p_arguments[2].get();
+	bool nrow_null = (nrow_value->Type() == EidosValueType::kValueNULL);
+	bool ncol_null = (ncol_value->Type() == EidosValueType::kValueNULL);
+
+	// otherwise infer nrow/ncol from length of vector x
+	int64_t nrow = x_value->Count(); 
+
+	// If x is a singleton and the only given argument, 
+	// set that value to nrow, and overwrite x_value to 1 to write an identity matrix
+	if (x_value->Count() == 1 && nrow_null && ncol_null)
+	{
+		nrow = x_value->IntAtIndex(0, nullptr);	
+		x_value = gStaticEidosValue_Integer1.get();
+	}
+
+	int64_t ncol = nrow;
+	
+	// Overwrite if we have user-defined values
+	if (!nrow_null)
+	{
+		nrow = nrow_value->IntAtIndex(0, nullptr);
+		if (ncol_null)
+		{
+			ncol = nrow;
+		}
+	}
+
+	if (!ncol_null)
+	{
+		ncol = ncol_value->IntAtIndex(0, nullptr);
+	}
+	
+	EidosValue_SP default_value;
+
+	// define default value to copy to off-diagonals (there's probably a better way to do this?)
+	switch (x_value->Type())
+	{
+	case EidosValueType::kValueLogical:
+		default_value = gStaticEidosValue_LogicalF;
+		break;
+	case EidosValueType::kValueFloat:
+		default_value = gStaticEidosValue_Float0;
+		break;
+	case EidosValueType::kValueInt:
+		default_value = gStaticEidosValue_Integer0;
+		break;
+	default:
+		// error if we don't have a valid type
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() x must be a numeric or logical vector if it isn't a matrix" << EidosTerminate(nullptr);
+		break;
+	}
+
+	// const cast for PushValueFromIndexOfEidosValue
+	const EidosValue* const_default_type = default_value.get(); 
+
+	// index for current value in x to set into the result diagonal
+	int64_t x_index = 0;
+
+	// Setup output (now that x_value is set for case 3)
+	EidosValue_SP result_SP = x_value->NewMatchingType();
+	EidosValue *result = result_SP.get();
+
+
+	// Initialise result matrix and fill in diagonals with x values
+	for (int64_t col_index = 0; col_index < ncol; ++col_index)
+	{
+		for (int64_t row_index = 0; row_index < nrow; ++row_index)
+		{
+			// Initialise value to type default (0L, 0.0, F)
+			result->PushValueFromIndexOfEidosValue(0, *const_default_type, nullptr);
+
+			// Set diagonal to x
+			if ( row_index == col_index )
+			{
+				// Get 1D index from rows/cols
+				int64_t result_index = col_index * nrow + row_index;
+
+				// Reset index_value to start of x so we don't go out of bounds (this replicates R behaviour)
+				if (x_index > ( x_value->Count()-1 ))
+				{
+					x_index = 0;
+				}
+
+				// Set diagonal and increment x_index
+				result->SetValueAtIndex((int)result_index, *(x_value->GetValueAtIndex(x_index, nullptr).get()), nullptr);
+				x_index++;
+			}
+		}
+	}
+
+	// Apply dimension attributes and return
+	const int64_t dim_buf[2] = {nrow, ncol};
+	result->SetDimensions(2, dim_buf);
+
+
+	return result_SP;		
+}
 
 
 
