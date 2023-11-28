@@ -992,7 +992,7 @@ EidosValue_SP Eidos_ExecuteFunction_t(const std::vector<EidosValue_SP> &p_argume
 	return result_SP;
 }
 
-// (*)lowerTri(* x, [logical$ diag = F])
+// (logical)lowerTri(* x, [logical$ diag = F])
 EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// contributed by Nick O'Brien (@nobrien97)
@@ -1040,7 +1040,7 @@ EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p
 	return result_SP;
 }
 
-// (*)upperTri(* x, [logical$ diag = F])
+// (logical)upperTri(* x, [logical$ diag = F])
 EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
 	// contributed by Nick O'Brien (@nobrien97)
