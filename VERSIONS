@@ -171,6 +171,7 @@ development head (in the master branch):
 	modify recipes to demonstrate the use of tagL0: 10.4.2, 12.1, 12.5, 14.2 II, 16.17, 16.24
 	modify recipes that use addRecombinant() to use randomizeStrands=T where appropriate: 16.17, 16.25
 	add lowerTri(), upperTri(), and diag(); thanks to Nick O'Brien (@nobrien97) for this contribution
+	modify recipes to use count= parameter to addCrossed() etc., where appropriate: 16.3, 16.23
 	
 
 version 4.0.1 (Eidos version 3.0.1):

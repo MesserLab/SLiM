@@ -21,10 +21,7 @@ reproduction() {
 	{
 		parent1 = parents[i];
 		parent2 = parents[i + 1];
-		litterSize = rpois(1, 2.7);
-		
-		for (j in seqLen(litterSize))
-			p1.addCrossed(parent1, parent2);
+		p1.addCrossed(parent1, parent2, count=rpois(1, 2.7));
 	}
 	
 	// disable this callback for this cycle

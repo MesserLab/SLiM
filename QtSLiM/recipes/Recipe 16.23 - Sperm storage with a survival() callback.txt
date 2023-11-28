@@ -30,9 +30,7 @@ reproduction(p1) {
 		}
 		if (mate.size()) {
 			female.tag = mate.pedigreeID;
-			litterSize = rpois(1, 5);
-			for (i in seqLen(litterSize))
-				subpop.addCrossed(female, mate);
+			subpop.addCrossed(female, mate, count=rpois(1, 5));
 		} else {
 			catn(sim.cycle + ": No mate found for tag " + female.tag);
 		}
