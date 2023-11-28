@@ -170,6 +170,7 @@ development head (in the master branch):
 	add/modify recipes for new spatial modeling features: new 15.3 V on pointDeviated(); new 15.14 on SpatialMap, interpolate(), smooth(), and sampleNearbyPoint(); new 16.12 on interaction constraints and other stuff
 	modify recipes to demonstrate the use of tagL0: 10.4.2, 12.1, 12.5, 14.2 II, 16.17, 16.24
 	modify recipes that use addRecombinant() to use randomizeStrands=T where appropriate: 16.17, 16.25
+	add lowerTri(), upperTri(), and diag(); thanks to Nick O'Brien (@nobrien97) for this contribution
 	
 
 version 4.0.1 (Eidos version 3.0.1):

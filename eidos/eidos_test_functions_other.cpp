@@ -48,6 +48,35 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(cbind(matrix(1:6, ncol=2), matrix(7:12, ncol=2)), matrix(1:12, nrow=3));", true);
 	EidosAssertScriptSuccess_L("identical(cbind(matrix(1:6, nrow=1), matrix(7:12, nrow=1)), matrix(1:12, nrow=1));", true);
 	
+	// diag()
+	EidosAssertScriptSuccess_IV("diag(matrix(5));", {5});
+	EidosAssertScriptSuccess_IV("diag(matrix(1:10, ncol=5));", {1, 4});
+	EidosAssertScriptSuccess_IV("diag(t(matrix(1:10, ncol=5)));", {1, 4});
+	EidosAssertScriptSuccess_IV("diag(matrix(1:16, ncol=4));", {1, 6, 11, 16});
+	EidosAssertScriptSuccess_IV("diag(t(matrix(1:16, ncol=4)));", {1, 6, 11, 16});
+	
+	EidosAssertScriptRaise("diag(ncol=3);", 0, "one of four specific");
+	EidosAssertScriptSuccess_L("d = diag(nrow=1); identical(d, matrix(1));", true);
+	EidosAssertScriptSuccess_L("d = diag(nrow=3); identical(d, matrix(c(1, 0, 0, 0, 1, 0, 0, 0, 1), nrow=3, ncol=3));", true);
+	EidosAssertScriptSuccess_L("d = diag(nrow=3, ncol=2); identical(d, matrix(c(1, 0, 0, 0, 1, 0), nrow=3, ncol=2));", true);
+	EidosAssertScriptSuccess_L("d = diag(nrow=2, ncol=3); identical(d, matrix(c(1, 0, 0, 1, 0, 0), nrow=2, ncol=3));", true);
+	
+	EidosAssertScriptRaise("diag(T);", 0, "one of four specific");
+	EidosAssertScriptRaise("diag(F);", 0, "one of four specific");
+	EidosAssertScriptRaise("diag(1.5);", 0, "one of four specific");
+	EidosAssertScriptRaise("diag('foo');", 0, "one of four specific");
+	EidosAssertScriptSuccess_L("d = diag(1); identical(d, matrix(1));", true);
+	EidosAssertScriptSuccess_L("d = diag(3); identical(d, matrix(c(1, 0, 0, 0, 1, 0, 0, 0, 1), nrow=3, ncol=3));", true);
+	
+	EidosAssertScriptSuccess_L("d = diag(c(1,4)); identical(d, matrix(c(1, 0, 0, 4), nrow=2));", true);
+	EidosAssertScriptSuccess_L("d = diag(c(1,4), ncol=3); identical(d, matrix(c(1, 0, 0, 4, 0, 0), nrow=2));", true);
+	EidosAssertScriptRaise("diag(c(1,4), nrow=3);", 0, "truncated or recycled");
+	EidosAssertScriptSuccess_L("d = diag(c(1,4), nrow=3, ncol=2); identical(d, matrix(c(1, 0, 0, 0, 4, 0), nrow=3));", true);
+	EidosAssertScriptSuccess_L("d = diag(c(1,4), nrow=2, ncol=3); identical(d, matrix(c(1, 0, 0, 4, 0, 0), nrow=2));", true);
+	EidosAssertScriptRaise("diag(c(1,4), nrow=3, ncol=3);", 0, "truncated or recycled");
+	EidosAssertScriptRaise("diag(c(1,4), nrow=1);", 0, "truncated or recycled");
+	EidosAssertScriptRaise("diag(c(1,4), ncol=1);", 0, "truncated or recycled");
+	
 	// dim()
 	EidosAssertScriptSuccess_NULL("dim(NULL);");
 	EidosAssertScriptSuccess_NULL("dim(T);");
@@ -92,6 +121,17 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(drop(array(1:6, c(2,1,3))), matrix(1:6, nrow=2));", true);
 	EidosAssertScriptSuccess_L("identical(drop(array(1:12, c(12,1,1))), 1:12);", true);
 	EidosAssertScriptSuccess_L("identical(drop(array(1:12, c(2,3,2))), array(1:12, c(2,3,2)));", true);
+	
+	// lowerTri()
+	EidosAssertScriptRaise("ut = lowerTri(0);", 5, "is not a matrix");
+	EidosAssertScriptSuccess_L("ut = lowerTri(matrix(5)); identical(ut, matrix(F));", true);
+	EidosAssertScriptSuccess_L("ut = lowerTri(matrix(5), T); identical(ut, matrix(T));", true);
+	EidosAssertScriptSuccess_IV("x = matrix(1:16, 4); ut = lowerTri(x); x[c(ut)];", {2, 3, 4, 7, 8, 12});
+	EidosAssertScriptSuccess_IV("x = matrix(1:16, 4); ut = lowerTri(x, T); x[c(ut)];", {1, 2, 3, 4, 6, 7, 8, 11, 12, 16});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = lowerTri(x); x[c(ut)];", {2, 3, 6});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = lowerTri(x, T); x[c(ut)];", {1, 2, 3, 5, 6, 9});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = lowerTri(x); x[c(ut)];", {2, 3, 4, 7, 8, 12});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = lowerTri(x, T); x[c(ut)];", {1, 2, 3, 4, 6, 7, 8, 11, 12});
 	
 	// matrix()
 	EidosAssertScriptSuccess_IV("matrix(3);", {3});
@@ -231,6 +271,17 @@ void _RunFunctionMatrixArrayTests(void)
 	EidosAssertScriptSuccess_L("identical(t(matrix(1.0:6, ncol=2, byrow=T)), matrix(1.0:6, nrow=2, byrow=F));", true);
 	EidosAssertScriptRaise("t(array(1:24, c(2,3,4)));", 0, "is not a matrix");
 	EidosAssertScriptRaise("t(array(1:48, c(2,3,4,2)));", 0, "is not a matrix");
+	
+	// upperTri()
+	EidosAssertScriptRaise("ut = upperTri(0);", 5, "is not a matrix");
+	EidosAssertScriptSuccess_L("ut = upperTri(matrix(5)); identical(ut, matrix(F));", true);
+	EidosAssertScriptSuccess_L("ut = upperTri(matrix(5), T); identical(ut, matrix(T));", true);
+	EidosAssertScriptSuccess_IV("x = matrix(1:16, 4); ut = upperTri(x); x[c(ut)];", {5, 9, 10, 13, 14, 15});
+	EidosAssertScriptSuccess_IV("x = matrix(1:16, 4); ut = upperTri(x, T); x[c(ut)];", {1, 5, 6, 9, 10, 11, 13, 14, 15, 16});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = upperTri(x); x[c(ut)];", {4, 7, 8, 10, 11, 12});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 3); ut = upperTri(x, T); x[c(ut)];", {1, 4, 5, 7, 8, 9, 10, 11, 12});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x); x[c(ut)];", {5, 9, 10});
+	EidosAssertScriptSuccess_IV("x = matrix(1:12, 4); ut = upperTri(x, T); x[c(ut)];", {1, 5, 6, 9, 10, 11});
 }
 
 #pragma mark filesystem access

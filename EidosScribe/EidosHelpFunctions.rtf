@@ -4366,7 +4366,77 @@ To combine vectors or matrices by row instead, see
 \f3\fs20 .\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (integer)dim(*\'a0x)
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)diag([*\'a0x\'a0=\'a01], [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the diagonal
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 .  This function has four distinct usage patterns (matching R).  First, if 
+\f1\fs18 x
+\f3\fs20  is a matrix of any type, it returns the diagonal elements of 
+\f1\fs18 x
+\f3\fs20  as a vector; in this case, 
+\f1\fs18 nrow
+\f3\fs20  and 
+\f1\fs18 ncol
+\f3\fs20  must be 
+\f1\fs18 NULL
+\f3\fs20 .  Second, if 
+\f1\fs18 x
+\f3\fs20  is 
+\f1\fs18 1
+\f3\fs20  (the default) and 
+\f1\fs18 nrow
+\f3\fs20  is non-
+\f1\fs18 NULL
+\f3\fs20 , it returns an identity matrix with the requested number of rows (and, if 
+\f1\fs18 ncol
+\f3\fs20  is also non-
+\f1\fs18 NULL
+\f3\fs20 , the requested number of columns, otherwise the matrix will be square).  Third, if 
+\f1\fs18 x
+\f3\fs20  is a singleton 
+\f1\fs18 integer
+\f3\fs20  value and 
+\f1\fs18 nrow
+\f3\fs20  and 
+\f1\fs18 ncol
+\f3\fs20  are 
+\f1\fs18 NULL
+\f3\fs20 , it returns a square identity matrix of size 
+\f1\fs18 x
+\f3\fs20 .  Fourth, if x is a 
+\f1\fs18 logical
+\f3\fs20 , 
+\f1\fs18 integer
+\f3\fs20 , or 
+\f1\fs18 float
+\f3\fs20  vector of length at least 
+\f1\fs18 2
+\f3\fs20 , it returns a matrix that uses the values of 
+\f1\fs18 x
+\f3\fs20  as its diagonal (without recycling or truncation, unlike R) and has 
+\f1\fs18 F
+\f3\fs20 , 
+\f1\fs18 0
+\f3\fs20 , or 
+\f1\fs18 0.0
+\f3\fs20  off-diagonal entries as appropriate.\
+Note that using 
+\f1\fs18 diag(x)
+\f3\fs20 , without 
+\f1\fs18 nrow
+\f3\fs20  or 
+\f1\fs18 ncol
+\f3\fs20 , can have unexpected effects if 
+\f1\fs18 x
+\f3\fs20  is a vector that could be of length one.  Use 
+\f1\fs18 diag(x, nrow=length(x))
+\f3\fs20  for consistent behavior.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (integer)dim(*\'a0x)
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4396,7 +4466,34 @@ Returns the result of dropping redundant dimensions
 \f3\fs20  is not a matrix or array, it is returned unmodified.\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f1\fs18 \cf0 \kerning1\expnd0\expndtw0 (*)matrix(*\'a0data, [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL], [logical$\'a0byrow\'a0=\'a0F])
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)lowerTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the lower triangle
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The return value will be a 
+\f1\fs18 logical
+\f3\fs20  matrix of the same dimensions as 
+\f1\fs18 x
+\f3\fs20 , with elements 
+\f1\fs18 T
+\f3\fs20  in the lower triangle, 
+\f1\fs18 F
+\f3\fs20  elsewhere.  If 
+\f1\fs18 diag
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20  (the default), the diagonal is not included in the lower triangle; if 
+\f1\fs18 diag
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the diagonal is included in the lower triangle (i.e., its elements will be 
+\f1\fs18 T
+\f3\fs20 ).\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf0 (*)matrix(*\'a0data, [Ni$\'a0nrow\'a0=\'a0NULL], [Ni$\'a0ncol\'a0=\'a0NULL], [logical$\'a0byrow\'a0=\'a0F])
 \f2 \
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
@@ -4570,9 +4667,36 @@ Returns the transpose
 \f3\b0  of 
 \f1\fs18 x
 \f3\fs20 , which must be a matrix.  This is the matrix reflected across its diagonal; or alternatively, the matrix with its columns written out instead as rows in the same order.\
+\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f1\fs18 \cf2 \kerning1\expnd0\expndtw0 (*)upperTri(*\'a0x, [logical$\'a0diag\'a0=\'a0F])\
+\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+
+\f0\b\fs20 \cf2 Returns the upper triangle
+\f3\b0  of 
+\f1\fs18 x
+\f3\fs20 , which must be a matrix.  The return value will be a 
+\f1\fs18 logical
+\f3\fs20  matrix of the same dimensions as 
+\f1\fs18 x
+\f3\fs20 , with elements 
+\f1\fs18 T
+\f3\fs20  in the upper triangle, 
+\f1\fs18 F
+\f3\fs20  elsewhere.  If 
+\f1\fs18 diag
+\f3\fs20  is 
+\f1\fs18 F
+\f3\fs20  (the default), the diagonal is not included in the upper triangle; if 
+\f1\fs18 diag
+\f3\fs20  is 
+\f1\fs18 T
+\f3\fs20 , the diagonal is included in the upper triangle (i.e., its elements will be 
+\f1\fs18 T
+\f3\fs20 ).\
 \pard\pardeftab397\ri720\sb360\sa60\partightenfactor0
 
-\f0\b\fs22 \cf0 \kerning1\expnd0\expndtw0 3.9.  Filesystem access functions\
+\f0\b\fs22 \cf0 3.9.  Filesystem access functions\
 \pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
 \f1\b0\fs18 \cf0 (logical$)createDirectory(string$\'a0path)

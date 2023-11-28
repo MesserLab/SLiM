@@ -992,10 +992,242 @@ EidosValue_SP Eidos_ExecuteFunction_t(const std::vector<EidosValue_SP> &p_argume
 	return result_SP;
 }
 
+// (*)lowerTri(* x, [logical$ diag = F])
+EidosValue_SP Eidos_ExecuteFunction_lowerTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// contributed by Nick O'Brien (@nobrien97)
+	
+	EidosValue *x_value = p_arguments[0].get();
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_lowerTri): in function lowerTri() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim = x_value->Dimensions();
+	int64_t nrows = dim[0];
+	int64_t ncols = dim[1];
+	
+	// Create new empty logical matrix
+	EidosValue_Logical *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(nrows * ncols);
+	EidosValue_SP result_SP(result);
+	
+	// Iterate through result matrix and set lower triangle to T, remaining values to F
+	// If we want the diagonal elements included, we need to include them in our condition
+	for (int64_t row_index = 0; row_index < nrows; ++row_index)
+	{
+		for (int64_t col_index = 0; col_index < ncols; ++col_index)
+		{
+			// Get 1D index from rows/cols
+			int64_t index = col_index * nrows + row_index;
+			
+			bool in_triangle;
+			
+			if (row_index > col_index)
+				in_triangle = true;
+			else if (diag && (row_index == col_index))
+				in_triangle = true;
+			else
+				in_triangle = false;
+			
+			result->set_logical_no_check(in_triangle, (int)index);
+		}
+	}
+	
+	// Apply dimension attributes and return
+	const int64_t dim_buf[2] = {nrows, ncols};
+	result->SetDimensions(2, dim_buf);
+	
+	return result_SP;
+}
 
+// (*)upperTri(* x, [logical$ diag = F])
+EidosValue_SP Eidos_ExecuteFunction_upperTri(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// contributed by Nick O'Brien (@nobrien97)
+	
+	EidosValue *x_value = p_arguments[0].get();
+	eidos_logical_t diag = p_arguments[1].get()->LogicalAtIndex(0, nullptr);
+	
+	if (x_value->DimensionCount() != 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_upperTri): in function upperTri() x is not a matrix." << EidosTerminate(nullptr);
+	
+	const int64_t *dim = x_value->Dimensions();
+	int64_t nrows = dim[0];
+	int64_t ncols = dim[1];
+	
+	// Create new empty logical matrix
+	EidosValue_Logical *result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Logical())->resize_no_initialize(nrows * ncols);
+	EidosValue_SP result_SP(result);
+	
+	// Iterate through result matrix and set upper triangle to T, remaining values to F
+	// If we want the diagonal elements included, we need to include them in our condition
+	for (int64_t row_index = 0; row_index < nrows; ++row_index)
+	{
+		for (int64_t col_index = 0; col_index < ncols; ++col_index)
+		{
+			// Get 1D index from rows/cols
+			int64_t index = col_index * nrows + row_index;
 
+			bool in_triangle;
+			
+			if (row_index < col_index)
+				in_triangle = true;
+			else if (diag && (row_index == col_index))
+				in_triangle = true;
+			else
+				in_triangle = false;
+			
+			result->set_logical_no_check(in_triangle, (int)index);
+		}
+	}
+	
+	// Apply dimension attributes and return
+	const int64_t dim_buf[2] = {nrows, ncols};
+	result->SetDimensions(2, dim_buf);
+	
+	return result_SP;
+}
 
-
+// (*)diag([* x = 1], [integer$ nrow], [integer$ ncol])
+EidosValue_SP Eidos_ExecuteFunction_diag(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
+{
+	// contributed by Nick O'Brien (@nobrien97)
+	
+	/* 
+		Four return modes depending on the form of inputs (matching R behaviour)
+		1: x is a matrix - return the diagonal elements of x (nrow and ncol cannot be specified in this mode)
+	 	2: x is missing and nrow and/or ncol is given - return an identity matrix with dimensions nrow * ncol, nrow*nrow, 1*ncol
+		3: x is a singleton vector and is the only input - return an identity matrix with dimensions equal to the length of x
+		4: x is a numeric or logical vector - return a matrix with the given diagonal entries and 0/F in the off diagonals
+	*/
+	
+	EidosValue *x_value = p_arguments[0].get();
+	EidosValue *nrow_value = p_arguments[1].get();
+	EidosValue *ncol_value = p_arguments[2].get();
+	int64_t x_count = x_value->Count();
+	EidosValueType x_type = x_value->Type();
+	bool nrow_null = (nrow_value->Type() == EidosValueType::kValueNULL);
+	bool ncol_null = (ncol_value->Type() == EidosValueType::kValueNULL);
+	
+	if (x_value->DimensionCount() > 2)
+		EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() x must be a vector or a matrix." << EidosTerminate(nullptr);
+	
+	// 1: If x is a matrix we return the diagonals
+	if (x_value->DimensionCount() == 2)
+	{	
+		if (!nrow_null || !ncol_null) 	
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() nrow and ncol must be NULL when x is a matrix." << EidosTerminate(nullptr);
+		
+		// Setup output
+		EidosValue_SP result_SP = x_value->NewMatchingType();
+		EidosValue *result = result_SP.get();
+		
+		const int64_t *source_dim = x_value->Dimensions();
+		int64_t source_nrow = source_dim[0];
+		int64_t source_ncol= source_dim[1];
+		int64_t max_diag_index = std::min(source_nrow, source_ncol);
+		
+		// Iterate over diagonals: number of diagonals is the minimum of nrows and ncols 
+		for (int64_t diag_index = 0; diag_index < max_diag_index; ++diag_index)
+		{
+			// Convert to 1D: because row == col, we can use diag_index in place of both
+			int64_t source_index = diag_index * source_nrow + diag_index;
+			
+			result->PushValueFromIndexOfEidosValue((int)source_index, *x_value, nullptr);	
+		}
+		
+		return result_SP;
+	}
+	
+	// 2: If x is 1 and nrow is non-NULL, return an identity matrix of size nrow (by ncol, if specified)
+	if ((x_type == EidosValueType::kValueInt) && (x_count == 1) && (x_value->IntAtIndex(0, nullptr) == 1) && !nrow_null)
+	{
+		int64_t nrow = nrow_value->IntAtIndex(0, nullptr);
+		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex(0, nullptr));
+		
+		if ((nrow < 1) || (ncol < 1))
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() when an identity matrix is being generated, both dimensions of that matrix must be >= 1." << EidosTerminate(nullptr);
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(nrow * ncol);
+		EidosValue_SP result_SP(int_result);
+		
+		for (int64_t col_index = 0; col_index < ncol; ++col_index)
+			for (int64_t row_index = 0; row_index < nrow; ++row_index)
+				int_result->set_int_no_check((row_index == col_index) ? 1 : 0, col_index * nrow + row_index);
+		
+		const int64_t dim_buf[2] = {nrow, ncol};
+		int_result->SetDimensions(2, dim_buf);
+		
+		return result_SP;
+	}
+	
+	// 3: If x is a singleton integer, nrow/ncol must not be set, and a square identity matrix of size x is returned
+	if ((x_type == EidosValueType::kValueInt) && (x_count == 1) && nrow_null && ncol_null)
+	{
+		int64_t size = x_value->IntAtIndex(0, nullptr);
+		
+		if (size < 1)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag() when x specificies an identity matrix size, that size must be >= 1." << EidosTerminate(nullptr);
+		
+		EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(size * size);
+		EidosValue_SP result_SP(int_result);
+		
+		for (int64_t col_index = 0; col_index < size; ++col_index)
+			for (int64_t row_index = 0; row_index < size; ++row_index)
+				int_result->set_int_no_check((row_index == col_index) ? 1 : 0, col_index * size + row_index);
+		
+		const int64_t dim_buf[2] = {size, size};
+		int_result->SetDimensions(2, dim_buf);
+		
+		return result_SP;
+	}
+	
+	// 4: If x is a logical/integer/float vector of length >= 2, use the values of x for the diagonal
+	if (((x_type == EidosValueType::kValueLogical) || (x_type == EidosValueType::kValueInt) || (x_type == EidosValueType::kValueFloat)) && (x_count >= 2))
+	{
+		int64_t nrow = (nrow_null ? x_count : nrow_value->IntAtIndex(0, nullptr));
+		int64_t ncol = (ncol_null ? nrow : ncol_value->IntAtIndex(0, nullptr));		// it is weird that the default is nrow, not x_count, but this mirrors R's behavior
+		int64_t max_diag_index = std::min(nrow, ncol);
+		
+		if (max_diag_index != x_count)
+			EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): in function diag(), when values for the diagonal are supplied in x, those values may not be truncated or recycled by the dimensions specified with nrow and ncol." << EidosTerminate(nullptr);
+		
+		// define default value to copy to off-diagonals
+		EidosValue_SP default_value;
+		
+		switch (x_type)
+		{
+		case EidosValueType::kValueLogical:		default_value = gStaticEidosValue_LogicalF;		break;
+		case EidosValueType::kValueFloat:		default_value = gStaticEidosValue_Float0;		break;
+		case EidosValueType::kValueInt:			default_value = gStaticEidosValue_Integer0;		break;
+		default:																				break;
+		}
+		
+		EidosValue_SP result_SP = x_value->NewMatchingType();
+		EidosValue *result = result_SP.get();
+		
+		// Initialise result matrix and fill in diagonals with x values
+		for (int64_t col_index = 0; col_index < ncol; ++col_index)
+		{
+			for (int64_t row_index = 0; row_index < nrow; ++row_index)
+			{
+				// Set diagonal to the corresponding value of x, other values to F/0/0.0
+				if (row_index == col_index)
+					result->PushValueFromIndexOfEidosValue((int)col_index, *x_value, nullptr);
+				else
+					result->PushValueFromIndexOfEidosValue(0, *default_value, nullptr);
+			}
+		}
+		
+		// Apply dimension attributes and return
+		const int64_t dim_buf[2] = {nrow, ncol};
+		result->SetDimensions(2, dim_buf);
+		
+		return result_SP;		
+	}
+	
+	EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_diag): diag() requires one of four specific input parameter patterns; see the documentation." << EidosTerminate(nullptr);
+}
 
 
 
