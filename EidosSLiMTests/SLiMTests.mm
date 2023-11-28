@@ -36,6 +36,12 @@
 	
     // Put setup code here. This method is called before the invocation of each test method in the class.
 	
+#ifdef _OPENMP
+	Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true, /* max per-task thread counts */ "maxThreads");
+#endif
+	Eidos_WarmUp();
+	SLiM_WarmUp();
+	
 	// our self-tests run in SLiMgui, but eidosConsoleWindowControllerDidExecuteScript: puts nasty values into
 	// these variables to help find bugs, and we run our tests outside of any SLiMgui window so the nasty
 	// values bite us...

@@ -31,11 +31,18 @@
 
 - (void)setUp {
     [super setUp];
+	
     // Put setup code here. This method is called before the invocation of each test method in the class.
+	
+#ifdef _OPENMP
+	Eidos_WarmUpOpenMP(&SLIM_ERRSTREAM, changed_max_thread_count, (int)max_thread_count, true, /* max per-task thread counts */ "maxThreads");
+#endif
+	Eidos_WarmUp();
 }
 
 - (void)tearDown {
     // Put teardown code here. This method is called after the invocation of each test method in the class.
+	
     [super tearDown];
 }
 
