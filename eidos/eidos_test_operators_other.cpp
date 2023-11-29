@@ -842,6 +842,7 @@ void _RunKeywordForInTests(void)
 	EidosAssertScriptSuccess_I("x=0; for (y in _Test(7)) x=x+y._yolk; x;", 7);
 	EidosAssertScriptSuccess_I("x=0; for (y in rep(_Test(7),3)) x=x+y._yolk; x;", 21);
 	EidosAssertScriptRaise("x=0; y=0:2; for (y[0] in 2:4) x=x+sum(y); x;", 18, "unexpected token");	// lvalue must be an identifier, at present
+	EidosAssertScriptRaise("x=0; y=0:2; for (y.z in 2:4) x=x+sum(y); x;", 18, "unexpected token");	// lvalue must be an identifier, at present
 	EidosAssertScriptRaise("x=0; for (y in NULL) x;", 5, "does not allow NULL");
 	EidosAssertScriptSuccess_I("x=0; q=11:20; for (y in seqAlong(q)) x=x+y; x;", 45);
 	EidosAssertScriptSuccess_I("x=0; q=11:20; for (y in seqAlong(q)) x=x+1; x;", 10);

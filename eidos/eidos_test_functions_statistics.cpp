@@ -82,6 +82,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_L("max(T);", true);
 	EidosAssertScriptSuccess_I("max(3);", 3);
 	EidosAssertScriptSuccess_F("max(3.5);", 3.5);
+	EidosAssertScriptSuccess("max(NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_S("max('foo');", "foo");
 	EidosAssertScriptSuccess_L("max(c(F, F, F, F, F));", false);
 	EidosAssertScriptSuccess_L("max(c(F, F, T, F, T));", true);
@@ -136,6 +137,7 @@ void _RunFunctionStatisticsTests_a_through_p(void)
 	EidosAssertScriptSuccess_L("min(T);", true);
 	EidosAssertScriptSuccess_I("min(3);", 3);
 	EidosAssertScriptSuccess_F("min(3.5);", 3.5);
+	EidosAssertScriptSuccess("min(NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_S("min('foo');", "foo");
 	EidosAssertScriptSuccess_L("min(c(T, F, T, F, T));", false);
 	EidosAssertScriptSuccess_I("min(c(3, 7, 19, -5, 9));", -5);
@@ -319,6 +321,8 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptSuccess_FV("quantile(0:10, c(0.15, 0.25, 0.5, 0.82));", {1.5, 2.5, 5.0, 8.2});
 	EidosAssertScriptSuccess_FV("quantile(10:0, c(0.15, 0.25, 0.5, 0.82));", {1.5, 2.5, 5.0, 8.2});
 	EidosAssertScriptSuccess_FV("quantile(c(17, 12, 4, 87, 3, 1081, 273));", {3, 8, 17, 180, 1081});
+	EidosAssertScriptSuccess_FV("quantile(0.0:100);", {0, 25, 50, 75, 100});
+	EidosAssertScriptSuccess_F("quantile(0.0:100, 0.27);", 27);
 	
 	// range()
 	EidosAssertScriptRaise("range(T);", 0, "cannot be type");
@@ -335,6 +339,7 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 	EidosAssertScriptSuccess_NULL("range(integer(0));");
 	EidosAssertScriptSuccess_NULL("range(float(0));");
 	EidosAssertScriptRaise("range(string(0));", 0, "cannot be type");
+	EidosAssertScriptSuccess_FV("range(NAN);", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	EidosAssertScriptSuccess_FV("range(c(1.0, 5.0, NAN, 2.0));", {std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN()});
 	
 	EidosAssertScriptSuccess_IV("range(integer(0), c(3,7,-8,0), 0, c(-10,10));", {-10,10});
@@ -485,13 +490,49 @@ void _RunFunctionStatisticsTests_q_through_z(void)
 #pragma mark distributions
 void _RunFunctionDistributionTests(void)
 {
-	// findInterval()
+	// findInterval() - note results are 1 less than in R, due to zero-basing vs. 1-basing of indices
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), integer(0));", 0, "vec to be of length > 0");
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), float(0));", 0, "vec to be of length > 0");
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), c(0:10,9));", 0, "non-decreasing order");
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), c(1,0:10));", 0, "non-decreasing order");
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), c(0:10.0,9));", 0, "non-decreasing order");
 	EidosAssertScriptRaise("findInterval(c(-1,0,1,9,10,11), c(1.0,0:10));", 0, "non-decreasing order");
+	
+	EidosAssertScriptSuccess_I("findInterval(3, 3);", 0);
+	EidosAssertScriptSuccess_I("findInterval(3, 3, rightmostClosed=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3, 3, allInside=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3, 3, rightmostClosed=T, allInside=T);", -1);
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3);", {-1, -1, -1, 0, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3, rightmostClosed=T);", {-1, -1, -1, -1, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3, allInside=T);", {0, 0, 0, -1, -1, -1});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3, rightmostClosed=T, allInside=T);", {0, 0, 0, -1, -1, -1});
+	
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3);", 0);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3, rightmostClosed=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3, allInside=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3, rightmostClosed=T, allInside=T);", -1);
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3);", {-1, -1, -1, 0, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3, rightmostClosed=T);", {-1, -1, -1, -1, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3, allInside=T);", {0, 0, 0, -1, -1, -1});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3, rightmostClosed=T, allInside=T);", {0, 0, 0, -1, -1, -1});
+	
+	EidosAssertScriptSuccess_I("findInterval(3, 3.0);", 0);
+	EidosAssertScriptSuccess_I("findInterval(3, 3.0, rightmostClosed=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3, 3.0, allInside=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3, 3.0, rightmostClosed=T, allInside=T);", -1);
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3.0);", {-1, -1, -1, 0, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3.0, rightmostClosed=T);", {-1, -1, -1, -1, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3.0, allInside=T);", {0, 0, 0, -1, -1, -1});
+	EidosAssertScriptSuccess_IV("findInterval(0:5, 3.0, rightmostClosed=T, allInside=T);", {0, 0, 0, -1, -1, -1});
+	
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3.0);", 0);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3.0, rightmostClosed=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3.0, allInside=T);", -1);
+	EidosAssertScriptSuccess_I("findInterval(3.0, 3.0, rightmostClosed=T, allInside=T);", -1);
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3.0);", {-1, -1, -1, 0, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3.0, rightmostClosed=T);", {-1, -1, -1, -1, 0, 0});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3.0, allInside=T);", {0, 0, 0, -1, -1, -1});
+	EidosAssertScriptSuccess_IV("findInterval(0.0:5, 3.0, rightmostClosed=T, allInside=T);", {0, 0, 0, -1, -1, -1});
 	
 	EidosAssertScriptSuccess_IV("findInterval(c(-1,0,1,9,10,11), 0:10);", {-1, 0, 1, 9, 10, 10});
 	EidosAssertScriptSuccess_IV("findInterval(c(-1,0,1,9,10,11), 0:10, rightmostClosed=T);", {-1, 0, 1, 9, 9, 10});
@@ -583,6 +624,8 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("qnorm(-0.1);", 0, "requires 0.0 <= p <= 1.0");
 	EidosAssertScriptRaise("qnorm(1.1);", 0, "requires 0.0 <= p <= 1.0");
 	EidosAssertScriptRaise("qnorm(c(0.05, 1.1));", 0, "requires 0.0 <= p <= 1.0");
+	EidosAssertScriptRaise("qnorm(c(0.05, 1.1), c(0.0, 0.1));", 0, "requires 0.0 <= p <= 1.0");
+	EidosAssertScriptRaise("qnorm(c(0.05, 1.1), c(0.0, 0.1), c(0.1, 0.5));", 0, "requires 0.0 <= p <= 1.0");
 	EidosAssertScriptRaise("qnorm(c(0.05, 0.95), 0.0, c(5, -1.0));", 0, "requires sd > 0.0");
 	EidosAssertScriptRaise("qnorm(0.1, c(-10, 10, 1), 100.0);", 0, "requires mean to be");
 	EidosAssertScriptRaise("qnorm(0.1, 10.0, c(0.1, 10, 1));", 0, "requires sd to be");
@@ -707,6 +750,7 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptSuccess("dexp(float(0), float(0));", gStaticEidosValue_Float_ZeroVec);
 	EidosAssertScriptSuccess_L("abs(dexp(1.0) - 0.3678794) < 0.00001;", true);
 	EidosAssertScriptSuccess_L("abs(dexp(0.01) - 0.9900498) < 0.00001;", true);
+	EidosAssertScriptSuccess_L("all(abs(dexp(c(1.0, 0.01)) - c(0.3678794, 0.9900498)) < 0.00001);", true);
 	EidosAssertScriptSuccess_L("abs(dexp(0.01, 0.1) - 9.048374) < 0.00001;", true);
 	EidosAssertScriptSuccess_L("abs(dexp(0.01, 0.01) - 36.78794) < 0.0001;", true);
 	EidosAssertScriptSuccess_LV("abs(dexp(c(0.01, 0.01, 0.01), c(1, 0.1, 0.01)) - c(0.9900498, 9.048374, 36.78794)) < 0.0001;", {true, true, true});
@@ -862,6 +906,8 @@ void _RunFunctionDistributionTests(void)
 	EidosAssertScriptRaise("rnorm(-1);", 0, "requires n to be");
 	EidosAssertScriptRaise("rnorm(1, 0, -1);", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rnorm(2, c(0,0), -1);", 0, "requires sd >= 0.0");
+	EidosAssertScriptRaise("rnorm(2, 0, c(-1, -1));", 0, "requires sd >= 0.0");
+	EidosAssertScriptRaise("rnorm(2, c(0,0), c(-1, -1));", 0, "requires sd >= 0.0");
 	EidosAssertScriptRaise("rnorm(2, c(-10, 10, 1), 100.0);", 0, "requires mean to be");
 	EidosAssertScriptRaise("rnorm(2, 10.0, c(0.1, 10, 1));", 0, "requires sd to be");
 	EidosAssertScriptSuccess("rnorm(1, 1, NAN);", gStaticEidosValue_FloatNAN);

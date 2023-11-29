@@ -409,6 +409,7 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			// first we check and prepare the weights vector as doubles, so the GSL can work with it
 			const double *weights_float = nullptr;
 			double *weights_float_malloced = nullptr;
+			double weights_sum = 0.0;
 			
 			if (weights_type == EidosValueType::kValueFloat)
 			{
@@ -420,6 +421,8 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					
 					if ((weight < 0.0) || std::isnan(weight))
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << EidosStringForFloat(weight) << " supplied)." << EidosTerminate(nullptr);
+					
+					weights_sum += weight;
 				}
 			}
 			else	// EidosValueType::kValueInt : convert the weights to doubles
@@ -436,11 +439,15 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
 					
 					weights_float_malloced[value_index] = weight;
+					weights_sum += weight;
 				}
 				
 				// weights_float_malloced will be freed below
 				weights_float = weights_float_malloced;
 			}
+			
+			if (weights_sum <= 0.0)
+				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
 			
 			// prepare the GSL to draw from the discrete distribution
 			gsl_ran_discrete_t *discrete_draw = gsl_ran_discrete_preproc(x_count, weights_float);
@@ -1005,8 +1012,6 @@ EidosValue_SP Eidos_ExecuteFunction_seq(const std::vector<EidosValue_SP> &p_argu
 			
 			if (by == 0)
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires by != 0." << EidosTerminate(nullptr);
-			if (!std::isfinite(by))
-				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() requires a finite value for the 'by' parameter." << EidosTerminate(nullptr);
 			if (((first_value < second_value) && (by < 0)) || ((first_value > second_value) && (by > 0)))
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_seq): function seq() by has incorrect sign." << EidosTerminate(nullptr);
 			

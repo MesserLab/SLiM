@@ -442,6 +442,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptRaise("log(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log(NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_FV("log(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
+	EidosAssertScriptSuccess_FV("log(c(1, 1, 1));", {0, 0, 0});
 	
 	EidosAssertScriptSuccess_L("identical(log(matrix(0.5)), matrix(log(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log(matrix(c(0.1, 0.2, 0.3))), matrix(log(c(0.1, 0.2, 0.3))));", true);
@@ -461,6 +462,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptRaise("log10(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log10(NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_FV("log10(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
+	EidosAssertScriptSuccess_FV("log10(c(1, 1, 1));", {0, 0, 0});
 	
 	EidosAssertScriptSuccess_L("identical(log10(matrix(0.5)), matrix(log10(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log10(matrix(c(0.1, 0.2, 0.3))), matrix(log10(c(0.1, 0.2, 0.3))));", true);
@@ -480,6 +482,7 @@ void _RunFunctionMathTests_g_through_r(void)
 	EidosAssertScriptRaise("log2(string(0));", 0, "cannot be type");
 	EidosAssertScriptSuccess("log2(NAN);", gStaticEidosValue_FloatNAN);
 	EidosAssertScriptSuccess_FV("log2(c(1, NAN, 1));", {0, std::numeric_limits<double>::quiet_NaN(), 0});
+	EidosAssertScriptSuccess_FV("log2(c(1, 1, 1));", {0, 0, 0});
 	
 	EidosAssertScriptSuccess_L("identical(log2(matrix(0.5)), matrix(log2(0.5)));", true);
 	EidosAssertScriptSuccess_L("identical(log2(matrix(c(0.1, 0.2, 0.3))), matrix(log2(c(0.1, 0.2, 0.3))));", true);

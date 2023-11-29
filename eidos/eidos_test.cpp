@@ -1394,6 +1394,7 @@ void _RunLiteralsIdentifiersAndTokenizationTests(void)
 {
 	// test literals, built-in identifiers, and tokenization
 	// NOLINTBEGIN(*-raw-string-literal) : these strings are fine
+	EidosAssertScriptSuccess_VOID(";");
 	EidosAssertScriptSuccess_I("3;", 3);
 	EidosAssertScriptSuccess_I("3e2;", 300);
 	EidosAssertScriptSuccess_F("3.1;", 3.1);
@@ -1567,6 +1568,7 @@ void _RunFunctionDispatchTests(void)
 	EidosAssertScriptSuccess_I("abs(-10);", 10);
 	EidosAssertScriptRaise("abs();", 0, "missing required argument x");
 	EidosAssertScriptRaise("abs(-10, -10);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("abs(x=-10, -10);", 0, "too many arguments supplied");
 	EidosAssertScriptSuccess_I("abs(x=-10);", 10);
 	EidosAssertScriptRaise("abs(y=-10);", 0, "skipped over required argument");
 	EidosAssertScriptRaise("abs(x=-10, x=-10);", 0, "supplied more than once");
@@ -1575,6 +1577,7 @@ void _RunFunctionDispatchTests(void)
 	
 	EidosAssertScriptSuccess_I("integerDiv(6, 3);", 2);
 	EidosAssertScriptRaise("integerDiv(6, 3, 3);", 0, "too many arguments supplied");
+	EidosAssertScriptRaise("integerDiv(x=6, y=3, 3);", 0, "too many arguments supplied");
 	EidosAssertScriptRaise("integerDiv(6);", 0, "missing required argument y");
 	EidosAssertScriptSuccess_I("integerDiv(x=6, y=3);", 2);
 	EidosAssertScriptRaise("integerDiv(y=6, 3);", 0, "skipped over required argument");

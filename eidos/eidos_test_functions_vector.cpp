@@ -266,6 +266,22 @@ void _RunFunctionVectorConstructionTests_s_through_z(void)
 	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, 1:6);", 12, "to be the same length");
 	EidosAssertScriptRaise("setSeed(1); sample(1:5, 5, T, 1);", 12, "to be the same length");
 	
+	EidosAssertScriptSuccess_L("sample(1:1000, 10, replace=T, weights=runif(1000)); T;", true);				// code path only
+	EidosAssertScriptSuccess_L("sample(1:1000, 10, replace=T, weights=rdunif(1000, 0, 1000)); T;", true);	// code path only
+	EidosAssertScriptSuccess_L("sample(1.0:1000, 10, replace=T, weights=runif(1000)); T;", true);			// code path only
+	EidosAssertScriptSuccess_L("sample(1.0:1000, 10, replace=T, weights=rdunif(1000, 0, 1000)); T;", true);	// code path only
+	EidosAssertScriptSuccess_L("sample(((1:1000) % 2) == 1, 10, replace=T, weights=runif(1000)); T;", true);	// code path only
+	EidosAssertScriptSuccess_L("sample(((1:1000) % 2) == 1, 10, replace=T, weights=rdunif(1000, 0, 1000)); T;", true);	// code path only
+	EidosAssertScriptRaise("sample(1:1000, 10, replace=T, weights=c(runif(999), -1));", 0, "requires all weights to be");
+	EidosAssertScriptRaise("sample(1:1000, 10, replace=T, weights=c(rdunif(999, 0, 1000), -1));", 0, "requires all weights to be");
+	EidosAssertScriptRaise("sample(1:1000, 10, replace=T, weights=rep(0, 1000));", 0, "weights summing to");
+	EidosAssertScriptRaise("sample(1:1000, 10, replace=T, weights=rep(0.0, 1000));", 0, "weights summing to");
+	
+	EidosAssertScriptSuccess_I("sum(sample(((0:100) % 2) == 1, 101, replace=F));", 50);
+	EidosAssertScriptSuccess_I("sum(sample(((0:100) % 2) == 0, 101, replace=F));", 51);
+	EidosAssertScriptSuccess_I("sum(sample(0:100, 101, replace=F));", 5050);
+	EidosAssertScriptSuccess_F("sum(sample(0.0:100, 101, replace=F));", 5050);
+	
 	// seq()
 	EidosAssertScriptSuccess_IV("seq(1, 5);", {1, 2, 3, 4, 5});
 	EidosAssertScriptSuccess_IV("seq(5, 1);", {5, 4, 3, 2, 1});

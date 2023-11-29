@@ -5539,6 +5539,7 @@ EidosValue_SP EidosInterpreter::Evaluate_For(const EidosASTNode *p_node)
 	EidosASTNode *identifier_child = p_node->children_[0];
 	
 	// we require an identifier to assign into; I toyed with allowing any lvalue, but that is kind of weird / complicated...
+	// CODE COVERAGE: This is dead code (this error gets caught in the parser)
 	if (identifier_child->token_->token_type_ != EidosTokenType::kTokenIdentifier)
 		EIDOS_TERMINATION << "ERROR (EidosInterpreter::Evaluate_For): the 'for' keyword requires an identifier for its left operand." << EidosTerminate(p_node->token_);
 	
