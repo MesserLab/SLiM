@@ -90,10 +90,6 @@ public:
 	inline __attribute__((always_inline)) SparseVectorDataType DataType(void) const		{ return value_type_; }
 	inline __attribute__((always_inline)) void SetDataType(SparseVectorDataType type)	{ value_type_ = type; }
 	
-	// Slow access to single distances or strengths
-	sv_value_t Distance(uint32_t p_column) const;
-	sv_value_t Strength(uint32_t p_column) const;
-	
 	// Access to the sparse vector's data
 	void Presences(uint32_t *p_nnz) const;
 	void Presences(uint32_t *p_nnz, const uint32_t **p_columns) const;
