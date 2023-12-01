@@ -436,7 +436,10 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 					int64_t weight = weights_int[value_index];
 					
 					if (weight < 0)
+					{
+						free(weights_float_malloced);
 						EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() requires all weights to be non-negative (" << weight << " supplied)." << EidosTerminate(nullptr);
+					}
 					
 					weights_float_malloced[value_index] = weight;
 					weights_sum += weight;
@@ -447,7 +450,10 @@ EidosValue_SP Eidos_ExecuteFunction_sample(const std::vector<EidosValue_SP> &p_a
 			}
 			
 			if (weights_sum <= 0.0)
+			{
+				free(weights_float_malloced);
 				EIDOS_TERMINATION << "ERROR (Eidos_ExecuteFunction_sample): function sample() encountered weights summing to <= 0." << EidosTerminate(nullptr);
+			}
 			
 			// prepare the GSL to draw from the discrete distribution
 			gsl_ran_discrete_t *discrete_draw = gsl_ran_discrete_preproc(x_count, weights_float);
