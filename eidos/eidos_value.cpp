@@ -2449,7 +2449,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			resize_no_initialize_RR(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check_NORR(sorted_pair.second);
+				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
 		}
@@ -2482,7 +2482,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			resize_no_initialize_RR(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check_NORR(sorted_pair.second);
+				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
 		}
@@ -2515,7 +2515,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			resize_no_initialize_RR(0);
 			
 			for (auto sorted_pair : sortable_pairs)
-				push_object_element_no_check_NORR(sorted_pair.second);
+				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
 		}
@@ -2548,7 +2548,7 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			resize_no_initialize_RR(0);
 			
 			for (const auto &sorted_pair : sortable_pairs)
-				push_object_element_no_check_NORR(sorted_pair.second);
+				push_object_element_no_check_already_retained(sorted_pair.second);
 			
 			break;
 		}

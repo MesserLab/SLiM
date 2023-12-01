@@ -173,6 +173,7 @@ development head (in the master branch):
 	add lowerTri(), upperTri(), and diag(); thanks to Nick O'Brien (@nobrien97) for this contribution
 	modify recipes to use count= parameter to addCrossed() etc., where appropriate: 16.3, 16.23
 	add xy, xz, yz, and xyz properties to Individual that allow joint access to the x/y/z properties, for easier spatiality operations in complex spatial models (and to support some unit testing additions)
+	fixed a variety of memory leaks and extended the unit testing for leaks considerably; should be pretty clean in its memory usage now
 	
 
 version 4.0.1 (Eidos version 3.0.1):

@@ -1119,6 +1119,7 @@ public:
 	void push_object_element_no_check_CRR(EidosObject *p_object);					// checks for retain/release
 	void push_object_element_no_check_RR(EidosObject *p_object);						// specifies retain/release
 	void push_object_element_no_check_NORR(EidosObject *p_object);					// specifies no retain/release
+	void push_object_element_no_check_already_retained(EidosObject *p_object);		// specifies retain/release is IGNORED
 	
 	void set_object_element_no_check_CRR(EidosObject *p_object, size_t p_index);		// checks for retain/release
 	void set_object_element_no_check_RR(EidosObject *p_object, size_t p_index);		// specifies retain/release
@@ -1220,6 +1221,18 @@ inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object
 	if (count_ == capacity_) RaiseForCapacityViolation();
 	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
 	if (class_uses_retain_release_) RaiseForRetainReleaseViolation();
+#endif
+	
+	values_[count_++] = p_object;
+}
+
+inline __attribute__((always_inline)) void EidosValue_Object_vector::push_object_element_no_check_already_retained(EidosObject *p_object)
+{
+#if DEBUG
+	// do checks only in DEBUG mode, for speed; the user should never be able to trigger these errors
+	if (count_ == capacity_) RaiseForCapacityViolation();
+	DeclareClassFromElement(p_object, true);				// require a prior matching declaration
+	// no retain/release check even in DEBUG; the caller says they know what they are doing
 #endif
 	
 	values_[count_++] = p_object;
