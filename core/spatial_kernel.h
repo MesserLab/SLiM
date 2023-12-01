@@ -72,7 +72,10 @@ public:
 	
 	// calculate t-distribution PDF values in our fashion, for which the function is normalized to a maximum value
 	// we don't use the GSL for this, because it does two gamma-function calculations that we don't need (they normalize away)
-	static inline double tdist(double x, double max, double nu, double tau) { double x_over_tau = x / tau; return max / pow(1.0 + x_over_tau * x_over_tau / nu, -(nu + 1.0) / 2.0); };
+	static inline double tdist(double x, double max, double nu, double tau) {
+		double x_over_tau = x / tau;
+		return max / pow(1.0 + x_over_tau * x_over_tau / nu, -(nu + 1.0) / 2.0);
+	};
 	
 public:
 	SpatialKernel(const SpatialKernel&) = delete;							// no copying

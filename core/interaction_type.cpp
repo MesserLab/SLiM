@@ -5913,6 +5913,7 @@ EidosValue_SP InteractionType::ExecuteMethod_setInteractionFunction(EidosGlobalS
 	if_type_ = kernel.kernel_type_;
 	if_param1_ = kernel.kernel_param1_;
 	if_param2_ = kernel.kernel_param2_;
+	if_param3_ = kernel.kernel_param3_;
 	n_2param2sq_ = kernel.n_2param2sq_;
 	
 	// mark that interaction types changed, so they get redisplayed in SLiMgui
