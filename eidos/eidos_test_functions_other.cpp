@@ -778,7 +778,7 @@ void _RunFunctionMiscTests(const std::string &temp_path)
 	EidosAssertScriptRaise("foo = 5:10; defineConstant('foo', 5:10); sum(foo);", 12, "is already defined");
 	EidosAssertScriptRaise("defineConstant('foo', 5:10); rm('foo');", 29, "cannot be removed");
 	EidosAssertScriptSuccess_I("defineConstant('foo', _Test(5)); foo._yolk;", 5);
-	EidosAssertScriptRaise("defineConstant('foo', _TestNRR(5)); foo._yolk;", 0, "retain/release");
+	EidosAssertScriptRaise("defineConstant('foo', _TestNRR(5)); foo._yolk;", 0, "retain/release");	// leaks due to _TestNRR, not a bug
 	
 	// defineGlobal()
 	EidosAssertScriptSuccess_I("defineGlobal('foo', 5:10); sum(foo);", 45);
@@ -787,7 +787,7 @@ void _RunFunctionMiscTests(const std::string &temp_path)
 	EidosAssertScriptSuccess_I("foo = 5:11; defineGlobal('foo', 5:10); sum(foo);", 45);		// we're in the global namespace anyway
 	EidosAssertScriptRaise("defineGlobal('foo', 5:10); rm('foo'); sum(foo);", 42, "undefined identifier");
 	EidosAssertScriptSuccess_I("defineGlobal('foo', _Test(5)); foo._yolk;", 5);
-	EidosAssertScriptRaise("defineGlobal('foo', _TestNRR(5)); foo._yolk;", 0, "retain/release");
+	EidosAssertScriptRaise("defineGlobal('foo', _TestNRR(5)); foo._yolk;", 0, "retain/release");	// leaks due to _TestNRR, not a bug
 	
 	// doCall()
 	EidosAssertScriptSuccess_L("abs(doCall('sin', 0.0) - 0) < 0.000001;", true);

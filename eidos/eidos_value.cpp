@@ -2445,19 +2445,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			else
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareLogicalObjectSortPairsDescending);
 			
-			// read out our new element vector
+			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			if (class_uses_retain_release_)
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_RR(sorted_pair.second);
-			}
-			else
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_NORR(sorted_pair.second);
-			}
+			for (auto sorted_pair : sortable_pairs)
+				push_object_element_no_check_NORR(sorted_pair.second);
 			
 			break;
 		}
@@ -2486,19 +2478,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			else
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareIntObjectSortPairsDescending);
 			
-			// read out our new element vector
+			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			if (class_uses_retain_release_)
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_RR(sorted_pair.second);
-			}
-			else
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_NORR(sorted_pair.second);
-			}
+			for (auto sorted_pair : sortable_pairs)
+				push_object_element_no_check_NORR(sorted_pair.second);
 			
 			break;
 		}
@@ -2527,19 +2511,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			else
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareFloatObjectSortPairsDescending);
 			
-			// read out our new element vector
+			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			if (class_uses_retain_release_)
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_RR(sorted_pair.second);
-			}
-			else
-			{
-				for (auto sorted_pair : sortable_pairs)
-					push_object_element_no_check_NORR(sorted_pair.second);
-			}
+			for (auto sorted_pair : sortable_pairs)
+				push_object_element_no_check_NORR(sorted_pair.second);
 			
 			break;
 		}
@@ -2568,19 +2544,11 @@ void EidosValue_Object_vector::SortBy(const std::string &p_property, bool p_asce
 			else
 				std::sort(sortable_pairs.begin(), sortable_pairs.end(), CompareStringObjectSortPairsDescending);
 			
-			// read out our new element vector
+			// read out our new element vector; the elements are already retained, if they are under retain/release
 			resize_no_initialize_RR(0);
 			
-			if (class_uses_retain_release_)
-			{
-				for (const auto &sorted_pair : sortable_pairs)
-					push_object_element_no_check_RR(sorted_pair.second);
-			}
-			else
-			{
-				for (const auto &sorted_pair : sortable_pairs)
-					push_object_element_no_check_NORR(sorted_pair.second);
-			}
+			for (const auto &sorted_pair : sortable_pairs)
+				push_object_element_no_check_NORR(sorted_pair.second);
 			
 			break;
 		}
