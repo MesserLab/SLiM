@@ -608,36 +608,6 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 			}
 		
 			return result_SP;
-			/*
-			 The code above for uniqueMutations can be tested with the simple SLiM script below.  Positions are tested with
-			 identical() instead of the mutation vectors themselves, only because the sorted order of mutations at exactly
-			 the same position may differ; identical(um1, um2) will occasionally flag these as false positives.
-			 
-			 initialize() {
-				 initializeMutationRate(1e-5);
-				 initializeMutationType("m1", 0.5, "f", 0.0);
-				 initializeGenomicElementType("g1", m1, 1.0);
-				 initializeGenomicElement(g1, 0, 99999);
-				 initializeRecombinationRate(1e-8);
-			 }
-			 1 early() {
-				sim.addSubpop("p1", 500);
-			 }
-			 1:20000 late() {
-				 for (i in p1.individuals)
-				 {
-					 um1 = i.uniqueMutations;
-					 um2 = sortBy(unique(i.genomes.mutations), "position");
-					 
-					 if (!identical(um1.position, um2.position))
-					 {
-						 print("Mismatch!");
-						 print(um1.position);
-						 print(um2.position);
-					 }
-				 }
-			 }
-			 */
 		}
 			
 			// variables
@@ -721,6 +691,25 @@ EidosValue_SP Individual::GetProperty(EidosGlobalStringID p_property_id)
 		case gEidosID_z:			// ACCELERATED
 		{
 			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_singleton(spatial_z_));
+		}
+			
+			// These properties are presently undocumented, used for testing purposes, but maybe they are useful to others?
+			// They provide x/y/z as pairs or a triplet, whether the model is spatial or not, regardless of dimensionality
+		case gEidosID_xy:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector({spatial_x_, spatial_y_}));
+		}
+		case gEidosID_xz:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector({spatial_x_, spatial_z_}));
+		}
+		case gEidosID_yz:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector({spatial_y_, spatial_z_}));
+		}
+		case gEidosID_xyz:
+		{
+			return EidosValue_SP(new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector({spatial_x_, spatial_y_, spatial_z_}));
 		}
 			
 			// all others, including gID_none
@@ -1045,6 +1034,7 @@ EidosValue *Individual::GetProperty_Accelerated_spatialPosition(EidosObject **p_
 	else
 	{
 		// Mixed-species group, so we have to figure out the dimensionality for each individual separately
+		// FIXME: Do we really want to allow this?  seems crazy - how would the user actually use this?
 		float_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Float_vector());
 		
 		for (size_t value_index = 0; value_index < p_values_size; ++value_index)
@@ -2220,6 +2210,10 @@ const std::vector<EidosPropertySignature_CSP> *Individual_Class::Properties(void
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_x,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_x)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_x));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_y,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_y)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_y));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_z,					false,	kEidosValueMaskFloat | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_z)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_z));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_xy,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_xz,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_yz,				true,	kEidosValueMaskFloat)));
+		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gEidosStr_xyz,				true,	kEidosValueMaskFloat)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_age,					false,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_age)->DeclareAcceleratedSet(Individual::SetProperty_Accelerated_age));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_meanParentAge,			true,	kEidosValueMaskFloat | kEidosValueMaskSingleton)));
 		properties->emplace_back((EidosPropertySignature *)(new EidosPropertySignature(gStr_pedigreeID,				true,	kEidosValueMaskInt | kEidosValueMaskSingleton))->DeclareAcceleratedGet(Individual::GetProperty_Accelerated_pedigreeID));

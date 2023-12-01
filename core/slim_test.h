@@ -39,6 +39,7 @@ extern void SLiMAssertScriptStop(const std::string &p_script_string, int p_lineN
 
 // Defined in various slim_test_X.cpp files
 extern void _RunInitTests(void);
+extern void _RunCommunityTests(void);
 extern void _RunSpeciesTests(const std::string &temp_path);
 extern void _RunMutationTypeTests(void);
 extern void _RunGenomicElementTypeTests(void);
@@ -69,13 +70,19 @@ extern std::string gen1_setup_fixmut_p1;
 extern std::string gen1_setup_i1;
 extern std::string gen1_setup_i1x;
 extern std::string gen1_setup_i1xPx;
+extern std::string gen1_setup_i1xy;
+extern std::string gen1_setup_i1xyPxy;
 extern std::string gen1_setup_i1xyz;
 extern std::string gen1_setup_i1xyzPxz;
 extern std::string gen1_setup_p1;
+extern std::string gen1_setup_p1_100;
 extern std::string gen1_setup_sex_p1;
+extern std::string gen1_setup_sex_p1_100;
 extern std::string gen1_setup_p1p2p3;
+extern std::string gen1_setup_p1p2p3_100;
 extern std::string WF_prefix;
 extern std::string nonWF_prefix;
+extern std::string pedigrees_prefix;
 
 
 #endif /* defined(__SLiM__slim_test__) */

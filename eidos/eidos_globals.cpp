@@ -3768,6 +3768,10 @@ const std::string &gEidosStr_s = EidosRegisteredString("s", gEidosID_s);
 const std::string &gEidosStr_x = EidosRegisteredString("x", gEidosID_x);
 const std::string &gEidosStr_y = EidosRegisteredString("y", gEidosID_y);
 const std::string &gEidosStr_z = EidosRegisteredString("z", gEidosID_z);
+const std::string &gEidosStr_xy = EidosRegisteredString("xy", gEidosID_xy);
+const std::string &gEidosStr_xz = EidosRegisteredString("xz", gEidosID_xz);
+const std::string &gEidosStr_yz = EidosRegisteredString("yz", gEidosID_yz);
+const std::string &gEidosStr_xyz = EidosRegisteredString("xyz", gEidosID_xyz);
 const std::string &gEidosStr_color = EidosRegisteredString("color", gEidosID_color);
 const std::string &gEidosStr_filePath = EidosRegisteredString("filePath", gEidosID_filePath);
 

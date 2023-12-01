@@ -26,8 +26,8 @@
 
 
 #pragma mark InteractionType tests
-static void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation);
-static void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation);
+static void _RunInteractionTypeTests_Nonspatial(bool p_sex_enabled, const std::string &p_sex_segregation);
+static void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_sex_enabled, const std::string &p_sex_segregation);
 static void _RunInteractionTypeTests_LocalPopDensity(void);
 
 void _RunInteractionTypeTests(void)
@@ -57,20 +57,29 @@ void _RunInteractionTypeTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { c(i1,i1).tag; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i1.tag = 17; } 2 early() { if (i1.tag == 17) stop(); }", __LINE__);
 	
-	// Run tests in a variety of combinations
-	_RunInteractionTypeTests_Nonspatial(false, false, "**");
-	_RunInteractionTypeTests_Nonspatial(true, false, "**");
+	// Test clippedIntegral()
+	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", "non-spatial interactions", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(p1.individuals[0]); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(p1.individuals[0]); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(p1.individuals[0]); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(p1.individuals[0]); stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { i1.maxDistance = 0.45; } late() { i1.evaluate(p1); i1.clippedIntegral(NULL); stop(); }", "not been implemented", __LINE__);
 	
-	_RunInteractionTypeTests_Spatial(" INF ", false, false, "**");
-	_RunInteractionTypeTests_Spatial("999.0", false, false, "**");
-	_RunInteractionTypeTests_Spatial(" INF ", true, false, "**");
-	_RunInteractionTypeTests_Spatial("999.0", true, false, "**");
+	// Run tests in a variety of combinations
+	_RunInteractionTypeTests_Nonspatial(false, "**");
+	
+	_RunInteractionTypeTests_Spatial(" INF ", false, "**");
+	_RunInteractionTypeTests_Spatial("999.0", false, "**");
 	
 	_RunInteractionTypeTests_LocalPopDensity();		// different enough to get its own call
 	
 	for (int sex_seg_index = 0; sex_seg_index <= 8; ++sex_seg_index)
 	{
-		// For a full test, change the condition to <= 8; that makes for a long test runtime, but it works.
+		// For a full test, uncomment all cases below; that makes for a long test runtime, but it works.
 		// Note that the tests are throttled down when sexSegregation != "**" anyway, because the results
 		// will vary, and it's too much work to figure out the right answer for every test in every
 		// combination; we just test for a crash or error.
@@ -87,25 +96,22 @@ void _RunInteractionTypeTests(void)
 			case 6: seg_str = "F*"; break;
 			case 7: seg_str = "FM"; break;
 			case 8: seg_str = "FF"; break;
+			default: continue;
 		}
 		
-		_RunInteractionTypeTests_Nonspatial(false, true, seg_str);
-		_RunInteractionTypeTests_Nonspatial(true, true, seg_str);
+		_RunInteractionTypeTests_Nonspatial(true, seg_str);
 		
-		_RunInteractionTypeTests_Spatial(" INF ", false, true, seg_str);
-		_RunInteractionTypeTests_Spatial("999.0", false, true, seg_str);
-		_RunInteractionTypeTests_Spatial(" INF ", true, true, seg_str);
-		_RunInteractionTypeTests_Spatial("999.0", true, true, seg_str);
+		_RunInteractionTypeTests_Spatial(" INF ", true, seg_str);
+		_RunInteractionTypeTests_Spatial("999.0", true, seg_str);
 	}
 }
 
-void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation)
+void _RunInteractionTypeTests_Nonspatial(bool p_sex_enabled, const std::string &p_sex_segregation)
 {
-	std::string reciprocal_string = p_reciprocal ? "reciprocal=T" : "reciprocal=F";
 	std::string sex_string = p_sex_enabled ? "initializeSex('A'); " : "                    ";
 	bool sex_seg_on = (p_sex_segregation != "**");
 	
-	std::string gen1_setup_i1_pop("initialize() { initializeMutationRate(1e-5); " + sex_string + "initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', '', " + reciprocal_string + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 late() { ind = p1.individuals; ");
+	std::string gen1_setup_i1_pop("initialize() { initializeMutationRate(1e-5); " + sex_string + "initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', '', sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); } 1:10 late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 late() { ind = p1.individuals; ");
 	
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.unevaluate(); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1_pop + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
@@ -140,9 +146,8 @@ void _RunInteractionTypeTests_Nonspatial(bool p_reciprocal, bool p_sex_enabled, 
 	SLiMAssertScriptRaise(gen1_setup_i1_pop + "i1.totalOfNeighborStrengths(ind[0]); stop(); }", "interaction be spatial", __LINE__);
 }
 
-void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_reciprocal, bool p_sex_enabled, const std::string &p_sex_segregation)
+void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_sex_enabled, const std::string &p_sex_segregation)
 {
-	std::string reciprocal_string = p_reciprocal ? "reciprocal=T" : "reciprocal=F";
 	std::string sex_string = p_sex_enabled ? "initializeSex('A'); " : "                    ";
 	bool sex_seg_on = (p_sex_segregation != "**");
 	bool max_dist_on = (p_max_distance != " INF ");		// the spaces make this the same width as "999.0", for error position checks
@@ -151,13 +156,24 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	for (int i = 0; i < 3; ++i)
 	{
 		std::string gen1_setup_i1x_pop;
+		std::string spatiality;
 		
+		// test spatiality 'x', 'y', and 'z'
 		if (i == 0)
-			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'x', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "x";
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', '" + spatiality + "', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals." + spatiality + " = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else if (i == 1)
-			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'y', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
-		else // if (i == 2)
-			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'z', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "y";
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', '" + spatiality + "', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals." + spatiality + " = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
+		else
+		{
+			spatiality = "z";
+			gen1_setup_i1x_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', '" + spatiality + "', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals." + spatiality + " = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = runif(10); p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		
 		// Test InteractionType – (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (i1.distance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
@@ -234,35 +250,27 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "i1.evaluate(10); stop(); }", "p10 not defined", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
+		// Test InteractionType – (integer)neighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		// Test InteractionType – (integer$)neighborCountOfPoint(float point, io<Subpopulation>$ exerterSubpop)
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.neighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) + 1 == i1.neighborCountOfPoint(ind[" + std::to_string(ind_index) + "]." + spatiality + ", p1)) stop(); }", __LINE__);
+		SLiMAssertScriptSuccess(gen1_setup_i1x_pop + "nn = i1.nearestNeighbors(ind, 100, returnDict=T); nc = i1.neighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
 		// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1x_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.interactingNeighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1x_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == sum(isFinite(i1.interactionDistance(ind[" + std::to_string(ind_index) + "])))) stop(); }", __LINE__);
+		SLiMAssertScriptSuccess(gen1_setup_i1x_pop + "nn = i1.nearestInteractingNeighbors(ind, 100, returnDict=T); nc = i1.interactingNeighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 		
 		if (!sex_seg_on)
 		{
@@ -394,19 +402,39 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	{
 		std::string gen1_setup_i1xy_pop;
 		bool use_first_coordinate = (i < 3);
+		std::string spatiality;
 		
+		// test spatiality 'xy' for x and y, 'xz' for x and z, and 'yz' for y and z 
 		if (i == 0)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "xy";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else if (i == 1)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "xz";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else if (i == 2)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "yz";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.z = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else if (i == 3)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "xy";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xy', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.y = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.z = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else if (i == 4)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "xz";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.x = 0; p1.individuals.y = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		else // if (i == 5)
-			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		{
+			spatiality = "yz";
+			gen1_setup_i1xy_pop = "initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'yz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.z = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.x = runif(10); i1.evaluate(p1); ind = p1.individuals; ";
+		}
 		
 		// Test InteractionType – (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (i1.distance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
@@ -469,35 +497,27 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "i1.evaluate(1); stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
+		// Test InteractionType – (integer)neighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		// Test InteractionType – (integer$)neighborCountOfPoint(float point, io<Subpopulation>$ exerterSubpop)
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.neighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) + 1 == i1.neighborCountOfPoint(ind[" + std::to_string(ind_index) + "]." + spatiality + ", p1)) stop(); }", __LINE__);
+		SLiMAssertScriptSuccess(gen1_setup_i1xy_pop + "nn = i1.nearestNeighbors(ind, 100, returnDict=T); nc = i1.neighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
 		// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
-		SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.interactingNeighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+		for (int ind_index = 0; ind_index < 10; ++ind_index)
+			SLiMAssertScriptStop(gen1_setup_i1xy_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == sum(isFinite(i1.interactionDistance(ind[" + std::to_string(ind_index) + "])))) stop(); }", __LINE__);
+		SLiMAssertScriptSuccess(gen1_setup_i1xy_pop + "nn = i1.nearestInteractingNeighbors(ind, 100, returnDict=T); nc = i1.interactingNeighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 		
 		// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ subpop, [integer$ count = 1])
 		SLiMAssertScriptRaise(gen1_setup_i1xy_pop + "if (identical(i1.nearestNeighborsOfPoint(c(5.0, 0.0), p1, -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
@@ -603,7 +623,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	}
 	
 	// *** 3D with y and z zero
-	std::string gen1_setup_i1xyz_pop("initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.z = 0; i1.evaluate(p1); ind = p1.individuals; ");
+	std::string gen1_setup_i1xyz_pop("initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = 0; p1.individuals.z = 0; i1.evaluate(p1); ind = p1.individuals; ");
 	
 	// Test InteractionType – (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (i1.distance(ind[0], ind[2]) == 11.0) stop(); }", __LINE__);
@@ -670,31 +690,21 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[9])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.neighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) + 1 == i1.neighborCountOfPoint(ind[" + std::to_string(ind_index) + "].xyz, p1)) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1xyz_pop + "nn = i1.nearestNeighbors(ind, 100, returnDict=T); nc = i1.neighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
 	// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.interactingNeighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == sum(isFinite(i1.interactionDistance(ind[" + std::to_string(ind_index) + "])))) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1xyz_pop + "nn = i1.nearestInteractingNeighbors(ind, 100, returnDict=T); nc = i1.interactingNeighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ subpop, [integer$ count = 1])
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "if (identical(i1.nearestNeighborsOfPoint(c(5.0, 0.0, 0.0), p1, -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
@@ -799,7 +809,7 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop + "i1.unevaluate(); i1.totalOfNeighborStrengths(ind[0]); stop(); }", "must be evaluated", __LINE__);
 	
 	// *** 3D with full 3D coordinates; we skip the error-testing here since it's the same as before
-	std::string gen1_setup_i1xyz_pop_full("initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz', " + reciprocal_string + ", maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = c(12.0, 3, -2, 10, 8, 72, 0, -5, -13, 7); p1.individuals.z = c(0.0, 5, 9, -6, 6, -16, 2, 1, -1, 8); i1.evaluate(p1); ind = p1.individuals; ");
+	std::string gen1_setup_i1xyz_pop_full("initialize() { initializeSLiMOptions(dimensionality='xyz'); " + sex_string + "initializeMutationRate(1e-5); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeInteractionType('i1', 'xyz', maxDistance=" + p_max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.x = c(-10.0, 0, 1, 2, 3, 5, 7, 8, 20, 25); p1.individuals.y = c(12.0, 3, -2, 10, 8, 72, 0, -5, -13, 7); p1.individuals.z = c(0.0, 5, 9, -6, 6, -16, 2, 1, -1, 8); i1.evaluate(p1); ind = p1.individuals; ");
 	
 	// Test InteractionType – (float)distance(object<Individual> individuals1, [No<Individual> individuals2 = NULL])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (i1.distance(ind[0], ind[2]) == sqrt(11^2 + 14^2 + 9^2)) stop(); }", __LINE__);
@@ -850,31 +860,21 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	// Test InteractionType – (object<Individual>)nearestNeighbors(object<Individual>$ individual, [integer$ count = 1])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestNeighbors(ind[8], 1), ind[7])) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(sortBy(i1.nearestNeighbors(ind[8], 3), 'index'), ind[c(6,7,9)])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.neighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestNeighbors(ind[" + std::to_string(ind_index) + "], 100)) + 1 == i1.neighborCountOfPoint(ind[" + std::to_string(ind_index) + "].xyz, p1)) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1xyz_pop_full + "nn = i1.nearestNeighbors(ind, 100, returnDict=T); nc = i1.neighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestInteractingNeighbors(object<Individual>$ individual, [integer$ count = 1])
 	// Test InteractionType – (object<Individual>)interactingNeighborCount(object<Individual>$ individual, [integer$ count = 1])
 	SLiMAssertScriptRaise(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestInteractingNeighbors(ind[8], -1), ind[integer(0)])) stop(); }", "requires count >= 0", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestInteractingNeighbors(ind[8], 0), ind[integer(0)])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == i1.interactingNeighborCount(ind[0])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == i1.interactingNeighborCount(ind[1])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == i1.interactingNeighborCount(ind[2])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == i1.interactingNeighborCount(ind[3])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == i1.interactingNeighborCount(ind[4])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == i1.interactingNeighborCount(ind[5])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == i1.interactingNeighborCount(ind[6])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == i1.interactingNeighborCount(ind[7])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == i1.interactingNeighborCount(ind[8])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == i1.interactingNeighborCount(ind[9])) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[0], 100)) == sum(isFinite(i1.interactionDistance(ind[0])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[1], 100)) == sum(isFinite(i1.interactionDistance(ind[1])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[2], 100)) == sum(isFinite(i1.interactionDistance(ind[2])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[3], 100)) == sum(isFinite(i1.interactionDistance(ind[3])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[4], 100)) == sum(isFinite(i1.interactionDistance(ind[4])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[5], 100)) == sum(isFinite(i1.interactionDistance(ind[5])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[6], 100)) == sum(isFinite(i1.interactionDistance(ind[6])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[7], 100)) == sum(isFinite(i1.interactionDistance(ind[7])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[8], 100)) == sum(isFinite(i1.interactionDistance(ind[8])))) stop(); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[9], 100)) == sum(isFinite(i1.interactionDistance(ind[9])))) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == i1.interactingNeighborCount(ind[" + std::to_string(ind_index) + "])) stop(); }", __LINE__);
+	for (int ind_index = 0; ind_index < 10; ++ind_index)
+		SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (size(i1.nearestInteractingNeighbors(ind[" + std::to_string(ind_index) + "], 100)) == sum(isFinite(i1.interactionDistance(ind[" + std::to_string(ind_index) + "])))) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_i1xyz_pop_full + "nn = i1.nearestInteractingNeighbors(ind, 100, returnDict=T); nc = i1.interactingNeighborCount(ind); for (i in 0:9) if (size(nn.getValue(i)) != nc[i]) stop(); }", __LINE__);
 	
 	// Test InteractionType – (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ subpop, [integer$ count = 1])
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "if (identical(i1.nearestNeighborsOfPoint(c(-7.0, 12.0, 4.0), p1, 1), ind[0])) stop(); }", __LINE__);
@@ -925,6 +925,180 @@ void _RunInteractionTypeTests_Spatial(const std::string &p_max_distance, bool p_
 	// Test InteractionType – (void)unevaluate(void)
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.evaluate(p1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz_pop_full + "i1.unevaluate(); i1.unevaluate(); stop(); }", __LINE__);
+	
+	// *** Test all spatial queries with (1) empty receivers vector, (2) empty exerter subpop, (3) no qualified receivers, (4) no qualified exerters, all for (a) returnDict=F vs. (b) returnDict=T
+	// We do this only for 2D at present; the logic is generally shared, for this level of functionality.  We use a nonWF model so we can have empty subpopulations; p1 has 10 male individuals,
+	// p2 has 10 female individuals, and p3 is empty.  We randomize positions each time, unlike the tests above.  We don't look at results here at all; the goal is just to exercise the code paths
+	// and make sure nothing crashes.
+	for (int periodic = 0; periodic <= 1; ++periodic)
+	{
+		if ((periodic == 1) && (!max_dist_on))
+			continue;
+		
+		std::string periodic_str = (periodic ? ", periodicity='xy'" : "");
+		std::string max_distance = (periodic ? " 0.45 " : p_max_distance);
+		std::string gen1_setup_i1xy_edge_cases;
+		
+		if (p_sex_enabled)
+			gen1_setup_i1xy_edge_cases = std::string("initialize() { initializeSLiMModelType('nonWF'); initializeSLiMOptions(dimensionality='xy'" + periodic_str + "); " + sex_string + "initializeInteractionType('i1', 'xy', maxDistance=" + max_distance + ", sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10, sexRatio=1.0); p1.individuals.setSpatialPosition(p1.pointUniform(10)); sim.addSubpop('p2', 10, sexRatio=0.0); p2.individuals.setSpatialPosition(p2.pointUniform(10)); sim.addSubpop('p3', 0); i1.evaluate(c(p1,p2,p3)); ind1 = p1.individuals; ind2 = p2.individuals; ind3 = p3.individuals; ");
+		else
+			gen1_setup_i1xy_edge_cases = std::string("initialize() { initializeSLiMModelType('nonWF'); initializeSLiMOptions(dimensionality='xy'" + periodic_str + "); initializeInteractionType('i1', 'xy', maxDistance=" + max_distance + "); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.setSpatialPosition(p1.pointUniform(10)); sim.addSubpop('p2', 10); p2.individuals.setSpatialPosition(p2.pointUniform(10)); sim.addSubpop('p3', 0); i1.evaluate(c(p1,p2,p3)); ind1 = p1.individuals; ind2 = p2.individuals; ind3 = p3.individuals; ");
+		
+		// (float)distance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.distance(ind1[0], ind2); stop(); }", __LINE__);										// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.distance(ind1[0], ind3); stop(); }", __LINE__);										// empty exerter subpop
+		
+		// (float)distanceFromPoint(float point, object<Individual> exerters)
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.distanceFromPoint(ind1[0].xy, ind2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.distanceFromPoint(ind1[0].xy, ind3); stop(); }", __LINE__);							// empty exerter subpop
+		
+		// (object)drawByStrength(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 0, p2); stop(); }", __LINE__);								// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 1, p2); stop(); }", __LINE__);								// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 100, p2); stop(); }", __LINE__);								// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 0, p3); stop(); }", __LINE__);								// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 1, p3); stop(); }", __LINE__);								// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 100, p3); stop(); }", __LINE__);								// empty exerter subpop
+		
+		// drawByStrength(, returnDict=T)
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 0, p2, returnDict=T); stop(); }", __LINE__);						// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 1, p2, returnDict=T); stop(); }", __LINE__);						// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 100, p2, returnDict=T); stop(); }", __LINE__);					// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 0, p2, returnDict=T); stop(); }", __LINE__);					// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 0, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 1, p2, returnDict=T); stop(); }", __LINE__);					// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 1, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 100, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 100, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 0, p3, returnDict=T); stop(); }", __LINE__);						// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 1, p3, returnDict=T); stop(); }", __LINE__);						// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind3, 1000, p3, returnDict=T); stop(); }", __LINE__);					// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 0, p3, returnDict=T); stop(); }", __LINE__);					// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 0, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 1, p3, returnDict=T); stop(); }", __LINE__);					// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 1, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0], 100, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.drawByStrength(ind1[0:1], 100, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		
+		// (integer)interactingNeighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind3, p2); stop(); }", __LINE__);							// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind1[0], p2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind1[0:1], p2); stop(); }", __LINE__);						// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind3, p3); stop(); }", __LINE__);							// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind1[0], p3); stop(); }", __LINE__);							// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactingNeighborCount(ind1[0:1], p3); stop(); }", __LINE__);						// empty exerter subpop
+		
+		// (float)interactionDistance(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactionDistance(ind1[0], ind2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.interactionDistance(ind1[0], ind3); stop(); }", __LINE__);							// empty exerter subpop
+		
+		// (float)localPopulationDensity(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		// we do all of these in a single model because of the large first-time overhead
+		if (max_dist_on)
+		{
+			std::string gen1_setup_i1xy_edge_cases_MAX;		// clippedIntegral() requires a short maximum distance; we use 0.45
+			
+			if (p_sex_enabled)
+				gen1_setup_i1xy_edge_cases_MAX = std::string("initialize() { initializeSLiMModelType('nonWF'); initializeSLiMOptions(dimensionality='xy'); " + sex_string + "initializeInteractionType('i1', 'xy', maxDistance=0.45, sexSegregation='" + p_sex_segregation + "'); } 1 early() { sim.addSubpop('p1', 10, sexRatio=1.0); p1.individuals.setSpatialPosition(p1.pointUniform(10)); sim.addSubpop('p2', 10, sexRatio=0.0); p2.individuals.setSpatialPosition(p2.pointUniform(10)); sim.addSubpop('p3', 0); i1.evaluate(c(p1,p2,p3)); ind1 = p1.individuals; ind2 = p2.individuals; ind3 = p3.individuals; ");
+			else
+				gen1_setup_i1xy_edge_cases_MAX = std::string("initialize() { initializeSLiMModelType('nonWF'); initializeSLiMOptions(dimensionality='xy'); initializeInteractionType('i1', 'xy', maxDistance=0.45); } 1 early() { sim.addSubpop('p1', 10); p1.individuals.setSpatialPosition(p1.pointUniform(10)); sim.addSubpop('p2', 10); p2.individuals.setSpatialPosition(p2.pointUniform(10)); sim.addSubpop('p3', 0); i1.evaluate(c(p1,p2,p3)); ind1 = p1.individuals; ind2 = p2.individuals; ind3 = p3.individuals; ");
+			
+			SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases_MAX + "i1.localPopulationDensity(ind3, p2); "											// empty receiver
+								 + "i1.localPopulationDensity(ind1[0], p2); "																		// sex-segregation effects
+								 + "i1.localPopulationDensity(ind1[0:1], p2); "																		// sex-segregation effects
+								 + "i1.localPopulationDensity(ind3, p3); "																			// empty receiver, empty exerter subpop
+								 + "i1.localPopulationDensity(ind1[0], p3); "																		// empty exerter subpop
+								 + "i1.localPopulationDensity(ind1[0:1], p3); stop(); }", __LINE__);												// empty exerter subpop
+		}
+		
+		// (object)nearestInteractingNeighbors(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 0, p2); stop(); }", __LINE__);					// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 1, p2); stop(); }", __LINE__);					// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 100, p2); stop(); }", __LINE__);					// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 0, p3); stop(); }", __LINE__);					// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 1, p3); stop(); }", __LINE__);					// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 100, p3); stop(); }", __LINE__);					// empty exerter subpop
+		
+		// nearestInteractingNeighbors(, returnDict=T)
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 0, p2, returnDict=T); stop(); }", __LINE__);		// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 1, p2, returnDict=T); stop(); }", __LINE__);		// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 100, p2, returnDict=T); stop(); }", __LINE__);		// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 0, p2, returnDict=T); stop(); }", __LINE__);		// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 0, p2, returnDict=T); stop(); }", __LINE__);	// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 1, p2, returnDict=T); stop(); }", __LINE__);		// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 1, p2, returnDict=T); stop(); }", __LINE__);	// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 100, p2, returnDict=T); stop(); }", __LINE__);	// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 100, p2, returnDict=T); stop(); }", __LINE__);	// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 0, p3, returnDict=T); stop(); }", __LINE__);		// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 1, p3, returnDict=T); stop(); }", __LINE__);		// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind3, 1000, p3, returnDict=T); stop(); }", __LINE__);		// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 0, p3, returnDict=T); stop(); }", __LINE__);		// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 0, p3, returnDict=T); stop(); }", __LINE__);	// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 1, p3, returnDict=T); stop(); }", __LINE__);		// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 1, p3, returnDict=T); stop(); }", __LINE__);	// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0], 100, p3, returnDict=T); stop(); }", __LINE__);	// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestInteractingNeighbors(ind1[0:1], 100, p3, returnDict=T); stop(); }", __LINE__);	// empty exerter subpop
+		
+		// (object)nearestNeighbors(object<Individual> receiver, [integer$ count = 1], [No<Subpopulation>$ exerterSubpop = NULL], [logical$ returnDict = F])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 0, p2); stop(); }", __LINE__);								// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 1, p2); stop(); }", __LINE__);								// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 100, p2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 0, p3); stop(); }", __LINE__);								// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 1, p3); stop(); }", __LINE__);								// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 100, p3); stop(); }", __LINE__);							// empty exerter subpop
+		
+		// nearestNeighbors(, returnDict=T)
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 0, p2, returnDict=T); stop(); }", __LINE__);					// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 1, p2, returnDict=T); stop(); }", __LINE__);					// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 100, p2, returnDict=T); stop(); }", __LINE__);					// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 0, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 0, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 1, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 1, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 100, p2, returnDict=T); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 100, p2, returnDict=T); stop(); }", __LINE__);			// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 0, p3, returnDict=T); stop(); }", __LINE__);					// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 1, p3, returnDict=T); stop(); }", __LINE__);					// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind3, 1000, p3, returnDict=T); stop(); }", __LINE__);				// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 0, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 0, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 1, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 1, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0], 100, p3, returnDict=T); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighbors(ind1[0:1], 100, p3, returnDict=T); stop(); }", __LINE__);			// empty exerter subpop
+		
+		// (object<Individual>)nearestNeighborsOfPoint(float point, io<Subpopulation>$ exerterSubpop, [integer$ count = 1])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=0); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=1); stop(); }", __LINE__);				// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=100); stop(); }", __LINE__);			// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=0); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=1); stop(); }", __LINE__);				// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.nearestNeighborsOfPoint(ind1[0].xy, p2, count=100); stop(); }", __LINE__);			// empty exerter subpop
+		
+		// (integer)neighborCount(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind3, p2); stop(); }", __LINE__);										// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind1[0], p2); stop(); }", __LINE__);									// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind1[0:1], p2); stop(); }", __LINE__);									// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind3, p3); stop(); }", __LINE__);										// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind1[0], p3); stop(); }", __LINE__);									// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCount(ind1[0:1], p3); stop(); }", __LINE__);									// empty exerter subpop
+		
+		// (integer$)neighborCountOfPoint(float point, io<Subpopulation>$ exerterSubpop)
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCountOfPoint(ind1[0].xy, p2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.neighborCountOfPoint(ind1[0].xy, p3); stop(); }", __LINE__);							// empty exerter subpop
+		
+		// (float)strength(object<Individual>$ receiver, [No<Individual> exerters = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.strength(ind1[0], ind2); stop(); }", __LINE__);										// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.strength(ind1[0], ind3); stop(); }", __LINE__);										// empty exerter subpop
+		
+		// (float)totalOfNeighborStrengths(object<Individual> receivers, [No<Subpopulation>$ exerterSubpop = NULL])
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind3, p2); stop(); }", __LINE__);							// empty receiver
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind1[0], p2); stop(); }", __LINE__);							// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind1[0:1], p2); stop(); }", __LINE__);						// sex-segregation effects
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind3, p3); stop(); }", __LINE__);							// empty receiver, empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind1[0], p3); stop(); }", __LINE__);							// empty exerter subpop
+		SLiMAssertScriptStop(gen1_setup_i1xy_edge_cases + "i1.totalOfNeighborStrengths(ind1[0:1], p3); stop(); }", __LINE__);						// empty exerter subpop
+	}
 }
 
 void _RunInteractionTypeTests_LocalPopDensity()
@@ -1043,73 +1217,121 @@ void _RunContinuousSpaceTests(void)
 	
 	// This exercises most cases in WF models, although it does not test the code path with migration.
 	
-	for (int sex_enabled = 0; sex_enabled <= 1; ++sex_enabled)
+	for (int dimcount = 1; dimcount <= 3; ++dimcount)
 	{
-		for (int cloning_selfing = 0; cloning_selfing <= 1; ++cloning_selfing)
+		for (int sex_enabled = 0; sex_enabled <= 1; ++sex_enabled)
 		{
-			for (int periodic = 0; periodic <= 1; ++periodic)
+			for (int cloning_selfing = 0; cloning_selfing <= 1; ++cloning_selfing)
 			{
-				for (int callbacks = 0; callbacks <= 1; ++callbacks)
+				for (int periodic = 0; periodic <= 1; ++periodic)
 				{
-					for (int boundary = 0; boundary <= 3; boundary++)
+					for (int callbacks = 0; callbacks <= 1; ++callbacks)
 					{
-						for (int kernel = 0; kernel <= 4; kernel++)
+						for (int boundary = 0; boundary <= 3; boundary++)
 						{
-							if ((boundary == 3) && (!periodic))
-								continue;
-							
-							std::string model_string = "initialize() { ";
-							
-							if (periodic)
-								model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
-							else
-								model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
-							
-							if (sex_enabled)
-								model_string.append("initializeSex('A'); ");
-							
-							model_string.append("} 1 early() { sim.addSubpop('p1', 500); ");
-							
-							if (periodic)
-								model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
-							else
-								model_string.append("p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2)); ");
-							
-							model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); ");
-							
-							if (cloning_selfing)
-								model_string.append("p1.setCloningRate(0.2); if (!sim.sexEnabled) p1.setSelfingRate(0.2); ");
-							
-							model_string.append("} early() { defineGlobal('PARENT_POS', p1.individuals.spatialPosition); } ");
-							
-							if (callbacks)
-								model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y)) stop('child does not match parent!'); return T; } ");
-							
-							model_string.append("late() { inds = p1.individuals; pos = inds.spatialPosition; ");
-							model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
-							model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
-							
-							switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
+							for (int kernel = 0; kernel <= 4; kernel++)
 							{
-								case 0: model_string.append("'stopping'"); break;
-								case 1: model_string.append("'reflecting'"); break;
-								case 2: model_string.append("'reprising'"); break;
-								case 3: model_string.append("'periodic'"); break;
+								if ((boundary == 3) && (!periodic))		// with periodic bounds, use only periodic boundary condition
+									continue;
+								if ((boundary != 3) && periodic)		// with non-periodic bounds, do not use periodic boundary condition
+									continue;
+								if ((dimcount == 3) && (kernel == 4))	// in 3D, do not use Student's t displacement; not implemented
+									continue;
+								
+								std::string model_string = "initialize() { ";
+								
+								if (dimcount == 1)
+								{
+									if (periodic)
+										model_string.append("initializeSLiMOptions(dimensionality='x', periodicity='x'); ");
+									else
+										model_string.append("initializeSLiMOptions(dimensionality='x'); ");
+								}
+								else if (dimcount == 2)
+								{
+									if (periodic)
+										model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
+									else
+										model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
+								}
+								else
+								{
+									if (periodic)
+										model_string.append("initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); ");
+									else
+										model_string.append("initializeSLiMOptions(dimensionality='xyz'); ");
+								}
+								
+								if (sex_enabled)
+									model_string.append("initializeSex('A'); ");
+								
+								model_string.append("} 1 early() { sim.addSubpop('p1', 500); ");
+								
+								if (dimcount == 1)
+								{
+									if (periodic)
+										model_string.append("p1.setSpatialBounds(c(0.0, 6.2)); ");
+									else
+										model_string.append("p1.setSpatialBounds(c(1.8, 6.2)); ");
+								}
+								else if (dimcount == 2)
+								{
+									if (periodic)
+										model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
+									else
+										model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 1.9, 6.2)); ");
+								}
+								else
+								{
+									if (periodic)
+										model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.9, 6.2, 11.4)); ");
+									else
+										model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 0.7, 1.9, 6.2, 11.4)); ");
+								}
+								
+								model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); ");
+								
+								if (cloning_selfing)
+									model_string.append("p1.setCloningRate(0.2); if (!sim.sexEnabled) p1.setSelfingRate(0.2); ");
+								
+								model_string.append("} early() { defineGlobal('PARENT_POS', p1.individuals.spatialPosition); } ");
+								
+								if (callbacks)
+								{
+									if (dimcount == 1)
+										model_string.append("modifyChild() { if (child.x != parent1.x) stop('child does not match parent!'); return T; } ");
+									else if (dimcount == 2)
+										model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y)) stop('child does not match parent!'); return T; } ");
+									else
+										model_string.append("modifyChild() { if ((child.x != parent1.x) | (child.y != parent1.y) | (child.z != parent1.z)) stop('child does not match parent!'); return T; } ");
+								}
+								
+								model_string.append("late() { inds = p1.individuals; pos = inds.spatialPosition; ");
+								model_string.append("if (any(match(pos, PARENT_POS) == -1)) stop('child does not match parent!'); ");
+								model_string.append("inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
+								
+								switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
+								{
+									case 0: model_string.append("'stopping'"); break;
+									case 1: model_string.append("'reflecting'"); break;
+									case 2: model_string.append("'reprising'"); break;
+									case 3: model_string.append("'periodic'"); break;
+								}
+								
+								switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
+								{
+									case 0: model_string.append(", 0.1, 'f')); "); break;
+									case 1: model_string.append(", 0.1, 'l')); "); break;
+									case 2: model_string.append(", INF, 'e', 10.0)); "); break;
+									case 3: model_string.append(", INF, 'n', 0.1)); "); break;
+									case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
+								}
+								
+								model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+								model_string.append("} 10 late() {} ");
+								
+								SLiMAssertScriptSuccess(model_string);
 							}
-							
-							switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
-							{
-								case 0: model_string.append(", 0.1, 'f')); "); break;
-								case 1: model_string.append(", 0.1, 'l')); "); break;
-								case 2: model_string.append(", INF, 'e', 10.0)); "); break;
-								case 3: model_string.append(", INF, 'n', 0.1)); "); break;
-								case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
-							}
-							
-							model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
-							model_string.append("} 10 late() {} ");
-							
-							SLiMAssertScriptSuccess(model_string);
 						}
 					}
 				}
@@ -1172,57 +1394,198 @@ void _RunContinuousSpaceTests(void)
 	 10 late() {}
 	 */
 	
-	for (int periodic = 0; periodic <= 1; ++periodic)
+	for (int dimcount = 1; dimcount <= 3; ++dimcount)
 	{
-		for (int boundary = 0; boundary <= 3; boundary++)
+		for (int periodic = 0; periodic <= 1; ++periodic)
 		{
-			for (int kernel = 0; kernel <= 4; kernel++)
+			for (int boundary = 0; boundary <= 3; boundary++)
 			{
-				if ((boundary == 3) && (!periodic))
-					continue;
-				
-				std::string model_string = "initialize() { initializeSLiMModelType('nonWF'); defineConstant('K', 100); ";
-				if (periodic)
-					model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
-				else
-					model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
-				model_string.append("initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeMutationRate(1e-7); initializeRecombinationRate(1e-8); } ");
-				
-				model_string.append("reproduction() { mate = subpop.sampleIndividuals(1); o1 = subpop.addCrossed(individual, mate); o2 = subpop.addCloned(individual); o3 = subpop.addSelfed(individual); ");
-				model_string.append("ig = sample(individual.genomes, 2, F); mg = sample(mate.genomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(), mg[0], mg[1], sim.chromosome.drawBreakpoints(), parent1=individual, parent2=mate); ");
-				model_string.append("for (o in c(o1, o2, o3, o4)) if ((o.x != individual.x) | (o.y != individual.y)) stop('child does not match parent!'); }");
-				
-				model_string.append("1 early() { sim.addSubpop('p1', K); ");
-				if (periodic)
-					model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
-				else
-					model_string.append("p1.setSpatialBounds(c(1.5, 3.8, 1.9, 6.2)); ");
-				model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); }");
-				
-				model_string.append("early() { inds = p1.individuals; pos = inds.spatialPosition; inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
-				
-				switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
+				for (int kernel = 0; kernel <= 4; kernel++)
 				{
-					case 0: model_string.append("'stopping'"); break;
-					case 1: model_string.append("'reflecting'"); break;
-					case 2: model_string.append("'reprising'"); break;
-					case 3: model_string.append("'periodic'"); break;
+					if ((boundary == 3) && (!periodic))		// with periodic bounds, use only periodic boundary condition
+						continue;
+					if ((boundary != 3) && periodic)		// with non-periodic bounds, do not use periodic boundary condition
+						continue;
+					if ((dimcount == 3) && (kernel == 4))	// in 3D, do not use Student's t displacement; not implemented
+						continue;
+					
+					std::string model_string = "initialize() { initializeSLiMModelType('nonWF'); defineConstant('K', 100); ";
+					
+					if (dimcount == 1)
+					{
+						if (periodic)
+							model_string.append("initializeSLiMOptions(dimensionality='x', periodicity='x'); ");
+						else
+							model_string.append("initializeSLiMOptions(dimensionality='x'); ");
+					}
+					else if (dimcount == 2)
+					{
+						if (periodic)
+							model_string.append("initializeSLiMOptions(dimensionality='xy', periodicity='xy'); ");
+						else
+							model_string.append("initializeSLiMOptions(dimensionality='xy'); ");
+					}
+					else
+					{
+						if (periodic)
+							model_string.append("initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); ");
+						else
+							model_string.append("initializeSLiMOptions(dimensionality='xyz'); ");
+					}
+					
+					model_string.append("initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeMutationRate(1e-7); initializeRecombinationRate(1e-8); } ");
+					
+					model_string.append("reproduction() { mate = subpop.sampleIndividuals(1); o1 = subpop.addCrossed(individual, mate); o2 = subpop.addCloned(individual); o3 = subpop.addSelfed(individual); ");
+					model_string.append("ig = sample(individual.genomes, 2, F); mg = sample(mate.genomes, 2, F); o4 = subpop.addRecombinant(ig[0], ig[1], sim.chromosome.drawBreakpoints(), mg[0], mg[1], sim.chromosome.drawBreakpoints(), parent1=individual, parent2=mate); ");
+					
+					if (dimcount == 1)
+						model_string.append("for (o in c(o1, o2, o3, o4)) if (o.x != individual.x) stop('child does not match parent!'); }");
+					else if (dimcount == 2)
+						model_string.append("for (o in c(o1, o2, o3, o4)) if ((o.x != individual.x) | (o.y != individual.y)) stop('child does not match parent!'); }");
+					else
+						model_string.append("for (o in c(o1, o2, o3, o4)) if ((o.x != individual.x) | (o.y != individual.y) | (o.z != individual.z)) stop('child does not match parent!'); }");
+					
+					model_string.append("1 early() { sim.addSubpop('p1', K); ");
+					
+					if (dimcount == 1)
+					{
+						if (periodic)
+							model_string.append("p1.setSpatialBounds(c(0.0, 6.2)); ");
+						else
+							model_string.append("p1.setSpatialBounds(c(1.8, 6.2)); ");
+					}
+					else if (dimcount == 2)
+					{
+						if (periodic)
+							model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 1.9, 6.2)); ");
+						else
+							model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 1.9, 6.2)); ");
+					}
+					else
+					{
+						if (periodic)
+							model_string.append("p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.9, 6.2, 11.4)); ");
+						else
+							model_string.append("p1.setSpatialBounds(c(1.5, 1.8, 0.7, 1.9, 6.2, 11.4)); ");
+					}
+					
+					model_string.append("p1.individuals.setSpatialPosition(p1.pointUniform(p1.individualCount)); }");
+					
+					model_string.append("early() { inds = p1.individuals; pos = inds.spatialPosition; inds.setSpatialPosition(p1.pointDeviated(inds.size(), pos, ");
+					
+					switch (boundary)					// NOLINT(*-missing-default-case) : loop bounds
+					{
+						case 0: model_string.append("'stopping'"); break;
+						case 1: model_string.append("'reflecting'"); break;
+						case 2: model_string.append("'reprising'"); break;
+						case 3: model_string.append("'periodic'"); break;
+					}
+					
+					switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
+					{
+						case 0: model_string.append(", 0.1, 'f')); "); break;
+						case 1: model_string.append(", 0.1, 'l')); "); break;
+						case 2: model_string.append(", INF, 'e', 10.0)); "); break;
+						case 3: model_string.append(", INF, 'n', 0.1)); "); break;
+						case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
+					}
+					
+					model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
+					model_string.append("p1.fitnessScaling = K / p1.individualCount; } 10 late() {} ");
+					
+					SLiMAssertScriptSuccess(model_string);
 				}
-				
-				switch (kernel)						// NOLINT(*-missing-default-case) : loop bounds
-				{
-					case 0: model_string.append(", 0.1, 'f')); "); break;
-					case 1: model_string.append(", 0.1, 'l')); "); break;
-					case 2: model_string.append(", INF, 'e', 10.0)); "); break;
-					case 3: model_string.append(", INF, 'n', 0.1)); "); break;
-					case 4: model_string.append(", INF, 't', 2.0, 0.1)); "); break;
-				}
-				
-				model_string.append("if (!all(p1.pointInBounds(inds.spatialPosition))) stop('position out of bounds!'); ");
-				model_string.append("p1.fitnessScaling = K / p1.individualCount; } 10 late() {} ");
-				
-				SLiMAssertScriptSuccess(model_string);
 			}
+		}
+	}
+	
+	// Test different kernel types - other tests generally use only type "f"
+	// Test different constraints - note that sex-segregation gets tested elsewhere
+	for (int dimcount = 1; dimcount <= 3; ++dimcount)
+	{
+		std::string dimensionality;
+		
+		if (dimcount == 1)		dimensionality = "x";
+		else if (dimcount == 2)	dimensionality = "xy";
+		else					dimensionality = "xyz";
+		
+		for (int constraints = 0; constraints <= 1; ++constraints)
+		{
+			for (int periodic = 0; periodic <= 1; ++periodic)
+			{
+				for (int kernel = 0; kernel <= 5; kernel++)
+				{
+					std::string model_string = "initialize() { initializeSLiMModelType('nonWF'); defineConstant('K', 100); ";
+					
+					if (periodic)
+						model_string.append("initializeSLiMOptions(dimensionality='" + dimensionality + "', periodicity='" + dimensionality + "'); ");
+					else
+						model_string.append("initializeSLiMOptions(dimensionality='" + dimensionality + "'); ");
+					
+					model_string.append("initializeSex('A'); ");
+					
+					model_string.append("initializeInteractionType(1, '" + dimensionality + "', maxDistance=0.2); ");
+					
+					switch (kernel)
+					{
+						case 0: model_string.append("i1.setInteractionFunction('f', 1.0); "); break;
+						case 1: model_string.append("i1.setInteractionFunction('l', 1.0); "); break;
+						case 2: model_string.append("i1.setInteractionFunction('n', 1.0, 0.1); "); break;
+						case 3: model_string.append("i1.setInteractionFunction('e', 1.0, 10.0); "); break;
+						case 4: model_string.append("i1.setInteractionFunction('c', 1.0, 0.1); "); break;
+						case 5: model_string.append("i1.setInteractionFunction('t', 1.0, 3.0, 0.1); "); break;
+					}
+					
+					if (constraints)
+					{
+						model_string.append("i1.setConstraints('receiver', sex='M', tagL2=T); ");
+						model_string.append("i1.setConstraints('exerter', sex='F', tagL2=F); ");
+					}
+					
+					model_string.append("} 1 early() { sim.addSubpop(1, K); inds = p1.individuals; inds.setSpatialPosition(p1.pointUniform(1)); ");
+					
+					if (constraints)
+						model_string.append("inds.tagL2 = (runif(K) < 0.5); ");
+					
+					model_string.append("i1.evaluate(p1); ");
+					model_string.append("i1.drawByStrength(inds[0], 1, p1); ");
+					model_string.append("i1.drawByStrength(inds[0], 1000, p1); ");
+					model_string.append("i1.drawByStrength(inds, 1, p1, returnDict=T); ");
+					model_string.append("}");
+					
+					SLiMAssertScriptSuccess(model_string, __LINE__);
+				}
+			}
+		}
+	}
+	
+	// Test summarizeIndividuals() in a few simple ways
+	for (int dimcount = 1; dimcount <= 3; ++dimcount)
+	{
+		std::string dimensionality;
+		std::string dim_str;
+		
+		if (dimcount == 1)		{ dimensionality = "x"; dim_str = "10"; }
+		else if (dimcount == 2)	{ dimensionality = "xy"; dim_str = "10, 10"; }
+		else					{ dimensionality = "xyz"; dim_str = "5, 5, 5"; }
+		
+		for (int operation = 0; operation <= 2; operation++)
+		{
+			std::string model_string = "initialize() { initializeSLiMOptions(dimensionality='" + dimensionality + "'); defineConstant('K', 1000); } ";
+			
+			model_string.append("1 late() { sim.addSubpop('p1', K); p1.individuals.setSpatialPosition(p1.pointUniform(K)); ");
+			model_string.append("density = summarizeIndividuals(p1.individuals, c(" + dim_str + "), p1.spatialBounds, ");
+			
+			if (operation == 0)
+				model_string.append("operation='1;', empty=0.0, perUnitArea=F); ");
+			else if (operation == 1)
+				model_string.append("operation='individuals.size();', empty=0.0, perUnitArea=T); ");
+			else
+				model_string.append("operation='2;', empty=0.0, perUnitArea=F); ");
+			
+			model_string.append("}");
+			
+			SLiMAssertScriptSuccess(model_string, __LINE__);
 		}
 	}
 }
@@ -1230,203 +1593,356 @@ void _RunContinuousSpaceTests(void)
 #pragma mark Spatial map tests
 void _RunSpatialMapTests(void)
 {
-	//
-	//	1D
-	//
-	std::string prefix_1D = "initialize() { initializeSLiMOptions(dimensionality='x'); } 1 early() { sim.addSubpop('p1', 10); mv1 = runif(11); mv2 = runif(11); m1 = p1.defineSpatialMap('map1', 'x', mv1); m2 = p1.defineSpatialMap('map2', 'x', mv2); ";
-	
-	SLiMAssertScriptStop(prefix_1D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 1.0); if (identical(rep(17.3, 11), m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + rep(17.3, 11)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
-	
-	SLiMAssertScriptRaise(prefix_1D + "m1.changeValues(17.3); }", "must be of size >= 2", __LINE__);
-	SLiMAssertScriptStop(prefix_1D + "mx = rep(17.3, 10); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, 31)) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, 31)) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, 31)) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
-	
-	/* mapImage() only generates 2D images
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=F, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=T, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=F, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=T, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");*/
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(0)); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(1)); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(10)); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_1D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
-	SLiMAssertScriptStop(prefix_1D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
-	
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'c', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 't', 2, 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
-	
-	//
-	//	2D
-	//
-	std::string prefix_2D = "initialize() { initializeSLiMOptions(dimensionality='xy'); } 1 early() { sim.addSubpop('p1', 10); mv1 = matrix(runif(30), ncol=5); mv2 = matrix(runif(30), ncol=5); m1 = p1.defineSpatialMap('map1', 'xy', mv1); m2 = p1.defineSpatialMap('map2', 'xy', mv2); ";
-	
-	SLiMAssertScriptStop(prefix_2D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 1.0); if (identical(matrix(rep(17.3, 30), ncol=5), m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + matrix(rep(17.3, 30), ncol=5)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
-	
-	SLiMAssertScriptRaise(prefix_2D + "m1.changeValues(17.3); }", "does not match the spatiality", __LINE__);
-	SLiMAssertScriptStop(prefix_2D + "mx = matrix(rep(17.3, 30), ncol=5); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=F, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=T, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=F, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=T, color=F); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(0)); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(2)); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(20)); } ");
-	SLiMAssertScriptRaise(prefix_2D + "m1.mapValue(runif(21)); } ", "must match spatiality", __LINE__);
-	
-	SLiMAssertScriptStop(prefix_2D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
-	
-	SLiMAssertScriptStop(prefix_2D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
-	SLiMAssertScriptStop(prefix_2D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
-	
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'c', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 't', 2, 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
-	SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+	for (int periodic = 0; periodic <= 1; ++periodic)
+	{
+		//
+		//	1D
+		//
+		std::string prefix_1D;
+		
+		if (periodic == 0)
+			prefix_1D = "initialize() { initializeSLiMOptions(dimensionality='x'); } 1 early() { sim.addSubpop('p1', 10); mv1 = runif(11); mv2 = runif(11); m1 = p1.defineSpatialMap('map1', 'x', mv1); m2 = p1.defineSpatialMap('map2', 'x', mv2); ";
+		else
+			prefix_1D = "initialize() { initializeSLiMOptions(dimensionality='x', periodicity='x'); } 1 early() { sim.addSubpop('p1', 10); mv1 = runif(11); mv2 = runif(11); m1 = p1.defineSpatialMap('map1', 'x', mv1); m2 = p1.defineSpatialMap('map2', 'x', mv2); ";
+		
+		SLiMAssertScriptStop(prefix_1D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 1.0); if (identical(rep(17.3, 11), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + rep(17.3, 11)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
+		
+		SLiMAssertScriptRaise(prefix_1D + "m1.changeValues(17.3); }", "must be of size >= 2", __LINE__);
+		SLiMAssertScriptStop(prefix_1D + "mx = rep(17.3, 10); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, 31)) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
+		
+		/* mapImage() only generates 2D images
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.mapImage(10, 15, centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");
+		 
+		 SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapImage('map1', centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapImage('map1', centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapImage('map1', 10, 15, centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapImage('map1', 10, 15, centers=T, color=F); } ");*/
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(1)); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.mapValue(runif(10)); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapValue('map1', runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapValue('map1', runif(1)); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "p1.spatialMapValue('map1', runif(10)); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_1D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
+		SLiMAssertScriptStop(prefix_1D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleImprovedNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.sampleNearbyPoint(runif(10), 0.2, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.smooth(0.1, 't', 2, 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_1D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_1D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
+		
+		//
+		//	2D
+		//
+		std::string prefix_2D;
+		
+		if (periodic == 0)
+			prefix_2D = "initialize() { initializeSLiMOptions(dimensionality='xy'); } 1 early() { sim.addSubpop('p1', 10); mv1 = matrix(runif(30), ncol=5); mv2 = matrix(runif(30), ncol=5); m1 = p1.defineSpatialMap('map1', 'xy', mv1); m2 = p1.defineSpatialMap('map2', 'xy', mv2); ";
+		else
+			prefix_2D = "initialize() { initializeSLiMOptions(dimensionality='xy', periodicity='xy'); } 1 early() { sim.addSubpop('p1', 10); mv1 = matrix(runif(30), ncol=5); mv2 = matrix(runif(30), ncol=5); m1 = p1.defineSpatialMap('map1', 'xy', mv1); m2 = p1.defineSpatialMap('map2', 'xy', mv2); ";
+		
+		SLiMAssertScriptStop(prefix_2D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 1.0); if (identical(matrix(rep(17.3, 30), ncol=5), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + matrix(rep(17.3, 30), ncol=5)*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
+		
+		SLiMAssertScriptRaise(prefix_2D + "m1.changeValues(17.3); }", "does not match the spatiality", __LINE__);
+		SLiMAssertScriptStop(prefix_2D + "mx = matrix(rep(17.3, 30), ncol=5); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, c(13, 16))) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=F, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(centers=T, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=F, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapImage(10, 15, centers=T, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapImage('map1', centers=F, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapImage('map1', centers=T, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapImage('map1', 10, 15, centers=F, color=F); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapImage('map1', 10, 15, centers=T, color=F); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(2)); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.mapValue(runif(20)); } ");
+		SLiMAssertScriptRaise(prefix_2D + "m1.mapValue(runif(21)); } ", "must match spatiality", __LINE__);
+		
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapValue('map1', runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapValue('map1', runif(2)); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "p1.spatialMapValue('map1', runif(20)); } ");
+		SLiMAssertScriptRaise(prefix_2D + "p1.spatialMapValue('map1', runif(21)); } ", "must match spatiality", __LINE__);
+		
+		SLiMAssertScriptStop(prefix_2D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_2D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
+		SLiMAssertScriptStop(prefix_2D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(20), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(20), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(20), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(20), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleImprovedNearbyPoint(runif(20), 0.2, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(20), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(20), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(20), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(20), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.sampleNearbyPoint(runif(20), 0.2, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.smooth(0.1, 't', 2, 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_2D + "m1.interpolate(3, 'cubic'); m1.smooth(0.1, 't', 2, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_2D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
+		
+		//
+		//	3D
+		//
+		std::string prefix_3D;
+		
+		if (periodic == 0)
+			prefix_3D = "initialize() { initializeSLiMOptions(dimensionality='xyz'); } 1 early() { sim.addSubpop('p1', 10); mv1 = array(runif(120), dim=c(6, 5, 4)); mv2 = array(runif(120), dim=c(6, 5, 4)); m1 = p1.defineSpatialMap('map1', 'xyz', mv1); m2 = p1.defineSpatialMap('map2', 'xyz', mv2); ";
+		else
+			prefix_3D = "initialize() { initializeSLiMOptions(dimensionality='xyz', periodicity='xyz'); } 1 early() { sim.addSubpop('p1', 10); mv1 = array(runif(120), dim=c(6, 5, 4)); mv2 = array(runif(120), dim=c(6, 5, 4)); m1 = p1.defineSpatialMap('map1', 'xyz', mv1); m2 = p1.defineSpatialMap('map2', 'xyz', mv2); ";
+		
+		SLiMAssertScriptStop(prefix_3D + "f1 = m1.gridValues(); f2 = m2.gridValues(); if (identical(mv1, f1) & identical(mv2, f2)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m3 = SpatialMap('map3', m1); f3 = m3.gridValues(); if (identical(mv1, f3)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.add(17.3); if (identical(mv1 + 17.3, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.add(mv2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.add(m2); if (identical(mv1 + mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(17.3, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(mv2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(m2, 0.0); if (identical(mv1, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(17.3, 1.0); if (identical(array(rep(17.3, 120), dim=c(6, 5, 4)), m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(mv2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(m2, 1.0); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(17.3, 0.4); if (all(abs((mv1*0.6 + array(rep(17.3, 120), dim=c(6, 5, 4))*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(mv2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.blend(m2, 0.4); if (all(abs((mv1*0.6 + mv2*0.4) - m1.gridValues()) < 1e-15)) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.multiply(0.25); if (identical(mv1 * 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.multiply(mv2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.multiply(m2); if (identical(mv1 * mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.subtract(0.25); if (identical(mv1 - 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.subtract(mv2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.subtract(m2); if (identical(mv1 - mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.divide(0.25); if (identical(mv1 / 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.divide(mv2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.divide(m2); if (identical(mv1 / mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.power(0.25); if (identical(mv1 ^ 0.25, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(mv2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.power(m2); if (identical(mv1 ^ mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.exp(); if (identical(exp(mv1), m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('black', 'white')); m1.changeColors(c(0.5, 0.8), c('red', 'blue')); } ");
+		
+		SLiMAssertScriptRaise(prefix_3D + "m1.changeValues(17.3); }", "does not match the spatiality", __LINE__);
+		SLiMAssertScriptStop(prefix_3D + "mx = array(rep(17.3, 120), dim=c(6, 5, 4)); m1.changeValues(mx); if (identical(mx, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.changeValues(mv2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.changeValues(m2); if (identical(mv2, m1.gridValues())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.interpolate(3, 'nearest'); if (identical(m1.gridDimensions, c(13, 16, 10))) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.interpolate(3, 'linear'); if (identical(m1.gridDimensions, c(13, 16, 10))) stop(); } ");
+		SLiMAssertScriptRaise(prefix_3D + "m1.interpolate(3, 'cubic'); if (identical(m1.gridDimensions, c(13, 16, 10))) stop(); } ", "not currently supported for 3D", __LINE__);
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapColor(rnorm(50)); } ");
+		
+		/* mapImage() only generates 2D images
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.mapImage(centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.mapImage(centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=F, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(centers=T, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.mapImage(10, 15, centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.mapImage(10, 15, centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=F, color=T); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "m1.changeColors(c(0.0, 1.0), c('red', 'black')); m1.mapImage(10, 15, centers=T, color=T); } ");
+		 
+		 SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapImage('map1', centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapImage('map1', centers=T, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapImage('map1', 10, 15, centers=F, color=F); } ");
+		 SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapImage('map1', 10, 15, centers=T, color=F); } ");*/
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.mapValue(runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.mapValue(runif(3)); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.mapValue(runif(30)); } ");
+		SLiMAssertScriptRaise(prefix_3D + "m1.mapValue(runif(31)); } ", "must match spatiality", __LINE__);
+		
+		SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapValue('map1', runif(0)); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapValue('map1', runif(3)); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "p1.spatialMapValue('map1', runif(30)); } ");
+		SLiMAssertScriptRaise(prefix_3D + "p1.spatialMapValue('map1', runif(31)); } ", "must match spatiality", __LINE__);
+		
+		SLiMAssertScriptStop(prefix_3D + "if (identical(range(mv1), m1.range()) & identical(range(mv2), m2.range())) stop(); } ");
+		
+		SLiMAssertScriptStop(prefix_3D + "m1.rescale(); if (identical(c(0.0, 1.0), m1.range())) stop(); } ");
+		SLiMAssertScriptStop(prefix_3D + "m1.rescale(0.2, 1.7); if (identical(c(0.2, 1.7), m1.range())) stop(); } ");
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleImprovedNearbyPoint(runif(30), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleImprovedNearbyPoint(runif(30), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleImprovedNearbyPoint(runif(30), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleImprovedNearbyPoint(runif(30), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptRaise(prefix_3D + "m1.sampleImprovedNearbyPoint(runif(30), 0.2, 't', 3, 0.1); } ", "kernel type not supported", __LINE__);
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleNearbyPoint(runif(30), 0.2, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleNearbyPoint(runif(30), 0.2, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleNearbyPoint(runif(30), 0.2, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.sampleNearbyPoint(runif(30), 0.2, 'n', 0.1); } ");
+		SLiMAssertScriptRaise(prefix_3D + "m1.sampleNearbyPoint(runif(30), 0.2, 't', 3, 0.1); } ", "kernel type not supported", __LINE__);
+		
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 'f'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.smooth(0.1, 't', 3, 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'f'); } ");	// linear not cubic, for 3D
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'l'); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'e', 10.0); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'n', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 'c', 0.1); } ");
+		SLiMAssertScriptSuccess(prefix_3D + "m1.interpolate(3, 'linear'); m1.smooth(0.1, 't', 3, 0.1); } ");
+		
+		SLiMAssertScriptSuccess(prefix_3D + "defineConstant('M1', m1); defineGlobal('M2', m2); } 2 early() { sim.addSubpop('p2', 10); p2.addSpatialMap(M1); p2.addSpatialMap(M2); } 3 early() { p1.removeSpatialMap('map1'); p2.removeSpatialMap(M2); } 4 early() { if (!identical(p1.spatialMaps, M2)) stop(); if (!identical(p2.spatialMaps, M1)) stop(); p2.removeSpatialMap('map1'); p1.removeSpatialMap(M2); }");
+	}
 }
 
 #pragma mark nonWF model tests
@@ -1462,11 +1978,29 @@ void _RunNonWFTests(void)
 	SLiMAssertScriptRaise(WF_prefix + gen1_setup_p1 + "1 reproduction() { return; } ", "may not be defined in WF models", __LINE__);
 	
 	// Community.modelType
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (community.modelType == 'WF') stop(); } ", __LINE__);
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup + "1 early() { if (community.modelType == 'nonWF') stop(); } ", __LINE__);
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_sex + "1 early() { if (community.modelType == 'nonWF') stop(); } ", __LINE__);
 	
 	// Individual.age
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.individuals.age; stop(); } ", __LINE__);
+	
+	// Individual.meanParentAge
+	SLiMAssertScriptStop(nonWF_prefix + pedigrees_prefix + gen1_setup_p1 + "1 early() { p1.individuals.meanParentAge; stop(); } ", __LINE__);
+	
+	// Subpopulation - (void)takeMigrants() and sampleIndividuals()
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 first() { s = c(p2,p3).sampleIndividuals(1); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 early() { s = c(p2,p3).sampleIndividuals(1); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 late() { s = c(p2,p3).sampleIndividuals(1); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 first() { s = c(p2,p3).sampleIndividuals(1, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 early() { s = c(p2,p3).sampleIndividuals(1, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 late() { s = c(p2,p3).sampleIndividuals(1, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 first() { s = c(p2,p3).sampleIndividuals(40); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 early() { s = c(p2,p3).sampleIndividuals(40); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 late() { s = c(p2,p3).sampleIndividuals(40); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 first() { s = c(p2,p3).sampleIndividuals(40, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 early() { s = c(p2,p3).sampleIndividuals(40, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
+	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1p2p3_100 + "2:10 late() { s = c(p2,p3).sampleIndividuals(40, migrant=F); p1.takeMigrants(s); stop(); } ", __LINE__);
 	
 	// Subpopulation - (void)removeSubpopulation()
 	SLiMAssertScriptStop(nonWF_prefix + gen1_setup_p1 + "1 early() { p1.removeSubpopulation(); stop(); }", __LINE__);

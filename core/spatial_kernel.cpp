@@ -355,7 +355,8 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 {
 	// Draw a displacement from the kernel center, weighted by kernel density
 	// Note that we could be going either plus or minus from the center
-	gsl_rng *rng = EIDOS_GSL_RNG(omp_get_thread_num());
+	Eidos_RNG_State *rng_state = EIDOS_STATE_RNG(omp_get_thread_num());
+	gsl_rng *rng = rng_state->gsl_rng_;
 	
 	switch (kernel_type_)
 	{
@@ -368,7 +369,7 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 		{
 			double d = (1 - sqrt(Eidos_rng_uniform(rng))) * max_distance_;
 			
-			displacement[0] = d;
+			displacement[0] = (Eidos_RandomBool(rng_state) ? d : -d);
 			return;
 		}
 		case SpatialKernelType::kExponential:
@@ -376,10 +377,10 @@ void SpatialKernel::DrawDisplacement_S1(double *displacement)
 			double d;
 			
 			do {
-				d = gsl_ran_exponential(rng, kernel_param2_);
+				d = gsl_ran_exponential(rng, 1.0 / kernel_param2_);
 			} while (d > max_distance_);
 			
-			displacement[0] = d;
+			displacement[0] = (Eidos_RandomBool(rng_state) ? d : -d);
 			return;
 		}
 		case SpatialKernelType::kNormal:
@@ -532,7 +533,7 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 			double d;
 			
 			do {
-				d = gsl_ran_gamma(rng, 3.0, 1.0 / kernel_param2_) * max_distance_;
+				d = gsl_ran_gamma(rng, 3.0, 1.0 / kernel_param2_);
 			} while (d > max_distance_);
 			
 			displacement[0] = dx * d / sphere_dist;
@@ -555,7 +556,8 @@ void SpatialKernel::DrawDisplacement_S3(double *displacement)
 			displacement[2] = d3;
 			return;
 		}
-		case SpatialKernelType::kStudentsT:		// punting for now
+		case SpatialKernelType::kStudentsT:
+			// FIXME: punting for now.  Peter says: "That involves an integral I don't know how to do. If you really want to do it, you could always do it numerically (even, pre-compute the values - it's just a 1D integral that we understand pretty well...)"
 		default:
 		{
 			// Other distributions are of unclear utility, since draws may cluster at the max distance; this is

@@ -981,6 +981,10 @@ extern const std::string &gEidosStr_s;
 extern const std::string &gEidosStr_x;
 extern const std::string &gEidosStr_y;
 extern const std::string &gEidosStr_z;
+extern const std::string &gEidosStr_xy;
+extern const std::string &gEidosStr_xz;
+extern const std::string &gEidosStr_yz;
+extern const std::string &gEidosStr_xyz;
 extern const std::string &gEidosStr_color;
 extern const std::string &gEidosStr_filePath;
 
@@ -1108,6 +1112,10 @@ enum _EidosGlobalStringID : uint32_t
 	gEidosID_x,
 	gEidosID_y,
 	gEidosID_z,
+	gEidosID_xy,
+	gEidosID_xz,
+	gEidosID_yz,
+	gEidosID_xyz,
 	gEidosID_color,
 	gEidosID_filePath,
 

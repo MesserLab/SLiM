@@ -3025,18 +3025,16 @@ See the description of the
 \f4   This method is provided primarily for speed; it executes much faster than the Eidos equivalent above.  Indeed, it is faster than just 
 \f3\fs18 individual.genomes.mutations
 \f4\fs20 , and gives uniquing and sorting on top of that, so it is advantageous unless duplicate entries for homozygous mutations are actually needed.\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 x <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 x <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 A user-defined 
+\f4\fs20 \cf2 A user-defined 
 \f3\fs18 float
 \f4\fs20  value.  The value of 
 \f3\fs18 x
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code, typically in a 
-\f3\fs18 modifyChild()
-\f4\fs20  callback.  The value of 
+\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 x
 \f4\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
 \f3\fs18 dimensionality
@@ -3050,19 +3048,69 @@ See the description of the
 \f3\fs18 x
 \f4\fs20  as an additional tag value of type 
 \f3\fs18 float
-\f5\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 y <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 xy => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 A user-defined 
+\f4\fs20 \cf2 This property provides joint read-only access to the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  properties; they are returned as a two-element 
+\f3\fs18 float
+\f4\fs20  vector.  This can be useful in complex spatial models in which the spatiality of interactions/maps differs from the overall dimensionality of the model.  See the documentation for the separate properties 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 y
+\f4\fs20  for further comments.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 xyz => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This property provides joint read-only access to the 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 z
+\f4\fs20  properties; they are returned as a three-element 
+\f3\fs18 float
+\f4\fs20  vector.  This can be useful in complex spatial models in which the spatiality of interactions/maps differs from the overall dimensionality of the model.  See the documentation for the separate properties 
+\f3\fs18 x
+\f4\fs20 , 
+\f3\fs18 y
+\f4\fs20 , and 
+\f3\fs18 z
+\f4\fs20  for further comments.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 xz => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 This property provides joint read-only access to the 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 z
+\f4\fs20  properties; they are returned as a two-element 
+\f3\fs18 float
+\f4\fs20  vector.  This can be useful in complex spatial models in which the spatiality of interactions/maps differs from the overall dimensionality of the model.  See the documentation for the separate properties 
+\f3\fs18 x
+\f4\fs20  and 
+\f3\fs18 z
+\f4\fs20  for further comments.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 y <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
 \f3\fs18 float
 \f4\fs20  value.  The value of 
 \f3\fs18 y
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code, typically in a 
-\f3\fs18 modifyChild()
-\f4\fs20  callback.  The value of 
+\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 y
 \f4\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
 \f3\fs18 dimensionality
@@ -3084,19 +3132,33 @@ See the description of the
 \f3\fs18 y
 \f4\fs20  as an additional tag value of type 
 \f3\fs18 float
-\f5\fs20 .\
-\pard\pardeftab720\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+\f4\fs20 .\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
 
-\f3\fs18 \cf0 z <\'96> (float$)\
-\pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
+\f3\fs18 \cf2 yz => (float)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f4\fs20 \cf0 A user-defined 
+\f4\fs20 \cf2 This property provides joint read-only access to the 
+\f3\fs18 y
+\f4\fs20  and 
+\f3\fs18 z
+\f4\fs20  properties; they are returned as a two-element 
+\f3\fs18 float
+\f4\fs20  vector.  This can be useful in complex spatial models in which the spatiality of interactions/maps differs from the overall dimensionality of the model.  See the documentation for the separate properties 
+\f3\fs18 y
+\f4\fs20  and 
+\f3\fs18 z
+\f4\fs20  for further comments.\
+\pard\pardeftab397\li720\fi-446\ri720\sb180\sa60\partightenfactor0
+
+\f3\fs18 \cf2 z <\'96> (float$)\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+
+\f4\fs20 \cf2 A user-defined 
 \f3\fs18 float
 \f4\fs20  value.  The value of 
 \f3\fs18 z
-\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code, typically in a 
-\f3\fs18 modifyChild()
-\f4\fs20  callback.  The value of 
+\f4\fs20  is initially undefined (i.e., has an effectively random value that could be different every time you run your model); if you wish it to have a defined value, you must arrange that yourself by explicitly setting its value prior to using it elsewhere in your code.  The value of 
 \f3\fs18 z
 \f4\fs20  is not used by SLiM unless the optional \'93continuous space\'94 facility is enabled with the 
 \f3\fs18 dimensionality
@@ -3114,7 +3176,7 @@ See the description of the
 \f3\fs18 z
 \f4\fs20  as an additional tag value of type 
 \f3\fs18 float
-\f5\fs20 .\
+\f4\fs20 .\
 \pard\pardeftab397\ri720\sb120\sa60\partightenfactor0
 
 \f1\i\fs22 \cf0 5.7.2  

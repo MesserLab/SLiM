@@ -310,6 +310,54 @@ void _RunInitTests(void)
 	SLiMAssertScriptRaise("initialize() { initializeSLiMOptions(dimensionality='xyz'); initializeInteractionType(0, 'zyx'); stop(); }", "spatiality 'zyx' must be", __LINE__);
 }
 
+#pragma mark Community tests
+void _RunCommunityTests(void)
+{
+	// Note that _RunSpeciesTests() also does some Community tests, for historical reasons...
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { community.outputUsage(); } " + gen2_stop, __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { community.usage(); } " + gen2_stop, __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.allGenomicElementTypes, g1)) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (community.allInteractionTypes.size() == 0) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.allMutationTypes, m1)) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (community.allScriptBlocks.size() == 3) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.allSpecies, sim)) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.allSubpopulations, p1)) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (community.logFiles.size() == 0) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (community.tick == 2) stop(); } ", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { community.tag = 10; if (community.tag == 10) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.genomicElementTypesWithIDs(1), g1)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.genomicElementTypesWithIDs(2); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.genomicElementTypesWithIDs(c(2,3)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.genomicElementTypesWithIDs(c(1,1)), c(g1,g1))) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1 + "2 early() { if (identical(community.interactionTypesWithIDs(1), i1)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "2 early() { community.interactionTypesWithIDs(2); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "2 early() { community.interactionTypesWithIDs(c(2,3)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "2 early() { if (identical(community.interactionTypesWithIDs(c(1,1)), c(i1,i1))) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.mutationTypesWithIDs(1), m1)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.mutationTypesWithIDs(2); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.mutationTypesWithIDs(c(2,3)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.mutationTypesWithIDs(c(1,1)), c(m1,m1))) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "s1 2 early() { if (identical(community.scriptBlocksWithIDs(1), self)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "s1 2 early() { community.scriptBlocksWithIDs(2); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "s1 2 early() { community.scriptBlocksWithIDs(c(2,3)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "s1 2 early() { if (identical(community.scriptBlocksWithIDs(c(1,1)), c(self,self))) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.speciesWithIDs(0), sim)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.speciesWithIDs(1); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.speciesWithIDs(c(1,2)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.speciesWithIDs(c(0,0)), c(sim,sim))) stop(); } ", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.subpopulationsWithIDs(1), p1)) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.subpopulationsWithIDs(2); } ", "did not find", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "2 early() { community.subpopulationsWithIDs(c(2,3)); } ", "did not find", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "2 early() { if (identical(community.subpopulationsWithIDs(c(1,1)), c(p1,p1))) stop(); } ", __LINE__);
+}
+
 #pragma mark Species tests
 void _RunSpeciesTests(const std::string &temp_path)
 {
@@ -319,6 +367,7 @@ void _RunSpeciesTests(const std::string &temp_path)
 	//
 	
 	// Test sim properties
+	SLiMAssertScriptStop(gen1_setup + "1 first() { } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { } " + gen2_stop, __LINE__);
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.chromosome; } " + gen2_stop, __LINE__);
 	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.chromosome = sim.chromosome; } " + gen2_stop, "read-only property", __LINE__);
@@ -372,6 +421,8 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { sim.periodicity = 'x'; }", "read-only property", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { if (sim.periodicity == '') stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyzPxz + "1 early() { if (sim.periodicity == 'xz') stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup + "1 early() { if (sim.id == 0) stop(); } ", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup + "1 early() { sim.id = 2; } " + gen2_stop, "read-only property", __LINE__);
 	
 	// Test sim - (object<Subpopulation>)addSubpop(is$ subpopID, integer$ size, [float$ sexRatio])
 	SLiMAssertScriptStop(gen1_setup + "1 early() { sim.addSubpop('p1', 10); } " + gen2_stop, __LINE__);
@@ -442,7 +493,13 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptStop("initialize() { initializeSLiMOptions(keepPedigrees=T); }" + gen1_setup_p1 + "10 early() { i1 = sample(p1.individuals, 1000, replace=T); ids = i1.pedigreeID; i2 = sim.individualsWithPedigreeIDs(ids, 1); if (identical(i1, i2)) stop(); }", __LINE__);
 	
 	// Test sim - (void)killIndividuals(object<Individual> individuals)
-	// this is done in the test script killIndividuals_test.slim, in Miscellaneous; too complex to test here
+	// this is also done in the test script killIndividuals_test.slim, in Miscellaneous
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_p1_100 + "2:10 first() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_p1_100 + "2:10 early() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_p1_100 + "2:10 late() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_sex_p1_100 + "2:10 first() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_sex_p1_100 + "2:10 early() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(nonWF_prefix + gen1_setup_sex_p1_100 + "2:10 late() { p1.individuals.tag = 0; s = p1.sampleIndividuals(3); s.tag = 1; sim.killIndividuals(s); if (sum(p1.individuals.tag) != 0) stop(); }", __LINE__);
 	
 	// Test sim - (float)mutationFrequencies(Nio<Subpopulation> subpops, [object<Mutation> mutations])
 	SLiMAssertScriptSuccess(gen1_setup_p1p2p3 + "1 early() { sim.mutationFrequencies(p1); }", __LINE__);
@@ -592,21 +649,21 @@ void _RunSpeciesTests(const std::string &temp_path)
 	SLiMAssertScriptRaise(gen1_setup_highmut_p1 + "1 early() { sim.registerMutationEffectCallback(1, '{ $; }', m1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
 	// Test community - (object<SLiMEidosBlock>)registerInteractionCallback(Nis$ id, string$ source, io<InteractionType>$ intType, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptStop(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 early() { ; }", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { s1 = 7; community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", "requires start <= end", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", "out of range", __LINE__);
-	SLiMAssertScriptRaise(gen1_setup_i1 + "1 early() { community.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, NULL, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1, 1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1, p1, 5, 10); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', 1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }', i1); } 10 early() { ; }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(NULL, '{ stop(); }'); }", "missing required argument", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); } s1 early() { }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { s1 = 7; community.registerInteractionCallback('s1', '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { s1 = 7; community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 2, 2); }", "already defined", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 3, 2); }", "requires start <= end", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, -1, -1); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(1, '{ stop(); }', i1, NULL, 0, 0); }", "out of range", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1 + "late() { i1.evaluate(p1); i1.strength(p1.individuals[0]); } 1 early() { community.registerInteractionCallback(1, '{ $; }', i1, NULL, 2, 2); }", "unexpected token '$'", __LINE__);
 	
 	// Test sim - (object<SLiMEidosBlock>)registerMateChoiceCallback(Nis$ id, string$ source, [Nio<Subpopulation>$ subpop], [integer$ start], [integer$ end])
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { sim.registerMateChoiceCallback(NULL, '{ stop(); }', NULL, 2, 2); }", __LINE__);
@@ -691,6 +748,7 @@ void _RunSpeciesTests(const std::string &temp_path)
 	// Test Community - (void)simulationFinished(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "11 early() { stop(); }", __LINE__);
 	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 early() { community.simulationFinished(); } 11 early() { stop(); }", __LINE__);
+	SLiMAssertScriptSuccess(gen1_setup_p1 + "10 early() { sim.simulationFinished(); } 11 early() { stop(); }", __LINE__);
 	
 	// Test sim - (object<Mutation>)subsetMutations([No<Mutation>$ exclude = NULL], [Nio<MutationType>$ mutationType = NULL], [Ni$ position = NULL], [Nis$ nucleotide = NULL], [Ni$ tag = NULL], [Ni$ id = NULL])
 	// unusually, we do this with custom SLiM scripts that check the API stochastically, since it would be difficult
@@ -790,6 +848,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.selfingRate == 0.0) stop(); }", __LINE__);									// legal but always 0.0 in non-sexual sims
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.sexRatio == 0.0) stop(); }", __LINE__);										// legal but always 0.0 in non-sexual sims
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (identical(p1.species, sim)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { if (p1.individualCount == 10) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { c(p1,p1).tag; }", "before being set", __LINE__);
@@ -817,6 +876,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.immigrantSubpopIDs = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.selfingRate = 0.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.sexRatio = 0.5; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.species = sim; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { p1.individualCount = 10; stop(); }", "read-only property", __LINE__);
 	
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (identical(p1.cloningRate, c(0.0,0.0))) stop(); }", __LINE__);
@@ -829,6 +889,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (identical(p1.immigrantSubpopIDs, integer(0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (p1.selfingRate == 0.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (p1.sexRatio == 0.5) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (identical(p1.species, sim)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_sex_p1 + "1 early() { if (p1.individualCount == 10) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { c(p1,p1).tag; }", "before being set", __LINE__);
@@ -856,6 +917,7 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.immigrantSubpopIDs = 1; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.selfingRate = 0.0; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.sexRatio = 0.5; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.species = sim; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_sex_p1 + "1 early() { p1.individualCount = 10; stop(); }", "read-only property", __LINE__);
 	
 	// Test Subpopulation - (float)cachedFitness(Ni indices)
@@ -1268,6 +1330,74 @@ void _RunSubpopulationTests(void)
 	SLiMAssertScriptRaise(gen1_setup_i1xPx + "1 early() { p1.setSpatialBounds(c(0.0, 2.5)); if (p1.pointPeriodic(11.0, 0.0) == -4.0) stop(); }", "too many arguments supplied", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xPx + "1 early() { p1.setSpatialBounds(c(0.0, 2.5)); if (identical(p1.pointPeriodic(c(-0.5, -5.5, 0.0, 2.5, 3.5)), c(2.0, 2.0, 0.0, 2.5, 1.0))) stop(); }", __LINE__);
 	
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.pointInBounds(float(0)), logical(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.pointReflected(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.pointStopped(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 7.5, 4.5)); if (identical(p1.pointPeriodic(float(0)), float(0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.pointUniform(0), float(0))) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { if (identical(p1.spatialBounds, c(0.0, 0.0, 1.0, 1.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.spatialBounds, c(-2.0, 1.5, 7.5, 4.5))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5)); stop(); }", "requires twice as many coordinates", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0)); stop(); }", "requires twice as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(-2.1, 2.0)) == F) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(-2.0, 2.0)) == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(0.0, 1.0)) == F) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(0.0, 1.5)) == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(0.0, 2.0)) == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(0.0, 4.5)) == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(0.0, 4.6)) == F) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(7.5, 2.0)) == T) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(7.6, 2.0)) == F) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (p1.pointInBounds(c(11.0, 0.0, 0.0)) == F) stop(); }", "exact multiple", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-2.0, 1.5, 7.5, 4.5)); if (identical(p1.pointInBounds(c(-2.1, 2.0, 7.5, 2.0)), c(F,T))) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(-15.5, 11)), c(-0.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(-5.5, 11)), c(-4.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(-5.0, 11)), c(-5.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.0, 9.5)), c(2.0, 11.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.0, 10.5)), c(2.0, 10.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.0, 11)), c(2.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.0, 12.0)), c(2.0, 12.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.0, 13.25)), c(2.0, 10.75))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(2.5, 11)), c(2.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(3.5, 11)), c(1.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(11.0, 11)), c(-4.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(11.0, 0.0, 0.0)), c(-4.0, 11))) stop(); }", "exact multiple", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointReflected(c(-15.5, 11, 2.0, 13.25)), c(-0.5, 11, 2.0, 10.75))) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(-15.5, 11)), c(-5.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(-5.5, 11)), c(-5.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(-5.0, 11)), c(-5.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.0, 9.5)), c(2.0, 10.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.0, 10.5)), c(2.0, 10.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.0, 11)), c(2.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.0, 12.0)), c(2.0, 12.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.0, 13.25)), c(2.0, 12.0))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(2.5, 11)), c(2.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(3.5, 11)), c(2.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(11.0, 11)), c(2.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(11.0, 0.0, 0.0)), c(-4.0, 11))) stop(); }", "exact multiple", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointStopped(c(-15.5, 11, 2.0, 13.25)), c(-5.0, 11, 2.0, 12.0))) stop(); }", __LINE__);
+	
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (size(p1.pointUniform()) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (size(p1.pointUniform(1)) == 2) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (size(p1.pointUniform(5)) == 10) stop(); }", __LINE__);
+	
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(-15.5, 0.0)), c(-0.5, 11))) stop(); }", "no periodic spatial dimension", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(-5.0, 10.5, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(-15.5, 0.0)), c(-0.5, 11))) stop(); }", "requires min coordinates to be 0.0", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(-0.5, 11)), c(2.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(-5.5, 11)), c(2.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(0.0, 11)), c(0.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(2.0, -1.5)), c(2.0, 10.5))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(2.0, 11)), c(2.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(2.0, 14.25)), c(2.0, 2.25))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(2.5, 11)), c(2.5, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(3.5, 11)), c(1.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(11.0, 11)), c(1.0, 11))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(11.0, 0.0, 0.0)), c(-4.0, 11))) stop(); }", "exact multiple", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xyPxy + "1 early() { p1.setSpatialBounds(c(0.0, 0.0, 2.5, 12.0)); if (identical(p1.pointPeriodic(c(-0.5, 11, 2.0, -1.5)), c(2.0, 11, 2.0, 10.5))) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 early() { if (identical(p1.spatialBounds, c(0.0, 0.0, 0.0, 1.0, 1.0, 1.0))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 early() { p1.setSpatialBounds(c(-2.0, -100, 10.0, 7.5, -99.5, 12.0)); if (identical(p1.spatialBounds, c(-2.0, -100, 10.0, 7.5, -99.5, 12.0))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { p1.setSpatialBounds(-2.0); stop(); }", "requires twice as many coordinates", __LINE__);
@@ -1666,29 +1796,41 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tag; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tag; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tag = 135; if (all(i.tag == 135)) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagF; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagF; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagF = 135.0; if (all(i.tagF == 135.0)) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagL0; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL0; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL0 = T; if (all(i.tagL0 == T)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL0 = F; if (all(i.tagL0 == F)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL0 = rep(c(T,F),5); if (sum(i.tagL0) == 5) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagL1; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL1; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL1 = T; if (all(i.tagL1 == T)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL1 = F; if (all(i.tagL1 == F)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL1 = rep(c(T,F),5); if (sum(i.tagL1) == 5) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagL2; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL2; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL2 = T; if (all(i.tagL2 == T)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL2 = F; if (all(i.tagL2 == F)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL2 = rep(c(T,F),5); if (sum(i.tagL2) == 5) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagL3; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL3; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL3 = T; if (all(i.tagL3 == T)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL3 = F; if (all(i.tagL3 == F)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL3 = rep(c(T,F),5); if (sum(i.tagL3) == 5) stop(); }", __LINE__);
+	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i[0].tagL4; }", "before being set", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL4; }", "before being set", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL4 = T; if (all(i.tagL4 == T)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL4 = F; if (all(i.tagL4 == F)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.tagL4 = rep(c(T,F),5); if (sum(i.tagL4) == 5) stop(); }", __LINE__);
+	
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (size(i.migrant) == 10) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; if (all(i.migrant == F)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "1 early() { i = p1.individuals; i.fitnessScaling = 135.0; if (all(i.fitnessScaling == 135.0)) stop(); }", __LINE__);
@@ -1748,9 +1890,11 @@ void _RunIndividualTests(void)
 	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.x = 0.5; if (identical(i.spatialPosition, rep(0.5, 10))) stop(); }", "position cannot be accessed", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i = p1.individuals; i.x = 0.5; if (identical(i.spatialPosition, rep(0.5, 10))) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.x = 0.5; i.y = 0.6; if (identical(i.spatialPosition, rep(c(0.5, 0.6), 10))) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 early() { i = p1.individuals; i.x = 0.5; i.y = 0.6; i.z = 0.7; if (identical(i.spatialPosition, rep(c(0.5, 0.6, 0.7), 10))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", "read-only property", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", "read-only property", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { i = p1.individuals; i.spatialPosition = 0.5; stop(); }", "read-only property", __LINE__);
 	
 	SLiMAssertScriptRaise(gen1_setup_p1 + "1 early() { i = p1.individuals; i.setSpatialPosition(0.5); stop(); }", "cannot be called in non-spatial simulations", __LINE__);
@@ -1761,6 +1905,14 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i = p1.individuals; i.setSpatialPosition(0.5); if (identical(i.spatialPosition, rep(0.5, 10))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1x + "1 early() { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6)); }", "position parameter to contain", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1x + "1 early() { i = p1.individuals; i.setSpatialPosition((1:10) / 10.0); if (identical(i.spatialPosition, (1:10) / 10.0)) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { i = p1.individuals; i[0].setSpatialPosition(0.5); }", "requires at least as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6)); if (identical(i[0].spatialPosition, c(0.5, 0.6))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6, 0.7)); }", "position parameter to contain", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.setSpatialPosition(0.5); }", "requires at least as many coordinates", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6)); if (identical(i.spatialPosition, rep(c(0.5, 0.6), 10))) stop(); }", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.setSpatialPosition(c(0.5, 0.6, 0.7)); }", "position parameter to contain", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.setSpatialPosition(1.0:20); if (identical(i.spatialPosition, 1.0:20)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_i1xy + "1 early() { i = p1.individuals; i.setSpatialPosition(1.0:20); if (identical(i.y, (1.0:10)*2)) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { i = p1.individuals; i[0].setSpatialPosition(0.5); }", "requires at least as many coordinates", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_i1xyz + "1 early() { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6, 0.7)); if (identical(i[0].spatialPosition, c(0.5, 0.6, 0.7))) stop(); }", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_i1xyz + "1 early() { i = p1.individuals; i[0].setSpatialPosition(c(0.5, 0.6, 0.7, 0.8)); }", "position parameter to contain", __LINE__);
@@ -1808,15 +1960,46 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 early() { i = p1.individuals; i.uniqueMutationsOfType(m1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 early() { i = p1.individuals; i.uniqueMutationsOfType(1); stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_p1 + "10 early() { i = p1.individuals; i[0:1].uniqueMutationsOfType(1); stop(); }", __LINE__);
+	/*
+	 Positions are tested with identical() instead of the mutation vectors themselves, only because the sorted order of mutations
+	 at exactly the same position may differ; identical(um1, um2) will occasionally flag these as false positives.
+	 */
+	SLiMAssertScriptSuccess(R"V0G0N(
+		initialize() {
+			initializeMutationRate(1e-5);
+			initializeMutationType("m1", 0.5, "f", 0.0);
+			initializeGenomicElementType("g1", m1, 1.0);
+			initializeGenomicElement(g1, 0, 99999);
+			initializeRecombinationRate(1e-8);
+		}
+		1 early() {
+			sim.addSubpop("p1", 500);
+		}
+		1:200 late() {
+			for (i in p1.individuals) {
+				um1 = i.uniqueMutations;
+				um2 = sortBy(unique(i.genomes.mutations), "position");
+				if (!identical(um1.position, um2.position))
+					stop("Mismatch!");
+			}
+		})V0G0N");
 	
 	// Test optional pedigree stuff; note that relatedness can be higher than 0.5 due to inbreeding, even if preventIncidentalSelfing=T were set
 	// see the model test_relatedness.slim (not in the GitHub repo) for more precise tests that relatedness() does the right calculations
 	std::string gen1_setup_norel("initialize() { initializeSLiMOptions(keepPedigrees=F); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
 	std::string gen1_setup_rel("initialize() { initializeSLiMOptions(keepPedigrees=T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); } 1 early() { sim.addSubpop('p1', 10); } ");
+	std::string gen1_setup_rel_S("initialize() { initializeSLiMOptions(keepPedigrees=T); initializeMutationRate(1e-7); initializeMutationType('m1', 0.5, 'f', 0.0); initializeGenomicElementType('g1', m1, 1.0); initializeGenomicElement(g1, 0, 99999); initializeRecombinationRate(1e-8); initializeSex('A'); } 1 early() { sim.addSubpop('p1', 10); } ");
 	
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.pedigreeID == -1)) stop(); }", "is not available", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.pedigreeParentIDs == -1)) stop(); }", "has not been enabled", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.pedigreeGrandparentIDs == -1)) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.reproductiveOutput == 0)) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (p1.individuals[0].reproductiveOutput == 0) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (mean(p1.lifetimeReproductiveOutput) > 0) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (mean(p1.lifetimeReproductiveOutputM) > 0) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", "has not been enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_rel + "5 early() { if (mean(p1.lifetimeReproductiveOutputM) > 0) stop(); }", "separate sexes are not enabled", __LINE__);
+	SLiMAssertScriptRaise(gen1_setup_rel + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", "separate sexes are not enabled", __LINE__);
 	SLiMAssertScriptRaise(gen1_setup_norel + "5 early() { if (all(p1.individuals.genomes.genomePedigreeID == -1)) stop(); }", "is not available", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_norel + "5 early() { if (p1.individuals[0].sharedParentCount(p1.individuals[0]) == 2) stop(); }", __LINE__);
@@ -1828,6 +2011,12 @@ void _RunIndividualTests(void)
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.pedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.pedigreeParentIDs != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.pedigreeGrandparentIDs != -1)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.reproductiveOutput == 0)) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].reproductiveOutput == 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (mean(p1.lifetimeReproductiveOutput) > 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutput) > 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutputM) > 0) stop(); }", __LINE__);
+	SLiMAssertScriptStop(gen1_setup_rel_S + "5 early() { if (mean(p1.lifetimeReproductiveOutputF) > 0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (all(p1.individuals.genomes.genomePedigreeID != -1)) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].relatedness(p1.individuals[0]) == 1.0) stop(); }", __LINE__);
 	SLiMAssertScriptStop(gen1_setup_rel + "5 early() { if (p1.individuals[0].sharedParentCount(p1.individuals[0]) == 2) stop(); }", __LINE__);
