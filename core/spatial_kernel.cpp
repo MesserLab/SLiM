@@ -317,7 +317,7 @@ void SpatialKernel::CalculateGridValues(SpatialMap &p_map)
 						double distance = sqrt(dist_a_sq + dist_b_sq + dist_c_sq);
 						double density = (distance > max_distance_) ? 0.0 : DensityForDistance(distance);
 						
-						values_[a] = density;
+						values_[a + b * dim[0] + c * dim[0] * dim[1]] = density;
 					}
 				}
 			}
