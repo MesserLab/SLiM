@@ -26,11 +26,7 @@
 #include <QDebug>
 
 #include "QtSLiMScriptTextEdit.h"
-#include "QtSLiMEidosConsole.h"
-#include "QtSLiMVariableBrowser.h"
-#include "QtSLiMConsoleTextEdit.h"
 #include "QtSLiMAppDelegate.h"
-#include "QtSLiMFindPanel.h"
 
 
 void QtSLiMWindow::glueUI(void)

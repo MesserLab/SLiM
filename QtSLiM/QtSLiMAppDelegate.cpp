@@ -543,10 +543,11 @@ void QtSLiMAppDelegate::updateRecentFileActions()
 
     const QStringList recentFiles = readRecentFiles(settings);
     const int count = qMin(int(MaxRecentFiles), recentFiles.size());
+    QList<QAction *> actions = menu->actions();
     
     for (int i = 0 ; i < MaxRecentFiles; ++i)
     {
-        QAction *recentAction = menu->actions()[i];
+        QAction *recentAction = actions[i];
         
         if (i < count)
         {
@@ -711,9 +712,9 @@ void QtSLiMAppDelegate::findRecipe(void)
     
     if (result == QDialog::Accepted)
     {
-        QStringList resourceNames = findRecipePanel.selectedRecipeFilenames();
+        const QStringList resourceNames = findRecipePanel.selectedRecipeFilenames();
         
-        for (QString resourceName : resourceNames)
+        for (const QString &resourceName : resourceNames)
         {
             //qDebug() << "recipe name:" << resourceName;
             
@@ -769,8 +770,9 @@ void QtSLiMAppDelegate::openRecipe(void)
 void QtSLiMAppDelegate::playStateChanged(void)
 {
     bool anyPlaying = false;
+    const QWidgetList topLevelWidgets = qApp->topLevelWidgets();
     
-    for (QWidget *widget : qApp->topLevelWidgets())
+    for (QWidget *widget : topLevelWidgets)
     {
         QtSLiMWindow *mainWin = qobject_cast<QtSLiMWindow *>(widget);
         
@@ -1168,7 +1170,6 @@ QWidget *QtSLiMAppDelegate::globalImageWindowWithPath(const QString &path, const
         return nullptr;
     }
     
-    QFileInfo fileInfo(path);
     int window_width = round(image.width() * scaleFactor);
     int window_height = round(image.height() * scaleFactor);
     

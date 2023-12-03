@@ -65,13 +65,13 @@ public:
     
 public slots:
     virtual void addedToWindow(void);
-    virtual void invalidateCachedData(void);
-    virtual void invalidateDrawingCache(void);
+    virtual void invalidateCachedData(void);        // subclasses must call this themselves in their destructor - super cannot do it!
+    virtual void invalidateDrawingCache(void);      // subclasses must call this themselves in their destructor - super cannot do it!
     virtual void graphWindowResized(void);
-    virtual void controllerRecycled(void);
+    virtual void controllerRecycled(void);          // subclasses must call super: QtSLiMGraphView::controllerRecycled()
     virtual void controllerChromosomeSelectionChanged(void);
     virtual void controllerTickFinished(void);
-    virtual void updateAfterTick(void);
+    virtual void updateAfterTick(void);             // subclasses must call super: QtSLiMGraphView::updateAfterTick()
     void actionButtonRunMenu(QtSLiMPushButton *actionButton);
     
 protected:
@@ -106,7 +106,6 @@ protected:
     virtual void appendStringForData(QString &string) = 0;
     
     // Optional subclass overrides
-    virtual void cleanup();
     virtual void willDraw(QPainter &painter, QRect interiorRect);
     virtual bool providesStringForData(void);
     virtual QtSLiMLegendSpec legendKey(void);

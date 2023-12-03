@@ -575,7 +575,6 @@ QtSLiMHelpItem *QtSLiMHelpWindow::createItemForSection(const QString &sectionStr
         title.chop(functions.length());
 	
     QStringList sectionComponents = sectionString.split('.');
-	QString numberedTitle = sectionComponents.back().append(". ").append(title);
 	QTreeWidgetItem *parentItem = parentItemForSection(sectionString, topics, topItem);
     QtSLiMHelpItem *newItem = new QtSLiMHelpItem(parentItem);
 	
@@ -623,7 +622,9 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
         // BCH 5/7/2021: This regex worked well, but a better solution appears to be the code below.  We'll see whether it causes any problems.
         // BCH 12/12/2021: Well, that code below did cause problems: it caused the formatting to be lost from "SLiM Events and Callbacks" and
         // "Eidos Statements" for no apparent reason.  So, reverting to this regex, which has had no observed problems thus far.
-        topicFileData.replace(QRegularExpression("(;? ?color: ?#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])"), "");
+        static const QRegularExpression htmlColorRegex("(;? ?color: ?#[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])");
+        
+        topicFileData.replace(htmlColorRegex, "");
         
         // FIXME while on the topic of dark mode, there is a subtle bug in the help window's handling of it.  We call ColorizeCallSignature() and
         // ColorizePropertySignature() below to colorize property/function/method signatures.  Those produce colorized strings tailored to the
@@ -667,11 +668,11 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 	QTextCursor *topicItemCursor = nullptr;
     
     // Make regular expressions that we will use below
-    QRegularExpression topicHeaderRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] (.+)$", QRegularExpression::CaseInsensitiveOption);
-    QRegularExpression topicGenericItemRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] ITEM: ((?:[0-9]+\\.? )?)(.+)$", QRegularExpression::CaseInsensitiveOption);
-    QRegularExpression topicFunctionRegex("^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
-    QRegularExpression topicMethodRegex("^([-–+])[\u00A0 ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
-    QRegularExpression topicPropertyRegex("^([a-zA-Z_0-9]+)[\u00A0 ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicHeaderRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] (.+)$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicGenericItemRegex("^((?:[0-9]+\\.)*[0-9]+)\\.?[\u00A0 ] ITEM: ((?:[0-9]+\\.? )?)(.+)$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicFunctionRegex("^\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicMethodRegex("^([-–+])[\u00A0 ]\\([a-zA-Z<>\\*+$]+\\)([a-zA-Z_0-9]+)\\(.+$", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression topicPropertyRegex("^([a-zA-Z_0-9]+)[\u00A0 ]((?:<[-–]>)|(?:=>)) \\([a-zA-Z<>\\*+$]+\\)$", QRegularExpression::CaseInsensitiveOption);
 	
     if (!topicHeaderRegex.isValid() || !topicGenericItemRegex.isValid() || !topicFunctionRegex.isValid() || !topicMethodRegex.isValid() || !topicPropertyRegex.isValid())
         qDebug() << "QtSLiMHelpWindow::addTopicsFromRTFFile(): invalid regex";
@@ -793,7 +794,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				std::string function_name = callName.toStdString();
 				const EidosFunctionSignature *function_signature = nullptr;
 				
-				for (auto signature_iter : *functionList)
+				for (const auto &signature_iter : *functionList)
 					if (signature_iter->call_name_.compare(function_name) == 0)
 					{
 						function_signature = signature_iter.get();
@@ -827,7 +828,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
 				std::string method_name(callName.toStdString());
 				const EidosMethodSignature *method_signature = nullptr;
 				
-				for (auto signature_iter : *methodList)
+				for (const auto &signature_iter : *methodList)
 					if (signature_iter->call_name_.compare(method_name) == 0)
 					{
 						method_signature = signature_iter.get();
@@ -860,7 +861,7 @@ void QtSLiMHelpWindow::addTopicsFromRTFFile(const QString &htmlFile,
                 bool found_match = false, found_mismatch = false;
                 QString oldSignatureString, newSignatureString;
                 
-                for (auto signature_iter : *propertyList)
+                for (const auto &signature_iter : *propertyList)
                     if (signature_iter->property_name_.compare(property_name) == 0)
                     {
                         const EidosPropertySignature *property_signature = signature_iter.get();

@@ -27,6 +27,7 @@
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "QtSLiMWindow.h"
 
@@ -51,7 +52,7 @@ QtSLiMGraphView_MultispeciesPopSizeOverTime::QtSLiMGraphView_MultispeciesPopSize
     showSubpopulations_ = true;
     drawLines_ = true;
     
-    updateAfterTick();
+    QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick();
 }
 
 void QtSLiMGraphView_MultispeciesPopSizeOverTime::setDefaultYAxisRange(void)
@@ -66,6 +67,8 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::setDefaultYAxisRange(void)
 
 QtSLiMGraphView_MultispeciesPopSizeOverTime::~QtSLiMGraphView_MultispeciesPopSizeOverTime()
 {
+    // We are responsible for our own destruction
+    QtSLiMGraphView_MultispeciesPopSizeOverTime::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_MultispeciesPopSizeOverTime::invalidateDrawingCache(void)
@@ -165,7 +168,7 @@ void QtSLiMGraphView_MultispeciesPopSizeOverTime::updateAfterTick(void)
                 yAxisMajorTickModulus_ = 2;
             }
             
-            invalidateDrawingCache();
+            QtSLiMGraphView_MultispeciesPopSizeOverTime::invalidateDrawingCache();
         }
     }
 	

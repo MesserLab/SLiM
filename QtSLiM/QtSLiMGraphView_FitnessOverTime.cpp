@@ -49,7 +49,7 @@ QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_pare
     showSubpopulations_ = true;
     drawLines_ = true;
     
-    updateAfterTick();
+    QtSLiMGraphView_FitnessOverTime::updateAfterTick();
 }
 
 void QtSLiMGraphView_FitnessOverTime::setDefaultYAxisRange(void)
@@ -64,6 +64,8 @@ void QtSLiMGraphView_FitnessOverTime::setDefaultYAxisRange(void)
 
 QtSLiMGraphView_FitnessOverTime::~QtSLiMGraphView_FitnessOverTime()
 {
+    // We are responsible for our own destruction
+    QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache(void)
@@ -110,64 +112,64 @@ void QtSLiMGraphView_FitnessOverTime::updateAfterTick(void)
 {
     Species *graphSpecies = focalDisplaySpecies();
     
-	if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
-	{
-		Population &pop = graphSpecies->population_;
-		double minHistory = std::numeric_limits<double>::infinity();
-		double maxHistory = -std::numeric_limits<double>::infinity();
-		bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
-		
-		for (auto history_record_iter : pop.fitness_histories_)
-		{
-			if (showSubpops || (history_record_iter.first == -1))
-			{
-				FitnessHistory &history_record = history_record_iter.second;
-				double *history = history_record.history_;
-				slim_tick_t historyLength = history_record.history_length_;
-				
-				// find the min and max history value
-				for (int i = 0; i < historyLength; ++i)
-				{
-					double historyEntry = history[i];
-					
-					if (!std::isnan(historyEntry))
-					{
-						if (historyEntry > maxHistory)
-							maxHistory = historyEntry;
-						if (historyEntry < minHistory)
-							minHistory = historyEntry;
-					}
-				}
-			}
-		}
-		
-		// set axis range to encompass the data
-		if (!std::isinf(minHistory) && !std::isinf(maxHistory))
-		{
-			if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
-			{
-				double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
-				double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
-				
-				if (axisMax < 1.5)
-					axisMax = 1.5;
-				
-				if ((fabs(axisMin - yAxisMin_) > 0.0000001) || (fabs(axisMax - yAxisMax_) > 0.0000001))
-				{
-					yAxisMin_ = axisMin;
-					yAxisMax_ = axisMax;
-					yAxisMajorTickInterval_ = 0.5;
-					yAxisMinorTickInterval_ = 0.25;
-					yAxisMajorTickModulus_ = 2;
-					yAxisTickValuePrecision_ = 1;
-					
-					invalidateDrawingCache();
-				}
-			}
-		}
-	}
-	
-	QtSLiMGraphView::updateAfterTick();
+    if (!controller_->invalidSimulation() && graphSpecies && !yAxisIsUserRescaled_)
+    {
+        Population &pop = graphSpecies->population_;
+        double minHistory = std::numeric_limits<double>::infinity();
+        double maxHistory = -std::numeric_limits<double>::infinity();
+        bool showSubpops = showSubpopulations_ && (pop.fitness_histories_.size() > 2);
+        
+        for (auto history_record_iter : pop.fitness_histories_)
+        {
+            if (showSubpops || (history_record_iter.first == -1))
+            {
+                FitnessHistory &history_record = history_record_iter.second;
+                double *history = history_record.history_;
+                slim_tick_t historyLength = history_record.history_length_;
+                
+                // find the min and max history value
+                for (int i = 0; i < historyLength; ++i)
+                {
+                    double historyEntry = history[i];
+                    
+                    if (!std::isnan(historyEntry))
+                    {
+                        if (historyEntry > maxHistory)
+                            maxHistory = historyEntry;
+                        if (historyEntry < minHistory)
+                            minHistory = historyEntry;
+                    }
+                }
+            }
+        }
+        
+        // set axis range to encompass the data
+        if (!std::isinf(minHistory) && !std::isinf(maxHistory))
+        {
+            if ((minHistory < 0.9) || (maxHistory > 1.1))	// if we're outside our original axis range...
+            {
+                double axisMin = (minHistory < 0.5 ? 0.0 : 0.5);	// either 0.0 or 0.5
+                double axisMax = ceil(maxHistory * 2.0) / 2.0;		// 1.5, 2.0, 2.5, ...
+                
+                if (axisMax < 1.5)
+                    axisMax = 1.5;
+                
+                if ((fabs(axisMin - yAxisMin_) > 0.0000001) || (fabs(axisMax - yAxisMax_) > 0.0000001))
+                {
+                    yAxisMin_ = axisMin;
+                    yAxisMax_ = axisMax;
+                    yAxisMajorTickInterval_ = 0.5;
+                    yAxisMinorTickInterval_ = 0.25;
+                    yAxisMajorTickModulus_ = 2;
+                    yAxisTickValuePrecision_ = 1;
+                    
+                    QtSLiMGraphView_FitnessOverTime::invalidateDrawingCache();
+                }
+            }
+        }
+    }
+    
+    QtSLiMGraphView::updateAfterTick();
 }
 
 void QtSLiMGraphView_FitnessOverTime::drawPointGraph(QPainter &painter, QRect interiorRect)

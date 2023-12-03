@@ -30,7 +30,6 @@
 
 #include <algorithm>
 
-#include "QtSLiMPreferences.h"
 #include "QtSLiMExtras.h"
 #include "eidos_globals.h"
 #include "slim_globals.h"

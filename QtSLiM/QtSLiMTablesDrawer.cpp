@@ -208,8 +208,6 @@ static QImage imageForMutationOrInteractionType(MutationType *mut_type, Interact
     QPointF half_label_point = painter.transform().map(QPointF(bounds.x() + 39 - half_label_halfwidth, label_y));
     QPointF max_label_point = painter.transform().map(QPointF(custom_axis_max ? bounds.x() + 72 - max_label_width : bounds.x() + 71 - max_label_halfwidth, label_y));
     
-    label_y = painter.transform().map(QPointF(0, label_y)).y();
-    
     painter.setWorldMatrixEnabled(false);
     painter.drawText(min_label_point, axis_min_label);
     if (draw_axis_midpoint)

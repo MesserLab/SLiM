@@ -337,7 +337,7 @@ void QtSLiMVariableBrowser::reloadBrowser(bool nowValidState)
             
             // We don't use the EidosValues in the saved tree at all, since they will potentially be stale;
             // to free up the memory involved, we go through the saved tree and wipe the values to nullptr
-            for (QTreeWidgetItem *old_root_child : old_children)
+            for (QTreeWidgetItem *old_root_child : qAsConst(old_children))
                 wipeEidosValuesFromSubtree(old_root_child);
         }
         else
@@ -387,7 +387,7 @@ void QtSLiMVariableBrowser::reloadBrowser(bool nowValidState)
         // Analyze the old children and try to expand items to match the previous state
         doingMatching = true;
         
-        for (QTreeWidgetItem *old_root_child : old_children)
+        for (QTreeWidgetItem *old_root_child : qAsConst(old_children))
             matchExpansionOfOldItem(old_root_child, root);
         
         // Try to restore the scroll position to where it was when we saved the tree

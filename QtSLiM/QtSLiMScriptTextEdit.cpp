@@ -1536,7 +1536,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	const EidosClass *terminus = key_path_class;
 	
 	// First, a sorted list of globals
-	for (auto symbol_sig : *terminus->Properties())
+	for (const auto &symbol_sig : *terminus->Properties())
     {
         if (!symbol_sig->deprecated_)
             candidates << QString::fromStdString(symbol_sig->property_name_);
@@ -1545,7 +1545,7 @@ QStringList QtSLiMTextEdit::completionsForKeyPathEndingInTokenIndexOfTokenStream
 	candidates.sort();
 	
 	// Next, a sorted list of methods, with () appended
-	for (auto method_sig : *terminus->Methods())
+	for (const auto &method_sig : *terminus->Methods())
 	{
         if (!method_sig->deprecated_)
         {
@@ -2579,7 +2579,7 @@ QStringList QtSLiMScriptTextEdit::linesForRoundedSelection(QTextCursor &p_cursor
     
     // separate the lines, remove a tab at the start of each, and rejoin them
     QString selectedString = p_cursor.selectedText();
-    QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
+    static const QRegularExpression lineEndMatch("\\R", QRegularExpression::UseUnicodePropertiesOption);
     
 #if (QT_VERSION < QT_VERSION_CHECK(5, 14, 0))
     return selectedString.split(lineEndMatch, QString::KeepEmptyParts);     // deprecated in 5.14

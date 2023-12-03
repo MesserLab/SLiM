@@ -76,7 +76,8 @@ void QtSLiMGraphView_FrequencyTrajectory::addedToWindow(void)
 
 QtSLiMGraphView_FrequencyTrajectory::~QtSLiMGraphView_FrequencyTrajectory()
 {
-    invalidateCachedData();
+    // We are responsible for our own destruction
+    QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData();
 }
 
 void QtSLiMGraphView_FrequencyTrajectory::invalidateCachedData(void)

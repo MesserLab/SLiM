@@ -154,7 +154,7 @@ bool Eidos_prettyprintTokensFromScript(const std::vector<EidosToken> &tokens, Ei
 			{
                 // We use QString to get intelligent treatment of Unicode and UTF-8; std::string is just too dumb.
                 // In SLiMGui this is done with NSString.  We want to count newlines in a mac/unix/windows agnostic way.
-                QString q_tokenString = QString::fromStdString(tokenString);
+                const QString q_tokenString = QString::fromStdString(tokenString);
                 int newlineCount = 0;
                 bool prevWasCR = false, prevWasLF = false;
                 

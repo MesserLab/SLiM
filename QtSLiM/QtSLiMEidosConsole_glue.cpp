@@ -25,7 +25,6 @@
 #include <QKeyEvent>
 #include <QDesktopServices>
 
-#include "QtSLiMWindow.h"
 #include "QtSLiMAppDelegate.h"
 
 

@@ -79,7 +79,7 @@ QtSLiMFindRecipe::~QtSLiMFindRecipe()
 
 QStringList QtSLiMFindRecipe::selectedRecipeFilenames(void)
 {
-    QList<QListWidgetItem *> selectedItems = ui->matchListWidget->selectedItems();
+    const QList<QListWidgetItem *> selectedItems = ui->matchListWidget->selectedItems();
     QStringList selectedFilenames;
     
     for (QListWidgetItem *selectedItem : selectedItems)
@@ -182,7 +182,7 @@ void QtSLiMFindRecipe::updateMatchListWidget(void)
     
     matchList->clear();
     
-    for (const QString &match : matchRecipeFilenames)
+    for (const QString &match : qAsConst(matchRecipeFilenames))
         matchList->addItem(displayStringForRecipeFilename(match));
 }
 
@@ -238,14 +238,14 @@ void QtSLiMFindRecipe::highlightPreview(void)
     QString keyword1 = ui->keyword1LineEdit->text();
     QString keyword2 = ui->keyword2LineEdit->text();
     QString keyword3 = ui->keyword3LineEdit->text();
-    std::vector<QString> keywords{keyword1, keyword2, keyword3};
+    const std::vector<QString> keywords{keyword1, keyword2, keyword3};
     
     QList<QTextEdit::ExtraSelection> extraSelections;
     QTextCharFormat format;
     
     format.setBackground(Qt::yellow);
     
-    for (QString keyword : keywords)
+    for (const QString &keyword : keywords)
     {
         if (keyword.length() == 0)
             continue;

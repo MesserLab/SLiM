@@ -249,6 +249,8 @@ void QtSLiMGraphView_LifetimeReproduction::appendStringForData(QString &string)
             for (int i = 0; i < binCount; ++i)
                 string.append(QString("%1, ").arg(reproductionDist[i], 0, 'f', 4));
         }
+        
+        free(reproductionDist);
     }
     
     string.append("\n");

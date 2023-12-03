@@ -253,6 +253,8 @@ void QtSLiMGraphView_AgeDistribution::appendStringForData(QString &string)
             for (int i = 0; i < binCount; ++i)
                 string.append(QString("%1, ").arg(ageDist[i], 0, 'f', 4));
         }
+        
+        free(ageDist);
     }
     
     string.append("\n");

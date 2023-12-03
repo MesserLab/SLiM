@@ -30,7 +30,6 @@
 #include <string>
 
 #include "QtSLiMWindow.h"
-#include "QtSLiMPreferences.h"
 #include "QtSLiMVariableBrowser.h"
 #include "QtSLiMExtras.h"
 

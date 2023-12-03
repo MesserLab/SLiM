@@ -376,7 +376,7 @@ void QtSLiMWindow::init(void)
     // but since this seems to be fragile, I'm going to leave *both* approaches in the code here, maybe which
     // approach works depends on the Qt version or the platform or something.  Forward in all directions!
     ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::NoFocus);
-    QTimer::singleShot(0, [this]() { ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
+    QTimer::singleShot(0, this, [this]() { ui->tickLineEdit->setFocusPolicy(Qt::FocusPolicy::StrongFocus); });
     ui->scriptTextEdit->setFocus();
     
     // watch for a change to light mode / dark mode, to customize display of the play speed slider for example
@@ -619,7 +619,6 @@ void QtSLiMWindow::initializeUI(void)
     
     // substitute a custom layout subclass for playControlsLayout to lay out the profile button specially
     {
-        QtSLiMPlayControlsLayout *newPlayControlsLayout = new QtSLiMPlayControlsLayout();
         int indexOfPlayControlsLayout = -1;
         
         // QLayout::indexOf(QLayoutItem *layoutItem) wasn't added until 5.12, oddly
@@ -629,6 +628,7 @@ void QtSLiMWindow::initializeUI(void)
         
         if (indexOfPlayControlsLayout >= 0)
         {
+            QtSLiMPlayControlsLayout *newPlayControlsLayout = new QtSLiMPlayControlsLayout();
             ui->topRightLayout->insertItem(indexOfPlayControlsLayout, newPlayControlsLayout);
             newPlayControlsLayout->setParent(ui->topRightLayout);   // surprising that insertItem() doesn't do this...; but this sets our parentWidget also, correctly
             
@@ -2908,9 +2908,11 @@ void QtSLiMWindow::updateMenuEnablingSHARED(QWidget *p_focusWidget)
 void QtSLiMWindow::updateWindowMenu(void)
 {
     // Clear out old actions, up to the separator
+    const QList<QAction *> actions = ui->menuWindow->actions();
+    
     do
     {
-        QAction *lastAction = ui->menuWindow->actions().last();
+        QAction *lastAction = actions.last();
         
         if (!lastAction)
             break;
@@ -3533,7 +3535,7 @@ void QtSLiMWindow::displayProfileResults(void)
 		EidosFunctionMap &function_map = community->FunctionMap();
 		std::vector<const EidosFunctionSignature *> userDefinedFunctions;
 		
-		for (auto functionPairIter : function_map)
+		for (const auto &functionPairIter : function_map)
 		{
 			const EidosFunctionSignature *signature = functionPairIter.second.get();
 			
@@ -5294,35 +5296,34 @@ void QtSLiMWindow::displayGraphClicked(void)
             {
                 if (action == ui->actionGraph_1D_Population_SFS)
                     graphView = new QtSLiMGraphView_1DPopulationSFS(this, this);
-                if (action == ui->actionGraph_1D_Sample_SFS)
+                else if (action == ui->actionGraph_1D_Sample_SFS)
                     graphView = new QtSLiMGraphView_1DSampleSFS(this, this);
-                if (action == ui->actionGraph_2D_Population_SFS)
+                else if (action == ui->actionGraph_2D_Population_SFS)
                     graphView = new QtSLiMGraphView_2DPopulationSFS(this, this);
-                if (action == ui->actionGraph_2D_Sample_SFS)
+                else if (action == ui->actionGraph_2D_Sample_SFS)
                     graphView = new QtSLiMGraphView_2DSampleSFS(this, this);
-                if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
+                else if (action == ui->actionGraph_Mutation_Frequency_Trajectories)
                     graphView = new QtSLiMGraphView_FrequencyTrajectory(this, this);
-                if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
+                else if (action == ui->actionGraph_Mutation_Loss_Time_Histogram)
                     graphView = new QtSLiMGraphView_LossTimeHistogram(this, this);
-                if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
+                else if (action == ui->actionGraph_Mutation_Fixation_Time_Histogram)
                     graphView = new QtSLiMGraphView_FixationTimeHistogram(this, this);
-                if (action == ui->actionGraph_Population_Fitness_Distribution)
+                else if (action == ui->actionGraph_Population_Fitness_Distribution)
                     graphView = new QtSLiMGraphView_PopFitnessDist(this, this);
-                if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
+                else if (action == ui->actionGraph_Subpopulation_Fitness_Distributions)
                     graphView = new QtSLiMGraphView_SubpopFitnessDists(this, this);
-                if (action == ui->actionGraph_Fitness_Time)
+                else if (action == ui->actionGraph_Fitness_Time)
                     graphView = new QtSLiMGraphView_FitnessOverTime(this, this);
-                if (action == ui->actionGraph_Age_Distribution)
+                else if (action == ui->actionGraph_Age_Distribution)
                     graphView = new QtSLiMGraphView_AgeDistribution(this, this);
-                if (action == ui->actionGraph_Lifetime_Reproduce_Output)
+                else if (action == ui->actionGraph_Lifetime_Reproduce_Output)
                     graphView = new QtSLiMGraphView_LifetimeReproduction(this, this);
-                if (action == ui->actionGraph_Population_Size_Time)
+                else if (action == ui->actionGraph_Population_Size_Time)
                     graphView = new QtSLiMGraphView_PopSizeOverTime(this, this);
-                if (action == ui->actionGraph_Population_Visualization)
+                else if (action == ui->actionGraph_Population_Visualization)
                     graphView = new QtSLiMGraphView_PopulationVisualization(this, this);
             }
-            
-            if (action == ui->actionGraph_Multispecies_Population_Size_Time)
+            else if (action == ui->actionGraph_Multispecies_Population_Size_Time)
                 graphView = new QtSLiMGraphView_MultispeciesPopSizeOverTime(this, this);
             
             if (graphView)
@@ -5346,7 +5347,7 @@ void QtSLiMWindow::displayGraphClicked(void)
 
 static bool rectIsOnscreen(QRect windowRect)
 {
-    QList<QScreen *> screens = QGuiApplication::screens();
+    const QList<QScreen *> screens = QGuiApplication::screens();
     
     for (QScreen *screen : screens)
     {
@@ -5525,12 +5526,12 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     
     // Set up a context menu for copy/open
     QMenu *contextMenu = new QMenu("image_menu", imageView);
-    contextMenu->addAction("Copy Image", [path]() {
+    contextMenu->addAction("Copy Image", this, [path]() {
         QImage watched_image(path);     // get the current image from the filesystem
         QClipboard *clipboard = QGuiApplication::clipboard();
         clipboard->setImage(watched_image);
     });
-    contextMenu->addAction("Copy File Path", [path]() {
+    contextMenu->addAction("Copy File Path", this, [path]() {
         QClipboard *clipboard = QGuiApplication::clipboard();
         clipboard->setText(path);
     });
@@ -5538,7 +5539,7 @@ QWidget *QtSLiMWindow::imageWindowWithPath(const QString &path)
     // Reveal in Finder / Show in Explorer: see https://stackoverflow.com/questions/3490336
     // Note there is no good solution on Linux, so we do "Open File" instead
     #if defined(Q_OS_MACOS)
-    contextMenu->addAction("Reveal in Finder", [path]() {
+    contextMenu->addAction("Reveal in Finder", this, [path]() {
         const QFileInfo fileInfo(path);
         QStringList scriptArgs;
         scriptArgs << QLatin1String("-e") << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"").arg(fileInfo.canonicalFilePath());

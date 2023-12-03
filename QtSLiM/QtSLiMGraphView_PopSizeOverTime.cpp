@@ -49,7 +49,7 @@ QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *p_pare
     showSubpopulations_ = true;
     drawLines_ = true;
     
-    updateAfterTick();
+    QtSLiMGraphView_PopSizeOverTime::updateAfterTick();
 }
 
 void QtSLiMGraphView_PopSizeOverTime::setDefaultYAxisRange(void)
@@ -64,6 +64,8 @@ void QtSLiMGraphView_PopSizeOverTime::setDefaultYAxisRange(void)
 
 QtSLiMGraphView_PopSizeOverTime::~QtSLiMGraphView_PopSizeOverTime()
 {
+    // We are responsible for our own destruction
+    QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache();
 }
 
 void QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache(void)
@@ -160,7 +162,7 @@ void QtSLiMGraphView_PopSizeOverTime::updateAfterTick(void)
                 yAxisMajorTickModulus_ = 2;
             }
             
-            invalidateDrawingCache();
+            QtSLiMGraphView_PopSizeOverTime::invalidateDrawingCache();
         }
     }
 	

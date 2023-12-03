@@ -118,15 +118,14 @@ void QtSLiMGraphView::addedToWindow(void)
 
 QtSLiMGraphView::~QtSLiMGraphView()
 {
-    cleanup();
+    // It would be nice if we could call these methods automatically for subclasses, but we cannot.  By the time
+    // this destructor has been called, the subclass has already been destructed, and a virtual function call
+    // here calls the QtSLiMGraphView implementation, not the subclass implementation.  Subclasses that use these
+    // methods must call them themselves in their destructors.
+    QtSLiMGraphView::invalidateDrawingCache();
+    QtSLiMGraphView::invalidateCachedData();
     
     controller_ = nullptr;
-}
-
-void QtSLiMGraphView::cleanup()
-{
-    invalidateDrawingCache();
-    invalidateCachedData();
 }
 
 void QtSLiMGraphView::setFocalDisplaySpecies(Species *species)
@@ -875,11 +874,13 @@ void QtSLiMGraphView::paintEvent(QPaintEvent * /* p_paintEvent */)
 void QtSLiMGraphView::invalidateCachedData()
 {
     // GraphView has no cached data, but it supports the idea of it
+    // If anything ever gets added here, calls to super will need to be added in subclasses
 }
 
 void QtSLiMGraphView::invalidateDrawingCache(void)
 {
-	// GraphView has no drawing cache, but it supports the idea of one
+    // GraphView has no drawing cache, but it supports the idea of one
+    // If anything ever gets added here, calls to super will need to be added in subclasses
 }
 
 void QtSLiMGraphView::graphWindowResized(void)

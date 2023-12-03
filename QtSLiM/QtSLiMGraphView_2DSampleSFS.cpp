@@ -98,6 +98,8 @@ void QtSLiMGraphView_2DSampleSFS::addedToWindow(void)
 
 QtSLiMGraphView_2DSampleSFS::~QtSLiMGraphView_2DSampleSFS()
 {
+    // We are responsible for our own destruction
+    QtSLiMGraphView_2DSampleSFS::invalidateCachedData();
 }
 
 void QtSLiMGraphView_2DSampleSFS::subpopulation1PopupChanged(int /* index */)
