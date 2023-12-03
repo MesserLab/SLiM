@@ -25,6 +25,10 @@
 #include <QChar>
 #include <QDebug>
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 
 static int Eidos_indentForStack(std::vector<const EidosToken *> &indentStack, bool startingNewStatement, EidosTokenType nextTokenType)
 {

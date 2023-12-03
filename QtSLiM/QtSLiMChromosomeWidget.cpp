@@ -29,6 +29,10 @@
 #include <QMouseEvent>
 #include <QtDebug>
 
+#include <map>
+#include <algorithm>
+#include <vector>
+
 
 // OpenGL constants
 static const int kMaxGLRects = 4000;				// 4000 rects

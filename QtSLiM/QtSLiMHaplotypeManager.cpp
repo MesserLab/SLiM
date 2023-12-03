@@ -38,6 +38,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 #include "eidos_globals.h"
 #include "subpopulation.h"

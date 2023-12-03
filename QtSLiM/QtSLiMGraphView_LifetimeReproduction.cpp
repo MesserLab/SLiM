@@ -27,6 +27,9 @@
 #include <QGuiApplication>
 #include <QDebug>
 
+#include <string>
+#include <algorithm>
+
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 

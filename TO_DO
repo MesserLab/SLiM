@@ -32,7 +32,7 @@ some valgrind commands (set SLIM_LEAK_CHECKING to 1, and change the compile C/C+
 
 cpplint.py for checking includes (https://github.com/google/styleguide/tree/gh-pages/cpplint):
 	cd /Users/bhaller/Documents/Research/MesserLab/SLiM_project/SLiM 
-	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp
+	python2.7 /Users/bhaller/bin/cpplint.py --filter=-,+build/include_what_you_use ./core/*.cpp ./eidos/*.cpp ./eidostool/*.cpp ./QtSLiM/*.cpp
 
 clang-tidy with CMake:
 	see https://danielsieger.com/blog/2021/12/21/clang-tidy-cmake.html

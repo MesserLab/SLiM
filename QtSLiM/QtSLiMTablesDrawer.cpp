@@ -31,6 +31,12 @@
 #include <QWindow>
 #include <QDebug>
 
+#include <algorithm>
+#include <utility>
+#include <string>
+#include <vector>
+#include <map>
+
 #include "QtSLiMWindow.h"
 #include "QtSLiMExtras.h"
 #include "QtSLiMAppDelegate.h"

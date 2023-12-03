@@ -25,6 +25,9 @@
 #include "subpopulation.h"
 #include "individual.h"
 
+#include <utility>
+#include <string>
+
 
 QtSLiMGraphView_PopFitnessDist::QtSLiMGraphView_PopFitnessDist(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)
 {

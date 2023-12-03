@@ -24,6 +24,11 @@
 #include <QPainterPath>
 #include <QDebug>
 
+#include <map>
+#include <limits>
+#include <utility>
+#include <algorithm>
+
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 

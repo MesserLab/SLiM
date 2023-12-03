@@ -42,6 +42,9 @@
 #include <QDebug>
 #include <cmath>
 
+#include <string>
+#include <algorithm>
+
 #include "QtSLiMPreferences.h"
 #include "QtSLiMAppDelegate.h"
 

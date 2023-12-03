@@ -28,6 +28,8 @@
 #include <QAbstractItemView>
 #include <QDebug>
 
+#include <algorithm>
+
 #include "QtSLiMPreferences.h"
 #include "QtSLiMExtras.h"
 #include "eidos_globals.h"

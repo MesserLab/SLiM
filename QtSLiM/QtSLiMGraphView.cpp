@@ -37,6 +37,11 @@
 #include <QLabel>
 #include <QDebug>
 
+#include <map>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "species.h"
 #include "subpopulation.h"
 #include "genome.h"

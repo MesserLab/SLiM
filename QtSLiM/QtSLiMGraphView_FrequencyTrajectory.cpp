@@ -25,6 +25,9 @@
 #include <QComboBox>
 #include <QDebug>
 
+#include <string>
+#include <vector>
+
 #include "QtSLiMWindow.h"
 #include "subpopulation.h"
 

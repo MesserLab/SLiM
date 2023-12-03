@@ -27,6 +27,9 @@
 #include <QTextCharFormat>
 #include <QDebug>
 
+#include <string>
+#include <vector>
+
 #include "eidos_script.h"
 #include "slim_globals.h"
 

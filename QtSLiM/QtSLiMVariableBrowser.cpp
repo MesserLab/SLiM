@@ -28,9 +28,14 @@
 #include <QScrollBar>
 #include <QDebug>
 
-#include "QtSLiMWindow.h"
+#include <utility>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "QtSLiMEidosConsole.h"
 #include "QtSLiMAppDelegate.h"
+#include "QtSLiMExtras.h"
 
 #include "eidos_symbol_table.h"
 

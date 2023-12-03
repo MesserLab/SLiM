@@ -30,6 +30,9 @@
 #include <QTextStream>
 #include <QDebug>
 
+#include <algorithm>
+#include <vector>
+
 
 QtSLiMFindRecipe::QtSLiMFindRecipe(QWidget *p_parent) : QDialog(p_parent), ui(new Ui::QtSLiMFindRecipe)
 {

@@ -19,6 +19,8 @@
 
 #include "QtSLiMGraphView_1DPopulationSFS.h"
 
+#include <string>
+
 #include "QtSLiMWindow.h"
 
 

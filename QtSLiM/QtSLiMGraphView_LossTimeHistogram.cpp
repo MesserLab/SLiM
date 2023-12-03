@@ -19,6 +19,8 @@
 
 #include "QtSLiMGraphView_LossTimeHistogram.h"
 
+#include <string>
+
 #include "QtSLiMWindow.h"
 
 

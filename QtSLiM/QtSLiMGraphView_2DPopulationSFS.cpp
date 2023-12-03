@@ -22,6 +22,10 @@
 #include <QComboBox>
 #include <QDebug>
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "mutation_type.h"
 
 

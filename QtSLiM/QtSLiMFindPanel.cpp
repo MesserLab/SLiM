@@ -28,8 +28,10 @@
 #include <QTextBlock>
 #include <QDebug>
 
+#include <utility>
+
 #include "QtSLiMAppDelegate.h"
-#include "QtSLiMWindow.h"
+#include "QtSLiMExtras.h"
 
 
 QtSLiMFindPanel &QtSLiMFindPanel::instance(void)

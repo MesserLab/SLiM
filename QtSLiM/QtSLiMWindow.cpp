@@ -78,6 +78,12 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+#include <utility>
+#include <map>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "individual.h"
 #include "eidos_test.h"
 #include "slim_test.h"

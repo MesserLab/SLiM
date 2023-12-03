@@ -27,6 +27,11 @@
 #include <QtGlobal>
 #include <QDebug>
 
+#include <map>
+#include <utility>
+#include <string>
+#include <vector>
+
 
 // OpenGL constants
 static const int kMaxGLRects = 2000;				// 2000 rects

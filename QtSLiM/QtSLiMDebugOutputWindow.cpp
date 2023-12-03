@@ -27,8 +27,11 @@
 #include <QTableWidget>
 #include <QDebug>
 
+#include <utility>
+#include <string>
+#include <vector>
+
 #include "QtSLiMWindow.h"
-#include "QtSLiMEidosConsole.h"
 #include "QtSLiMAppDelegate.h"
 #include "QtSLiMExtras.h"
 

@@ -56,6 +56,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <string>
+#include <algorithm>
 
 #include "eidos_globals.h"
 #include "eidos_beep.h"

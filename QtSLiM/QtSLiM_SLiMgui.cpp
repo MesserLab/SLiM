@@ -27,6 +27,10 @@
 
 #include <unistd.h>
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 
 #pragma mark -
 #pragma mark SLiMGUI

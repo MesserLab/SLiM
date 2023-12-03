@@ -25,8 +25,11 @@
 #include <QPainterPath>
 #include <QDebug>
 
+#include <limits>
+#include <string>
+#include <vector>
+
 #include "QtSLiMWindow.h"
-#include "subpopulation.h"
 
 
 QtSLiMGraphView_FitnessOverTime::QtSLiMGraphView_FitnessOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)

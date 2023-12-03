@@ -41,6 +41,12 @@
 #include <QToolTip>
 #include <QDebug>
 
+#include <utility>
+#include <memory>
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "QtSLiMPreferences.h"
 #include "QtSLiMEidosPrettyprinter.h"
 #include "QtSLiMSyntaxHighlighting.h"

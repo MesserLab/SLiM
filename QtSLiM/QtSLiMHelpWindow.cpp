@@ -36,20 +36,14 @@
 #include "eidos_call_signature.h"
 #include "eidos_property_signature.h"
 #include "community.h"
-#include "species.h"
-#include "chromosome.h"
-#include "genome.h"
-#include "genomic_element.h"
-#include "genomic_element_type.h"
-#include "individual.h"
-#include "subpopulation.h"
 
 #include "QtSLiMExtras.h"
-#include "QtSLiM_SLiMgui.h"
 #include "QtSLiMAppDelegate.h"
 
 #include <vector>
 #include <algorithm>
+#include <utility>
+#include <string>
 
 
 //

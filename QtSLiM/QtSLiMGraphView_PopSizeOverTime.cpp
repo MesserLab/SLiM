@@ -25,8 +25,11 @@
 #include <QPainterPath>
 #include <QDebug>
 
+#include <string>
+#include <algorithm>
+#include <vector>
+
 #include "QtSLiMWindow.h"
-#include "subpopulation.h"
 
 
 QtSLiMGraphView_PopSizeOverTime::QtSLiMGraphView_PopSizeOverTime(QWidget *p_parent, QtSLiMWindow *controller) : QtSLiMGraphView(p_parent, controller)

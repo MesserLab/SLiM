@@ -19,6 +19,8 @@
 
 #include "QtSLiMGraphView_FixationTimeHistogram.h"
 
+#include <string>
+
 #include "QtSLiMWindow.h"
 
 
