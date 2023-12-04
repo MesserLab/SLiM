@@ -3780,7 +3780,7 @@ This method may be used with either spatial or non-spatial interactions, but wil
 \f4\fs20 , rather than drawing individuals one at a time.  Note that if no individuals exert a non-zero interaction strength upon 
 \f3\fs18 receiver
 \f4\fs20 , the vector returned will be zero-length; it is important to consider this possibility.\
-Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
+Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -4007,7 +4007,7 @@ To see the point of this method, consider a receiver located near the edge of th
 Note that this method uses interaction eligibility as a criterion; it will not return neighbors that cannot exert an interaction upon the receiver (due to the configured receiver or exerter constraints).  (It will also never return the receiver as a neighbor of itself.)  To find all neighbors of a receiver, whether they can interact with it or not, use 
 \f3\fs18 nearestNeighbors()
 \f4\fs20 .\
-Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
+Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -4081,7 +4081,7 @@ Beginning in SLiM 5.0, this method has a vectorized mode of operation in which t
 \f3\fs18 nearestInteractingNeighbors()
 \f4\fs20 .\
 \pard\pardeftab543\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 Beginning in SLiM 5.0, this method has a vectorized mode of operation in which the 
+\cf2 Beginning in SLiM 4.1, this method has a vectorized mode of operation in which the 
 \f3\fs18 receiver
 \f4\fs20  parameter may be non-singleton.  To switch the method to this mode, pass 
 \f3\fs18 T
@@ -8416,7 +8416,7 @@ The species to which the target object belongs.\
 \f4\fs20  and 
 \f3\fs18 modifyChild()
 \f4\fs20  callbacks governing the generation of the offspring individual.\
-Beginning in SLiM 5.0, the 
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -8429,7 +8429,7 @@ Beginning in SLiM 5.0, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 5.0, passing 
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -8442,7 +8442,7 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent
 \f4\fs20 ; more specifically, the 
 \f3\fs18 x
@@ -8553,7 +8553,7 @@ If the
 \f4\fs20  callback rejects all proposed children from those particular parents, your model will then hang, so care must be taken with this approach.  Usually, nonWF models do not force generation of offspring in this manner; rejection of a proposed offspring by a 
 \f3\fs18 modifyChild()
 \f4\fs20  callback typically represents a phenomenon such as post-mating reproductive isolation or lethal genetic incompatibilities that would reduce the expected litter size, so the default behavior is typically desirable.\
-Beginning in SLiM 5.0, the 
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -8566,7 +8566,7 @@ Beginning in SLiM 5.0, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 5.0, passing 
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -8581,7 +8581,7 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent1
 \f4\fs20 ; more specifically, the 
 \f3\fs18 x
@@ -8645,7 +8645,7 @@ By default \'96 when
 \f4\fs20  can be used to make one or both genomes be null genomes, which can be useful for, e.g., modeling haploids (for which, by convention, the 
 \f1\i second
 \f4\i0  genome is usually a null genome in SLiM).\
-Beginning in SLiM 5.0, the 
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -8892,7 +8892,7 @@ Note that gene conversion tracts are not explicitly supported by this method; th
 \f3\fs18 breaks
 \f4\fs20  vectors provide crossover breakpoints, which may be used to implement crossovers or simple gene conversion tracts.  There is no way to specify complex gene conversion tracts with heteroduplex mismatch repair.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 5.0, the 
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -8905,7 +8905,7 @@ Note that gene conversion tracts are not explicitly supported by this method; th
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 5.0, passing 
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -8918,7 +8918,7 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent1
 \f4\fs20 ; more specifically, the 
 \f3\fs18 x
@@ -8965,7 +8965,7 @@ Since selfing requires that
 \f4\fs20  has no effect on this method (in contrast to the behavior of 
 \f3\fs18 addCrossed()
 \f4\fs20 , where selfing is assumed to be incidental).\
-Beginning in SLiM 5.0, the 
+Beginning in SLiM 4.1, the 
 \f3\fs18 count
 \f4\fs20  parameter dictates how many offspring will be generated (previously, exactly one offspring was generated).  Each offspring is generated independently, based upon the given parameters.  The returned vector contains all generated offspring, except those that were rejected by a 
 \f3\fs18 modifyChild()
@@ -8978,7 +8978,7 @@ Beginning in SLiM 5.0, the
 \f4\fs20 ; note that this is a change in behavior from earlier versions, which would return 
 \f3\fs18 NULL
 \f4\fs20 .\
-Beginning in SLiM 5.0, passing 
+Beginning in SLiM 4.1, passing 
 \f3\fs18 T
 \f4\fs20  for 
 \f3\fs18 defer
@@ -8993,7 +8993,7 @@ Beginning in SLiM 5.0, passing
 \f4\fs20  for 
 \f3\fs18 defer
 \f4\fs20  is generally preferable since it has fewer restrictions.  When running multi-threaded, deferring genome generation allows that task to be done in parallel (which is the reason this option exists).\
-Also beginning in SLiM 5.0, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
+Also beginning in SLiM 4.1, in spatial models the spatial position of the offspring will be inherited (i.e., copied) from 
 \f3\fs18 parent
 \f4\fs20 ; more specifically, the 
 \f3\fs18 x
@@ -9992,7 +9992,7 @@ Set the spatial boundaries of the subpopulation to
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 5.0 and later, use the 
+\f4\b0   In SLiM 4.1 and later, use the 
 \f3\fs18 SpatialMap
 \f4\fs20  method 
 \f3\fs18 mapColor()
@@ -10005,7 +10005,7 @@ Set the spatial boundaries of the subpopulation to
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
 
 \f0\b\fs20 \cf2 This method has been deprecated, and may be removed in a future release of SLiM.
-\f4\b0   In SLiM 5.0 and later, use the 
+\f4\b0   In SLiM 4.1 and later, use the 
 \f3\fs18 SpatialMap
 \f4\fs20  method 
 \f3\fs18 mapImage()

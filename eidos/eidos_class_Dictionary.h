@@ -52,13 +52,13 @@ extern EidosClass *gEidosDictionaryUnretained_Class;
 // so that the overhead of inheriting from the class itself is only one pointer, unless the Dictionary functionality is
 // actually used (which it usually isn't, since many SLiM objects inherit from Dictionary but rarely use it).
 //
-// EidosDictionary now supports keys that are either strings (the original semantics) or integers (new in SLiM 5.0).
+// EidosDictionary now supports keys that are either strings (the original semantics) or integers (new in SLiM 4.1).
 // A given dictionary must use one or the other; the key types cannot be mixed within one dictionary, for API and
 // implementation simplicity.  The keys_are_integers_ flag controls which type of key is used; this is set when this
 // struct is created.  Note that code in Eidos_WarmUp() verifies that this flag is at the same memory location in both
 // structs, so that we can access that flag without knowing which struct type we are using.
 //
-// EidosDictionary also (as of SLiM 5.0) can contain objects of any class.  It used to only allow objects that are
+// EidosDictionary also (as of SLiM 4.1) can contain objects of any class.  It used to only allow objects that are
 // under the "retain-release" memory management system, in order to guarantee that no objects were kept long-term
 // unless under retain-release.  That guarantee is now satisfied, instead, by EidosDictionaryUnretained keeping
 // track of whether it contains non-retain-release objects, with a flag, and a global counter keeps track of how

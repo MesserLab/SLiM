@@ -87,11 +87,11 @@ A utility function,
 \f1\fs18 C
 \f2\fs20  mutations.  A non-zero bias may only be set in nucleotide-based models.  This function, and the way that gene conversion is modeled, fundamentally changed in SLiM 3.3.\
 \pard\pardeftab720\li547\ri720\sb60\sa60\partightenfactor0
-\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 5.0, the 
+\cf2 \kerning1\expnd0\expndtw0 Beginning in SLiM 4.1, the 
 \f1\fs18 redrawLengthsOnFailure
 \f2\fs20  parameter can be used to modify the internal mechanics of layout of gene conversion tracts.  If it is 
 \f1\fs18 F
-\f2\fs20  (the default, and the only behavior supported before SLiM 5.0), then if an attempt to lay out gene conversion tracts fails (because the tracts overlap each other, or overlap the start or end of the chromosome), SLiM will try again by drawing new positions for the tracts \'96 essentially shuffling the tracts around to try to find positions for them that don\'92t overlap.  If 
+\f2\fs20  (the default, and the only behavior supported before SLiM 4.1), then if an attempt to lay out gene conversion tracts fails (because the tracts overlap each other, or overlap the start or end of the chromosome), SLiM will try again by drawing new positions for the tracts \'96 essentially shuffling the tracts around to try to find positions for them that don\'92t overlap.  If 
 \f1\fs18 redrawLengthsOnFailure
 \f2\fs20  is 
 \f1\fs18 T
@@ -1742,8 +1742,9 @@ The code for
 \f3\i F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \nosupersub  (but see below for further discussion and clarification):\
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
 
-\f3\i F
+\f3\i \cf2 F
 \f2\i0\fs13\fsmilli6667 \sub ST
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub  = 1 - 
@@ -1755,7 +1756,8 @@ The code for
 \f2\i0\fs13\fsmilli6667 \kerning1\expnd0\expndtw0 \sub T
 \fs20 \expnd0\expndtw0\kerning0
 \nosupersub \
-\kerning1\expnd0\expndtw0 where 
+\pard\pardeftab397\li547\ri720\sb60\sa60\partightenfactor0
+\cf2 \kerning1\expnd0\expndtw0 where 
 \f3\i H
 \fs13\fsmilli6667 \sub S
 \f2\i0\fs20 \nosupersub  is the average heterozygosity in the two subpopulations, and 

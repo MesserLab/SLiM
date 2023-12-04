@@ -4,7 +4,7 @@ This version history begins with the final release of version 2.0.  Versions pri
 
 Note that not every commit will be logged here; that is what the Github commit history is for.  The purpose of this file is to record major feature additions, major bug fixes, etc., so that it is easier to track down which version number a particular major change occurred in.  To that end, major changes made in the development head will be logged below; when we decide to roll a new version number and do a new release, all of those development head changes will be reassigned as belonging to the new version number.
 
-PARALLEL changes (now in the master branch):
+PARALLEL changes (now in the master branch, but disabled):
 	TO DO: the openmp branch had changes to travis.yml to test the openmp branch, which should be replicated somehow for GitHub Actions:
 		using macos xcode11.6/clang and linux bionic/gcc
 		on osx, "brew install libomp;" "ls -l /usr/local/opt/libomp/include/omp.h;" "ls -l /usr/local/include;"
