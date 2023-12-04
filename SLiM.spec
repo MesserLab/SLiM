@@ -1,6 +1,14 @@
+# Cross-distribution SLiM RPM spec.
+# Defines:
+%if %{defined suse_version}
+%define qt5 libqt5
+%else
+%define qt5 qt5
+%endif
+
 Name:           SLiM
-Version:        4.0.1
-Release:        2%{?dist}
+Version:        4.1
+Release:        1%{?dist}
 Summary:        an evolutionary simulation framework
 
 License:        GPLv3+
@@ -10,6 +18,7 @@ Source0:        https://github.com/MesserLab/SLiM/archive/v%{version}.tar.gz
 # Prevent users of the Copr repository from using Simple Login Manager, due to binary file name conflict.
 Conflicts:      slim
 
+# This paragraph of the spec file is old and delicate.
 BuildRequires:  cmake
 # openSUSE Build Requires
 %if %{defined suse_version}
@@ -26,23 +35,8 @@ BuildRequires:  libappstream-glib
 %endif
 ExclusiveArch:  x86_64
 
-# Fedora: these package versions are those that COPR is building against, and thus if
-# they change because of point releases in Qt5, the RPMs need to be rebuilt and deployed.
-# Qt is weird and doesn't allow older software to be used if a newer point release is
-# installed on the system.
-%if 0%{?fedora}
-Requires: qt5-qtbase >= 5.13.2
-%endif
-
-# Conditonal requires for RHEL (and CentOS)
-%if 0%{?rhel}
-Requires: qt5-qtbase >= 5.12.5
-%endif
-
-# Conditional requires for openSUSE and SLE.
-%if %{defined suse_version}
-Requires: libqt5-qtbase >= 5.12.7
-%endif
+# RHEL 8 has the oldest point release of 5.15, and is the oldest RHEL supported.
+Requires: %{qt5}-qtbase >= 5.15.1
 
 %description
 SLiM is an evolutionary simulation framework that combines a powerful engine for
@@ -56,36 +50,33 @@ Linux for easy simulation set-up, interactive runtime control, and dynamical
 visualization of simulation output.
 
 %prep
-tar -xf ../SOURCES/v%{version}.tar.gz
+%setup -q
 
 %build
-# NOTE: is the relative path required when using the cmake macro due to the above source prep-style?
-%cmake -DBUILD_SLIMGUI=ON #./SLiM-%version}/
+%cmake -DBUILD_SLIMGUI=ON
 %cmake_build
 
 %install
 %cmake_install
 
-%check
-appstream-util validate-relax --nonet %{buildroot}/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
-
 %files
-/usr/bin/eidos
-/usr/bin/slim
-/usr/bin/SLiMgui
-/usr/share/applications/org.messerlab.slimgui.desktop
-/usr/share/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
-/usr/share/icons/hicolor/scalable/mimetypes/text-slim.svg
-/usr/share/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
-/usr/share/metainfo/org.messerlab.slimgui.appdata.xml
-/usr/share/metainfo/org.messerlab.slimgui.metainfo.xml
-/usr/share/mime/packages/org.messerlab.slimgui-mime.xml
-
-%post
-update-mime-database -n /usr/share/mime/
-xdg-mime install --mode system /usr/share/mime/packages/org.messerlab.slimgui-mime.xml
+%{_bindir}/eidos
+%{_bindir}/slim
+%{_bindir}/SLiMgui
+%{_datadir}/applications/org.messerlab.slimgui.desktop
+%{_datadir}/icons/hicolor/scalable/apps/org.messerlab.slimgui.svg
+%{_datadir}/icons/hicolor/scalable/mimetypes/text-slim.svg
+%{_datadir}/icons/hicolor/symbolic/apps/org.messerlab.slimgui-symbolic.svg
+%{_datadir}/metainfo/org.messerlab.slimgui.appdata.xml
+%{_datadir}/metainfo/org.messerlab.slimgui.metainfo.xml
+%{_datadir}/mime/packages/org.messerlab.slimgui-mime.xml
 
 %changelog
+* Mon Dec 4 2023 Bryce Carson <bryce.a.carson@gmail.com> - 4.1-1
+- Final candidate 1 for 4.1 release
+- CMake install of package desktop environment data properly implemented
+- RPM macros adopted
+
 * Tue Sep 27 2022 Bryce Carson <bryce.a.carson@gmail.com> - 4.0.1-2
 - `CMakeLists.txt` improved, so the installation section of the RPM is now simplified.
 - Data files now exist in `data/`, rather than in the root folder of the software.
