@@ -348,9 +348,9 @@ else()
         target_link_libraries(${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib gnu )
     else()
 	    target_link_libraries( ${TARGET_NAME} PUBLIC Qt5::Widgets Qt5::Core Qt5::Gui OpenGL::GL gsl tables eidos_zlib )
-
-	    install(DIRECTORY data/ DESTINATION share)
-    endif()
+        # Install icons and desktop files to the data root directory (usually /usr/local/share, or /usr/share).
+	    install(DIRECTORY data/ TYPE DATA)
+    endif() 
 endif()
 install(TARGETS ${TARGET_NAME} DESTINATION bin)
 endif(BUILD_SLIMGUI)
