@@ -56,6 +56,9 @@
 //	(integer)findInterval(numeric x, numeric vec, [logical$ rightmostClosed = F], [logical$ allInside = F])
 EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP> &p_arguments, __attribute__((unused)) EidosInterpreter &p_interpreter)
 {
+	// Switching to using binary search for this algorithm, but I want to keep the old code around in case it is needed
+#define EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH	1
+	
 	EidosValue *arg_x = p_arguments[0].get();
 	EidosValue *arg_vec = p_arguments[1].get();
 	EidosValue *arg_rightmostClosed = p_arguments[2].get();
@@ -72,7 +75,11 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 	
 	bool rightmostClosed = arg_rightmostClosed->LogicalAtIndex(0, nullptr);
 	bool allInside = arg_allInside->LogicalAtIndex(0, nullptr);
+	
+#if !(EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH)
+	// Used by the old linear-search algorithm
 	int initial_x_result = allInside ? 0 : -1;
+#endif
 	
 	EidosValue_Int_vector *int_result = (new (gEidosValuePool->AllocateChunk()) EidosValue_Int_vector())->resize_no_initialize(x_count);
 	
@@ -92,6 +99,27 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
 			
 			// Find intervals for integer vec, integer x
+			
+#if EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH
+			// binary search - testing indicates this is pretty much always as fast or faster than linear search
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				long x_result;
+				
+				if (x_value < vec_data[0])
+					x_result = (allInside ? 0 : -1);
+				else if (x_value > vec_data[vec_count - 1])
+					x_result = (allInside ? vec_count - 2 : vec_count - 1);
+				else if (x_value == vec_data[vec_count - 1])
+					x_result = ((rightmostClosed || allInside) ? vec_count - 2 : vec_count - 1);
+				else
+					x_result = (std::upper_bound(vec_data, vec_data + vec_count, x_value) - vec_data) - 1;
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+#else
+			// linear search
 			for (int x_index = 0; x_index < x_count; ++x_index)
 			{
 				int64_t x_value = x_data[x_index];
@@ -111,12 +139,34 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 				
 				int_result->set_int_no_check(x_result, x_index);
 			}
+#endif
 		}
 		else	// (x_type == EidosValueType::kValueFloat)
 		{
 			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
 			
 			// Find intervals for integer vec, float x
+			
+#if EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH
+			// binary search - testing indicates this is pretty much always as fast or faster than linear search
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				long x_result;
+				
+				if (x_value < vec_data[0])
+					x_result = (allInside ? 0 : -1);
+				else if (x_value > vec_data[vec_count - 1])
+					x_result = (allInside ? vec_count - 2 : vec_count - 1);
+				else if (x_value == vec_data[vec_count - 1])
+					x_result = ((rightmostClosed || allInside) ? vec_count - 2 : vec_count - 1);
+				else
+					x_result = (std::upper_bound(vec_data, vec_data + vec_count, x_value) - vec_data) - 1;
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+#else
+			// linear search
 			for (int x_index = 0; x_index < x_count; ++x_index)
 			{
 				double x_value = x_data[x_index];
@@ -136,6 +186,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 				
 				int_result->set_int_no_check(x_result, x_index);
 			}
+#endif
 		}
 	}
 	else // (vec_type == EidosValueType::kValueFloat))
@@ -154,6 +205,27 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 			const int64_t *x_data = arg_x->IsSingleton() ? &((EidosValue_Int_singleton *)arg_x)->IntValue_Mutable() : ((EidosValue_Int_vector *)arg_x)->data();
 			
 			// Find intervals for float vec, integer x
+			
+#if EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH
+			// binary search - testing indicates this is pretty much always as fast or faster than linear search
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				int64_t x_value = x_data[x_index];
+				long x_result;
+				
+				if (x_value < vec_data[0])
+					x_result = (allInside ? 0 : -1);
+				else if (x_value > vec_data[vec_count - 1])
+					x_result = (allInside ? vec_count - 2 : vec_count - 1);
+				else if (x_value == vec_data[vec_count - 1])
+					x_result = ((rightmostClosed || allInside) ? vec_count - 2 : vec_count - 1);
+				else
+					x_result = (std::upper_bound(vec_data, vec_data + vec_count, x_value) - vec_data) - 1;
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+#else
+			// linear search
 			for (int x_index = 0; x_index < x_count; ++x_index)
 			{
 				int64_t x_value = x_data[x_index];
@@ -173,12 +245,34 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 				
 				int_result->set_int_no_check(x_result, x_index);
 			}
+#endif
 		}
 		else	// (x_type == EidosValueType::kValueFloat)
 		{
 			const double *x_data = arg_x->IsSingleton() ? &((EidosValue_Float_singleton *)arg_x)->FloatValue_Mutable() : ((EidosValue_Float_vector *)arg_x)->data();
 			
 			// Find intervals for float vec, float x
+			
+#if EIDOS_FIND_INTERVAL_USE_BINARY_SEARCH
+			// binary search - testing indicates this is pretty much always as fast or faster than linear search
+			for (int x_index = 0; x_index < x_count; ++x_index)
+			{
+				double x_value = x_data[x_index];
+				long x_result;
+				
+				if (x_value < vec_data[0])
+					x_result = (allInside ? 0 : -1);
+				else if (x_value > vec_data[vec_count - 1])
+					x_result = (allInside ? vec_count - 2 : vec_count - 1);
+				else if (x_value == vec_data[vec_count - 1])
+					x_result = ((rightmostClosed || allInside) ? vec_count - 2 : vec_count - 1);
+				else
+					x_result = (std::upper_bound(vec_data, vec_data + vec_count, x_value) - vec_data) - 1;
+				
+				int_result->set_int_no_check(x_result, x_index);
+			}
+#else
+			// linear search
 			for (int x_index = 0; x_index < x_count; ++x_index)
 			{
 				double x_value = x_data[x_index];
@@ -198,6 +292,7 @@ EidosValue_SP Eidos_ExecuteFunction_findInterval(const std::vector<EidosValue_SP
 				
 				int_result->set_int_no_check(x_result, x_index);
 			}
+#endif
 		}
 	}
 	

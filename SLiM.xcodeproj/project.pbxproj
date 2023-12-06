@@ -1888,6 +1888,7 @@
 		985A11861BBA07CB009EE1FF /* eidos_object_pool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = eidos_object_pool.h; sourceTree = "<group>"; };
 		985D1D892808B84F00461CFA /* sparse_vector.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = sparse_vector.cpp; sourceTree = "<group>"; };
 		985D1D8A2808B84F00461CFA /* sparse_vector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparse_vector.h; sourceTree = "<group>"; };
+		985DCFD52B1ED7340025B0D5 /* PARALLEL */ = {isa = PBXFileReference; lastKnownFileType = text; path = PARALLEL; sourceTree = "<group>"; };
 		985F3EE924BA27EC00E712E0 /* slim_test_genetics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = slim_test_genetics.cpp; sourceTree = "<group>"; };
 		985F3EEC24BA2A5D00E712E0 /* eidos_test_operators_other.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_operators_other.cpp; sourceTree = "<group>"; };
 		985F3EF124BA2A8C00E712E0 /* eidos_test_functions_other.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = eidos_test_functions_other.cpp; sourceTree = "<group>"; };
@@ -2417,6 +2418,7 @@
 		982663471A3BABD300A0CBBF = {
 			isa = PBXGroup;
 			children = (
+				985DCFD52B1ED7340025B0D5 /* PARALLEL */,
 				98E9A6B21A3CE299000AD4FC /* TO_DO */,
 				986021081A3BB504001BDCFE /* LICENSE */,
 				98AF84641CB307300030D1EB /* VERSIONS */,

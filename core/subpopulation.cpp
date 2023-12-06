@@ -7905,7 +7905,7 @@ EidosValue_SP Subpopulation::ExecuteMethod_spatialMapValue(EidosGlobalStringID p
 	// We want to un-clog the Subpopulation API, so specialized functionality of SpatialMap should not be mirrored
 	// there.  However, spatialMapValue() is the core functionality, and it is a nice convenience to be able to
 	// do it through Subpopulation without having to keep track of the SpatialMap object, just as was done before
-	// SLiM 5.  In addition, using this API has some code safety benefits: the Subpopulation will check itself for
+	// SLiM 4.1.  In addition, using this API has some code safety benefits: the Subpopulation will check itself for
 	// compatibility with the spatial map, and SLiMgui will display the spatial map correctly (which would not
 	// be the case if it had not been added to the target subpopulation at all).  Nevertheless, the new SpatialMap
 	// method -mapValue() is also available, and can be used instead of this.  This redundancy seems worthwhile.
