@@ -47,7 +47,7 @@ Please read the manual for information on what platforms are currently supported
 
 **Linux users**: an AppImage is now supported, rather than Flatpak (which never saw public light), and will be released shortly upon the 4.1 release of SLiM. The AppImage is a portable binary distribution that is supported on most Linux platforms, but is not foolproof as it depends on the Kernel. If the AppImage ever breaks, create an issue and tag @bryce-carson to request an update (breakage can occur when runtime libraries are outpaced by the Linux kernel, so fast-moving distributions can sometimes cause AppImages to break).
 
-- When released, the AppImage will be linked to here.
+(Download the AppImage, cross-distribution binary of SLiMgui here)[https://github.com/bryce-carson/SLiM/releases/download/v4.1/SLiMgui-x86_64.AppImage]
 
 <table>
 <thead>
