@@ -42,58 +42,40 @@ Installation
 ------------
 <em>Looking for Binary Packages / Installers?</em>
 
-**Windows & Linux users**:
-Please read the manual for information on what platforms are currently supported; this table is not always up-to-date, but has links to solutions that have previously worked for most users. Particularly, the Windows installation procedure has changed from Windows 10 and now an installer directly supporting Windows is documented in the manual. The disappearance of the Windows logo from the below table only reflects the deprecation of an outdated procedure to use SLiMgui under WSL; that procedure still works, but is outmoded/deprecated.
+The following sections summarize what methods for acquiring SLiM (and SLiMgui) are available.
 
-**Linux users**: an AppImage is now supported, rather than Flatpak (which never saw public light), and will be released shortly upon the 4.1 release of SLiM. The AppImage is a portable binary distribution that is supported on most Linux platforms, but is not foolproof as it depends on the Kernel. If the AppImage ever breaks, create an issue and tag @bryce-carson to request an update (breakage can occur when runtime libraries are outpaced by the Linux kernel, so fast-moving distributions can sometimes cause AppImages to break).
+##### macOS
+https://github.com/MesserLab/SLiM/releases/download/v4.0.1/SLiM_OSX_Installer.pkg
 
-**[Download the AppImage, cross-distribution binary of SLiMgui here](https://github.com/bryce-carson/SLiM/releases)**: always download the latest release of the AppImage; sometimes there are unforseen build issues with AppImage which cause the underlying libstdc++ to become unworkable (if the AppImage was built on too new of a system). If the AppImage does not run, this is likely the case for your system and your system is too old (it is unsupported by us). The oldest distribution supported by the AppImage distributed here is Ubuntu 20.04 LTS, which is supported until 2025.
+##### Linux
+###### Arch & Manjaro
+Any Arch-based distributions *which support the AUR* should be compatibile.
 
-<table>
-<thead>
-<tr>
-<th>macOS</th>
-<th>Fedora, Red Hat Enterprise, CentOS, and openSUSE</th>
-<th>Debian & Ubuntu</th>
-<th>Arch Linux</th>
-</tr>
-</thead>
-<tbody>
-<!-- Icon-only Row -->
-<tr>
-<!-- macOS -->
-<td align="center"><a href="http://benhaller.com/slim/SLiM_OSX_Installer.pkg" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/apple.svg" width="64" height="64"></a></td>
+https://aur.archlinux.org/packages/slim-simulator/
 
-<!-- Fedora -->
-<!-- Fedora copr Logo SVG tag upstream: https://pagure.io/copr/copr/blob/main/f/doc/img/copr-logo.svg-->
-<td align="center"><a href="https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/fedora.svg" alt="Fedora" width="64" height="64"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/opensuse.svg" alt="openSUSE" width="64" height="64"></a></td>
+###### Fedora, Red Hat, openSUSE
+Derivative distributions are not guaranteed compatibility with these binary packages. Enable the repository for your operating system; you might also try using the source RPM package to rebuild the package for your system to give you an excellent integration for any RPM-based distribution.
 
-<!-- Debian & Ubuntu Shell Script -->
-<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/debian.svg" alt="Debian" width="64" height="64"></a></td>
+https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/
 
-<!-- Arch Linux -->
-<td align="center"><a href="https://aur.archlinux.org/packages/slim-simulator/" target="_blank" rel="noopener noreferrer"><img src="https://raw.githubusercontent.com/JunaidQadirB/font-os/master/vectors/archlinux.svg" alt="Arch" width="64" height="64"></a></td>
+###### Debian & Ubuntu (and any derivatives using dpkg)
+A shell script using the facilities of `dpkg` is available. It uses the CMake install target to integrate SLiMgui with the desktop environment. It has the advantage over building from source in that it will check build dependencies for you, and it will automatically remove build artifacts from `/tmp`. Source the script with `curl` following the instructions in the manual.
 
-</tr>
+https://raw.githubusercontent.com/MesserLab/SLiM-Extras/master/installation/DebianUbuntuInstall.sh
 
-<!-- Text-only Row -->
-<tr>
+##### Windows (10 & 11)
+###### Native package (using MSYS2)
+The installation instructions for the native package (using MSYS2) are available in the Manual.
 
-<!-- macOS -->
-<td align="center"><a href="http://benhaller.com/slim/SLiM_OSX_Installer.pkg" target="_blank" rel="noopener noreferrer">Messer Lab Website</a></td>
+###### WSL2 installation guide
+This guide shows how to use an XServer to display graphical applications from WSL2 on your machine. The instructions are out of date, but may still prove useful.
 
-<!-- Fedora -->
-<td align="center"><a href="https://copr.fedorainfracloud.org/coprs/bacarson/SLiM-Selection_on_Linked_Mutations/" target="_blank" rel="noopener noreferrer">Copper Repository</a></td>
+Most of the instructions in the guide should be avoided, due to the subsystem for Linux now supporting graphical applications out-of-the-box: https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps.
 
-<!-- Debian & Ubuntu Shell Script -->
-<td align="center"><a href="https://github.com/MesserLab/SLiM-Extras/blob/master/installation/DebianUbuntuInstall.sh" target="_blank" rel="noopener noreferrer">SLiM-Extras MD Document</a></td>
+The last instruction, on sourcing the Debian & Ubuntu shell script, are still relevant if your preference is to use WSL2 rather than MSYS2.
 
-<!-- Arch Linux -->
-<td align="center"><a href="https://aur.archlinux.org/packages/slim-simulator/" target="_blank" rel="noopener noreferrer">Arch User Repository</a></td>
+https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md
 
-</tr>
-</tbody>
-</table>
 
 Compilation of SLiM from source
 ----------------------------------
