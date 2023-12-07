@@ -4,11 +4,8 @@
 
 
 
-<p align="center">
-	SLiM: Selection on Linked Mutations
-</p>
 <p align="justify">
-	SLiM is an evolutionary simulation framework that combines a powerful engine for population genetic simulations with the capability of modeling arbitrarily complex evolutionary scenarios. Simulations are configured via the integrated Eidos scripting language that allows interactive control over practically every aspect of the simulated evolutionary scenarios. The underlying individual-based simulation engine is highly optimized to enable modeling of entire chromosomes in large populations. We also provide a graphical user interface on macOS and Linux for easy simulation set-up, interactive runtime control, and dynamical visualization of simulation output.
+	SLiM is an evolutionary simulation framework that combines a powerful engine for population genetic simulations with the capability of modeling arbitrarily complex evolutionary scenarios. Simulations are configured via the integrated Eidos scripting language that allows interactive control over practically every aspect of the simulated scenarios. The underlying individual-based simulation engine is highly optimized to enable modeling of entire chromosomes in large populations. We also provide a graphical user interface called SLiMgui on macOS, Linux, and Windows for easy simulation set-up, interactive runtime control, and dynamic visualization of simulation output.
 </p>
 
 GitHub Actions | Fedora Copr | Conda
@@ -25,7 +22,7 @@ GitHub Actions | Fedora Copr | Conda
 License
 ----------
 
-Copyright (c) 2016-2022 Philipp Messer.  All rights reserved.
+Copyright (c) 2016-2023 Philipp Messer.  All rights reserved.
 
 SLiM is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
@@ -42,7 +39,7 @@ Installation
 ------------
 <em>Looking for Binary Packages / Installers?</em>
 
-The following sections summarize what methods for acquiring SLiM (and SLiMgui) are available.
+The following subsections summarize what methods for acquiring SLiM (and SLiMgui) are available.  Building from sources is also an option on all platforms; see the next section.
 
 ##### macOS
 https://github.com/MesserLab/SLiM/releases/download/v4.0.1/SLiM_OSX_Installer.pkg
@@ -77,7 +74,7 @@ The last instruction, on sourcing the Debian & Ubuntu shell script, are still re
 https://github.com/MesserLab/SLiM-Extras/blob/master/installation/Windows10Installation.md
 
 
-Compilation of SLiM from source
+Compilation of SLiM from Source
 ----------------------------------
 
 See chapter two of the SLiM manual for more information about building and installing, including instructions on building SLiMgui (the graphical modeling environment for SLiM) on various platforms.  The manual and other SLiM resources can be found at [http://messerlab.org/slim/](http://messerlab.org/slim/).
