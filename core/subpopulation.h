@@ -128,7 +128,7 @@ public:
 	EidosObjectPool &individual_pool_;				// NOT OWNED: a pool out of which individuals are allocated, for within-species locality of memory usage across individuals
 	std::vector<Genome *> &genome_junkyard_nonnull;	// NOT OWNED: non-null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
 	std::vector<Genome *> &genome_junkyard_null;	// NOT OWNED: null genomes get put here when we're done with them, so we can reuse them without dealloc/realloc of their mutrun buffers
-	bool has_null_genomes_ = false;					// false until addRecombinant() etc. generates a null genome and sets it to true; NOT set by null genomes for sex chromosome sims; used for optimizations
+	bool has_null_genomes_ = false;					// false until a null genome is added; NOT set by null genomes for sex chromosome sims; use CouldContainNullGenomes() to check this flag
 	
 	std::vector<Genome *> parent_genomes_;			// OWNED: all genomes in the parental generation; each individual gets two genomes, males are XY (not YX)
 	EidosValue_SP cached_parent_genomes_value_;		// cached for the genomes property; reset() if changed
@@ -250,6 +250,19 @@ public:
 	~Subpopulation(void);																			// destructor
 	
 	void SetName(const std::string &p_name);												// change the name property of the subpopulation, handling the uniqueness logic
+	
+	slim_refcount_t NullGenomeCount(void);
+	inline bool CouldContainNullGenomes(void) {
+		// sex-chromosome simulations can always contain null genomes
+		if (species_.ModeledChromosomeType() != GenomeType::kAutosome)
+			return true;
+#if DEBUG
+		// in DEBUG, check that has_null_genomes_ is not false when null genomes in fact exist (we allow the opposite case)
+		if (!has_null_genomes_ && (NullGenomeCount() > 0))
+			EIDOS_TERMINATION << "ERROR (Subpopulation::CouldContainNullGenomes): (internal error) has_null_genomes_ is not correct." << EidosTerminate();
+#endif
+		return (has_null_genomes_);
+	}
 	
 	slim_popsize_t DrawParentUsingFitness(gsl_rng *rng) const;								// WF only: draw an individual from the subpopulation based upon fitness
 	slim_popsize_t DrawFemaleParentUsingFitness(gsl_rng *rng) const;						// WF only: draw a female from the subpopulation based upon fitness; SEX ONLY

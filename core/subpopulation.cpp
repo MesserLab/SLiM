@@ -1025,6 +1025,24 @@ void Subpopulation::SetName(const std::string &p_name)
 	name_ = p_name;
 }
 
+slim_refcount_t Subpopulation::NullGenomeCount(void)
+{
+	slim_refcount_t null_genome_count = 0;
+	
+	slim_popsize_t subpop_genome_count = CurrentGenomeCount();
+	std::vector<Genome *> &subpop_genomes = CurrentGenomes();
+	
+	for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+	{
+		Genome &genome = *subpop_genomes[i];
+		
+		if (genome.IsNull())
+			null_genome_count++;
+	}
+	
+	return null_genome_count;
+}
+
 #if (defined(_OPENMP) && SLIM_USE_NONNEUTRAL_CACHES)
 void Subpopulation::FixNonNeutralCaches_OMP(void)
 {
@@ -4481,6 +4499,9 @@ EidosValue_SP Subpopulation::ExecuteMethod_addCloned(EidosGlobalStringID p_metho
 	bool genome1_null = parent->genome1_->IsNull(), genome2_null = parent->genome2_->IsNull();
 	IndividualSex child_sex = parent_sex;
 	
+	if (genome1_null || genome2_null)
+		has_null_genomes_ = true;
+	
 	// Generate the number of children requested
 	Chromosome &chromosome = species_.TheChromosome();
 	int32_t mutrun_count = chromosome.mutrun_count_;
@@ -5711,6 +5732,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_individuals_[parent_first_male_index_] = migrant;
 				parent_genomes_[(size_t)parent_first_male_index_ * 2] = migrant->genome1_;
 				parent_genomes_[(size_t)parent_first_male_index_ * 2 + 1] = migrant->genome2_;
+				
+				// the has_null_genomes_ needs to reflect the presence of null genomes
+				if (migrant->genome1_->IsNull() || migrant->genome2_->IsNull())
+					has_null_genomes_ = true;
+				
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_first_male_index_;
 				
@@ -5723,6 +5749,11 @@ EidosValue_SP Subpopulation::ExecuteMethod_takeMigrants(EidosGlobalStringID p_me
 				parent_individuals_.emplace_back(migrant);
 				parent_genomes_.emplace_back(migrant->genome1_);
 				parent_genomes_.emplace_back(migrant->genome2_);
+				
+				// the has_null_genomes_ needs to reflect the presence of null genomes
+				if (migrant->genome1_->IsNull() || migrant->genome2_->IsNull())
+					has_null_genomes_ = true;
+				
 				migrant->subpopulation_ = this;
 				migrant->index_ = parent_subpop_size_;
 				

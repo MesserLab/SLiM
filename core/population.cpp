@@ -5985,20 +5985,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
-			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
-			{
-				// optimized case when null genomes do not exist in this subpop
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				{
-					Genome &genome = *subpop_genomes[i];
-					
-					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-						genome.mutruns_[run_index]->increment_use_count();
-				}
-				
-				total_genome_count += subpop_genome_count;
-			}
-			else
+			if (subpop->CouldContainNullGenomes())
 			{
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
@@ -6012,6 +5999,19 @@ slim_refcount_t Population::TallyMutationRunReferencesForPopulation(void)
 						total_genome_count++;
 					}
 				}
+			}
+			else
+			{
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
 			}
 		}
 	}
@@ -6125,20 +6125,7 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 			slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
-			if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
-			{
-				// optimized case when null genomes do not exist in this subpop
-				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
-				{
-					Genome &genome = *subpop_genomes[i];
-					
-					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
-						genome.mutruns_[run_index]->increment_use_count();
-				}
-				
-				total_genome_count += subpop_genome_count;
-			}
-			else
+			if (subpop->CouldContainNullGenomes())
 			{
 				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
 				{
@@ -6152,6 +6139,19 @@ slim_refcount_t Population::TallyMutationRunReferencesForSubpops(std::vector<Sub
 						total_genome_count++;
 					}
 				}
+			}
+			else
+			{
+				// optimized case when null genomes do not exist in this subpop
+				for (slim_popsize_t i = 0; i < subpop_genome_count; i++)
+				{
+					Genome &genome = *subpop_genomes[i];
+					
+					for (int run_index = first_mutrun_index; run_index <= last_mutrun_index; ++run_index)
+						genome.mutruns_[run_index]->increment_use_count();
+				}
+				
+				total_genome_count += subpop_genome_count;
 			}
 		}
 	}
@@ -6267,11 +6267,7 @@ slim_refcount_t Population::_CountNonNullGenomes(void)
 		
 		slim_popsize_t subpop_genome_count = subpop->CurrentGenomeCount();
 		
-		if ((species_.ModeledChromosomeType() == GenomeType::kAutosome) && !subpop->has_null_genomes_)
-		{
-			total_genome_count += subpop_genome_count;
-		}
-		else
+		if (subpop->CouldContainNullGenomes())
 		{
 			std::vector<Genome *> &subpop_genomes = subpop->CurrentGenomes();
 			
@@ -6282,6 +6278,11 @@ slim_refcount_t Population::_CountNonNullGenomes(void)
 				if (!genome.IsNull())
 					total_genome_count++;
 			}
+		}
+		else
+		{
+			// optimized case when null genomes do not exist in this subpop
+			total_genome_count += subpop_genome_count;
 		}
 	}
 	
