@@ -3283,6 +3283,9 @@ EidosValue_SP Species::ExecuteMethod_treeSeqRememberIndividuals(EidosGlobalStrin
 	if (species != this)
 		EIDOS_TERMINATION << "ERROR (Species::ExecuteMethod_treeSeqRememberIndividuals): treeSeqRememberIndividuals() requires that all individuals belong to the target species." << EidosTerminate();
 	
+	// FIXME rename tables_ to tc once the code review process is done; just avoiding diff clutter
+	tsk_table_collection_t &tables_ = table_collection_vec_[0];		// the Individuals table is always in table collection 0
+	
 	if (ind_count == 1)
 	{
 		Individual *ind = (Individual *)individuals_value->ObjectElementAtIndex(0, nullptr);
