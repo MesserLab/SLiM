@@ -8398,6 +8398,51 @@ void Species::__AddMutationsFromTreeSequenceToGenomes(std::unordered_map<slim_mu
 	free(variant);
 }
 
+void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
+{
+	// Make sure our next pedigree ID is safe; right now it only accounts for pedigree IDs used by individuals, but maybe there
+	// could be nodes in the node table with genome pedigree IDs greater than those in use by individuals, in nonWF models; not
+	// sure how that would happen exactly, but maybe it can, so let's make sure to avoid a collision.
+	tsk_node_table_t &node_table = tables_.nodes;
+	tsk_size_t node_count = node_table.num_rows;
+	
+	if (model_type_ == SLiMModelType::kModelTypeNonWF)
+	{
+		for (tsk_size_t j = 0; (size_t) j < node_count; j++)
+		{
+			tsk_size_t offset1 = node_table.metadata_offset[j];
+			tsk_size_t offset2 = node_table.metadata_offset[j + 1];
+			tsk_size_t length = (offset2 - offset1);
+			
+			if (length)		// allow nodes with no metadata, which might be carryover non-SLiM nodes
+			{
+				// but if a node has metadata, it must be SLiM metadata, I think; our schema guarantees that
+				if (length != sizeof(GenomeMetadataRec))
+					EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): unexpected node metadata length; this file cannot be read." << EidosTerminate();
+
+				// get the metadata record and check the genome pedigree ID
+				GenomeMetadataRec *metadata_rec = (GenomeMetadataRec *)(node_table.metadata + offset1);
+				slim_genomeid_t genome_id = metadata_rec->genome_id_;
+				slim_pedigreeid_t pedigree_id = genome_id / 2;			// rounds down to integer
+				
+				if (pedigree_id >= gSLiM_next_pedigree_id)
+				{
+					static bool been_here = false;
+					
+					if (!been_here)
+					{
+						// if we do see this condition, let's emit a warning for right now; I'd like to know whether this ever happens
+						p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a genome pedigree ID that was (after division by 2) greater than or equal to the next pedigree ID; this is not expected to happen." << std::endl;
+						been_here = true;
+					}
+					
+					gSLiM_next_pedigree_id = pedigree_id + 1;
+				}
+			}
+		}
+	}
+}
+
 void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter, slim_tick_t p_metadata_tick, slim_tick_t p_metadata_cycle, SLiMModelType p_file_model_type, int p_file_version, SUBPOP_REMAP_HASH &p_subpop_map)
 {
 	// set the tick and cycle from the provenance data
@@ -8463,6 +8508,9 @@ void Species::_InstantiateSLiMObjectsFromTables(EidosInterpreter *p_interpreter,
 	ret = tsk_treeseq_free(ts);
 	if (ret != 0) handle_error("_InstantiateSLiMObjectsFromTables tsk_treeseq_free()", ret);
 	free(ts);
+	
+	// Ensure that the next pedigree ID used will not cause a collision with any existing nodes in the node table
+	__CheckNodePedigreeIDs(p_interpreter);
 	
 	// Set up the remembered genomes by looking though the list of nodes and their individuals
 	if (remembered_genomes_.size() != 0)
