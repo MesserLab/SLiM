@@ -8419,12 +8419,9 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 		tsk_size_t offset2 = node_table.metadata_offset[j + 1];
 		tsk_size_t length = (offset2 - offset1);
 		
-		if (length)		// allow nodes with no metadata, which might be carryover non-SLiM nodes
+		// allow nodes with other types of metadata; but if the metadata length metches ours, we have to assume it's ours
+		if (length == sizeof(GenomeMetadataRec))
 		{
-			// but if a node has metadata, it must be SLiM metadata, I think; our schema guarantees that
-			if (length != sizeof(GenomeMetadataRec))
-				EIDOS_TERMINATION << "ERROR (Species::__CheckNodePedigreeIDs): unexpected node metadata length; this file cannot be read." << EidosTerminate();
-
 			// get the metadata record and check the genome pedigree ID
 			GenomeMetadataRec *metadata_rec = (GenomeMetadataRec *)(node_table.metadata + offset1);
 			slim_genomeid_t genome_id = metadata_rec->genome_id_;
@@ -8439,8 +8436,8 @@ void Species::__CheckNodePedigreeIDs(EidosInterpreter *p_interpreter)
 				
 				if (!been_here)
 				{
-					// not sure whether this ought to be a warning at all; but the warning message can try to make it clear that it isn't necessarily an error...
-					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a genome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It typically only happens if an unsimplified tree sequence is being loaded, and even then only under certain conditions." << std::endl;
+					// decided to keep this as a warning; this circumstance is not necessarily pathological, but it probably usually is...
+					p_interpreter->ErrorOutputStream() << "#WARNING (Species::__CheckNodePedigreeIDs): in reading the tree sequence, a node was encountered with a genome pedigree ID that was (after division by 2) greater than the largest individual pedigree ID in the tree sequence.  This is not necessarily an error, but it is highly unusual, and could indicate that the tree sequence file is corrupted.  It may happen due to external manipulations of a tree sequence, or perhaps if an unsimplified tree sequence produced by SLiM is being loaded." << std::endl;
 					been_here = true;
 				}
 				
